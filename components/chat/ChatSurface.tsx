@@ -117,7 +117,8 @@ import {
 } from "@/lib/client/useContextWarning";
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
-import { findSlashCommand, isSlashCommandHead, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { findSlashCommand, isSlashCommandHead, resolveFastCommandArgs, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { OPEN_ADVISOR_PICKER_EVENT, requestOpenModelPicker } from "@/lib/client/model-picker-events";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { parseEffortArgs } from "@/lib/shared/effort-flags";
 import {
@@ -1325,7 +1326,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           if (parsed.action === "open-picker") {
             if (typeof window !== "undefined") {
               try {
-                window.dispatchEvent(new CustomEvent("claudius:open-advisor-picker"));
+                window.dispatchEvent(new CustomEvent(OPEN_ADVISOR_PICKER_EVENT));
               } catch {
                 // ignore — non-fatal
               }
@@ -1593,6 +1594,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             void session.setUltracode(parsed.on);
             showToast(`Ultracode ${parsed.on ? "on" : "off"}`);
           } else if (parsed.kind === "show") {
+            // CC 2.1.299 parity — "a bare /model, /effort or /fast there now
+            // opens a picker": open the SessionCard's ModelPicker (its effort
+            // row). Only when no card is mounted to claim the request (e.g.
+            // focus mode hides the rail) fall back to toasting the level.
+            if (requestOpenModelPicker()) return true;
             // Prefer the level the SDK actually applies: "auto" alone doesn't
             // say which level is running.
             const shownEffort = session.appliedEffort ?? session.effort ?? "auto";
@@ -1774,9 +1780,26 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             // ModelSwitchNoticePanel follows with the reason and this line
             // no longer contradicts it.
             showToast(`Switching model → ${args.trim()}`);
-          } else {
+          } else if (!requestOpenModelPicker()) {
+            // CC 2.1.299 parity — a bare `/model` opens the SessionCard's
+            // ModelPicker (the `requestOpenModelPicker()` above). Only when no
+            // card claimed the request (rail hidden) keep the old hint.
             showToast("Pass a model id, e.g. /model claude-sonnet-4-6");
           }
+          return true;
+        }
+        case "fast": {
+          // CC 2.1.299 parity — a bare `/fast` opens the SessionCard's
+          // ModelPicker (its fast-mode row); `/fast on|off` etc. still go to
+          // the SDK unchanged, as does a bare `/fast` when no card is mounted
+          // to open the picker (the pre-2.1.299 behaviour).
+          const parsed = resolveFastCommandArgs(args);
+          if (parsed.action === "open-picker" && requestOpenModelPicker()) return true;
+          void session.send(
+            parsed.action === "forward" ? parsed.text : "/fast",
+            undefined,
+            { asSlashCommand: true },
+          );
           return true;
         }
         case "copy": {
@@ -2431,9 +2454,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         <LongContextCreditsPanel
           nudge={session.longContextCreditsNudge}
           onOpenModelPicker={() => {
-            // Prefill the composer with `/model ` so the existing slash-command
-            // autocomplete renders the model picker — same affordance as
-            // typing `/model` in the CLI, no hardcoded fallback target since
+            // Prefill the composer with `/model ` — there's no model-id
+            // autocomplete for its argument, so the user either types an id
+            // or submits the bare command, which (CC 2.1.299 parity) opens the
+            // SessionCard's ModelPicker. No hardcoded fallback target, since
             // "standard-context" covers any non-1M Sonnet/Opus the user prefers.
             // Dismiss optimistically; the prefill lands on the next tick.
             session.dismissLongContextCreditsNudge();

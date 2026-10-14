@@ -3,7 +3,8 @@
 // the help modal, and which commands the web app intercepts vs. forwards to the SDK.
 
 export type SlashHandler =
-  // Handled in the web app — the SDK never sees the input.
+  // Handled in the web app — the SDK never sees the input. (Exception: `/fast`
+  // forwards its args form to the SDK; only the bare command is native.)
   | "native"
   // Forwarded to the SDK as plain user input — Claude Code interprets the slash command.
   | "sdk"
@@ -123,11 +124,17 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "btw", name: "btw", description: "Side question — ephemeral, no tools, no history.", category: "memory", handler: "sdk", argsHint: "<question>" },
 
   // ── Model ────────────────────────────────────────────────────────────
-  { id: "model", name: "model", description: "Pick a model (e.g. claude-opus-4-7 / claude-sonnet-4-6).", category: "model", handler: "native", argsHint: "[model-id]" },
+  // CC 2.1.299 parity — "a bare /model, /effort or /fast there now opens a
+  // picker": with no args, /model, /effort and /fast all open the SessionCard's
+  // ModelPicker (which hosts the model list plus the effort and fast rows).
+  { id: "model", name: "model", description: "Switch model (e.g. claude-opus-4-7 / claude-sonnet-4-6), or open the picker with no args.", category: "model", handler: "native", argsHint: "[model-id]" },
   // CC 2.1.284 — handled natively (the SDK rejects a forwarded `/effort`), so
   // `/effort <level>` and `/effort ultracode on|off` both work.
-  { id: "effort", name: "effort", description: "Set effort level, or toggle ultracode.", category: "model", handler: "native", argsHint: "[level] | ultracode on|off" },
-  { id: "fast", name: "fast", description: "Toggle fast mode.", category: "model", handler: "sdk", argsHint: "[on|off]" },
+  { id: "effort", name: "effort", description: "Set effort level, or toggle ultracode; open the picker with no args.", category: "model", handler: "native", argsHint: "[level] | ultracode on|off" },
+  // CC 2.1.299 parity — native so a bare `/fast` can open the picker. Unlike
+  // the other native commands, `/fast <args>` (on|off, …) is still forwarded
+  // to the SDK verbatim — see `resolveFastCommandArgs` and `runNative()`.
+  { id: "fast", name: "fast", description: "Toggle fast mode, or open the picker with no args.", category: "model", handler: "native", argsHint: "[on|off]" },
   // `/advisor` isn't an SDK-registered slash command (typing it raw would
   // return "/advisor isn't available in this environment.") — so we
   // intercept it natively. No args opens the SessionCard's picker, which
@@ -368,6 +375,21 @@ export function userCommandShadowsBuiltin(
   const hasUnmarked = rows.some((c) => c.builtin !== true);
   const hasMarked = rows.some((c) => c.builtin === true);
   return hasUnmarked && !hasMarked;
+}
+
+/**
+ * CC 2.1.299 parity — "a bare /model, /effort or /fast there now opens a
+ * picker". `/fast` with no args opens the SessionCard's ModelPicker (which
+ * hosts the fast-mode row); any args (`on`, `off`, …) keep the pre-2.1.299
+ * behaviour and are forwarded to the SDK as `/fast <args>`. Pure, for unit
+ * tests.
+ */
+export function resolveFastCommandArgs(
+  args: string,
+): { action: "open-picker" } | { action: "forward"; text: string } {
+  const trimmed = args.trim();
+  if (!trimmed) return { action: "open-picker" };
+  return { action: "forward", text: `/fast ${trimmed}` };
 }
 
 export type SlashSuggestion = SlashCommand & {
