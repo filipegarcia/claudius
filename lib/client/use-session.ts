@@ -5218,8 +5218,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         bindToSession(id);
         // Apply the server's authoritative cwd immediately. Without this,
         // `cwd` stays null until the SDK's `init` system message arrives via
-        // SSE — but for a brand-new session the SDK doesn't spawn until the
-        // first prompt, so init never fires beforehand. That left the page-
+        // SSE — and for a brand-new session that message doesn't arrive until
+        // the first prompt. (The CLI process itself is NOT lazy: this POST
+        // ran `Session.start()`, which calls `query()` and spawns it before
+        // responding; `system:init` is just emitted at the start of each
+        // turn, so an unused blank chat holds a live CLI child until the
+        // idle reaper in `session-manager.ts` ends it.) That left the page-
         // level auto-add-tab logic (which gates on `cwd === workspaceRoot`)
         // stalled until the user typed something, so the new tab only popped
         // into the strip after the first prompt. The init handler will
