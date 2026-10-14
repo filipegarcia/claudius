@@ -18,6 +18,7 @@ import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
 import { type AdvisorChoice, badgeAdvisorLabel, prettyModelName } from "@/lib/shared/advisor";
 import { useMaxEffortLevel } from "@/lib/client/useMaxEffortLevel";
+import { OPEN_ADVISOR_PICKER_EVENT, OPEN_MODEL_PICKER_EVENT } from "@/lib/client/model-picker-events";
 
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 
@@ -160,8 +161,24 @@ export function SessionCard({
     function onOpen() {
       setPickerOpen(true);
     }
-    window.addEventListener("claudius:open-advisor-picker", onOpen);
-    return () => window.removeEventListener("claudius:open-advisor-picker", onOpen);
+    window.addEventListener(OPEN_ADVISOR_PICKER_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_ADVISOR_PICKER_EVENT, onOpen);
+  }, [pickerEnabled]);
+
+  // CC 2.1.299 parity — "a bare /model, /effort or /fast there now opens a
+  // picker". Same shape as the `/advisor` listener above: `runNative`
+  // dispatches this for a bare `/model`, `/effort` or `/fast`, and the picker
+  // hosts the model list plus the effort and fast rows. `preventDefault()`
+  // tells the dispatcher a card claimed the request, so it skips its
+  // no-picker fallback (toast / SDK forward).
+  useEffect(() => {
+    if (!pickerEnabled) return;
+    function onOpen(e: Event) {
+      e.preventDefault();
+      setPickerOpen(true);
+    }
+    window.addEventListener(OPEN_MODEL_PICKER_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_MODEL_PICKER_EVENT, onOpen);
   }, [pickerEnabled]);
 
   return (
