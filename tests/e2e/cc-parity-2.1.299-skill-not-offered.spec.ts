@@ -23,7 +23,7 @@
 
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { test, expect, type APIRequestContext } from "../helpers/test";
 
 const SHOTS_DIR = resolve(process.cwd(), "docs/cc-parity/2.1.299");
@@ -80,10 +80,24 @@ test.describe("CC 2.1.299 — skill names the engine won't offer", () => {
         writeSkill(dir, "triage", "triage\u{FE0F}", "Triage new issues by label");
       },
       async (ws) => {
-        // The API carries the flag.
-        const api = await page.request.get(`${baseURL}/api/skills?cwd=${encodeURIComponent(ws.dir)}`);
-        expect(api.ok()).toBeTruthy();
-        const { scopes } = (await api.json()) as {
+        // The page's own GET /api/skills carries the flag (read off the
+        // response so the cwd is whatever the page resolved, not a guess at
+        // the stored form of the temp dir path).
+        const dirName = basename(ws.dir); // unique; survives /var → /private/var
+        const listed = page.waitForResponse(
+          (r) => {
+            const u = new URL(r.url());
+            return (
+              u.pathname === "/api/skills" &&
+              r.request().method() === "GET" &&
+              r.ok() &&
+              (u.searchParams.get("cwd") ?? "").endsWith(dirName)
+            );
+          },
+          { timeout: 20_000 },
+        );
+        await page.goto(`/${ws.id}/skills`);
+        const { scopes } = (await (await listed).json()) as {
           scopes: { scope: string; files: { name: string; notOffered: boolean }[] }[];
         };
         const project = scopes.find((s) => s.scope === "project")!.files;
@@ -92,8 +106,6 @@ test.describe("CC 2.1.299 — skill names the engine won't offer", () => {
           "release-notes": false,
           triage: false,
         });
-
-        await page.goto(`/${ws.id}/skills`);
 
         const badRow = page.locator(`[data-testid="skill-row"][data-skill-name="${NOT_OFFERED}"]`);
         const goodRow = page.locator('[data-testid="skill-row"][data-skill-name="release-notes"]');
