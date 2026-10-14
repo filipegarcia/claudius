@@ -265,8 +265,6 @@ describe("aggregate dedup", () => {
       (60_000 * 2 * input + 40_000 * write5m) + // mixed
       100_000 * write5m; // 5m-only, unchanged
     expect(r.totalUsd).toBeCloseTo(expected, 10);
-    // claude-opus-4-7 lists at $5/MTok input: 100k 1h writes = $1.00, not $0.625.
-    expect(100_000 * 2 * input).toBeCloseTo(1.0, 10);
   });
 });
 

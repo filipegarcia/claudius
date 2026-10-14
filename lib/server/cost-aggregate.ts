@@ -455,7 +455,7 @@ export async function aggregate(cwd: string): Promise<CostReport> {
     accountsConfigured,
     note: hasModelPricingOverride(pricing)
       ? "Cost uses your org's contracted modelPricing rates (settings.json) instead of list price where a rate matches; deduplicated by message+request id so resumed/forked sessions aren't double-counted."
-      : "Cost uses ccusage-compatible methodology: on-disk token counts priced with LiteLLM public list prices, deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
+      : "Cost uses on-disk token counts priced with LiteLLM public list prices (1-hour cache writes at 2× input, as Claude Code bills them), deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
   };
 }
 

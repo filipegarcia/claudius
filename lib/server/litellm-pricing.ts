@@ -7,7 +7,10 @@
  * Why not the old hardcoded $/MT table? It baked in *today's* Opus rates
  * ($15/$75) and applied them to every "opus" model — but e.g. `claude-opus-4-7`
  * actually lists at $5/$25. Driving cost from LiteLLM keeps Claudius in step
- * with ccusage and with Anthropic's published pricing as models change.
+ * with Anthropic's published pricing as models change. One deliberate
+ * divergence from ccusage (CC 2.1.300): 1-hour cache writes are priced at 2×
+ * input like Claude Code's own pricer, where ccusage bills every cache write
+ * at LiteLLM's single 5-minute rate.
  *
  * Loading strategy (mirrors ccusage's fetch + `--offline` fallback):
  *   1. A pruned snapshot is bundled at `./litellm-prices.json` so we always
