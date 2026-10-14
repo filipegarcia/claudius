@@ -57,3 +57,30 @@ export function fastModeDisabledReasonLabel(raw: string | null | undefined): str
   }
   return "Fast mode is temporarily unavailable.";
 }
+
+/**
+ * CC 2.1.300 — the `system/notification` key the engine emits when fast mode
+ * is refused because usage credits ran out (`out_of_credits`,
+ * `org_spend_cap_reached`, `org_level_disabled_until`). Verbatim from the
+ * bundled 2.1.300 engine.
+ */
+export const FAST_MODE_CREDITS_REJECTED_KEY = "fast-mode-overage-rejected";
+
+/**
+ * CC 2.1.300 parity — "[VSCode] Fixed fast mode staying on after usage
+ * credits ran out, which made each request be refused and re-sent; it now
+ * turns off until you turn it back on, with an error notice".
+ *
+ * On a credit-exhaustion rejection the engine retries that one request
+ * without fast mode and emits this notice, but leaves the session's fast
+ * flag on. Only the terminal REPL's own listener turns it off, which is why
+ * the upstream fix shipped in the VS Code host rather than the engine. An
+ * SDK host like Claudius has to do the same, or every following request is
+ * refused and re-sent. Shared by the server (which turns fast off, even with
+ * no tab open) and the client (which flips its toggle mirror).
+ */
+export function isFastModeCreditsRejectedNotice(msg: unknown): boolean {
+  if (!msg || typeof msg !== "object") return false;
+  const m = msg as { type?: unknown; subtype?: unknown; key?: unknown };
+  return m.type === "system" && m.subtype === "notification" && m.key === FAST_MODE_CREDITS_REJECTED_KEY;
+}

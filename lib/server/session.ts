@@ -95,6 +95,7 @@ import {
 } from "@/lib/shared/events";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
 import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse-init";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
@@ -8126,6 +8127,15 @@ export class Session {
           // overwrite unconditionally so a re-emitted init can clear a
           // stale error set (newest frame wins).
           this.pluginLoadErrors = init.pluginErrors;
+        }
+        // CC 2.1.300 — fast mode refused because usage credits ran out: the
+        // engine retries that request without fast but leaves the flag on, so
+        // every later request would be refused and re-sent. Turn it off until
+        // the user turns it back on (the client flips its toggle mirror from
+        // the same notice). Live frames only — a replayed notice from an
+        // earlier turn mustn't undo a later re-enable.
+        if (isFastModeCreditsRejectedNotice(sdkMsg) && !this.isReplayingTranscript) {
+          void this.setFast(false);
         }
         // CC 2.1.216 — keep the cached init chrome's slash-command list fresh
         // when the SDK pushes a `commands_changed` mid-session (skills/commands

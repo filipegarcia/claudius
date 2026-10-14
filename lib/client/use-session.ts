@@ -25,6 +25,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
@@ -4741,6 +4742,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             priority?: "low" | "medium" | "high" | "immediate";
           };
           const text = typeof n.text === "string" ? n.text.trim() : "";
+          // CC 2.1.300 — fast mode was refused because usage credits ran out.
+          // The server has already turned it off (`session.ts`); flip the
+          // picker toggle / FastBadge mirror to match without POSTing again.
+          // The notice itself renders below as an `immediate` (red) pill.
+          if (isFastModeCreditsRejectedNotice(sysAny) && !replayingRef.current) {
+            setFastEnabled(false);
+          }
           if (text) {
             setSystemEntries((prev) => [
               ...prev,
