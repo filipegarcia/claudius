@@ -1188,8 +1188,10 @@ export function PromptInput({
    * into the box (history recall, a failed-send restore, Edit & retry, a
    * lifted queued message): Claude Code no longer opens the command and file
    * menus over a recalled prompt until you edit it, so Enter sends it as
-   * written instead of picking the highlighted item (`/compact` → `/compact `,
-   * or a different file swapped in for `@lib/foo.ts`). The textarea's
+   * written instead of picking the highlighted item: a different file swapped
+   * in for a recalled `… @lib/foo.ts`, or a restored bare `/comp` completed
+   * to `/compact ` (slash commands never enter history, but they do come back
+   * through the failed-send restore and the queue lift). The textarea's
    * onChange runs `refreshPickerState` again, so the first real edit brings
    * the menus back.
    */
