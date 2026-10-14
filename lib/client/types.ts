@@ -1219,6 +1219,15 @@ export type AttachedImage = {
 export type SendableImage = Partial<Pick<AttachedImage, "id" | "ordinal">> &
   Pick<AttachedImage, "data" | "mediaType">;
 
+/**
+ * CC 2.1.299 parity — outcome of {@link ChatActions.send} / `enqueue`. A
+ * `false` means the message never reached the server (network failure or a
+ * non-2xx): the optimistic bubble has been rolled back and the composer should
+ * put the text back in the box rather than act as if it was sent. "Queued" is
+ * a success — the server has it.
+ */
+export type SendResult = { ok: true } | { ok: false; error: string };
+
 export type ChatActions = {
   /**
    * Forcefully take over the write lock for this session from whichever tab
@@ -1257,14 +1266,14 @@ export type ChatActions = {
        */
       fromGoal?: boolean;
     },
-  ): Promise<void>;
+  ): Promise<SendResult>;
   /**
    * Explicitly stage a message in the server-side queue, even if the session
    * is idle. Round-trips to `POST /api/sessions/[id]/input` with
    * `forceQueue: true`; the local `QueueIndicator` paints from the
    * `queue:updated` SSE echo that follows.
    */
-  enqueue(text: string, images?: AttachedImage[]): Promise<void>;
+  enqueue(text: string, images?: AttachedImage[]): Promise<SendResult>;
   /** Cancel a queued message. Round-trip; the SSE echo reflects the removal. */
   cancelQueued(id: string): Promise<void>;
   /**

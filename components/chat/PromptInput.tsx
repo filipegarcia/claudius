@@ -34,6 +34,13 @@ import {
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
+import { flushPendingDraft, type PendingDraft } from "@/lib/client/pending-draft";
+import {
+  SEND_FAILED_RESTORED_NOTICE,
+  SEND_FAILED_STASHED_NOTICE,
+  placeFailedSend,
+  sendOutcome,
+} from "@/lib/client/send-outcome";
 import { historyEntryIndex } from "@/lib/shared/prompt-history";
 import {
   applyEditToRanges,
@@ -65,7 +72,18 @@ type Props = {
    * only (idle + focus) so each tab can be told apart at a glance.
    */
   promptColor?: string | null;
-  onSend: (text: string, images?: AttachedImage[], inlinePastes?: string[]) => void;
+  /**
+   * Hand the composed message to the parent. May report delivery (CC 2.1.299
+   * parity): return / resolve `false` when the message never reached the
+   * server and the composer puts the text + images back in the box with an
+   * inline hint. `undefined` / `true` (and plain `void` callers) mean it was
+   * consumed — the composer stays cleared, the historical behaviour.
+   */
+  onSend: (
+    text: string,
+    images?: AttachedImage[],
+    inlinePastes?: string[],
+  ) => void | boolean | Promise<boolean | void>;
   onInterrupt: () => void;
   /**
    * Set by the parent to inject text into the input (e.g. when the user lifts
@@ -305,6 +323,16 @@ export function PromptInput({
    * hint/queue row (see the render ternary below).
    */
   const [invisibleNotice, setInvisibleNotice] = useState<string | null>(null);
+  /**
+   * CC 2.1.299 parity — footer hint shown after an undelivered message was
+   * put back in the box (see `restoreUndelivered`). Sticky until the next
+   * edit or send, so it can't vanish before the user notices why their
+   * message is still there. Pinned to the session it was raised in and only
+   * rendered there — PromptInput stays mounted across tab switches, and the
+   * hint must not claim another session's draft is "your message".
+   */
+  const [sendFailed, setSendFailed] = useState<{ sessionId: string | null; text: string } | null>(null);
+  const sendFailedNotice = sendFailed && sendFailed.sessionId === sessionId ? sendFailed.text : null;
   const invisibleNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   /** Per-prompt monotonic counter — increments on each insert, never decrements. */
@@ -557,14 +585,28 @@ export function PromptInput({
   // Race notes (these will bite if removed):
   //   1. If the user types into the new session before the GET resolves,
   //      the seed must NOT clobber their input. `userTypedRef` guards this.
-  //   2. A debounced save in flight when the user switches sessions must
-  //      land on the *previous* sessionId — `pendingSaveRef` carries the
-  //      session id at save start so closure stale-ness can't cross sessions.
+  //   2. A debounced save still pending when the user switches sessions (or
+  //      the composer unmounts) must land on the *previous* sessionId —
+  //      `pendingDraftRef` carries the session id it was recorded for, and
+  //      the session-change cleanup flushes it immediately rather than
+  //      letting the cancelled timer drop it (CC 2.1.299 parity).
   //   3. `draftInjection` (lifted queued message) wins over the stored
   //      draft if both fire on the same render — the injection effect
   //      runs after this one in render order and overwrites.
   const userTypedRef = useRef(false);
   const seededForSessionRef = useRef<string | null>(null);
+  // The newest edit the debounced save hasn't written yet (see race note 2).
+  const pendingDraftRef = useRef<PendingDraft | null>(null);
+  // Live composer state for async continuations (a failed send resolves
+  // after the closure that started it has gone stale). Synced post-commit.
+  const liveRef = useRef<{ sessionId: string | null; value: string; imageCount: number }>({
+    sessionId,
+    value,
+    imageCount: images.length,
+  });
+  useEffect(() => {
+    liveRef.current = { sessionId, value, imageCount: images.length };
+  });
   // Tracks the last sessionId this render-time block has already reacted
   // to. This is DELIBERATELY separate from `seededForSessionRef` (which
   // marks *seed-fetch completion* and can legitimately stay behind
@@ -663,7 +705,14 @@ export function PromptInput({
     if (seededForSessionRef.current !== sessionId) return;
     if (!userTypedRef.current && value === "" && images.length === 0) return;
     const id = sessionId;
+    // CC 2.1.299 parity — remember what this timer would have written, so a
+    // session switch / unmount inside the 500ms window can flush it instead
+    // of losing it. Recorded only past the guards above: on the switch
+    // render `value` still holds the OLD session's text while `sessionId` is
+    // already the new one, and the seed guard is what keeps the two apart.
+    pendingDraftRef.current = { sessionId: id, text: value, images };
     const t = setTimeout(() => {
+      pendingDraftRef.current = null;
       fetch(`/api/sessions/${id}/prompt-draft`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -676,6 +725,29 @@ export function PromptInput({
     }, 500);
     return () => clearTimeout(t);
   }, [sessionId, value, images]);
+
+  // CC 2.1.299 parity — "[VSCode] Fixed an unsent prompt and its attachments
+  // being lost when switching to another session and back". The debounce
+  // cleanup above cancels the pending timer when `sessionId` changes, and the
+  // next run bails on the seed guard, so the last <500ms of edits (typically
+  // a just-pasted screenshot) never reached the server and the round-trip
+  // GET restored a stale draft. Flush whatever is still pending to the
+  // session it was recorded for — on switch, and on unmount. PromptInput
+  // stays mounted across tab switches (ChatSurface swaps the `sessionId`
+  // prop, it doesn't key the composer), so this cleanup is the switch hook.
+  useEffect(() => {
+    return () => {
+      flushPendingDraft(pendingDraftRef, { unloading: false });
+    };
+  }, [sessionId]);
+  // A tab close / reload inside the debounce window would drop the edit the
+  // same way; pagehide is the last reliable moment, so the flush asks for
+  // `keepalive` (when the body fits its 64KiB quota — see pending-draft.ts).
+  useEffect(() => {
+    const onPageHide = () => flushPendingDraft(pendingDraftRef, { unloading: true });
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, []);
 
   const interimRef = useRef<string>("");
   const baseRef = useRef<string>("");
@@ -819,6 +891,8 @@ export function PromptInput({
     ordinalCounterRef.current = 0;
     histIdxRef.current = null;
     userTypedRef.current = false;
+    // The command is consumed — a session switch must not flush it back.
+    pendingDraftRef.current = null;
     if (sessionId) {
       fetch(`/api/sessions/${sessionId}/prompt-draft`, { method: "DELETE" }).catch(() => {
         // best-effort
@@ -915,7 +989,26 @@ export function PromptInput({
     );
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
-    onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined);
+    setSendFailed(null);
+    // Snapshot what's leaving, in the composer's own representation (`•`
+    // bullets, `[Image #N]` tokens), so an undelivered send can be put back
+    // exactly as typed.
+    const sent = { sessionId, text: value, images };
+    const outcome = sendOutcome(
+      onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined),
+    );
+    if (outcome === false) {
+      // Synchronous refusal — nothing was cleared yet; just say why.
+      setSendFailed({ sessionId, text: SEND_FAILED_RESTORED_NOTICE });
+      return;
+    }
+    if (outcome !== true) {
+      void outcome.then((ok) => {
+        if (!ok) restoreUndelivered(sent);
+      });
+    }
+    // Clear right away rather than after the outcome: a fast follow-up
+    // keystroke must not land in the message that just left.
     setValue("");
     setDismissedHints(new Set());
     setImages([]);
@@ -931,6 +1024,9 @@ export function PromptInput({
     // Submitting consumes the draft. Reset the "typed" flag so subsequent
     // session-switches still seed cleanly, and tell the server to clear.
     userTypedRef.current = false;
+    // Drop any not-yet-saved edit too, or a switch inside the debounce
+    // window would flush the just-sent text back as this session's draft.
+    pendingDraftRef.current = null;
     if (sessionId) {
       fetch(`/api/sessions/${sessionId}/prompt-draft`, { method: "DELETE" }).catch(() => {
         // Best-effort — the next debounced save will overwrite anyway.
@@ -940,6 +1036,54 @@ export function PromptInput({
       if (taRef.current) {
         taRef.current.style.height = "auto";
         taRef.current.focus();
+      }
+    });
+  }
+
+  /**
+   * CC 2.1.299 parity — "your text now stays in the box". Called when the
+   * parent reports a submitted message never reached the server. By then the
+   * composer was already cleared (and the server draft DELETEd), so put the
+   * message back where the user can retry it — see `placeFailedSend` for why
+   * it sometimes goes to the ↑-restore slot or the original session's draft
+   * instead. Restoring re-arms the debounced draft save (`userTypedRef`), so
+   * the server copy comes back too.
+   */
+  function restoreUndelivered(sent: { sessionId: string | null; text: string; images: AttachedImage[] }) {
+    const live = liveRef.current;
+    const placement = placeFailedSend({
+      originSessionId: sent.sessionId,
+      currentSessionId: live.sessionId,
+      currentText: live.value,
+      currentImageCount: live.imageCount,
+    });
+    if (placement === "save-to-origin") {
+      flushPendingDraft(
+        { current: { sessionId: sent.sessionId!, text: sent.text, images: sent.images } },
+        { unloading: false },
+      );
+      return;
+    }
+    if (placement === "stash") {
+      clearedDraftRef.current = { text: sent.text, images: sent.images };
+      setSendFailed({ sessionId: live.sessionId, text: SEND_FAILED_STASHED_NOTICE });
+      return;
+    }
+    userTypedRef.current = true;
+    setValue(sent.text);
+    refreshPickerState(sent.text, sent.text.length);
+    setImages(sent.images);
+    if (sent.images.length > 0) {
+      const maxOrd = sent.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
+      ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
+    }
+    setSendFailed({ sessionId: live.sessionId, text: SEND_FAILED_RESTORED_NOTICE });
+    requestAnimationFrame(() => {
+      autosize();
+      const el = taRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(sent.text.length, sent.text.length);
       }
     });
   }
@@ -1778,6 +1922,8 @@ export function PromptInput({
               // A real keystroke — block the seed-from-server effect from
               // overwriting the user's input if the GET resolves late.
               userTypedRef.current = true;
+              // The user is acting on the restored message — the hint did its job.
+              if (sendFailed) setSendFailed(null);
               // Editing the text exits history-browse mode: the next Cmd/Ctrl+↑
               // should re-stash this edited draft and start again from the tail.
               histIdxRef.current = null;
@@ -1988,7 +2134,15 @@ export function PromptInput({
         )}
 
         <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] text-[var(--muted)]/70">
-          {invisibleNotice ? (
+          {sendFailedNotice ? (
+            <span
+              role="status"
+              data-testid={`${testIdPrefix}-send-failed-notice`}
+              className="flex items-center gap-1.5 text-amber-400"
+            >
+              <span>{sendFailedNotice}</span>
+            </span>
+          ) : invisibleNotice ? (
             <span data-testid={`${testIdPrefix}-invisible-unicode-notice`} className="flex items-center gap-1.5">
               <span>{invisibleNotice}</span>
             </span>

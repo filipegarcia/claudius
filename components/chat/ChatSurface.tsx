@@ -59,7 +59,7 @@ import { ContextOverlay } from "@/components/overlays/ContextOverlay";
 import { PlanModeBanner } from "@/components/chat/PlanModeBanner";
 import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
-import type { AttachedImage, SessionInfo } from "@/lib/client/types";
+import type { AttachedImage, SendResult, SessionInfo } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
 import { matchBinding, useShortcut } from "@/lib/client/shortcuts";
 import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
@@ -1041,7 +1041,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         "Items to add:",
         bullets,
       ].join("\n");
-      await session.send(prompt);
+      const res = await session.send(prompt);
+      // send() reports delivery instead of throwing (CC 2.1.299 parity);
+      // keep rejecting on failure so the add form stays open with the items.
+      if (!res.ok) throw new Error(`couldn't add todos: ${res.error}`);
     },
     [session],
   );
@@ -1875,7 +1878,13 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
       opts?: { fromSuggestion?: boolean; inlinePastes?: string[] },
-    ) => {
+    ): Promise<boolean> | undefined => {
+      // CC 2.1.299 parity — paths that hand the text to `session.send`
+      // return its delivery outcome (true = the server has it) so the
+      // composer can put an undelivered message back in the box. Paths that
+      // handle the text locally (native dialogs, toasts) return undefined,
+      // which the composer treats as consumed — the historical behaviour.
+      const delivered = (p: Promise<SendResult>) => p.then((r) => r.ok, () => false);
       // A live AskUserQuestion blocks the agent in `canUseTool`. If the user
       // sends a new message instead of answering, treat it as moving on:
       // decline the ask (empty answers → the SDK gets a graceful deny), which
@@ -1903,8 +1912,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         // command, not Claudius's native dialog. When the SDK reports a
         // non-builtin command of this name, forward to the SDK first.
         if (userCommandShadowsBuiltin(head, sdkCommands)) {
-          void session.send(text, undefined, { asSlashCommand: true });
-          return;
+          return delivered(session.send(text, undefined, { asSlashCommand: true }));
         }
         const cmd = findSlashCommand(head);
         if (cmd?.handler === "native") {
@@ -1945,8 +1953,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // literal slash command. The SDK still receives the text and
           // interprets it as a slash; its eventual reply (compact_boundary,
           // init system message, etc.) lands as its own event.
-          void session.send(text, undefined, { asSlashCommand: true });
-          return;
+          return delivered(session.send(text, undefined, { asSlashCommand: true }));
         }
         // Not in the curated registry. Two possibilities:
         //
@@ -1959,8 +1966,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         //     sending `/lkjasdf` to the model is the wrong default (it
         //     confuses the model AND eats the user's input). Toast and stop.
         if (session.slashCommands.includes(head)) {
-          void session.send(text, undefined, { asSlashCommand: true });
-          return;
+          return delivered(session.send(text, undefined, { asSlashCommand: true }));
         }
         showToast(`Unknown command: /${head} — type / to see what's available`);
         return;
@@ -1970,15 +1976,17 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       // `queueDispatchMode: "asap"` the message skips Claudius's queue and
       // goes straight into the SDK's.
       if (session.pending) announce("Message queued.");
-      void session.send(
-        text,
-        images,
-        opts?.fromSuggestion || opts?.inlinePastes?.length
-          ? {
-              ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
-              ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
-            }
-          : undefined,
+      return delivered(
+        session.send(
+          text,
+          images,
+          opts?.fromSuggestion || opts?.inlinePastes?.length
+            ? {
+                ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
+                ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
+              }
+            : undefined,
+        ),
       );
     },
     [runNative, session, showToast, sdkCommands, announce],

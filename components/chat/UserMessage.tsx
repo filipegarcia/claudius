@@ -111,6 +111,7 @@ export function UserMessage({
   return (
     <div className="group flex justify-end">
       <div
+        data-testid="user-message"
         data-pending={message.pending ? "true" : undefined}
         className={cn(
           "max-w-[80%] rounded-2xl border border-[var(--border)] bg-[var(--panel-2)] px-4 py-2 transition-opacity",
