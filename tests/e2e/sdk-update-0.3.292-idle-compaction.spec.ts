@@ -1,7 +1,7 @@
 /**
  * SDK 0.3.292 — new `Settings.idleCompaction` (set false to stop Claude Code
  * compacting a long conversation while idle). Surfaced as a catalog row in
- * Settings → Model & behavior; round-trips through the settings API.
+ * Settings → Context & compaction; round-trips through the settings API.
  *
  * Screenshot target: docs/sdk-updates/0.3.292/idle-compaction-settings.png
  */
