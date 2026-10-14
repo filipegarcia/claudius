@@ -322,7 +322,7 @@ function EventRow({
                     )}
                     {h.type === "mcp_tool" && <span>{h.tool}</span>}
                     {"timeout" in h && h.timeout != null && (
-                      <span className="ml-2 text-[var(--muted)]">timeout={h.timeout}</span>
+                      <span className="ml-2 text-[var(--muted)]">timeout={h.timeout}s</span>
                     )}
                     {"async" in h && h.async && <span className="ml-2 text-[var(--muted)]">async</span>}
                     {"once" in h && h.once && <span className="ml-2 text-[var(--muted)]">once</span>}
@@ -690,7 +690,10 @@ function AddHookForm({
 
       {handlerSupportsOnFailure(type) && (
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-5">
-          <Field label="Timeout (ms)">
+          {/* The engine reads a hook's `timeout` in seconds (sdk.d.ts: "Timeout
+              in seconds for this specific command/request") — the old "ms"
+              label turned a typed 5000 into an ~83-minute timeout. */}
+          <Field label="Timeout (seconds)">
             <input
               type="number"
               min={0}
