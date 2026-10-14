@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { findSlashCommand, resolveFastCommandArgs } from "@/lib/shared/slash-commands";
+import { isSdkSlashUserMessage } from "@/lib/client/sdk-message-filters";
 import { parseEffortArgs } from "@/lib/shared/effort-flags";
 import {
   OPEN_ADVISOR_PICKER_EVENT,
@@ -9,8 +10,9 @@ import {
 
 /**
  * CC 2.1.299 — "a bare /model, /effort or /fast there now opens a picker".
- * In Claudius the chat composer's `runNative` dispatches
- * `OPEN_MODEL_PICKER_EVENT` for a bare `/model`, `/effort` or `/fast`; the
+ * In Claudius the chat composer (`runNative` for `/model` / `/effort`,
+ * `handleSend` for `/fast`) dispatches `OPEN_MODEL_PICKER_EVENT` for a bare
+ * `/model`, `/effort` or `/fast`; the
  * SessionCard claims it (preventDefault) and opens its ModelPicker. When no
  * card claims it, the commands fall back to their pre-2.1.299 behaviour.
  */
@@ -23,12 +25,30 @@ describe("slash registry", () => {
     expect(fast?.description).toMatch(/picker/i);
   });
 
+  test("/fast is flagged as still forwarding to the SDK; /model and /effort aren't", () => {
+    expect(findSlashCommand("fast")?.forwardsArgsToSdk).toBe(true);
+    expect(findSlashCommand("model")?.forwardsArgsToSdk).toBeUndefined();
+    expect(findSlashCommand("effort")?.forwardsArgsToSdk).toBeUndefined();
+  });
+
   test("/model and /effort stay native and advertise the bare-picker form", () => {
     for (const name of ["model", "effort"]) {
       const cmd = findSlashCommand(name);
       expect(cmd?.handler).toBe("native");
       expect(cmd?.description).toMatch(/picker/i);
     }
+  });
+});
+
+describe("isSdkSlashUserMessage — forwarded /fast on disk", () => {
+  test("a forwarded `/fast on` (or bare `/fast`) record is a slash pill, not a user bubble", () => {
+    expect(isSdkSlashUserMessage("/fast on")).toEqual({ command: "/fast", args: "on" });
+    expect(isSdkSlashUserMessage([{ type: "text", text: "/fast" }])).toEqual({ command: "/fast", args: "" });
+  });
+
+  test("purely native commands are still not matched", () => {
+    expect(isSdkSlashUserMessage("/model claude-sonnet-4-6")).toBeNull();
+    expect(isSdkSlashUserMessage("/effort high")).toBeNull();
   });
 });
 
@@ -84,6 +104,19 @@ describe("requestOpenModelPicker", () => {
   test("returns true when a listener claims it via preventDefault", () => {
     (g.window as EventTarget).addEventListener(OPEN_MODEL_PICKER_EVENT, (e) => e.preventDefault());
     expect(requestOpenModelPicker()).toBe(true);
+  });
+
+  test("a bare /fast carries focus: \"fast\" so a card can decline it", () => {
+    const seen: unknown[] = [];
+    (g.window as EventTarget).addEventListener(OPEN_MODEL_PICKER_EVENT, (e) => {
+      const detail = (e as CustomEvent<{ focus?: string }>).detail;
+      seen.push(detail);
+      // Mirrors SessionCard: decline `/fast` when the model has no fast row.
+      if (detail?.focus !== "fast") e.preventDefault();
+    });
+    expect(requestOpenModelPicker({ focus: "fast" })).toBe(false);
+    expect(requestOpenModelPicker()).toBe(true);
+    expect(seen).toEqual([{ focus: "fast" }, {}]);
   });
 
   test("returns false without a window (SSR)", () => {

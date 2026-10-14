@@ -124,6 +124,13 @@ type Props = {
   fastMode?: boolean;
   onToggleFast?: (enabled: boolean) => Promise<void> | void;
   /**
+   * Called with the model list once it loads (not on a failed fetch). Lets
+   * the host learn per-model capabilities the picker gates rows on — the
+   * SessionCard uses `supportsFastMode` to decide whether a bare `/fast` can
+   * open the picker (CC 2.1.299 parity).
+   */
+  onModelsLoaded?: (models: ModelInfo[]) => void;
+  /**
    * Advisor model the SDK escalates to mid-turn for stronger judgment
    * (see `lib/shared/advisor.ts`). Optional so the picker can be reused on
    * session-less surfaces (workspace defaults / new-session form) that don't
@@ -157,6 +164,7 @@ export function ModelPicker({
   onToggleUltracode,
   fastMode = false,
   onToggleFast,
+  onModelsLoaded,
   advisorModel = null,
   onPickAdvisor,
   showInherit = false,
@@ -236,6 +244,13 @@ export function ModelPicker({
         ? `/api/sessions/${sessionId}/model`
         : null;
 
+  // Latest `onModelsLoaded`, read by the fetch below without making it a
+  // dependency (an inline callback would refetch on every host render).
+  const onModelsLoadedRef = useRef(onModelsLoaded);
+  useEffect(() => {
+    onModelsLoadedRef.current = onModelsLoaded;
+  });
+
   const [lastFetchUrl, setLastFetchUrl] = useState(fetchUrl);
   if (lastFetchUrl !== fetchUrl) {
     setLastFetchUrl(fetchUrl);
@@ -261,7 +276,9 @@ export function ModelPicker({
           return;
         }
         const data = (await r.json()) as { models?: ModelInfo[] };
-        setModels(Array.isArray(data.models) ? data.models : []);
+        const list = Array.isArray(data.models) ? data.models : [];
+        setModels(list);
+        onModelsLoadedRef.current?.(list);
       })
       .catch((err) => {
         if (controller.signal.aborted) return;

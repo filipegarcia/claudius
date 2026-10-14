@@ -5427,6 +5427,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         fromSuggestion?: boolean;
         fromGoal?: boolean;
         inlinePastes?: string[];
+        reportsFailureInline?: boolean;
       },
     ): Promise<SendResult> => {
       const id = sessionIdRef.current;
@@ -5529,9 +5530,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // can't be reached still appearing to send your messages; your text
         // now stays in the box". A network failure used to throw straight out
         // of here (callers fire-and-forget), leaving the optimistic bubble
-        // stuck as pending and the composer already wiped.
+        // stuck as pending and the composer already wiped. The composer
+        // passes `reportsFailureInline` and shows its own "Couldn't reach
+        // Claudius" hint, so it skips the banner (a second one would just
+        // duplicate it); every other caller fires and forgets, so it keeps
+        // the banner rather than dropping the message silently. (An HTTP
+        // rejection below always keeps its banner — it carries the status.)
+        if (!opts?.reportsFailureInline) {
+          setErrors((e) => [...e, "send failed: couldn't reach Claudius"]);
+        }
         rollBack();
-        setErrors((e) => [...e, "send failed: couldn't reach Claudius"]);
         return { ok: false, error: "network" };
       }
       if (!res.ok) {

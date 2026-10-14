@@ -14,8 +14,9 @@
  * This spec mocks the chat backend (fixed SSE fixture), makes the `/input`
  * POST fail at the network layer (`route.abort("connectionrefused")`), types
  * a message, presses Enter, and asserts: the POST was attempted, the text is
- * back in the composer, the hint is visible, no user bubble is left in the
- * transcript, and the draft was re-saved for the session.
+ * back in the composer, the hint is visible (and not duplicated by a session
+ * error banner), no user bubble is left in the transcript, and the draft was
+ * re-saved for the session.
  *
  * Send-gating on stream reconnect was deliberately NOT shipped: the
  * "reconnecting" status arms 4s after ANY EventSource `onerror`, and finite
@@ -169,6 +170,11 @@ test("a send that can't reach the server keeps the text in the box", async ({ pa
   await expect(hint).toBeVisible();
   await expect(hint).toContainText("Couldn't reach Claudius");
   await expect(hint).toContainText("back in the box");
+  // The hint is the only report of the network failure — the session error
+  // banner doesn't repeat it.
+  await expect(
+    page.getByTestId("session-error").filter({ hasText: /send failed|couldn't reach/i }),
+  ).toHaveCount(0);
 
   // The text is back where the user typed it…
   await expect(composer).toHaveValue(MESSAGE);

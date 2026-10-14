@@ -18,7 +18,11 @@ import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
 import { type AdvisorChoice, badgeAdvisorLabel, prettyModelName } from "@/lib/shared/advisor";
 import { useMaxEffortLevel } from "@/lib/client/useMaxEffortLevel";
-import { OPEN_ADVISOR_PICKER_EVENT, OPEN_MODEL_PICKER_EVENT } from "@/lib/client/model-picker-events";
+import {
+  OPEN_ADVISOR_PICKER_EVENT,
+  OPEN_MODEL_PICKER_EVENT,
+  type OpenModelPickerDetail,
+} from "@/lib/client/model-picker-events";
 
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 
@@ -165,15 +169,40 @@ export function SessionCard({
     return () => window.removeEventListener(OPEN_ADVISOR_PICKER_EVENT, onOpen);
   }, [pickerEnabled]);
 
+  // Which of this session's models offer fast mode, learned from the last
+  // model list the picker loaded (the list is only fetched once the picker
+  // opens — the SDK's `supportedModels()` needs a live query). Null until a
+  // list has loaded for the bound session. Read by the bare-`/fast` listener
+  // below, alongside the live model / toggle, through refs so the listener's
+  // effect doesn't re-subscribe on every render.
+  const fastModelsRef = useRef<{ sessionId: string | null; values: Set<string> } | null>(null);
+  const fastLiveRef = useRef({ sessionId, model, canToggleFast: !!onChangeFast });
+  useEffect(() => {
+    fastLiveRef.current = { sessionId, model, canToggleFast: !!onChangeFast };
+  });
+
   // CC 2.1.299 parity — "a bare /model, /effort or /fast there now opens a
-  // picker". Same shape as the `/advisor` listener above: `runNative`
+  // picker". Same shape as the `/advisor` listener above: the chat composer
   // dispatches this for a bare `/model`, `/effort` or `/fast`, and the picker
   // hosts the model list plus the effort and fast rows. `preventDefault()`
   // tells the dispatcher a card claimed the request, so it skips its
-  // no-picker fallback (toast / SDK forward).
+  // no-picker fallback (toast / SDK forward). A bare `/fast`
+  // (`focus: "fast"`) is declined when the picker would have no fast row —
+  // no toggle wired, or the active model is known not to support fast mode —
+  // so it falls back to the SDK as before. Before the picker has ever loaded
+  // a list, support is unknown and the card claims it.
   useEffect(() => {
     if (!pickerEnabled) return;
     function onOpen(e: Event) {
+      const detail = (e as CustomEvent<OpenModelPickerDetail | undefined>).detail;
+      if (detail?.focus === "fast") {
+        const live = fastLiveRef.current;
+        if (!live.canToggleFast) return;
+        const known = fastModelsRef.current;
+        if (known && known.sessionId === live.sessionId && !(live.model && known.values.has(live.model))) {
+          return;
+        }
+      }
       e.preventDefault();
       setPickerOpen(true);
     }
@@ -279,6 +308,12 @@ export function SessionCard({
               : undefined
           }
           fastMode={fastMode}
+          onModelsLoaded={(models) => {
+            fastModelsRef.current = {
+              sessionId,
+              values: new Set(models.filter((m) => m.supportsFastMode).map((m) => m.value)),
+            };
+          }}
           onToggleFast={
             onChangeFast
               ? async (enabled) => {

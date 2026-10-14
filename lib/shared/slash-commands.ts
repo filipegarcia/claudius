@@ -3,8 +3,9 @@
 // the help modal, and which commands the web app intercepts vs. forwards to the SDK.
 
 export type SlashHandler =
-  // Handled in the web app — the SDK never sees the input. (Exception: `/fast`
-  // forwards its args form to the SDK; only the bare command is native.)
+  // Handled in the web app — the SDK never sees the input. (Exception: entries
+  // flagged `forwardsArgsToSdk`, e.g. `/fast`, forward their args form — and
+  // the bare form when no picker claims it — to the SDK.)
   | "native"
   // Forwarded to the SDK as plain user input — Claude Code interprets the slash command.
   | "sdk"
@@ -37,6 +38,13 @@ export type SlashCommand = {
   handler: SlashHandler;
   /** Free-text "argument hint" appended after the command in the picker. */
   argsHint?: string;
+  /**
+   * A `native` command whose input can still reach the SDK as a slash
+   * command (CC 2.1.299: `/fast on|off` is forwarded verbatim; only a bare
+   * `/fast` that a picker claims stays client-side). Lets the transcript
+   * filters treat its on-disk user records like an `sdk` command's.
+   */
+  forwardsArgsToSdk?: boolean;
 };
 
 // Categories sorted in a useful display order:
@@ -133,8 +141,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "effort", name: "effort", description: "Set effort level, or toggle ultracode; open the picker with no args.", category: "model", handler: "native", argsHint: "[level] | ultracode on|off" },
   // CC 2.1.299 parity — native so a bare `/fast` can open the picker. Unlike
   // the other native commands, `/fast <args>` (on|off, …) is still forwarded
-  // to the SDK verbatim — see `resolveFastCommandArgs` and `runNative()`.
-  { id: "fast", name: "fast", description: "Toggle fast mode, or open the picker with no args.", category: "model", handler: "native", argsHint: "[on|off]" },
+  // to the SDK verbatim — see `resolveFastCommandArgs` and `handleSend()` in
+  // ChatSurface.tsx.
+  { id: "fast", name: "fast", description: "Toggle fast mode, or open the picker with no args.", category: "model", handler: "native", argsHint: "[on|off]", forwardsArgsToSdk: true },
   // `/advisor` isn't an SDK-registered slash command (typing it raw would
   // return "/advisor isn't available in this environment.") — so we
   // intercept it natively. No args opens the SessionCard's picker, which

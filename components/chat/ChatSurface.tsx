@@ -1793,20 +1793,6 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           }
           return true;
         }
-        case "fast": {
-          // CC 2.1.299 parity — a bare `/fast` opens the SessionCard's
-          // ModelPicker (its fast-mode row); `/fast on|off` etc. still go to
-          // the SDK unchanged, as does a bare `/fast` when no card is mounted
-          // to open the picker (the pre-2.1.299 behaviour).
-          const parsed = resolveFastCommandArgs(args);
-          if (parsed.action === "open-picker" && requestOpenModelPicker()) return true;
-          void session.send(
-            parsed.action === "forward" ? parsed.text : "/fast",
-            undefined,
-            { asSlashCommand: true },
-          );
-          return true;
-        }
         case "copy": {
           const last = [...session.messages].reverse().find((m) => m.role === "assistant");
           if (!last) {
@@ -1879,13 +1865,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
       opts?: { fromSuggestion?: boolean; inlinePastes?: string[] },
-    ): Promise<boolean> | undefined => {
+    ): Promise<SendResult> | undefined => {
       // CC 2.1.299 parity — paths that hand the text to `session.send`
-      // return its delivery outcome (true = the server has it) so the
-      // composer can put an undelivered message back in the box. Paths that
-      // handle the text locally (native dialogs, toasts) return undefined,
-      // which the composer treats as consumed — the historical behaviour.
-      const delivered = (p: Promise<SendResult>) => p.then((r) => r.ok, () => false);
+      // return its `SendResult` (ok = the server has it; otherwise `error`
+      // says why, which picks the composer's hint copy) so the composer can
+      // put an undelivered message back in the box. Paths that handle the
+      // text locally (native dialogs, toasts) return undefined, which the
+      // composer treats as consumed — the historical behaviour.
+      const delivered = (p: Promise<SendResult>): Promise<SendResult> =>
+        p.catch(() => ({ ok: false, error: "unknown" }));
       // A live AskUserQuestion blocks the agent in `canUseTool`. If the user
       // sends a new message instead of answering, treat it as moving on:
       // decline the ask (empty answers → the SDK gets a graceful deny), which
@@ -1913,9 +1901,25 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         // command, not Claudius's native dialog. When the SDK reports a
         // non-builtin command of this name, forward to the SDK first.
         if (userCommandShadowsBuiltin(head, sdkCommands)) {
-          return delivered(session.send(text, undefined, { asSlashCommand: true }));
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         const cmd = findSlashCommand(head);
+        if (cmd?.id === "fast") {
+          // CC 2.1.299 parity — a bare `/fast` opens the SessionCard's
+          // ModelPicker (its fast-mode row). `/fast on|off` etc. still go to
+          // the SDK unchanged, as does a bare `/fast` when no card claims the
+          // request (rail hidden, or the active model has no fast mode — the
+          // picker would have no fast row). Handled here rather than in
+          // `runNative` so the forward keeps the send-outcome contract: an
+          // undelivered `/fast on` goes back in the box like any other send.
+          if (
+            resolveFastCommandArgs(args).action === "open-picker" &&
+            requestOpenModelPicker({ focus: "fast" })
+          ) {
+            return;
+          }
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
+        }
         if (cmd?.handler === "native") {
           if (runNative(cmd.id, args)) return;
           // Registry classifies as `native` but `runNative` returned false
@@ -1954,7 +1958,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // literal slash command. The SDK still receives the text and
           // interprets it as a slash; its eventual reply (compact_boundary,
           // init system message, etc.) lands as its own event.
-          return delivered(session.send(text, undefined, { asSlashCommand: true }));
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         // Not in the curated registry. Two possibilities:
         //
@@ -1967,7 +1971,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         //     sending `/lkjasdf` to the model is the wrong default (it
         //     confuses the model AND eats the user's input). Toast and stop.
         if (session.slashCommands.includes(head)) {
-          return delivered(session.send(text, undefined, { asSlashCommand: true }));
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         showToast(`Unknown command: /${head} — type / to see what's available`);
         return;
@@ -1981,12 +1985,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         session.send(
           text,
           images,
-          opts?.fromSuggestion || opts?.inlinePastes?.length
-            ? {
-                ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
-                ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
-              }
-            : undefined,
+          {
+            reportsFailureInline: true,
+            ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
+            ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
+          },
         ),
       );
     },

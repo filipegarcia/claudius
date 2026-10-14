@@ -1277,6 +1277,13 @@ export type ChatActions = {
        * server persists its provenance.
        */
       fromGoal?: boolean;
+      /**
+       * The caller reports a failed send inline (the composer's "Couldn't
+       * reach Claudius — your message is back in the box" hint), so a
+       * network failure skips the session errors banner. Fire-and-forget
+       * callers leave it unset and still get the banner (CC 2.1.299 parity).
+       */
+      reportsFailureInline?: boolean;
     },
   ): Promise<SendResult>;
   /**

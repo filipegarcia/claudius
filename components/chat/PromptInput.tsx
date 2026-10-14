@@ -24,7 +24,7 @@ import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { commandNeedsSudo, sendBash } from "@/lib/client/sendBash";
 import { readBridgeOnClient } from "@/lib/client/useElectron";
 import { resolveDroppedPath } from "@/lib/client/file-paths";
-import type { AttachedImage } from "@/lib/client/types";
+import type { AttachedImage, SendResult } from "@/lib/client/types";
 import {
   BULLET_GLYPH,
   bulletsToMarkdown,
@@ -36,9 +36,9 @@ import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
 import { flushPendingDraft, type PendingDraft } from "@/lib/client/pending-draft";
 import {
-  SEND_FAILED_RESTORED_NOTICE,
-  SEND_FAILED_STASHED_NOTICE,
+  mergeIntoDraft,
   placeFailedSend,
+  sendFailedNotice as sendFailedCopy,
   sendOutcome,
 } from "@/lib/client/send-outcome";
 import { historyEntryIndex } from "@/lib/shared/prompt-history";
@@ -74,16 +74,18 @@ type Props = {
   promptColor?: string | null;
   /**
    * Hand the composed message to the parent. May report delivery (CC 2.1.299
-   * parity): return / resolve `false` when the message never reached the
-   * server and the composer puts the text + images back in the box with an
-   * inline hint. `undefined` / `true` (and plain `void` callers) mean it was
-   * consumed — the composer stays cleared, the historical behaviour.
+   * parity): return / resolve `false` — or a `SendResult` with `ok: false`,
+   * whose `error` picks the hint's wording — when the message never reached
+   * the server, and the composer puts the text + images back in the box with
+   * an inline hint. `undefined` / `true` / `{ ok: true }` (and plain `void`
+   * callers) mean it was consumed — the composer stays cleared, the
+   * historical behaviour.
    */
   onSend: (
     text: string,
     images?: AttachedImage[],
     inlinePastes?: string[],
-  ) => void | boolean | Promise<boolean | void>;
+  ) => void | boolean | SendResult | Promise<boolean | void | SendResult>;
   onInterrupt: () => void;
   /**
    * Set by the parent to inject text into the input (e.g. when the user lifts
@@ -353,6 +355,18 @@ export function PromptInput({
   // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
   // is stashed (a fresh session, or already restored).
   const clearedDraftRef = useRef<{ text: string; images: AttachedImage[] } | null>(null);
+  // CC 2.1.299 — an undelivered message parked for ↑ because the user had
+  // already started a new one (see `restoreUndelivered`). Its own slot, not
+  // `clearedDraftRef`: following the hint ("press ↑ in an empty box") often
+  // means Ctrl+C / double-Esc first, and that clear would overwrite the
+  // cleared-draft slot with the new text, losing the failed message. Pinned
+  // to its session and kept across tab switches, like the hint itself.
+  const failedSendRef = useRef<{
+    sessionId: string | null;
+    text: string;
+    images: AttachedImage[];
+    pasteRanges: PasteRange[];
+  } | null>(null);
   // CC 2.1.280 — where each large paste sits in the composer, sent as the
   // SDK's `inline_pastes` so the model can tell pasted spans from typed text.
   // Ranges, not strings (CC 2.1.292): a paste dropped inside an earlier one
@@ -917,6 +931,12 @@ export function PromptInput({
     }
   }
 
+  /** The parked undelivered message, if it belongs to this session's composer. */
+  function failedSendForThisSession() {
+    const f = failedSendRef.current;
+    return f && f.sessionId === sessionId ? f : null;
+  }
+
   /** Wipe the composer: text, attached images, picker state. */
   function clearInput() {
     // CC 2.1.288 — stash a non-empty draft so plain ↑ can bring it back.
@@ -987,25 +1007,26 @@ export function PromptInput({
       }),
       wire,
     );
+    // Snapshot what's leaving, in the composer's own representation (`•`
+    // bullets, `[Image #N]` tokens, paste ranges), so an undelivered send can
+    // be put back exactly as typed — `inline_pastes` metadata included.
+    const sent = { sessionId, text: value, images, pasteRanges: [...pasteRangesRef.current] };
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
     setSendFailed(null);
-    // Snapshot what's leaving, in the composer's own representation (`•`
-    // bullets, `[Image #N]` tokens), so an undelivered send can be put back
-    // exactly as typed.
-    const sent = { sessionId, text: value, images };
     const outcome = sendOutcome(
       onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined),
     );
-    if (outcome === false) {
-      // Synchronous refusal — nothing was cleared yet; just say why.
-      setSendFailed({ sessionId, text: SEND_FAILED_RESTORED_NOTICE });
-      return;
-    }
-    if (outcome !== true) {
-      void outcome.then((ok) => {
-        if (!ok) restoreUndelivered(sent);
+    if (outcome instanceof Promise) {
+      void outcome.then((r) => {
+        if (!r.ok) restoreUndelivered(sent, r.error);
       });
+    } else if (!outcome.ok) {
+      // Synchronous refusal — nothing was cleared yet; put the paste ranges
+      // back and just say why.
+      pasteRangesRef.current = sent.pasteRanges;
+      setSendFailed({ sessionId, text: sendFailedCopy(outcome.error, "restore") });
+      return;
     }
     // Clear right away rather than after the outcome: a fast follow-up
     // keystroke must not land in the message that just left.
@@ -1045,11 +1066,15 @@ export function PromptInput({
    * parent reports a submitted message never reached the server. By then the
    * composer was already cleared (and the server draft DELETEd), so put the
    * message back where the user can retry it — see `placeFailedSend` for why
-   * it sometimes goes to the ↑-restore slot or the original session's draft
-   * instead. Restoring re-arms the debounced draft save (`userTypedRef`), so
-   * the server copy comes back too.
+   * it sometimes goes to the failed-send ↑ slot or the original session's
+   * draft instead. Restoring re-arms the debounced draft save
+   * (`userTypedRef`), so the server copy comes back too. `error` is the
+   * parent's reason (`"network"`, `"http 404"`, …) and picks the hint copy.
    */
-  function restoreUndelivered(sent: { sessionId: string | null; text: string; images: AttachedImage[] }) {
+  function restoreUndelivered(
+    sent: { sessionId: string | null; text: string; images: AttachedImage[]; pasteRanges: PasteRange[] },
+    error: string,
+  ) {
     const live = liveRef.current;
     const placement = placeFailedSend({
       originSessionId: sent.sessionId,
@@ -1058,18 +1083,43 @@ export function PromptInput({
       currentImageCount: live.imageCount,
     });
     if (placement === "save-to-origin") {
-      flushPendingDraft(
-        { current: { sessionId: sent.sessionId!, text: sent.text, images: sent.images } },
-        { unloading: false },
-      );
+      // Append to (don't blindly overwrite) whatever draft the origin
+      // session already holds — the user may have typed there before
+      // switching away. A failed read falls back to writing the message
+      // alone rather than dropping it.
+      const origin = sent.sessionId!;
+      void fetch(`/api/sessions/${origin}/prompt-draft`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+        .then((data: { text?: string; images?: AttachedImage[] } | null) => {
+          const merged = mergeIntoDraft(
+            {
+              text: typeof data?.text === "string" ? data.text : "",
+              images: Array.isArray(data?.images) ? data.images : [],
+            },
+            { text: sent.text, images: sent.images },
+          );
+          flushPendingDraft({ current: { sessionId: origin, ...merged } }, { unloading: false });
+        });
       return;
     }
     if (placement === "stash") {
-      clearedDraftRef.current = { text: sent.text, images: sent.images };
-      setSendFailed({ sessionId: live.sessionId, text: SEND_FAILED_STASHED_NOTICE });
+      failedSendRef.current = {
+        sessionId: sent.sessionId,
+        text: sent.text,
+        images: sent.images,
+        pasteRanges: sent.pasteRanges,
+      };
+      setSendFailed({ sessionId: live.sessionId, text: sendFailedCopy(error, "stash") });
       return;
     }
     userTypedRef.current = true;
+    // Bring the paste ranges back with the text. Syncing `prevValueRef` first
+    // makes the layout effect see no edit, so it keeps these ranges instead
+    // of diffing "" → text into one big typed insertion.
+    pendingPasteRef.current = null;
+    pasteRangesRef.current = sent.pasteRanges;
+    prevValueRef.current = sent.text;
     setValue(sent.text);
     refreshPickerState(sent.text, sent.text.length);
     setImages(sent.images);
@@ -1077,7 +1127,7 @@ export function PromptInput({
       const maxOrd = sent.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
       ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
     }
-    setSendFailed({ sessionId: live.sessionId, text: SEND_FAILED_RESTORED_NOTICE });
+    setSendFailed({ sessionId: live.sessionId, text: sendFailedCopy(error, "restore") });
     requestAnimationFrame(() => {
       autosize();
       const el = taRef.current;
@@ -1293,12 +1343,33 @@ export function PromptInput({
         atActive: atQuery != null,
         emojiActive: emojiQuery != null,
         browsingHistory: histIdxRef.current !== null,
-        hasStash: clearedDraftRef.current != null,
+        hasStash: failedSendForThisSession() != null || clearedDraftRef.current != null,
       })
     ) {
       e.preventDefault();
-      const d = clearedDraftRef.current!;
-      clearedDraftRef.current = null;
+      // CC 2.1.299 — an undelivered message parked by `restoreUndelivered`
+      // wins over a Ctrl+C-cleared draft: it's what the hint points at.
+      const failed = failedSendForThisSession();
+      let d: { text: string; images: AttachedImage[] };
+      if (failed) {
+        failedSendRef.current = null;
+        d = failed;
+        // Like `restoreUndelivered`: the restored message is the user's draft
+        // again — a late seed must not clobber it, and it gets re-saved.
+        userTypedRef.current = true;
+        // Restore its paste ranges too (see `restoreUndelivered`).
+        pendingPasteRef.current = null;
+        pasteRangesRef.current = failed.pasteRanges;
+        prevValueRef.current = failed.text;
+        if (sendFailed) setSendFailed(null);
+        if (failed.images.length > 0) {
+          const maxOrd = failed.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
+          ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
+        }
+      } else {
+        d = clearedDraftRef.current!;
+        clearedDraftRef.current = null;
+      }
       setValue(d.text);
       setImages(d.images);
       requestAnimationFrame(() => {

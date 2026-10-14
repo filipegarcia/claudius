@@ -10,7 +10,7 @@ import type { DisplayMessage } from "./types";
 
 /**
  * Detect a user message whose entire content is an SDK-handled slash
- * command (e.g. `/compact`, `/init`, `/recap`). Used to filter the chat-
+ * command (e.g. `/compact`, `/init`, `/recap`, or a forwarded `/fast on`). Used to filter the chat-
  * prose render on resume / resyncFromDisk paths: when the on-disk JSONL
  * has a `/compact` user message left over from a prior turn, we render
  * a system pill in its place instead of echoing the slash text as if the
@@ -39,7 +39,9 @@ export function isSdkSlashUserMessage(
   const m = /^\/([^\s/]+)(?:\s+([\s\S]*))?$/.exec(trimmed);
   if (!m) return null;
   const cmd = findSlashCommand(m[1]);
-  if (!cmd || cmd.handler !== "sdk") return null;
+  // `forwardsArgsToSdk` (e.g. `/fast on`): native in the composer, but its
+  // forwarded form lands in the JSONL like any SDK slash command.
+  if (!cmd || (cmd.handler !== "sdk" && !cmd.forwardsArgsToSdk)) return null;
   return { command: `/${m[1]}`, args: (m[2] ?? "").trim() };
 }
 
