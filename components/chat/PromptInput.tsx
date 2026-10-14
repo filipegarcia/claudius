@@ -34,6 +34,7 @@ import {
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
+import { flushPendingDraft, type PendingDraft } from "@/lib/client/pending-draft";
 import { historyEntryIndex } from "@/lib/shared/prompt-history";
 import {
   applyEditToRanges,
@@ -557,14 +558,18 @@ export function PromptInput({
   // Race notes (these will bite if removed):
   //   1. If the user types into the new session before the GET resolves,
   //      the seed must NOT clobber their input. `userTypedRef` guards this.
-  //   2. A debounced save in flight when the user switches sessions must
-  //      land on the *previous* sessionId — `pendingSaveRef` carries the
-  //      session id at save start so closure stale-ness can't cross sessions.
+  //   2. A debounced save still pending when the user switches sessions (or
+  //      the composer unmounts) must land on the *previous* sessionId —
+  //      `pendingDraftRef` carries the session id it was recorded for, and
+  //      the session-change cleanup flushes it immediately rather than
+  //      letting the cancelled timer drop it (CC 2.1.299 parity).
   //   3. `draftInjection` (lifted queued message) wins over the stored
   //      draft if both fire on the same render — the injection effect
   //      runs after this one in render order and overwrites.
   const userTypedRef = useRef(false);
   const seededForSessionRef = useRef<string | null>(null);
+  // The newest edit the debounced save hasn't written yet (see race note 2).
+  const pendingDraftRef = useRef<PendingDraft | null>(null);
   // Tracks the last sessionId this render-time block has already reacted
   // to. This is DELIBERATELY separate from `seededForSessionRef` (which
   // marks *seed-fetch completion* and can legitimately stay behind
@@ -663,7 +668,14 @@ export function PromptInput({
     if (seededForSessionRef.current !== sessionId) return;
     if (!userTypedRef.current && value === "" && images.length === 0) return;
     const id = sessionId;
+    // CC 2.1.299 parity — remember what this timer would have written, so a
+    // session switch / unmount inside the 500ms window can flush it instead
+    // of losing it. Recorded only past the guards above: on the switch
+    // render `value` still holds the OLD session's text while `sessionId` is
+    // already the new one, and the seed guard is what keeps the two apart.
+    pendingDraftRef.current = { sessionId: id, text: value, images };
     const t = setTimeout(() => {
+      pendingDraftRef.current = null;
       fetch(`/api/sessions/${id}/prompt-draft`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -676,6 +688,29 @@ export function PromptInput({
     }, 500);
     return () => clearTimeout(t);
   }, [sessionId, value, images]);
+
+  // CC 2.1.299 parity — "[VSCode] Fixed an unsent prompt and its attachments
+  // being lost when switching to another session and back". The debounce
+  // cleanup above cancels the pending timer when `sessionId` changes, and the
+  // next run bails on the seed guard, so the last <500ms of edits (typically
+  // a just-pasted screenshot) never reached the server and the round-trip
+  // GET restored a stale draft. Flush whatever is still pending to the
+  // session it was recorded for — on switch, and on unmount. PromptInput
+  // stays mounted across tab switches (ChatSurface swaps the `sessionId`
+  // prop, it doesn't key the composer), so this cleanup is the switch hook.
+  useEffect(() => {
+    return () => {
+      flushPendingDraft(pendingDraftRef, { unloading: false });
+    };
+  }, [sessionId]);
+  // A tab close / reload inside the debounce window would drop the edit the
+  // same way; pagehide is the last reliable moment, so the flush asks for
+  // `keepalive` (when the body fits its 64KiB quota — see pending-draft.ts).
+  useEffect(() => {
+    const onPageHide = () => flushPendingDraft(pendingDraftRef, { unloading: true });
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, []);
 
   const interimRef = useRef<string>("");
   const baseRef = useRef<string>("");
@@ -819,6 +854,8 @@ export function PromptInput({
     ordinalCounterRef.current = 0;
     histIdxRef.current = null;
     userTypedRef.current = false;
+    // The command is consumed — a session switch must not flush it back.
+    pendingDraftRef.current = null;
     if (sessionId) {
       fetch(`/api/sessions/${sessionId}/prompt-draft`, { method: "DELETE" }).catch(() => {
         // best-effort
@@ -931,6 +968,9 @@ export function PromptInput({
     // Submitting consumes the draft. Reset the "typed" flag so subsequent
     // session-switches still seed cleanly, and tell the server to clear.
     userTypedRef.current = false;
+    // Drop any not-yet-saved edit too, or a switch inside the debounce
+    // window would flush the just-sent text back as this session's draft.
+    pendingDraftRef.current = null;
     if (sessionId) {
       fetch(`/api/sessions/${sessionId}/prompt-draft`, { method: "DELETE" }).catch(() => {
         // Best-effort — the next debounced save will overwrite anyway.
