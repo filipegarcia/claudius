@@ -14,7 +14,7 @@
  *
  * Now the form asks for what to verify plus an optional Model (alias or id),
  * on agent and prompt hooks alike, and saves the engine shape. Entries saved
- * in the old shape get an amber "ignored by Claude Code" badge so the user can
+ * in the old shape get an amber "won't run — no prompt" badge so the user can
  * re-create them.
  *
  * `/api/hooks` is mocked (the e2e workspace may point at this repo): the POST
@@ -88,7 +88,7 @@ test("Hooks editor saves agent hooks as {prompt, model} and flags the old shape"
   if ((await page.getByTestId("hook-agent-legacy").count()) === 0) await stopRow.click();
   const legacy = page.getByTestId("hook-agent-legacy");
   await expect(legacy).toHaveCount(1);
-  await expect(legacy).toContainText("ignored by Claude Code");
+  await expect(legacy).toHaveText("won't run — no prompt");
 
   // Add an agent hook on Stop with a model alias. A first-visit dev-server
   // remount can wipe the form mid-fill, so (re)open and fill until it sticks.
@@ -100,7 +100,9 @@ test("Hooks editor saves agent hooks as {prompt, model} and flags the old shape"
     await form.locator("select").nth(1).selectOption("agent");
     await form.getByTestId("hook-prompt-input").fill(VERIFY);
     await form.getByTestId("hook-model-input").fill("haiku");
+    await form.getByTestId("hook-timeout-input").fill("120");
     await expect(form.getByTestId("hook-prompt-input")).toHaveValue(VERIFY, { timeout: 1_000 });
+    await expect(form.getByTestId("hook-timeout-input")).toHaveValue("120", { timeout: 1_000 });
     await expect(form.getByTestId("hook-model-input")).toHaveValue("haiku", { timeout: 1_000 });
   }).toPass({ timeout: 20_000 });
   // The old "Agent name" field is gone; the prompt is labelled for an agent.
@@ -115,7 +117,7 @@ test("Hooks editor saves agent hooks as {prompt, model} and flags the old shape"
   // The engine's shape: prompt + model, and no `agent` key.
   expect(posted).toHaveLength(1);
   expect(posted[0].event).toBe("Stop");
-  expect(posted[0].group.hooks[0]).toEqual({ type: "agent", prompt: VERIFY, model: "haiku" });
+  expect(posted[0].group.hooks[0]).toEqual({ type: "agent", prompt: VERIFY, model: "haiku", timeout: 120 });
   expect(posted[0].group.hooks[0]).not.toHaveProperty("agent");
 
   await expect(page.getByText("(2 configured)")).toBeVisible();

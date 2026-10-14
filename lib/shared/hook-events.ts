@@ -175,11 +175,11 @@ export type HookOnFailure = "block";
 export type HookHandler =
   | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string; onFailure?: HookOnFailure }
   | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string; onFailure?: HookOnFailure }
-  | { type: "prompt"; prompt: string; model?: string; continueOnBlock?: boolean; once?: boolean; if?: string }
+  | { type: "prompt"; prompt: string; model?: string; timeout?: number; continueOnBlock?: boolean; once?: boolean; if?: string }
   // CC 2.1.300 — an agent hook is a verifier PROMPT run on a model (Haiku by
   // default), not a named subagent: `{type:"agent", prompt, model?}` per the
   // engine schema (sdk.d.ts). See `isLegacyAgentHook` for the old shape.
-  | { type: "agent"; prompt: string; model?: string; once?: boolean; if?: string }
+  | { type: "agent"; prompt: string; model?: string; timeout?: number; once?: boolean; if?: string }
   | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean; if?: string };
 
 /**
@@ -202,7 +202,9 @@ export const AGENT_HANDLER_DISALLOWED_EVENTS: readonly HookEvent[] = ["Permissio
 export function isLegacyAgentHook(h: unknown): boolean {
   if (!h || typeof h !== "object") return false;
   const o = h as { type?: unknown; prompt?: unknown };
-  return o.type === "agent" && (typeof o.prompt !== "string" || o.prompt.trim() === "");
+  // The engine schema only needs `prompt` to be a string — an empty one still
+  // loads — so only a missing/non-string prompt is the skipped shape.
+  return o.type === "agent" && typeof o.prompt !== "string";
 }
 
 /** The legacy agent hook's subagent name, for display. */

@@ -115,9 +115,13 @@ describe("isLegacyAgentHook / legacyAgentHookName", () => {
     expect(legacyAgentHookName(legacy)).toBe("test-verifier");
   });
 
-  test("flags an agent hook with an empty prompt, without inventing a name", () => {
-    expect(isLegacyAgentHook({ type: "agent", prompt: "  " })).toBe(true);
-    expect(legacyAgentHookName({ type: "agent", prompt: "" })).toBeNull();
+  test("flags a prompt-less agent hook without inventing a name", () => {
+    expect(isLegacyAgentHook({ type: "agent" })).toBe(true);
+    expect(legacyAgentHookName({ type: "agent" })).toBeNull();
+  });
+
+  test("an empty-string prompt still loads in the engine, so it isn't flagged", () => {
+    expect(isLegacyAgentHook({ type: "agent", prompt: "" })).toBe(false);
   });
 
   test("accepts the engine shape, with or without a model", () => {

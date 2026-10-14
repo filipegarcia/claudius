@@ -298,10 +298,10 @@ function EventRow({
                         {legacyAgentHookName(h) && <span>{legacyAgentHookName(h)}</span>}
                         <span
                           data-testid="hook-agent-legacy"
-                          title="Saved in an old shape ({agent: name}) with no prompt — Claude Code skips it when loading settings, so it never runs. Remove it and add it again with a prompt."
+                          title="Saved in an old shape ({agent: name}) with no prompt — Claude Code skips it when loading settings, so it never runs. Remove it and add it again with what to verify."
                           className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
                         >
-                          ignored by Claude Code — re-create with a prompt
+                          won&apos;t run — no prompt
                         </span>
                       </>
                     )}
@@ -312,7 +312,7 @@ function EventRow({
                     )}
                     {/* CC 2.1.280 — an agent hook on PermissionRequest won't
                         run; flag the stale config so the author fixes it. */}
-                    {h.type === "agent" && !agentHandlerAllowed(spec.name) && (
+                    {h.type === "agent" && !isLegacyAgentHook(h) && !agentHandlerAllowed(spec.name) && (
                       <span
                         title="The engine won't run an agent hook on this event — use command or http"
                         className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
@@ -478,6 +478,7 @@ function AddHookForm({
         type: "prompt",
         prompt,
         ...(model.trim() ? { model: model.trim() } : {}),
+        ...(timeout !== "" ? { timeout: Number(timeout) } : {}),
         ...(continueOnBlock ? { continueOnBlock: true } : {}),
         ...(once ? { once: true } : {}),
         ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
@@ -494,6 +495,7 @@ function AddHookForm({
         type: "agent",
         prompt,
         ...(model.trim() ? { model: model.trim() } : {}),
+        ...(timeout !== "" ? { timeout: Number(timeout) } : {}),
         ...(once ? { once: true } : {}),
         ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
@@ -733,7 +735,22 @@ function AddHookForm({
         </div>
       )}
       {(type === "prompt" || type === "agent" || type === "mcp_tool") && (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {/* Agent and prompt hooks take a timeout too (seconds; an agent
+              hook's default is 60). */}
+          {(type === "prompt" || type === "agent") && (
+            <Field label="Timeout (seconds)">
+              <input
+                type="number"
+                min={0}
+                value={timeout}
+                onChange={(e) => setTimeout(e.target.value ? Number(e.target.value) : "")}
+                data-testid="hook-timeout-input"
+                placeholder={type === "agent" ? "60 (default)" : "(default)"}
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+              />
+            </Field>
+          )}
           <ToggleField label="once" checked={once} onChange={setOnce} />
           {type === "prompt" && (
             <ToggleField label="continueOnBlock" checked={continueOnBlock} onChange={setContinueOnBlock} />
