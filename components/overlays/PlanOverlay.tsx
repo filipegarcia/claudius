@@ -95,7 +95,7 @@ export function PlanOverlay({ plan, onAccept, onReject, onClose }: Props) {
         // (`--chat-text`) instead of a fixed text-sm.
         <div
           data-testid="plan-overlay-preview"
-          className="max-h-[70vh] overflow-y-auto scroll-thin px-4 py-4 text-[length:var(--chat-text)] leading-7"
+          className="max-h-[70vh] overflow-y-auto scroll-thin px-4 py-4 text-[length:var(--chat-text)] leading-7 2xl:leading-8"
         >
           <Markdown>{draft}</Markdown>
         </div>

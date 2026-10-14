@@ -9,8 +9,10 @@
  * user picked: the expanded ExitPlanMode row in the transcript
  * (`components/chat/ToolCall.tsx`) and the plan approval overlay
  * (`components/overlays/PlanOverlay.tsx`). Both now use `--chat-text`.
- * Claudius renders no diffs inside the chat column, and a theme change only
- * flips `data-theme`, so the other halves of the entry have no Claudius
+ * Transcript rows render no inline diffs (Edit/Write show their input), and
+ * the `/diff` overlay is a monospace code panel that stays fixed-size like
+ * the Git page's. A theme change only flips `data-theme`, so it can't undo
+ * the inline `--chat-text`. Those halves of the entry have no Claudius
  * surface.
  *
  * Screenshot target: docs/cc-parity/2.1.300/plan-chat-size.png
