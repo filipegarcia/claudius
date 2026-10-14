@@ -91,7 +91,12 @@ export function PlanOverlay({ plan, onAccept, onReject, onClose }: Props) {
           className="block max-h-[70vh] min-h-[55vh] w-full resize-y bg-[var(--panel)] px-4 py-4 font-mono text-xs leading-relaxed text-[var(--foreground)] outline-none focus:bg-[var(--panel-2)]"
         />
       ) : (
-        <div className="max-h-[70vh] overflow-y-auto scroll-thin px-4 py-4 text-sm leading-7">
+        // CC 2.1.300 — the plan preview follows Settings → Chat size
+        // (`--chat-text`) instead of a fixed text-sm.
+        <div
+          data-testid="plan-overlay-preview"
+          className="max-h-[70vh] overflow-y-auto scroll-thin px-4 py-4 text-[length:var(--chat-text)] leading-7"
+        >
           <Markdown>{draft}</Markdown>
         </div>
       )}

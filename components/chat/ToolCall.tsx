@@ -355,7 +355,13 @@ export function ToolCall({
           {planText ? (
             <div className="px-3 py-2">
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">plan</div>
-              <div className="max-h-96 overflow-y-auto scroll-thin rounded bg-[var(--panel-2)] px-3 py-2 text-sm leading-7">
+              {/* CC 2.1.300 — the plan preview follows Settings → Chat size
+                  (`--chat-text`) like the messages around it, instead of a
+                  fixed text-sm. */}
+              <div
+                data-testid="tool-call-plan-preview"
+                className="max-h-96 overflow-y-auto scroll-thin rounded bg-[var(--panel-2)] px-3 py-2 text-[length:var(--chat-text)] leading-7"
+              >
                 <Markdown>{planText}</Markdown>
               </div>
             </div>
