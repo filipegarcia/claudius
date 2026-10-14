@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { query, type Options, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { nextFireMs } from "@/lib/shared/cron";
+import { nextFireAfter } from "@/lib/shared/cron";
 import type { ServerEvent } from "@/lib/shared/events";
 import { notificationBus } from "./notification-bus";
 import {
@@ -81,7 +81,14 @@ class Scheduler {
   async arm(job: Job): Promise<void> {
     this.disarm(job.id);
     if (!job.enabled) return;
-    const fireAt = nextFireMs(job.cron);
+    // CC 2.1.299 parity — "Fixed scheduled tasks and loops firing again after
+    // every turn, or firing early, during the repeated hour when daylight
+    // saving time ends". Every arm path (boot, edit, post-run re-arm, the 24h
+    // cap re-arm) anchors on the last fire instead of computing from now, so
+    // a re-arm inside the repeated hour can't land on the wall-clock time
+    // that just fired. `lastRunAt` is cron-independent (set at fire start),
+    // so it stays a valid anchor after the cron is edited.
+    const fireAt = nextFireAfter(job.cron, job.lastRunAt);
     if (fireAt == null) return;
     // Patch only the field arming owns. Writing the caller's `job` back whole
     // would revert an edit (or resurrect a delete) made since it was read.
