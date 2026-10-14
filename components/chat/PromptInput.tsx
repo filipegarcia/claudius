@@ -464,13 +464,16 @@ export function PromptInput({
   useEffect(() => {
     if (!ready) return;
     if (!sessionId) return;
-    const ae = document.activeElement as HTMLElement | null;
-    const inOtherEditor =
-      ae &&
-      ae !== document.body &&
-      ae !== taRef.current &&
-      (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
-    if (inOtherEditor) return;
+    const inOtherEditor = () => {
+      const ae = document.activeElement as HTMLElement | null;
+      return Boolean(
+        ae &&
+          ae !== document.body &&
+          ae !== taRef.current &&
+          (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable),
+      );
+    };
+    if (inOtherEditor()) return;
     const handle = requestAnimationFrame(() => {
       // A permission prompt may have mounted (and claimed its own explicit
       // focus — SDK 0.3.268 `defaultToNo` autofocuses its decline button)
@@ -479,6 +482,10 @@ export function PromptInput({
       // `inOtherEditor` check above wouldn't have caught it — recheck for the
       // modal itself right before actually moving focus.
       if (document.querySelector("[data-permission-modal]")) return;
+      // Likewise an editor (e.g. the session-title rename input, which
+      // commits and closes on blur) may have opened during that frame —
+      // stealing focus from it would close it straight away.
+      if (inOtherEditor()) return;
       taRef.current?.focus();
     });
     return () => cancelAnimationFrame(handle);
