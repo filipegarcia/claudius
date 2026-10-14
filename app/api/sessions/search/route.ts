@@ -13,13 +13,15 @@ const SNIPPET_RADIUS = 60;
 const MAX_FILES = 600;
 const CONCURRENCY = 8;
 // CC 2.1.300 writes engine-internal request-capture entries into every
-// transcript: `api-request-shape` (full system prompt + tools JSON, up to
-// 2 MB), `api-request-blob` and `api-request` (params incl. max_tokens).
-// Those lines are not conversation content — any word from the system prompt
-// or tool descriptions would otherwise match every session. In raw JSONL an
-// UNESCAPED `"type":"api-request` can only be a real top-level JSON key (a
-// quote inside a string value is written `\"`), and the prefix covers all
-// three variants. This is a constant — never derived from user input.
+// transcript: `api-request-shape` (the full system prompt + tools JSON, which
+// can be large), `api-request-blob` (hash-deduplicated copies of request
+// messages, so skipping them loses nothing — the real user/assistant lines
+// are still there) and `api-request` (params incl. max_tokens). Any word from
+// the system prompt or tool descriptions would otherwise match every session.
+// In raw JSONL an UNESCAPED `"type":"api-request` is a real JSON key, not
+// string content (a quote inside a string value is written `\"`); the engine
+// writes it as the first key of all three entry types. This is a constant —
+// never derived from user input.
 const API_REQUEST_LINE_MARKER = '"type":"api-request';
 
 export type SessionContentMatch = {

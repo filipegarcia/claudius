@@ -32,13 +32,40 @@ async function search(q: string): Promise<SessionContentMatch[]> {
   return body.matches;
 }
 
+// Shapes as the 2.1.300 engine writes them (checked against a real transcript):
+// `type` first, the prompt/tools nested under `shape`, blobs carrying a
+// hash-deduplicated copy of a request message.
 const shape = (system: string) => ({
   type: "api-request-shape",
-  system: [{ type: "text", text: system }],
-  tools: [{ name: "Bash", description: "Executes a bash command in a persistent shell." }],
+  sessionId: "s",
+  shapeHash: "h1",
+  timestamp: "2026-10-14T00:00:00.000Z",
+  version: "2.1.300",
+  shape: {
+    system: [{ type: "text", text: system }],
+    tools: [
+      {
+        name: "Bash",
+        description: "Executes a bash command in a persistent shell.",
+        input_schema: { type: "object" },
+      },
+    ],
+  },
 });
-const blob = { type: "api-request-blob", blob: "c29tZSBvcGFxdWUgYmxvYg==" };
-const request = { type: "api-request", params: { model: "claude-opus-4-7", max_tokens: 32000 } };
+const blob = (text: string) => ({
+  type: "api-request-blob",
+  sessionId: "s",
+  hash: "b1",
+  message: { role: "user", content: [{ type: "text", text }] },
+});
+const request = {
+  type: "api-request",
+  sessionId: "s",
+  id: "r1",
+  version: "2.1.300",
+  shapeHash: "h1",
+  params: { model: "claude-opus-4-7", max_tokens: 32000, output_config: { effort: "high" } },
+};
 const user = (text: string) => ({ type: "user", message: { role: "user", content: text } });
 const assistant = (text: string) => ({
   type: "assistant",
@@ -50,7 +77,7 @@ beforeAll(() => {
   process.env.HOME = home;
   writeTranscript("s-plain", [
     shape("You are Claude Code. Be zephyrine about conventions."),
-    blob,
+    blob("an earlier request mentioned nothing interesting"),
     request,
     user("please refactor the quokkaville module"),
     assistant("Sure, refactoring now."),
@@ -60,6 +87,12 @@ beforeAll(() => {
     request,
     user("hello"),
     assistant("The marmaladeword appears here in a real reply."),
+  ]);
+  // A blob repeating the user's words sits before the real user line.
+  writeTranscript("s-blob-first", [
+    blob("tell me about the wombatgrove setup"),
+    request,
+    user("tell me about the wombatgrove setup"),
   ]);
 });
 
@@ -96,5 +129,12 @@ describe("GET /api/sessions/search ignores api-request* transcript entries", () 
     expect(matches[0].snippet).toContain("marmaladeword appears here");
     expect(matches[0].snippet).not.toContain("api-request");
     expect(matches[0].snippet).not.toContain("solutions");
+  });
+
+  test("a word repeated in an earlier api-request-blob is found on the real user line", async () => {
+    const matches = await search("wombatgrove");
+    expect(matches.map((m) => m.sessionId)).toEqual(["s-blob-first"]);
+    expect(matches[0].snippet).toContain("wombatgrove");
+    expect(matches[0].snippet).not.toContain("api-request");
   });
 });
