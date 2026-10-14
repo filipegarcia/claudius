@@ -103,6 +103,14 @@ type Props = {
     text: string;
     images?: AttachedImage[];
     mode?: "replace" | "append";
+    /**
+     * CC 2.1.300 — the text is a prompt the user already wrote (Edit & retry
+     * on a refused message, a lifted queued message), not a prefill to keep
+     * composing. The slash / @-file / :emoji menus stay closed over it until
+     * the user edits, so Enter sends it as written instead of picking the
+     * highlighted menu item. Replace mode only.
+     */
+    recalled?: boolean;
   };
   /**
    * Previously sent user prompts for the current session, oldest → newest.
@@ -574,7 +582,8 @@ export function PromptInput({
         clearedDraftRef.current = { text: value, images };
       }
       setValue(draftInjection.text);
-      refreshPickerState(draftInjection.text, draftInjection.text.length);
+      if (draftInjection.recalled) closePickers();
+      else refreshPickerState(draftInjection.text, draftInjection.text.length);
       if (draftInjection.images && draftInjection.images.length > 0) {
         setImages(draftInjection.images);
         // Bump the ordinal counter past anything the prior queue used so a new
@@ -1128,7 +1137,9 @@ export function PromptInput({
     pasteRangesRef.current = sent.pasteRanges;
     prevValueRef.current = sent.text;
     setValue(sent.text);
-    refreshPickerState(sent.text, sent.text.length);
+    // CC 2.1.300 — the restored message goes back as written: no menu opens
+    // over it until the user edits, so Enter re-sends it verbatim.
+    closePickers();
     setImages(sent.images);
     if (sent.images.length > 0) {
       const maxOrd = sent.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
@@ -1172,6 +1183,25 @@ export function PromptInput({
   }
 
   /**
+   * CC 2.1.300 parity — close the slash / @-file / :emoji menus without
+   * touching the text. Used when a prompt the user already wrote comes back
+   * into the box (history recall, a failed-send restore, Edit & retry, a
+   * lifted queued message): Claude Code no longer opens the command and file
+   * menus over a recalled prompt until you edit it, so Enter sends it as
+   * written instead of picking the highlighted item (`/compact` → `/compact `,
+   * or a different file swapped in for `@lib/foo.ts`). The textarea's
+   * onChange runs `refreshPickerState` again, so the first real edit brings
+   * the menus back.
+   */
+  function closePickers() {
+    setSlashQuery(null);
+    setPickerOpen(false);
+    setSlashAtStart(false);
+    setAtQuery(null);
+    setEmojiQuery(null);
+  }
+
+  /**
    * Replace the current textarea selection with `insert` and place the caret
    * at `caretOffset` characters into the inserted text. Used by Enter-to-
    * continue-list and Tab indent/outdent so they all share the same
@@ -1211,15 +1241,19 @@ export function PromptInput({
   }
 
   /**
-   * Drop a recalled (or restored) prompt into the composer: replace the value,
-   * resync the slash/@-mention picker, and park the caret at the end so the
-   * user can keep editing or fire it off. We deliberately leave `userTypedRef`
-   * untouched — a non-empty value already passes the draft-save gate, and not
-   * flipping the flag keeps the "hasn't typed yet" seed semantics intact.
+   * Drop a recalled (or restored) prompt into the composer: replace the value
+   * and park the caret at the end so the user can keep editing or fire it
+   * off. A history entry (`recalled`) keeps the menus closed until the user
+   * edits (CC 2.1.300 — see `closePickers`); the stashed in-progress draft
+   * that Cmd/Ctrl+↓ walks back to is live typing, so its menus resync. We
+   * deliberately leave `userTypedRef` untouched — a non-empty value already
+   * passes the draft-save gate, and not flipping the flag keeps the "hasn't
+   * typed yet" seed semantics intact.
    */
-  function applyRecalledText(text: string) {
+  function applyRecalledText(text: string, recalled = true) {
     setValue(text);
-    refreshPickerState(text, text.length);
+    if (recalled) closePickers();
+    else refreshPickerState(text, text.length);
     requestAnimationFrame(() => {
       const el = taRef.current;
       if (!el) return;
@@ -1264,7 +1298,7 @@ export function PromptInput({
       } else {
         // Past the newest entry → back to the stashed draft.
         histIdxRef.current = null;
-        applyRecalledText(stashedDraftRef.current);
+        applyRecalledText(stashedDraftRef.current, false);
         return true;
       }
     }
@@ -1325,10 +1359,11 @@ export function PromptInput({
       return;
     }
 
-    // Shell-style history recall. Intentionally NOT gated on the pickers: a
-    // recalled slash command keeps the slash picker open, and we still want ↓
-    // to walk back out of it. The pickers ignore Arrow keys while meta/ctrl is
-    // held (see SlashCommandPicker / AtMentionPicker), so there's no conflict.
+    // Shell-style history recall. Intentionally NOT gated on the pickers: the
+    // walk can start from a draft with a menu open (the recalled entry then
+    // closes it — CC 2.1.300), and ↓ back to that draft reopens it. The
+    // pickers ignore Arrow keys while meta/ctrl is held (see
+    // SlashCommandPicker / AtMentionPicker), so there's no conflict.
     if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
       if (recallHistory(e.key === "ArrowUp" ? -1 : 1)) e.preventDefault();
       return;

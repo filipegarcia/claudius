@@ -411,6 +411,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       text: string;
       images?: AttachedImage[];
       mode?: "replace" | "append";
+      recalled?: boolean;
     } | undefined
   >(undefined);
   const draftTokenRef = useRef(0);
@@ -1085,7 +1086,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         setLiftedHistory((prev) => ({ ...prev, [sid]: [...(prev[sid] ?? []), entry] }));
       }
       draftTokenRef.current += 1;
-      setDraftInjection({ token: draftTokenRef.current, text: item.text, images: item.images });
+      // CC 2.1.300 — a lifted message is one the user already wrote: no menu
+      // opens over it until they edit, so Enter re-queues it as written.
+      setDraftInjection({
+        token: draftTokenRef.current,
+        text: item.text,
+        images: item.images,
+        recalled: true,
+      });
     },
     [session],
   );
@@ -2651,7 +2659,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                   .trim();
                 if (!text) return;
                 draftTokenRef.current += 1;
-                setDraftInjection({ token: draftTokenRef.current, text, mode: "replace" });
+                // CC 2.1.300 — "Edit prompt" on a flagged message: the
+                // restored prompt opens with no command or file menu over
+                // it, so Enter sends it as written.
+                setDraftInjection({
+                  token: draftTokenRef.current,
+                  text,
+                  mode: "replace",
+                  recalled: true,
+                });
               },
             }}
           />
