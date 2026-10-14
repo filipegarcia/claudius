@@ -3,6 +3,7 @@ import { isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { NextResponse } from "next/server";
 import { getRepoRoot } from "@/lib/server/git";
 import { resolveWorkspaceRoot } from "@/lib/server/workspace-roots";
+import { decodePreview, decodeText, detectTextEncoding, encodeText } from "@/lib/shared/text-encoding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,20 +127,31 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       });
     }
 
-    // File content mode — return as UTF-8 text. Size-cap at 2 MB to avoid
+    // File content mode — return the decoded text. Size-cap at 2 MB to avoid
     // accidentally streaming large binaries through the editor.
     if (stat.size > 2 * 1024 * 1024) {
       return NextResponse.json({ error: "file too large to edit (>2MB)" }, { status: 413 });
     }
-    let content: string;
+    let bytes: Buffer;
     try {
-      content = await fs.readFile(target, "utf8");
+      bytes = await fs.readFile(target);
     } catch (err) {
       return NextResponse.json(
         { error: err instanceof Error ? err.message : String(err) },
         { status: 500 },
       );
     }
+    // CC 2.1.299 parity — "Fixed Read garbling UTF-16LE files with a byte-order
+    // mark, and Write dropping byte-order marks or silently converting
+    // Windows-1252, Shift-JIS, GBK or UTF-16BE files to UTF-8 (now refused)".
+    // Sniff the encoding instead of assuming UTF-8: UTF-16LE decodes properly,
+    // a UTF-8 BOM is stripped from `content` but reported via `encoding` (PUT
+    // re-adds it), and anything we can't round-trip comes back as a lossy
+    // preview with `editable: false` so the editors open it read-only.
+    const detected = detectTextEncoding(bytes);
+    const content = detected.editable
+      ? decodeText(bytes, detected.encoding)
+      : decodePreview(bytes, detected.guess);
     return NextResponse.json({
       rootId: resolved.root.id,
       rootPath: root,
@@ -148,6 +160,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       content,
       sizeBytes: stat.size,
       modifiedMs: stat.mtimeMs,
+      encoding: detected.encoding,
+      encodingLabel: detected.label,
+      editable: detected.editable,
+      ...(detected.editable ? {} : { readOnlyReason: detected.reason }),
     });
   }
   if (!stat.isDirectory()) {
@@ -246,7 +262,19 @@ async function resolveBoundedTarget(
   return { ok: true, root, target };
 }
 
-/** PUT — overwrite (or create) a UTF-8 text file. Body is the new content. */
+/** Refusal for a PUT over a file whose encoding we can't write back losslessly. */
+const UNSUPPORTED_ENCODING_SAVE_ERROR =
+  "This file isn't UTF-8 or UTF-16LE text, so Claudius won't save it (that would convert it to UTF-8)";
+
+/**
+ * PUT — overwrite (or create) a text file. Body is the new content as UTF-8.
+ *
+ * CC 2.1.299 parity — Write no longer drops byte-order marks or silently
+ * converts non-UTF-8 files: the existing file's encoding is sniffed and the
+ * new text is written back in it (UTF-8 BOM / UTF-16LE + BOM preserved). A
+ * file we can't round-trip (UTF-16BE, Windows-1252, Shift-JIS, GBK, binary)
+ * is refused with 415. New files are plain UTF-8.
+ */
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const url = new URL(req.url);
@@ -257,19 +285,59 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     url.searchParams.get("base"),
   );
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
-  const body = await req.text();
+  // Decode the body ourselves: `req.text()` strips a leading U+FEFF, which
+  // would drop a BOM character the user's text genuinely starts with.
+  let body: string;
+  try {
+    body = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(await req.arrayBuffer());
+  } catch {
+    return NextResponse.json({ error: "request body isn't valid UTF-8" }, { status: 400 });
+  }
   // Reject if target is an existing directory.
+  let exists = false;
   try {
     const s = await fs.stat(r.target);
     if (s.isDirectory()) {
       return NextResponse.json({ error: "target is a directory" }, { status: 400 });
     }
+    exists = true;
   } catch {
     // ENOENT — fine, we'll create.
   }
+  // Resolve + inline-check right above the sinks (CLAUDE.md "Path safety"):
+  // `resolveBoundedTarget` already bounded `r.target`, but CodeQL needs the
+  // `startsWith(base + sep)` guard visible at the fs calls below.
+  const base = resolve(r.root);
+  const dest = resolve(base, r.target);
+  if (!dest.startsWith(base + sep)) {
+    return NextResponse.json({ error: "path escapes workspace root" }, { status: 403 });
+  }
+  // Write back in the file's existing encoding; refuse ones we'd convert.
+  let encoding: "utf-8" | "utf-8-bom" | "utf-16le" = "utf-8";
+  if (exists) {
+    let existing: Buffer | null = null;
+    try {
+      existing = await fs.readFile(dest);
+    } catch (err) {
+      // Raced with a delete — treat as a new file. Anything else is a real error.
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : String(err) },
+          { status: 500 },
+        );
+      }
+    }
+    if (existing) {
+      const detected = detectTextEncoding(existing);
+      if (!detected.editable) {
+        return NextResponse.json({ error: UNSUPPORTED_ENCODING_SAVE_ERROR }, { status: 415 });
+      }
+      encoding = detected.encoding;
+    }
+  }
   try {
-    await fs.mkdir(resolve(r.target, ".."), { recursive: true });
-    await fs.writeFile(r.target, body, "utf8");
+    await fs.mkdir(resolve(dest, ".."), { recursive: true });
+    await fs.writeFile(dest, encodeText(body, encoding));
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },
