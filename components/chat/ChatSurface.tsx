@@ -1244,7 +1244,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             }),
           })
             .then((r) => r.json())
-            .then((d: { sessionId?: string; worktree?: ForkWorktreeInfo | null }) => {
+            .then((d: { sessionId?: string; worktree?: ForkWorktreeInfo | null; worktreeError?: string }) => {
               if (!d.sessionId) {
                 showToast("Fork failed");
                 return;
@@ -1254,6 +1254,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                   title: forkTitle,
                   sessionId: d.sessionId,
                   worktree: d.worktree ?? null,
+                  worktreeError: d.worktreeError,
                 }),
               );
             })

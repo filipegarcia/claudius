@@ -101,6 +101,12 @@ export function userMcpJsonPath(): string {
 async function readJson<T>(p: string): Promise<T | null> {
   try {
     const buf = await fs.readFile(p, "utf8");
+    // CC 2.1.299 parity — "Fixed claude mcp list, claude doctor and /status
+    // reporting an empty .mcp.json as invalid". An empty (or whitespace-only)
+    // file is a missing file, not a parse error: `JSON.parse("")` throws,
+    // which 500'd GET /api/mcp and failed an add into that file. Upserting
+    // then writes a fresh, valid `{ mcpServers }` object over it.
+    if (!buf.trim()) return null;
     return JSON.parse(buf) as T;
   } catch (err) {
     const e = err as NodeJS.ErrnoException;

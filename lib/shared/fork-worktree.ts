@@ -20,21 +20,51 @@ export function forkWorktreeIds(sessionId: string): { branch: string; dirName: s
 
 export type ForkWorktreeInfo = { path: string; branch: string; dirty: boolean };
 
+const MAX_REASON_CHARS = 120;
+
+/**
+ * CC 2.1.299 parity — a short, toast-safe reason from a failed
+ * `git worktree add`'s stderr: its first `fatal:` / `error:` line (git
+ * prints "Preparing worktree …" progress ahead of it), else the first
+ * non-empty line — prefix stripped, whitespace collapsed, capped. Falls back
+ * to a generic phrase when git printed nothing usable.
+ */
+export function worktreeFailureReason(stderr: string): string {
+  const lines = stderr
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const line = lines.find((l) => /^(fatal|error):/i.test(l)) ?? lines[0];
+  const cleaned = (line ?? "")
+    .replace(/^(fatal|error):\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "git worktree add failed";
+  return cleaned.length > MAX_REASON_CHARS ? `${cleaned.slice(0, MAX_REASON_CHARS - 1)}…` : cleaned;
+}
+
 /**
  * The single-line confirmation shown after a fork. Names the new session and
  * states where it lives: its own worktree (2.1.221) or the shared checkout
  * (2.1.216, non-git source). A dirty source tree gets a note that only
- * committed work (HEAD) is in the worktree.
+ * committed work (HEAD) is in the worktree. When the source is a repo but the
+ * worktree couldn't be made, `worktreeError` says why (CC 2.1.299 parity —
+ * "Improved the error shown when a worktree cannot be created…").
  */
 export function forkConfirmation(opts: {
   title?: string;
   sessionId: string;
   worktree: ForkWorktreeInfo | null;
+  worktreeError?: string;
 }): string {
-  const { title, sessionId, worktree } = opts;
+  const { title, sessionId, worktree, worktreeError } = opts;
   const name = title?.trim() ? `"${title.trim()}"` : "untitled";
   const id8 = forkSlug(sessionId);
   if (!worktree) {
+    const reason = worktreeError?.trim();
+    if (reason) {
+      return `Forked as ${name} (${id8}) — couldn't create a worktree (${reason}); it shares your checkout.`;
+    }
     return `Forked as ${name} (${id8}) — shares your checkout.`;
   }
   const dirtyNote = worktree.dirty ? " — uncommitted changes not included" : "";

@@ -35,6 +35,7 @@ import {
 } from "@/lib/shared/advisor";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { attributionFieldState } from "@/lib/shared/attribution-setting";
+import { stringListSettingValue } from "@/lib/shared/string-list-setting";
 import {
   AUTO_COMPACT_WINDOW_MAX,
   AUTO_COMPACT_WINDOW_MIN,
@@ -1007,14 +1008,6 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
   },
   {
-    // SDK 0.3.292 — only `false` is honored upstream ("true does not turn
-    // idle compaction on"); the bundled binary reads it from settings.json.
-    key: "idleCompaction",
-    type: "boolean",
-    section: "Model & behavior",
-    desc: "Set to false to stop Claude Code from compacting a long conversation while the session is idle. Setting it to true does not turn idle compaction on.",
-  },
-  {
     // CC 2.1.234 — resume automatically once the claude.ai usage limit resets.
     key: "autoContinueAtUsageLimit",
     type: "boolean",
@@ -1099,7 +1092,9 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
   },
   {
     // SDK 0.3.290 — only `false` has an effect: true does not turn idle
-    // compaction on, so the toggle is documented as an opt-out.
+    // compaction on, so the toggle is documented as an opt-out. (0.3.292
+    // re-added it under "Model & behavior"; one row per key — the catalog
+    // keys must stay unique, see settings-catalog-keys.test.ts.)
     key: "idleCompaction",
     type: "boolean",
     section: "Context & compaction",
@@ -1727,7 +1722,8 @@ function CatalogField({
       />
     );
   } else if (meta.type === "string[]") {
-    const arr = Array.isArray(value) ? (value as string[]) : [];
+    // CC 2.1.299 parity — a plain string is a one-item list, not empty.
+    const arr = stringListSettingValue(value);
     control = (
       <input
         value={arr.join(", ")}
