@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { visualizeHiddenNameUnicode } from "@/lib/shared/invisible-unicode";
 import { ENGINE_NAME_RULE_MESSAGE, isEngineOfferableName } from "@/lib/shared/skill-names";
 import { parseFrontmatter } from "./agents";
@@ -154,9 +154,15 @@ export async function writeSkill(
   // folder that doesn't exist yet is refused.
   const p = skillPath(scope, projectCwd, name); // also validates name
   if (!isEngineOfferableName(name)) {
+    // Inline path-injection barrier at the fs.stat sink: CodeQL doesn't carry
+    // skillPath's assertWithin through the helper return (alert #82), so
+    // re-derive the skill folder and re-assert containment right here.
+    const base = resolve(skillsDir(scope, projectCwd));
+    const skillDir = resolve(base, name);
+    if (!skillDir.startsWith(base + sep)) throw new Error("invalid skill name");
     let exists = true;
     try {
-      await fs.stat(dirname(p));
+      await fs.stat(skillDir);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
       exists = false;
