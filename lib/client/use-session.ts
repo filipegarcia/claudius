@@ -63,6 +63,7 @@ import type {
   AttachedImage,
   BackgroundBash,
   ChatActions,
+  SendResult,
   ChatState,
   DisplayBlock,
   DisplayMessage,
@@ -5406,11 +5407,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         fromGoal?: boolean;
         inlinePastes?: string[];
       },
-    ) => {
+    ): Promise<SendResult> => {
       const id = sessionIdRef.current;
       const trimmedText = text.trim();
       const hasImages = Array.isArray(images) && images.length > 0;
-      if (!id || (!trimmedText && !hasImages)) return;
+      // Nothing to send is not a failure — there's nothing to put back.
+      if (!trimmedText && !hasImages) return { ok: true };
+      // No bound session yet: the message can't go anywhere, so report it
+      // undelivered and let the composer keep it (CC 2.1.299 parity).
+      if (!id) return { ok: false, error: "no session" };
       const isSlash = !!opts?.asSlashCommand;
       const fromSuggestion = !!opts?.fromSuggestion;
       const fromGoal = !!opts?.fromGoal;
@@ -5474,28 +5479,44 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // which until the POST resolves. The SSE `turn_status` echo (and
       // `queue:updated` if it was enqueued) will set the right state.
       setErrors([]);
-      const res = await fetch(`/api/sessions/${id}/input`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          images: normalized,
-          uuid,
-          ...(isSlash ? { slash: true } : {}),
-          ...(fromSuggestion ? { fromSuggestion: true } : {}),
-          ...(fromGoal ? { fromGoal: true } : {}),
-          ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
-        }),
-      });
-      if (!res.ok) {
-        setErrors((e) => [...e, `send failed: ${res.status}`]);
-        // Roll back any optimistic bubble we added — there's no message in
-        // flight, the user should see their composer content lost into the
-        // void (not in the transcript as if it had been sent).
+      // Roll back any optimistic bubble we added — there's no message in
+      // flight, so it must not sit in the transcript (dimmed "Sending…"
+      // forever) as if it had been sent. The caller gets `ok: false` and the
+      // composer puts the text back in the box.
+      const rollBack = () => {
         if (showedOptimisticBubble) {
           setMessages((prev) => prev.filter((m) => m.uuid !== uuid));
         }
-        return;
+      };
+      let res: Response;
+      try {
+        res = await fetch(`/api/sessions/${id}/input`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            images: normalized,
+            uuid,
+            ...(isSlash ? { slash: true } : {}),
+            ...(fromSuggestion ? { fromSuggestion: true } : {}),
+            ...(fromGoal ? { fromGoal: true } : {}),
+            ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
+          }),
+        });
+      } catch {
+        // CC 2.1.299 parity — "Fixed Remote Control sessions whose computer
+        // can't be reached still appearing to send your messages; your text
+        // now stays in the box". A network failure used to throw straight out
+        // of here (callers fire-and-forget), leaving the optimistic bubble
+        // stuck as pending and the composer already wiped.
+        rollBack();
+        setErrors((e) => [...e, "send failed: couldn't reach Claudius"]);
+        return { ok: false, error: "network" };
+      }
+      if (!res.ok) {
+        setErrors((e) => [...e, `send failed: ${res.status}`]);
+        rollBack();
+        return { ok: false, error: `http ${res.status}` };
       }
       // Parse the server's decision: did the message dispatch now, or get
       // queued? If queued, we need to roll back the optimistic user bubble
@@ -5512,21 +5533,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // best-effort — if the response body is unparseable, assume the
         // optimistic path and let the SSE echo reconcile.
       }
+      return { ok: true };
     },
     [],
   );
 
   const enqueue = useCallback(
-    async (text: string, images?: AttachedImage[]) => {
+    async (text: string, images?: AttachedImage[]): Promise<SendResult> => {
       const id = sessionIdRef.current;
       const trimmed = text.trim();
-      if (!id || (!trimmed && (!images || images.length === 0))) return;
+      if (!trimmed && (!images || images.length === 0)) return { ok: true };
+      if (!id) return { ok: false, error: "no session" };
       // Explicit "stage this for later" — bypass the server's idle check
       // with `forceQueue: true` so a fresh send doesn't sneak in front of
       // the already-staged item. The `queue:updated` SSE echo will paint
       // the new item into the QueueIndicator strip.
       try {
-        await fetch(`/api/sessions/${id}/input`, {
+        const res = await fetch(`/api/sessions/${id}/input`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -5535,9 +5558,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             forceQueue: true,
           }),
         });
+        // CC 2.1.299 parity — report a rejected enqueue instead of letting
+        // the caller believe the message was staged.
+        if (!res.ok) return { ok: false, error: `http ${res.status}` };
+        return { ok: true };
       } catch {
-        // Best-effort; an offline tab silently drops the enqueue, matching
-        // the previous client behaviour.
+        // An offline tab can't stage anything; say so rather than silently
+        // dropping it, so the caller can keep the text.
+        return { ok: false, error: "network" };
       }
     },
     [],

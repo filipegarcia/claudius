@@ -35,6 +35,12 @@ import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
 import { flushPendingDraft, type PendingDraft } from "@/lib/client/pending-draft";
+import {
+  SEND_FAILED_RESTORED_NOTICE,
+  SEND_FAILED_STASHED_NOTICE,
+  placeFailedSend,
+  sendOutcome,
+} from "@/lib/client/send-outcome";
 import { historyEntryIndex } from "@/lib/shared/prompt-history";
 import {
   applyEditToRanges,
@@ -66,7 +72,18 @@ type Props = {
    * only (idle + focus) so each tab can be told apart at a glance.
    */
   promptColor?: string | null;
-  onSend: (text: string, images?: AttachedImage[], inlinePastes?: string[]) => void;
+  /**
+   * Hand the composed message to the parent. May report delivery (CC 2.1.299
+   * parity): return / resolve `false` when the message never reached the
+   * server and the composer puts the text + images back in the box with an
+   * inline hint. `undefined` / `true` (and plain `void` callers) mean it was
+   * consumed — the composer stays cleared, the historical behaviour.
+   */
+  onSend: (
+    text: string,
+    images?: AttachedImage[],
+    inlinePastes?: string[],
+  ) => void | boolean | Promise<boolean | void>;
   onInterrupt: () => void;
   /**
    * Set by the parent to inject text into the input (e.g. when the user lifts
@@ -306,6 +323,13 @@ export function PromptInput({
    * hint/queue row (see the render ternary below).
    */
   const [invisibleNotice, setInvisibleNotice] = useState<string | null>(null);
+  /**
+   * CC 2.1.299 parity — footer hint shown after an undelivered message was
+   * put back in the box (see `restoreUndelivered`). Sticky until the next
+   * edit or send, so it can't vanish before the user notices why their
+   * message is still there.
+   */
+  const [sendFailedNotice, setSendFailedNotice] = useState<string | null>(null);
   const invisibleNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   /** Per-prompt monotonic counter — increments on each insert, never decrements. */
@@ -570,6 +594,16 @@ export function PromptInput({
   const seededForSessionRef = useRef<string | null>(null);
   // The newest edit the debounced save hasn't written yet (see race note 2).
   const pendingDraftRef = useRef<PendingDraft | null>(null);
+  // Live composer state for async continuations (a failed send resolves
+  // after the closure that started it has gone stale). Synced post-commit.
+  const liveRef = useRef<{ sessionId: string | null; value: string; imageCount: number }>({
+    sessionId,
+    value,
+    imageCount: images.length,
+  });
+  useEffect(() => {
+    liveRef.current = { sessionId, value, imageCount: images.length };
+  });
   // Tracks the last sessionId this render-time block has already reacted
   // to. This is DELIBERATELY separate from `seededForSessionRef` (which
   // marks *seed-fetch completion* and can legitimately stay behind
@@ -952,7 +986,26 @@ export function PromptInput({
     );
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
-    onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined);
+    setSendFailedNotice(null);
+    // Snapshot what's leaving, in the composer's own representation (`•`
+    // bullets, `[Image #N]` tokens), so an undelivered send can be put back
+    // exactly as typed.
+    const sent = { sessionId, text: value, images };
+    const outcome = sendOutcome(
+      onSend(wire, images.length ? images : undefined, inlinePastes.length ? inlinePastes : undefined),
+    );
+    if (outcome === false) {
+      // Synchronous refusal — nothing was cleared yet; just say why.
+      setSendFailedNotice(SEND_FAILED_RESTORED_NOTICE);
+      return;
+    }
+    if (outcome !== true) {
+      void outcome.then((ok) => {
+        if (!ok) restoreUndelivered(sent);
+      });
+    }
+    // Clear right away rather than after the outcome: a fast follow-up
+    // keystroke must not land in the message that just left.
     setValue("");
     setDismissedHints(new Set());
     setImages([]);
@@ -980,6 +1033,54 @@ export function PromptInput({
       if (taRef.current) {
         taRef.current.style.height = "auto";
         taRef.current.focus();
+      }
+    });
+  }
+
+  /**
+   * CC 2.1.299 parity — "your text now stays in the box". Called when the
+   * parent reports a submitted message never reached the server. By then the
+   * composer was already cleared (and the server draft DELETEd), so put the
+   * message back where the user can retry it — see `placeFailedSend` for why
+   * it sometimes goes to the ↑-restore slot or the original session's draft
+   * instead. Restoring re-arms the debounced draft save (`userTypedRef`), so
+   * the server copy comes back too.
+   */
+  function restoreUndelivered(sent: { sessionId: string | null; text: string; images: AttachedImage[] }) {
+    const live = liveRef.current;
+    const placement = placeFailedSend({
+      originSessionId: sent.sessionId,
+      currentSessionId: live.sessionId,
+      currentText: live.value,
+      currentImageCount: live.imageCount,
+    });
+    if (placement === "save-to-origin") {
+      flushPendingDraft(
+        { current: { sessionId: sent.sessionId!, text: sent.text, images: sent.images } },
+        { unloading: false },
+      );
+      return;
+    }
+    if (placement === "stash") {
+      clearedDraftRef.current = { text: sent.text, images: sent.images };
+      setSendFailedNotice(SEND_FAILED_STASHED_NOTICE);
+      return;
+    }
+    userTypedRef.current = true;
+    setValue(sent.text);
+    refreshPickerState(sent.text, sent.text.length);
+    setImages(sent.images);
+    if (sent.images.length > 0) {
+      const maxOrd = sent.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
+      ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
+    }
+    setSendFailedNotice(SEND_FAILED_RESTORED_NOTICE);
+    requestAnimationFrame(() => {
+      autosize();
+      const el = taRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(sent.text.length, sent.text.length);
       }
     });
   }
@@ -1818,6 +1919,8 @@ export function PromptInput({
               // A real keystroke — block the seed-from-server effect from
               // overwriting the user's input if the GET resolves late.
               userTypedRef.current = true;
+              // The user is acting on the restored message — the hint did its job.
+              if (sendFailedNotice) setSendFailedNotice(null);
               // Editing the text exits history-browse mode: the next Cmd/Ctrl+↑
               // should re-stash this edited draft and start again from the tail.
               histIdxRef.current = null;
@@ -2028,7 +2131,15 @@ export function PromptInput({
         )}
 
         <div className="mt-1.5 flex items-center justify-between px-1 text-[11px] text-[var(--muted)]/70">
-          {invisibleNotice ? (
+          {sendFailedNotice ? (
+            <span
+              role="status"
+              data-testid={`${testIdPrefix}-send-failed-notice`}
+              className="flex items-center gap-1.5 text-amber-400"
+            >
+              <span>{sendFailedNotice}</span>
+            </span>
+          ) : invisibleNotice ? (
             <span data-testid={`${testIdPrefix}-invisible-unicode-notice`} className="flex items-center gap-1.5">
               <span>{invisibleNotice}</span>
             </span>
