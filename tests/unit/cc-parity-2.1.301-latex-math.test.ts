@@ -43,6 +43,16 @@ describe("normalizeMathDelimiters", () => {
     expect(normalizeMathDelimiters("We get \\[x=1\\] here")).toBe("We get \n$$\nx=1\n$$\n here");
   });
 
+  test("a \\[ … \\] inside a list item or blockquote stays in it", () => {
+    expect(normalizeMathDelimiters("- Energy: \\[E=mc^2\\]")).toBe("- Energy: \n  $$\n  E=mc^2\n  $$");
+    expect(normalizeMathDelimiters("> so \\[a+b\\] holds")).toBe("> so \n> $$\n> a+b\n> $$\n>  holds");
+    expect(normalizeMathDelimiters("10. step \\[x_1\\]")).toBe("10. step \n    $$\n    x_1\n    $$");
+  });
+
+  test("an escaped bracket that isn't TeX stays literal", () => {
+    expect(normalizeMathDelimiters("Mark it \\[Done\\] and \\(see above\\)")).toBe("Mark it \\[Done\\] and \\(see above\\)");
+  });
+
   test("existing $$ blocks are untouched", () => {
     const s = "$$\na $b$ c\n$$";
     expect(normalizeMathDelimiters(s)).toBe(s);
@@ -84,6 +94,13 @@ describe("Markdown math rendering", () => {
   test("\\[ … \\] and $$ blocks render as display math", () => {
     expect(render("\\[\n\\int_0^1 x\\,dx\n\\]")).toContain("katex-display");
     expect(render("$$\n\\frac{a}{b}\n$$")).toContain("katex-display");
+  });
+
+  test("display math written in a bullet renders inside that bullet", () => {
+    const html = render("- Energy: \\[E=mc^2\\]\n- Next item");
+    const li = html.slice(html.indexOf("<li"), html.indexOf("</li>"));
+    expect(li).toContain("katex-display");
+    expect((html.match(/<li/g) ?? []).length).toBe(2);
   });
 
   test("prices stay prose", () => {

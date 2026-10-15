@@ -5314,8 +5314,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // CC 2.1.301 — the resumed session's history replayed and the result
   // committed (an effect never runs after a render that threw), so this boot
   // finished: drop the crash-loop marker.
+  // Scoped to the session the boot resumed: switching to another tab before
+  // it replayed must not disarm the guard for the one still loading.
+  const bootResumeIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!replaying && sessionId) clearBootAttempt(window.localStorage);
+    if (!replaying && sessionId && sessionId === bootResumeIdRef.current) {
+      clearBootAttempt(window.sessionStorage);
+      bootResumeIdRef.current = null;
+    }
   }, [replaying, sessionId]);
 
   const openSkippedBootSession = useCallback(() => {
@@ -5400,10 +5406,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       let resumeAt = at;
       if (resume) {
         const forced = consumeForcedResume(resume, window.sessionStorage);
-        if (shouldSkipResume(resume, window.localStorage, Date.now(), forced)) {
-          // The marker is left in place (a Strict Mode re-run of this effect
-          // must reach the same decision); the fresh session's own
-          // post-render clear removes it.
+        if (shouldSkipResume(resume, window.sessionStorage, Date.now(), forced)) {
+          // The marker is left in place so a Strict Mode re-run of this
+          // effect reaches the same decision. It only ever names this
+          // session, so it's inert once the tab moves on; "Open anyway"
+          // re-marks it and a load that finishes clears it.
           setSkippedBootSession(resume);
           resume = undefined;
           resumeAt = undefined;
@@ -5416,7 +5423,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             // ignore
           }
         } else {
-          markBootAttempt(resume, window.localStorage, Date.now());
+          markBootAttempt(resume, window.sessionStorage, Date.now());
+          bootResumeIdRef.current = resume;
         }
       }
       const created = await createSession(

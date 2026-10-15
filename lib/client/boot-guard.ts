@@ -15,6 +15,10 @@
  * opens a fresh session instead and the chat shows a notice with
  * "Open anyway".
  *
+ * The marker lives in `sessionStorage`: tab-scoped (a second tab opening the
+ * same session while the first is still loading isn't a crash) and kept
+ * across reloads of the same tab, which is exactly the loop being broken.
+ *
  * Pure apart from the `Storage` it's handed, so it's unit-testable.
  */
 

@@ -78,9 +78,9 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
     JSON.stringify(request.input, null, 2),
   );
   // Fire the banner if hidden/bidi chars appear anywhere the user reads: the
-  // title, the description, or the tool input.
+  // title, the description, the tool input, or a hook's reason (CC 2.1.301).
   const hiddenCharCount =
-    summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount;
+    summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount + (hookReasonVis?.count ?? 0);
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 

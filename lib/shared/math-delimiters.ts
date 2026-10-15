@@ -37,12 +37,21 @@ function mayContainMath(text: string): boolean {
 const isWordChar = (ch: string | undefined): boolean => !!ch && /[A-Za-z0-9_]/.test(ch);
 const isSpace = (ch: string | undefined): boolean => ch === undefined || /\s/.test(ch);
 
-/** Leading whitespace of the line that contains `index`. */
-function lineIndent(text: string, index: number): string {
+/**
+ * The container prefix a block placed on its own lines must carry to stay
+ * inside the same list item / blockquote as the text before `index`:
+ * blockquote markers are repeated, a list marker becomes spaces of its width
+ * (the item's content offset), plain indentation is kept.
+ */
+function containerPrefix(text: string, index: number): string {
   const start = text.lastIndexOf("\n", index - 1) + 1;
-  const m = /^[ \t]*/.exec(text.slice(start, index));
-  return m ? m[0] : "";
+  const m = /^([ \t]*(?:>[ \t]?)*)(?:([-*+]|\d{1,9}[.)])([ \t]+))?/.exec(text.slice(start, index));
+  if (!m) return "";
+  return m[1] + (m[2] ? " ".repeat(m[2].length + m[3].length) : "");
 }
+
+/** Body text that reads as TeX, not an escaped bracket like `\[Done\]`. */
+const TEX_HINT_RE = /[\\^_{}=+\-*/<>|0-9]/;
 
 /**
  * Rewrite the math delimiters in one prose segment (no fenced code inside;
@@ -90,9 +99,11 @@ function normalizeProse(text: string): string {
         const end = text.indexOf(closer, i + 2);
         const body = end === -1 ? "" : text.slice(i + 2, end);
         // `\(` is inline-only: a newline inside means it isn't a formula.
-        if (end !== -1 && body.trim() && (next === "[" || !body.includes("\n"))) {
+        if (end !== -1 && body.trim() && TEX_HINT_RE.test(body) && (next === "[" || !body.includes("\n"))) {
           if (next === "[") {
-            const indent = lineIndent(text, i);
+            // Keep the block inside the list item / blockquote it was written
+            // in: every emitted line carries that container's prefix.
+            const indent = containerPrefix(text, i);
             const atLineStart = /^[ \t]*$/.test(text.slice(text.lastIndexOf("\n", i - 1) + 1, i));
             const lines = body.trim().split("\n").map((l) => indent + l.trim());
             out += `${atLineStart ? "" : "\n" + indent}$$\n${lines.join("\n")}\n${indent}$$`;
