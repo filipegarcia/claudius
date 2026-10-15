@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
@@ -98,7 +98,24 @@ d("BashSession", () => {
   // of outliving the session.
   const TERM_IGNORING_BG_JOB = "( trap '' TERM; exec sleep 377 ) & echo $!";
 
+  // A zombie counts as dead. Once the group is SIGKILLed the job is orphaned
+  // (its parent bash died with it) and reparented to PID 1. In CI's
+  // `container:` job PID 1 is `tail -f /dev/null`, which never reaps, so the
+  // killed job lingers as a zombie that still answers `kill(pid, 0)`. Linux
+  // exposes the state in /proc; elsewhere (macOS) launchd reaps orphans, so
+  // `kill(pid, 0)` is accurate.
   function isAlive(pid: number): boolean {
+    if (process.platform === "linux") {
+      try {
+        const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+        // State is the first field after comm's closing ")" — comm itself may
+        // contain spaces or parens, hence lastIndexOf.
+        const state = stat[stat.lastIndexOf(")") + 2];
+        return state !== "Z" && state !== "X";
+      } catch {
+        return false;
+      }
+    }
     try {
       process.kill(pid, 0);
       return true;
@@ -139,9 +156,7 @@ d("BashSession", () => {
         expect(isAlive(pid)).toBe(true);
         // ...but gone once the 1.5 s SIGKILL escalation fires.
         await new Promise((r) => setTimeout(r, 1900));
-        expect(() => process.kill(pid!, 0)).toThrow(
-          expect.objectContaining({ code: "ESRCH" }),
-        );
+        expect(isAlive(pid)).toBe(false);
       } finally {
         forceKill(pid);
       }
@@ -160,9 +175,7 @@ d("BashSession", () => {
         const r = await bash.exec("sleep 5", { timeoutMs: 200 });
         expect(r.timedOut).toBe(true);
         await new Promise((r) => setTimeout(r, 2200));
-        expect(() => process.kill(pid!, 0)).toThrow(
-          expect.objectContaining({ code: "ESRCH" }),
-        );
+        expect(isAlive(pid)).toBe(false);
       } finally {
         forceKill(pid);
       }
