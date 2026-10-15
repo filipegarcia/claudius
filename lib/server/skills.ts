@@ -1,6 +1,8 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
+import { visualizeHiddenNameUnicode } from "@/lib/shared/invisible-unicode";
+import { ENGINE_NAME_RULE_MESSAGE, isEngineOfferableName } from "@/lib/shared/skill-names";
 import { parseFrontmatter } from "./agents";
 import { assertWithin } from "./safe-path";
 
@@ -33,6 +35,14 @@ export type SkillFile = {
   frontmatter: Record<string, unknown>;
   body: string;
   raw: string;
+  /**
+   * CC 2.1.299 parity — "one whose file or folder name has hidden,
+   * direction-changing or blank-like characters, < or >, is no longer offered
+   * until renamed". True when the folder name fails the engine's rule
+   * (`isEngineOfferableName`): the skill is still listed here so it can be
+   * found and deleted, but Claude is never offered it.
+   */
+  notOffered: boolean;
 };
 
 /**
@@ -43,6 +53,11 @@ export type SkillFile = {
  * the Skills page entirely even though the engine loads them. One rule for
  * listing, reading/writing and deleting, so every skill the page lists can
  * also be opened and deleted.
+ *
+ * CC 2.1.299 — this stays looser than the engine's offerable-name rule on
+ * purpose: a folder the engine no longer offers (Hangul filler, variation
+ * selector, stray combining mark, …) must still be listable and deletable.
+ * Only writes enforce the stricter rule (see `writeSkill`).
  */
 const SKILL_DIR_NAME = /^(?!\.)[\p{L}\p{M}\p{N}_.\-]+$/u;
 
@@ -90,6 +105,7 @@ export async function listSkills(scope: SkillScope, projectCwd: string): Promise
         frontmatter: parsed.frontmatter,
         body: parsed.body,
         raw,
+        notOffered: !isEngineOfferableName(filename),
       });
     } catch {
       // No SKILL.md — directory isn't actually a skill, skip silently.
@@ -108,7 +124,15 @@ export async function readSkill(
   try {
     const raw = await fs.readFile(p, "utf8");
     const parsed = parseFrontmatter(raw);
-    return { scope, name, path: p, frontmatter: parsed.frontmatter, body: parsed.body, raw };
+    return {
+      scope,
+      name,
+      path: p,
+      frontmatter: parsed.frontmatter,
+      body: parsed.body,
+      raw,
+      notOffered: !isEngineOfferableName(name),
+    };
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") return null;
@@ -122,7 +146,33 @@ export async function writeSkill(
   name: string,
   raw: string,
 ): Promise<void> {
+  // CC 2.1.299 parity — the engine won't offer a skill under a name with
+  // hidden, direction-changing or blank-like characters, < or >, so don't
+  // create one. Checked here rather than in `skillPath`, which `readSkill`
+  // shares: an existing such folder must stay readable — and editable — so
+  // the Skills page can show it and the user can fix or delete it. Only a
+  // folder that doesn't exist yet is refused.
   const p = skillPath(scope, projectCwd, name); // also validates name
+  if (!isEngineOfferableName(name)) {
+    // Inline path-injection barrier at the fs.stat sink: CodeQL doesn't carry
+    // skillPath's assertWithin through the helper return (alert #82), so
+    // re-derive the skill folder and re-assert containment right here.
+    const base = resolve(skillsDir(scope, projectCwd));
+    const skillDir = resolve(base, name);
+    if (!skillDir.startsWith(base + sep)) throw new Error("invalid skill name");
+    let exists = true;
+    try {
+      await fs.stat(skillDir);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      exists = false;
+    }
+    if (!exists) {
+      throw new Error(
+        `${visualizeHiddenNameUnicode(name).visualized} is not offered: ${ENGINE_NAME_RULE_MESSAGE}`,
+      );
+    }
+  }
   await fs.mkdir(dirname(p), { recursive: true });
   await fs.writeFile(p, raw, "utf8");
 }

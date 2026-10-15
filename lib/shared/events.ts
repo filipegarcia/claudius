@@ -180,6 +180,15 @@ export type ModelChangedEvent = {
    * couldn't be determined — see `Session.setModel`.
    */
   fastModeNowSupported?: boolean;
+  /**
+   * CC 2.1.299 parity — set only when this switch took the session OUT of
+   * auto mode because the new model's catalog row says
+   * `supportsAutoMode: false` (see `Session.leaveAutoIfModelUnsupported`).
+   * Carries the model's display name for the "Auto mode is off: <model>
+   * doesn't support auto mode." notice. The mode change itself rides its own
+   * `mode_changed`, broadcast just before this event.
+   */
+  autoModeOffFor?: string;
 };
 
 /**

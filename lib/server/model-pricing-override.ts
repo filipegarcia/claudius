@@ -75,8 +75,10 @@ export type ModelPricingSettings = {
 /**
  * Collapse the SDK `overrides` and the legacy `rates` into the internal
  * `ModelPricingRate` shape `costFromOverrideRate` consumes. The SDK's single
- * `cacheWrite` maps to the internal `cacheWrite5m` slot (cost-aggregate carries
- * one `cacheWrite` token bucket). `overrides` wins over legacy `rates`.
+ * `cacheWrite` maps to the internal `cacheWrite5m` slot; with no `cacheWrite1h`
+ * set, `costFromOverrideRate` prices the 1h slice at that same rate — matching
+ * the SDK, where one `cacheWrite` covers both lifetimes. `overrides` wins over
+ * legacy `rates`.
  */
 export function effectiveOverrideRates(
   pricing: ModelPricingSettings,
@@ -101,7 +103,10 @@ export type OverrideTokens = {
   input: number;
   output: number;
   cacheRead: number;
+  /** Total cache-write tokens (5m + 1h). */
   cacheWrite: number;
+  /** CC 2.1.300 — the 1-hour slice of {@link cacheWrite}. */
+  cacheWrite1h?: number;
 };
 
 /**
@@ -123,13 +128,20 @@ export function matchModelPricingRate(
   return undefined;
 }
 
-/** Cost (USD) for `tokens` using an org-contracted $/MT rate. */
+/**
+ * Cost (USD) for `tokens` using an org-contracted $/MT rate. The 1h cache-write
+ * slice (clamped to `cacheWrite`) uses `cacheWrite1h`, falling back to
+ * `cacheWrite5m` when no separate 1h rate is configured.
+ */
 export function costFromOverrideRate(rate: ModelPricingRate, tokens: OverrideTokens): number {
+  const cw1h = Math.min(tokens.cacheWrite1h ?? 0, tokens.cacheWrite);
+  const cw5m = tokens.cacheWrite - cw1h;
   return (
     (tokens.input * (rate.input ?? 0) +
       tokens.output * (rate.output ?? 0) +
       tokens.cacheRead * (rate.cacheRead ?? 0) +
-      tokens.cacheWrite * (rate.cacheWrite5m ?? 0)) /
+      cw5m * (rate.cacheWrite5m ?? 0) +
+      cw1h * (rate.cacheWrite1h ?? rate.cacheWrite5m ?? 0)) /
     1_000_000
   );
 }

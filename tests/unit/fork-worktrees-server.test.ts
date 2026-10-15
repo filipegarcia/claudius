@@ -43,8 +43,9 @@ describe("createForkWorktree (DEC3)", () => {
     repos.push(repo);
     const forkId = "feedface-0000-0000-0000-000000000000";
 
-    const wt = await createForkWorktree(repo, forkId);
-    expect(wt).not.toBeNull();
+    const res = await createForkWorktree(repo, forkId);
+    expect(res.ok).toBe(true);
+    const wt = res.ok ? res.worktree : null;
     expect(wt!.branch).toBe("claudius/fork-feedface");
     expect(wt!.dirty).toBe(false);
 
@@ -68,15 +69,58 @@ describe("createForkWorktree (DEC3)", () => {
     repos.push(repo);
     await fs.writeFile(join(repo, "uncommitted.txt"), "wip\n");
 
-    const wt = await createForkWorktree(repo, "abcd1234-dirty");
-    expect(wt?.dirty).toBe(true);
+    const res = await createForkWorktree(repo, "abcd1234-dirty");
+    expect(res.ok && res.worktree.dirty).toBe(true);
   });
 
   test("a non-git source yields no worktree", async () => {
     const plain = await fs.mkdtemp(join(tmpdir(), "claudius-fork-plain-"));
     repos.push(plain);
-    const wt = await createForkWorktree(plain, "abcd1234");
-    expect(wt).toBeNull();
+    const res = await createForkWorktree(plain, "abcd1234");
+    // No reason: a non-git source sharing the checkout is the normal path.
+    expect(res).toEqual({ ok: false });
     expect(await forkWorktreeCwd("abcd1234")).toBeNull();
+  });
+
+  // CC 2.1.299 parity — "Improved the error shown when a worktree cannot be
+  // created because its base commit does not resolve" + "…at a
+  // bare-repository layout's root".
+  test("a repo with no commits reports why instead of failing silently", async () => {
+    const repo = await fs.mkdtemp(join(tmpdir(), "claudius-fork-unborn-"));
+    repos.push(repo);
+    await execFileP("git", ["-C", repo, "init", "-q"]);
+
+    const res = await createForkWorktree(repo, "abcd1234-unborn");
+    expect(res).toEqual({ ok: false, reason: "the repository has no commits yet" });
+    expect(await forkWorktreeCwd("abcd1234-unborn")).toBeNull();
+  });
+
+  test("a bare-repository layout's root reports it has no working tree", async () => {
+    // The `.bare` + `.git: gitdir: ./.bare` layout people use for
+    // worktree-only checkouts — its root is a bare repo, not a work tree.
+    const layout = await fs.mkdtemp(join(tmpdir(), "claudius-fork-bare-"));
+    repos.push(layout);
+    await execFileP("git", ["-C", layout, "init", "-q", "--bare", ".bare"]);
+    await fs.writeFile(join(layout, ".git"), "gitdir: ./.bare\n");
+
+    const res = await createForkWorktree(layout, "abcd1234-bare");
+    expect(res).toEqual({
+      ok: false,
+      reason: "this is a bare repository's root, which has no working tree",
+    });
+  });
+
+  test("a git failure surfaces git's first stderr line", async () => {
+    const repo = await makeRepo();
+    repos.push(repo);
+    // The fork branch already exists → `worktree add -b` refuses.
+    await execFileP("git", ["-C", repo, "branch", "claudius/fork-abcd1234"]);
+
+    const res = await createForkWorktree(repo, "abcd1234-taken");
+    expect(res.ok).toBe(false);
+    const reason = res.ok ? "" : (res.reason ?? "");
+    expect(reason).toMatch(/already exists/);
+    expect(reason).not.toMatch(/^fatal:/);
+    expect(reason).not.toContain("\n");
   });
 });

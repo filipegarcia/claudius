@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { killProcessGroup } from "./process-group";
 
 /**
  * Per-stream output cap. Builds and test runs routinely produce hundreds of
@@ -23,7 +24,8 @@ export type ShellExecResult = {
   exitCode: number;
   /**
    * Termination signal, if any. Non-null typically means we tripped the
-   * timeout and sent SIGTERM ourselves. Surfacing this lets the UI render
+   * timeout and stopped the group ourselves: SIGTERM, or SIGKILL when the
+   * command ignored TERM for the 1.5 s grace. Surfacing this lets the UI render
    * "timed out" distinctly from a real non-zero exit.
    */
   signal: NodeJS.Signals | null;
@@ -113,14 +115,12 @@ export async function execShellCommand(
       // SIGTERM the process group so bash AND any descendants (sleep,
       // node, build subprocesses, …) terminate together. The negative
       // pid is the kernel's "group" addressing — only works because we
-      // spawned with `detached: true` above. SIGTERM (not SIGKILL) gives
+      // spawned with `detached: true` above. SIGTERM first gives
       // well-behaved children a chance to print a final stderr message
-      // about what they were doing.
-      try {
-        if (child.pid != null) process.kill(-child.pid, "SIGTERM");
-      } catch {
-        // ESRCH ("no such process") — group already gone. Fine.
-      }
+      // about what they were doing; anything still alive 1.5 s later
+      // (e.g. a `&` job that traps TERM and would otherwise hold the
+      // stdio pipes open) gets SIGKILL — CC 2.1.300 parity.
+      if (child.pid != null) killProcessGroup(child.pid);
     }, timeoutMs);
 
     function settle(result: ShellExecResult) {

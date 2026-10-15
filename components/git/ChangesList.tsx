@@ -570,7 +570,11 @@ function worktreeChangeLabel(code: GitFileChange["worktree"]): string {
 }
 
 function displayPath(f: GitFileChange, mode: DiffSelection["mode"]): string {
-  if (mode !== "untracked" && f.oldPath && (f.index === "R" || f.worktree === "R")) {
+  if (
+    mode !== "untracked" &&
+    f.oldPath &&
+    (f.index === "R" || f.index === "C" || f.worktree === "R" || f.worktree === "C")
+  ) {
     return `${f.oldPath} → ${f.path}`;
   }
   return f.path;

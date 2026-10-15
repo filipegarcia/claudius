@@ -86,7 +86,13 @@ type Row = {
   i: number; // input tokens
   o: number; // output tokens
   cr: number; // cache read tokens
-  cw: number; // cache creation tokens
+  cw: number; // cache creation tokens (5m + 1h)
+  /**
+   * CC 2.1.300 — the 1-hour slice of `cw` (`cache_creation.ephemeral_1h_input_tokens`,
+   * clamped to `cw`). Billed at 2x input instead of the 5m 1.25x. Optional so
+   * hand-built rows / older shapes read as 0.
+   */
+  cw1h?: number;
   /** Authoritative per-turn cost from the JSONL, when present (else null). */
   u: number | null;
   /** CC 2.1.239 — `usage.inference_geo`; `"us"` carries a 1.1× data-residency premium. */
@@ -104,13 +110,14 @@ type FileSummary = {
 
 type CacheShape = {
   // v2: stores per-turn token rows (not precomputed USD) so cross-file dedup
-  // and pricing refreshes work. Bumping this invalidates older v1 caches.
-  version: 2;
+  // and pricing refreshes work. v3 (CC 2.1.300): rows carry `cw1h` so 1-hour
+  // cache writes price at their own rate. Bumping this invalidates older caches.
+  version: 3;
   files: Record<string, FileSummary>;
 };
 
 const CACHE_FILE = ".claudius-cost-cache.json";
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 function projectDir(cwd: string): string {
   return join(homedir(), ".claude", "projects", encodeProjectDir(cwd));
@@ -186,13 +193,19 @@ async function summarizeFile(path: string, mtimeMs: number, size: number): Promi
 
     const u = message.usage;
     const cacheCreation = u.cache_creation as Record<string, unknown> | undefined;
-    // LiteLLM/ccusage price cache creation with a single rate against the total
-    // creation tokens — so we sum the ephemeral 5m/1h buckets (preferring the
-    // top-level field when present) rather than splitting them.
+    // Total cache-creation tokens: the top-level field when present, else the
+    // sum of the ephemeral 5m/1h buckets. The 1h slice is kept separately and
+    // clamped to the total, mirroring the engine's split pricer (CC 2.1.300):
+    //   h = min(cache_creation.ephemeral_1h_input_tokens, cache_creation_input_tokens)
+    //   cost = h × promptCacheWrite1hTokens + (total − h) × promptCacheWriteTokens
     const cacheWrite =
       Number(u.cache_creation_input_tokens ?? 0) ||
       Number(cacheCreation?.ephemeral_5m_input_tokens ?? 0) +
         Number(cacheCreation?.ephemeral_1h_input_tokens ?? 0);
+    const cacheWrite1h = Math.min(
+      Number(cacheCreation?.ephemeral_1h_input_tokens ?? 0) || 0,
+      cacheWrite,
+    );
 
     const msgId = typeof message.id === "string" ? message.id : null;
     const reqId = typeof r.requestId === "string" ? r.requestId : null;
@@ -206,6 +219,7 @@ async function summarizeFile(path: string, mtimeMs: number, size: number): Promi
       o: Number(u.output_tokens ?? 0),
       cr: Number(u.cache_read_input_tokens ?? 0),
       cw: cacheWrite,
+      cw1h: cacheWrite1h,
       u: costUsd,
       geo: typeof u.inference_geo === "string" ? u.inference_geo : null,
     });
@@ -232,12 +246,19 @@ function rowUsd(
           output: row.o,
           cacheRead: row.cr,
           cacheCreation: row.cw,
+          cacheCreation1h: row.cw1h ?? 0,
         }) * inferenceGeoMultiplier(row.geo);
   if (!pricing) return base;
   return applyModelPricing(
     base,
     row.m,
-    { input: row.i, output: row.o, cacheRead: row.cr, cacheWrite: row.cw },
+    {
+      input: row.i,
+      output: row.o,
+      cacheRead: row.cr,
+      cacheWrite: row.cw,
+      cacheWrite1h: row.cw1h ?? 0,
+    },
     pricing,
   );
 }
@@ -434,7 +455,7 @@ export async function aggregate(cwd: string): Promise<CostReport> {
     accountsConfigured,
     note: hasModelPricingOverride(pricing)
       ? "Cost uses your org's contracted modelPricing rates (settings.json) instead of list price where a rate matches; deduplicated by message+request id so resumed/forked sessions aren't double-counted."
-      : "Cost uses ccusage-compatible methodology: on-disk token counts priced with LiteLLM public list prices, deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
+      : "Cost uses on-disk token counts priced with LiteLLM public list prices (1-hour cache writes at 2× input, as Claude Code bills them), deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
   };
 }
 

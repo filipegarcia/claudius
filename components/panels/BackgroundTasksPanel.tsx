@@ -987,6 +987,7 @@ export function BackgroundTasksPanel({
           planUsage={planUsage}
           account={account}
           accountsConfigured={accountsConfigured}
+          sessionId={sessionId}
           onClose={() => setShowCost(false)}
         />
       )}

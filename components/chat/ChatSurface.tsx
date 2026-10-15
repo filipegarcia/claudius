@@ -23,6 +23,7 @@ import { AuthFailedPanel } from "@/components/chat/AuthFailedPanel";
 import { TokenExpiringPanel } from "@/components/chat/TokenExpiringPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
+import { AutoModeOffNoticePanel } from "@/components/chat/AutoModeOffNoticePanel";
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
@@ -59,7 +60,7 @@ import { ContextOverlay } from "@/components/overlays/ContextOverlay";
 import { PlanModeBanner } from "@/components/chat/PlanModeBanner";
 import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
-import type { AttachedImage, SessionInfo } from "@/lib/client/types";
+import type { AttachedImage, SendResult, SessionInfo } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
 import { matchBinding, useShortcut } from "@/lib/client/shortcuts";
 import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
@@ -117,7 +118,8 @@ import {
 } from "@/lib/client/useContextWarning";
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
-import { findSlashCommand, isSlashCommandHead, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { findSlashCommand, isSlashCommandHead, resolveFastCommandArgs, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { OPEN_ADVISOR_PICKER_EVENT, requestOpenModelPicker } from "@/lib/client/model-picker-events";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { parseEffortArgs } from "@/lib/shared/effort-flags";
 import {
@@ -409,6 +411,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       text: string;
       images?: AttachedImage[];
       mode?: "replace" | "append";
+      recalled?: boolean;
     } | undefined
   >(undefined);
   const draftTokenRef = useRef(0);
@@ -1040,7 +1043,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         "Items to add:",
         bullets,
       ].join("\n");
-      await session.send(prompt);
+      const res = await session.send(prompt);
+      // send() reports delivery instead of throwing (CC 2.1.299 parity);
+      // keep rejecting on failure so the add form stays open with the items.
+      if (!res.ok) throw new Error(`couldn't add todos: ${res.error}`);
     },
     [session],
   );
@@ -1080,7 +1086,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         setLiftedHistory((prev) => ({ ...prev, [sid]: [...(prev[sid] ?? []), entry] }));
       }
       draftTokenRef.current += 1;
-      setDraftInjection({ token: draftTokenRef.current, text: item.text, images: item.images });
+      // CC 2.1.300 — a lifted message is one the user already wrote: no menu
+      // opens over it until they edit, so Enter re-queues it as written.
+      setDraftInjection({
+        token: draftTokenRef.current,
+        text: item.text,
+        images: item.images,
+        recalled: true,
+      });
     },
     [session],
   );
@@ -1244,7 +1257,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             }),
           })
             .then((r) => r.json())
-            .then((d: { sessionId?: string; worktree?: ForkWorktreeInfo | null }) => {
+            .then((d: { sessionId?: string; worktree?: ForkWorktreeInfo | null; worktreeError?: string }) => {
               if (!d.sessionId) {
                 showToast("Fork failed");
                 return;
@@ -1254,6 +1267,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                   title: forkTitle,
                   sessionId: d.sessionId,
                   worktree: d.worktree ?? null,
+                  worktreeError: d.worktreeError,
                 }),
               );
             })
@@ -1325,7 +1339,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           if (parsed.action === "open-picker") {
             if (typeof window !== "undefined") {
               try {
-                window.dispatchEvent(new CustomEvent("claudius:open-advisor-picker"));
+                window.dispatchEvent(new CustomEvent(OPEN_ADVISOR_PICKER_EVENT));
               } catch {
                 // ignore — non-fatal
               }
@@ -1593,6 +1607,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             void session.setUltracode(parsed.on);
             showToast(`Ultracode ${parsed.on ? "on" : "off"}`);
           } else if (parsed.kind === "show") {
+            // CC 2.1.299 parity — "a bare /model, /effort or /fast there now
+            // opens a picker": open the SessionCard's ModelPicker (its effort
+            // row). Only when no card is mounted to claim the request (e.g.
+            // focus mode hides the rail) fall back to toasting the level.
+            if (requestOpenModelPicker()) return true;
             // Prefer the level the SDK actually applies: "auto" alone doesn't
             // say which level is running.
             const shownEffort = session.appliedEffort ?? session.effort ?? "auto";
@@ -1774,7 +1793,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             // ModelSwitchNoticePanel follows with the reason and this line
             // no longer contradicts it.
             showToast(`Switching model → ${args.trim()}`);
-          } else {
+          } else if (!requestOpenModelPicker()) {
+            // CC 2.1.299 parity — a bare `/model` opens the SessionCard's
+            // ModelPicker (the `requestOpenModelPicker()` above). Only when no
+            // card claimed the request (rail hidden) keep the old hint.
             showToast("Pass a model id, e.g. /model claude-sonnet-4-6");
           }
           return true;
@@ -1851,7 +1873,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       text: string,
       images?: Array<{ id?: string; ordinal?: number; data: string; mediaType: string }>,
       opts?: { fromSuggestion?: boolean; inlinePastes?: string[] },
-    ) => {
+    ): Promise<SendResult> | undefined => {
+      // CC 2.1.299 parity — paths that hand the text to `session.send`
+      // return its `SendResult` (ok = the server has it; otherwise `error`
+      // says why, which picks the composer's hint copy) so the composer can
+      // put an undelivered message back in the box. Paths that handle the
+      // text locally (native dialogs, toasts) return undefined, which the
+      // composer treats as consumed — the historical behaviour.
+      const delivered = (p: Promise<SendResult>): Promise<SendResult> =>
+        p.catch(() => ({ ok: false, error: "unknown" }));
       // A live AskUserQuestion blocks the agent in `canUseTool`. If the user
       // sends a new message instead of answering, treat it as moving on:
       // decline the ask (empty answers → the SDK gets a graceful deny), which
@@ -1879,10 +1909,25 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         // command, not Claudius's native dialog. When the SDK reports a
         // non-builtin command of this name, forward to the SDK first.
         if (userCommandShadowsBuiltin(head, sdkCommands)) {
-          void session.send(text, undefined, { asSlashCommand: true });
-          return;
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         const cmd = findSlashCommand(head);
+        if (cmd?.id === "fast") {
+          // CC 2.1.299 parity — a bare `/fast` opens the SessionCard's
+          // ModelPicker (its fast-mode row). `/fast on|off` etc. still go to
+          // the SDK unchanged, as does a bare `/fast` when no card claims the
+          // request (rail hidden, or the active model has no fast mode — the
+          // picker would have no fast row). Handled here rather than in
+          // `runNative` so the forward keeps the send-outcome contract: an
+          // undelivered `/fast on` goes back in the box like any other send.
+          if (
+            resolveFastCommandArgs(args).action === "open-picker" &&
+            requestOpenModelPicker({ focus: "fast" })
+          ) {
+            return;
+          }
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
+        }
         if (cmd?.handler === "native") {
           if (runNative(cmd.id, args)) return;
           // Registry classifies as `native` but `runNative` returned false
@@ -1921,8 +1966,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // literal slash command. The SDK still receives the text and
           // interprets it as a slash; its eventual reply (compact_boundary,
           // init system message, etc.) lands as its own event.
-          void session.send(text, undefined, { asSlashCommand: true });
-          return;
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         // Not in the curated registry. Two possibilities:
         //
@@ -1935,8 +1979,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         //     sending `/lkjasdf` to the model is the wrong default (it
         //     confuses the model AND eats the user's input). Toast and stop.
         if (session.slashCommands.includes(head)) {
-          void session.send(text, undefined, { asSlashCommand: true });
-          return;
+          return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         showToast(`Unknown command: /${head} — type / to see what's available`);
         return;
@@ -1946,15 +1989,16 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
       // `queueDispatchMode: "asap"` the message skips Claudius's queue and
       // goes straight into the SDK's.
       if (session.pending) announce("Message queued.");
-      void session.send(
-        text,
-        images,
-        opts?.fromSuggestion || opts?.inlinePastes?.length
-          ? {
-              ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
-              ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
-            }
-          : undefined,
+      return delivered(
+        session.send(
+          text,
+          images,
+          {
+            reportsFailureInline: true,
+            ...(opts?.fromSuggestion ? { fromSuggestion: true } : {}),
+            ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
+          },
+        ),
       );
     },
     [runNative, session, showToast, sdkCommands, announce],
@@ -2431,9 +2475,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         <LongContextCreditsPanel
           nudge={session.longContextCreditsNudge}
           onOpenModelPicker={() => {
-            // Prefill the composer with `/model ` so the existing slash-command
-            // autocomplete renders the model picker — same affordance as
-            // typing `/model` in the CLI, no hardcoded fallback target since
+            // Prefill the composer with `/model ` — there's no model-id
+            // autocomplete for its argument, so the user either types an id
+            // or submits the bare command, which (CC 2.1.299 parity) opens the
+            // SessionCard's ModelPicker. No hardcoded fallback target, since
             // "standard-context" covers any non-1M Sonnet/Opus the user prefers.
             // Dismiss optimistically; the prefill lands on the next tick.
             session.dismissLongContextCreditsNudge();
@@ -2469,6 +2514,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           notice={session.advisorDisabledNotice}
           onDismiss={session.dismissAdvisorDisabledNotice}
           onReEnable={session.reEnableAdvisor}
+        />
+        <AutoModeOffNoticePanel
+          notice={session.autoModeOffNotice}
+          onDismiss={session.dismissAutoModeOffNotice}
         />
         {/* CC 2.1.191: "/rewind after /clear" — shows only in a fresh session
             that was created by /clear or the header Clear button. The user
@@ -2610,7 +2659,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                   .trim();
                 if (!text) return;
                 draftTokenRef.current += 1;
-                setDraftInjection({ token: draftTokenRef.current, text, mode: "replace" });
+                // CC 2.1.300 — "Edit prompt" on a flagged message: the
+                // restored prompt opens with no command or file menu over
+                // it, so Enter sends it as written.
+                setDraftInjection({
+                  token: draftTokenRef.current,
+                  text,
+                  mode: "replace",
+                  recalled: true,
+                });
               },
             }}
           />
@@ -2785,6 +2842,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           planUsage={session.planUsage}
           account={costAccount}
           accountsConfigured={session.accountsConfigured}
+          sessionId={session.sessionId}
           onClose={() => setOverlay(null)}
         />
       )}

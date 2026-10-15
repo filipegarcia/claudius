@@ -28,6 +28,7 @@ import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdow
 import { PURCHASE_CREDITS_URL, RateLimitUpgradeLinks } from "./RateLimitHitPanel";
 import { OPUS_OVERLOAD_NUDGE_SONNET_TARGET } from "./OpusOverloadNudgePanel";
 import { extraUsageState } from "@/lib/shared/rate-limit-extra-usage";
+import { rateLimitEventPct } from "@/lib/shared/usage-pct";
 
 /**
  * Remediation-lever context for the soft `allowed_warning` branch of
@@ -457,8 +458,10 @@ function RateLimitPill({
   // `Math.floor(H.utilization*100)` before rendering. We mirror that
   // here rather than at the storage layer so the value-on-the-wire and
   // the value-in-the-pref stay in their natural units.
+  // CC 2.1.299 parity — "Fixed /usage, the approaching-limit warning … and
+  // the status line sometimes showing more than 100% used": clamp to 100.
   const utilizationPct =
-    typeof info.utilization === "number" ? Math.round(info.utilization * 100) : null;
+    typeof info.utilization === "number" ? rateLimitEventPct(info.utilization) : null;
 
   const headline =
     status === "rejected"

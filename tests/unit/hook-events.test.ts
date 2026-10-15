@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
   HOOK_EVENT_NAMES,
+  isLegacyAgentHook,
+  legacyAgentHookName,
   HOOK_EVENTS,
   CATEGORY_ORDER,
   CATEGORY_LABELS,
@@ -101,5 +103,35 @@ describe("hook-events", () => {
       expect(CATEGORY_ORDER).toContain(category);
       expect(CATEGORY_LABELS[category]).toBeTruthy();
     }
+  });
+});
+
+// CC 2.1.300 — agent hooks are `{type:"agent", prompt, model?}`. The old
+// Claudius shape `{type:"agent", agent:"<name>"}` is skipped by the engine.
+describe("isLegacyAgentHook / legacyAgentHookName", () => {
+  test("flags the old name-only shape", () => {
+    const legacy = { type: "agent", agent: "test-verifier" };
+    expect(isLegacyAgentHook(legacy)).toBe(true);
+    expect(legacyAgentHookName(legacy)).toBe("test-verifier");
+  });
+
+  test("flags a prompt-less agent hook without inventing a name", () => {
+    expect(isLegacyAgentHook({ type: "agent" })).toBe(true);
+    expect(legacyAgentHookName({ type: "agent" })).toBeNull();
+  });
+
+  test("an empty-string prompt still loads in the engine, so it isn't flagged", () => {
+    expect(isLegacyAgentHook({ type: "agent", prompt: "" })).toBe(false);
+  });
+
+  test("accepts the engine shape, with or without a model", () => {
+    expect(isLegacyAgentHook({ type: "agent", prompt: "Verify tests ran" })).toBe(false);
+    expect(isLegacyAgentHook({ type: "agent", prompt: "Verify tests ran", model: "haiku" })).toBe(false);
+  });
+
+  test("ignores other handler types", () => {
+    expect(isLegacyAgentHook({ type: "prompt", prompt: "" })).toBe(false);
+    expect(isLegacyAgentHook({ type: "command", command: "x" })).toBe(false);
+    expect(isLegacyAgentHook(null)).toBe(false);
   });
 });

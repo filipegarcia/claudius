@@ -864,7 +864,8 @@ export default function GitPage() {
    * Status mapping:
    *   - exitCode 0      → "ok"
    *   - signal non-null → "error" + a timeout hint (we SIGTERM at the
-   *                       SHELL_TIMEOUT_SEC mark)
+   *                       SHELL_TIMEOUT_SEC mark, SIGKILL 1.5 s later if
+   *                       the command ignores it)
    *   - other non-zero  → "error"
    *
    * Refresh policy: we only re-pull git status when the command's first

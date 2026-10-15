@@ -32,14 +32,19 @@ export async function POST(req: Request) {
     // DEC3: optionally carve off a worktree for the new fork. Best-effort —
     // a failure (non-git source, untrusted cwd, git error) leaves the fork on
     // the shared checkout rather than failing the fork.
+    // CC 2.1.299 parity — a repo whose worktree couldn't be made (no commits
+    // yet, bare-repository root, git error) reports why as `worktreeError`.
     let worktree = null;
+    let worktreeError: string | undefined;
     if (body.worktree && typeof body.cwd === "string") {
       const sourceCwd = await resolveTrustedCwd(body.cwd).catch(() => null);
       if (sourceCwd) {
-        worktree = await createForkWorktree(sourceCwd, result.sessionId).catch(() => null);
+        const created = await createForkWorktree(sourceCwd, result.sessionId).catch(() => null);
+        if (created?.ok) worktree = created.worktree;
+        else if (created?.reason) worktreeError = created.reason;
       }
     }
-    return NextResponse.json({ ...result, worktree });
+    return NextResponse.json({ ...result, worktree, ...(worktreeError ? { worktreeError } : {}) });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },

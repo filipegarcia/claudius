@@ -175,8 +175,11 @@ export type HookOnFailure = "block";
 export type HookHandler =
   | { type: "command"; command: string; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string; onFailure?: HookOnFailure }
   | { type: "http"; url: string; method?: "POST" | "GET"; headers?: Record<string, string>; timeout?: number; async?: boolean; asyncRewake?: boolean; once?: boolean; if?: string; onFailure?: HookOnFailure }
-  | { type: "prompt"; prompt: string; continueOnBlock?: boolean; once?: boolean; if?: string }
-  | { type: "agent"; agent: string; once?: boolean; if?: string }
+  | { type: "prompt"; prompt: string; model?: string; timeout?: number; continueOnBlock?: boolean; once?: boolean; if?: string }
+  // CC 2.1.300 — an agent hook is a verifier PROMPT run on a model (Haiku by
+  // default), not a named subagent: `{type:"agent", prompt, model?}` per the
+  // engine schema (sdk.d.ts). See `isLegacyAgentHook` for the old shape.
+  | { type: "agent"; prompt: string; model?: string; timeout?: number; once?: boolean; if?: string }
   | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean; if?: string };
 
 /**
@@ -187,6 +190,29 @@ export type HookHandler =
  * this — it neither offers nor saves an `agent` handler on such an event.
  */
 export const AGENT_HANDLER_DISALLOWED_EVENTS: readonly HookEvent[] = ["PermissionRequest"];
+
+/**
+ * CC 2.1.300 — earlier Claudius builds saved agent hooks as
+ * `{type:"agent", agent:"<name>"}`. The engine's schema has no `agent` key and
+ * requires `prompt`, so it skips such an entry at load ("Invalid agent hook
+ * (prompt: … received undefined); entry ignored") — the hook never runs. The
+ * editor flags these so the user can re-create them. Takes `unknown` because
+ * the legacy shape is outside `HookHandler`.
+ */
+export function isLegacyAgentHook(h: unknown): boolean {
+  if (!h || typeof h !== "object") return false;
+  const o = h as { type?: unknown; prompt?: unknown };
+  // The engine schema only needs `prompt` to be a string — an empty one still
+  // loads — so only a missing/non-string prompt is the skipped shape.
+  return o.type === "agent" && typeof o.prompt !== "string";
+}
+
+/** The legacy agent hook's subagent name, for display. */
+export function legacyAgentHookName(h: unknown): string | null {
+  if (!isLegacyAgentHook(h)) return null;
+  const name = (h as { agent?: unknown }).agent;
+  return typeof name === "string" && name.trim() ? name : null;
+}
 
 /** Whether an `agent`-type hook handler may be attached to `event`. */
 export function agentHandlerAllowed(event: HookEvent): boolean {

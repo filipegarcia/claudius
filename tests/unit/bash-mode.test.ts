@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
@@ -92,6 +92,96 @@ d("BashSession", () => {
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("alive");
   });
+
+  // CC 2.1.300 parity: a background job that ignores SIGTERM must be
+  // force-killed (SIGKILL) ~1.5 s after we ask the shell to stop, instead
+  // of outliving the session.
+  const TERM_IGNORING_BG_JOB = "( trap '' TERM; exec sleep 377 ) & echo $!";
+
+  // A zombie counts as dead. Once the group is SIGKILLed the job is orphaned
+  // (its parent bash died with it) and reparented to PID 1. In CI's
+  // `container:` job PID 1 is `tail -f /dev/null`, which never reaps, so the
+  // killed job lingers as a zombie that still answers `kill(pid, 0)`. Linux
+  // exposes the state in /proc; elsewhere (macOS) launchd reaps orphans, so
+  // `kill(pid, 0)` is accurate.
+  function isAlive(pid: number): boolean {
+    if (process.platform === "linux") {
+      try {
+        const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+        // State is the first field after comm's closing ")" — comm itself may
+        // contain spaces or parens, hence lastIndexOf.
+        const state = stat[stat.lastIndexOf(")") + 2];
+        return state !== "Z" && state !== "X";
+      } catch {
+        return false;
+      }
+    }
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function forceKill(pid: number | undefined) {
+    if (pid == null) return;
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // already gone
+    }
+  }
+
+  async function startTermIgnoringJob(): Promise<number> {
+    const r = await bash.exec(TERM_IGNORING_BG_JOB);
+    expect(r.exitCode).toBe(0);
+    const pid = Number(r.stdout.trim());
+    expect(Number.isInteger(pid) && pid > 0).toBe(true);
+    return pid;
+  }
+
+  test(
+    "dispose force-kills a TERM-ignoring background job after the grace period",
+    async () => {
+      let pid: number | undefined;
+      try {
+        pid = await startTermIgnoringJob();
+        // Give the subshell time to install the trap and exec sleep.
+        await new Promise((r) => setTimeout(r, 100));
+        expect(isAlive(pid)).toBe(true);
+        bash.dispose();
+        // Still alive right after SIGTERM (it ignores TERM)...
+        await new Promise((r) => setTimeout(r, 300));
+        expect(isAlive(pid)).toBe(true);
+        // ...but gone once the 1.5 s SIGKILL escalation fires.
+        await new Promise((r) => setTimeout(r, 1900));
+        expect(isAlive(pid)).toBe(false);
+      } finally {
+        forceKill(pid);
+      }
+    },
+    10_000,
+  );
+
+  test(
+    "timeout force-kills a TERM-ignoring background job after the grace period",
+    async () => {
+      let pid: number | undefined;
+      try {
+        pid = await startTermIgnoringJob();
+        await new Promise((r) => setTimeout(r, 100));
+        expect(isAlive(pid)).toBe(true);
+        const r = await bash.exec("sleep 5", { timeoutMs: 200 });
+        expect(r.timedOut).toBe(true);
+        await new Promise((r) => setTimeout(r, 2200));
+        expect(isAlive(pid)).toBe(false);
+      } finally {
+        forceKill(pid);
+      }
+    },
+    10_000,
+  );
 
   test("heredoc wrapper isolates a password from bash's own stdin reader", async () => {
     // The sudo flow (Session.runBashCommand) injects the password through

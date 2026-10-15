@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Lightbulb, Shield } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
 import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
+import { isTypingInField } from "@/lib/client/typing-focus";
 
 type Props = {
   request: PermissionRequestEvent;
@@ -93,8 +94,17 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // modal (and its already-autofocused composer sibling) mounts after the
   // initial page load — a second competing `autoFocus` element doesn't
   // reliably win the browser's autofocus processing at that point.
+  //
+  // CC 2.1.299 parity — "Fixed Enter answering a question or permission
+  // prompt that had been held back while you typed an unsent message". If the
+  // prompt pops up while the user is mid-draft in the composer (or any text
+  // field), leave focus where it is: stealing it would make the Enter they
+  // press to send their message deny this request unseen. They can still
+  // click / Tab to the buttons, and Escape still denies.
   useEffect(() => {
-    if (request.defaultToNo) denyButtonRef.current?.focus();
+    if (!request.defaultToNo) return;
+    if (isTypingInField(document.activeElement)) return;
+    denyButtonRef.current?.focus();
     // Runs once per request — `requestId` is a stable per-prompt identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request.requestId]);

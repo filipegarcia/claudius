@@ -41,6 +41,32 @@ describe("costFromOverrideRate", () => {
     expect(usd).toBeCloseTo(3 + 15 + 0.3 + 3.75, 10);
   });
 
+  test("prices the 1h cache-write slice at cacheWrite1h (CC 2.1.300)", () => {
+    const usd = costFromOverrideRate(
+      { cacheWrite5m: 3.75, cacheWrite1h: 6 },
+      { input: 0, output: 0, cacheRead: 0, cacheWrite: 1_000_000, cacheWrite1h: 400_000 },
+    );
+    expect(usd).toBeCloseTo(0.6 * 3.75 + 0.4 * 6, 10);
+  });
+
+  test("falls back to cacheWrite5m for 1h writes when no 1h rate is set", () => {
+    const usd = costFromOverrideRate(
+      { cacheWrite5m: 3.75 },
+      { input: 0, output: 0, cacheRead: 0, cacheWrite: 1_000_000, cacheWrite1h: 1_000_000 },
+    );
+    expect(usd).toBeCloseTo(3.75, 10);
+  });
+
+  test("an SDK `overrides` single cacheWrite prices both lifetimes (no 1h doubling)", () => {
+    const usd = applyModelPricing(
+      99,
+      "claude-opus-4-8",
+      { input: 0, output: 0, cacheRead: 0, cacheWrite: 1_000_000, cacheWrite1h: 1_000_000 },
+      { overrides: { "claude-opus-4-8": { input: 4, output: 20, cacheRead: 0.4, cacheWrite: 5 } } },
+    );
+    expect(usd).toBeCloseTo(5, 10);
+  });
+
   test("treats missing rate fields as zero", () => {
     const usd = costFromOverrideRate(
       { input: 3 },

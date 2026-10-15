@@ -9,6 +9,15 @@ type FilePayload = {
   content: string;
   sizeBytes: number;
   modifiedMs: number;
+  /**
+   * CC 2.1.299 parity — `editable: false` when the file's encoding can't be
+   * written back without converting it to UTF-8 (UTF-16BE, Windows-1252, …).
+   * Optional so an older server response still opens editable.
+   */
+  encoding?: string;
+  encodingLabel?: string;
+  editable?: boolean;
+  readOnlyReason?: string;
 };
 
 type Props = {
@@ -334,6 +343,10 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
+  // Read-only notice for a file whose encoding can't be saved back losslessly
+  // (CC 2.1.299 parity); `null` = editable.
+  const [readOnlyReason, setReadOnlyReason] = useState<string | null>(null);
+  const readOnly = readOnlyReason != null;
 
   // Old content for the split view's left pane. Sentinel `null` = not yet
   // loaded (or no fetch attempted because split is off / mode unsupported).
@@ -423,6 +436,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
     setError(null);
     setOriginal(null);
     setDraft("");
+    setReadOnlyReason(null);
     setOldContent(null);
     setOldLoading(split && mode !== "untracked");
     setLeftScrollTop(0);
@@ -467,6 +481,11 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
       .then((d) => {
         setOriginal(d.content);
         setDraft(d.content);
+        setReadOnlyReason(
+          d.editable === false
+            ? (d.readOnlyReason ?? "Read-only: this file's encoding isn't UTF-8, and saving would convert it.")
+            : null,
+        );
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -604,7 +623,9 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
   );
 
   const onSave = useCallback(async () => {
-    if (!dirty || saving) return;
+    // `readOnly` is checked here (not just on the button) because ⌘S calls
+    // this directly.
+    if (!dirty || saving || readOnly) return;
     setSaving(true);
     setError(null);
     try {
@@ -627,7 +648,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
     } finally {
       setSaving(false);
     }
-  }, [wsId, relPath, draft, dirty, saving, onSaved]);
+  }, [wsId, relPath, draft, dirty, saving, readOnly, onSaved]);
 
   const onDiscard = useCallback(() => {
     if (!dirty) return;
@@ -646,6 +667,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
         void onSave();
         return;
       }
+      if (readOnly) return;
       if (e.key === "Tab" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         const ta = e.currentTarget;
@@ -657,7 +679,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
         });
       }
     },
-    [draft, onSave],
+    [draft, onSave, readOnly],
   );
 
   return (
@@ -716,8 +738,8 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
           <button
             type="button"
             onClick={() => void onSave()}
-            disabled={!dirty || saving || loading}
-            title="Save (⌘S)"
+            disabled={!dirty || saving || loading || readOnly}
+            title={readOnly ? "Read-only — saving would convert this file's encoding" : "Save (⌘S)"}
             data-testid="git-file-editor-save"
             className="flex h-6 items-center gap-1 rounded bg-[var(--accent)]/20 px-1.5 text-[var(--foreground)] hover:bg-[var(--accent)]/30 disabled:opacity-40"
           >
@@ -734,6 +756,16 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
         <div className="flex shrink-0 items-center gap-1.5 border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300">
           <AlertTriangle className="h-3 w-3" />
           <span className="truncate font-mono">{error}</span>
+        </div>
+      )}
+      {readOnlyReason && (
+        <div
+          data-testid="git-file-editor-encoding-readonly"
+          role="status"
+          className="flex shrink-0 items-center gap-1.5 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] text-amber-200"
+        >
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          <span>{readOnlyReason}</span>
         </div>
       )}
       {loading ? (
@@ -771,11 +803,11 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
               stripes + minimap. */}
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex h-6 shrink-0 items-center gap-2 border-b border-[var(--border)]/60 bg-[var(--panel)]/40 px-3 font-mono text-[10px] text-[var(--muted)]">
-              working tree · editable
+              working tree · {readOnly ? "read-only" : "editable"}
             </div>
             <CodePanel
               content={draft}
-              onContentChange={setDraft}
+              onContentChange={readOnly ? undefined : setDraft}
               highlightedLines={addedLines}
               highlightVariant="added"
               lineCount={draftLineCount}
@@ -795,7 +827,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
         // the only one used; the left handlers stay dormant.
         <CodePanel
           content={draft}
-          onContentChange={setDraft}
+          onContentChange={readOnly ? undefined : setDraft}
           highlightedLines={addedLines}
           highlightVariant="added"
           lineCount={draftLineCount}

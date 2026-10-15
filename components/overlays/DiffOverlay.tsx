@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Overlay } from "./Overlay";
 import { DiffViewer } from "@/components/git/DiffViewer";
 import type { GitFileChange } from "@/lib/server/git";
-import { modeFor, statusChar, statusLabel, type DiffOverlayMode } from "@/lib/shared/diff-overlay";
+import {
+  displayPath,
+  modeFor,
+  statusChar,
+  statusLabel,
+  type DiffOverlayMode,
+} from "@/lib/shared/diff-overlay";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -160,13 +166,15 @@ export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
               const mode = modeFor(f);
               const isSel = selected?.path === f.path && selected.mode === mode;
               const code = statusChar(f);
+              const label = displayPath(f);
               return (
                 <li key={f.path}>
                   <button
                     type="button"
                     data-testid="diff-overlay-file"
                     onClick={() => setSelected({ path: f.path, mode })}
-                    title={`${f.path} — ${statusLabel(code)}`}
+                    title={`${label} — ${statusLabel(code)}`}
+                    data-status={code}
                     className={cn(
                       "flex w-full items-center gap-2 truncate px-3 py-1.5 text-left text-[12px] transition",
                       isSel
@@ -180,7 +188,7 @@ export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
                     >
                       {code === " " ? "" : code}
                     </span>
-                    <span className="truncate">{f.path}</span>
+                    <span className="truncate">{label}</span>
                   </button>
                 </li>
               );

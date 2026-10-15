@@ -1,4 +1,5 @@
 import type { PlanRateLimits, SystemEntry } from "@/lib/client/types";
+import { clampPct } from "@/lib/shared/usage-pct";
 
 /** One SDK `rate_limit_event` payload, as stored on a `rate_limit` SystemEntry. */
 export type RateLimitInfo = NonNullable<SystemEntry["rateLimit"]>;
@@ -21,7 +22,11 @@ export type UsageWindow = {
   key: string;
   /** Matches the chat pill's wording, e.g. "Weekly limit". */
   label: string;
-  /** Percentage used, 0–100. Can read above 100 — clamp when drawing a bar. */
+  /**
+   * Percentage used, 0–100. Can read above 100 — kept raw for `usageTone`
+   * (>= 100 is a hard stop); clamp when drawing a bar or printing it
+   * (`clampPct`, CC 2.1.299 parity).
+   */
   pct: number;
   /** Epoch seconds when the window resets, when known. */
   resetsAtSec?: number;
@@ -145,6 +150,16 @@ const SHORT_LABELS: Record<string, string> = {
 export function shortUsageLabel(w: Pick<UsageWindow, "key" | "label">): string {
   if (w.key.startsWith("model:")) return w.key.slice("model:".length);
   return SHORT_LABELS[w.key] ?? w.label;
+}
+
+/**
+ * The whole "% used" figure to print (and report as `aria-valuenow`) for a
+ * window: rounded, then clamped to 0–100. CC 2.1.299 parity — "Fixed /usage
+ * … sometimes showing more than 100% used". Display only; tone logic reads
+ * the raw `pct`.
+ */
+export function displayUsagePct(w: Pick<UsageWindow, "pct">): number {
+  return clampPct(Math.round(w.pct));
 }
 
 export type UsageTone = "ok" | "warning" | "rejected";

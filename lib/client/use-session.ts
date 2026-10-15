@@ -25,6 +25,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
@@ -63,6 +64,7 @@ import type {
   AttachedImage,
   BackgroundBash,
   ChatActions,
+  SendResult,
   ChatState,
   DisplayBlock,
   DisplayMessage,
@@ -1155,6 +1157,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     previousAdvisor: string;
     newModel: string | undefined;
   } | null>(null);
+  /**
+   * CC 2.1.299 parity — transient notice for a model switch that took the
+   * session out of auto mode ("Auto mode is off: <model> doesn't support
+   * auto mode."). Set from the `model_changed` handler on `autoModeOffFor`.
+   */
+  const [autoModeOffNotice, setAutoModeOffNotice] = useState<{
+    uuid: string;
+    model: string;
+  } | null>(null);
   // Prior fast_mode_state observed on a result event. Used to detect edges
   // without depending on the (stale-in-closure) `fastModeState` state value.
   const prevFastModeStateRef = useRef<"off" | "cooldown" | "on" | null>(null);
@@ -1591,6 +1602,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // guard: the authoritative `usage_snapshot` the server emits alongside
   // each result carries absolute totals and is idempotent by construction.
   const seenResultUuidsRef = useRef<Set<string>>(new Set());
+  // CC 2.1.300 — uuids of `fast-mode-overage-rejected` notices already acted
+  // on. A short SSE blip reconnects on the merge path (no `resetState`, so
+  // `replayingRef` stays false) and replays the buffer tail; without this an
+  // old notice would flip the toggle Off again after the user re-enabled
+  // fast. Not cleared on reset — uuids are unique per notice.
+  const handledFastCreditsNoticeUuidsRef = useRef<Set<string>>(new Set());
   // True while a server-dispatched `/compact` slash command — sent while
   // idle — is awaiting its outcome. Set on the `slash_invoked` breadcrumb,
   // cleared either by a successful `compact_boundary` (compaction worked) or,
@@ -1732,6 +1749,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setFastModeState(null);
     setFastModeDisabledReason(null);
     setFastModeNotice(null);
+    setAutoModeOffNotice(null);
     prevFastModeStateRef.current = null;
     setPromptSuggestions([]);
     setReplaying(true);
@@ -2396,6 +2414,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             model: ev.model,
             nowSupported: ev.fastModeNowSupported,
           });
+        }
+        // CC 2.1.299 parity: the switch took the session out of auto mode
+        // (the `mode_changed` that flips the pill arrived just before this).
+        // Gated on `!replayingRef` — `model_changed` is buffered, and a
+        // reload replaying a switch from an hour ago shouldn't re-announce it.
+        if (ev.autoModeOffFor && !replayingRef.current) {
+          setAutoModeOffNotice({ uuid: crypto.randomUUID(), model: ev.autoModeOffFor });
         }
         return;
       }
@@ -4723,6 +4748,17 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             priority?: "low" | "medium" | "high" | "immediate";
           };
           const text = typeof n.text === "string" ? n.text.trim() : "";
+          // CC 2.1.300 — fast mode was refused because usage credits ran out.
+          // The server has already turned it off (`session.ts`); flip the
+          // picker toggle / FastBadge mirror to match without POSTing again.
+          // The notice itself renders below as an `immediate` (red) pill.
+          if (isFastModeCreditsRejectedNotice(sysAny)) {
+            const nUuid = (sysAny as { uuid?: unknown }).uuid;
+            const firstSight =
+              typeof nUuid !== "string" || !handledFastCreditsNoticeUuidsRef.current.has(nUuid);
+            if (typeof nUuid === "string") handledFastCreditsNoticeUuidsRef.current.add(nUuid);
+            if (firstSight && !replayingRef.current) setFastEnabled(false);
+          }
           if (text) {
             setSystemEntries((prev) => [
               ...prev,
@@ -5201,8 +5237,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         bindToSession(id);
         // Apply the server's authoritative cwd immediately. Without this,
         // `cwd` stays null until the SDK's `init` system message arrives via
-        // SSE — but for a brand-new session the SDK doesn't spawn until the
-        // first prompt, so init never fires beforehand. That left the page-
+        // SSE — and for a brand-new session that message doesn't arrive until
+        // the first prompt. (The CLI process itself is NOT lazy: this POST
+        // ran `Session.start()`, which calls `query()` and spawns it before
+        // responding; `system:init` is just emitted at the start of each
+        // turn, so an unused blank chat holds a live CLI child until the
+        // idle reaper in `session-manager.ts` ends it.) That left the page-
         // level auto-add-tab logic (which gates on `cwd === workspaceRoot`)
         // stalled until the user typed something, so the new tab only popped
         // into the strip after the first prompt. The init handler will
@@ -5405,12 +5445,17 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         fromSuggestion?: boolean;
         fromGoal?: boolean;
         inlinePastes?: string[];
+        reportsFailureInline?: boolean;
       },
-    ) => {
+    ): Promise<SendResult> => {
       const id = sessionIdRef.current;
       const trimmedText = text.trim();
       const hasImages = Array.isArray(images) && images.length > 0;
-      if (!id || (!trimmedText && !hasImages)) return;
+      // Nothing to send is not a failure — there's nothing to put back.
+      if (!trimmedText && !hasImages) return { ok: true };
+      // No bound session yet: the message can't go anywhere, so report it
+      // undelivered and let the composer keep it (CC 2.1.299 parity).
+      if (!id) return { ok: false, error: "no session" };
       const isSlash = !!opts?.asSlashCommand;
       const fromSuggestion = !!opts?.fromSuggestion;
       const fromGoal = !!opts?.fromGoal;
@@ -5474,28 +5519,51 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // which until the POST resolves. The SSE `turn_status` echo (and
       // `queue:updated` if it was enqueued) will set the right state.
       setErrors([]);
-      const res = await fetch(`/api/sessions/${id}/input`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          images: normalized,
-          uuid,
-          ...(isSlash ? { slash: true } : {}),
-          ...(fromSuggestion ? { fromSuggestion: true } : {}),
-          ...(fromGoal ? { fromGoal: true } : {}),
-          ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
-        }),
-      });
-      if (!res.ok) {
-        setErrors((e) => [...e, `send failed: ${res.status}`]);
-        // Roll back any optimistic bubble we added — there's no message in
-        // flight, the user should see their composer content lost into the
-        // void (not in the transcript as if it had been sent).
+      // Roll back any optimistic bubble we added — there's no message in
+      // flight, so it must not sit in the transcript (dimmed "Sending…"
+      // forever) as if it had been sent. The caller gets `ok: false` and the
+      // composer puts the text back in the box.
+      const rollBack = () => {
         if (showedOptimisticBubble) {
           setMessages((prev) => prev.filter((m) => m.uuid !== uuid));
         }
-        return;
+      };
+      let res: Response;
+      try {
+        res = await fetch(`/api/sessions/${id}/input`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            images: normalized,
+            uuid,
+            ...(isSlash ? { slash: true } : {}),
+            ...(fromSuggestion ? { fromSuggestion: true } : {}),
+            ...(fromGoal ? { fromGoal: true } : {}),
+            ...(opts?.inlinePastes?.length ? { inlinePastes: opts.inlinePastes } : {}),
+          }),
+        });
+      } catch {
+        // CC 2.1.299 parity — "Fixed Remote Control sessions whose computer
+        // can't be reached still appearing to send your messages; your text
+        // now stays in the box". A network failure used to throw straight out
+        // of here (callers fire-and-forget), leaving the optimistic bubble
+        // stuck as pending and the composer already wiped. The composer
+        // passes `reportsFailureInline` and shows its own "Couldn't reach
+        // Claudius" hint, so it skips the banner (a second one would just
+        // duplicate it); every other caller fires and forgets, so it keeps
+        // the banner rather than dropping the message silently. (An HTTP
+        // rejection below always keeps its banner — it carries the status.)
+        if (!opts?.reportsFailureInline) {
+          setErrors((e) => [...e, "send failed: couldn't reach Claudius"]);
+        }
+        rollBack();
+        return { ok: false, error: "network" };
+      }
+      if (!res.ok) {
+        setErrors((e) => [...e, `send failed: ${res.status}`]);
+        rollBack();
+        return { ok: false, error: `http ${res.status}` };
       }
       // Parse the server's decision: did the message dispatch now, or get
       // queued? If queued, we need to roll back the optimistic user bubble
@@ -5512,21 +5580,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // best-effort — if the response body is unparseable, assume the
         // optimistic path and let the SSE echo reconcile.
       }
+      return { ok: true };
     },
     [],
   );
 
   const enqueue = useCallback(
-    async (text: string, images?: AttachedImage[]) => {
+    async (text: string, images?: AttachedImage[]): Promise<SendResult> => {
       const id = sessionIdRef.current;
       const trimmed = text.trim();
-      if (!id || (!trimmed && (!images || images.length === 0))) return;
+      if (!trimmed && (!images || images.length === 0)) return { ok: true };
+      if (!id) return { ok: false, error: "no session" };
       // Explicit "stage this for later" — bypass the server's idle check
       // with `forceQueue: true` so a fresh send doesn't sneak in front of
       // the already-staged item. The `queue:updated` SSE echo will paint
       // the new item into the QueueIndicator strip.
       try {
-        await fetch(`/api/sessions/${id}/input`, {
+        const res = await fetch(`/api/sessions/${id}/input`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -5535,9 +5605,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             forceQueue: true,
           }),
         });
+        // CC 2.1.299 parity — report a rejected enqueue instead of letting
+        // the caller believe the message was staged.
+        if (!res.ok) return { ok: false, error: `http ${res.status}` };
+        return { ok: true };
       } catch {
-        // Best-effort; an offline tab silently drops the enqueue, matching
-        // the previous client behaviour.
+        // An offline tab can't stage anything; say so rather than silently
+        // dropping it, so the caller can keep the text.
+        return { ok: false, error: "network" };
       }
     },
     [],
@@ -5745,6 +5820,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
   const dismissAdvisorDisabledNotice = useCallback(() => {
     setAdvisorDisabledNotice(null);
+  }, []);
+
+  const dismissAutoModeOffNotice = useCallback(() => {
+    setAutoModeOffNotice(null);
   }, []);
 
   /**
@@ -6501,6 +6580,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     modelSwitchNotice,
     chatCommandModelNotice,
     advisorDisabledNotice,
+    autoModeOffNotice,
     promptSuggestions,
     suggestedUuids,
     goalUuids,
@@ -6537,6 +6617,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     dismissModelSwitchNotice,
     dismissChatCommandModelNotice,
     dismissAdvisorDisabledNotice,
+    dismissAutoModeOffNotice,
     reEnableAdvisor,
     requestRecap,
     dismissRecap,
