@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join as pathJoin } from "node:path";
+import { isAbsolute, join as pathJoin, resolve as pathResolve, sep as pathSep } from "node:path";
 import {
   createSdkMcpServer,
   getSessionInfo,
@@ -2469,6 +2469,23 @@ export class Session {
     this.createdAt = Date.now();
   }
 
+
+  /**
+   * CC 2.1.301 — "the compaction row in a resumed session … now says where
+   * the earlier messages are saved". A resumed session replays history from
+   * the last compaction on (`getSessionMessages` follows the chain from the
+   * boundary), so the turns before it live only in the engine's JSONL. This
+   * is that file, for display (home shortened to `~`); never read or written
+   * through this value. Undefined for fresh sessions.
+   */
+  resumedTranscriptPath(): string | undefined {
+    if (!this.resumeFrom || !/^[\w-]+$/.test(this.resumeFrom)) return undefined;
+    const dir = projectRoot(this.cwd);
+    const file = pathResolve(dir, `${this.resumeFrom}.jsonl`);
+    if (!file.startsWith(dir + pathSep)) return undefined;
+    const home = homedir();
+    return file.startsWith(home + pathSep) ? `~${file.slice(home.length)}` : file;
+  }
   async start(): Promise<void> {
     if (this.query) return;
 
@@ -3387,11 +3404,13 @@ export class Session {
       ...(this.resumeAt ? { resumeSessionAt: this.resumeAt } : {}),
     };
     this.query = query({ prompt: this.inputQueue, options });
+    const transcriptPath = this.resumedTranscriptPath();
     this.broadcast({
       type: "ready",
       sessionId: this.id,
       ...(this.agent ? { agent: this.agent } : {}),
       ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+      ...(transcriptPath ? { transcriptPath } : {}),
       ...(this.accountProfileId && this.accountProfileLabel
         ? {
             account: {
@@ -7411,11 +7430,13 @@ export class Session {
     // though the SDK Query is healthy. Same shape of bug the
     // `sendFreshTitle` path below works around for session_title.
     if (this.query) {
+      const transcriptPath = this.resumedTranscriptPath();
       fn({
         type: "ready",
         sessionId: this.id,
         ...(this.agent ? { agent: this.agent } : {}),
         ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+        ...(transcriptPath ? { transcriptPath } : {}),
       });
     }
     // Re-emit the current permission mode for the same reason. A

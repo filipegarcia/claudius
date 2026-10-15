@@ -967,6 +967,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // moving the URL write out of bindToSession into an effect.
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  // CC 2.1.301 — resumed session's transcript path (from `ready`), shown on a
+  // compaction row whose earlier messages weren't replayed.
+  const [transcriptPath, setTranscriptPath] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // Count of live backgrounded subagent/Task/Workflow runs, from the server's
   // authoritative `turn_status` signal. Distinct from `pending`: these run while
@@ -1696,6 +1699,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
   const resetState = useCallback(() => {
     setReady(false);
+    setTranscriptPath(null);
     setPending(false);
     setBackgroundTasks(0);
     setHolderTabId(null);
@@ -2158,6 +2162,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "ready") {
         setReady(true);
+        setTranscriptPath(ev.transcriptPath ?? null);
         setMainAgent(ev.agent ?? null);
         setAccount(ev.account ?? null);
         fallbackModelRef.current = ev.fallbackModel ?? null;
@@ -6559,6 +6564,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     agents,
     mainAgent,
     account,
+    transcriptPath,
     accountsConfigured,
     moveToActiveAccount,
     permissionMode,

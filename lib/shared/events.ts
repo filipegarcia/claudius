@@ -82,6 +82,12 @@ export type SessionReadyEvent = {
    */
   fallbackModel?: string;
   /**
+   * CC 2.1.301 — for a resumed session, the engine transcript (JSONL) that
+   * holds the turns from before its last compaction, which the resume replay
+   * doesn't load. `~`-shortened, display only. Absent for fresh sessions.
+   */
+  transcriptPath?: string;
+  /**
    * Account-switcher profile this session is actually running under (see
    * `Session.resolveAccountProfile`). Absent when no account is configured,
    * i.e. the SDK is using the ambient environment.

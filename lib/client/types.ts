@@ -862,6 +862,12 @@ export type ChatState = {
    */
   mainAgent: string | null;
   /**
+   * CC 2.1.301 — for a resumed session, the engine transcript holding the
+   * turns from before its last compaction (from the `ready` event). Null for
+   * fresh sessions.
+   */
+  transcriptPath: string | null;
+  /**
    * Account-switcher profile this session is actually running under, from the
    * `ready` event. Null when no account profile is configured.
    *
