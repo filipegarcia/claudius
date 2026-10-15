@@ -93,6 +93,7 @@ import {
   type TaskResourceLink,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
+import { hookAskReason } from "@/lib/shared/hook-ask";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
@@ -3683,6 +3684,13 @@ export class Session {
         // the prompt below since only the well-known internal tool prefix
         // (above) is auto-allowed today.
         mcpServer: ctx.mcpServer,
+        // CC 2.1.301 — a hook's `ask` used to arrive with nothing on the card
+        // saying a hook raised it. `decisionReasonType` is sent at runtime but
+        // not declared in the SDK's `.d.ts`, hence the cast.
+        hookAskReason: hookAskReason(
+          ctx.decisionReason,
+          (ctx as { decisionReasonType?: unknown }).decisionReasonType,
+        ),
         // CC 2.1.235 — show the narrow rule(s) an "Always allow" will write.
         suggestedRules: allowRuleSuggestions(ctx.suggestions).flatMap((u) =>
           u.rules.map((r) => ({

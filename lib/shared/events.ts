@@ -53,6 +53,13 @@ export type PermissionRequestEvent = {
    * tools and on CLIs that predate the field.
    */
   mcpServer?: { name: string; source: string };
+  /**
+   * CC 2.1.301 — set when a PreToolUse hook raised this ask: the hook's own
+   * reason text (`canUseTool`'s `decisionReason` with
+   * `decisionReasonType: "hook"`), ANSI-stripped and length-capped by
+   * `hookAskReason`. Display only. Absent for every other kind of ask.
+   */
+  hookAskReason?: string;
 };
 
 export type SessionReadyEvent = {

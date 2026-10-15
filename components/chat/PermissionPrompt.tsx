@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Lightbulb, Shield } from "lucide-react";
+import { ChevronDown, ChevronRight, Lightbulb, Shield, Webhook } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
 import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
@@ -52,6 +52,11 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   const summary = summaryVis.visualized;
   const descriptionVis = request.description
     ? visualizeInvisibleUnicode(request.description)
+    : null;
+  // CC 2.1.301 — a hook raised this ask; its reason is hook-authored
+  // (untrusted) text, so it gets the same invisible-character treatment.
+  const hookReasonVis = request.hookAskReason
+    ? visualizeInvisibleUnicode(request.hookAskReason)
     : null;
   // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
   // would write grants more than this ask's own action, so hide all three
@@ -158,6 +163,18 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
             <div className="mt-0.5 text-sm font-medium">{summary}</div>
             {descriptionVis && (
               <div className="mt-1 text-xs text-[var(--muted)]">{descriptionVis.visualized}</div>
+            )}
+            {hookReasonVis && (
+              <div
+                data-testid="permission-hook-reason"
+                title="A PreToolUse hook answered 'ask' for this call, so Claude Code is asking you"
+                className="mt-1.5 flex items-start gap-1.5 rounded border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-xs text-sky-200"
+              >
+                <Webhook className="mt-0.5 h-3 w-3 shrink-0" />
+                <span className="min-w-0 break-words">
+                  <span className="font-medium">Asked by a hook:</span> {hookReasonVis.visualized}
+                </span>
+              </div>
             )}
           </div>
         </div>

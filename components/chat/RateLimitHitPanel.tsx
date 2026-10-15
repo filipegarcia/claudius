@@ -49,7 +49,7 @@ export type RateLimitHit = NonNullable<DisplayMessage["rateLimitHit"]>;
  * (extra usage is how those plans keep going without changing plan); the
  * upgrade links stay beside it.
  */
-export function RateLimitUpgradeLinks({ subscriptionType }: { subscriptionType?: string | null } = {}) {
+export function RateLimitUpgradeLinks({ subscriptionType }: { subscriptionType?: string | null }) {
   return (
     <>
       {offersGetMoreUsage(subscriptionType) && (
