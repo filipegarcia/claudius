@@ -20,6 +20,7 @@ import {
 import { SideNav } from "@/components/nav/SideNav";
 import { FileTree, type Entry } from "@/components/files/FileTree";
 import { HighlightedEditor } from "@/components/files/HighlightedEditor";
+import { BinaryFilePlaceholder } from "@/components/files/BinaryFilePlaceholder";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 
 type FileContent = {
@@ -38,6 +39,8 @@ type FileContent = {
   encodingLabel?: string;
   editable?: boolean;
   readOnlyReason?: string;
+  /** CC 2.1.301 — the server saw a binary file and sent no text. */
+  binary?: boolean;
 };
 
 type WorkspaceRoot = {
@@ -146,6 +149,7 @@ export default function FilesPage() {
           encodingLabel: d.encodingLabel,
           editable: d.editable,
           readOnlyReason: d.readOnlyReason,
+          binary: d.binary === true,
         };
         setOpen(ref);
         setDraft(ref.content);
@@ -529,43 +533,53 @@ export default function FilesPage() {
                     <Save className="h-3 w-3" /> {busy === "save" ? "Saving…" : "Save"}
                   </button>
                 </div>
-                {readOnly && (
-                  <div
-                    data-testid="files-encoding-readonly"
-                    role="status"
-                    className="flex shrink-0 items-center gap-1.5 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] text-amber-200"
-                  >
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
-                    <span>
-                      {open.readOnlyReason ??
-                        "Read-only: this file's encoding isn't UTF-8, and saving would convert it."}
-                    </span>
-                  </div>
-                )}
-                <div className="flex-1 overflow-hidden">
-                  <HighlightedEditor
+                {open.binary ? (
+                  <BinaryFilePlaceholder
                     path={open.relPath}
-                    readOnly={readOnly}
-                    value={draft}
-                    onChange={(next) => {
-                      setDraft(next);
-                      setDirty(next !== open.content);
-                    }}
-                    onKeyDown={(e) => {
-                      // ⌘S / Ctrl+S to save — matches the FileEditor on /git
-                      // so the muscle memory carries over between the two views.
-                      if (
-                        (e.metaKey || e.ctrlKey) &&
-                        !e.shiftKey &&
-                        !e.altKey &&
-                        e.key.toLowerCase() === "s"
-                      ) {
-                        e.preventDefault();
-                        void onSave();
-                      }
-                    }}
+                    sizeBytes={open.sizeBytes}
+                    testId="files-binary-placeholder"
                   />
-                </div>
+                ) : (
+                  <>
+                    {readOnly && (
+                      <div
+                        data-testid="files-encoding-readonly"
+                        role="status"
+                        className="flex shrink-0 items-center gap-1.5 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] text-amber-200"
+                      >
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        <span>
+                          {open.readOnlyReason ??
+                            "Read-only: this file's encoding isn't UTF-8, and saving would convert it."}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1 overflow-hidden">
+                      <HighlightedEditor
+                        path={open.relPath}
+                        readOnly={readOnly}
+                        value={draft}
+                        onChange={(next) => {
+                          setDraft(next);
+                          setDirty(next !== open.content);
+                        }}
+                        onKeyDown={(e) => {
+                          // ⌘S / Ctrl+S to save — matches the FileEditor on /git
+                          // so the muscle memory carries over between the two views.
+                          if (
+                            (e.metaKey || e.ctrlKey) &&
+                            !e.shiftKey &&
+                            !e.altKey &&
+                            e.key.toLowerCase() === "s"
+                          ) {
+                            e.preventDefault();
+                            void onSave();
+                          }
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </section>

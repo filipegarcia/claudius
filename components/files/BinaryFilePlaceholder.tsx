@@ -1,0 +1,45 @@
+"use client";
+
+import { FileQuestion } from "lucide-react";
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * CC 2.1.301 ("Fixed the Read tool reading binary files such as .xlsm,
+ * .parquet, .epub and .heic as text") — shown in place of the text editor
+ * when the files route reports `binary: true`, instead of a garbled lossy
+ * decode. Shared by the Files page and the /git FileEditor.
+ */
+export function BinaryFilePlaceholder({
+  path,
+  sizeBytes,
+  testId,
+}: {
+  path: string;
+  sizeBytes?: number;
+  testId: string;
+}) {
+  const name = path.split("/").pop() || path;
+  return (
+    <div
+      data-testid={testId}
+      role="status"
+      className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-[var(--muted)]"
+    >
+      <FileQuestion className="h-8 w-8 opacity-60" />
+      <div className="text-sm text-[var(--foreground)]">Binary file — not shown as text</div>
+      <div className="font-mono text-[11px]">
+        {name}
+        {typeof sizeBytes === "number" ? ` · ${formatSize(sizeBytes)}` : ""}
+      </div>
+      <div className="max-w-sm text-[11px]">
+        This file isn&apos;t text (a spreadsheet, archive, database, media file or similar), so it can&apos;t be
+        opened in the editor.
+      </div>
+    </div>
+  );
+}

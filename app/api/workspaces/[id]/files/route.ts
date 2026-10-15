@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getRepoRoot } from "@/lib/server/git";
 import { resolveWorkspaceRoot } from "@/lib/server/workspace-roots";
 import { decodePreview, decodeText, detectTextEncoding, encodeText } from "@/lib/shared/text-encoding";
+import { isKnownBinaryPath } from "@/lib/shared/file-types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -149,6 +150,27 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     // re-adds it), and anything we can't round-trip comes back as a lossy
     // preview with `editable: false` so the editors open it read-only.
     const detected = detectTextEncoding(bytes);
+    // CC 2.1.301 — "Fixed the Read tool reading binary files such as .xlsm,
+    // .parquet, .epub and .heic as text". A binary (NUL-sniffed, or a known
+    // binary extension) used to come back as a lossy UTF-8 decode that both
+    // viewers loaded as garbled read-only text. Send no content and a
+    // `binary` flag instead; the viewers show a placeholder.
+    if ((!detected.editable && detected.guess === "binary") || isKnownBinaryPath(target)) {
+      return NextResponse.json({
+        rootId: resolved.root.id,
+        rootPath: root,
+        relPath: relative(root, target).split(sep).join("/"),
+        kind: "file",
+        content: "",
+        binary: true,
+        sizeBytes: stat.size,
+        modifiedMs: stat.mtimeMs,
+        encoding: "unsupported",
+        encodingLabel: "binary",
+        editable: false,
+        readOnlyReason: "Binary file — not shown as text.",
+      });
+    }
     const content = detected.editable
       ? decodeText(bytes, detected.encoding)
       : decodePreview(bytes, detected.guess);
@@ -176,7 +198,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // folder) is findable without expanding the tree by hand.
   const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
   if (search) {
-    const { matches, truncated } = await searchFiles(root, target, search);
+    let found: Awaited<ReturnType<typeof searchFiles>>;
+    try {
+      found = await searchFiles(root, target, search);
+    } catch (err) {
+      return searchFailed(err);
+    }
+    const { matches, truncated } = found;
     return NextResponse.json({
       rootId: resolved.root.id,
       rootPath: root,
@@ -193,12 +221,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const contentSearch = url.searchParams.get("contentSearch") ?? "";
   if (contentSearch.trim()) {
     const caseSensitive = url.searchParams.get("case") === "1";
-    const { matches, truncated, scanned } = await searchFileContents(
-      root,
-      target,
-      contentSearch,
-      caseSensitive,
-    );
+    let found: Awaited<ReturnType<typeof searchFileContents>>;
+    try {
+      found = await searchFileContents(root, target, contentSearch, caseSensitive);
+    } catch (err) {
+      return searchFailed(err);
+    }
+    const { matches, truncated, scanned } = found;
     return NextResponse.json({
       rootId: resolved.root.id,
       rootPath: root,
@@ -233,6 +262,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     entries: listing.entries,
     hiddenCount: listing.hiddenCount,
   });
+}
+
+/**
+ * CC 2.1.301 — the folder a search starts from couldn't be read. Mirrors the
+ * listing's 403/500 mapping, worded as a failed search so the UI never
+ * mistakes it for "no matches".
+ */
+function searchFailed(err: unknown): NextResponse {
+  const code = (err as NodeJS.ErrnoException).code;
+  const denied = code === "EACCES" || code === "EPERM";
+  const detail = denied
+    ? `permission denied — can't read this folder (${code})`
+    : err instanceof Error
+      ? err.message
+      : String(err);
+  return NextResponse.json({ error: `Search failed: ${detail}` }, { status: denied ? 403 : 500 });
 }
 
 async function resolveBoundedTarget(
@@ -454,7 +499,13 @@ async function searchFiles(
     let names: import("node:fs").Dirent[];
     try {
       names = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
+    } catch (err) {
+      // CC 2.1.301 — "Fixed Grep and Glob reporting no matches when the
+      // search program failed … before returning any results". An unreadable
+      // sub-folder is skipped, but if the folder the search starts from
+      // can't be read the search has failed — say so instead of answering
+      // "no matches".
+      if (dir === baseDir) throw err;
       continue;
     }
     for (const ent of names) {
@@ -536,7 +587,13 @@ async function searchFileContents(
     let names: import("node:fs").Dirent[];
     try {
       names = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
+    } catch (err) {
+      // CC 2.1.301 — "Fixed Grep and Glob reporting no matches when the
+      // search program failed … before returning any results". An unreadable
+      // sub-folder is skipped, but if the folder the search starts from
+      // can't be read the search has failed — say so instead of answering
+      // "no matches".
+      if (dir === baseDir) throw err;
       continue;
     }
     for (const ent of names) {

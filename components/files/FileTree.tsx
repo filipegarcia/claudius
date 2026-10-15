@@ -53,6 +53,9 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
   const [selected, setSelected] = useState<string | null>(selectedPath ?? null);
   const [searchResults, setSearchResults] = useState<Entry[] | null>(null);
   const [searchTruncated, setSearchTruncated] = useState(false);
+  // CC 2.1.301 — a failed search (unreadable folder, server error) is shown
+  // as a failure, never as "No files match."
+  const [searchError, setSearchError] = useState<string | null>(null);
   // Right-click "Reveal in Finder" menu state. `path` is the row's
   // workspace-relative path; (x, y) are viewport coordinates fed straight
   // into position: fixed. Single-menu invariant — opening on one row
@@ -71,6 +74,7 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
     if (!q) {
       setSearchResults(null);
       setSearchTruncated(false);
+      setSearchError(null);
     }
   }
 
@@ -82,16 +86,22 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
     const t = setTimeout(() => {
       const rootParam = root ? `&root=${encodeURIComponent(root)}` : "";
       fetch(`/api/workspaces/${workspaceId}/files?search=${encodeURIComponent(q)}${rootParam}`)
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then(async (r) => {
+          if (r.ok) return r.json();
+          const j = (await r.json().catch(() => ({}))) as { error?: string };
+          throw new Error(j.error ?? `Search failed (HTTP ${r.status})`);
+        })
         .then((d: { entries?: Entry[]; truncated?: boolean }) => {
           if (cancelled) return;
           setSearchResults(Array.isArray(d.entries) ? d.entries : []);
           setSearchTruncated(Boolean(d.truncated));
+          setSearchError(null);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           if (!cancelled) {
             setSearchResults([]);
             setSearchTruncated(false);
+            setSearchError(err instanceof Error ? err.message : String(err));
           }
         });
     }, 200);
@@ -228,6 +238,12 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
   if (q) {
     if (searchResults === null)
       return <div className="px-3 py-3 text-xs text-[var(--muted)]">Searching…</div>;
+    if (searchError)
+      return (
+        <div data-testid="file-search-error" role="alert" className="px-3 py-3 text-xs text-red-300">
+          {searchError}
+        </div>
+      );
     if (searchResults.length === 0)
       return <div className="px-3 py-3 text-xs text-[var(--muted)]">No files match.</div>;
     return (

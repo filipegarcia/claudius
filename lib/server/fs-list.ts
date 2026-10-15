@@ -84,7 +84,11 @@ async function walk(root: string, opts: WalkOptions): Promise<FsEntry[]> {
     let entries: import("node:fs").Dirent[];
     try {
       entries = await fs.readdir(abs, { withFileTypes: true });
-    } catch {
+    } catch (err) {
+      // CC 2.1.301 — an unreadable root is a failed search (the route answers
+      // 500 and the @-picker says so), not an empty folder. Unreadable
+      // sub-folders are still skipped.
+      if (abs === root) throw err;
       continue;
     }
     for (const ent of entries) {

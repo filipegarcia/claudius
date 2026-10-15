@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Loader2, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { BinaryFilePlaceholder } from "@/components/files/BinaryFilePlaceholder";
 
 type FilePayload = {
   relPath: string;
@@ -18,6 +19,8 @@ type FilePayload = {
   encodingLabel?: string;
   editable?: boolean;
   readOnlyReason?: string;
+  /** CC 2.1.301 — the server saw a binary file and sent no text. */
+  binary?: boolean;
 };
 
 type Props = {
@@ -346,6 +349,8 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
   // Read-only notice for a file whose encoding can't be saved back losslessly
   // (CC 2.1.299 parity); `null` = editable.
   const [readOnlyReason, setReadOnlyReason] = useState<string | null>(null);
+  // CC 2.1.301 — binary file: show a placeholder instead of the panes.
+  const [binarySize, setBinarySize] = useState<number | null>(null);
   const readOnly = readOnlyReason != null;
 
   // Old content for the split view's left pane. Sentinel `null` = not yet
@@ -479,6 +484,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
         return (await res.json()) as FilePayload;
       })
       .then((d) => {
+        setBinarySize(d.binary === true ? d.sizeBytes : null);
         setOriginal(d.content);
         setDraft(d.content);
         setReadOnlyReason(
@@ -758,7 +764,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
           <span className="truncate font-mono">{error}</span>
         </div>
       )}
-      {readOnlyReason && (
+      {readOnlyReason && binarySize == null && (
         <div
           data-testid="git-file-editor-encoding-readonly"
           role="status"
@@ -772,6 +778,8 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
         <div className="flex flex-1 items-center justify-center text-sm text-[var(--muted)]">
           Loading file…
         </div>
+      ) : binarySize != null ? (
+        <BinaryFilePlaceholder path={relPath} sizeBytes={binarySize} testId="git-file-editor-binary-placeholder" />
       ) : split && mode !== "untracked" ? (
         <div className="flex min-h-0 flex-1">
           {/* Left pane — OLD content, read-only, red stripes on removed

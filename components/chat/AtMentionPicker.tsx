@@ -32,6 +32,9 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
   // — that's what would trap the spinner on the null-session / zero-match
   // cases the guard relies on.
   const [fileLoading, setFileLoading] = useState(true);
+  // CC 2.1.301 — the file search failed (unreadable folder, server error).
+  // Shown in the picker instead of silently closing it as if nothing matched.
+  const [fileError, setFileError] = useState<string | null>(null);
   const [hi, setHi] = useState(0);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -63,13 +66,19 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
     const params = new URLSearchParams({ q: normalizeFileMentionQuery(query), limit: "50" });
     if (cwd) params.set("cwd", cwd);
     fetch(`/api/fs/list?${params}`, { signal: controller.signal })
-      .then((r) => r.json())
-      .then((d: { entries?: FsEntry[] }) => {
+      .then(async (r) => {
+        const d = (await r.json().catch(() => ({}))) as { entries?: FsEntry[]; error?: string };
+        if (!r.ok) throw new Error(d.error ?? `Search failed (HTTP ${r.status})`);
+        return d;
+      })
+      .then((d) => {
         setEntries(d.entries ?? []);
+        setFileError(null);
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setEntries([]);
+        setFileError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
         if (!controller.signal.aborted) setFileLoading(false);
@@ -167,7 +176,8 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
     itemRefs.current[hi]?.scrollIntoView({ block: "nearest" });
   }, [hi]);
 
-  if (visible.length === 0 && !loading) return null;
+  const showFileError = !agentMode && !loading && fileError != null;
+  if (visible.length === 0 && !loading && !showFileError) return null;
 
   const countLabel = loading
     ? "loading…"
@@ -179,6 +189,11 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
         <span>@-mention · Tab to insert</span>
         <span>{countLabel}</span>
       </div>
+      {showFileError && (
+        <div data-testid="at-mention-search-error" role="alert" className="px-2 py-1 text-xs text-red-300">
+          {fileError}
+        </div>
+      )}
       {visible.map((item, i) => {
         const key = item.kind === "agent" ? `agent:${item.name}` : `file:${item.relPath}`;
         const Icon = item.kind === "agent" ? Bot : item.type === "dir" ? Folder : File;

@@ -14,9 +14,17 @@ export async function GET(req: Request) {
     const entries = await listFs({ cwd, query: q, limit });
     return NextResponse.json({ cwd, entries });
   } catch (err) {
+    // CC 2.1.301 — worded as a failed search so the @-picker never shows it
+    // as "no matches".
+    const code = (err as NodeJS.ErrnoException).code;
+    const denied = code === "EACCES" || code === "EPERM";
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err) },
-      { status: 500 },
+      {
+        error: `Search failed: ${
+          denied ? `permission denied — can't read this folder (${code})` : err instanceof Error ? err.message : String(err)
+        }`,
+      },
+      { status: denied ? 403 : 500 },
     );
   }
 }
