@@ -26,6 +26,7 @@ import {
 } from "@/lib/client/useRateLimitWarning";
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
 import { PURCHASE_CREDITS_URL, RateLimitUpgradeLinks } from "./RateLimitHitPanel";
+import { offersGetMoreUsage } from "@/lib/client/rate-limit-cta";
 import { OPUS_OVERLOAD_NUDGE_SONNET_TARGET } from "./OpusOverloadNudgePanel";
 import { extraUsageState } from "@/lib/shared/rate-limit-extra-usage";
 import { rateLimitEventPct } from "@/lib/shared/usage-pct";
@@ -49,6 +50,12 @@ export type SystemPillLevers = {
    * with the refused user message's text so the user can reword and resend.
    */
   onEditAndRetry?: (refusedUserMessageUuid: string) => void;
+  /**
+   * CC 2.1.301 — the account's plan tier from the latest `plan_usage` event,
+   * so the rejected rate-limit pill offers "Get more usage" to Pro/Max the
+   * same way the inline `RateLimitHitPanel` does.
+   */
+  subscriptionType?: string | null;
 };
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
@@ -652,8 +659,10 @@ function RateLimitPill({
       ) : (
         status === "rejected" && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
-            <span className="opacity-70">Out of usage? Upgrade to keep going:</span>
-            <RateLimitUpgradeLinks />
+            <span className="opacity-70">
+              {offersGetMoreUsage(levers?.subscriptionType) ? "Out of usage?" : "Out of usage? Upgrade to keep going:"}
+            </span>
+            <RateLimitUpgradeLinks subscriptionType={levers?.subscriptionType} />
           </div>
         )
       )}

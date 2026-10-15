@@ -3,7 +3,7 @@
 import { AlertTriangle, Timer } from "lucide-react";
 import type { DisplayMessage } from "@/lib/client/types";
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
-import { rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
+import { offersGetMoreUsage, rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
 import { autoContinueNotice } from "@/lib/client/auto-continue";
 
 // Upgrade destinations, mirrored from the Claude Code CLI's `/rate-limit-options`
@@ -21,6 +21,13 @@ export const UPGRADE_TEAM_URL = "https://claude.ai/create/team";
  * long-context credits nudge links to.
  */
 export const PURCHASE_CREDITS_URL = "https://claude.ai/settings/usage";
+/**
+ * CC 2.1.301 — "Get more usage" for Pro/Max. The CLI's own limit message
+ * links the same claude.ai usage page (where extra usage is bought), tagged
+ * `?from=cc_cli_limit_message`; we keep the untagged page Claudius already
+ * links for credits.
+ */
+export const GET_MORE_USAGE_URL = PURCHASE_CREDITS_URL;
 
 const RATE_LIMIT_TYPE_LABEL: Record<string, string> = {
   five_hour: "5-hour limit",
@@ -37,10 +44,25 @@ export type RateLimitHit = NonNullable<DisplayMessage["rateLimitHit"]>;
  * The CLI's "Upgrade your plan / Upgrade to Team plan" affordances. Shared by
  * the inline hit panel below and the event-driven rejected pill in SystemPill
  * so the wording + destinations stay in one place.
+ *
+ * CC 2.1.301 — for a Pro or Max account a "Get more usage" link leads the row
+ * (extra usage is how those plans keep going without changing plan); the
+ * upgrade links stay beside it.
  */
-export function RateLimitUpgradeLinks() {
+export function RateLimitUpgradeLinks({ subscriptionType }: { subscriptionType?: string | null } = {}) {
   return (
     <>
+      {offersGetMoreUsage(subscriptionType) && (
+        <a
+          href={GET_MORE_USAGE_URL}
+          target="_blank"
+          rel="noreferrer"
+          data-testid="rate-limit-get-more-usage-link"
+          className="font-medium underline underline-offset-2 hover:opacity-80"
+        >
+          Get more usage
+        </a>
+      )}
       <a
         href={UPGRADE_PLAN_URL}
         target="_blank"
@@ -196,8 +218,10 @@ export function RateLimitHitPanel({
         </div>
       ) : (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
-          <span className="opacity-70">Out of usage? Upgrade to keep going:</span>
-          <RateLimitUpgradeLinks />
+          <span className="opacity-70">
+            {offersGetMoreUsage(hit.subscriptionType) ? "Out of usage?" : "Out of usage? Upgrade to keep going:"}
+          </span>
+          <RateLimitUpgradeLinks subscriptionType={hit.subscriptionType} />
         </div>
       )}
     </div>

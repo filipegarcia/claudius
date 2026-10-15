@@ -2643,6 +2643,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             systemPillLevers={{
               model: session.model,
               effort: session.effort,
+              subscriptionType: session.planUsage?.subscriptionType ?? null,
               onSwitchToSonnet: () =>
                 session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET),
               onStepEffortDown: () => session.setEffort("medium"),
