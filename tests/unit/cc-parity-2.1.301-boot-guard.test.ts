@@ -37,8 +37,14 @@ describe("boot crash-loop guard", () => {
 
   test("a boot that never finished makes the next boot skip that session", () => {
     const s = mem();
-    markBootAttempt("abc", s, 1000);
-    expect(shouldSkipResume("abc", s, 2000)).toBe(true);
+    markBootAttempt("abc", s, 1000, 1);
+    expect(shouldSkipResume("abc", s, 2000, false, 2)).toBe(true);
+  });
+
+  test("a marker from this same page load (Strict Mode re-run, remount) never counts", () => {
+    const s = mem();
+    markBootAttempt("abc", s, 1000, 7);
+    expect(shouldSkipResume("abc", s, 2000, false, 7)).toBe(false);
   });
 
   test("only the same session is skipped", () => {
@@ -55,11 +61,11 @@ describe("boot crash-loop guard", () => {
 
   test("Open anyway wins, once", () => {
     const s = mem();
-    markBootAttempt("abc", s, 1000);
+    markBootAttempt("abc", s, 1000, 1);
     const ss = mem();
     ss.setItem(BOOT_FORCE_KEY, "abc");
     expect(consumeForcedResume("abc", ss)).toBe(true);
-    expect(shouldSkipResume("abc", s, 2000, true)).toBe(false);
+    expect(shouldSkipResume("abc", s, 2000, true, 2)).toBe(false);
     expect(consumeForcedResume("abc", ss)).toBe(false);
   });
 

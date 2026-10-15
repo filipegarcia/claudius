@@ -27,38 +27,58 @@ export const BOOT_FORCE_KEY = "claudius:boot-force";
  */
 export const BOOT_MARKER_TTL_MS = 30 * 60 * 1000;
 
-type Marker = { id: string; at: number };
+/**
+ * Which page load wrote a marker. A marker from the *current* load never
+ * counts: React Strict Mode runs the boot effect twice, and a chat remount
+ * after client-side navigation re-runs it — neither is a crash loop.
+ * `performance.timeOrigin` is fixed for the life of a document and differs
+ * on every load.
+ */
+export function currentPageLoad(): number {
+  return typeof performance !== "undefined" ? performance.timeOrigin : 0;
+}
+
+type Marker = { id: string; at: number; load?: number };
 
 function readMarker(storage: Pick<Storage, "getItem">): Marker | null {
   try {
     const raw = storage.getItem(BOOT_MARKER_KEY);
     if (!raw) return null;
     const m = JSON.parse(raw) as Partial<Marker>;
-    return typeof m.id === "string" && typeof m.at === "number" ? { id: m.id, at: m.at } : null;
+    return typeof m.id === "string" && typeof m.at === "number"
+      ? { id: m.id, at: m.at, ...(typeof m.load === "number" ? { load: m.load } : {}) }
+      : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Whether the boot should skip resuming `id` because the last boot that
- * resumed it never finished. `forced` (from "Open anyway") always wins.
+ * Whether the boot should skip resuming `id` because an earlier page load
+ * that resumed it never finished. `forced` (from "Open anyway") always wins,
+ * and a marker written by this same page load (`load`) is ignored.
  */
 export function shouldSkipResume(
   id: string,
   storage: Pick<Storage, "getItem">,
   now: number,
   forced = false,
+  load = currentPageLoad(),
 ): boolean {
   if (forced) return false;
   const m = readMarker(storage);
-  return !!m && m.id === id && now - m.at < BOOT_MARKER_TTL_MS;
+  return !!m && m.id === id && m.load !== load && now - m.at < BOOT_MARKER_TTL_MS;
 }
 
-/** Record that this boot is about to resume `id`. */
-export function markBootAttempt(id: string, storage: Pick<Storage, "setItem">, now: number): void {
+/** Record that this page load is about to resume `id`. */
+export function markBootAttempt(
+  id: string,
+  storage: Pick<Storage, "setItem">,
+  now: number,
+  load = currentPageLoad(),
+): void {
   try {
-    storage.setItem(BOOT_MARKER_KEY, JSON.stringify({ id, at: now }));
+    storage.setItem(BOOT_MARKER_KEY, JSON.stringify({ id, at: now, load }));
   } catch {
     // Storage full / disabled — the guard is best-effort.
   }

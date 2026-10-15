@@ -5401,8 +5401,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       if (resume) {
         const forced = consumeForcedResume(resume, window.sessionStorage);
         if (shouldSkipResume(resume, window.localStorage, Date.now(), forced)) {
+          // The marker is left in place (a Strict Mode re-run of this effect
+          // must reach the same decision); the fresh session's own
+          // post-render clear removes it.
           setSkippedBootSession(resume);
-          clearBootAttempt(window.localStorage);
           resume = undefined;
           resumeAt = undefined;
           try {
