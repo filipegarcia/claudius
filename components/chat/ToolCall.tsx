@@ -362,7 +362,7 @@ export function ToolCall({
                 data-testid="tool-call-plan-preview"
                 className="max-h-96 overflow-y-auto scroll-thin rounded bg-[var(--panel-2)] px-3 py-2 text-[length:var(--chat-text)] leading-7 2xl:leading-8"
               >
-                <Markdown>{planText}</Markdown>
+                <Markdown math>{planText}</Markdown>
               </div>
             </div>
           ) : feedbackDraftText ? (

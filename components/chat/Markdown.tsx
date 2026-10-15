@@ -1,16 +1,19 @@
 "use client";
 
-import { Component, useMemo, useState, type ReactNode } from "react";
+import { Component, memo, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import ReactMarkdown, { defaultUrlTransform, type Components, type UrlTransform } from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import { ChevronDown, ChevronRight, ExternalLink, Globe, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, isLocalFileRef, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
+import { normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
 import { CodeBlock } from "./CodeBlock";
 import { ImageLightbox } from "./ImageLightbox";
 import { LazyPreview } from "./LazyPreview";
@@ -407,10 +410,29 @@ class MarkdownErrorBoundary extends Component<BoundaryProps, BoundaryState> {
   }
 }
 
-export function Markdown({
+/**
+ * CC 2.1.301 — math plugins. `singleDollarTextMath: false` so a bare `$` is
+ * never math (prices, shell variables); `normalizeMathDelimiters` promotes the
+ * `$…$` / `\(…\)` / `\[…\]` forms Claude writes to `$$` first. KaTeX never
+ * throws (a half-streamed or malformed formula shows as muted source), and
+ * `trust` stays at its default `false`, so `\href`/`\url`/`\includegraphics`
+ * render as text rather than links.
+ */
+const REMARK_MATH: [typeof remarkMath, { singleDollarTextMath: boolean }] = [remarkMath, { singleDollarTextMath: false }];
+const REHYPE_MATH = [[rehypeKatex, { throwOnError: false, strict: "ignore", errorColor: "var(--muted)", output: "htmlAndMathml" }]] as const;
+
+/**
+ * Wrapped in `memo` (CC 2.1.301 — "a long-running subagent's progress trail
+ * now updates incrementally instead of being reprocessed in full on every
+ * render"). Props are a string plus booleans, so the default shallow compare
+ * holds: a streaming delta re-renders the whole message list, but every
+ * `<Markdown>` whose text didn't change now skips the parse.
+ */
+export const Markdown = memo(function Markdown({
   children,
   breaks,
   allowExecute = true,
+  math = false,
 }: {
   children: string;
   /**
@@ -437,6 +459,14 @@ export function Markdown({
    * one paragraph.
    */
   breaks?: boolean;
+  /**
+   * CC 2.1.301 — typeset LaTeX math (`$$…$$`, `\[…\]`, `$…$`, `\(…\)`) with
+   * KaTeX. Off by default; on for Claude's own output (assistant text,
+   * subagent output, plans, the transcript viewer's assistant rows). The
+   * upstream entry scopes it to "Claude's responses", so a user's prompt
+   * keeps its dollars as typed.
+   */
+  math?: boolean;
 }) {
   // Memoized on `allowExecute` (not recreated every render) so ReactMarkdown
   // sees a stable `components.code` identity across re-renders with the same
@@ -451,6 +481,13 @@ export function Markdown({
   // bubble re-renders on every delta. Past the cap, the parser would overflow
   // the stack (quotes) or stall the tab (lists), so render plain text instead.
   const tooDeep = useMemo(() => isMarkdownTooDeep(children), [children]);
+  const source = useMemo(() => (math ? normalizeMathDelimiters(children) : children), [children, math]);
+  const remarkPlugins = useMemo(() => {
+    const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [remarkGfm];
+    if (breaks) plugins.push(remarkBreaks);
+    if (math) plugins.push(REMARK_MATH);
+    return plugins;
+  }, [breaks, math]);
   if (tooDeep) {
     return (
       <PlainMarkdownFallback
@@ -462,12 +499,13 @@ export function Markdown({
   return (
     <MarkdownErrorBoundary text={children}>
       <ReactMarkdown
-        remarkPlugins={breaks ? [remarkGfm, remarkBreaks] : [remarkGfm]}
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={math ? (REHYPE_MATH as unknown as NonNullable<Parameters<typeof ReactMarkdown>[0]["rehypePlugins"]>) : undefined}
         components={componentsForRender}
         urlTransform={chatUrlTransform}
       >
-        {children}
+        {source}
       </ReactMarkdown>
     </MarkdownErrorBoundary>
   );
-}
+});

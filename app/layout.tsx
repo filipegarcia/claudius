@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { Suspense } from "react";
+import "katex/dist/katex.min.css";
 import "./globals.css";
 import { CommandPalette } from "@/components/overlays/CommandPalette";
 import { PaneLabelsHost } from "@/components/overlays/PaneLabelsHost";
