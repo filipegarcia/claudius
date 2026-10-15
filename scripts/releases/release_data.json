@@ -1675,7 +1675,7 @@
     "cl_present": true,
     "cl_max": 7863,
     "cl_min": 38,
-    "cl_avg": 1155.5299145299145,
+    "cl_avg": 1157.2735042735044,
     "cl_max_rel": {
       "tag": "v0.50.0",
       "name": "v0.50.0",
@@ -4797,7 +4797,7 @@
     "cl_present": true,
     "cl_max": 38867,
     "cl_min": 26,
-    "cl_avg": 878.4754098360655,
+    "cl_avg": 883.0140515222482,
     "cl_max_rel": {
       "tag": "sdk-v0.12.4",
       "name": "sdk: v0.12.4",
@@ -5713,7 +5713,7 @@
     "cl_present": true,
     "cl_max": 7045,
     "cl_min": 273,
-    "cl_avg": 1589.9469026548672,
+    "cl_avg": 1587.6902654867256,
     "cl_max_rel": {
       "tag": "v2.12.0",
       "name": "v2.12.0",
@@ -6657,7 +6657,7 @@
     "cl_present": true,
     "cl_max": 9654,
     "cl_min": 128,
-    "cl_avg": 1112.3916666666667,
+    "cl_avg": 1111.05,
     "cl_max_rel": {
       "tag": "v0.2.0-beta.4",
       "name": "v0.2.0-beta.4",
@@ -7492,7 +7492,7 @@
     "cl_present": true,
     "cl_max": 68129,
     "cl_min": 135,
-    "cl_avg": 1766.7788461538462,
+    "cl_avg": 1765.625,
     "cl_max_rel": {
       "tag": "v0.1.0-alpha.1",
       "name": "v0.1.0-alpha.1",
@@ -8557,7 +8557,7 @@
     "cl_present": true,
     "cl_max": 13492,
     "cl_min": 104,
-    "cl_avg": 1014.7536231884058,
+    "cl_avg": 1015.8695652173913,
     "cl_max_rel": {
       "tag": "v0.1.0",
       "name": "v0.1.0",
@@ -9091,7 +9091,7 @@
     "cl_present": true,
     "cl_max": 7873,
     "cl_min": 291,
-    "cl_avg": 1382.047619047619,
+    "cl_avg": 1380.4285714285713,
     "cl_max_rel": {
       "tag": "v0.5.0",
       "name": "v0.5.0",
