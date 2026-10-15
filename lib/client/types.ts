@@ -868,6 +868,11 @@ export type ChatState = {
    */
   transcriptPath: string | null;
   /**
+   * CC 2.1.301 — a session the page load declined to resume because the
+   * previous load that resumed it never finished (crash or freeze loop).
+   */
+  skippedBootSession: string | null;
+  /**
    * Account-switcher profile this session is actually running under, from the
    * `ready` event. Null when no account profile is configured.
    *
@@ -1253,6 +1258,9 @@ export type SendableImage = Partial<Pick<AttachedImage, "id" | "ordinal">> &
 export type SendResult = { ok: true } | { ok: false; error: string };
 
 export type ChatActions = {
+  /** CC 2.1.301 — retry the declined session on purpose (full reload). */
+  openSkippedBootSession: () => void;
+  dismissSkippedBootSession: () => void;
   /**
    * Forcefully take over the write lock for this session from whichever tab
    * currently holds it. Issues a PATCH to the server so all connected clients

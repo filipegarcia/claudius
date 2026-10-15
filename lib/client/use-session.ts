@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BOOT_FORCE_KEY, clearBootAttempt, consumeForcedResume, markBootAttempt, shouldSkipResume } from "@/lib/client/boot-guard";
 import { usePathname } from "next/navigation";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
@@ -1181,6 +1182,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [suggestedUuids, setSuggestedUuids] = useState<Set<string>>(() => new Set());
   const [goalUuids, setGoalUuids] = useState<Set<string>>(() => new Set());
   const [replaying, setReplaying] = useState(true);
+  // CC 2.1.301 — the session the boot declined to resume because the last
+  // boot that resumed it never finished (crash / freeze loop). Drives the
+  // "didn't open last time" notice.
+  const [skippedBootSession, setSkippedBootSession] = useState<string | null>(null);
   /**
    * Health of THIS tab's SSE socket to the session stream.
    *
@@ -5306,6 +5311,28 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     [createSession],
   );
 
+  // CC 2.1.301 — the resumed session's history replayed and the result
+  // committed (an effect never runs after a render that threw), so this boot
+  // finished: drop the crash-loop marker.
+  useEffect(() => {
+    if (!replaying && sessionId) clearBootAttempt(window.localStorage);
+  }, [replaying, sessionId]);
+
+  const openSkippedBootSession = useCallback(() => {
+    const id = skippedBootSession;
+    if (!id) return;
+    try {
+      window.sessionStorage.setItem(BOOT_FORCE_KEY, id);
+    } catch {
+      // ignore — the boot will just decline it once more
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    url.searchParams.set("session", id);
+    window.location.assign(url.toString());
+  }, [skippedBootSession]);
+  const dismissSkippedBootSession = useCallback(() => setSkippedBootSession(null), []);
+
   // Boot on mount; honor URL ?session=, ?at=, and ?prompt= (seed initial input).
   useEffect(() => {
     // React Strict Mode (dev only, always on for the e2e webServer) mounts
@@ -5366,9 +5393,33 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // open-tabs lookup finished) — don't spawn a session nobody will
       // use. See the comment above the `cancelled` declaration.
       if (cancelled) return;
+      // CC 2.1.301 — crash-loop guard (see `lib/client/boot-guard.ts`). If
+      // the previous boot resumed this same session and never got it on
+      // screen, open a fresh session instead and say so; "Open anyway"
+      // retries it on purpose.
+      let resumeAt = at;
+      if (resume) {
+        const forced = consumeForcedResume(resume, window.sessionStorage);
+        if (shouldSkipResume(resume, window.localStorage, Date.now(), forced)) {
+          setSkippedBootSession(resume);
+          clearBootAttempt(window.localStorage);
+          resume = undefined;
+          resumeAt = undefined;
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("session");
+            url.searchParams.delete("at");
+            window.history.replaceState(null, "", url.toString());
+          } catch {
+            // ignore
+          }
+        } else {
+          markBootAttempt(resume, window.localStorage, Date.now());
+        }
+      }
       const created = await createSession(
         resume
-          ? { resume, resumeSessionAt: at }
+          ? { resume, resumeSessionAt: resumeAt }
           : defaultCwdRef.current
             ? { cwd: defaultCwdRef.current }
             : {},
@@ -6565,6 +6616,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     mainAgent,
     account,
     transcriptPath,
+    skippedBootSession,
+    openSkippedBootSession,
+    dismissSkippedBootSession,
     accountsConfigured,
     moveToActiveAccount,
     permissionMode,
