@@ -716,6 +716,12 @@ export type ScheduledLoop = {
    * tick that did something.
    */
   noopStreak?: number;
+  /**
+   * Epoch ms of the cron's next run, from `CronCreate`'s structured result
+   * (SDK 0.3.299 `nextFireAt`). A snapshot from creation time — not refreshed
+   * after the job fires. Absent for wake-ups and older SDKs.
+   */
+  nextFireAt?: number;
   /** True once the agent has been asked to cancel via CronDelete. */
   cancelled?: boolean;
 };

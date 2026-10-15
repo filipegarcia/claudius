@@ -131,7 +131,7 @@ import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
 import { extractUsageBehaviors, type UsageBehaviors } from "@/lib/shared/usage-behaviors";
 import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
-import type { SessionLoop } from "@/lib/shared/session-loops";
+import { readCronNextFireAt, type SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import { findModelInfo, shouldLeaveAutoForModel } from "@/lib/shared/permission-modes";
@@ -5467,12 +5467,15 @@ export class Session {
         const cronId = idMatch?.[1] ?? pending.toolUseId;
         const humanSchedule = idMatch?.[2] ?? null;
         const durable = !/session[- ]only/i.test(text);
+        // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
+        const nextFireAt = readCronNextFireAt((message as { tool_use_result?: unknown }).tool_use_result);
 
         this.scheduledLoops.set(cronId, {
           ...pending,
           id: cronId,
           humanSchedule,
           durable,
+          ...(nextFireAt !== undefined ? { nextFireAt } : {}),
         });
       }
     }

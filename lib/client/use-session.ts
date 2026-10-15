@@ -25,6 +25,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { readCronNextFireAt } from "@/lib/shared/session-loops";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
@@ -3604,11 +3605,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             const cronId = idMatch?.[1] ?? pending.toolUseId;
             const humanSchedule = idMatch?.[2] ?? null;
             const durable = !/session[- ]only/i.test(result.text);
+            // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
+            const nextFireAt = readCronNextFireAt((msg as { tool_use_result?: unknown }).tool_use_result);
             const promoted: ScheduledLoop = {
               ...pending,
               id: cronId,
               humanSchedule,
               durable,
+              ...(nextFireAt !== undefined ? { nextFireAt } : {}),
             };
             const copy = { ...prev };
             delete copy[result.tool_use_id];
