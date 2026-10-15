@@ -142,6 +142,20 @@ test.describe("Session tabs — '+' button sits flush to the right of the last t
       .count();
     expect(hiddenCount, "test only makes sense when something overflowed").toBeGreaterThan(0);
 
+    // Overflow re-measures tab widths asynchronously (ResizeObserver), so the
+    // chevron can appear a frame or two before the last visible tab / "+"
+    // settle. Poll the gap until it converges rather than sampling once.
+    await expect
+      .poll(
+        async () => {
+          const lastTab = await lastVisibleTabBox(page);
+          const plus = await newTabBtn.boundingBox();
+          return plus ? plus.x - (lastTab.x + lastTab.width) : Number.NaN;
+        },
+        { message: "expected '+' to sit flush after the last visible tab", timeout: 5_000 },
+      )
+      .toBeLessThan(8);
+
     const lastTab = await lastVisibleTabBox(page);
     const plusBox = await newTabBtn.boundingBox();
     const chevronBox = await overflowBtn.boundingBox();
@@ -150,12 +164,7 @@ test.describe("Session tabs — '+' button sits flush to the right of the last t
       .boundingBox();
     expect(plusBox && chevronBox && closeAllBox).toBeTruthy();
 
-    // ── "+" hugs the right edge of the last visible tab.
     const gap = plusBox!.x - (lastTab.x + lastTab.width);
-    expect(
-      gap,
-      `expected '+' to sit flush after the last visible tab — gap was ${gap}px`,
-    ).toBeLessThan(8);
     expect(gap).toBeGreaterThanOrEqual(-1);
 
     // ── "+" stays to the LEFT of the chevron and the close-all button.
