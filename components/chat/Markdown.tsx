@@ -415,11 +415,15 @@ class MarkdownErrorBoundary extends Component<BoundaryProps, BoundaryState> {
  * never math (prices, shell variables); `normalizeMathDelimiters` promotes the
  * `$…$` / `\(…\)` / `\[…\]` forms Claude writes to `$$` first. KaTeX never
  * throws (a half-streamed or malformed formula shows as muted source), and
- * `trust` stays at its default `false`, so `\href`/`\url`/`\includegraphics`
- * render as text rather than links.
+ * `trust` is pinned to `false` (its default), so `\href`/`\url`/`\includegraphics`
+ * render as text rather than links. `maxSize` caps every user-specified size
+ * (in ems), so `\rule{1em}{100000em}` can't paint a giant element over the
+ * transcript.
  */
 const REMARK_MATH: [typeof remarkMath, { singleDollarTextMath: boolean }] = [remarkMath, { singleDollarTextMath: false }];
-const REHYPE_MATH = [[rehypeKatex, { throwOnError: false, strict: "ignore", errorColor: "var(--muted)", output: "htmlAndMathml" }]] as const;
+const REHYPE_MATH = [
+  [rehypeKatex, { throwOnError: false, strict: "ignore", errorColor: "var(--muted)", output: "htmlAndMathml", trust: false, maxSize: 20 }],
+] as const;
 
 /**
  * Wrapped in `memo` (CC 2.1.301 — "a long-running subagent's progress trail

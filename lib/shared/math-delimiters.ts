@@ -18,13 +18,31 @@
  * prices and shell variables literal: the opening `$` must be followed by a
  * non-space and not preceded by a letter/digit, and the closing `$` must be
  * preceded by a non-space and not followed by a letter/digit. So `$5 and $10`,
- * `$5-$10`, `US$5` and `$HOME/$PATH` are all left as text.
+ * `$5-$10`, `US$5` and `$HOME/$PATH` are all left as text. An opening `$`
+ * followed by `{` or `(` is never promoted either, so shell expansions like
+ * `${OUT_DIR}/${NAME}.log` and `$(pwd)/$(ls)` stay literal — at the cost of
+ * TeX that starts with a brace or paren (`$(a+b)^2$`, `${n \choose k}$`),
+ * which needs `\(…\)` instead.
+ *
+ * `\[ … \]` / `\( … \)` are only math when the body has a TeX hint (a
+ * backslash command, `^`, `_`, a brace or `=`, or an operator next to a
+ * letter), so CommonMark-escaped brackets — `\[Done\]`, a citation `\[1\]`,
+ * `\(see above\)` — stay literal.
  *
  * Code is never touched: fenced blocks (``` / ~~~, including an unclosed one
- * while a reply streams) and inline backtick spans are copied verbatim, and a
+ * while a reply streams), indented code blocks (4+ columns after a blank
+ * line or at the start of the text, outside a list) and inline backtick spans
+ * are copied verbatim, and a
  * backslash escape (`\$`, `\\`) is kept as a pair. An unclosed `\[`, `\(` or
  * `$` is left as typed, so a half-streamed formula shows as source until its
  * closing delimiter arrives.
+ *
+ * Known gaps (the pass is a line scanner, not a CommonMark parser): indented
+ * code nested in a blockquote or deeper inside a list item is treated as
+ * prose, as is indented code after a list that was closed without a blank
+ * line (e.g. a heading right after an item) — it still reads as item
+ * continuation; and a shell path whose first `$` is a plain variable
+ * (`$HOME/${NAME}`) still passes the Pandoc rule.
  */
 
 const FENCE_RE = /^\s*(`{3,}|~{3,})/;
@@ -50,8 +68,26 @@ function containerPrefix(text: string, index: number): string {
   return m[1] + (m[2] ? " ".repeat(m[2].length + m[3].length) : "");
 }
 
-/** Body text that reads as TeX, not an escaped bracket like `\[Done\]`. */
-const TEX_HINT_RE = /[\\^_{}=+\-*/<>|0-9]/;
+/**
+ * Body text that reads as TeX, not an escaped bracket like `\[Done\]` or a
+ * citation like `\[1\]` / `\[1-3\]`: a backslash command, `^`, `_`, a brace
+ * or `=` counts on its own; a bare operator only alongside a letter
+ * (`\[a+b\]`, `\(n-1\)`). Digits alone never do.
+ */
+const TEX_HINT_RE = /[\\^_{}=]/;
+const TEX_OPERATOR_RE = /[+\-*/<>|]/;
+const looksLikeTex = (body: string): boolean =>
+  TEX_HINT_RE.test(body) || (TEX_OPERATOR_RE.test(body) && /[A-Za-z]/.test(body));
+
+/**
+ * Drop the blockquote markers a continuation line repeats (`depth` of them),
+ * so a multi-line `\[ … \]` inside a quote doesn't carry `>` into the formula
+ * (the emitted lines get the container prefix re-added).
+ */
+function stripQuoteMarkers(line: string, depth: number): string {
+  for (let d = 0; d < depth; d++) line = line.replace(/^[ \t]*>[ \t]?/, "");
+  return line;
+}
 
 /**
  * Rewrite the math delimiters in one prose segment (no fenced code inside;
@@ -97,13 +133,22 @@ function normalizeProse(text: string): string {
       if (next === "[" || next === "(") {
         const closer = next === "[" ? "\\]" : "\\)";
         const end = text.indexOf(closer, i + 2);
-        const body = end === -1 ? "" : text.slice(i + 2, end);
+        // Keep the block inside the list item / blockquote it was written
+        // in: body lines lose the quote markers they already carry, and every
+        // emitted line gets that container's prefix.
+        const indent = containerPrefix(text, i);
+        const depth = (indent.match(/>/g) ?? []).length;
+        const body =
+          end === -1
+            ? ""
+            : text
+                .slice(i + 2, end)
+                .split("\n")
+                .map((l, k) => (k === 0 ? l : stripQuoteMarkers(l, depth)))
+                .join("\n");
         // `\(` is inline-only: a newline inside means it isn't a formula.
-        if (end !== -1 && body.trim() && TEX_HINT_RE.test(body) && (next === "[" || !body.includes("\n"))) {
+        if (end !== -1 && body.trim() && looksLikeTex(body) && (next === "[" || !body.includes("\n"))) {
           if (next === "[") {
-            // Keep the block inside the list item / blockquote it was written
-            // in: every emitted line carries that container's prefix.
-            const indent = containerPrefix(text, i);
             const atLineStart = /^[ \t]*$/.test(text.slice(text.lastIndexOf("\n", i - 1) + 1, i));
             const lines = body.trim().split("\n").map((l) => indent + l.trim());
             out += `${atLineStart ? "" : "\n" + indent}$$\n${lines.join("\n")}\n${indent}$$`;
@@ -136,8 +181,9 @@ function normalizeProse(text: string): string {
         }
         continue;
       }
-      // Single `$`: promote only when it passes the Pandoc-style rule.
-      if (!isSpace(text[i + 1]) && !isWordChar(text[i - 1])) {
+      // Single `$`: promote only when it passes the Pandoc-style rule, and
+      // never for a shell expansion (`${VAR}`, `$(cmd)`).
+      if (!isSpace(text[i + 1]) && !isWordChar(text[i - 1]) && text[i + 1] !== "{" && text[i + 1] !== "(") {
         let j = i + 1;
         let close = -1;
         while (j < n && text[j] !== "\n") {
@@ -169,10 +215,24 @@ function normalizeProse(text: string): string {
   return out;
 }
 
+const LIST_ITEM_RE = /^ {0,3}(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)/;
+const isBlank = (line: string): boolean => /^[ \t]*$/.test(line);
+
+/** Leading indentation in columns (tabs advance to the next multiple of 4). */
+function indentColumns(line: string): number {
+  let col = 0;
+  for (const ch of line) {
+    if (ch === " ") col++;
+    else if (ch === "\t") col += 4 - (col % 4);
+    else break;
+  }
+  return col;
+}
+
 /**
  * Normalize every math delimiter in `markdown` to remark-math's `$$` form,
- * leaving fenced code blocks untouched. Returns the input unchanged (same
- * string) when it has no candidate delimiter.
+ * leaving fenced and indented code blocks untouched. Returns the input
+ * unchanged (same string) when it has no candidate delimiter.
  */
 export function normalizeMathDelimiters(markdown: string): string {
   if (!mayContainMath(markdown)) return markdown;
@@ -180,6 +240,13 @@ export function normalizeMathDelimiters(markdown: string): string {
   const out: string[] = [];
   let prose: string[] = [];
   let fence: { char: string; len: number } | null = null;
+  // Indented code can't interrupt a paragraph, so it needs a blank line (or
+  // the start of the text) before it; inside a list the same indentation is
+  // item continuation, so it stays prose until a blank line followed by an
+  // unindented non-item line closes the list.
+  let prevBlank = true;
+  let inList = false;
+  let indentedCode = false;
 
   const flushProse = () => {
     if (prose.length) out.push(normalizeProse(prose.join("\n")));
@@ -187,12 +254,29 @@ export function normalizeMathDelimiters(markdown: string): string {
   };
 
   for (const line of lines) {
+    const blank = isBlank(line);
     if (fence) {
       out.push(line);
       const m = FENCE_RE.exec(line);
       if (m && m[1][0] === fence.char && m[1].length >= fence.len && line.trim() === m[1]) fence = null;
+      prevBlank = blank;
       continue;
     }
+    if (indentedCode && !blank && indentColumns(line) < 4) indentedCode = false;
+    if (!indentedCode && prevBlank && !inList && !blank && indentColumns(line) >= 4) {
+      flushProse();
+      indentedCode = true;
+    }
+    if (indentedCode) {
+      out.push(line);
+      prevBlank = blank;
+      continue;
+    }
+    if (!blank) {
+      if (LIST_ITEM_RE.test(line)) inList = true;
+      else if (prevBlank && indentColumns(line) === 0) inList = false;
+    }
+    prevBlank = blank;
     const m = FENCE_RE.exec(line);
     if (m) {
       flushProse();

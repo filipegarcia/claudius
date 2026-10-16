@@ -49,8 +49,43 @@ describe("normalizeMathDelimiters", () => {
     expect(normalizeMathDelimiters("10. step \\[x_1\\]")).toBe("10. step \n    $$\n    x_1\n    $$");
   });
 
+  test("a multi-line \\[ … \\] inside a blockquote doesn't double the > marker", () => {
+    const out = normalizeMathDelimiters("> The identity:\n> \\[\n> a^2 + b^2 = c^2\n> \\]\n> holds.");
+    expect(out).toBe("> The identity:\n> \n> $$\n> a^2 + b^2 = c^2\n> $$\n> holds.");
+    // Nested quotes strip exactly their own depth.
+    expect(normalizeMathDelimiters(">> x \\[\n>> a\\over b\n>> \\]")).toBe(">> x \n>> $$\n>> a\\over b\n>> $$");
+  });
+
   test("an escaped bracket that isn't TeX stays literal", () => {
     expect(normalizeMathDelimiters("Mark it \\[Done\\] and \\(see above\\)")).toBe("Mark it \\[Done\\] and \\(see above\\)");
+  });
+
+  test("an escaped citation bracket (bare number) stays literal", () => {
+    for (const s of ["see \\[1\\] for details", "per \\[2\\], and \\[1-3\\]", "footnote \\(1\\) here"]) {
+      expect(normalizeMathDelimiters(s)).toBe(s);
+    }
+    // Real TeX with a letter next to an operator, or a strong hint, still typesets.
+    expect(normalizeMathDelimiters("for \\(n-1\\) and \\(n=100\\)")).toBe("for $$n-1$$ and $$n=100$$");
+    expect(normalizeMathDelimiters("\\[\\sum_i i\\]")).toBe("$$\n\\sum_i i\n$$");
+  });
+
+  test("shell expansions ${…} and $(…) stay literal", () => {
+    for (const s of ["logs go to ${OUT_DIR}/${NAME}.log", "run $(pwd)/$(ls)", "use ${HOME} or $(whoami)"]) {
+      expect(normalizeMathDelimiters(s)).toBe(s);
+    }
+  });
+
+  test("an indented code block is copied verbatim", () => {
+    expect(normalizeMathDelimiters("Text\n\n    echo $a$ \\[x^2\\]\n\nthen $y$")).toBe("Text\n\n    echo $a$ \\[x^2\\]\n\nthen $$y$$");
+    expect(normalizeMathDelimiters("\tprintf '$x$'")).toBe("\tprintf '$x$'");
+    // A list closed by a fence, then a blank line: indented code again.
+    const afterFence = "- item\n\n```\nx\n```\n\n    code $x$";
+    expect(normalizeMathDelimiters(afterFence)).toBe(afterFence);
+  });
+
+  test("indented lines that continue a list item or a paragraph are still prose", () => {
+    expect(normalizeMathDelimiters("- item\n\n    more $x$")).toBe("- item\n\n    more $$x$$");
+    expect(normalizeMathDelimiters("para\n    lazy $x$")).toBe("para\n    lazy $$x$$");
   });
 
   test("existing $$ blocks are untouched", () => {
@@ -117,6 +152,20 @@ describe("Markdown math rendering", () => {
     const html = render("between $a$ and $b$", false);
     expect(html).not.toContain("katex");
     expect(html).toContain("$a$");
+  });
+
+  test("a multi-line \\[ … \\] in a blockquote renders inside it with no stray >", () => {
+    const html = render("> The identity:\n> \\[\n> a^2 + b^2 = c^2\n> \\]\n> holds.");
+    const quote = html.slice(html.indexOf("<blockquote"), html.indexOf("</blockquote>"));
+    expect(quote).toContain("katex-display");
+    expect(html).not.toContain("&gt;");
+  });
+
+  test("a huge \\rule is clamped by maxSize", () => {
+    const html = render("$\\rule{1em}{100000em}$");
+    // The TeX source survives in the MathML annotation; the painted sizes don't.
+    expect(html).toContain("border-top-width:20em");
+    expect(html).not.toMatch(/(?:height|width):100000em/);
   });
 
   test("\\href is not turned into a link (KaTeX trust stays off)", () => {
