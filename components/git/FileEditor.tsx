@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Loader2, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { BinaryFilePlaceholder } from "@/components/files/BinaryFilePlaceholder";
+import { BinaryFilePlaceholder, saveButtonTitle } from "@/components/files/BinaryFilePlaceholder";
 
 type FilePayload = {
   relPath: string;
@@ -442,6 +442,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
     setOriginal(null);
     setDraft("");
     setReadOnlyReason(null);
+    setBinarySize(null);
     setOldContent(null);
     setOldLoading(split && mode !== "untracked");
     setLeftScrollTop(0);
@@ -745,7 +746,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
             type="button"
             onClick={() => void onSave()}
             disabled={!dirty || saving || loading || readOnly}
-            title={readOnly ? "Read-only — saving would convert this file's encoding" : "Save (⌘S)"}
+            title={saveButtonTitle({ binary: binarySize != null, readOnly }) ?? "Save (⌘S)"}
             data-testid="git-file-editor-save"
             className="flex h-6 items-center gap-1 rounded bg-[var(--accent)]/20 px-1.5 text-[var(--foreground)] hover:bg-[var(--accent)]/30 disabled:opacity-40"
           >

@@ -8,6 +8,24 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Disabled-Save tooltip for a binary file (it's not an encoding problem). */
+export const BINARY_SAVE_TITLE = "Binary file — can't be edited here";
+
+/** Disabled-Save tooltip for a file we won't write back in its encoding. */
+export const ENCODING_READONLY_SAVE_TITLE = "Read-only — saving would convert this file's encoding";
+
+/**
+ * Save-button tooltip shared by the Files page and the /git FileEditor:
+ * binary first (a binary is also `readOnly`, but the encoding wording would
+ * be misleading), then the encoding read-only reason; `undefined` otherwise
+ * so each caller keeps its own default.
+ */
+export function saveButtonTitle({ binary, readOnly }: { binary: boolean; readOnly: boolean }): string | undefined {
+  if (binary) return BINARY_SAVE_TITLE;
+  if (readOnly) return ENCODING_READONLY_SAVE_TITLE;
+  return undefined;
+}
+
 /**
  * CC 2.1.301 ("Fixed the Read tool reading binary files such as .xlsm,
  * .parquet, .epub and .heic as text") — shown in place of the text editor

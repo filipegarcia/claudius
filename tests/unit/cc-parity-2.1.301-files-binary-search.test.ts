@@ -66,6 +66,36 @@ describe("files route — binary files and failed searches", () => {
     expect(body).toMatchObject({ binary: true, content: "" });
   });
 
+  test("a >2 MB .parquet is binary by extension, not 'file too large'", async () => {
+    const p = join(projectRoot, "big.parquet");
+    await fs.writeFile(p, "PAR1");
+    await fs.truncate(p, 3 * 1024 * 1024);
+    const { status, body } = await get("path=big.parquet");
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ binary: true, content: "", editable: false, sizeBytes: 3 * 1024 * 1024 });
+  });
+
+  test("a >2 MB text file still hits the size cap", async () => {
+    const p = join(projectRoot, "big.txt");
+    await fs.writeFile(p, "x");
+    await fs.truncate(p, 3 * 1024 * 1024);
+    const { status } = await get("path=big.txt");
+    expect(status).toBe(413);
+  });
+
+  test("?serve=1 still serves a .png image", async () => {
+    await fs.writeFile(join(projectRoot, "i.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const res = await GET(new Request(`http://localhost/api/workspaces/${wsId}/files?path=i.png&serve=1`), ctx());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+  });
+
+  test("an unknown extension with NUL bytes is still sniffed as binary", async () => {
+    await fs.writeFile(join(projectRoot, "blob.dat"), Buffer.from([0x01, 0x00, 0x02, 0x00, 0x03]));
+    const { body } = await get("path=blob.dat");
+    expect(body).toMatchObject({ binary: true, content: "" });
+  });
+
   test("ordinary text is unchanged", async () => {
     await fs.writeFile(join(projectRoot, "a.txt"), "hello");
     const { body } = await get("path=a.txt");

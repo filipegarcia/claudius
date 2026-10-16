@@ -128,8 +128,34 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       });
     }
 
+    // CC 2.1.301 — "Fixed the Read tool reading binary files such as .xlsm,
+    // .parquet, .epub and .heic as text". A binary used to come back as a
+    // lossy UTF-8 decode that both viewers loaded as garbled read-only text.
+    // Send no content and a `binary` flag instead; the viewers show a
+    // placeholder. Built from `stat` alone, so no bytes are read.
+    const binaryPayload = () =>
+      NextResponse.json({
+        rootId: resolved.root.id,
+        rootPath: root,
+        relPath: relative(root, target).split(sep).join("/"),
+        kind: "file",
+        content: "",
+        binary: true,
+        sizeBytes: stat.size,
+        modifiedMs: stat.mtimeMs,
+        encoding: "unsupported",
+        encodingLabel: "binary",
+        editable: false,
+        readOnlyReason: "Binary file — not shown as text.",
+      });
+    // A known binary extension is answered before the size cap, so a large
+    // .parquet / .zip gets the placeholder rather than "file too large".
+    // (`?serve=1` images returned above; their extensions aren't in
+    // BINARY_EXTS anyway.)
+    if (isKnownBinaryPath(target)) return binaryPayload();
+
     // File content mode — return the decoded text. Size-cap at 2 MB to avoid
-    // accidentally streaming large binaries through the editor.
+    // accidentally streaming large files through the editor.
     if (stat.size > 2 * 1024 * 1024) {
       return NextResponse.json({ error: "file too large to edit (>2MB)" }, { status: 413 });
     }
@@ -150,27 +176,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     // re-adds it), and anything we can't round-trip comes back as a lossy
     // preview with `editable: false` so the editors open it read-only.
     const detected = detectTextEncoding(bytes);
-    // CC 2.1.301 — "Fixed the Read tool reading binary files such as .xlsm,
-    // .parquet, .epub and .heic as text". A binary (NUL-sniffed, or a known
-    // binary extension) used to come back as a lossy UTF-8 decode that both
-    // viewers loaded as garbled read-only text. Send no content and a
-    // `binary` flag instead; the viewers show a placeholder.
-    if ((!detected.editable && detected.guess === "binary") || isKnownBinaryPath(target)) {
-      return NextResponse.json({
-        rootId: resolved.root.id,
-        rootPath: root,
-        relPath: relative(root, target).split(sep).join("/"),
-        kind: "file",
-        content: "",
-        binary: true,
-        sizeBytes: stat.size,
-        modifiedMs: stat.mtimeMs,
-        encoding: "unsupported",
-        encodingLabel: "binary",
-        editable: false,
-        readOnlyReason: "Binary file — not shown as text.",
-      });
-    }
+    // An unknown extension that NUL-sniffs as binary gets the same
+    // placeholder as a known binary extension (above).
+    if (!detected.editable && detected.guess === "binary") return binaryPayload();
     const content = detected.editable
       ? decodeText(bytes, detected.encoding)
       : decodePreview(bytes, detected.guess);

@@ -20,7 +20,7 @@ import {
 import { SideNav } from "@/components/nav/SideNav";
 import { FileTree, type Entry } from "@/components/files/FileTree";
 import { HighlightedEditor } from "@/components/files/HighlightedEditor";
-import { BinaryFilePlaceholder } from "@/components/files/BinaryFilePlaceholder";
+import { BinaryFilePlaceholder, saveButtonTitle } from "@/components/files/BinaryFilePlaceholder";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 
 type FileContent = {
@@ -495,7 +495,9 @@ export default function FilesPage() {
                       ●
                     </span>
                   )}
-                  {open.encoding && open.encoding !== "utf-8" && open.encodingLabel && (
+                  {/* Binary files have no text encoding to save back in — the
+                      placeholder below already says what they are. */}
+                  {!open.binary && open.encoding && open.encoding !== "utf-8" && open.encodingLabel && (
                     <span
                       data-testid="files-encoding-badge"
                       title="Saved back in this encoding"
@@ -526,7 +528,7 @@ export default function FilesPage() {
                     type="button"
                     onClick={onSave}
                     disabled={!dirty || busy != null || readOnly}
-                    title={readOnly ? "Read-only — saving would convert this file's encoding" : undefined}
+                    title={saveButtonTitle({ binary: open.binary === true, readOnly })}
                     data-testid="files-save"
                     className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-2 py-0.5 text-[11px] text-white hover:opacity-90 disabled:opacity-40"
                   >
