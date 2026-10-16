@@ -52,9 +52,28 @@ export type SessionLoop = {
    * tick that did something.
    */
   noopStreak?: number;
+  /**
+   * Epoch ms of the cron's next run, from the structured `CronCreate` result
+   * (SDK 0.3.299 `CronCreateOutput.nextFireAt`, per-job scheduler offset
+   * included). A snapshot taken when the job was created — it is not updated
+   * after the job fires. Absent for wake-ups and for older SDKs.
+   */
+  nextFireAt?: number;
   /** True once `CronDelete` (or the equivalent) ran for this loop. */
   cancelled: boolean;
 };
+
+/**
+ * Read `nextFireAt` (SDK 0.3.299) off the `tool_use_result` that rides on the
+ * user message carrying a `CronCreate` tool_result. Tolerant: the payload
+ * arrives as `unknown`, older SDKs omit the field, and only a finite
+ * positive epoch-ms number is accepted.
+ */
+export function readCronNextFireAt(toolUseResult: unknown): number | undefined {
+  if (!toolUseResult || typeof toolUseResult !== "object") return undefined;
+  const v = (toolUseResult as { nextFireAt?: unknown }).nextFireAt;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : undefined;
+}
 
 /**
  * `/api/schedule/session-loops` GET response — a flat list across every

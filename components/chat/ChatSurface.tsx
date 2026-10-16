@@ -27,6 +27,7 @@ import { AutoModeOffNoticePanel } from "@/components/chat/AutoModeOffNoticePanel
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
+import { SkippedSessionNotice } from "@/components/chat/SkippedSessionNotice";
 import { PromptInput } from "@/components/chat/PromptInput";
 import { PermissionPrompt } from "@/components/chat/PermissionPrompt";
 import { McpElicitationPrompt } from "@/components/chat/McpElicitationPrompt";
@@ -2519,6 +2520,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           notice={session.autoModeOffNotice}
           onDismiss={session.dismissAutoModeOffNotice}
         />
+        <SkippedSessionNotice
+          sessionId={session.skippedBootSession}
+          onOpenAnyway={session.openSkippedBootSession}
+          onDismiss={session.dismissSkippedBootSession}
+        />
         {/* CC 2.1.191: "/rewind after /clear" — shows only in a fresh session
             that was created by /clear or the header Clear button. The user
             can click Rewind to navigate back, or × to stay in the new
@@ -2643,6 +2649,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             systemPillLevers={{
               model: session.model,
               effort: session.effort,
+              subscriptionType: session.planUsage?.subscriptionType ?? null,
+              resumedTranscriptPath: session.transcriptPath,
               onSwitchToSonnet: () =>
                 session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET),
               onStepEffortDown: () => session.setEffort("medium"),

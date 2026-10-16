@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join as pathJoin } from "node:path";
+import { isAbsolute, join as pathJoin, resolve as pathResolve, sep as pathSep } from "node:path";
 import {
   createSdkMcpServer,
   getSessionInfo,
@@ -31,6 +31,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { projectRoot } from "./db";
+import { encodeProjectDir } from "./auto-memory";
 import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
 import {
@@ -93,6 +94,7 @@ import {
   type TaskResourceLink,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
+import { hookAsk } from "@/lib/shared/hook-ask";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
@@ -131,7 +133,7 @@ import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
 import { extractUsageBehaviors, type UsageBehaviors } from "@/lib/shared/usage-behaviors";
 import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
-import type { SessionLoop } from "@/lib/shared/session-loops";
+import { readCronNextFireAt, type SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import { findModelInfo, shouldLeaveAutoForModel } from "@/lib/shared/permission-modes";
@@ -1234,6 +1236,53 @@ export function computeReplayWindow(
   return { startIdx, hasMoreAbove: startIdx > 0 };
 }
 
+/**
+ * CC 2.1.301 — locate the on-disk JSONL a resumed session `id` replays from,
+ * for the compaction row's "earlier messages are saved in …" line. Checks the
+ * cwd's own project dir first (the ordinary resume), then every other project
+ * dir under `projectsBase` — a `/fork` resumed in its git worktree keeps its
+ * JSONL under the SOURCE project's dir, so `projectRoot(cwd)` alone names a
+ * file that doesn't exist. Returns the absolute path, or undefined when no
+ * candidate exists (the row then shows nothing rather than a wrong path).
+ *
+ * Exported for unit testing; `projectsBase` is injectable for the same reason.
+ */
+export async function findResumedTranscriptPath(
+  id: string,
+  cwd: string,
+  projectsBase: string = pathJoin(homedir(), ".claude", "projects"),
+): Promise<string | undefined> {
+  if (!/^[\w-]+$/.test(id)) return undefined;
+  const base = pathResolve(projectsBase);
+  const own = encodeProjectDir(cwd);
+  const ownFile = pathResolve(base, own, `${id}.jsonl`);
+  if (ownFile.startsWith(base + pathSep)) {
+    try {
+      if ((await fsp.stat(ownFile)).isFile()) return ownFile;
+    } catch {
+      // not here — scan the other project dirs below
+    }
+  }
+  let dirs: string[];
+  try {
+    dirs = (await fsp.readdir(base, { withFileTypes: true }))
+      .filter((d) => d.isDirectory() && d.name !== own)
+      .map((d) => d.name);
+  } catch {
+    return undefined;
+  }
+  for (const dir of dirs) {
+    const file = pathResolve(base, dir, `${id}.jsonl`);
+    if (!file.startsWith(base + pathSep)) continue;
+    try {
+      if ((await fsp.stat(file)).isFile()) return file;
+    } catch {
+      // keep looking
+    }
+  }
+  return undefined;
+}
+
 const ZERO_SESSION_USAGE: SessionUsageTotals = {
   totalCostUsd: 0,
   numTurns: 0,
@@ -1874,6 +1923,12 @@ export class Session {
 
   private buffer: ServerEvent[] = [];
   private bufferTrimmed = false;
+  /**
+   * CC 2.1.301 — the resumed transcript's JSONL, as found on disk by
+   * {@link findResumedTranscriptPath} during `start()`. Undefined for fresh
+   * sessions and when no candidate file exists. See `resumedTranscriptPath`.
+   */
+  private resumedTranscriptFile: string | undefined;
   private subscribers = new Set<Subscriber>();
   private subscriberCountListeners = new Set<(count: number) => void>();
   /**
@@ -2468,6 +2523,25 @@ export class Session {
     this.createdAt = Date.now();
   }
 
+
+  /**
+   * CC 2.1.301 — "the compaction row in a resumed session … now says where
+   * the earlier messages are saved". A resumed session replays history from
+   * the last compaction on (`getSessionMessages` follows the chain from the
+   * boundary), so the turns before it live only in the engine's JSONL. This
+   * is that file, for display (home shortened to `~`); never read or written
+   * through this value. It's the file `start()` actually found on disk —
+   * not simply `projectRoot(cwd)/<id>.jsonl`, which is wrong for a `/fork`
+   * resumed in its worktree (the fork's JSONL sits under the SOURCE
+   * project's dir). Undefined for fresh sessions, before `start()` resolved
+   * it, and when no candidate file exists (better no path than a wrong one).
+   */
+  resumedTranscriptPath(): string | undefined {
+    const file = this.resumedTranscriptFile;
+    if (!file) return undefined;
+    const home = homedir();
+    return file.startsWith(home + pathSep) ? `~${file.slice(home.length)}` : file;
+  }
   async start(): Promise<void> {
     if (this.query) return;
 
@@ -3385,12 +3459,21 @@ export class Session {
       ...(this.resumeFrom ? { resume: this.resumeFrom } : { sessionId: this.id }),
       ...(this.resumeAt ? { resumeSessionAt: this.resumeAt } : {}),
     };
+    // Resolve the resumed JSONL before anything can read it: `subscribe()`
+    // and the stream route echo it on every `ready`.
+    if (this.resumeFrom) {
+      this.resumedTranscriptFile = await findResumedTranscriptPath(this.resumeFrom, this.cwd).catch(
+        () => undefined,
+      );
+    }
     this.query = query({ prompt: this.inputQueue, options });
+    const transcriptPath = this.resumedTranscriptPath();
     this.broadcast({
       type: "ready",
       sessionId: this.id,
       ...(this.agent ? { agent: this.agent } : {}),
       ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+      ...(transcriptPath ? { transcriptPath } : {}),
       ...(this.accountProfileId && this.accountProfileLabel
         ? {
             account: {
@@ -3683,6 +3766,14 @@ export class Session {
         // the prompt below since only the well-known internal tool prefix
         // (above) is auto-allowed today.
         mcpServer: ctx.mcpServer,
+        // CC 2.1.301 — a hook's `ask` used to arrive with nothing on the card
+        // saying a hook raised it. `decisionReasonType` is sent at runtime but
+        // not declared in the SDK's `.d.ts`, hence the cast. Kept in `meta`,
+        // so the reconnect re-emit and /pending-prompts carry it too.
+        hookAsk: hookAsk(
+          ctx.decisionReason,
+          (ctx as { decisionReasonType?: unknown }).decisionReasonType,
+        ),
         // CC 2.1.235 — show the narrow rule(s) an "Always allow" will write.
         suggestedRules: allowRuleSuggestions(ctx.suggestions).flatMap((u) =>
           u.rules.map((r) => ({
@@ -5467,12 +5558,15 @@ export class Session {
         const cronId = idMatch?.[1] ?? pending.toolUseId;
         const humanSchedule = idMatch?.[2] ?? null;
         const durable = !/session[- ]only/i.test(text);
+        // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
+        const nextFireAt = readCronNextFireAt((message as { tool_use_result?: unknown }).tool_use_result);
 
         this.scheduledLoops.set(cronId, {
           ...pending,
           id: cronId,
           humanSchedule,
           durable,
+          ...(nextFireAt !== undefined ? { nextFireAt } : {}),
         });
       }
     }
@@ -7400,11 +7494,13 @@ export class Session {
     // though the SDK Query is healthy. Same shape of bug the
     // `sendFreshTitle` path below works around for session_title.
     if (this.query) {
+      const transcriptPath = this.resumedTranscriptPath();
       fn({
         type: "ready",
         sessionId: this.id,
         ...(this.agent ? { agent: this.agent } : {}),
         ...(this.fallbackModel ? { fallbackModel: this.fallbackModel } : {}),
+        ...(transcriptPath ? { transcriptPath } : {}),
       });
     }
     // Re-emit the current permission mode for the same reason. A

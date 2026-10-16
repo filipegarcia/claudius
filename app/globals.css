@@ -296,3 +296,17 @@ samp,
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* CC 2.1.301 — KaTeX math in chat Markdown. Math is always LTR (an RTL
+   paragraph must not reorder a formula), display blocks scroll sideways
+   instead of overflowing the chat column, and the MathML twin stays hidden
+   by katex.min.css. */
+.katex {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25em 0;
+}

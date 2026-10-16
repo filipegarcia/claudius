@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { BUILTIN_TOOL_NAMES, LEGACY_TOOL_NAME_ALIASES } from "@anthropic-ai/claude-agent-sdk";
 
 import { Session, RESTRICTED_MODE_DISALLOWED_TOOLS } from "@/lib/server/session";
 import { mergeSessionDefaults } from "@/lib/shared/session-defaults";
@@ -60,5 +61,22 @@ describe("restricted mode", () => {
   test("getRebuildOpts carries restrictedMode so recovery/resume preserves it", () => {
     const s = new Session({ restrictedMode: true, permissionMode: "default" });
     expect(s.getRebuildOpts().restrictedMode).toBe(true);
+  });
+});
+
+// SDK 0.3.301 exports the public built-in tool names and the earlier names
+// they replaced. Guard the restricted-mode deny list against drifting onto a
+// stale alias (a deny rule on a renamed tool silently blocks nothing).
+describe("RESTRICTED_MODE_DISALLOWED_TOOLS vs SDK tool names", () => {
+  test("no entry is a legacy alias of a renamed tool", () => {
+    for (const name of RESTRICTED_MODE_DISALLOWED_TOOLS) {
+      expect(Object.keys(LEGACY_TOOL_NAME_ALIASES)).not.toContain(name);
+    }
+  });
+
+  test("every entry is a current built-in name (BashOutput is the one documented extra)", () => {
+    const builtin = new Set<string>(BUILTIN_TOOL_NAMES);
+    const unknown = RESTRICTED_MODE_DISALLOWED_TOOLS.filter((n) => !builtin.has(n) && n !== "BashOutput");
+    expect(unknown).toEqual([]);
   });
 });

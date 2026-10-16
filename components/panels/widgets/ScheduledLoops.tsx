@@ -87,6 +87,21 @@ export function ScheduledLoops({
                   recurring
                 </span>
               )}
+              {/* SDK 0.3.299 `CronCreateOutput.nextFireAt`: when the cron first
+                  runs. A creation-time snapshot, so it is hidden once passed
+                  rather than shown stale for a recurring job. */}
+              {loop.kind === "cron" &&
+                !muted &&
+                loop.nextFireAt !== undefined &&
+                loop.nextFireAt > now && (
+                  <span
+                    data-testid="loop-next-fire"
+                    className="ml-1 rounded bg-[var(--panel)]/60 px-1 py-px text-[9px] tracking-wide opacity-70"
+                    title={`Next run ${new Date(loop.nextFireAt).toLocaleString()}`}
+                  >
+                    next in {fmtElapsedSec((loop.nextFireAt - now) / 1000)}
+                  </span>
+                )}
               {loop.durable && (
                 <span className="ml-1 rounded bg-[var(--panel)]/60 px-1 py-px text-[9px] uppercase tracking-wide opacity-70">
                   durable

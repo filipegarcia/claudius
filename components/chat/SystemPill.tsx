@@ -26,6 +26,7 @@ import {
 } from "@/lib/client/useRateLimitWarning";
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
 import { PURCHASE_CREDITS_URL, RateLimitUpgradeLinks } from "./RateLimitHitPanel";
+import { offersGetMoreUsage } from "@/lib/client/rate-limit-cta";
 import { OPUS_OVERLOAD_NUDGE_SONNET_TARGET } from "./OpusOverloadNudgePanel";
 import { extraUsageState } from "@/lib/shared/rate-limit-extra-usage";
 import { rateLimitEventPct } from "@/lib/shared/usage-pct";
@@ -49,6 +50,17 @@ export type SystemPillLevers = {
    * with the refused user message's text so the user can reword and resend.
    */
   onEditAndRetry?: (refusedUserMessageUuid: string) => void;
+  /**
+   * CC 2.1.301 — the account's plan tier from the latest `plan_usage` event,
+   * so the rejected rate-limit pill offers "Get more usage" to Pro/Max the
+   * same way the inline `RateLimitHitPanel` does.
+   */
+  subscriptionType?: string | null;
+  /**
+   * CC 2.1.301 — set for a resumed session: the transcript file holding the
+   * turns from before its compaction (not replayed into this view).
+   */
+  resumedTranscriptPath?: string | null;
 };
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
@@ -125,7 +137,7 @@ export function SystemPill({
   // summary). Delegated to its own component so the expand/collapse state
   // doesn't add hooks to the other (hookless) SystemPill render paths.
   if (entry.kind === "compact_boundary") {
-    return <CompactBoundaryDivider entry={entry} />;
+    return <CompactBoundaryDivider entry={entry} transcriptPath={levers?.resumedTranscriptPath ?? null} />;
   }
   // Conversation-reset gets the same full-width-divider treatment as
   // compact-boundary — both mark a thread-state transition the reader
@@ -297,8 +309,14 @@ function formatCompactStats(s: NonNullable<SystemEntry["compactStats"]>): string
   return parts.length ? parts.join(" · ") : null;
 }
 
-function CompactBoundaryDivider({ entry }: { entry: SystemEntry }) {
+function CompactBoundaryDivider({ entry, transcriptPath }: { entry: SystemEntry; transcriptPath: string | null }) {
   const [expanded, setExpanded] = useState(false);
+  // CC 2.1.301 — "the compaction row in a resumed session … now says where
+  // the earlier messages are saved". A resumed session replays from the
+  // compaction on, so a boundary with nothing before it (no anchor message)
+  // marks history that isn't loaded here. In a live session the earlier turns
+  // are still above the row, so it stays as it was.
+  const earlierNotLoaded = !!transcriptPath && !entry.afterMessageUuid;
   const statText = entry.compactStats ? formatCompactStats(entry.compactStats) : null;
   const hasSummary = typeof entry.compactSummary === "string" && entry.compactSummary.length > 0;
   return (
@@ -323,6 +341,14 @@ function CompactBoundaryDivider({ entry }: { entry: SystemEntry }) {
         </div>
         <div className="h-px flex-1 bg-[var(--border)]" />
       </div>
+      {earlierNotLoaded && (
+        <div data-testid="compact-earlier-saved" className="mt-1 text-center text-[10px] opacity-80">
+          Earlier messages aren&apos;t loaded in this resumed session — they&apos;re saved in{" "}
+          <span className="select-all break-all font-mono" title={transcriptPath ?? undefined}>
+            {transcriptPath}
+          </span>
+        </div>
+      )}
       {expanded && hasSummary && (
         <div className="mx-auto mt-2 max-h-80 max-w-[var(--chat-col)] overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-[11px] leading-5 text-[var(--foreground)]/80 scroll-thin">
           {entry.compactSummary}
@@ -652,8 +678,10 @@ function RateLimitPill({
       ) : (
         status === "rejected" && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
-            <span className="opacity-70">Out of usage? Upgrade to keep going:</span>
-            <RateLimitUpgradeLinks />
+            <span className="opacity-70">
+              {offersGetMoreUsage(levers?.subscriptionType) ? "Out of usage?" : "Out of usage? Upgrade to keep going:"}
+            </span>
+            <RateLimitUpgradeLinks subscriptionType={levers?.subscriptionType} />
           </div>
         )
       )}

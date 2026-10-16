@@ -123,7 +123,7 @@ export function TranscriptViewer({ messages, onRewind, rewinding }: Props) {
                 if (b.kind === "text")
                   return (
                     <div key={i}>
-                      <Markdown>{b.text}</Markdown>
+                      <Markdown math>{b.text}</Markdown>
                     </div>
                   );
                 if (b.kind === "thinking")

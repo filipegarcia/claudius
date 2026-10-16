@@ -75,6 +75,27 @@ export default function GlobalError({
           >
             Reopen
           </button>
+          {/* CC 2.1.301 — a way out that doesn't reopen whatever crashed:
+              the chat root with `?new=1` starts a fresh session, from any
+              route (and the boot's crash-loop guard keeps "Reopen" from
+              looping on the same conversation). */}
+          <button
+            data-testid="global-error-new-session"
+            onClick={() => {
+              window.location.assign("/?new=1");
+            }}
+            style={{
+              padding: "0.5rem 1.25rem",
+              borderRadius: "0.375rem",
+              border: "1px solid #3f3f46",
+              background: "#18181b",
+              color: "#e4e4e7",
+              cursor: "pointer",
+              fontSize: "0.875rem",
+            }}
+          >
+            Open a new session
+          </button>
           {details && (
             <button
               onClick={() => {

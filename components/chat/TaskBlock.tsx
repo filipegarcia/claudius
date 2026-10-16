@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
@@ -221,7 +221,16 @@ export function TaskBlock({
   );
 }
 
-function SubMessage({ message }: { message: DisplayMessage }) {
+/**
+ * CC 2.1.301 — "a long-running subagent's progress trail now updates
+ * incrementally instead of being reprocessed in full on every render". The
+ * subagent upsert (`use-session.ts`) replaces only the message a delta
+ * touched, and a tool_result replaces only the message holding that tool_use
+ * (`applyToolResultToList`); every other entry keeps its object identity, so
+ * memoizing on the `message` reference means only the changed message
+ * re-renders; the rest of the trail (and its Markdown) is skipped.
+ */
+const SubMessage = memo(function SubMessage({ message }: { message: DisplayMessage }) {
   if (message.role === "user") {
     const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
     return (
@@ -242,7 +251,7 @@ function SubMessage({ message }: { message: DisplayMessage }) {
           if (b.kind === "text")
             return (
               <div key={i} className="text-xs leading-5">
-                <Markdown>{b.text}</Markdown>
+                <Markdown math>{b.text}</Markdown>
               </div>
             );
           if (b.kind === "thinking") {
@@ -267,4 +276,4 @@ function SubMessage({ message }: { message: DisplayMessage }) {
       </div>
     </div>
   );
-}
+});

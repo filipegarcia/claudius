@@ -179,6 +179,10 @@ export default function PermissionsPage() {
                       type="checkbox"
                       data-testid="block-reads-outside-working-dirs"
                       checked={rules[scope].blockReadsOutsideWorkingDirectories}
+                      // Disabled until the initial GET lands: otherwise a toggle
+                      // flipped during load is clobbered when the (stale) fetch
+                      // result replaces the optimistic state.
+                      disabled={loading}
                       onChange={(e) =>
                         void updateBlockReadsOutsideWorkingDirectories(scope, e.target.checked)
                       }

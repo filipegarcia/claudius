@@ -60,8 +60,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       // and never run that branch. The route handler always picks up edits,
       // and `setReady(true)` is idempotent on the client, so this is safe to
       // emit unconditionally as long as the session object exists.
+      // It lands AFTER the replay, so it carries the resumed transcript path
+      // too (CC 2.1.301) — same method-existence guard as `resyncFromDisk`
+      // above. The client only overwrites fields a `ready` actually carries.
+      const maybeTranscriptPath = (
+        session as unknown as { resumedTranscriptPath?: () => string | undefined }
+      ).resumedTranscriptPath;
+      const transcriptPath =
+        typeof maybeTranscriptPath === "function" ? maybeTranscriptPath.call(session) : undefined;
       try {
-        send({ type: "ready", sessionId: id });
+        send({ type: "ready", sessionId: id, ...(transcriptPath ? { transcriptPath } : {}) });
       } catch {
         // controller closed already — heartbeat cleanup will handle it
       }

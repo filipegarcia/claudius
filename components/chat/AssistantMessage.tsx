@@ -139,7 +139,7 @@ export function AssistantMessage({
           if (b.kind === "text")
             return (
               <div key={i} className="text-[var(--foreground)]">
-                <Markdown>{b.text}</Markdown>
+                <Markdown math>{b.text}</Markdown>
               </div>
             );
           if (b.kind === "thinking") {

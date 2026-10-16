@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  BOOT_FORCE_KEY,
+  clearBootAttemptFor,
+  consumeForcedResume,
+  markBootAttempt,
+  scopeSkippedBoot,
+  shouldSkipResume,
+  type SkippedBoot,
+} from "@/lib/client/boot-guard";
 import { usePathname } from "next/navigation";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
@@ -25,6 +34,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
+import { readCronNextFireAt } from "@/lib/shared/session-loops";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
@@ -966,6 +976,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // moving the URL write out of bindToSession into an effect.
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  // CC 2.1.301 — resumed session's transcript path (from `ready`), shown on a
+  // compaction row whose earlier messages weren't replayed.
+  const [transcriptPath, setTranscriptPath] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // Count of live backgrounded subagent/Task/Workflow runs, from the server's
   // authoritative `turn_status` signal. Distinct from `pending`: these run while
@@ -1177,6 +1190,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const [suggestedUuids, setSuggestedUuids] = useState<Set<string>>(() => new Set());
   const [goalUuids, setGoalUuids] = useState<Set<string>>(() => new Set());
   const [replaying, setReplaying] = useState(true);
+  // CC 2.1.301 — the session the boot declined to resume because the last
+  // boot that resumed it never finished (crash / freeze loop), and the fresh
+  // session it opened instead. Drives the "didn't open last time" notice,
+  // scoped to that fresh session — see `scopeSkippedBoot`.
+  const [skippedBoot, setSkippedBoot] = useState<SkippedBoot | null>(null);
   /**
    * Health of THIS tab's SSE socket to the session stream.
    *
@@ -1695,6 +1713,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
 
   const resetState = useCallback(() => {
     setReady(false);
+    setTranscriptPath(null);
     setPending(false);
     setBackgroundTasks(0);
     setHolderTabId(null);
@@ -2157,6 +2176,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "ready") {
         setReady(true);
+        setTranscriptPath((prev) => nextTranscriptPath(prev, ev));
         setMainAgent(ev.agent ?? null);
         setAccount(ev.account ?? null);
         fallbackModelRef.current = ev.fallbackModel ?? null;
@@ -3450,30 +3470,21 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         );
         if (result) {
           // Tool results land on whichever tool_use carries that id, in main or subagent.
+          const toolResult = { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached, notRun: result.notRun };
           setMessages((prev) =>
             prev.map((m) => ({
               ...m,
               blocks: m.blocks.map((b) =>
                 b.kind === "tool_use" && b.id === result.tool_use_id
-                  ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached, notRun: result.notRun } }
+                  ? { ...b, result: toolResult }
                   : b,
               ),
             })),
           );
-          setSubagentMessages((prev) => {
-            const next = { ...prev };
-            for (const [pid, list] of Object.entries(prev)) {
-              next[pid] = list.map((m) => ({
-                ...m,
-                blocks: m.blocks.map((b) =>
-                  b.kind === "tool_use" && b.id === result.tool_use_id
-                    ? { ...b, result: { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached, notRun: result.notRun } }
-                    : b,
-                ),
-              }));
-            }
-            return next;
-          });
+          // Subagent trails keep every untouched list / message / block by
+          // reference (CC 2.1.301 — TaskBlock's memoized SubMessage relies on
+          // it), so a result only re-renders the one message it lands on.
+          setSubagentMessages((prev) => applyToolResultToTrails(prev, result.tool_use_id, toolResult));
           setToolProgress((prev) => {
             if (!(result.tool_use_id in prev)) return prev;
             const copy = { ...prev };
@@ -3604,11 +3615,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             const cronId = idMatch?.[1] ?? pending.toolUseId;
             const humanSchedule = idMatch?.[2] ?? null;
             const durable = !/session[- ]only/i.test(result.text);
+            // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
+            const nextFireAt = readCronNextFireAt((msg as { tool_use_result?: unknown }).tool_use_result);
             const promoted: ScheduledLoop = {
               ...pending,
               id: cronId,
               humanSchedule,
               durable,
+              ...(nextFireAt !== undefined ? { nextFireAt } : {}),
             };
             const copy = { ...prev };
             delete copy[result.tool_use_id];
@@ -5297,6 +5311,44 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     [createSession],
   );
 
+  // CC 2.1.301 — a session's history replayed and the result committed (an
+  // effect never runs after a render that threw), so a crash-loop marker
+  // naming it is stale: drop it. Keyed on the marker's own id, not on "the
+  // session this boot resumed": switching to another tab before the booted
+  // one replayed must not disarm the guard for it, but a session the guard
+  // skipped that the user then opens fine via its tab must not stay skipped
+  // on every reload. (`resetState` flips `replaying` back on before a newly
+  // bound id lands, so this can't fire on the previous session's settled
+  // replay.)
+  useEffect(() => {
+    if (!replaying && sessionId) clearBootAttemptFor(sessionId, window.sessionStorage);
+  }, [replaying, sessionId]);
+
+  // The notice belongs to the fresh session the boot opened instead of the
+  // skipped one: switching to any other session (the skipped one included)
+  // drops it, like the /clear banner. Derived for this render so it never
+  // flashes above the wrong session; the effect makes the drop stick.
+  const scopedSkippedBoot = scopeSkippedBoot(skippedBoot, sessionId);
+  const skippedBootSession = scopedSkippedBoot?.id ?? null;
+  useEffect(() => {
+    if (scopedSkippedBoot !== skippedBoot) setSkippedBoot(scopedSkippedBoot);
+  }, [scopedSkippedBoot, skippedBoot]);
+
+  const openSkippedBootSession = useCallback(() => {
+    const id = skippedBootSession;
+    if (!id) return;
+    try {
+      window.sessionStorage.setItem(BOOT_FORCE_KEY, id);
+    } catch {
+      // ignore — the boot will just decline it once more
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    url.searchParams.set("session", id);
+    window.location.assign(url.toString());
+  }, [skippedBootSession]);
+  const dismissSkippedBootSession = useCallback(() => setSkippedBoot(null), []);
+
   // Boot on mount; honor URL ?session=, ?at=, and ?prompt= (seed initial input).
   useEffect(() => {
     // React Strict Mode (dev only, always on for the e2e webServer) mounts
@@ -5357,13 +5409,54 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // open-tabs lookup finished) — don't spawn a session nobody will
       // use. See the comment above the `cancelled` declaration.
       if (cancelled) return;
+      // CC 2.1.301 — crash-loop guard (see `lib/client/boot-guard.ts`). If
+      // the previous boot resumed this same session and never got it on
+      // screen, open a fresh session instead and say so; "Open anyway"
+      // retries it on purpose.
+      let resumeAt = at;
+      let skippedId: string | null = null;
+      if (resume) {
+        const forced = consumeForcedResume(resume, window.sessionStorage);
+        if (shouldSkipResume(resume, window.sessionStorage, Date.now(), forced)) {
+          // The marker is left in place so a Strict Mode re-run of this
+          // effect reaches the same decision, and so later reloads keep
+          // skipping this session until it actually renders. It's cleared
+          // whenever it does: "Open anyway" (which re-marks it first), or
+          // the user opening it from its tab — see `clearBootAttemptFor`.
+          skippedId = resume;
+          setSkippedBoot({ id: resume, freshId: null });
+          resume = undefined;
+          resumeAt = undefined;
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("session");
+            url.searchParams.delete("at");
+            window.history.replaceState(null, "", url.toString());
+          } catch {
+            // ignore
+          }
+        } else {
+          markBootAttempt(resume, window.sessionStorage, Date.now());
+        }
+      }
       const created = await createSession(
         resume
-          ? { resume, resumeSessionAt: at }
+          ? { resume, resumeSessionAt: resumeAt }
           : defaultCwdRef.current
             ? { cwd: defaultCwdRef.current }
             : {},
       );
+      if (skippedId && !cancelled) {
+        // Pin the notice to the session opened in the skipped one's place.
+        // No session (create failed, or a tab click superseded it): there's
+        // no fresh session for it to describe. A cleaned-up instance (Strict
+        // Mode's discarded first run, whose create the second run superseded)
+        // must not touch it — the live instance owns the notice.
+        const skipped = skippedId;
+        setSkippedBoot((prev) =>
+          prev?.id !== skipped ? prev : created ? { id: skipped, freshId: created } : null,
+        );
+      }
       if (created && seed) {
         // Wait briefly for the session to be `ready` before sending.
         const start = Date.now();
@@ -6011,6 +6104,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         hasMore: boolean;
       };
       const synth = synthesizeOlder(data.messages);
+      // synthesizeOlder drops the compaction summary as plumbing; restore its
+      // divider when this page reaches the top of the history (CC 2.1.301).
+      setSystemEntries((prev) => withPagedCompactBoundary(prev, data.messages, data.hasMore));
       // Compute fresh prepends against the current list up front so we can
       // tell whether this page actually moved the head cursor. The cursor is
       // always messagesRef.current[0]; if nothing fresh is prepended the head
@@ -6555,6 +6651,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     agents,
     mainAgent,
     account,
+    transcriptPath,
+    skippedBootSession,
+    openSkippedBootSession,
+    dismissSkippedBootSession,
     accountsConfigured,
     moveToActiveAccount,
     permissionMode,
@@ -6680,6 +6780,130 @@ type RawSDKMessage = {
    */
   origin?: { kind?: string; from?: string; name?: string; body?: string };
 };
+
+/**
+ * Attach a tool_result to the `tool_use` block with id `toolUseId` in `list`.
+ * Returns `list` itself when no block matched, and otherwise a copy where only
+ * the matching message (and its matching block) is replaced — every other
+ * message keeps its object identity. CC 2.1.301: the subagent trail renders
+ * each message through `memo(SubMessage)`, which a blanket `list.map(m =>
+ * ({ ...m }))` on every tool_result defeated, reprocessing the whole trail.
+ */
+export function applyToolResultToList(
+  list: DisplayMessage[],
+  toolUseId: string,
+  result: Extract<DisplayBlock, { kind: "tool_use" }>["result"],
+): DisplayMessage[] {
+  let next: DisplayMessage[] | null = null;
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i];
+    if (!m.blocks.some((b) => b.kind === "tool_use" && b.id === toolUseId)) continue;
+    next ??= list.slice();
+    next[i] = {
+      ...m,
+      blocks: m.blocks.map((b) => (b.kind === "tool_use" && b.id === toolUseId ? { ...b, result } : b)),
+    };
+  }
+  return next ?? list;
+}
+
+/**
+ * {@link applyToolResultToList} over every subagent trail: returns `trails`
+ * itself when no trail held the tool_use, and otherwise replaces only the
+ * trail(s) that did.
+ */
+export function applyToolResultToTrails(
+  trails: Record<string, DisplayMessage[]>,
+  toolUseId: string,
+  result: Extract<DisplayBlock, { kind: "tool_use" }>["result"],
+): Record<string, DisplayMessage[]> {
+  let next: Record<string, DisplayMessage[]> | null = null;
+  for (const [pid, list] of Object.entries(trails)) {
+    const patched = applyToolResultToList(list, toolUseId, result);
+    if (patched === list) continue;
+    next ??= { ...trails };
+    next[pid] = patched;
+  }
+  return next ?? trails;
+}
+
+/**
+ * CC 2.1.301 — the resumed-transcript path after a `ready`. Only a `ready`
+ * that CARRIES the field updates it: the stream route's belt-and-suspenders
+ * `ready` (sent after the replay) and older server code paths emit one
+ * without it, and treating that as "no path" wiped the value the replayed
+ * `ready` had just set — so the compaction row never named the file. A
+ * session switch clears it in `resetState`.
+ */
+export function nextTranscriptPath(
+  prev: string | null,
+  ev: { transcriptPath?: string },
+): string | null {
+  return "transcriptPath" in ev ? (ev.transcriptPath ?? null) : prev;
+}
+
+/**
+ * CC 2.1.301 — re-create the top-of-thread compaction divider from a
+ * `loadOlder` page. A resumed session's history starts at its last compaction
+ * (`getSessionMessages` follows the chain from the boundary: a bare system
+ * record, then the `isCompactSummary` continuation), and on reattach the
+ * client only replays the last ~`tail` turns — so a resumed session with more
+ * turns than that after the compaction never receives the summary record, and
+ * `synthesizeOlder` drops it as plumbing. The divider (and the "earlier
+ * messages are saved in …" line it carries for a resumed session) then never
+ * appeared. When the page that reaches the top of the history (`hasMore`
+ * false) holds the summary, add the anchorless divider — rendered above the
+ * first message, below which pagination has nothing left to load.
+ *
+ * No-op (returns `prev`) when the divider already exists: an entry built from
+ * the same summary or boundary record during replay (live compaction, or a
+ * short resumed session whose window included it), or any anchorless one.
+ */
+export function withPagedCompactBoundary(
+  prev: SystemEntry[],
+  raw: ReadonlyArray<Record<string, unknown>>,
+  hasMore: boolean,
+): SystemEntry[] {
+  if (hasMore) return prev;
+  const summary = (raw as RawSDKMessage[]).find(
+    (r) =>
+      !!r &&
+      r.type === "user" &&
+      !r.parent_tool_use_id &&
+      ((r as { isCompactSummary?: boolean }).isCompactSummary === true ||
+        isCompactSummaryContent(r.message?.content)),
+  );
+  const uuid = typeof summary?.uuid === "string" ? summary.uuid : "";
+  if (!summary || !uuid) return prev;
+  const pageUuids = new Set<string>([uuid]);
+  for (const r of raw as RawSDKMessage[]) {
+    if (r?.type === "system" && typeof r.uuid === "string") pageUuids.add(r.uuid);
+  }
+  if (
+    prev.some((e) => e.kind === "compact_boundary" && (pageUuids.has(e.uuid) || !e.afterMessageUuid))
+  ) {
+    return prev;
+  }
+  const content = summary.message?.content;
+  let summaryText = "";
+  if (typeof content === "string") summaryText = content;
+  else if (Array.isArray(content)) {
+    for (const c of content as Array<{ type?: string; text?: string }>) {
+      if (c?.type === "text" && c.text) summaryText += c.text;
+    }
+  }
+  summaryText = summaryText.trim();
+  return [
+    ...prev,
+    {
+      uuid,
+      afterMessageUuid: "",
+      kind: "compact_boundary",
+      label: "Compacted earlier conversation",
+      ...(summaryText ? { compactSummary: summaryText } : {}),
+    },
+  ];
+}
 
 /**
  * Merge compaction metadata / summary onto a single `compact_boundary`

@@ -1,0 +1,144 @@
+/**
+ * CC 2.1.301 ([VSCode] "Fixed a conversation that crashes or freezes the
+ * panel being reopened on every reload").
+ *
+ * On page load Claudius resumes `?session=` or the last-active tab. If that
+ * conversation crashes the page (a render throw reaching `global-error.tsx`,
+ * whose only action reloads) or freezes the tab, every reload resumed it
+ * again — a loop with no way out short of hand-editing the URL.
+ *
+ * The guard: before the boot resumes a session it writes a marker; once that
+ * session's history has replayed AND the result committed to the screen
+ * (`clearBootAttemptFor`, called from an effect, so a render crash never
+ * reaches it), the marker is removed — whether the session got there through
+ * the boot itself or later (a tab click on a session the guard skipped). If
+ * the next boot finds a marker still naming the session it's about to
+ * resume, the previous boot never finished — it opens a fresh session
+ * instead and the chat shows a notice with "Open anyway", scoped to that
+ * fresh session (`scopeSkippedBoot`).
+ *
+ * The marker lives in `sessionStorage`: tab-scoped (a second tab opening the
+ * same session while the first is still loading isn't a crash) and kept
+ * across reloads of the same tab, which is exactly the loop being broken.
+ *
+ * Pure apart from the `Storage` it's handed, so it's unit-testable.
+ */
+
+export const BOOT_MARKER_KEY = "claudius:boot-pending";
+/** sessionStorage key: the user chose "Open anyway" for this id. */
+export const BOOT_FORCE_KEY = "claudius:boot-force";
+/**
+ * A marker older than this is ignored: a tab closed mid-load hours ago isn't
+ * a crash loop. Generous enough to cover a user waiting out a frozen tab.
+ */
+export const BOOT_MARKER_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * Which page load wrote a marker. A marker from the *current* load never
+ * counts: React Strict Mode runs the boot effect twice, and a chat remount
+ * after client-side navigation re-runs it — neither is a crash loop.
+ * `performance.timeOrigin` is fixed for the life of a document and differs
+ * on every load.
+ */
+export function currentPageLoad(): number {
+  return typeof performance !== "undefined" ? performance.timeOrigin : 0;
+}
+
+type Marker = { id: string; at: number; load?: number };
+
+function readMarker(storage: Pick<Storage, "getItem">): Marker | null {
+  try {
+    const raw = storage.getItem(BOOT_MARKER_KEY);
+    if (!raw) return null;
+    const m = JSON.parse(raw) as Partial<Marker>;
+    return typeof m.id === "string" && typeof m.at === "number"
+      ? { id: m.id, at: m.at, ...(typeof m.load === "number" ? { load: m.load } : {}) }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether the boot should skip resuming `id` because an earlier page load
+ * that resumed it never finished. `forced` (from "Open anyway") always wins,
+ * and a marker written by this same page load (`load`) is ignored.
+ */
+export function shouldSkipResume(
+  id: string,
+  storage: Pick<Storage, "getItem">,
+  now: number,
+  forced = false,
+  load = currentPageLoad(),
+): boolean {
+  if (forced) return false;
+  const m = readMarker(storage);
+  return !!m && m.id === id && m.load !== load && now - m.at < BOOT_MARKER_TTL_MS;
+}
+
+/** Record that this page load is about to resume `id`. */
+export function markBootAttempt(
+  id: string,
+  storage: Pick<Storage, "setItem">,
+  now: number,
+  load = currentPageLoad(),
+): void {
+  try {
+    storage.setItem(BOOT_MARKER_KEY, JSON.stringify({ id, at: now, load }));
+  } catch {
+    // Storage full / disabled — the guard is best-effort.
+  }
+}
+
+/** The resumed session rendered: this boot finished. */
+export function clearBootAttempt(storage: Pick<Storage, "removeItem">): void {
+  try {
+    storage.removeItem(BOOT_MARKER_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Session `id` replayed and rendered: drop the marker if it names `id`. A
+ * marker naming another session is left alone — switching tabs before the
+ * booted session finished loading must not disarm the guard for it — but one
+ * naming `id` is cleared however `id` came to be opened, so a skipped
+ * session the user later opens fine (via its tab) isn't skipped again on
+ * every reload for the rest of the marker's TTL.
+ */
+export function clearBootAttemptFor(id: string, storage: Pick<Storage, "getItem" | "removeItem">): void {
+  if (readMarker(storage)?.id === id) clearBootAttempt(storage);
+}
+
+/**
+ * The skipped-session notice: `id` is the session the boot declined to
+ * reopen; `freshId` the session it opened instead (`null` while that create
+ * is still in flight).
+ */
+export type SkippedBoot = { id: string; freshId: string | null };
+
+/**
+ * Scope the skipped-session notice to the fresh session the boot created,
+ * like the /clear banner: it stays while that session (or nothing yet) is
+ * bound and goes away once the user switches to any other session — in
+ * particular the skipped one itself, where a "wasn't reopened" notice would
+ * be false. Returns `state` unchanged (same reference) when it still applies.
+ */
+export function scopeSkippedBoot(state: SkippedBoot | null, boundId: string | null): SkippedBoot | null {
+  if (!state || !boundId) return state;
+  if (boundId === state.id) return null;
+  if (state.freshId === null) return state;
+  return boundId === state.freshId ? state : null;
+}
+
+/** Read-and-consume the "Open anyway" flag for `id`. */
+export function consumeForcedResume(id: string, storage: Pick<Storage, "getItem" | "removeItem">): boolean {
+  try {
+    if (storage.getItem(BOOT_FORCE_KEY) !== id) return false;
+    storage.removeItem(BOOT_FORCE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}

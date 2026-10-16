@@ -1,7 +1,9 @@
 /**
  * Browser-style "find in page" over a DOM subtree.
  *
- * Walks every visible text node under `root`, concatenates them into one
+ * Walks every visible text node under `root` (skipping KaTeX's MathML twin,
+ * which is clipped rather than hidden, so `checkVisibility` would keep it),
+ * concatenates them into one
  * haystack (inserting a "\n" wherever two adjacent text nodes are separated by
  * a block-level boundary so "end of paragraph" + "start of next" can't form a
  * false match), runs a literal case-(in)sensitive search, and maps each hit
@@ -14,6 +16,13 @@
 
 /** Elements whose text should never be searched. */
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "TEXTAREA", "INPUT", "SELECT", "NOSCRIPT"]);
+
+/**
+ * KaTeX's screen-reader MathML copy (and its TeX `<annotation>`). katex.css
+ * hides it with a 1px clip, not `display: none`, so without this every
+ * formula would match twice — once in a range that paints nowhere.
+ */
+const SKIP_SELECTOR = ".katex-mathml";
 
 /**
  * Tags that flow inline with surrounding text. A text-node boundary that only
@@ -82,7 +91,7 @@ export function findInElement(root: Element, query: string, opts: FindOptions = 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(n) {
       const p = n.parentElement;
-      if (!p || SKIP_TAGS.has(p.tagName)) return NodeFilter.FILTER_REJECT;
+      if (!p || SKIP_TAGS.has(p.tagName) || p.closest(SKIP_SELECTOR)) return NodeFilter.FILTER_REJECT;
       if (!(n as Text).data) return NodeFilter.FILTER_SKIP;
       return isVisible(p) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     },

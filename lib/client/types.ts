@@ -716,6 +716,12 @@ export type ScheduledLoop = {
    * tick that did something.
    */
   noopStreak?: number;
+  /**
+   * Epoch ms of the cron's next run, from `CronCreate`'s structured result
+   * (SDK 0.3.299 `nextFireAt`). A snapshot from creation time — not refreshed
+   * after the job fires. Absent for wake-ups and older SDKs.
+   */
+  nextFireAt?: number;
   /** True once the agent has been asked to cancel via CronDelete. */
   cancelled?: boolean;
 };
@@ -855,6 +861,17 @@ export type ChatState = {
    * for the default agent. From the `ready` event. Shown in the StatusLine.
    */
   mainAgent: string | null;
+  /**
+   * CC 2.1.301 — for a resumed session, the engine transcript holding the
+   * turns from before its last compaction (from the `ready` event). Null for
+   * fresh sessions.
+   */
+  transcriptPath: string | null;
+  /**
+   * CC 2.1.301 — a session the page load declined to resume because the
+   * previous load that resumed it never finished (crash or freeze loop).
+   */
+  skippedBootSession: string | null;
   /**
    * Account-switcher profile this session is actually running under, from the
    * `ready` event. Null when no account profile is configured.
@@ -1241,6 +1258,9 @@ export type SendableImage = Partial<Pick<AttachedImage, "id" | "ordinal">> &
 export type SendResult = { ok: true } | { ok: false; error: string };
 
 export type ChatActions = {
+  /** CC 2.1.301 — retry the declined session on purpose (full reload). */
+  openSkippedBootSession: () => void;
+  dismissSkippedBootSession: () => void;
   /**
    * Forcefully take over the write lock for this session from whichever tab
    * currently holds it. Issues a PATCH to the server so all connected clients

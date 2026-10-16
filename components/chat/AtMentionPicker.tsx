@@ -13,6 +13,17 @@ import {
 
 export type FsEntry = { relPath: string; absPath: string; type: "file" | "dir" };
 
+/**
+ * CC 2.1.301 — the error row text for a non-OK `/api/fs/list` answer, or
+ * `null` to stay quiet. Only a failed search (403 unreadable folder, 5xx)
+ * is shown; a 400 (e.g. "unknown cwd" from `resolveTrustedCwd`, no session
+ * cwd yet) just closes the picker like an empty result, as it always did.
+ */
+export function fsListErrorText(status: number, body: { error?: string }): string | null {
+  if (status !== 403 && status < 500) return null;
+  return body.error ?? `Search failed (HTTP ${status})`;
+}
+
 type Props = {
   query: string;
   cwd: string | null;
@@ -32,6 +43,10 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
   // — that's what would trap the spinner on the null-session / zero-match
   // cases the guard relies on.
   const [fileLoading, setFileLoading] = useState(true);
+  // CC 2.1.301 — the file search failed (unreadable folder, server error).
+  // Shown in the picker instead of silently closing it as if nothing matched;
+  // a 400 / network failure stays quiet (see `fsListErrorText`).
+  const [fileError, setFileError] = useState<string | null>(null);
   const [hi, setHi] = useState(0);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -63,13 +78,18 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
     const params = new URLSearchParams({ q: normalizeFileMentionQuery(query), limit: "50" });
     if (cwd) params.set("cwd", cwd);
     fetch(`/api/fs/list?${params}`, { signal: controller.signal })
-      .then((r) => r.json())
-      .then((d: { entries?: FsEntry[] }) => {
-        setEntries(d.entries ?? []);
+      .then(async (r) => {
+        const d = (await r.json().catch(() => ({}))) as { entries?: FsEntry[]; error?: string };
+        // The swallowed json() error may be the abort — don't apply stale results.
+        if (controller.signal.aborted) return;
+        setEntries(r.ok ? (d.entries ?? []) : []);
+        setFileError(r.ok ? null : fsListErrorText(r.status, d));
       })
       .catch((err: unknown) => {
+        // Network failure / abort — stays quiet (picker closes), as before.
         if (err instanceof DOMException && err.name === "AbortError") return;
         setEntries([]);
+        setFileError(null);
       })
       .finally(() => {
         if (!controller.signal.aborted) setFileLoading(false);
@@ -167,7 +187,8 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
     itemRefs.current[hi]?.scrollIntoView({ block: "nearest" });
   }, [hi]);
 
-  if (visible.length === 0 && !loading) return null;
+  const showFileError = !agentMode && !loading && fileError != null;
+  if (visible.length === 0 && !loading && !showFileError) return null;
 
   const countLabel = loading
     ? "loading…"
@@ -179,6 +200,11 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
         <span>@-mention · Tab to insert</span>
         <span>{countLabel}</span>
       </div>
+      {showFileError && (
+        <div data-testid="at-mention-search-error" role="alert" className="px-2 py-1 text-xs text-red-300">
+          {fileError}
+        </div>
+      )}
       {visible.map((item, i) => {
         const key = item.kind === "agent" ? `agent:${item.name}` : `file:${item.relPath}`;
         const Icon = item.kind === "agent" ? Bot : item.type === "dir" ? Folder : File;

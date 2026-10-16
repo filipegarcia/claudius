@@ -205,6 +205,8 @@ export function FindInFolder({
             </span>
           ) : !query.trim() ? (
             ""
+          ) : error ? (
+            ""
           ) : totalMatches === 0 ? (
             "No matches"
           ) : (
@@ -216,7 +218,7 @@ export function FindInFolder({
         </span>
       </div>
       {error && (
-        <div className="border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300">
+        <div data-testid="find-in-folder-error" role="alert" className="border-b border-red-500/30 bg-red-500/10 px-3 py-1 text-[11px] text-red-300">
           {error}
         </div>
       )}
@@ -225,7 +227,7 @@ export function FindInFolder({
           <div className="flex h-full items-center justify-center px-4 py-10 text-center text-xs text-[var(--muted)]">
             Type to search inside <span className="ml-1 font-mono">{folderDisplay}</span>.
           </div>
-        ) : grouped.length === 0 && !loading ? (
+        ) : grouped.length === 0 && !loading && !error ? (
           <div className="flex h-full items-center justify-center px-4 py-10 text-center text-xs text-[var(--muted)]">
             No matches in this folder.
           </div>

@@ -31,3 +31,15 @@ export function rateLimitCtaKind(hit: {
   if (hit.subscriptionType === "team" || hit.subscriptionType === "enterprise") return "usage-credits";
   return "upgrade";
 }
+
+/**
+ * CC 2.1.301 ([VSCode] "Added a 'Get more usage' link to the usage-limit
+ * banner for Pro and Max plans"). Pro and Max can keep going past a limit by
+ * buying extra usage — the CLI's own limit line reads "/upgrade or
+ * /usage-credits to finish what you're working on". The upgrade links alone
+ * told a Max user to upgrade to the plan they already have. Unknown tier
+ * (no `plan_usage` yet) keeps the old upgrade-only row.
+ */
+export function offersGetMoreUsage(subscriptionType: string | null | undefined): boolean {
+  return subscriptionType === "pro" || subscriptionType === "max";
+}
