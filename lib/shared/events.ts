@@ -4,6 +4,7 @@
 
 import type { SDKMessage, PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { Tip } from "./tips";
+import type { HookAsk } from "./hook-ask";
 
 export type PermissionRequestEvent = {
   type: "permission_request";
@@ -54,12 +55,13 @@ export type PermissionRequestEvent = {
    */
   mcpServer?: { name: string; source: string };
   /**
-   * CC 2.1.301 — set when a PreToolUse hook raised this ask: the hook's own
-   * reason text (`canUseTool`'s `decisionReason` with
-   * `decisionReasonType: "hook"`), ANSI-stripped and length-capped by
-   * `hookAskReason`. Display only. Absent for every other kind of ask.
+   * CC 2.1.301 — set when a PreToolUse hook raised this ask
+   * (`canUseTool`'s `decisionReasonType: "hook"`), even when the hook gave no
+   * reason. `reason` is the hook's own text (`decisionReason`), ANSI-stripped
+   * and length-capped by `hookAsk`; absent when the hook gave none. Display
+   * only. Absent for every other kind of ask.
    */
-  hookAskReason?: string;
+  hookAsk?: HookAsk;
 };
 
 export type SessionReadyEvent = {
@@ -84,7 +86,10 @@ export type SessionReadyEvent = {
   /**
    * CC 2.1.301 — for a resumed session, the engine transcript (JSONL) that
    * holds the turns from before its last compaction, which the resume replay
-   * doesn't load. `~`-shortened, display only. Absent for fresh sessions.
+   * doesn't load. `~`-shortened, display only. Absent for fresh sessions and
+   * when the file couldn't be found. The client treats absence as "no news"
+   * (keeps the value it has) — a `ready` re-emitted by an older code path
+   * without the field must not wipe it; a session switch clears it instead.
    */
   transcriptPath?: string;
   /**

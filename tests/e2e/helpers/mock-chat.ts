@@ -5,6 +5,12 @@ import { type Page, type Route } from "../../helpers/test";
  * SSE stream (the pattern the sdk-update / cc-parity specs share): the
  * session POST returns `sessionId`, its stream replays `events`, and the
  * side endpoints the chat polls answer empty.
+ *
+ * Like the real stream route, the mocked stream ends with a bare
+ * `{ type: "ready", sessionId }` after the scripted events (the route's
+ * belt-and-suspenders ready, sent after `subscribe()` replays the buffer), so
+ * a client handler that lets that bare ready wipe state the replayed ready
+ * carried (e.g. `transcriptPath`) fails the spec instead of only the real app.
  */
 export type SdkEvent = Record<string, unknown>;
 
@@ -26,7 +32,7 @@ export async function mockChatBackend(
     route.fulfill({
       status: 200,
       headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
-      body: sseBody(events),
+      body: sseBody([...events, { type: "ready", sessionId }]),
     }),
   );
   await page.route("**/api/sessions/open-tabs", async (route: Route) => {

@@ -5,8 +5,9 @@
  * When a PreToolUse hook answers `ask`, the engine hands `canUseTool` the
  * hook's own reason text as `decisionReason`, tagged
  * `decisionReasonType: "hook"`. Claudius used to drop both, so the prompt said
- * nothing about a hook at all. This pulls the reason out for display only —
- * it never feeds a permission decision.
+ * nothing about a hook at all. This marks the ask as a hook's and pulls the
+ * reason (when the hook gave one) out for display only — it never feeds a
+ * permission decision.
  *
  * The engine's `decision_reason_hook_source` (`plugin:<name>` / `skill:<name>`)
  * is not forwarded by the SDK's JS layer as of 0.3.301, so the plugin/skill
@@ -26,10 +27,22 @@ export function stripAnsi(text: string): string {
   return text.replace(ANSI_RE, "");
 }
 
-/** The hook's reason when this ask was raised by a hook, else `undefined`. */
-export function hookAskReason(decisionReason: unknown, decisionReasonType: unknown): string | undefined {
-  if (decisionReasonType !== "hook" || typeof decisionReason !== "string") return undefined;
-  const clean = stripAnsi(decisionReason).trim();
-  if (!clean) return undefined;
-  return clean.length > HOOK_ASK_REASON_MAX ? `${clean.slice(0, HOOK_ASK_REASON_MAX - 1)}…` : clean;
+/** What the permission prompt shows about a hook-raised ask. */
+export type HookAsk = {
+  /** The hook's reason, cleaned for display; absent when it gave none. */
+  reason?: string;
+};
+
+/**
+ * `{ reason? }` when this ask was raised by a hook, else `undefined`. A hook
+ * may answer `ask` without a reason; the ask was still a hook's, so the
+ * prompt still says so — the object is present and only `reason` is absent.
+ */
+export function hookAsk(decisionReason: unknown, decisionReasonType: unknown): HookAsk | undefined {
+  if (decisionReasonType !== "hook") return undefined;
+  const clean = typeof decisionReason === "string" ? stripAnsi(decisionReason).trim() : "";
+  if (!clean) return {};
+  return {
+    reason: clean.length > HOOK_ASK_REASON_MAX ? `${clean.slice(0, HOOK_ASK_REASON_MAX - 1)}…` : clean,
+  };
 }

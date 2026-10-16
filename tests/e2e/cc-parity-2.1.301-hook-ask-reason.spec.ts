@@ -5,7 +5,8 @@
  *
  * Claudius dropped `canUseTool`'s `decisionReason` entirely, so a hook's ask
  * looked like any other prompt. The server now forwards the hook's reason
- * (`decisionReasonType: "hook"`) and the prompt shows "Asked by a hook: …".
+ * (`decisionReasonType: "hook"`) and the prompt shows "Asked by a hook: …"
+ * (just "Asked by a hook" when the hook gave no reason).
  * The plugin/skill name itself isn't forwarded by the SDK yet.
  *
  * Screenshot target: docs/cc-parity/2.1.301/hook-ask-reason.png
@@ -51,7 +52,7 @@ test("a hook's ask shows the hook's reason on the permission prompt", async ({ p
       toolName: "Bash",
       toolUseId: "toolu_deploy_301",
       input: { command: "./scripts/deploy.sh --prod" },
-      hookAskReason: REASON,
+      hookAsk: { reason: REASON },
     },
   ]);
   await page.goto("/");
@@ -63,6 +64,26 @@ test("a hook's ask shows the hook's reason on the permission prompt", async ({ p
 
   await page.waitForTimeout(300);
   await page.screenshot({ path: resolve(SHOTS_DIR, "hook-ask-reason.png"), fullPage: false });
+});
+
+test("a hook's ask without a reason still says a hook asked", async ({ page }) => {
+  await mockChatBackend(page, SESSION, [
+    { type: "ready", sessionId: SESSION },
+    initEvent("sys-init-301h3"),
+    { type: "replay_done", hasMoreAbove: false },
+    {
+      type: "permission_request",
+      requestId: "perm-301-hook-bare",
+      toolName: "Bash",
+      toolUseId: "toolu_bare_301",
+      input: { command: "./scripts/deploy.sh --prod" },
+      hookAsk: {},
+    },
+  ]);
+  await page.goto("/");
+  const row = page.getByTestId("permission-hook-reason");
+  await expect(row).toBeVisible({ timeout: 15_000 });
+  await expect(row).toHaveText("Asked by a hook");
 });
 
 test("an ordinary ask shows no hook line", async ({ page }) => {

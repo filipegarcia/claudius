@@ -31,6 +31,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { projectRoot } from "./db";
+import { encodeProjectDir } from "./auto-memory";
 import { AsyncQueue } from "./async-queue";
 import { notificationBus } from "./notification-bus";
 import {
@@ -93,7 +94,7 @@ import {
   type TaskResourceLink,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
-import { hookAskReason } from "@/lib/shared/hook-ask";
+import { hookAsk } from "@/lib/shared/hook-ask";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
@@ -1235,6 +1236,53 @@ export function computeReplayWindow(
   return { startIdx, hasMoreAbove: startIdx > 0 };
 }
 
+/**
+ * CC 2.1.301 — locate the on-disk JSONL a resumed session `id` replays from,
+ * for the compaction row's "earlier messages are saved in …" line. Checks the
+ * cwd's own project dir first (the ordinary resume), then every other project
+ * dir under `projectsBase` — a `/fork` resumed in its git worktree keeps its
+ * JSONL under the SOURCE project's dir, so `projectRoot(cwd)` alone names a
+ * file that doesn't exist. Returns the absolute path, or undefined when no
+ * candidate exists (the row then shows nothing rather than a wrong path).
+ *
+ * Exported for unit testing; `projectsBase` is injectable for the same reason.
+ */
+export async function findResumedTranscriptPath(
+  id: string,
+  cwd: string,
+  projectsBase: string = pathJoin(homedir(), ".claude", "projects"),
+): Promise<string | undefined> {
+  if (!/^[\w-]+$/.test(id)) return undefined;
+  const base = pathResolve(projectsBase);
+  const own = encodeProjectDir(cwd);
+  const ownFile = pathResolve(base, own, `${id}.jsonl`);
+  if (ownFile.startsWith(base + pathSep)) {
+    try {
+      if ((await fsp.stat(ownFile)).isFile()) return ownFile;
+    } catch {
+      // not here — scan the other project dirs below
+    }
+  }
+  let dirs: string[];
+  try {
+    dirs = (await fsp.readdir(base, { withFileTypes: true }))
+      .filter((d) => d.isDirectory() && d.name !== own)
+      .map((d) => d.name);
+  } catch {
+    return undefined;
+  }
+  for (const dir of dirs) {
+    const file = pathResolve(base, dir, `${id}.jsonl`);
+    if (!file.startsWith(base + pathSep)) continue;
+    try {
+      if ((await fsp.stat(file)).isFile()) return file;
+    } catch {
+      // keep looking
+    }
+  }
+  return undefined;
+}
+
 const ZERO_SESSION_USAGE: SessionUsageTotals = {
   totalCostUsd: 0,
   numTurns: 0,
@@ -1875,6 +1923,12 @@ export class Session {
 
   private buffer: ServerEvent[] = [];
   private bufferTrimmed = false;
+  /**
+   * CC 2.1.301 — the resumed transcript's JSONL, as found on disk by
+   * {@link findResumedTranscriptPath} during `start()`. Undefined for fresh
+   * sessions and when no candidate file exists. See `resumedTranscriptPath`.
+   */
+  private resumedTranscriptFile: string | undefined;
   private subscribers = new Set<Subscriber>();
   private subscriberCountListeners = new Set<(count: number) => void>();
   /**
@@ -2476,13 +2530,15 @@ export class Session {
    * the last compaction on (`getSessionMessages` follows the chain from the
    * boundary), so the turns before it live only in the engine's JSONL. This
    * is that file, for display (home shortened to `~`); never read or written
-   * through this value. Undefined for fresh sessions.
+   * through this value. It's the file `start()` actually found on disk —
+   * not simply `projectRoot(cwd)/<id>.jsonl`, which is wrong for a `/fork`
+   * resumed in its worktree (the fork's JSONL sits under the SOURCE
+   * project's dir). Undefined for fresh sessions, before `start()` resolved
+   * it, and when no candidate file exists (better no path than a wrong one).
    */
   resumedTranscriptPath(): string | undefined {
-    if (!this.resumeFrom || !/^[\w-]+$/.test(this.resumeFrom)) return undefined;
-    const dir = projectRoot(this.cwd);
-    const file = pathResolve(dir, `${this.resumeFrom}.jsonl`);
-    if (!file.startsWith(dir + pathSep)) return undefined;
+    const file = this.resumedTranscriptFile;
+    if (!file) return undefined;
     const home = homedir();
     return file.startsWith(home + pathSep) ? `~${file.slice(home.length)}` : file;
   }
@@ -3403,6 +3459,13 @@ export class Session {
       ...(this.resumeFrom ? { resume: this.resumeFrom } : { sessionId: this.id }),
       ...(this.resumeAt ? { resumeSessionAt: this.resumeAt } : {}),
     };
+    // Resolve the resumed JSONL before anything can read it: `subscribe()`
+    // and the stream route echo it on every `ready`.
+    if (this.resumeFrom) {
+      this.resumedTranscriptFile = await findResumedTranscriptPath(this.resumeFrom, this.cwd).catch(
+        () => undefined,
+      );
+    }
     this.query = query({ prompt: this.inputQueue, options });
     const transcriptPath = this.resumedTranscriptPath();
     this.broadcast({
@@ -3705,8 +3768,9 @@ export class Session {
         mcpServer: ctx.mcpServer,
         // CC 2.1.301 — a hook's `ask` used to arrive with nothing on the card
         // saying a hook raised it. `decisionReasonType` is sent at runtime but
-        // not declared in the SDK's `.d.ts`, hence the cast.
-        hookAskReason: hookAskReason(
+        // not declared in the SDK's `.d.ts`, hence the cast. Kept in `meta`,
+        // so the reconnect re-emit and /pending-prompts carry it too.
+        hookAsk: hookAsk(
           ctx.decisionReason,
           (ctx as { decisionReasonType?: unknown }).decisionReasonType,
         ),

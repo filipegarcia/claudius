@@ -53,11 +53,11 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   const descriptionVis = request.description
     ? visualizeInvisibleUnicode(request.description)
     : null;
-  // CC 2.1.301 — a hook raised this ask; its reason is hook-authored
-  // (untrusted) text, so it gets the same invisible-character treatment.
-  const hookReasonVis = request.hookAskReason
-    ? visualizeInvisibleUnicode(request.hookAskReason)
-    : null;
+  // CC 2.1.301 — a hook raised this ask. The row shows for every hook ask;
+  // the reason only when the hook gave one. It's hook-authored (untrusted)
+  // text, so it gets the same invisible-character treatment.
+  const hookAsk = request.hookAsk;
+  const hookReasonVis = hookAsk?.reason ? visualizeInvisibleUnicode(hookAsk.reason) : null;
   // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
   // would write grants more than this ask's own action, so hide all three
   // standing-grant buttons. The auto-mode tip button is itself a one-click
@@ -164,7 +164,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
             {descriptionVis && (
               <div className="mt-1 text-xs text-[var(--muted)]">{descriptionVis.visualized}</div>
             )}
-            {hookReasonVis && (
+            {hookAsk && (
               <div
                 data-testid="permission-hook-reason"
                 title="A PreToolUse hook answered 'ask' for this call, so Claude Code is asking you"
@@ -172,7 +172,8 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
               >
                 <Webhook className="mt-0.5 h-3 w-3 shrink-0" />
                 <span className="min-w-0 break-words">
-                  <span className="font-medium">Asked by a hook:</span> {hookReasonVis.visualized}
+                  <span className="font-medium">Asked by a hook{hookReasonVis ? ":" : ""}</span>
+                  {hookReasonVis && <>{" "}{hookReasonVis.visualized}</>}
                 </span>
               </div>
             )}

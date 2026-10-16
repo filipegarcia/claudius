@@ -9,11 +9,13 @@
  *
  * The guard: before the boot resumes a session it writes a marker; once that
  * session's history has replayed AND the result committed to the screen
- * (`clearBootAttempt`, called from an effect, so a render crash never reaches
- * it), the marker is removed. If the next boot finds a marker still naming
- * the session it's about to resume, the previous boot never finished — it
- * opens a fresh session instead and the chat shows a notice with
- * "Open anyway".
+ * (`clearBootAttemptFor`, called from an effect, so a render crash never
+ * reaches it), the marker is removed — whether the session got there through
+ * the boot itself or later (a tab click on a session the guard skipped). If
+ * the next boot finds a marker still naming the session it's about to
+ * resume, the previous boot never finished — it opens a fresh session
+ * instead and the chat shows a notice with "Open anyway", scoped to that
+ * fresh session (`scopeSkippedBoot`).
  *
  * The marker lives in `sessionStorage`: tab-scoped (a second tab opening the
  * same session while the first is still loading isn't a crash) and kept
@@ -95,6 +97,39 @@ export function clearBootAttempt(storage: Pick<Storage, "removeItem">): void {
   } catch {
     // ignore
   }
+}
+
+/**
+ * Session `id` replayed and rendered: drop the marker if it names `id`. A
+ * marker naming another session is left alone — switching tabs before the
+ * booted session finished loading must not disarm the guard for it — but one
+ * naming `id` is cleared however `id` came to be opened, so a skipped
+ * session the user later opens fine (via its tab) isn't skipped again on
+ * every reload for the rest of the marker's TTL.
+ */
+export function clearBootAttemptFor(id: string, storage: Pick<Storage, "getItem" | "removeItem">): void {
+  if (readMarker(storage)?.id === id) clearBootAttempt(storage);
+}
+
+/**
+ * The skipped-session notice: `id` is the session the boot declined to
+ * reopen; `freshId` the session it opened instead (`null` while that create
+ * is still in flight).
+ */
+export type SkippedBoot = { id: string; freshId: string | null };
+
+/**
+ * Scope the skipped-session notice to the fresh session the boot created,
+ * like the /clear banner: it stays while that session (or nothing yet) is
+ * bound and goes away once the user switches to any other session — in
+ * particular the skipped one itself, where a "wasn't reopened" notice would
+ * be false. Returns `state` unchanged (same reference) when it still applies.
+ */
+export function scopeSkippedBoot(state: SkippedBoot | null, boundId: string | null): SkippedBoot | null {
+  if (!state || !boundId) return state;
+  if (boundId === state.id) return null;
+  if (state.freshId === null) return state;
+  return boundId === state.freshId ? state : null;
 }
 
 /** Read-and-consume the "Open anyway" flag for `id`. */

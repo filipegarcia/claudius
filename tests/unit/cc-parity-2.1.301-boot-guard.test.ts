@@ -4,9 +4,12 @@ import {
   BOOT_MARKER_KEY,
   BOOT_MARKER_TTL_MS,
   clearBootAttempt,
+  clearBootAttemptFor,
   consumeForcedResume,
   markBootAttempt,
+  scopeSkippedBoot,
   shouldSkipResume,
+  type SkippedBoot,
 } from "@/lib/client/boot-guard";
 
 /**
@@ -73,5 +76,56 @@ describe("boot crash-loop guard", () => {
     const s = mem();
     s.setItem(BOOT_MARKER_KEY, "{not json");
     expect(shouldSkipResume("abc", s, 2000)).toBe(false);
+  });
+});
+
+describe("clearing the marker when its session renders", () => {
+  test("a skipped session that later opens fine (tab click) is no longer skipped", () => {
+    const s = mem();
+    markBootAttempt("stuck", s, 1000, 1);
+    // Load 2 skipped it and opened a fresh session; the user then clicks the
+    // stuck session's tab and it replays fine.
+    clearBootAttemptFor("stuck", s);
+    expect(shouldSkipResume("stuck", s, 2000, false, 3)).toBe(false);
+  });
+
+  test("another session rendering leaves the marker armed", () => {
+    const s = mem();
+    markBootAttempt("stuck", s, 1000, 1);
+    clearBootAttemptFor("fresh", s);
+    expect(shouldSkipResume("stuck", s, 2000, false, 2)).toBe(true);
+  });
+
+  test("no marker is a no-op", () => {
+    const s = mem();
+    clearBootAttemptFor("x", s);
+    expect(s.getItem(BOOT_MARKER_KEY)).toBeNull();
+  });
+});
+
+describe("scoping the skipped-session notice", () => {
+  const pending: SkippedBoot = { id: "stuck", freshId: null };
+  const pinned: SkippedBoot = { id: "stuck", freshId: "fresh" };
+
+  test("shows on the fresh session the boot opened", () => {
+    expect(scopeSkippedBoot(pinned, "fresh")).toBe(pinned);
+  });
+
+  test("survives the gap before anything is bound and while the create is in flight", () => {
+    expect(scopeSkippedBoot(pinned, null)).toBe(pinned);
+    expect(scopeSkippedBoot(pending, "fresh")).toBe(pending);
+  });
+
+  test("goes away when the user switches to another session", () => {
+    expect(scopeSkippedBoot(pinned, "other")).toBeNull();
+  });
+
+  test("goes away above the skipped session itself", () => {
+    expect(scopeSkippedBoot(pinned, "stuck")).toBeNull();
+    expect(scopeSkippedBoot(pending, "stuck")).toBeNull();
+  });
+
+  test("no notice stays no notice", () => {
+    expect(scopeSkippedBoot(null, "fresh")).toBeNull();
   });
 });

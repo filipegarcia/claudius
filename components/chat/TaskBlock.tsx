@@ -225,9 +225,10 @@ export function TaskBlock({
  * CC 2.1.301 — "a long-running subagent's progress trail now updates
  * incrementally instead of being reprocessed in full on every render". The
  * subagent upsert (`use-session.ts`) replaces only the message a delta
- * touched and keeps every other entry's object identity, so memoizing on the
- * `message` reference means only the growing message re-renders; the rest of
- * the trail (and its Markdown) is skipped.
+ * touched, and a tool_result replaces only the message holding that tool_use
+ * (`applyToolResultToList`); every other entry keeps its object identity, so
+ * memoizing on the `message` reference means only the changed message
+ * re-renders; the rest of the trail (and its Markdown) is skipped.
  */
 const SubMessage = memo(function SubMessage({ message }: { message: DisplayMessage }) {
   if (message.role === "user") {
