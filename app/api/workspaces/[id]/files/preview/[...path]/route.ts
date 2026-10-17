@@ -1,4 +1,4 @@
-import { promises as fs } from "node:fs";
+import { constants as fsc, promises as fs } from "node:fs";
 import { isAbsolute, normalize, relative, resolve, sep } from "node:path";
 import { resolveWorkspaceRoot } from "@/lib/server/workspace-roots";
 
@@ -87,25 +87,30 @@ export async function GET(
   // image sources over 128 MB are now refused". This route had the same
   // shape: `readFile` on whatever the path named, so a FIFO called `x.png`
   // hung the request and a huge asset was buffered whole. Stat first; only
-  // regular files, and nothing over the same 128 MB cap.
-  let stat: import("node:fs").Stats;
+  // regular files, and nothing over the same 128 MB cap. Check and read
+  // through ONE handle so the file can't be swapped for a pipe (or grow)
+  // between the check and the read; O_NONBLOCK keeps opening a FIFO from
+  // blocking until a writer appears.
+  let fh: import("node:fs/promises").FileHandle;
   try {
-    stat = await fs.stat(target);
+    fh = await fs.open(target, fsc.O_RDONLY | fsc.O_NONBLOCK);
   } catch {
     return new Response("not found", { status: 404 });
   }
-  if (!stat.isFile()) {
-    return new Response("not a file", { status: 404 });
-  }
-  if (stat.size > MAX_PREVIEW_BYTES) {
-    return new Response("file too large to preview (>128 MB)", { status: 413 });
-  }
-
   let content: Buffer;
   try {
-    content = await fs.readFile(target);
+    const stat = await fh.stat();
+    if (!stat.isFile()) {
+      return new Response("not a file", { status: 404 });
+    }
+    if (stat.size > MAX_PREVIEW_BYTES) {
+      return new Response("file too large to preview (>128 MB)", { status: 413 });
+    }
+    content = await fh.readFile();
   } catch {
     return new Response("not found", { status: 404 });
+  } finally {
+    await fh.close().catch(() => {});
   }
 
   const ext = relPath.split(".").pop()?.toLowerCase() ?? "";

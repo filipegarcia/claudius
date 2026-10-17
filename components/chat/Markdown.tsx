@@ -271,12 +271,6 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
 }
 
 /**
- * The `code` renderer needs to know whether the surrounding `Markdown` call
- * allows the `!`-mode Execute button (see `CodeBlock`'s `allowExecute` doc
- * comment) — built per-render via `componentsFor` rather than as a single
- * module-level object, so each `<Markdown>` call site controls it.
- */
-/**
  * True inside a `<pre>` — i.e. the `code` element is a fenced/indented block,
  * not inline code. CC 2.1.302 ([VSCode] "Fixed text after an unclosed code
  * block … showing as plain text while a reply streams, then turning into
@@ -287,6 +281,12 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
  */
 const InPreContext = createContext(false);
 
+/**
+ * The `code` renderer needs to know whether the surrounding `Markdown` call
+ * allows the `!`-mode Execute button (see `CodeBlock`'s `allowExecute` doc
+ * comment) — built per-render via `componentsFor` rather than as a single
+ * module-level object, so each `<Markdown>` call site controls it.
+ */
 function makeCodeComponent(allowExecute: boolean): Components["code"] {
   return function CodeRenderer(props) {
     const { className, children, ...rest } = props;
