@@ -36,8 +36,10 @@ export type Run = {
   startedAt: number;
   endedAt?: number;
   status: RunStatus;
-  /** Reason when status === "skipped" or "cancelled". */
+  /** Reason when status === "skipped" / "cancelled", or why a run failed. */
   note?: string;
+  /** pid of the Claudius process that started the run (CC 2.1.302 recovery). */
+  pid?: number;
   costUsd?: number;
   inputTokens?: number;
   outputTokens?: number;

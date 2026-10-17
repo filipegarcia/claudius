@@ -5,6 +5,7 @@ import { nextFireAfter } from "@/lib/shared/cron";
 import {
   RUN_ENDED_WITHOUT_RESULT,
   RUN_INTERRUPTED,
+  runNoteText,
   SKIP_FOLDER_MISSING,
   SKIP_PREVIOUS_RUN,
 } from "@/lib/shared/schedule-skip";
@@ -25,6 +26,17 @@ import {
 
 const MAX_TIMEOUT_MS = 24 * 60 * 60 * 1000; // setTimeout clamps at ~24.85d; rearm every 24h max.
 
+/** True when a process with this pid exists (signal 0 only probes). */
+function pidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    // EPERM: it exists but belongs to another user — still alive.
+    return (err as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
 type RunSubscriber = (event: ServerEvent) => void;
 
 type LiveRunBuffer = {
@@ -39,7 +51,7 @@ class Scheduler {
   private inFlight = new Set<string>();
   /** Live broadcast bus, keyed by runId. Lives only while the run is in flight. */
   private liveRuns = new Map<string, LiveRunBuffer>();
-  private booted = false;
+  private bootPromise: Promise<void> | null = null;
 
   /**
    * Subscribe to the live event stream for a run. Replays any events already
@@ -76,14 +88,21 @@ class Scheduler {
     }
   }
 
-  async boot(): Promise<void> {
-    if (this.booted) return;
-    this.booted = true;
-    const jobs = await listJobs();
-    await this.recoverInterruptedRuns(jobs);
-    for (const job of jobs) {
-      if (job.enabled) this.arm(job);
-    }
+  /**
+   * Idempotent. Every caller awaits the same promise, so a route (e.g. Run
+   * now) can't fire while the interrupted-run recovery below is still
+   * rewriting runs.jsonl — a run appended in that window could be dropped by
+   * the recovery's read-modify-write.
+   */
+  boot(): Promise<void> {
+    this.bootPromise ??= (async () => {
+      const jobs = await listJobs();
+      await this.recoverInterruptedRuns(jobs);
+      for (const job of jobs) {
+        if (job.enabled) this.arm(job);
+      }
+    })();
+    return this.bootPromise;
   }
 
   /**
@@ -93,13 +112,27 @@ class Scheduler {
    * job's `lastStatus` stays `running`, so the Schedule page shows "Live" (and
    * polls) forever. Mark those runs failed with note `interrupted`.
    *
-   * Only runs that started before THIS process did are touched: in dev, a hot
-   * reload can build a fresh Scheduler (empty `liveRuns`) while the old
-   * instance's run is still going in the same process — that run is not
-   * interrupted and must be left alone.
+   * A run is only treated as interrupted when the process that started it is
+   * gone:
+   *  - runs stamped with this process's pid are never touched — in dev a hot
+   *    reload can build a fresh Scheduler (empty `liveRuns`) while the old
+   *    instance's run is still going in the same process;
+   *  - runs stamped with another pid that is still alive belong to another
+   *    Claudius process sharing ~/.claude/claudius/schedule (dev server +
+   *    desktop app) and are left alone;
+   *  - unstamped runs (written before pids were recorded) fall back to "it
+   *    started before this process did".
    */
   private async recoverInterruptedRuns(jobs: Job[]): Promise<void> {
     const processStartedAt = Date.now() - Math.round(process.uptime() * 1000);
+    const ownerGone = (run: Run): boolean => {
+      if (this.liveRuns.has(run.id)) return false;
+      if (typeof run.pid === "number") {
+        if (run.pid === process.pid) return false;
+        return !pidAlive(run.pid);
+      }
+      return run.startedAt < processStartedAt;
+    };
     for (const job of jobs) {
       let runs: Run[];
       try {
@@ -110,7 +143,7 @@ class Scheduler {
       let recoveredLatest = false;
       for (const run of runs) {
         if (run.status !== "running") continue;
-        if (run.startedAt >= processStartedAt || this.liveRuns.has(run.id)) continue;
+        if (!ownerGone(run)) continue;
         // No `endedAt`: when the run actually died is unknown, and "now" would
         // read as a run that took as long as Claudius was down.
         await updateRun({ ...run, status: "error", note: RUN_INTERRUPTED });
@@ -122,7 +155,12 @@ class Scheduler {
     }
   }
 
-  /** Record a fire that didn't start: a `skipped` run plus the job-level reason. */
+  /**
+   * Record a fire that didn't start: a `skipped` run plus the job-level reason
+   * the Schedule page's banner explains. A missing folder also reaches the
+   * notification inbox (it used to, as a failed run) — once per new reason,
+   * not on every fire of a job that keeps skipping.
+   */
   private async recordSkip(job: Job, runId: string, reason: string): Promise<void> {
     const at = Date.now();
     const skipped: Run = {
@@ -134,7 +172,15 @@ class Scheduler {
       note: reason,
     };
     await appendRun(skipped);
+    const before = await getJob(job.id);
     await patchJob(job.id, { lastSkipReason: reason, lastSkipAt: at });
+    if (reason === SKIP_FOLDER_MISSING && before?.lastSkipReason !== reason) {
+      void notificationBus.recordSchedulerEvent(job.cwd, runId, job.id, {
+        type: "run_finished",
+        status: "skipped",
+        note: runNoteText(reason),
+      });
+    }
   }
 
   /** True when the job's working folder exists and is a directory. */
@@ -229,6 +275,9 @@ class Scheduler {
       jobId: job.id,
       startedAt,
       status: "running",
+      // Lets boot-time recovery tell a run whose process died from one a
+      // still-running Claudius process (or this one, before a hot reload) owns.
+      pid: process.pid,
       transcript: [],
     };
     await appendRun(initial);
@@ -336,7 +385,8 @@ class Scheduler {
       type: "run_finished",
       status: finalStatus,
       ...(costUsd ? { costUsd } : {}),
-      ...(note ? { note } : {}),
+      // Readable text, not the raw reason code (e.g. "session_ended_without_result").
+      ...(note ? { note: runNoteText(note) } : {}),
     });
 
     if (reArm) await this.rearmFromStore(job.id);
@@ -381,7 +431,13 @@ declare global {
 // added. Detect that by probing for any newly-introduced method and rebuild.
 function pickScheduler(): Scheduler {
   const cached = globalThis.__claudiusScheduler;
-  if (cached && typeof (cached as Scheduler).subscribeRun === "function") return cached;
+  if (
+    cached &&
+    typeof (cached as Scheduler).subscribeRun === "function" &&
+    // CC 2.1.302 — instances built before skip/interrupt recording lack this.
+    typeof (cached as unknown as { recordSkip?: unknown }).recordSkip === "function"
+  )
+    return cached;
   const fresh = new Scheduler();
   globalThis.__claudiusScheduler = fresh;
   return fresh;

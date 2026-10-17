@@ -602,7 +602,7 @@ function JobDetail({
           className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
         >
           <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-          <span className="font-medium">Last scheduled run didn&apos;t start</span>
+          <span className="font-medium">Last run didn&apos;t start</span>
           <span className="text-[var(--muted)]">
             {skip.text} · {fmtRel(skip.at)}
           </span>

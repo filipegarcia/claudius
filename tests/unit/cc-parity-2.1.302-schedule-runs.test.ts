@@ -20,8 +20,9 @@ import {
 
 const query = vi.fn();
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({ query: (...a: unknown[]) => query(...a) }));
+const recordSchedulerEvent = vi.fn();
 vi.mock("@/lib/server/notification-bus", () => ({
-  notificationBus: { recordSchedulerEvent: vi.fn() },
+  notificationBus: { recordSchedulerEvent: (...a: unknown[]) => recordSchedulerEvent(...a) },
 }));
 
 const jobs = new Map<string, Job>();
@@ -83,6 +84,7 @@ beforeEach(() => {
   query.mockReset();
   appendRun.mockClear();
   updateRun.mockClear();
+  recordSchedulerEvent.mockClear();
 });
 afterEach(() => {
   globalThis.__claudiusScheduler = undefined;
@@ -99,7 +101,20 @@ describe("fire — a run that didn't start says why", () => {
     expect(r.note).toBe(SKIP_FOLDER_MISSING);
     expect(jobs.get("j1")!.lastSkipReason).toBe(SKIP_FOLDER_MISSING);
     expect(typeof jobs.get("j1")!.lastSkipAt).toBe("number");
-    expect(activeSkip(jobs.get("j1")!)?.text).toBe("The job's folder no longer exists.");
+    expect(activeSkip(jobs.get("j1")!)?.text).toBe("The job's folder no longer exists");
+  });
+
+  test("a missing folder reaches the inbox once, not on every fire", async () => {
+    const s = await freshScheduler();
+    jobs.set("j1", job({ cwd: join(tmpdir(), "claudius-gone-2.1.302-xyz") }));
+    await s.runNow("j1");
+    await s.runNow("j1");
+    expect(recordSchedulerEvent).toHaveBeenCalledTimes(1);
+    expect(recordSchedulerEvent.mock.calls[0][3]).toMatchObject({
+      type: "run_finished",
+      status: "skipped",
+      note: "The job's folder no longer exists",
+    });
   });
 
   test("a run that starts clears the earlier skip reason", async () => {
@@ -125,6 +140,13 @@ describe("fire — a run that died is failed, not Completed", () => {
     expect(finished.status).toBe("error");
     expect(finished.note).toBe(RUN_ENDED_WITHOUT_RESULT);
     expect(jobs.get("j1")!.lastStatus).toBe("error");
+    // The inbox gets readable text, not the raw reason code.
+    expect(recordSchedulerEvent.mock.calls.at(-1)![3]).toMatchObject({
+      status: "error",
+      note: "The session ended before the run finished",
+    });
+    // The running row was stamped with this process's pid for boot recovery.
+    expect(appendRun.mock.calls.find(([r]) => r.status === "running")![0].pid).toBe(process.pid);
   });
 
   test("a stream with a success result stays a success", async () => {
@@ -163,18 +185,54 @@ describe("boot — runs left 'running' by an earlier process", () => {
   });
 });
 
+describe("boot — runs owned by a live process are left alone", () => {
+  test("a run stamped with another live pid (a second Claudius process) is not failed", async () => {
+    const old = Date.now() - Math.round(process.uptime() * 1000) - 60_000;
+    // The parent process is alive for the whole test.
+    jobs.set("j1", job({ lastRunAt: old, lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-other", jobId: "j1", startedAt: old, status: "running", pid: process.ppid }]);
+    const s = await freshScheduler();
+    await s.boot();
+    expect(runs.get("j1")![0].status).toBe("running");
+  });
+
+  test("a run stamped with a dead pid is failed even if it started recently", async () => {
+    jobs.set("j1", job({ lastRunAt: Date.now(), lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-dead", jobId: "j1", startedAt: Date.now(), status: "running", pid: 2 ** 22 + 12345 }]);
+    const s = await freshScheduler();
+    await s.boot();
+    expect(runs.get("j1")![0]).toMatchObject({ status: "error", note: RUN_INTERRUPTED });
+  });
+
+  test("concurrent boot() calls share one recovery pass", async () => {
+    const old = Date.now() - Math.round(process.uptime() * 1000) - 60_000;
+    jobs.set("j1", job({ lastRunAt: old, lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-old", jobId: "j1", startedAt: old, status: "running" }]);
+    const s = await freshScheduler();
+    await Promise.all([s.boot(), s.boot(), s.boot()]);
+    expect(updateRun).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("activeSkip / runNoteText", () => {
   test("a skip older than the latest started run is not shown", () => {
     expect(activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 10, lastRunAt: 20 })).toBeNull();
-    expect(activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 30, lastRunAt: 20 })?.reason).toBe(
-      SKIP_PREVIOUS_RUN,
-    );
+    expect(
+      activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 30, lastRunAt: 20, lastStatus: "running" })?.reason,
+    ).toBe(SKIP_PREVIOUS_RUN);
+    // Once the run that blocked it has finished, "still in progress" is stale.
+    expect(
+      activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 30, lastRunAt: 20, lastStatus: "success" }),
+    ).toBeNull();
+    expect(
+      activeSkip({ lastSkipReason: SKIP_FOLDER_MISSING, lastSkipAt: 30, lastRunAt: 20, lastStatus: "success" })?.reason,
+    ).toBe(SKIP_FOLDER_MISSING);
     expect(activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN })).toBeNull();
     expect(activeSkip({})).toBeNull();
   });
 
   test("known notes read as sentences; unknown notes pass through", () => {
-    expect(runNoteText(SKIP_PREVIOUS_RUN)).toBe("The previous run was still in progress.");
+    expect(runNoteText(SKIP_PREVIOUS_RUN)).toBe("The previous run was still in progress");
     expect(runNoteText(RUN_INTERRUPTED)).toMatch(/Claudius stopped/);
     expect(runNoteText("error_max_turns")).toBe("error_max_turns");
   });

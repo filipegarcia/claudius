@@ -89,10 +89,10 @@ test.describe("CC 2.1.302 — scheduled runs that didn't start or didn't finish"
 
     const banner = page.getByTestId("job-skip-banner");
     await expect(banner).toBeVisible();
-    await expect(banner).toContainText("Last scheduled run didn't start");
-    await expect(banner).toContainText("The job's folder no longer exists.");
+    await expect(banner).toContainText("Last run didn't start");
+    await expect(banner).toContainText("The job's folder no longer exists · 2m ago");
     // The skipped run row reads in words, not the raw code.
-    await expect(page.getByText(/· The job's folder no longer exists\./)).toBeVisible();
+    await expect(page.getByText(/· The job's folder no longer exists$/)).toBeVisible();
     await expect(page.getByText("workspace_folder_missing")).toHaveCount(0);
 
     await page.waitForTimeout(150);
@@ -135,8 +135,8 @@ test.describe("CC 2.1.302 — scheduled runs that didn't start or didn't finish"
     await page.goto("/schedule");
     await expect(page.getByRole("heading", { name: job.name as string })).toBeVisible({ timeout: 15_000 });
 
-    await expect(page.getByText(/· Claudius stopped while this run was in progress\./)).toBeVisible();
-    await expect(page.getByText(/· The session ended before the run finished\./)).toBeVisible();
+    await expect(page.getByText(/· Claudius stopped while this run was in progress$/)).toBeVisible();
+    await expect(page.getByText(/· The session ended before the run finished$/)).toBeVisible();
     // Neither run is "Live" — no live-kind chip, no Live status.
     await expect(page.getByText("Live", { exact: true })).toHaveCount(0);
     await expect(page.getByTestId("job-skip-banner")).toHaveCount(0);
