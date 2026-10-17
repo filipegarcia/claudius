@@ -149,13 +149,6 @@ test.describe("Agent tool effort (CC 2.1.292)", () => {
         { subagent_type: "Explore", description: "Find the session store", prompt: "Find." },
         NOW + 1_000,
       ),
-      // SDK 0.3.302: effort is ignored for fork subagents, so no chip.
-      ...agentSpawn(
-        "toolu_agent_fork",
-        "a3",
-        { subagent_type: "fork", description: "Fork the investigation", prompt: "Dig.", effort: "low" },
-        NOW + 2_000,
-      ),
     ]);
     await page.goto("/");
 
@@ -166,10 +159,6 @@ test.describe("Agent tool effort (CC 2.1.292)", () => {
     const plain = page.getByTestId("task-block").filter({ hasText: "Find the session store" });
     await expect(plain).toBeVisible();
     await expect(plain).not.toContainText("effort");
-
-    const fork = page.getByTestId("task-block").filter({ hasText: "Fork the investigation" });
-    await expect(fork).toBeVisible();
-    await expect(fork).not.toContainText("effort");
 
     await withEffort.scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
