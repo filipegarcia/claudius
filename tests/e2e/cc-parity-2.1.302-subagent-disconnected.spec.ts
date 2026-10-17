@@ -147,6 +147,12 @@ test.describe("Subagent card while the stream is disconnected (CC 2.1.302)", () 
     // No pulsing "still working" dot while nothing can arrive.
     await expect(card.locator(".animate-pulse")).toHaveCount(0);
 
+    // The Activity rail agrees: no "Working…" spinner while nothing can arrive.
+    await expect(page.getByTestId("activity-disconnected")).toHaveText(/Reconnecting…/);
+    await expect(page.locator('[data-pane-name="right-rail"] .animate-spin')).toHaveCount(0);
+    // Nothing in the transcript pulses either (streaming dot, tool calls).
+    await expect(page.locator("main .animate-pulse, main .animate-spin")).toHaveCount(0);
+
     await card.getByRole("button").first().click();
     await expect(card).toContainText("Disconnected — reconnecting…");
     await expect(card).not.toContainText("Subagent working…");
@@ -164,5 +170,6 @@ test.describe("Subagent card while the stream is disconnected (CC 2.1.302)", () 
     await expect(card).toHaveAttribute("data-task-status", "running");
     await expect(card.getByTestId("subagent-disconnected-badge")).toHaveCount(0);
     await expect(card.locator(".animate-pulse")).toHaveCount(1);
+    await expect(page.getByTestId("activity-disconnected")).toHaveCount(0);
   });
 });
