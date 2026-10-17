@@ -150,7 +150,7 @@ export function TaskBlock({
           {/* SDK 0.3.214 — this subagent's current tool call is waiting out
               an API rate-limit retry. Self-clearing: a later `tool_progress`
               frame without `subagent_retry` drops it automatically. */}
-          {retrying && (
+          {retrying && !disconnected && (
             <span
               data-testid="subagent-retry-badge"
               className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
@@ -163,7 +163,7 @@ export function TaskBlock({
             <span
               data-testid="subagent-disconnected-badge"
               className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
-              title="Lost the connection to Claudius — this subagent's progress will show again once the stream reconnects"
+              title="Lost the live connection to this session — reconnecting. This subagent's progress will show again once the connection is back."
             >
               <WifiOff className="h-3 w-3" />
               disconnected

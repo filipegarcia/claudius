@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
@@ -117,6 +118,8 @@ export function ToolCall({
   resourceLinks,
   taskStatus,
 }: Props) {
+  // CC 2.1.302 — a running call stops pulsing while the stream is reconnecting.
+  const disconnected = useStreamDisconnected();
   const [open, setOpen] = useState(defaultOpen);
   // Re-apply the level-driven default when it changes (e.g. the user switches
   // to/from "extra verbose"), while leaving manual toggles in between intact.
@@ -322,7 +325,7 @@ export function ToolCall({
                   {formatElapsed(elapsedSeconds)}
                 </span>
               )}
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
+              <span className={cn("inline-block h-2 w-2 rounded-full bg-[var(--accent)]", disconnected ? "opacity-40" : "animate-pulse")} />
             </>
           )}
           {status === "ok" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}

@@ -13,6 +13,7 @@ import { formatMessageTime } from "@/lib/client/format-message-time";
 import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import { useShowMessageTimestampsContext } from "@/lib/client/message-timestamps-context";
 import { cn } from "@/lib/utils/cn";
+import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { isSubagentToolName } from "@/lib/shared/subagent-tool";
 import {
   DEFAULT_VERBOSE,
@@ -70,6 +71,9 @@ export function AssistantMessage({
   autoContinueAtUsageLimit,
   onCancelAutoContinue,
 }: Props) {
+  // CC 2.1.302 — no "streaming…" pulse while the stream is reconnecting.
+  const disconnected = useStreamDisconnected();
+  const streamingLive = !!message.streaming && !disconnected;
   const clock = useClockOptionsContext();
   const taskByToolUseId = new Map<string, TaskInfo>();
   for (const t of Object.values(tasks)) {
@@ -89,9 +93,9 @@ export function AssistantMessage({
   return (
     <div className="group">
       <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--muted)]">
-        <span className={`inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)] ${message.streaming ? "animate-pulse" : ""}`} />
+        <span className={`inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)] ${streamingLive ? "animate-pulse" : ""}`} />
         Claude
-        {message.streaming && <span className="text-[10px] opacity-60">streaming…</span>}
+        {streamingLive && <span className="text-[10px] opacity-60">streaming…</span>}
         {/* SDK 0.3.214 — this split was truncated by an interrupt/abort
             before the stream completed; the visible content may end
             mid-word. Badge instead of a full panel: unlike the rate-limit /

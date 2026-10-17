@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Eraser, Loader2, MinusCircle, Plus, Terminal, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Eraser, Loader2, MinusCircle, Plus, Terminal, WifiOff, Wrench } from "lucide-react";
+import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -477,22 +478,38 @@ export function BackgroundTasksPanel({
   // outlives the turn (workflows/agents/shells) — so the spinner keeps saying
   // "something is happening" even after the turn that launched it ends.
   const busy = !ready || pending || runningBg > 0;
+  // CC 2.1.302 — while the session stream is reconnecting nothing about the
+  // turn or its background work can arrive; say so instead of spinning.
+  const disconnected = useStreamDisconnected();
 
   return (
     <div data-pane-name="right-rail" className="flex h-full w-64 shrink-0 flex-col border-l border-[var(--border)] bg-[var(--panel)] lg:w-72">
       <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 text-xs">
         <Activity className="h-3.5 w-3.5 text-[var(--accent)]" />
         <span className="font-medium">Activity</span>
-        {busy && (
-          <Loader2
-            className="h-3 w-3 animate-spin text-[var(--accent)]"
-            aria-label={!ready ? "Starting session" : "Claude is working"}
-          />
-        )}
-        {busy && (
-          <span className="text-[10px] font-medium text-[var(--accent)]">
-            {!ready ? "Starting…" : "Working…"}
+        {busy && disconnected ? (
+          <span
+            data-testid="activity-disconnected"
+            className="flex items-center gap-1 text-[10px] font-medium text-amber-300"
+            title="Lost the live connection to this session — reconnecting. What's shown here may be behind until it's back."
+          >
+            <WifiOff className="h-3 w-3" />
+            Reconnecting…
           </span>
+        ) : (
+          <>
+            {busy && (
+              <Loader2
+                className="h-3 w-3 animate-spin text-[var(--accent)]"
+                aria-label={!ready ? "Starting session" : "Claude is working"}
+              />
+            )}
+            {busy && (
+              <span className="text-[10px] font-medium text-[var(--accent)]">
+                {!ready ? "Starting…" : "Working…"}
+              </span>
+            )}
+          </>
         )}
         {runningBg > 0 && (
           <button
@@ -815,7 +832,9 @@ export function BackgroundTasksPanel({
                     ? "text-red-400"
                     : e.done
                       ? "text-emerald-400"
-                      : "animate-spin text-sky-400";
+                      : disconnected
+                        ? "text-sky-400/50"
+                        : "animate-spin text-sky-400";
                 // Synthetic thinking rows have no `primaryArg` (no tool
                 // input to summarize) and use the brain glyph rather than
                 // the wrench — they're a phase of the model's turn, not a

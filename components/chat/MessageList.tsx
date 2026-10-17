@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { useAutoContinueAtUsageLimit } from "@/lib/client/useAutoContinueAtUsageLimit";
 import type { ClaudeSettings } from "@/lib/server/settings";
 import { AssistantMessage } from "./AssistantMessage";
@@ -740,11 +741,20 @@ function WorkingRow({
   tips?: Tip[];
   apiRetry?: ApiRetryState | null;
 }) {
+  // CC 2.1.302 — while the session stream is reconnecting, nothing from the
+  // turn can arrive; don't spin "Claude is working…" as if it were.
+  const disconnected = useStreamDisconnected();
   return (
     <div className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-      <div className="flex items-center gap-2">
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
-        <span className="font-medium text-[var(--foreground)]/80">Claude is working…</span>
+      <div className="flex items-center gap-2" data-testid={disconnected ? "working-row-disconnected" : undefined}>
+        {disconnected ? (
+          <WifiOff className="h-3.5 w-3.5 text-amber-300" />
+        ) : (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
+        )}
+        <span className="font-medium text-[var(--foreground)]/80">
+          {disconnected ? "Disconnected — reconnecting…" : "Claude is working…"}
+        </span>
       </div>
       <SpinnerTip onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
     </div>
