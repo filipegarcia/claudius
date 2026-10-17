@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
+import { promises as fs } from "node:fs";
 import { query, type Options, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { nextFireAfter } from "@/lib/shared/cron";
+import {
+  RUN_ENDED_WITHOUT_RESULT,
+  RUN_INTERRUPTED,
+  SKIP_FOLDER_MISSING,
+  SKIP_PREVIOUS_RUN,
+} from "@/lib/shared/schedule-skip";
 import type { ServerEvent } from "@/lib/shared/events";
 import { notificationBus } from "./notification-bus";
 import {
@@ -73,8 +80,69 @@ class Scheduler {
     if (this.booted) return;
     this.booted = true;
     const jobs = await listJobs();
+    await this.recoverInterruptedRuns(jobs);
     for (const job of jobs) {
       if (job.enabled) this.arm(job);
+    }
+  }
+
+  /**
+   * CC 2.1.302 parity — "Fixed routine runs showing as Completed after their
+   * cloud session stopped unexpectedly … instead of failed". When Claudius
+   * quits or crashes mid-run, the run row stays `running` in runs.jsonl and the
+   * job's `lastStatus` stays `running`, so the Schedule page shows "Live" (and
+   * polls) forever. Mark those runs failed with note `interrupted`.
+   *
+   * Only runs that started before THIS process did are touched: in dev, a hot
+   * reload can build a fresh Scheduler (empty `liveRuns`) while the old
+   * instance's run is still going in the same process — that run is not
+   * interrupted and must be left alone.
+   */
+  private async recoverInterruptedRuns(jobs: Job[]): Promise<void> {
+    const processStartedAt = Date.now() - Math.round(process.uptime() * 1000);
+    for (const job of jobs) {
+      let runs: Run[];
+      try {
+        runs = await listRuns(job.id);
+      } catch {
+        continue;
+      }
+      let recoveredLatest = false;
+      for (const run of runs) {
+        if (run.status !== "running") continue;
+        if (run.startedAt >= processStartedAt || this.liveRuns.has(run.id)) continue;
+        // No `endedAt`: when the run actually died is unknown, and "now" would
+        // read as a run that took as long as Claudius was down.
+        await updateRun({ ...run, status: "error", note: RUN_INTERRUPTED });
+        if (run.startedAt === job.lastRunAt) recoveredLatest = true;
+      }
+      if (recoveredLatest && job.lastStatus === "running" && !this.inFlight.has(job.id)) {
+        await patchJob(job.id, { lastStatus: "error" });
+      }
+    }
+  }
+
+  /** Record a fire that didn't start: a `skipped` run plus the job-level reason. */
+  private async recordSkip(job: Job, runId: string, reason: string): Promise<void> {
+    const at = Date.now();
+    const skipped: Run = {
+      id: runId,
+      jobId: job.id,
+      startedAt: at,
+      endedAt: at,
+      status: "skipped",
+      note: reason,
+    };
+    await appendRun(skipped);
+    await patchJob(job.id, { lastSkipReason: reason, lastSkipAt: at });
+  }
+
+  /** True when the job's working folder exists and is a directory. */
+  private async folderExists(cwd: string): Promise<boolean> {
+    try {
+      return (await fs.stat(cwd)).isDirectory();
+    } catch {
+      return false;
     }
   }
 
@@ -139,20 +207,22 @@ class Scheduler {
     const runId = randomUUID();
 
     if (this.inFlight.has(job.id)) {
-      const skipped: Run = {
-        id: runId,
-        jobId: job.id,
-        startedAt: Date.now(),
-        endedAt: Date.now(),
-        status: "skipped",
-        note: "previous_run_in_progress",
-      };
-      await appendRun(skipped);
+      await this.recordSkip(job, runId, SKIP_PREVIOUS_RUN);
       if (reArm) await this.rearmFromStore(job.id);
       return { runId };
     }
 
+    // CC 2.1.302 — say why a run didn't start. The folder is only validated
+    // when the job is saved; one deleted since then used to make the SDK throw
+    // and the fire read as a generic failed run rather than "didn't start".
     this.inFlight.add(job.id);
+    if (!(await this.folderExists(job.cwd))) {
+      this.inFlight.delete(job.id);
+      await this.recordSkip(job, runId, SKIP_FOLDER_MISSING);
+      if (reArm) await this.rearmFromStore(job.id);
+      return { runId };
+    }
+
     const startedAt = Date.now();
     const initial: Run = {
       id: runId,
@@ -162,7 +232,13 @@ class Scheduler {
       transcript: [],
     };
     await appendRun(initial);
-    await patchJob(job.id, { lastRunAt: startedAt, lastStatus: "running" });
+    // A run started: any earlier "didn't start" reason no longer applies.
+    await patchJob(job.id, {
+      lastRunAt: startedAt,
+      lastStatus: "running",
+      lastSkipReason: undefined,
+      lastSkipAt: undefined,
+    });
 
     // Open the live bus before any SDK output so subscribers that connect
     // immediately see the full transcript from the start.
@@ -176,6 +252,7 @@ class Scheduler {
     let outputTokens = 0;
     let finalStatus: RunStatus = "success";
     let note: string | undefined;
+    let sawResult = false;
 
     try {
       const options: Options = {
@@ -198,6 +275,7 @@ class Scheduler {
         transcript.push(env);
         this.broadcastRun(runId, env);
         if (msg.type === "result") {
+          sawResult = true;
           const r = msg as {
             subtype?: string;
             total_cost_usd?: number;
@@ -211,6 +289,12 @@ class Scheduler {
             note = r.subtype;
           }
         }
+      }
+      // CC 2.1.302 — a session that stopped without a final result didn't
+      // complete; don't let the "success" default call it Completed.
+      if (!sawResult) {
+        finalStatus = "error";
+        note = RUN_ENDED_WITHOUT_RESULT;
       }
     } catch (err) {
       finalStatus = "error";

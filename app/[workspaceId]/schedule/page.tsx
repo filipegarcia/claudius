@@ -15,6 +15,7 @@ import {
   Save,
   Timer,
   Trash2,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -23,6 +24,7 @@ import { fmtElapsedSec } from "@/components/panels/widgets/format";
 import { describeCron } from "@/lib/shared/cron";
 import { isScheduleFormDirty } from "@/lib/shared/schedule-form";
 import { isScheduleDue } from "@/lib/shared/schedule-due";
+import { activeSkip, runNoteText } from "@/lib/shared/schedule-skip";
 import type { Job, Run, RunStatus } from "@/lib/server/scheduler-store";
 import {
   isStaleWakeup,
@@ -540,6 +542,7 @@ function JobDetail({
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
+  const skip = activeSkip(job);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -590,6 +593,21 @@ function JobDetail({
           {job.model && <Stat label="Model" value={<code className="font-mono">{job.model}</code>} />}
         </div>
       </div>
+      {skip && (
+        // CC 2.1.302 parity — "a banner on a routine's page that says why its
+        // last run didn't start". Cleared by the scheduler when a run starts.
+        <div
+          data-testid="job-skip-banner"
+          role="status"
+          className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
+        >
+          <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <span className="font-medium">Last scheduled run didn&apos;t start</span>
+          <span className="text-[var(--muted)]">
+            {skip.text} · {fmtRel(skip.at)}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         <div className="w-80 shrink-0 overflow-y-auto border-r border-[var(--border)] scroll-thin">
@@ -655,7 +673,7 @@ function JobDetail({
                       </div>
                       <span className="text-[10px] text-[var(--muted)]">
                         {dur ? `${Math.round(dur / 100) / 10}s` : "—"} · {fmtUsd(r.costUsd)}
-                        {r.note && ` · ${r.note}`}
+                        {r.note && ` · ${runNoteText(r.note)}`}
                       </span>
                     </button>
                   </li>

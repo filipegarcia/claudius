@@ -18,6 +18,14 @@ export type Job = {
   lastRunAt?: number;
   nextRunAt?: number;
   lastStatus?: RunStatus;
+  /**
+   * CC 2.1.302 parity — "a banner on a routine's page that says why its last
+   * run didn't start". Set when a fire is skipped (a `SkipReason` code), cleared
+   * when the next run actually starts. `lastSkipAt` lets the UI ignore a skip
+   * older than the latest run.
+   */
+  lastSkipReason?: string;
+  lastSkipAt?: number;
 };
 
 export type RunStatus = "running" | "success" | "error" | "cancelled" | "skipped";
