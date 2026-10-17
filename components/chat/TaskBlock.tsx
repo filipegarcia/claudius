@@ -1,10 +1,11 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { findSubagentRetry } from "@/lib/client/task-status";
+import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { prettyModelName } from "@/lib/shared/advisor";
 import { stripSubagentHandBackFrame } from "@/lib/shared/subagent-handback";
 import { Markdown } from "./Markdown";
@@ -91,6 +92,12 @@ export function TaskBlock({
   // SDK 0.3.214 — see `findSubagentRetry` for why this can't be a direct
   // `progress[toolUseId]` lookup.
   const retrying = findSubagentRetry(toolUseId, status, progress);
+  // CC 2.1.302 — "a subagent's pane spinning forever … after your computer
+  // goes offline; it now says Remote Control is disconnected". While the
+  // session stream is reconnecting nothing about this subagent can arrive, so
+  // a running card stops pulsing and says it's disconnected instead.
+  const streamDisconnected = useStreamDisconnected();
+  const disconnected = streamDisconnected && status === "running";
 
   // The numeric metrics render as a single "·"-joined run with tabular figures
   // so the digits don't jitter as they tick up during streaming. Each part is
@@ -112,6 +119,7 @@ export function TaskBlock({
     <div
       data-testid="task-block"
       data-task-status={status}
+      data-stream-disconnected={disconnected ? "1" : undefined}
       data-open={open ? "1" : "0"}
       className="my-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5"
     >
@@ -151,13 +159,24 @@ export function TaskBlock({
               retrying {retrying.attempt}/{retrying.maxRetries}
             </span>
           )}
+          {disconnected && (
+            <span
+              data-testid="subagent-disconnected-badge"
+              className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+              title="Lost the connection to Claudius — this subagent's progress will show again once the stream reconnects"
+            >
+              <WifiOff className="h-3 w-3" />
+              disconnected
+            </span>
+          )}
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium capitalize",
               STATUS_CHIP[status] ?? STATUS_CHIP.pending,
+              disconnected && "opacity-60",
             )}
           >
-            {status === "running" && (
+            {status === "running" && !disconnected && (
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
             )}
             {status === "completed" && <CheckCircle2 className="h-3 w-3" />}
@@ -190,7 +209,11 @@ export function TaskBlock({
           )}
           {innerMessages.length === 0 ? (
             <div className="text-[11px] italic text-[var(--muted)]">
-              {status === "running" ? "Subagent working…" : "No subagent messages captured."}
+              {disconnected
+                ? "Disconnected — reconnecting…"
+                : status === "running"
+                  ? "Subagent working…"
+                  : "No subagent messages captured."}
             </div>
           ) : (
             <div className="space-y-2">

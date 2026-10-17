@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { sessionStartConnectionLost, sessionStartHttpError } from "@/lib/shared/session-start-error";
 import {
   BOOT_FORCE_KEY,
   clearBootAttemptFor,
@@ -5226,24 +5227,32 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       setSessionId(null);
       resetState();
       try {
-        const res = await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(opts),
-        });
+        let res: Response;
+        try {
+          res = await fetch("/api/sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(opts),
+          });
+        } catch {
+          // CC 2.1.302 — say "connection lost", not the browser's raw
+          // "Failed to fetch" TypeError, when the server can't be reached.
+          throw new Error(sessionStartConnectionLost());
+        }
         if (!res.ok) {
           // Read the route's JSON `{ error, name }` (see app/api/sessions/route.ts).
           // Falling back to a bare status code makes the failure unreadable
           // when the toast is the only visible signal — packaged Electron
           // sinks server stderr to /dev/null on Finder launches.
-          let detail = `${res.status}`;
+          let detail: string | undefined;
           try {
             const body = (await res.json()) as { error?: string; name?: string };
             if (body?.error) detail = body.name ? `${body.name}: ${body.error}` : body.error;
           } catch {
             // Body wasn't JSON — keep the status code.
           }
-          throw new Error(`create session failed: ${detail}`);
+          // CC 2.1.302 — a 5xx reads "server error", distinct from a 4xx.
+          throw new Error(sessionStartHttpError(res.status, detail));
         }
         const { id, cwd: createdCwd } = (await res.json()) as { id: string; cwd?: string };
         // A newer transition superseded this one — don't bind.
