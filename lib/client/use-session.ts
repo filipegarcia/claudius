@@ -1071,6 +1071,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     errorReason: null,
   });
   const [errors, setErrors] = useState<string[]>([]);
+  // CC 2.1.302 — the last failed `createSession`, kept apart from `errors` so
+  // the no-tabs empty state can show why "+ New session" failed without also
+  // surfacing stale errors from a session the user already closed.
+  const [createError, setCreateError] = useState<string | null>(null);
   const [slashCommands, setSlashCommands] = useState<string[]>([]);
   const [agents, setAgents] = useState<string[]>([]);
   // The main-thread agent this session runs as (SDK Options.agent), or null
@@ -5226,6 +5230,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       sessionIdRef.current = null;
       setSessionId(null);
       resetState();
+      setCreateError(null);
       try {
         let res: Response;
         try {
@@ -5276,7 +5281,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         await refreshSessions();
         return id;
       } catch (err) {
-        setErrors((e) => [...e, err instanceof Error ? err.message : String(err)]);
+        // A newer create/switch superseded this one — its failure is moot.
+        if (switchGenRef.current !== gen) return null;
+        const msg = err instanceof Error ? err.message : String(err);
+        setErrors((e) => [...e, msg]);
+        setCreateError(msg);
         return null;
       }
     },
@@ -6656,6 +6665,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     tips,
     sessionRecap,
     errors,
+    createError,
     slashCommands,
     agents,
     mainAgent,

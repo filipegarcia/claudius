@@ -2293,14 +2293,14 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               {/* CC 2.1.302 — "Improved the error shown when a … session fails
                   to start". The chat's error banner only renders with a tab
                   open, so a failed "+ New session" from this empty state
-                  used to do nothing visible at all. Show the latest error. */}
-              {session.errors.length > 0 && (
+                  used to do nothing visible at all. Only the create failure
+                  is shown — not stale errors from a session just closed. */}
+              {session.createError && (
                 <div
                   data-testid="session-error"
-                  role="alert"
                   className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
                 >
-                  {session.errors[session.errors.length - 1]}
+                  {session.createError}
                 </div>
               )}
             </div>
