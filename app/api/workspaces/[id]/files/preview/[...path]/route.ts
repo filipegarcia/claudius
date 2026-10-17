@@ -48,6 +48,9 @@ const MIME: Record<string, string> = {
   xml: "application/xml; charset=utf-8",
 };
 
+/** Same cap as the CLI's Read tool for image sources (CC 2.1.302). */
+const MAX_PREVIEW_BYTES = 128 * 1024 * 1024;
+
 function inside(root: string, target: string): boolean {
   const r = relative(root, target);
   if (r === "") return true;
@@ -77,6 +80,25 @@ export async function GET(
   }
   if (!inside(root, target)) {
     return new Response("path escapes workspace root", { status: 403 });
+  }
+
+  // CC 2.1.302 parity — "Fixed the Read tool loading an image file of any
+  // size, or a pipe or device named like an image, entirely into memory;
+  // image sources over 128 MB are now refused". This route had the same
+  // shape: `readFile` on whatever the path named, so a FIFO called `x.png`
+  // hung the request and a huge asset was buffered whole. Stat first; only
+  // regular files, and nothing over the same 128 MB cap.
+  let stat: import("node:fs").Stats;
+  try {
+    stat = await fs.stat(target);
+  } catch {
+    return new Response("not found", { status: 404 });
+  }
+  if (!stat.isFile()) {
+    return new Response("not a file", { status: 404 });
+  }
+  if (stat.size > MAX_PREVIEW_BYTES) {
+    return new Response("file too large to preview (>128 MB)", { status: 413 });
   }
 
   let content: Buffer;
