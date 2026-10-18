@@ -854,6 +854,8 @@ export type ChatState = {
    */
   pendingPermissionCount: number;
   errors: string[];
+  /** CC 2.1.302 — why the last `createSession` failed (null once one succeeds or starts). */
+  createError: string | null;
   slashCommands: string[];
   agents: string[];
   /**

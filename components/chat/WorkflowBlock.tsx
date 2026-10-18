@@ -9,6 +9,7 @@ import {
   Workflow as WorkflowIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import type { TaskInfo } from "@/lib/client/types";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import { JsonBlock } from "@/components/chat/JsonBlock";
@@ -69,6 +70,9 @@ function safeJsonObject(content: string | undefined): Record<string, unknown> | 
 }
 
 export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: Props) {
+  // CC 2.1.302 — like a subagent card: no "still running" pulse while the
+  // session stream is reconnecting.
+  const disconnected = useStreamDisconnected();
   // Expanded by default while no terminal result is in — a running workflow is
   // the thing the user most wants to watch. Collapses to a one-liner otherwise.
   // `ultra-verbose` passes defaultOpen=true; flipping the level re-applies it.
@@ -164,7 +168,7 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
             )}
           >
             {status === "running" && (
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+              <span className={cn("inline-block h-1.5 w-1.5 rounded-full bg-current", disconnected ? "opacity-40" : "animate-pulse")} />
             )}
             {status === "completed" && <CheckCircle2 className="h-3 w-3" />}
             {(status === "failed" || status === "killed") && <AlertCircle className="h-3 w-3" />}
@@ -188,7 +192,7 @@ export function WorkflowBlock({ toolUseId, input, result, task, defaultOpen }: P
 
           {liveSummary && (
             <div className="flex items-start gap-1.5 rounded-md bg-[var(--panel-2)]/60 px-2 py-1 text-[11px]">
-              <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent)]" />
+              <span className={cn("mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]", !disconnected && "animate-pulse")} />
               <span className="text-[var(--foreground)]/80">{liveSummary}</span>
             </div>
           )}

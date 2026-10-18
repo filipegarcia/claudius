@@ -45,6 +45,7 @@ import { useClockOptions } from "@/lib/client/useClockOptions";
 import { useShowMessageTimestamps } from "@/lib/client/useShowMessageTimestamps";
 import { MessageTimestampsProvider } from "@/lib/client/message-timestamps-context";
 import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
+import { StreamDisconnectedProvider } from "@/lib/client/stream-status-context";
 import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
@@ -2194,6 +2195,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   return (
     <ClockOptionsProvider value={clockOptions}>
     <MessageTimestampsProvider value={showMessageTimestamps}>
+    <StreamDisconnectedProvider value={session.streamStatus === "reconnecting"}>
     <div className="flex h-full">
       <div role="status" aria-live="polite" className="sr-only" data-testid="chat-live-announcer">
         {liveAnnouncement}
@@ -2288,6 +2290,19 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               >
                 + New session
               </button>
+              {/* CC 2.1.302 — "Improved the error shown when a … session fails
+                  to start". The chat's error banner only renders with a tab
+                  open, so a failed "+ New session" from this empty state
+                  used to do nothing visible at all. Only the create failure
+                  is shown — not stale errors from a session just closed. */}
+              {session.createError && (
+                <div
+                  data-testid="session-error"
+                  className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+                >
+                  {session.createError}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -2999,6 +3014,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         </div>
       )}
     </div>
+    </StreamDisconnectedProvider>
     </MessageTimestampsProvider>
     </ClockOptionsProvider>
   );

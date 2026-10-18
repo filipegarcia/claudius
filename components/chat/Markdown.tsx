@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, memo, useMemo, useState, type ReactNode } from "react";
+import { Component, createContext, memo, useContext, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import ReactMarkdown, { defaultUrlTransform, type Components, type UrlTransform } from "react-markdown";
 import rehypeKatex from "rehype-katex";
@@ -271,6 +271,17 @@ function MarkdownFilePreview({ src, alt }: { src?: string; alt?: string }) {
 }
 
 /**
+ * True inside a `<pre>` — i.e. the `code` element is a fenced/indented block,
+ * not inline code. CC 2.1.302 ([VSCode] "Fixed text after an unclosed code
+ * block … showing as plain text while a reply streams, then turning into
+ * code"): block-vs-inline used to be guessed from whether the text contained a
+ * newline, so a fence with no language and no body yet — the moment ```` ``` ````
+ * has streamed in — rendered as an empty inline chip, flipped to a code block
+ * once its first line arrived, and a finished empty fence stayed a chip.
+ */
+const InPreContext = createContext(false);
+
+/**
  * The `code` renderer needs to know whether the surrounding `Markdown` call
  * allows the `!`-mode Execute button (see `CodeBlock`'s `allowExecute` doc
  * comment) — built per-render via `componentsFor` rather than as a single
@@ -280,7 +291,8 @@ function makeCodeComponent(allowExecute: boolean): Components["code"] {
   return function CodeRenderer(props) {
     const { className, children, ...rest } = props;
     const match = /language-([\w+-]+)/.exec(className || "");
-    const inline = !(props as { node?: { tagName?: string } }).node || !String(children).includes("\n");
+    const inPre = useContext(InPreContext);
+    const inline = !inPre;
     if (!match && inline) {
       return <InlineCode rest={rest}>{children}</InlineCode>;
     }
@@ -291,7 +303,7 @@ function makeCodeComponent(allowExecute: boolean): Components["code"] {
 
 const baseComponents: Omit<Components, "code"> = {
   pre({ children }) {
-    return <>{children}</>;
+    return <InPreContext.Provider value={true}>{children}</InPreContext.Provider>;
   },
   a({ href, children }) {
     return <MarkdownLink href={href}>{children}</MarkdownLink>;

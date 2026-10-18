@@ -1,0 +1,239 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { Job, Run } from "@/lib/server/scheduler-store";
+import {
+  activeSkip,
+  runNoteText,
+  RUN_ENDED_WITHOUT_RESULT,
+  RUN_INTERRUPTED,
+  SKIP_FOLDER_MISSING,
+  SKIP_PREVIOUS_RUN,
+} from "@/lib/shared/schedule-skip";
+
+/**
+ * CC 2.1.302 parity (cloud routines → Claudius scheduled jobs):
+ *  - "Added a banner on a routine's page that says why its last run didn't start"
+ *  - "Fixed routine runs showing as Completed after their cloud session stopped
+ *    unexpectedly … instead of failed"
+ */
+
+const query = vi.fn();
+vi.mock("@anthropic-ai/claude-agent-sdk", () => ({ query: (...a: unknown[]) => query(...a) }));
+const recordSchedulerEvent = vi.fn();
+vi.mock("@/lib/server/notification-bus", () => ({
+  notificationBus: { recordSchedulerEvent: (...a: unknown[]) => recordSchedulerEvent(...a) },
+}));
+
+const jobs = new Map<string, Job>();
+const runs = new Map<string, Run[]>();
+const appendRun = vi.fn(async (r: Run) => {
+  runs.set(r.jobId, [...(runs.get(r.jobId) ?? []), r]);
+});
+const updateRun = vi.fn(async (r: Run) => {
+  runs.set(
+    r.jobId,
+    (runs.get(r.jobId) ?? []).map((x) => (x.id === r.id ? r : x)),
+  );
+});
+vi.mock("@/lib/server/scheduler-store", () => ({
+  appendRun: (r: Run) => appendRun(r),
+  updateRun: (r: Run) => updateRun(r),
+  listRuns: vi.fn(async (id: string) => [...(runs.get(id) ?? [])].reverse()),
+  saveJob: vi.fn(),
+  listJobs: vi.fn(async () => [...jobs.values()]),
+  getJob: vi.fn(async (id: string) => jobs.get(id) ?? null),
+  patchJob: vi.fn(async (id: string, patch: Partial<Job>) => {
+    const cur = jobs.get(id);
+    if (!cur) return null;
+    const next = { ...cur, ...patch };
+    jobs.set(id, next);
+    return next;
+  }),
+}));
+
+function job(over: Partial<Job> = {}): Job {
+  return {
+    id: "j1",
+    name: "nightly",
+    cron: "0 3 * * *",
+    prompt: "report",
+    cwd: tmpdir(),
+    enabled: false, // never armed by these tests
+    createdAt: 1,
+    updatedAt: 1,
+    ...over,
+  };
+}
+
+async function freshScheduler() {
+  globalThis.__claudiusScheduler = undefined;
+  vi.resetModules();
+  return (await import("@/lib/server/scheduler")).scheduler;
+}
+
+function stream(...msgs: unknown[]) {
+  return (async function* () {
+    for (const m of msgs) yield m;
+  })();
+}
+
+beforeEach(() => {
+  jobs.clear();
+  runs.clear();
+  query.mockReset();
+  appendRun.mockClear();
+  updateRun.mockClear();
+  recordSchedulerEvent.mockClear();
+});
+afterEach(() => {
+  globalThis.__claudiusScheduler = undefined;
+});
+
+describe("fire — a run that didn't start says why", () => {
+  test("a missing folder records a skipped run and the job-level reason, without calling the SDK", async () => {
+    const s = await freshScheduler();
+    jobs.set("j1", job({ cwd: join(tmpdir(), "claudius-gone-2.1.302-xyz") }));
+    await s.runNow("j1");
+    expect(query).not.toHaveBeenCalled();
+    const [r] = runs.get("j1")!;
+    expect(r.status).toBe("skipped");
+    expect(r.note).toBe(SKIP_FOLDER_MISSING);
+    expect(jobs.get("j1")!.lastSkipReason).toBe(SKIP_FOLDER_MISSING);
+    expect(typeof jobs.get("j1")!.lastSkipAt).toBe("number");
+    expect(activeSkip(jobs.get("j1")!)?.text).toBe("The job's folder no longer exists");
+  });
+
+  test("a missing folder reaches the inbox once, not on every fire", async () => {
+    const s = await freshScheduler();
+    jobs.set("j1", job({ cwd: join(tmpdir(), "claudius-gone-2.1.302-xyz") }));
+    await s.runNow("j1");
+    await s.runNow("j1");
+    expect(recordSchedulerEvent).toHaveBeenCalledTimes(1);
+    expect(recordSchedulerEvent.mock.calls[0][3]).toMatchObject({
+      type: "run_finished",
+      status: "skipped",
+      note: "The job's folder no longer exists",
+    });
+  });
+
+  test("a run that starts clears the earlier skip reason", async () => {
+    const s = await freshScheduler();
+    jobs.set("j1", job({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 5 }));
+    query.mockReturnValue(stream({ type: "result", subtype: "success", total_cost_usd: 0.01 }));
+    await s.runNow("j1");
+    const stored = jobs.get("j1")!;
+    expect(stored.lastSkipReason).toBeUndefined();
+    expect(stored.lastSkipAt).toBeUndefined();
+    expect(stored.lastStatus).toBe("success");
+    expect(activeSkip(stored)).toBeNull();
+  });
+});
+
+describe("fire — a run that died is failed, not Completed", () => {
+  test("a stream that ends without a result message is recorded as an error", async () => {
+    const s = await freshScheduler();
+    jobs.set("j1", job());
+    query.mockReturnValue(stream({ type: "system", subtype: "init" }));
+    await s.runNow("j1");
+    const finished = runs.get("j1")!.at(-1)!;
+    expect(finished.status).toBe("error");
+    expect(finished.note).toBe(RUN_ENDED_WITHOUT_RESULT);
+    expect(jobs.get("j1")!.lastStatus).toBe("error");
+    // The inbox gets readable text, not the raw reason code.
+    expect(recordSchedulerEvent.mock.calls.at(-1)![3]).toMatchObject({
+      status: "error",
+      note: "The session ended before the run finished",
+    });
+    // The running row was stamped with this process's pid for boot recovery.
+    expect(appendRun.mock.calls.find(([r]) => r.status === "running")![0].pid).toBe(process.pid);
+  });
+
+  test("a stream with a success result stays a success", async () => {
+    const s = await freshScheduler();
+    jobs.set("j1", job());
+    query.mockReturnValue(stream({ type: "result", subtype: "success" }));
+    await s.runNow("j1");
+    expect(runs.get("j1")!.at(-1)!.status).toBe("success");
+  });
+});
+
+describe("boot — runs left 'running' by an earlier process", () => {
+  test("are marked failed (interrupted) and the job's lastStatus follows", async () => {
+    const old = Date.now() - Math.round(process.uptime() * 1000) - 60_000;
+    jobs.set("j1", job({ lastRunAt: old, lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-old", jobId: "j1", startedAt: old, status: "running" }]);
+    const s = await freshScheduler();
+    await s.boot();
+    const r = runs.get("j1")![0];
+    expect(r.status).toBe("error");
+    expect(r.note).toBe(RUN_INTERRUPTED);
+    // The real end time is unknown — don't stamp the boot time as the end.
+    expect(r.endedAt).toBeUndefined();
+    expect(jobs.get("j1")!.lastStatus).toBe("error");
+  });
+
+  test("a run started by this process (e.g. before a dev hot reload) is left alone", async () => {
+    const recent = Date.now();
+    jobs.set("j1", job({ lastRunAt: recent, lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-new", jobId: "j1", startedAt: recent, status: "running" }]);
+    const s = await freshScheduler();
+    await s.boot();
+    expect(runs.get("j1")![0].status).toBe("running");
+    expect(jobs.get("j1")!.lastStatus).toBe("running");
+    expect(updateRun).not.toHaveBeenCalled();
+  });
+});
+
+describe("boot — runs owned by a live process are left alone", () => {
+  test("a run stamped with another live pid (a second Claudius process) is not failed", async () => {
+    const old = Date.now() - Math.round(process.uptime() * 1000) - 60_000;
+    // The parent process is alive for the whole test.
+    jobs.set("j1", job({ lastRunAt: old, lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-other", jobId: "j1", startedAt: old, status: "running", pid: process.ppid }]);
+    const s = await freshScheduler();
+    await s.boot();
+    expect(runs.get("j1")![0].status).toBe("running");
+  });
+
+  test("a run stamped with a dead pid is failed even if it started recently", async () => {
+    jobs.set("j1", job({ lastRunAt: Date.now(), lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-dead", jobId: "j1", startedAt: Date.now(), status: "running", pid: 2 ** 22 + 12345 }]);
+    const s = await freshScheduler();
+    await s.boot();
+    expect(runs.get("j1")![0]).toMatchObject({ status: "error", note: RUN_INTERRUPTED });
+  });
+
+  test("concurrent boot() calls share one recovery pass", async () => {
+    const old = Date.now() - Math.round(process.uptime() * 1000) - 60_000;
+    jobs.set("j1", job({ lastRunAt: old, lastStatus: "running" }));
+    runs.set("j1", [{ id: "r-old", jobId: "j1", startedAt: old, status: "running" }]);
+    const s = await freshScheduler();
+    await Promise.all([s.boot(), s.boot(), s.boot()]);
+    expect(updateRun).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("activeSkip / runNoteText", () => {
+  test("a skip older than the latest started run is not shown", () => {
+    expect(activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 10, lastRunAt: 20 })).toBeNull();
+    expect(
+      activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 30, lastRunAt: 20, lastStatus: "running" })?.reason,
+    ).toBe(SKIP_PREVIOUS_RUN);
+    // Once the run that blocked it has finished, "still in progress" is stale.
+    expect(
+      activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN, lastSkipAt: 30, lastRunAt: 20, lastStatus: "success" }),
+    ).toBeNull();
+    expect(
+      activeSkip({ lastSkipReason: SKIP_FOLDER_MISSING, lastSkipAt: 30, lastRunAt: 20, lastStatus: "success" })?.reason,
+    ).toBe(SKIP_FOLDER_MISSING);
+    expect(activeSkip({ lastSkipReason: SKIP_PREVIOUS_RUN })).toBeNull();
+    expect(activeSkip({})).toBeNull();
+  });
+
+  test("known notes read as sentences; unknown notes pass through", () => {
+    expect(runNoteText(SKIP_PREVIOUS_RUN)).toBe("The previous run was still in progress");
+    expect(runNoteText(RUN_INTERRUPTED)).toMatch(/Claudius stopped/);
+    expect(runNoteText("error_max_turns")).toBe("error_max_turns");
+  });
+});

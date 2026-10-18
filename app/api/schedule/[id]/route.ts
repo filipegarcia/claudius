@@ -47,6 +47,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
     patch.cwd = cwd;
   }
+  // CC 2.1.302 — the "last run didn't start" banner explains a past skip.
+  // Pointing the job at a folder, or switching it off/on, changes what the
+  // next fire will do, so the old reason no longer applies.
+  if (patch.cwd !== undefined || patch.enabled !== undefined) {
+    patch.lastSkipReason = undefined;
+    patch.lastSkipAt = undefined;
+  }
   const next = await patchJob(id, patch);
   if (!next) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (next.enabled) await scheduler.arm(next);

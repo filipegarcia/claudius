@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { sessionStartConnectionLost, sessionStartHttpError } from "@/lib/shared/session-start-error";
 import {
   BOOT_FORCE_KEY,
   clearBootAttemptFor,
@@ -1070,6 +1071,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     errorReason: null,
   });
   const [errors, setErrors] = useState<string[]>([]);
+  // CC 2.1.302 — the last failed `createSession`, kept apart from `errors` so
+  // the no-tabs empty state can show why "+ New session" failed without also
+  // surfacing stale errors from a session the user already closed.
+  const [createError, setCreateError] = useState<string | null>(null);
   const [slashCommands, setSlashCommands] = useState<string[]>([]);
   const [agents, setAgents] = useState<string[]>([]);
   // The main-thread agent this session runs as (SDK Options.agent), or null
@@ -5225,25 +5230,34 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       sessionIdRef.current = null;
       setSessionId(null);
       resetState();
+      setCreateError(null);
       try {
-        const res = await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(opts),
-        });
+        let res: Response;
+        try {
+          res = await fetch("/api/sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(opts),
+          });
+        } catch {
+          // CC 2.1.302 — say "connection lost", not the browser's raw
+          // "Failed to fetch" TypeError, when the server can't be reached.
+          throw new Error(sessionStartConnectionLost());
+        }
         if (!res.ok) {
           // Read the route's JSON `{ error, name }` (see app/api/sessions/route.ts).
           // Falling back to a bare status code makes the failure unreadable
           // when the toast is the only visible signal — packaged Electron
           // sinks server stderr to /dev/null on Finder launches.
-          let detail = `${res.status}`;
+          let detail: string | undefined;
           try {
             const body = (await res.json()) as { error?: string; name?: string };
             if (body?.error) detail = body.name ? `${body.name}: ${body.error}` : body.error;
           } catch {
             // Body wasn't JSON — keep the status code.
           }
-          throw new Error(`create session failed: ${detail}`);
+          // CC 2.1.302 — a 5xx reads "server error", distinct from a 4xx.
+          throw new Error(sessionStartHttpError(res.status, detail));
         }
         const { id, cwd: createdCwd } = (await res.json()) as { id: string; cwd?: string };
         // A newer transition superseded this one — don't bind.
@@ -5267,7 +5281,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         await refreshSessions();
         return id;
       } catch (err) {
-        setErrors((e) => [...e, err instanceof Error ? err.message : String(err)]);
+        // A newer create/switch superseded this one — its failure is moot.
+        if (switchGenRef.current !== gen) return null;
+        const msg = err instanceof Error ? err.message : String(err);
+        setErrors((e) => [...e, msg]);
+        setCreateError(msg);
         return null;
       }
     },
@@ -6647,6 +6665,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     tips,
     sessionRecap,
     errors,
+    createError,
     slashCommands,
     agents,
     mainAgent,
