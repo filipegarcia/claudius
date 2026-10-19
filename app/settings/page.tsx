@@ -2154,6 +2154,20 @@ function AutoCompactWindowCatalogField({
   // Raw text of the top-level input while it's being edited (null = show the
   // saved value). See the input below.
   const [rawTop, setRawTop] = useState<string | null>(null);
+  // Drop the raw text when the saved value changes from outside this input
+  // (scope switch, Refresh, Raw JSON edit), so stale "ignored" text can't stick.
+  // Typing that saves the value keeps it, because the text still parses to the
+  // new value.
+  const [seenTop, setSeenTop] = useState<unknown>(topLevel);
+  if (seenTop !== topLevel) {
+    setSeenTop(topLevel);
+    if (rawTop !== null) {
+      const p = parseAutoCompactWindowInput(rawTop, { allowAuto: false });
+      const ours =
+        (p.kind === "set" && p.value === topLevel) || (p.kind === "remove" && topLevel === undefined);
+      if (!ours) setRawTop(null);
+    }
+  }
 
   const commitModel = (model: string, value: "auto" | number | undefined) => {
     update({ modelSettings: setModelAutoCompactWindow(modelSettings, model, value) } as Patch);
