@@ -44,6 +44,11 @@ type ContextResponse = {
    * stdio, so absent/empty → the section is simply not rendered.
    */
   mcpInstructions?: { serverName: string; tokens: number }[];
+  /**
+   * Custom agents' context cost. SDK 0.3.304 added `pluginId` (providing
+   * plugin) and `path` (agent file on the CLI's machine); both stdio-only.
+   */
+  agents?: { agentType: string; source: string; pluginId?: string; path?: string; tokens: number }[];
   deferredBuiltinTools?: { name: string; tokens: number; isLoaded: boolean }[];
   // CC 2.1.261 parity ("/skill-doctor"). Per-skill token cost, already
   // computed by the SDK's getContextUsage() but not rendered until now.
@@ -309,6 +314,29 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
               </ul>
             </Section>
           )}
+          {data.agents && data.agents.length > 0 && (
+            <Section title={`Custom agents (${data.agents.length})`}>
+              <ul className="space-y-1 text-xs" data-testid="agent-cost-list">
+                {[...data.agents]
+                  .sort((a, b) => b.tokens - a.tokens)
+                  .map((a) => (
+                    <li
+                      key={`${a.source}/${a.pluginId ?? ""}/${a.agentType}`}
+                      data-testid="agent-cost-row"
+                      title={a.path}
+                      className="flex items-baseline justify-between gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
+                    >
+                      <span className="truncate font-mono">{a.agentType}</span>
+                      <span className="text-[var(--muted)]">
+                        {a.source}
+                        {a.pluginId && <span data-testid="agent-plugin-id"> ({a.pluginId})</span>} ·{" "}
+                        {fmtTokens(a.tokens)}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </Section>
+          )}
           {data.skills && data.skills.skillFrontmatter.length > 0 && (
             <Section title={`Skills (${data.skills.includedSkills}/${data.skills.totalSkills} loaded · ${fmtTokens(data.skills.tokens)})`}>
               <p className="mb-2 text-[10px] text-[var(--muted)]">
@@ -412,7 +440,7 @@ function StackedBar({
   // on `kind` when present, falling back to the old name check for a CLI
   // that predates the field.
   const usedCategories = categories.filter((c) =>
-    c.kind ? c.kind !== "free" : c.name !== "Free space",
+    c.kind ? c.kind !== "free" : c.id ? c.id !== "free_space" : c.name !== "Free space",
   );
   // Sort biggest first so the bar's widest segments lead.
   const sorted = [...usedCategories].sort((a, b) => b.tokens - a.tokens);

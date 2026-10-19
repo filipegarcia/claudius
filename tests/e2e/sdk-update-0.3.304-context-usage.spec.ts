@@ -43,6 +43,10 @@ const CONTEXT_RESPONSE = {
     { serverName: "github", tokens: 300 },
     { serverName: "linear", tokens: 1200 },
   ],
+  agents: [
+    { agentType: "code-reviewer", source: "plugin", pluginId: "viz-tools@acme-marketplace", path: "/home/u/agents/code-reviewer.md", tokens: 400 },
+    { agentType: "docs-writer", source: "projectSettings", tokens: 150 },
+  ],
   skills: {
     totalSkills: 2,
     includedSkills: 2,
@@ -157,6 +161,12 @@ test.describe("SDK 0.3.304 — richer getContextUsage() in the Context overlay",
       /viz-tools\/skills\/dataviz\/SKILL\.md$/,
     );
 
+    const agentRows = page.getByTestId("agent-cost-row");
+    await expect(agentRows).toHaveCount(2);
+    await expect(agentRows.nth(0)).toContainText("code-reviewer");
+    await expect(agentRows.nth(0)).toHaveAttribute("title", "/home/u/agents/code-reviewer.md");
+    await expect(page.getByTestId("agent-plugin-id")).toContainText("viz-tools@acme-marketplace");
+
     await expect(
       page.locator('[data-testid="context-category-row"][data-category-id="mcp_instructions"]'),
     ).toHaveCount(1);
@@ -178,6 +188,7 @@ test.describe("SDK 0.3.304 — richer getContextUsage() in the Context overlay",
         body: JSON.stringify({
           ...CONTEXT_RESPONSE,
           mcpInstructions: undefined,
+          agents: undefined,
           categories: CONTEXT_RESPONSE.categories.map(({ name, tokens, color }) => ({ name, tokens, color })),
         }),
       });
@@ -185,6 +196,7 @@ test.describe("SDK 0.3.304 — richer getContextUsage() in the Context overlay",
     await openContext(page);
 
     await expect(page.getByTestId("mcp-instructions-row")).toHaveCount(0);
+    await expect(page.getByTestId("agent-cost-row")).toHaveCount(0);
     await expect(page.getByTestId("context-category-row")).toHaveCount(4);
   });
 });
