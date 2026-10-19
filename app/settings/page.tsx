@@ -767,7 +767,15 @@ export default function SettingsPage() {
                     subtitle="Claude Code settings from the SDK. Blank / “Default” means the key is absent and Claude Code's built-in default applies."
                   >
                     {metas.map((m) => (
-                      <CatalogField key={m.key} meta={m} draft={draft} update={update} />
+                      <CatalogField
+                        // autoCompactWindow keeps typed text locally (CC 2.1.304
+                        // warnings), so re-seed it on scope switch / refetch,
+                        // the same way OtherEditor is keyed below.
+                        key={m.key === "autoCompactWindow" ? `${m.key}:${activeKey}` : m.key}
+                        meta={m}
+                        draft={draft}
+                        update={update}
+                      />
                     ))}
                   </Section>
                 ))}
@@ -2206,7 +2214,7 @@ function AutoCompactWindowCatalogField({
         data-testid="auto-compact-window-top"
         type="text"
         inputMode="decimal"
-        value={rawTop ?? (typeof topLevel === "number" ? String(topLevel) : "")}
+        value={rawTop ?? (topLevel === undefined ? "" : String(topLevel))}
         placeholder="(default) e.g. 200k"
         onChange={(e) => {
           setRawTop(e.target.value);
@@ -2221,8 +2229,17 @@ function AutoCompactWindowCatalogField({
         }}
         className={inputCls}
       />
-      {rawTop !== null && autoCompactWindowInputWarning(rawTop, { allowAuto: false }) === "ignored" ? (
-        <AutoCompactWindowWarning testId="auto-compact-window-top-warning" kind="ignored" />
+      {(rawTop !== null && autoCompactWindowInputWarning(rawTop, { allowAuto: false }) === "ignored") ||
+      // A non-number already in settings.json (e.g. a hand-written "200k"
+      // string) is flagged too, rather than shown as an empty "(default)" box.
+      (topLevel !== undefined && typeof topLevel !== "number") ? (
+        <AutoCompactWindowWarning
+          testId="auto-compact-window-top-warning"
+          kind="ignored"
+          current={
+            typeof topLevel === "number" ? topLevel : topLevel === undefined ? "default" : undefined
+          }
+        />
       ) : (
         isAutoCompactWindowOutOfRange(topLevel) && (
           <AutoCompactWindowWarning testId="auto-compact-window-top-warning" kind="out-of-range" />
@@ -2306,10 +2323,22 @@ function PerModelAutoCompactRow({
   window: unknown;
   onCommit: (value: "auto" | number | undefined) => void;
 }) {
-  const [raw, setRaw] = useState(
-    typeof window === "number" || typeof window === "string" ? String(window) : "",
-  );
-  const warning = autoCompactWindowInputWarning(raw);
+  const seed = typeof window === "number" || typeof window === "string" ? String(window) : "";
+  const [raw, setRaw] = useState(seed);
+  // Re-seed when the value changes from outside the input (e.g. a Raw JSON
+  // edit). Typing that commits keeps the text, because it parses to the value.
+  const [seenWindow, setSeenWindow] = useState<unknown>(window);
+  if (seenWindow !== window) {
+    setSeenWindow(window);
+    const p = parseAutoCompactWindowInput(raw);
+    if (!(p.kind === "set" && p.value === window)) setRaw(seed);
+  }
+  // A non-`auto` string already in settings.json (e.g. a hand-written "200k")
+  // isn't a valid window, even though the same text typed here would be.
+  const storedInvalid = window !== undefined && typeof window !== "number" && window !== "auto";
+  const typed = autoCompactWindowInputWarning(raw);
+  const warning = storedInvalid && raw === seed ? "ignored" : typed;
+  const current = typeof window === "number" || window === "auto" ? window : undefined;
   return (
     <li>
       <div className="flex items-center gap-1.5">
@@ -2338,19 +2367,38 @@ function PerModelAutoCompactRow({
           <Trash2 className="h-3 w-3" />
         </button>
       </div>
-      {warning && <AutoCompactWindowWarning testId="auto-compact-window-model-warning" kind={warning} />}
+      {warning && (
+        <AutoCompactWindowWarning
+          testId="auto-compact-window-model-warning"
+          kind={warning}
+          current={warning === "ignored" ? current : undefined}
+        />
+      )}
     </li>
   );
 }
 
-/** The amber note under an `autoCompactWindow` input (CC 2.1.304 wording). */
+/**
+ * The amber note under an `autoCompactWindow` input (CC 2.1.304: "warns when a
+ * value is out of range or ignored"). For "ignored", `current` is the value
+ * the form actually holds (typing commits each prefix that parses, so this can
+ * differ from what was last saved). An out-of-range `current` is flagged too.
+ */
 function AutoCompactWindowWarning({
   testId,
   kind,
+  current,
 }: {
   testId: string;
   kind: "ignored" | "out-of-range";
+  current?: number | "auto" | "default";
 }) {
+  const stays =
+    current === undefined
+      ? ""
+      : current === "default"
+        ? " — the window stays at the default"
+        : ` — the window stays ${typeof current === "number" ? current.toLocaleString() : current}`;
   return (
     <div
       data-testid={testId}
@@ -2358,7 +2406,16 @@ function AutoCompactWindowWarning({
       className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300"
     >
       {kind === "ignored" ? (
-        <>Not a token count — ignored, the saved value is unchanged. Use a number like 200000, 200k or 1M.</>
+        <>
+          Not a token count, so it&apos;s ignored{stays}. Use a number like 200000, 200k or 1M.
+          {isAutoCompactWindowOutOfRange(current) && (
+            <>
+              {" "}
+              That value is outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+              {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+            </>
+          )}
+        </>
       ) : (
         <>
           Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–

@@ -91,18 +91,36 @@ test.describe("autoCompactWindow k/M suffixes (CC 2.1.304)", () => {
     await expect(field).toBeVisible();
     await expect(field.getByTestId("auto-compact-window-top")).toHaveValue("200000");
 
-    // A value that doesn't parse: an "ignored" warning, and the text stays put.
+    // A value that doesn't parse leaves the stored window alone, even if saved.
+    await field.getByTestId("auto-compact-window-top").fill("200g");
+    await page.getByRole("button", { name: /^Save$/ }).click();
+    await page.waitForTimeout(500);
+    expect((await readUserSettings(page)).autoCompactWindow).toBe(200_000);
+
+    await page.getByLabel("Search settings").fill("autoCompactWindow");
+    await expect(field).toBeVisible();
+
+    // The "ignored" warning names the value the form still holds, and the text stays put.
     await field.getByTestId("auto-compact-window-top").fill("200g");
     const topWarning = field.getByTestId("auto-compact-window-top-warning");
     await expect(topWarning).toBeVisible();
     await expect(topWarning).toHaveAttribute("data-warning-kind", "ignored");
-    await expect(topWarning).toContainText("ignored");
+    await expect(topWarning).toContainText("ignored — the window stays 200,000");
     await expect(field.getByTestId("auto-compact-window-top")).toHaveValue("200g");
 
-    // A suffixed value outside 100k–1M on the per-model row: "out of range".
+    // Typing key by key commits each prefix that parses (9, then 90) before the
+    // bad `x`. The warning must say the form holds 90, and flag it as out of range.
     const row = field.locator("li", { hasText: MODEL });
-    await row.getByTestId("auto-compact-window-model-input").fill("50k");
+    const rowInput = row.getByTestId("auto-compact-window-model-input");
+    await rowInput.fill("");
+    await rowInput.pressSequentially("90x");
     const rowWarning = row.getByTestId("auto-compact-window-model-warning");
+    await expect(rowWarning).toHaveAttribute("data-warning-kind", "ignored");
+    await expect(rowWarning).toContainText("the window stays 90.");
+    await expect(rowWarning).toContainText("outside 100,000");
+
+    // A suffixed value outside 100k–1M on the per-model row: "out of range".
+    await rowInput.fill("50k");
     await expect(rowWarning).toBeVisible();
     await expect(rowWarning).toHaveAttribute("data-warning-kind", "out-of-range");
     await expect(rowWarning).toContainText("Outside 100,000");
