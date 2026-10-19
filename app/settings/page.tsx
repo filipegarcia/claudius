@@ -39,6 +39,7 @@ import { stringListSettingValue } from "@/lib/shared/string-list-setting";
 import {
   AUTO_COMPACT_WINDOW_MAX,
   AUTO_COMPACT_WINDOW_MIN,
+  autoCompactWindowInputWarning,
   isAutoCompactWindowOutOfRange,
   parseAutoCompactWindowInput,
   readPerModelAutoCompact,
@@ -2150,6 +2151,9 @@ function AutoCompactWindowCatalogField({
 
   const [newModel, setNewModel] = useState("");
   const [newWindow, setNewWindow] = useState("");
+  // Raw text of the top-level input while it's being edited (null = show the
+  // saved value). See the input below.
+  const [rawTop, setRawTop] = useState<string | null>(null);
 
   const commitModel = (model: string, value: "auto" | number | undefined) => {
     update({ modelSettings: setModelAutoCompactWindow(modelSettings, model, value) } as Patch);
@@ -2176,29 +2180,39 @@ function AutoCompactWindowCatalogField({
       </div>
       <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">
         Auto-compact window size, in tokens ({AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
-        {AUTO_COMPACT_WINDOW_MAX.toLocaleString()}). The top-level value applies to every model
-        without its own window below.
+        {AUTO_COMPACT_WINDOW_MAX.toLocaleString()}; <code>k</code> and <code>M</code> suffixes
+        work, e.g. 200k). The top-level value applies to every model without its own window
+        below.
       </p>
+      {/* CC 2.1.304 — a text input (not `type="number"`) so `200k` / `1M` can
+          be typed; the raw text is kept while editing so an unparseable value
+          stays visible next to its "ignored" warning, and blur snaps a parsed
+          value back to the saved token count. */}
       <input
         data-testid="auto-compact-window-top"
-        type="number"
-        value={typeof topLevel === "number" ? topLevel : ""}
-        placeholder="(default)"
+        type="text"
+        inputMode="decimal"
+        value={rawTop ?? (typeof topLevel === "number" ? String(topLevel) : "")}
+        placeholder="(default) e.g. 200k"
         onChange={(e) => {
-          if (e.target.value === "") return update({ autoCompactWindow: undefined } as Patch);
-          const n = Number(e.target.value);
-          if (!Number.isNaN(n)) update({ autoCompactWindow: n } as Patch);
+          setRawTop(e.target.value);
+          const parsed = parseAutoCompactWindowInput(e.target.value, { allowAuto: false });
+          if (parsed.kind === "remove") update({ autoCompactWindow: undefined } as Patch);
+          else if (parsed.kind === "set") update({ autoCompactWindow: parsed.value } as Patch);
+        }}
+        onBlur={() => {
+          if (rawTop !== null && autoCompactWindowInputWarning(rawTop, { allowAuto: false }) !== "ignored") {
+            setRawTop(null);
+          }
         }}
         className={inputCls}
       />
-      {isAutoCompactWindowOutOfRange(topLevel) && (
-        <div
-          data-testid="auto-compact-window-top-warning"
-          className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300"
-        >
-          Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
-          {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
-        </div>
+      {rawTop !== null && autoCompactWindowInputWarning(rawTop, { allowAuto: false }) === "ignored" ? (
+        <AutoCompactWindowWarning testId="auto-compact-window-top-warning" kind="ignored" />
+      ) : (
+        isAutoCompactWindowOutOfRange(topLevel) && (
+          <AutoCompactWindowWarning testId="auto-compact-window-top-warning" kind="out-of-range" />
+        )
       )}
 
       {overrides.length > 0 && (
@@ -2213,31 +2227,12 @@ function AutoCompactWindowCatalogField({
 
       <ul className="mt-2 space-y-1.5">
         {overrides.map(({ model, window }) => (
-          <li key={model} className="flex items-center gap-1.5">
-            <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--muted)]" title={model}>
-              {model}
-            </span>
-            <input
-              data-testid="auto-compact-window-model-input"
-              defaultValue={typeof window === "number" || typeof window === "string" ? String(window) : ""}
-              placeholder="auto / 200000"
-              onChange={(e) => {
-                const parsed = parseAutoCompactWindowInput(e.target.value);
-                if (parsed.kind === "ignore") return;
-                commitModel(model, parsed.kind === "remove" ? undefined : parsed.value);
-              }}
-              className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
-            />
-            <button
-              type="button"
-              data-testid="auto-compact-window-model-remove"
-              onClick={() => commitModel(model, undefined)}
-              className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--muted)] hover:text-red-400"
-              title="Remove this model's window"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          </li>
+          <PerModelAutoCompactRow
+            key={model}
+            model={model}
+            window={window}
+            onCommit={(value) => commitModel(model, value)}
+          />
         ))}
       </ul>
 
@@ -2252,7 +2247,7 @@ function AutoCompactWindowCatalogField({
         <input
           data-testid="auto-compact-window-new-window"
           value={newWindow}
-          placeholder="auto / 200000"
+          placeholder="auto / 200k"
           onChange={(e) => setNewWindow(e.target.value)}
           className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
         />
@@ -2273,6 +2268,89 @@ function AutoCompactWindowCatalogField({
           <Plus className="h-3 w-3" />
         </button>
       </div>
+      {newWindow.trim() !== "" && autoCompactWindowInputWarning(newWindow) && (
+        <AutoCompactWindowWarning
+          testId="auto-compact-window-new-warning"
+          kind={autoCompactWindowInputWarning(newWindow)!}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * One per-model `autoCompactWindow` override row. Keeps the typed text so the
+ * CC 2.1.304 "ignored" / "out of range" warning can sit under the row while
+ * the user types; a value that doesn't parse leaves the saved window alone.
+ */
+function PerModelAutoCompactRow({
+  model,
+  window,
+  onCommit,
+}: {
+  model: string;
+  window: unknown;
+  onCommit: (value: "auto" | number | undefined) => void;
+}) {
+  const [raw, setRaw] = useState(
+    typeof window === "number" || typeof window === "string" ? String(window) : "",
+  );
+  const warning = autoCompactWindowInputWarning(raw);
+  return (
+    <li>
+      <div className="flex items-center gap-1.5">
+        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--muted)]" title={model}>
+          {model}
+        </span>
+        <input
+          data-testid="auto-compact-window-model-input"
+          value={raw}
+          placeholder="auto / 200k"
+          onChange={(e) => {
+            setRaw(e.target.value);
+            const parsed = parseAutoCompactWindowInput(e.target.value);
+            if (parsed.kind === "ignore") return;
+            onCommit(parsed.kind === "remove" ? undefined : parsed.value);
+          }}
+          className="w-28 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[11px] focus:outline-none"
+        />
+        <button
+          type="button"
+          data-testid="auto-compact-window-model-remove"
+          onClick={() => onCommit(undefined)}
+          className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--panel-2)] p-1 text-[var(--muted)] hover:text-red-400"
+          title="Remove this model's window"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+      {warning && <AutoCompactWindowWarning testId="auto-compact-window-model-warning" kind={warning} />}
+    </li>
+  );
+}
+
+/** The amber note under an `autoCompactWindow` input (CC 2.1.304 wording). */
+function AutoCompactWindowWarning({
+  testId,
+  kind,
+}: {
+  testId: string;
+  kind: "ignored" | "out-of-range";
+}) {
+  return (
+    <div
+      data-testid={testId}
+      data-warning-kind={kind}
+      className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300"
+    >
+      {kind === "ignored" ? (
+        <>Not a token count — ignored, the saved value is unchanged. Use a number like 200000, 200k or 1M.</>
+      ) : (
+        <>
+          Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+          {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+        </>
+      )}
     </div>
   );
 }
