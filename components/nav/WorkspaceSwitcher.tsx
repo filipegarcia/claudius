@@ -461,6 +461,22 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
                     {(counts[w.id] ?? 0) > 99 ? "99+" : counts[w.id]}
                   </span>
                 )}
+                {/* Rail position for the direct-jump chord (⌘⌥<n>), shown only
+                    while workspace.go<n> is bound. Bottom-right so it never
+                    collides with the unread badge (top-right), and styled as
+                    a neutral keycap so the two don't read as the same thing.
+                    aria-hidden: the chord is already in the title text, and
+                    keeping it out of the accessible name leaves tests that
+                    resolve tiles by name untouched. */}
+                {goBinding && (
+                  <span
+                    aria-hidden
+                    data-testid={`workspace-shortcut-number-${w.id}`}
+                    className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-[4px] bg-[var(--panel-2)] px-0.5 font-mono text-[9px] font-semibold leading-none text-[var(--foreground)] shadow ring-1 ring-[var(--background)]"
+                  >
+                    {idx + 1}
+                  </span>
+                )}
               </button>
               {/* Hover label: floats out to the right of the rail and shows
                   the workspace name with its direct-jump chord (when one is
