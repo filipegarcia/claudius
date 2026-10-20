@@ -13,11 +13,13 @@ import {
   ShieldAlert,
   Timer,
   Webhook,
+  Wrench,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
+import { splitCompactSummaryTools } from "@/lib/shared/compact-summary-tools";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import {
@@ -319,6 +321,10 @@ function CompactBoundaryDivider({ entry, transcriptPath }: { entry: SystemEntry;
   const earlierNotLoaded = !!transcriptPath && !entry.afterMessageUuid;
   const statText = entry.compactStats ? formatCompactStats(entry.compactStats) : null;
   const hasSummary = typeof entry.compactSummary === "string" && entry.compactSummary.length > 0;
+  const summary = useMemo(
+    () => (hasSummary ? splitCompactSummaryTools(entry.compactSummary as string) : null),
+    [hasSummary, entry.compactSummary],
+  );
   return (
     <div className="my-4 w-full text-[11px] text-[var(--muted)]">
       <div className="flex items-center gap-3">
@@ -349,9 +355,31 @@ function CompactBoundaryDivider({ entry, transcriptPath }: { entry: SystemEntry;
           </span>
         </div>
       )}
-      {expanded && hasSummary && (
-        <div className="mx-auto mt-2 max-h-80 max-w-[var(--chat-col)] overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-[11px] leading-5 text-[var(--foreground)]/80 scroll-thin">
-          {entry.compactSummary}
+      {expanded && summary && (
+        <div
+          data-testid="compact-summary-body"
+          className="mx-auto mt-2 max-h-80 max-w-[var(--chat-col)] overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-[11px] leading-5 text-[var(--foreground)]/80 scroll-thin"
+        >
+          {summary.tools.length > 0 && (
+            // CC 2.1.304 — the engine's `<tools-used-before-summary>` tag,
+            // shown with the terminal's wording instead of raw.
+            <div
+              data-testid="compact-summary-tools"
+              className="mb-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 whitespace-normal border-b border-[var(--border)] pb-2 text-[var(--muted)]"
+            >
+              <Wrench className="h-3 w-3 shrink-0 self-center" />
+              <span>Tools called before this summary:</span>
+              {summary.tools.map((t) => (
+                <code
+                  key={t}
+                  className="rounded bg-[var(--panel-2)] px-1 py-px font-mono text-[10px] text-[var(--foreground)]/80"
+                >
+                  {t}
+                </code>
+              ))}
+            </div>
+          )}
+          {summary.body}
         </div>
       )}
     </div>
