@@ -7,6 +7,14 @@ import { isContextWindowExceeded } from "@/lib/shared/context-overflow";
 
 type ContextResponse = {
   categories: {
+    /**
+     * SDK 0.3.304 — stable row id ('system_prompt', 'mcp_instructions',
+     * 'skills', 'messages', …). Unlike `name` it is not localizable prose, so
+     * it is used as the React key and the per-row test id. Optional: absent
+     * from a CLI that predates it; the SDK warns a later CLI may add values,
+     * so this is typed as `string` and never switched on exhaustively.
+     */
+    id?: string;
     name: string;
     tokens: number;
     color: string;
@@ -29,6 +37,18 @@ type ContextResponse = {
   model: string;
   memoryFiles: { path: string; type: string; tokens: number }[];
   mcpTools: { name: string; serverName: string; tokens: number; isLoaded?: boolean }[];
+  /**
+   * SDK 0.3.304 — the 'mcp_instructions' row broken down by server. Only the
+   * row's total is measured; each server's share is estimated from the length
+   * of its instruction text. Present only when the CLI answers on its own
+   * stdio, so absent/empty → the section is simply not rendered.
+   */
+  mcpInstructions?: { serverName: string; tokens: number }[];
+  /**
+   * Custom agents' context cost. SDK 0.3.304 added `pluginId` (providing
+   * plugin) and `path` (agent file on the CLI's machine); both stdio-only.
+   */
+  agents?: { agentType: string; source: string; pluginId?: string; path?: string; tokens: number }[];
   deferredBuiltinTools?: { name: string; tokens: number; isLoaded: boolean }[];
   // CC 2.1.261 parity ("/skill-doctor"). Per-skill token cost, already
   // computed by the SDK's getContextUsage() but not rendered until now.
@@ -39,7 +59,17 @@ type ContextResponse = {
     totalSkills: number;
     includedSkills: number;
     tokens: number;
-    skillFrontmatter: { name: string; source: string; tokens: number }[];
+    skillFrontmatter: {
+      name: string;
+      source: string;
+      tokens: number;
+      /** SDK 0.3.304 — providing plugin's name (not unique across marketplaces). */
+      pluginName?: string;
+      /** SDK 0.3.304 — providing plugin's id (name + marketplace); stdio-only. */
+      pluginId?: string;
+      /** SDK 0.3.304 — absolute path of the skill file on the CLI's machine; stdio-only. */
+      path?: string;
+    }[];
   };
   // CC 2.1.261 (H4) — names of skills invoked in the last 7 days (from the
   // SDK's usage behaviors). `null`/absent = signal unavailable → no "unused"
@@ -214,7 +244,12 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
           <Section title="Categories">
             <ul className="grid grid-cols-1 gap-1 text-xs sm:grid-cols-2">
               {data.categories.map((c) => (
-                <li key={c.name} className="flex items-center gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1">
+                <li
+                  key={c.id ?? c.name}
+                  data-testid="context-category-row"
+                  data-category-id={c.id}
+                  className="flex items-center gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
+                >
                   <span
                     className="h-2 w-2 shrink-0 rounded-sm"
                     style={{ background: colorForCategory(c.name, c.color) }}
@@ -258,6 +293,50 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
               </ul>
             </Section>
           )}
+          {data.mcpInstructions && data.mcpInstructions.length > 0 && (
+            <Section title={`MCP server instructions (${data.mcpInstructions.length})`}>
+              <p className="mb-2 text-[10px] text-[var(--muted)]">
+                Each server&apos;s estimated share of the &ldquo;MCP instructions&rdquo; row, sorted by cost.
+              </p>
+              <ul className="space-y-1 text-xs" data-testid="mcp-instructions-list">
+                {[...data.mcpInstructions]
+                  .sort((a, b) => b.tokens - a.tokens)
+                  .map((m) => (
+                    <li
+                      key={m.serverName}
+                      data-testid="mcp-instructions-row"
+                      className="flex items-baseline justify-between gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
+                    >
+                      <span className="truncate font-mono">{m.serverName}</span>
+                      <span className="text-[var(--muted)]">~{fmtTokens(m.tokens)}</span>
+                    </li>
+                  ))}
+              </ul>
+            </Section>
+          )}
+          {data.agents && data.agents.length > 0 && (
+            <Section title={`Custom agents (${data.agents.length})`}>
+              <ul className="space-y-1 text-xs" data-testid="agent-cost-list">
+                {[...data.agents]
+                  .sort((a, b) => b.tokens - a.tokens)
+                  .map((a) => (
+                    <li
+                      key={`${a.source}/${a.pluginId ?? ""}/${a.agentType}`}
+                      data-testid="agent-cost-row"
+                      title={a.path}
+                      className="flex items-baseline justify-between gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
+                    >
+                      <span className="truncate font-mono">{a.agentType}</span>
+                      <span className="text-[var(--muted)]">
+                        {a.source}
+                        {a.pluginId && <span data-testid="agent-plugin-id"> ({a.pluginId})</span>} ·{" "}
+                        {fmtTokens(a.tokens)}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </Section>
+          )}
           {data.skills && data.skills.skillFrontmatter.length > 0 && (
             <Section title={`Skills (${data.skills.includedSkills}/${data.skills.totalSkills} loaded · ${fmtTokens(data.skills.tokens)})`}>
               <p className="mb-2 text-[10px] text-[var(--muted)]">
@@ -277,8 +356,9 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
                       !data.weeklyUsedSkills.some((u) => u.toLowerCase() === s.name.toLowerCase());
                     return (
                       <li
-                        key={`${s.source}/${s.name}`}
+                        key={`${s.source}/${s.pluginId ?? ""}/${s.name}`}
                         data-testid="skill-cost-row"
+                        title={s.path}
                         className="flex items-baseline justify-between gap-2 rounded-md bg-[var(--panel-2)]/40 px-2 py-1"
                       >
                         <span className="flex min-w-0 items-center gap-1.5 truncate">
@@ -294,7 +374,14 @@ export function ContextOverlay({ sessionId, onClose }: Props) {
                           )}
                         </span>
                         <span className="text-[var(--muted)]">
-                          {s.source} · {fmtTokens(s.tokens)}
+                          {s.source}
+                          {s.pluginName && (
+                            <span data-testid="skill-plugin-name" title={s.pluginId}>
+                              {" "}
+                              ({s.pluginName})
+                            </span>
+                          )}{" "}
+                          · {fmtTokens(s.tokens)}
                         </span>
                       </li>
                     );
@@ -353,7 +440,7 @@ function StackedBar({
   // on `kind` when present, falling back to the old name check for a CLI
   // that predates the field.
   const usedCategories = categories.filter((c) =>
-    c.kind ? c.kind !== "free" : c.name !== "Free space",
+    c.kind ? c.kind !== "free" : c.id ? c.id !== "free_space" : c.name !== "Free space",
   );
   // Sort biggest first so the bar's widest segments lead.
   const sorted = [...usedCategories].sort((a, b) => b.tokens - a.tokens);
@@ -369,7 +456,7 @@ function StackedBar({
           if (share <= 0) return null;
           return (
             <div
-              key={c.name}
+              key={c.id ?? c.name}
               title={`${c.name} · ${c.tokens.toLocaleString()} tok (${Math.round((c.tokens / Math.max(totalTokens, 1)) * 100)}% of used)`}
               style={{ background: colorForCategory(c.name, c.color), width: `${share * 100}%` }}
               className="h-full hover:brightness-125 transition"
