@@ -91,10 +91,10 @@ test.describe("autoCompactWindow k/M suffixes (CC 2.1.304)", () => {
     await expect(field).toBeVisible();
     await expect(field.getByTestId("auto-compact-window-top")).toHaveValue("200000");
 
-    // A value that doesn't parse leaves the stored window alone, even if saved.
+    // A value that doesn't parse leaves the stored window alone: it never
+    // reaches the draft, so the form isn't dirty and Save stays disabled.
     await field.getByTestId("auto-compact-window-top").fill("200g");
-    await page.getByRole("button", { name: /^Save$/ }).click();
-    await page.waitForTimeout(500);
+    await expect(page.getByRole("button", { name: /^Save$/ })).toBeDisabled();
     expect((await readUserSettings(page)).autoCompactWindow).toBe(200_000);
 
     await page.getByLabel("Search settings").fill("autoCompactWindow");
@@ -112,7 +112,9 @@ test.describe("autoCompactWindow k/M suffixes (CC 2.1.304)", () => {
     // bad `x`. The warning must say the form holds 90, and flag it as out of range.
     const row = field.locator("li", { hasText: MODEL });
     const rowInput = row.getByTestId("auto-compact-window-model-input");
-    await rowInput.fill("");
+    // Type over the saved value rather than clearing it first: a blank
+    // per-model input removes the override, which unmounts this row.
+    await rowInput.selectText();
     await rowInput.pressSequentially("90x");
     const rowWarning = row.getByTestId("auto-compact-window-model-warning");
     await expect(rowWarning).toHaveAttribute("data-warning-kind", "ignored");
