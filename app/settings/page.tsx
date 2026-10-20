@@ -1173,6 +1173,15 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Attribution in commits and PRs. Default shows the standard Claude Code attribution; "Hidden" writes `attribution: false` to suppress all of it (same as empty commit/PR text and no session link). For per-field customization (custom commit/PR text, session URL), edit the object form as raw JSON in the "Other" section below. Supersedes the deprecated includeCoAuthoredBy.',
   },
   {
+    // SDK 0.3.305 — names the claude.ai Project this session is attributed to
+    // in the organization's usage reports (UUID or `claude_proj_…` ID).
+    key: "attributionProject",
+    type: "string",
+    section: "Git",
+    placeholder: "claude_proj_…",
+    desc: "The claude.ai Project this session names for your organization's usage reports: the Project's UUID, or its ID starting with \"claude_proj_\". An empty string names none and stops lower-precedence files from naming one. Only sent when Claude Code uses your claude.ai login and connects directly to the Anthropic API. CLAUDE_CODE_ATTRIBUTION_PROJECT takes precedence.",
+  },
+  {
     key: "includeCoAuthoredBy",
     type: "boolean",
     section: "Git",

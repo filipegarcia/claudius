@@ -36,6 +36,22 @@ export type UsageBehaviorStat = {
   count: number;
 };
 
+/**
+ * One recommended change (SDK 0.3.305 `behaviors.{day,week}.recommendations`):
+ * the CLI words it for display, largest share first. `key` is a behaviour key
+ * or `agent` / `skill` / `plugin` / `mcp_server` for a named source, so it is
+ * kept a plain string.
+ */
+export type UsageRecommendation = {
+  key: string;
+  /** Share of the weighted local usage this touches, 0-100. */
+  pct: number;
+  /** What to do, verb first. */
+  title: string;
+  /** A few words: what the scan saw, or the command to run. */
+  detail?: string;
+};
+
 export type UsageBehaviorWindow = {
   /** API requests found in local transcripts for this window. */
   requestCount: number;
@@ -46,6 +62,8 @@ export type UsageBehaviorWindow = {
    * partition, so percentages don't sum to 100.
    */
   behaviors: UsageBehaviorStat[];
+  /** Recommended changes for this window; empty on an SDK that predates 0.3.305. */
+  recommendations: UsageRecommendation[];
 };
 
 export type UsageBehaviors = { day: UsageBehaviorWindow; week: UsageBehaviorWindow };
@@ -104,6 +122,19 @@ function num(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
+function extractRecommendations(raw: unknown): UsageRecommendation[] {
+  if (!Array.isArray(raw)) return [];
+  const out: UsageRecommendation[] = [];
+  for (const r of raw) {
+    if (!r || typeof r !== "object") continue;
+    const { key, pct, title, detail } = r as { key?: unknown; pct?: unknown; title?: unknown; detail?: unknown };
+    if (typeof key !== "string" || typeof title !== "string" || title.trim() === "") continue;
+    if (typeof pct !== "number" || !Number.isFinite(pct)) continue;
+    out.push({ key, pct, title, ...(typeof detail === "string" && detail.trim() !== "" ? { detail } : {}) });
+  }
+  return out;
+}
+
 function extractWindow(raw: unknown): UsageBehaviorWindow | null {
   if (!raw || typeof raw !== "object") return null;
   const w = raw as { request_count?: unknown; session_count?: unknown; behaviors?: unknown };
@@ -118,7 +149,12 @@ function extractWindow(raw: unknown): UsageBehaviorWindow | null {
       behaviors.push({ key, pct, count: num(count) });
     }
   }
-  return { requestCount: num(w.request_count), sessionCount: num(w.session_count), behaviors };
+  return {
+    requestCount: num(w.request_count),
+    sessionCount: num(w.session_count),
+    behaviors,
+    recommendations: extractRecommendations((w as { recommendations?: unknown }).recommendations),
+  };
 }
 
 /**

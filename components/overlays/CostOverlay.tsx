@@ -407,8 +407,14 @@ function UsageBehaviorsSection({ sessionId }: { sessionId: string }) {
   if (!behaviors) return null;
   const dayFlags = filterUsageFlags(behaviors.day.behaviors);
   const weekFlags = filterUsageFlags(behaviors.week.behaviors);
-  if (dayFlags.length === 0 && weekFlags.length === 0) return null;
+  // `recommendations` is SDK 0.3.305; `?? []` also covers an older server body.
+  const dayRecs = behaviors.day.recommendations ?? [];
+  const weekRecs = behaviors.week.recommendations ?? [];
+  if (dayFlags.length === 0 && weekFlags.length === 0 && dayRecs.length === 0 && weekRecs.length === 0) {
+    return null;
+  }
   const flags = period === "day" ? dayFlags : weekFlags;
+  const recs = period === "day" ? dayRecs : weekRecs;
 
   return (
     <div
@@ -452,7 +458,7 @@ function UsageBehaviorsSection({ sessionId }: { sessionId: string }) {
         Last {period === "day" ? "24h" : "7d"} · these are independent characteristics of your usage, not a
         breakdown
       </p>
-      {flags.length === 0 ? (
+      {flags.length === 0 && recs.length === 0 ? (
         <p data-testid="usage-behaviors-empty" className="text-[11px] text-[var(--muted)]">
           Nothing over {USAGE_FLAG_THRESHOLD_PCT}% in this period — try the other window.
         </p>
@@ -468,6 +474,26 @@ function UsageBehaviorsSection({ sessionId }: { sessionId: string }) {
             );
           })}
         </ul>
+      )}
+      {recs.length > 0 && (
+        <div data-testid="usage-recommendations" className="mt-3">
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+            Recommended changes
+          </div>
+          <ul className="space-y-1.5">
+            {recs.map((r, i) => (
+              <li key={`${r.key}-${i}`} data-testid="usage-recommendation" data-key={r.key} className="text-[11px]">
+                <div className="text-[var(--foreground)]">
+                  {r.title}
+                  <span className="ml-1.5 text-[10px] text-[var(--muted)]">~{Math.round(r.pct)}% of usage</span>
+                </div>
+                {r.detail && (
+                  <div className="mt-0.5 pl-2 text-[10px] leading-4 text-[var(--muted)]">{r.detail}</div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
