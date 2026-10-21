@@ -268,6 +268,12 @@ Everything under `.claudius/` is already gitignored.
    15. Watch CI. On green, mark ready, drop `needs-human`, post the
        pinned "shipped" announce. Update `state.json`:
        `lastCompletedVersion = newVersion`, clear `inFlight`.
+   16. Auto-merge or ask, through the same merge gate as the SDK
+       updater (see `scripts/sdk-update/README.md#auto-merge`). The
+       PR merges only when the deterministic blockers are clear and a
+       read-only Claude review confirms the notes' claims match the
+       diff. Otherwise the decision for the human goes at the top of
+       the PR body.
 
 The progress announces are suppressed under `--dry-run` so local
 prompt iteration doesn't spam the channel.
