@@ -213,8 +213,14 @@ test.describe("MCP elicitation (SDK onElicitation)", () => {
     // The mocked SSE stream ends and reconnects, replaying the pending
     // prompt, so the modal can remount under the click on a loaded machine —
     // retry the click until it lands instead of failing on "detached".
+    // A remount also resets the "opened" state, so the done button can be
+    // gone again — re-open the link in that case before retrying the click.
     await expect(async () => {
-      await page.getByTestId("mcp-elicitation-done").click({ timeout: 3_000 });
+      const done = page.getByTestId("mcp-elicitation-done");
+      if (!(await done.isVisible())) {
+        await page.getByTestId("mcp-elicitation-open").click({ timeout: 3_000 });
+      }
+      await done.click({ timeout: 3_000 });
     }).toPass({ timeout: 30_000 });
     await expect(modal).toHaveCount(0);
     expect(posted.map((p) => p.body)).toEqual([
