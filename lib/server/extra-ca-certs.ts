@@ -32,7 +32,7 @@ import { readSettings } from "./settings";
 export const EXTRA_CA_ENV = "NODE_EXTRA_CA_CERTS";
 
 export interface ExtraCaDeps {
-  processEnv?: NodeJS.ProcessEnv;
+  processEnv?: Record<string, string | undefined>;
   /** Returns the user-scope settings `env` block (or undefined). */
   readUserSettingsEnv?: () => Promise<Record<string, unknown> | undefined>;
   readFile?: (path: string) => Promise<string>;

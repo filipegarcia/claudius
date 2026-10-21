@@ -299,6 +299,14 @@ export async function openVoiceSession(
   if (sessions.has(id)) {
     throw new Error(`voice session ${id} already exists`);
   }
+  if (ca && isBun) {
+    // Bun's native WebSocket (the `isBun` branch of `openUpstream`) has no
+    // `ca` option, so the settings-only bundle can't be applied there. The
+    // normal `next dev` / packaged runtimes are Node and take the `ws` path.
+    console.warn(
+      `[voice:${id}] NODE_EXTRA_CA_CERTS from user settings is not applied under the Bun runtime — export it in the environment instead`,
+    );
+  }
   const upstream = openUpstream(url, headers, ca);
 
   const session: VoiceSession = {
