@@ -230,6 +230,9 @@ additive on top of the standalone flows.
    16. `gh pr checks <url> --watch --fail-fast` (full PRs only).
    17. If CI is green, a **second** announce with `pin: true` marks the
        version shipped.
+   18. **Auto-merge or ask.** Merging a green PR is a release (every
+       push to `main` runs `auto-tag.yml` → `release.yml`), so CI green
+       is necessary but not sufficient. See [Auto-merge](#auto-merge).
 
 The five progress posts (3, 6, 9, 10, 12) are suppressed under
 `--dry-run` so local prompt iteration doesn't spam the channel.
@@ -239,6 +242,52 @@ budget runs out, the PR is opened as **draft** with the `needs-human`
 label and a warning banner in the body. The draft is still announced
 (step 15) so the channel knows a human is needed; only the pinned
 "shipped" message (step 17) is withheld until CI is green.
+
+### Auto-merge
+
+`autoMergeOrEscalate` in `orchestrate.ts`, with the decision logic in
+`merge-gate.ts`. Both pipelines call it once CI is green. The PR is
+merged (`gh pr merge --merge --match-head-commit <sha>`) only when
+both layers pass:
+
+1. **Deterministic blockers**, which no review can override:
+   - The PR head isn't the tree this run gated.
+   - CI on the head isn't green.
+   - GitHub reports a conflict, or the merge state isn't `CLEAN`.
+   - The PR is a draft, or a reviewer requested changes.
+   - The PR has the `needs-human` or `no-automerge` label.
+   - The body still has run-note placeholders.
+   - The PR touches `.github/`, the update pipeline itself
+     (`scripts/sdk-update|cc-parity|lib/`, `update-pipeline.sh`), a
+     SQLite migration, or the Electron main process / packaging.
+   - `package.json` changes anything besides `version` and the SDK
+     dependency.
+2. **A read-only Claude review** (`merge-review-prompt.md`). It gets
+   `Read` / `Grep` / `Glob` only, has no workflows, and has a 30 min
+   budget. It answers with a JSON-schema verdict, checking the PR
+   body's claims against the diff for phantom "shipped" items, false
+   skip rationales and weakened tests, and checking whether any
+   "Risks / follow-ups" item has to be decided before release. Its
+   transcript and prompt land in
+   `.claudius/sdk-updater/run-notes/merge-review-pr-<n>.*`.
+
+The facts are re-read after the review, so a push or a `no-automerge`
+label added mid-review still stops the merge. Anything unreadable, a
+crashed or unparseable review, or a failed `gh pr merge` counts as
+**not safe**.
+
+When the PR isn't safe to merge, the orchestrator puts a
+**🧑‍⚖️ Decision needed** block at the very top of the PR body. The
+block has the question, two to four options, the bot's recommendation
+and the reasons. The orchestrator also labels the PR `needs-human` and
+posts the question to the channel. The block sits between
+`<!-- merge-decision:* -->` markers, so the next firing that touches
+the PR replaces it instead of stacking another. To keep the bot from
+ever merging a PR, add the `no-automerge` label. The pipeline never
+removes it.
+
+The standalone `fix-pr` mode never auto-merges. It only re-gates
+locally and doesn't watch CI.
 
 ### Fixing a PR after the fact
 
@@ -438,6 +487,10 @@ All env vars are optional unless flagged otherwise.
 | `SDK_UPDATE_MAX_MINOR_JUMP` | `1` | Refuse to upgrade if `latest - installed` is more minors than this. Stops the first cron firing from trying to absorb a year of changes in one PR. |
 | `SDK_UPDATE_STALE_INFLIGHT_HOURS` | `24` | Self-heal threshold. If `state.inFlight` is older than this, the next firing reclaims it instead of returning `in-flight` forever. Stops a SIGKILL/OOM/host-reboot from bricking the cron. |
 | `SDK_UPDATE_ROOM_SLUG` | `sdk-update` | Which chat-server room to post into when CI goes green. |
+| `UPDATE_AUTO_MERGE` | `1` | Applies to both pipelines. `1` merges a green PR when the [merge gate](#auto-merge) finds it safe. `review` runs the gate and writes the decision block but never merges. `0` skips the step, which leaves the PR ready for review as before. |
+| `UPDATE_MERGE_REVIEW_MODEL` | `claude-opus-5-5` | Model for the read-only merge review. |
+| `UPDATE_MERGE_REVIEW_EFFORT` | `high` | Effort for the merge review. |
+| `UPDATE_MERGE_REVIEW_MAX_MIN` | `30` | Wall-clock budget for the merge review. Running out escalates to a human. |
 
 ---
 
@@ -460,6 +513,7 @@ until green.
 | PR is `draft` with "run-notes never mention N newly-added SDK type-surface identifier(s)" | Claude reasoned from the prose changelog and skipped the `.d.ts` diff — the failure the type-surface gate exists to catch (see `prompt.md`, "The third failure mode") | Open the PR, read the "## Type-surface diff" block in the archived prompt (`.claudius/sdk-updater/run-notes/<v>.prompt.md`), and take a position on each named field. Most resolve to a one-line `[skipped — reason]`; the point is that the decision is on the record. |
 | Type-surface block reads `_(type-surface diff unavailable: …)_` | `npm pack` of the previous version failed (offline runner, registry blip) or `node_modules/` wasn't installed | Harmless by design — the coverage gate no-ops rather than going falsely red, and the prompt tells Claude to read `sdk.d.ts` directly and say so in the run-notes. Re-run if you want the diff. |
 | Two PRs appear (one from this updater, one from Dependabot) | Both bots have npm-ecosystem updates enabled | Exclude `@anthropic-ai/claude-agent-sdk` from `.github/dependabot.yml`, or accept the duplication and close one. |
+| Green PR has a "🧑‍⚖️ Decision needed" block at the top and `needs-human` | The [merge gate](#auto-merge) found a blocker, or the review wasn't confident | Answer the question in the block: merge, push a fix, or close. The reasons list says which check stopped it. The review's prompt + transcript are in `.claudius/sdk-updater/run-notes/merge-review-pr-<n>.*`. |
 | PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 15) always fires; the pinned "shipped" message (step 17) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |
 | PR opened but nothing posted to the channel at all | chat-server unreachable, or `CHAT_SERVER_URL` / token wrong | Announce is best-effort — check the cron log for a `WARN community announce failed` line. The PR is unaffected; fix the chat-server config and the next run/fix will post. |
 | Cron silently does nothing | lock held, env file missing, `check.ts` exited non-zero, or (macOS) `bun`/`gh` not on cron's `PATH` | `make sdk-update-status` + `make sdk-update-logs`. On macOS use the combined `make update-install-cron` so `PATH` is set for cron. |

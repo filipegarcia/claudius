@@ -48,6 +48,7 @@ import {
   addNeedsHumanLabel,
   ALL_GATE_STEPS,
   announceSafe,
+  autoMergeOrEscalate,
   branchContextNote,
   branchShipBlocker,
   buildGateFailureBanner,
@@ -1936,6 +1937,9 @@ async function main(): Promise<void> {
         buildCcShippedAnnouncement({ prUrl, newVersion, prevVersion }),
         { pin: true },
       );
+      // Merge when it's safe to, otherwise put the decision at the top of
+      // the PR (scripts/sdk-update/merge-gate.ts).
+      await autoMergeOrEscalate(prNumber);
     } else {
       const reason = `CI red on ${prUrl} — leaving draft + needs-human for a reviewer`;
       log(reason);

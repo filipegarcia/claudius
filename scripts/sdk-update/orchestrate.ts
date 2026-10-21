@@ -48,7 +48,11 @@
  *                    message carries the reason). Not pinned.
  *  14. CI watch    — `gh pr checks --watch`.
  *  15. Announce    — second POST on fully-green ship (pinned).
- *  16. State       — update lastCompletedVersion / clear inFlight.
+ *  16. Auto-merge  — green PR → merge it if merge-gate.ts finds it safe
+ *                    (deterministic blockers + a read-only Claude review);
+ *                    otherwise write the decision at the top of the PR,
+ *                    label it `needs-human` and announce. `autoMergeOrEscalate`.
+ *  17. State       — update lastCompletedVersion / clear inFlight.
  *
  *   The five progress announces (3, 6, 8, 9, 11) are suppressed under
  *   `--dry-run` so local prompt iteration doesn't spam the channel.
@@ -70,6 +74,11 @@
  *   SDK_UPDATE_MAX_TURNS       optional — agentic turn budget, default 400
  *   SDK_UPDATE_MAX_WALL_MIN    optional — wall-clock budget in minutes, default 360
  *   SDK_UPDATE_MAX_IDLE_MIN    optional — max silence between SDK messages, default 15
+ *   UPDATE_AUTO_MERGE          optional — 1 (default) merge when safe · review = decide + write
+ *                              the decision block but never merge · 0 = skip the step
+ *   UPDATE_MERGE_REVIEW_MODEL  optional — merge reviewer model, default claude-opus-5-5
+ *   UPDATE_MERGE_REVIEW_EFFORT optional — merge reviewer effort, default high
+ *   UPDATE_MERGE_REVIEW_MAX_MIN optional — merge review wall-clock budget, default 30
  */
 
 import { spawn, spawnSync, type SpawnOptions } from "node:child_process";
@@ -108,6 +117,25 @@ import {
   readState as readCcState,
   type UpdaterState as CcUpdaterState,
 } from "../cc-parity/check";
+import {
+  autoMergeWith,
+  buildAutoMergedAnnouncement,
+  buildDecisionNeededAnnouncement,
+  clipReviewDiff,
+  MERGE_REVIEW_SCHEMA,
+  packageJsonBlockers,
+  parseAutoMergeMode,
+  parseMergeReview,
+  parsePrMergeFacts,
+  PR_MERGE_FACT_FIELDS,
+  renderBlockersForPrompt,
+  renderDecisionBlock,
+  stripDecisionBlock,
+  upsertDecisionBlock,
+  type AutoMergeOutcome,
+  type PrMergeFacts,
+  type ReviewResult,
+} from "./merge-gate";
 
 // ── Config ────────────────────────────────────────────────────────────
 
@@ -2156,6 +2184,11 @@ export type ClaudeRunResult = {
   retryable: boolean;
   /** How many query() attempts it took. 1 = no retry was needed. */
   attempts: number;
+  /**
+   * The result envelope's `structured_output`, set only when the run
+   * asked for one via `opts.outputSchema` (the merge review).
+   */
+  structuredOutput?: unknown;
 };
 
 /**
@@ -2176,6 +2209,15 @@ async function runClaudeOnce(
     resumeSessionId?: string | null;
     model?: string;
     effort?: Effort;
+    /** Restrict the built-in tools (the merge review passes read-only ones). Default: all. */
+    tools?: string[];
+    /** Ask for a JSON-schema answer, returned as `structuredOutput`. */
+    outputSchema?: Record<string, unknown>;
+    maxTurns?: number;
+    /** Wall-clock budget when no shared `deadline` is passed. Default MAX_WALL_MS. */
+    maxWallMs?: number;
+    /** Default true. The merge review turns the Workflow tool off. */
+    workflows?: boolean;
   } = {},
 ): Promise<ClaudeRunResult> {
   // Importable check ahead of any orchestration. If the freshly-
@@ -2211,7 +2253,7 @@ async function runClaudeOnce(
   const startedAt = Date.now();
   // Shared across retries when the caller passes one, so three attempts
   // can't add up to three times the wall budget.
-  const deadline = opts.deadline ?? startedAt + MAX_WALL_MS;
+  const deadline = opts.deadline ?? startedAt + (opts.maxWallMs ?? MAX_WALL_MS);
   let turnCount = 0;
   let completed = false;
   let budgetReason: string | null = null;
@@ -2224,6 +2266,7 @@ async function runClaudeOnce(
   // we latch the first one so the PR body can print a `claude --resume`
   // handle for the human who picks the run up.
   let sessionId: string | null = null;
+  let structuredOutput: unknown = undefined;
 
   // Streamed transcript — one JSON object per line so it's trivially
   // greppable (`jq -c '.type' transcript.jsonl | sort | uniq -c` to
@@ -2325,7 +2368,11 @@ async function runClaudeOnce(
       // Hard ceiling on agentic round-trips. The SDK enforces this on
       // its side; we *also* watch wall-clock below in case a single
       // turn drags on (long tool call, network hang).
-      maxTurns: MAX_TURNS,
+      maxTurns: opts.maxTurns ?? MAX_TURNS,
+      ...(opts.tools ? { tools: opts.tools } : {}),
+      ...(opts.outputSchema
+        ? { outputFormat: { type: "json_schema", schema: opts.outputSchema } }
+        : {}),
       // Enable the dynamic Workflow tool so the agent can fan the
       // migration out across sub-agents (audit → implement → adversarial
       // verify → gate-fix loop), driven by the "Step 0" section of
@@ -2345,7 +2392,7 @@ async function runClaudeOnce(
       // + the prompt gives the same decompose/verify behaviour with the
       // budget caps intact.
       settings: {
-        enableWorkflows: true,
+        enableWorkflows: opts.workflows ?? true,
         // Keep the operator's auto-memory (~/.claude/projects/<repo>/memory/)
         // out of these runs. It's loaded as instructions and is written for
         // interactive sessions: on 2.1.293 a note saying "stop git ops while
@@ -2444,6 +2491,10 @@ async function runClaudeOnce(
       // Note `subtype` was "success" on that failure, so is_error is the
       // signal to trust; `subtype !== "success"` additionally catches
       // error_max_turns / error_during_execution.
+      if (m.type === "result") {
+        const so = (msg as { structured_output?: unknown }).structured_output;
+        if (so !== undefined) structuredOutput = so;
+      }
       if (m.type === "result" && !budgetReason) {
         const failure = classifyResultEnvelope(msg);
         if (failure) {
@@ -2475,7 +2526,7 @@ async function runClaudeOnce(
         break;
       }
       if (Date.now() > deadline) {
-        budgetReason = `wall-clock budget exhausted (${Math.round(MAX_WALL_MS / 60_000)} min)`;
+        budgetReason = `wall-clock budget exhausted (${Math.round((opts.maxWallMs ?? MAX_WALL_MS) / 60_000)} min)`;
         retryable = false; // no budget left to retry into
         log(`aborting Claude run: ${budgetReason}`);
         try {
@@ -2548,6 +2599,7 @@ async function runClaudeOnce(
     sessionId,
     retryable,
     attempts: 1,
+    ...(structuredOutput !== undefined ? { structuredOutput } : {}),
   };
 }
 
@@ -5995,6 +6047,264 @@ async function fixPr(
   log(`fix-pr #${prNumber} done: green=${allGreen}`);
 }
 
+// ── Auto-merge ────────────────────────────────────────────────────────
+//
+// The last step of a green run: merge the PR when it is safe to, or put
+// the decision a human has to make at the top of the PR. The decision
+// logic lives in merge-gate.ts; this is its gh/git/Claude wiring. Both
+// pipelines call `autoMergeOrEscalate` right after CI goes green.
+
+const AUTO_MERGE_MODE = parseAutoMergeMode(process.env.UPDATE_AUTO_MERGE);
+// Judging a release is judgment work, so Opus at high effort, set
+// explicitly for the same reason as CC_MODEL in cc-parity/orchestrate.ts.
+const MERGE_REVIEW_MODEL = process.env.UPDATE_MERGE_REVIEW_MODEL || "claude-opus-5-5";
+const MERGE_REVIEW_EFFORT = parseEffort(process.env.UPDATE_MERGE_REVIEW_EFFORT, "high");
+const MERGE_REVIEW_MAX_TURNS = 80;
+const MERGE_REVIEW_MAX_WALL_MS = Number(process.env.UPDATE_MERGE_REVIEW_MAX_MIN ?? "30") * 60_000;
+// Read-only on purpose: the reviewer must not be able to "fix" the PR it is judging.
+const MERGE_REVIEW_TOOLS = ["Read", "Grep", "Glob"];
+const MERGE_REVIEW_DIFF_EXCLUDES = [
+  ":(exclude)bun.lock",
+  ":(exclude)*.png",
+  ":(exclude)*.jpg",
+  ":(exclude)*.jpeg",
+  ":(exclude)*.gif",
+  ":(exclude)*.webp",
+];
+
+function mergeReviewArtifactPath(prNumber: string, ext: "prompt.md" | "transcript.jsonl"): string {
+  return resolve(ROOT, ".claudius", "sdk-updater", "run-notes", `merge-review-pr-${prNumber}.${ext}`);
+}
+
+export function renderMergeReviewPrompt(args: {
+  facts: PrMergeFacts;
+  blockers: readonly string[];
+  diffStat: string;
+  diff: string;
+}): string {
+  const tpl = readFileSync(resolve(SCRIPT_DIR, "merge-review-prompt.md"), "utf8");
+  return fillTemplate(tpl, {
+    PR_NUMBER: String(args.facts.number),
+    PR_TITLE: args.facts.title,
+    PR_URL: args.facts.url,
+    HEAD_SHA: args.facts.headRefOid,
+    BLOCKERS: renderBlockersForPrompt(args.blockers),
+    DIFF_STAT: args.diffStat.trim() || "(empty)",
+    PR_BODY: stripDecisionBlock(args.facts.body).trim() || "_(empty body)_",
+    DIFF: clipReviewDiff(args.diff).trim() || "(empty)",
+  });
+}
+
+/** git output that may run past spawnSync's 1 MB default buffer (a large diff). Throws on failure. */
+function gitLarge(args: string[]): string {
+  const res = spawnSync("git", args, { cwd: ROOT, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+  if (res.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed (${res.status}): ${res.stderr || res.error?.message || ""}`);
+  }
+  return res.stdout ?? "";
+}
+
+/** `git show <rev>:<path>`, or null when it can't be read. */
+function gitShowOrNull(spec: string): string | null {
+  const res = spawnSync("git", ["show", spec], { cwd: ROOT, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+  return res.status === 0 ? (res.stdout ?? "") : null;
+}
+
+async function runMergeReview(facts: PrMergeFacts, blockers: readonly string[]): Promise<ReviewResult> {
+  const prNumber = String(facts.number);
+  const prompt = renderMergeReviewPrompt({
+    facts,
+    blockers,
+    diffStat: gitLarge(["diff", "--stat", "origin/main...HEAD"]),
+    diff: gitLarge(["diff", "origin/main...HEAD", "--", ".", ...MERGE_REVIEW_DIFF_EXCLUDES]),
+  });
+  const txPath = mergeReviewArtifactPath(prNumber, "transcript.jsonl");
+  mkdirSync(dirname(txPath), { recursive: true });
+  writeFileSync(mergeReviewArtifactPath(prNumber, "prompt.md"), prompt, "utf8");
+  log(`merge review of PR #${prNumber}: model=${MERGE_REVIEW_MODEL} effort=${MERGE_REVIEW_EFFORT} (${prompt.length} byte prompt)`);
+
+  // One retry for a transport blip, cold (the review is short, so a
+  // fresh start is cheaper than reasoning about a resume).
+  let failure = "no attempt made";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const res = await runClaudeOnce(prompt, txPath, {
+      append: attempt > 1,
+      model: MERGE_REVIEW_MODEL,
+      effort: MERGE_REVIEW_EFFORT,
+      tools: MERGE_REVIEW_TOOLS,
+      outputSchema: MERGE_REVIEW_SCHEMA,
+      maxTurns: MERGE_REVIEW_MAX_TURNS,
+      maxWallMs: MERGE_REVIEW_MAX_WALL_MS,
+      workflows: false,
+    });
+    const review = parseMergeReview(res.structuredOutput);
+    if (review) return { review };
+    failure = res.budgetReason ?? "the run finished without a structured verdict";
+    if (!res.retryable) break;
+    log(`merge review attempt ${attempt} failed (${failure})`);
+  }
+  return { error: oneLine(failure, 300) };
+}
+
+function readPrMergeFacts(prNumber: string): PrMergeFacts {
+  const read = () => parsePrMergeFacts(sh("gh", ["pr", "view", prNumber, "--json", PR_MERGE_FACT_FIELDS]));
+  let facts = read();
+  // GitHub computes mergeability lazily after a push, so the first read
+  // is often UNKNOWN. Give it a minute before calling it a blocker. (A
+  // merged or closed PR reports UNKNOWN forever, so only poll an open one.)
+  for (
+    let i = 0;
+    i < 6 && facts.state === "OPEN" && (facts.mergeable === "UNKNOWN" || facts.mergeStateStatus === "UNKNOWN");
+    i++
+  ) {
+    sleepSync(10_000);
+    facts = read();
+  }
+  return facts;
+}
+
+/**
+ * Does the PR head carry the exact tree this run gated and is about to
+ * review? Compared by tree, not SHA: `pushBranchWithExplicitLease` skips
+ * the push when origin already has an equal-content commit, so a
+ * matching tree under a different SHA is the normal case, not a race.
+ */
+function prHeadMatchesLocalTree(facts: PrMergeFacts): boolean {
+  if (!/^[0-9a-f]{40}$/.test(facts.headRefOid)) return false;
+  if (!isUpdateBranch(facts.headRefName)) return false;
+  spawnSync("git", ["fetch", "origin", facts.headRefName, "--quiet"], { cwd: ROOT, encoding: "utf8" });
+  const tree = (rev: string) => {
+    const res = spawnSync("git", ["rev-parse", "--verify", "--quiet", `${rev}^{tree}`], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    return res.status === 0 ? (res.stdout ?? "").trim() : null;
+  };
+  const remote = tree(facts.headRefOid);
+  return remote !== null && remote === tree("HEAD");
+}
+
+function prCiVerdict(prNumber: string): string {
+  const res = spawnSync("gh", ["pr", "checks", prNumber, "--json", "name,bucket"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  const parsed = parseCiChecks(res.stdout ?? "", res.stderr ?? "", res.status);
+  return "error" in parsed ? "unknown" : ciVerdict(parsed.rows);
+}
+
+function writePrBody(prNumber: string, body: string): void {
+  const res = spawnSync("gh", ["pr", "edit", prNumber, "--body-file", "-"], {
+    cwd: ROOT,
+    input: clampGitHubBody(body),
+    encoding: "utf8",
+  });
+  if (res.status !== 0) throw new Error(`gh pr edit --body-file failed (${res.status}): ${res.stderr ?? ""}`);
+}
+
+/**
+ * Merge the green PR `prNumber` if it is safe to, otherwise write the
+ * decision at the top of its body, label it `needs-human` and tell the
+ * channel. The working tree must still be on the PR's branch at the
+ * commit CI just passed.
+ *
+ * Never throws. A crash in here must not fail a run whose PR is already
+ * open and green, so it is logged, the PR is flagged, and the run ends
+ * as it did before this step existed.
+ */
+export async function autoMergeOrEscalate(prNumber: string): Promise<AutoMergeOutcome | null> {
+  if (!/^\d+$/.test(prNumber)) {
+    log(`WARN auto-merge: "${prNumber}" is not a PR number — skipping`);
+    return null;
+  }
+  try {
+    const outcome = await autoMergeWith({
+      mode: AUTO_MERGE_MODE,
+      readFacts: () => readPrMergeFacts(prNumber),
+      headMatchesLocal: prHeadMatchesLocalTree,
+      ciVerdict: () => prCiVerdict(prNumber),
+      changedFiles: () => {
+        // Best-effort refresh so a stale origin/main can't add or hide files.
+        spawnSync("git", ["fetch", "origin", "main", "--quiet"], { cwd: ROOT, encoding: "utf8" });
+        return gitLarge(["diff", "--name-only", "origin/main...HEAD"])
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+      },
+      packageJsonBlockers: () => {
+        const mergeBase = sh("git", ["merge-base", "origin/main", "HEAD"]);
+        return packageJsonBlockers(
+          gitShowOrNull(`${mergeBase}:package.json`),
+          gitShowOrNull("HEAD:package.json"),
+        );
+      },
+      bodyPlaceholders: findBodyPlaceholders,
+      review: runMergeReview,
+      merge: (headSha) => {
+        const res = spawnSync(
+          "gh",
+          ["pr", "merge", prNumber, "--merge", "--match-head-commit", headSha],
+          { cwd: ROOT, encoding: "utf8" },
+        );
+        return res.status === 0
+          ? { ok: true }
+          : { ok: false, error: (res.stderr || res.stdout || `exit ${res.status}`).trim() };
+      },
+      writeBody: (body) => writePrBody(prNumber, body),
+      markNeedsHuman: () => addNeedsHumanLabel(prNumber),
+      log,
+    });
+    if (outcome.kind === "merged") {
+      await announceSafe(
+        buildAutoMergedAnnouncement({
+          prUrl: outcome.facts.url,
+          title: outcome.facts.title,
+          summary: outcome.review.summary,
+        }),
+        { pin: false },
+      );
+    } else if (outcome.kind === "escalated") {
+      log(`PR #${prNumber} needs a human decision: ${outcome.question}`);
+      await announceSafe(
+        buildDecisionNeededAnnouncement({
+          prUrl: outcome.facts.url,
+          title: outcome.facts.title,
+          question: outcome.question,
+          reasons: outcome.reasons,
+        }),
+        { pin: false },
+      );
+    }
+    return outcome;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    log(`WARN auto-merge step failed (${oneLine(reason, 300)}) — leaving PR #${prNumber} for a human`);
+    // Fail closed, best-effort: flag the PR so the silence isn't read as a pass.
+    try {
+      const facts = parsePrMergeFacts(sh("gh", ["pr", "view", prNumber, "--json", PR_MERGE_FACT_FIELDS]));
+      if (facts.state === "OPEN") {
+        const block = renderDecisionBlock({
+          blockers: [`The auto-merge check crashed: ${oneLine(reason, 300)}`],
+          review: null,
+          reviewError: null,
+          reviewOnly: false,
+          headSha: facts.headRefOid,
+        });
+        writePrBody(prNumber, upsertDecisionBlock(facts.body, block));
+        addNeedsHumanLabel(prNumber);
+      }
+    } catch (inner) {
+      log(`WARN could not flag PR #${prNumber} either: ${String(inner)}`);
+    }
+    await announceSafe(
+      `🧑‍⚖️ The auto-merge check on PR #${prNumber} crashed, so it was not merged and needs a human.\n` +
+        oneLine(reason, 300),
+      { pin: false },
+    );
+    return null;
+  }
+}
+
 // ── Main ──────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -6823,6 +7133,14 @@ async function main(): Promise<void> {
         branch,
         prUrl,
       });
+    }
+
+    // 7. Green → merge it when it's safe to, otherwise put the decision at
+    //    the top of the PR. Last, so the detached-CC block above already
+    //    has both URLs. The detached CC draft itself never comes here: it
+    //    exists because its half failed.
+    if (ciPassed) {
+      await autoMergeOrEscalate(prNumber);
     }
 
     // Reached the normal end of the run without throwing — mark success so
