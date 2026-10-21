@@ -58,7 +58,15 @@ const EPHEMERAL = new Set(["permission_request", "mcp_elicitation_request", "pro
 
 type Posted = { url: string; body: unknown };
 
-async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<Posted[]> {
+// `replayPending` mimics the real server, which re-emits still-pending prompts
+// when the stream resubscribes — without it the prompt only exists until the
+// first (mock-induced) reconnect, which a loaded machine can reach before the
+// test has clicked anything.
+async function mockChatBackend(
+  page: Page,
+  events: SdkEvent[],
+  opts: { replayPending?: boolean } = {},
+): Promise<Posted[]> {
   const posted: Posted[] = [];
   await page.route("**/api/sessions", async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
@@ -68,7 +76,7 @@ async function mockChatBackend(page: Page, events: SdkEvent[]): Promise<Posted[]
   let connections = 0;
   await page.route(`**/api/sessions/${FAKE_SESSION_ID}/stream*`, async (route: Route) => {
     connections += 1;
-    const body = connections > 1 ? events.filter((e) => !EPHEMERAL.has(String(e.type))) : events;
+    const body = connections > 1 && !opts.replayPending ? events.filter((e) => !EPHEMERAL.has(String(e.type))) : events;
     return route.fulfill({
       status: 200,
       headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
@@ -185,18 +193,22 @@ test.describe("MCP elicitation (SDK onElicitation)", () => {
   // complete by the server, so opening the link must NOT accept immediately;
   // the prompt waits for the user's "I'm done, continue".
   test("URL prompt with no elicitationId waits for 'I'm done, continue'", async ({ page }) => {
-    const posted = await mockChatBackend(page, [
-      ...PRELUDE,
-      {
-        type: "mcp_elicitation_request",
-        requestId: "eli-nocomplete",
-        serverName: "linear",
-        message: "Finish signing in, then come back.",
-        mode: "url",
-        url: "https://linear.app/oauth/authorize?client_id=abc",
-        // no elicitationId
-      },
-    ]);
+    const posted = await mockChatBackend(
+      page,
+      [
+        ...PRELUDE,
+        {
+          type: "mcp_elicitation_request",
+          requestId: "eli-nocomplete",
+          serverName: "linear",
+          message: "Finish signing in, then come back.",
+          mode: "url",
+          url: "https://linear.app/oauth/authorize?client_id=abc",
+          // no elicitationId
+        },
+      ],
+      { replayPending: true },
+    );
     await page.goto("/");
 
     const modal = page.getByTestId("mcp-elicitation-modal");
@@ -213,8 +225,14 @@ test.describe("MCP elicitation (SDK onElicitation)", () => {
     // The mocked SSE stream ends and reconnects, replaying the pending
     // prompt, so the modal can remount under the click on a loaded machine —
     // retry the click until it lands instead of failing on "detached".
+    // A remount also resets the "opened" state, so the done button can be
+    // gone again — re-open the link in that case before retrying the click.
     await expect(async () => {
-      await page.getByTestId("mcp-elicitation-done").click({ timeout: 3_000 });
+      const done = page.getByTestId("mcp-elicitation-done");
+      if (!(await done.isVisible())) {
+        await page.getByTestId("mcp-elicitation-open").click({ timeout: 3_000 });
+      }
+      await done.click({ timeout: 3_000 });
     }).toPass({ timeout: 30_000 });
     await expect(modal).toHaveCount(0);
     expect(posted.map((p) => p.body)).toEqual([

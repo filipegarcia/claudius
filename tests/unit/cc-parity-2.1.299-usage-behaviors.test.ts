@@ -40,8 +40,9 @@ describe("extractUsageBehaviors", () => {
         requestCount: 120,
         sessionCount: 4,
         behaviors: [stat("max_effort", 41.2, 50), stat("workflow", 22, 12)],
+        recommendations: [],
       },
-      week: { requestCount: 900, sessionCount: 30, behaviors: [stat("cache_miss", 15, 70)] },
+      week: { requestCount: 900, sessionCount: 30, behaviors: [stat("cache_miss", 15, 70)], recommendations: [] },
     });
   });
 
@@ -64,6 +65,48 @@ describe("extractUsageBehaviors", () => {
     expect(out?.day.behaviors).toEqual([stat("long_context", 30, 0)]);
     expect(out?.day.requestCount).toBe(0);
     expect(out?.week.behaviors).toEqual([]);
+  });
+});
+
+describe("extractUsageBehaviors — recommendations (SDK 0.3.305)", () => {
+  test("keeps well-formed recommendations, with or without detail, in SDK order", () => {
+    const out = extractUsageBehaviors({
+      behaviors: {
+        day: {
+          behaviors: [],
+          recommendations: [
+            { key: "max_effort", pct: 41.2, title: "Lower the default effort", detail: "/effort high" },
+            { key: "mcp_server", pct: 12, title: "Disable the unused linear server" },
+          ],
+        },
+        week: { behaviors: [] },
+      },
+    });
+    expect(out?.day.recommendations).toEqual([
+      { key: "max_effort", pct: 41.2, title: "Lower the default effort", detail: "/effort high" },
+      { key: "mcp_server", pct: 12, title: "Disable the unused linear server" },
+    ]);
+    // An SDK that predates the field (or a window without it) yields [].
+    expect(out?.week.recommendations).toEqual([]);
+  });
+
+  test("drops malformed entries and blank details", () => {
+    const out = extractUsageBehaviors({
+      behaviors: {
+        day: {
+          recommendations: [
+            null,
+            { key: 1, pct: 5, title: "bad key" },
+            { key: "cron", pct: "5", title: "bad pct" },
+            { key: "cron", pct: 5, title: "  " },
+            { key: "cron", pct: 5, title: "Trim loops", detail: "   " },
+          ],
+        },
+        week: { recommendations: "nope" },
+      },
+    });
+    expect(out?.day.recommendations).toEqual([{ key: "cron", pct: 5, title: "Trim loops" }]);
+    expect(out?.week.recommendations).toEqual([]);
   });
 });
 
