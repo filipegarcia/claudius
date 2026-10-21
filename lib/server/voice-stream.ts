@@ -420,6 +420,18 @@ export function finalizeVoiceSession(id: string): boolean {
 }
 
 /**
+ * CC 2.1.307 parity — the SSE `close` payload to send when the *proxy* ends a
+ * session on its own (today: the idle reaper), or null for close reasons the
+ * renderer already hears about (upstream close relays its own frame; client
+ * abort / user finalize need no notice). Same `{ code, reason }` shape as the
+ * upstream relay, parsed by `parseVoiceCloseFrame` in the renderer.
+ */
+export function selfStopCloseFrame(reason: string): string | null {
+  if (reason !== "idle-timeout") return null;
+  return JSON.stringify({ code: null, reason: "idle-timeout" });
+}
+
+/**
  * Tear down a session unconditionally. Safe to call multiple times.
  * `reason` shows up in logs to help diagnose unexpected drops.
  */
@@ -433,9 +445,10 @@ export function closeSession(id: string, reason: string): void {
   // pressing stop. Tell the renderer why (same `close` frame shape the
   // upstream-close path relays) so the composer can show its self-stop
   // notice instead of the mic silently going grey.
-  if (reason === "idle-timeout") {
+  const selfStop = selfStopCloseFrame(reason);
+  if (selfStop) {
     try {
-      session.sink.send("close", JSON.stringify({ code: null, reason: "idle-timeout" }));
+      session.sink.send("close", selfStop);
     } catch {
       /* sink already gone */
     }

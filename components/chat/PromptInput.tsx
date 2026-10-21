@@ -2162,7 +2162,11 @@ export function PromptInput({
                       ? `${voice.notice} Click to dictate again.`
                       : "Voice dictation"
               }
-              aria-describedby={voice.notice && !sendFailedNotice ? `${testIdPrefix}-voice-stop-notice` : undefined}
+              aria-describedby={
+                voice.notice && !voice.listening && !sendFailedNotice && !invisibleNotice
+                  ? `${testIdPrefix}-voice-stop-notice`
+                  : undefined
+              }
               className={cn(
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
                 voice.listening
@@ -2263,12 +2267,18 @@ export function PromptInput({
             >
               <span>{sendFailedNotice}</span>
             </span>
+          ) : invisibleNotice ? (
+            <span data-testid={`${testIdPrefix}-invisible-unicode-notice`} className="flex items-center gap-1.5">
+              <span>{invisibleNotice}</span>
+            </span>
           ) : voice.notice && !voice.listening ? (
             // CC 2.1.307 parity — "[VSCode] notice on the microphone button
             // when voice dictation stops by itself, saying why and that the
             // text so far is kept". Footer status slot, same idiom as the
-            // send-failed notice; the mic itself turns amber and carries the
-            // same text in its title (aria-describedby points here).
+            // send-failed notice. Ranked after the short-lived invisible-
+            // Unicode warning so a paste warning is never masked. The mic
+            // turns amber and carries the same text in its title
+            // (aria-describedby points here).
             <span
               role="status"
               id={`${testIdPrefix}-voice-stop-notice`}
@@ -2286,10 +2296,6 @@ export function PromptInput({
               >
                 · dismiss
               </button>
-            </span>
-          ) : invisibleNotice ? (
-            <span data-testid={`${testIdPrefix}-invisible-unicode-notice`} className="flex items-center gap-1.5">
-              <span>{invisibleNotice}</span>
             </span>
           ) : hintState === "active" && detectedHint ? (
             <button

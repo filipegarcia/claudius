@@ -4,7 +4,10 @@
  * the 2-minute limit), saying why and that the text so far is kept".
  *
  * Claudius reimplements dictation (`lib/client/useVoice.ts` →
- * `lib/server/voice-stream.ts`). When the transcription service ended the
+ * `lib/server/voice-stream.ts`). It has no client-side 15 s / 2 min caps
+ * (VSCode's own reasons); Claudius's self-stops are an upstream close (with
+ * its code/reason), the proxy's 30 s idle reaper, or a 410 on a chunk upload,
+ * and the notice explains whichever happened. When the transcription service ended the
  * session on its own, the red mic went grey with no explanation. Now a
  * self-stop (an SSE `close` the user didn't ask for) turns the mic amber and
  * shows a footer status saying why and that the text so far is kept. A stop

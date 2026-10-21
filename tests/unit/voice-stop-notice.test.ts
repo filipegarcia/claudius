@@ -68,3 +68,21 @@ describe("parseVoiceCloseFrame", () => {
     expect(parseVoiceCloseFrame('{"code":"1000"}')).toEqual({ code: null, reason: null });
   });
 });
+
+describe("selfStopCloseFrame (proxy → renderer contract)", () => {
+  it("emits a frame the renderer parses into the idle-timeout notice", async () => {
+    const { selfStopCloseFrame } = await import("@/lib/server/voice-stream");
+    const frame = selfStopCloseFrame("idle-timeout");
+    expect(frame).not.toBeNull();
+    const parsed = parseVoiceCloseFrame(frame);
+    expect(parsed).toEqual({ code: null, reason: "idle-timeout" });
+    expect(describeVoiceSelfStop({ kind: "close", ...parsed })).toContain("for 30 seconds");
+  });
+
+  it("sends nothing for reasons the renderer already hears about", async () => {
+    const { selfStopCloseFrame } = await import("@/lib/server/voice-stream");
+    for (const r of ["client-abort", "upstream-close-1000", "upstream-error"]) {
+      expect(selfStopCloseFrame(r)).toBeNull();
+    }
+  });
+});
