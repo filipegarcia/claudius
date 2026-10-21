@@ -33,6 +33,7 @@
 import WebSocket from "ws";
 
 import { readAccountsRaw } from "./accounts-store";
+import { resolveExtraCaCerts } from "./extra-ca-certs";
 
 /**
  * Bun's `ws` shim mis-translates the upstream's WS upgrade response
@@ -58,7 +59,11 @@ interface UpstreamConn {
   onClose: (cb: (code: number, reason: string) => void) => void;
 }
 
-function openUpstream(url: string, headers: Record<string, string>): UpstreamConn {
+function openUpstream(
+  url: string,
+  headers: Record<string, string>,
+  ca?: string[],
+): UpstreamConn {
   if (isBun) {
     // Bun's `new WebSocket(url, { headers })` is a documented extension
     // — same shape used by our voice-probe script that confirmed the
@@ -126,6 +131,10 @@ function openUpstream(url: string, headers: Record<string, string>): UpstreamCon
     // upstream OR for short JSON transcripts downstream. Matches the
     // CLI's connection options.
     perMessageDeflate: false,
+    // CC 2.1.307 — trust a `NODE_EXTRA_CA_CERTS` bundle that's set only
+    // in ~/.claude/settings.json (see `extra-ca-certs.ts`). Omitted when
+    // there's none, so Node's default trust store applies unchanged.
+    ...(ca ? { ca } : {}),
   });
   // Defensive: the CLI binary logs "unexpected-response fired with 101;
   // ignoring", meaning under some conditions `ws` emits this event
@@ -284,7 +293,13 @@ export async function openVoiceSession(
   }
 
   console.log(`[voice:${id}] openVoiceSession url=${url.split("?")[0]} ...?<params>`);
-  const upstream = openUpstream(url, headers);
+  const ca = await resolveExtraCaCerts();
+  // Re-check after the await: a duplicate open for the same id could have
+  // registered while the CA lookup was in flight.
+  if (sessions.has(id)) {
+    throw new Error(`voice session ${id} already exists`);
+  }
+  const upstream = openUpstream(url, headers, ca);
 
   const session: VoiceSession = {
     id,
@@ -406,6 +421,17 @@ export function closeSession(id: string, reason: string): void {
   if (session.closed) return;
   console.log(`[voice:${id}] closeSession reason=${reason}`);
   session.closed = true;
+  // CC 2.1.307 parity — the idle reaper ends dictation without the user
+  // pressing stop. Tell the renderer why (same `close` frame shape the
+  // upstream-close path relays) so the composer can show its self-stop
+  // notice instead of the mic silently going grey.
+  if (reason === "idle-timeout") {
+    try {
+      session.sink.send("close", JSON.stringify({ code: null, reason: "idle-timeout" }));
+    } catch {
+      /* sink already gone */
+    }
+  }
   clearInterval(session.idleTimer);
   clearInterval(session.keepaliveTimer);
   try {

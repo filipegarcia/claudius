@@ -974,6 +974,9 @@ export function PromptInput({
 
   function submit() {
     if (sendDisabled) return;
+    // The dictation self-stop notice is about the draft being sent now —
+    // once it's gone, so is the notice's point.
+    voice.dismissNotice();
     // `!`-mode takes precedence over the normal send. Detected at submit
     // time (rather than during onKeyDown) so any code path that calls
     // submit() — Enter, Send button click, IME flush — routes to bash
@@ -2155,13 +2158,16 @@ export function PromptInput({
                   ? `Voice: ${voice.error}`
                   : voice.listening
                     ? "Stop dictation"
-                    : "Voice dictation"
+                    : voice.notice
+                      ? `${voice.notice} Click to dictate again.`
+                      : "Voice dictation"
               }
+              aria-describedby={voice.notice && !sendFailedNotice ? `${testIdPrefix}-voice-stop-notice` : undefined}
               className={cn(
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
                 voice.listening
                   ? "bg-red-500/90 text-white animate-pulse"
-                  : voice.error
+                  : voice.error || voice.notice
                     ? "text-amber-500 hover:bg-[var(--panel)]"
                     : "text-[var(--muted)] hover:bg-[var(--panel)]",
               )}
@@ -2256,6 +2262,30 @@ export function PromptInput({
               className="flex items-center gap-1.5 text-amber-400"
             >
               <span>{sendFailedNotice}</span>
+            </span>
+          ) : voice.notice && !voice.listening ? (
+            // CC 2.1.307 parity — "[VSCode] notice on the microphone button
+            // when voice dictation stops by itself, saying why and that the
+            // text so far is kept". Footer status slot, same idiom as the
+            // send-failed notice; the mic itself turns amber and carries the
+            // same text in its title (aria-describedby points here).
+            <span
+              role="status"
+              id={`${testIdPrefix}-voice-stop-notice`}
+              data-testid={`${testIdPrefix}-voice-stop-notice`}
+              className="flex min-w-0 items-center gap-1.5 text-amber-400"
+            >
+              <MicOff className="h-3 w-3 shrink-0" aria-hidden />
+              <span className="truncate">{voice.notice}</span>
+              <button
+                type="button"
+                data-testid={`${testIdPrefix}-voice-stop-notice-dismiss`}
+                onClick={voice.dismissNotice}
+                title="Dismiss"
+                className="shrink-0 text-[var(--muted)]/70 hover:text-[var(--foreground)]"
+              >
+                · dismiss
+              </button>
             </span>
           ) : invisibleNotice ? (
             <span data-testid={`${testIdPrefix}-invisible-unicode-notice`} className="flex items-center gap-1.5">
