@@ -42,7 +42,8 @@ export function isCaTrustFailure(err: unknown): boolean {
 }
 
 /**
- * The hint for a CA-trust failure, or `null` when `err` isn't one.
+ * The hint for a CA-trust failure, or `null` when `err` isn't one. Kept short:
+ * it's shown in the composer's one-line footer status slot.
  *
  * `extraCaConfigured` — whether an extra CA bundle was already in effect for
  * the socket (`NODE_EXTRA_CA_CERTS` in the real environment, or the
@@ -54,14 +55,24 @@ export function tlsCertFailureHint(
   opts: { extraCaConfigured: boolean },
 ): string | null {
   if (!isCaTrustFailure(err)) return null;
-  if (opts.extraCaConfigured) {
-    return (
-      "Dictation couldn't verify the server's certificate even with NODE_EXTRA_CA_CERTS set. " +
-      "Check that the bundle includes the CA of your TLS-inspecting proxy, then try again."
-    );
-  }
-  return (
-    "Dictation couldn't verify the server's certificate, usually because a TLS-inspecting proxy is in the way. " +
-    "Set NODE_EXTRA_CA_CERTS to the proxy's CA bundle (in your environment or the env block of ~/.claude/settings.json), then try again."
-  );
+  return opts.extraCaConfigured
+    ? "Dictation: certificate not trusted even with NODE_EXTRA_CA_CERTS. Check the bundle has your proxy's CA, then retry."
+    : "Dictation: certificate not trusted (TLS-inspecting proxy?). Set NODE_EXTRA_CA_CERTS to its CA bundle, then retry.";
+}
+
+/**
+ * The longer server-log form: the hint plus where the variable can live.
+ * Claudius applies a user-settings `env.NODE_EXTRA_CA_CERTS` to the dictation
+ * socket itself (CC 2.1.307, `lib/server/extra-ca-certs.ts`), so either place
+ * works without a restart.
+ */
+export function tlsCertFailureLogHint(
+  err: unknown,
+  opts: { extraCaConfigured: boolean },
+): string | null {
+  const hint = tlsCertFailureHint(err, opts);
+  if (!hint) return null;
+  return opts.extraCaConfigured
+    ? hint
+    : `${hint} It can be set in the environment or in the env block of ~/.claude/settings.json.`;
 }

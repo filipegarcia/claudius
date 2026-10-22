@@ -357,7 +357,7 @@ export default function SessionsPage() {
               {filtered.map((s) => {
                 const unread = unreadBySession[s.sessionId] ?? 0;
                 return (
-                <li key={s.sessionId} className="group">
+                <li key={s.sessionId} className="group" data-testid="session-row" data-session-id={s.sessionId}>
                   <div
                     className={cn(
                       "flex items-start gap-3 border-l-2 px-4 py-3 hover:bg-[var(--panel)]/40",

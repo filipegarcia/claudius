@@ -2286,7 +2286,7 @@ export function PromptInput({
               className="flex min-w-0 items-center gap-1.5 text-amber-400"
             >
               <MicOff className="h-3 w-3 shrink-0" aria-hidden />
-              <span className="truncate">{voice.notice}</span>
+              <span className="truncate" title={voice.notice}>{voice.notice}</span>
               <button
                 type="button"
                 data-testid={`${testIdPrefix}-voice-stop-notice-dismiss`}

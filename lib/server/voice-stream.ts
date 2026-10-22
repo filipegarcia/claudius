@@ -34,7 +34,7 @@ import WebSocket from "ws";
 
 import { readAccountsRaw } from "./accounts-store";
 import { EXTRA_CA_ENV, resolveExtraCaCerts } from "./extra-ca-certs";
-import { tlsCertFailureHint } from "@/lib/shared/tls-cert-hint";
+import { tlsCertFailureHint, tlsCertFailureLogHint } from "@/lib/shared/tls-cert-hint";
 
 /**
  * Bun's `ws` shim mis-translates the upstream's WS upgrade response
@@ -363,11 +363,11 @@ export async function openVoiceSession(
     // CC 2.1.309 parity — a certificate-verification failure (typically a
     // TLS-inspecting proxy) gets a warning that says what to do, both in the
     // server log and in the payload the composer's mic shows.
-    const hint = tlsCertFailureHint(err, {
-      extraCaConfigured: ca !== undefined || Boolean(process.env[EXTRA_CA_ENV]),
-    });
+    const caOpts = { extraCaConfigured: ca !== undefined || Boolean(process.env[EXTRA_CA_ENV]) };
+    const hint = tlsCertFailureHint(err, caOpts);
+    const logHint = tlsCertFailureLogHint(err, caOpts);
     console.warn(
-      `[voice:${id}] upstream error: ${err.message}${hint ? ` — ${hint}` : ""}`,
+      `[voice:${id}] upstream error: ${err.message}${logHint ? ` — ${logHint}` : ""}`,
     );
     sink.send(
       "error",

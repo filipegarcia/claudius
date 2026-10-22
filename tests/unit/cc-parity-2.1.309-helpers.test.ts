@@ -6,7 +6,7 @@ import {
 } from "@/lib/shared/dangerous-rm-deny";
 import { FEEDBACK_REASON_MAX, feedbackRefusalReason } from "@/lib/shared/feedback-refusal";
 import { isHistoryWorthyDbRow } from "@/lib/shared/session-history";
-import { isCaTrustFailure, tlsCertFailureHint } from "@/lib/shared/tls-cert-hint";
+import { isCaTrustFailure, tlsCertFailureHint, tlsCertFailureLogHint } from "@/lib/shared/tls-cert-hint";
 
 // Verbatim engine wording (bundled `claude` binary, CC 2.1.309).
 const RM_WORKSPACE =
@@ -110,12 +110,15 @@ describe("tlsCertFailureHint (CC 2.1.309 dictation cert warning)", () => {
   it("tells the user to set NODE_EXTRA_CA_CERTS when none is configured", () => {
     const hint = tlsCertFailureHint(leaf, { extraCaConfigured: false })!;
     expect(hint).toContain("Set NODE_EXTRA_CA_CERTS");
-    expect(hint).toContain("~/.claude/settings.json");
+    // Short enough for the composer's one-line footer.
+    expect(hint.length).toBeLessThanOrEqual(120);
+    // The server log adds where the variable can live.
+    expect(tlsCertFailureLogHint(leaf, { extraCaConfigured: false })).toContain("~/.claude/settings.json");
   });
 
   it("tells the user to check the bundle when one is already applied", () => {
     const hint = tlsCertFailureHint(leaf, { extraCaConfigured: true })!;
-    expect(hint).toContain("even with NODE_EXTRA_CA_CERTS set");
+    expect(hint).toContain("even with NODE_EXTRA_CA_CERTS");
     expect(hint).not.toContain("Set NODE_EXTRA_CA_CERTS");
   });
 });
