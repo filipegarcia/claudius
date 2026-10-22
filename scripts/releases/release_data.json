@@ -1,13 +1,13 @@
 [
   {
     "label": "\ud83d\udc0d Python SDK",
-    "total": 240,
-    "stable_count": 240,
+    "total": 241,
+    "stable_count": 241,
     "pre_count": 0,
     "first_date": "2023-02-09T06:20:47+00:00",
-    "latest_date": "2026-10-21T15:51:32+00:00",
+    "latest_date": "2026-10-21T22:00:30+00:00",
     "span_days": 1350,
-    "per_week": 1.2444444444444445,
+    "per_week": 1.2496296296296296,
     "gaps": [
       {
         "hours": 0.013055555555555556,
@@ -1681,6 +1681,13 @@
         "to_tag": "v2.0.0",
         "from_date": "2026-10-20T22:13:01+00:00",
         "to_date": "2026-10-21T15:51:32+00:00"
+      },
+      {
+        "hours": 6.149444444444445,
+        "from_tag": "v2.0.0",
+        "to_tag": "v2.1.0",
+        "from_date": "2026-10-21T15:51:32+00:00",
+        "to_date": "2026-10-21T22:00:30+00:00"
       }
     ],
     "fastest_gap": {
@@ -1697,13 +1704,13 @@
       "from_date": "2025-02-28T19:35:15+00:00",
       "to_date": "2025-04-22T23:10:52+00:00"
     },
-    "avg_gap_h": 135.60465481171548,
-    "median_gap_h": 76.72361111111111,
-    "stdev_gap_h": 181.5106007394859,
+    "avg_gap_h": 135.06525810185184,
+    "median_gap_h": 75.8575,
+    "stdev_gap_h": 181.32312624751583,
     "cl_present": true,
     "cl_max": 7863,
     "cl_min": 38,
-    "cl_avg": 1146.8235294117646,
+    "cl_avg": 1142.376569037657,
     "cl_max_rel": {
       "tag": "v0.50.0",
       "name": "v0.50.0",
@@ -1730,7 +1737,7 @@
       "Thursday": 49,
       "Monday": 37,
       "Tuesday": 61,
-      "Wednesday": 52,
+      "Wednesday": 53,
       "Saturday": 9,
       "Friday": 31,
       "Sunday": 1
@@ -1778,13 +1785,13 @@
       "2026-07": 9,
       "2026-08": 8,
       "2026-09": 9,
-      "2026-10": 8
+      "2026-10": 9
     },
     "years": {
       "2023": 41,
       "2024": 67,
       "2025": 48,
-      "2026": 84
+      "2026": 85
     },
     "fav_dow": [
       "Tuesday",
@@ -1798,22 +1805,22 @@
     "streak_start": "2024-04-04T12:58:35+00:00",
     "vtypes": {
       "patch": 98,
-      "minor": 140,
+      "minor": 141,
       "major": 2
     },
     "vel_trend": "accelerating",
     "vel_first": 1.12,
-    "vel_second": 1.5384615384615385
+    "vel_second": 1.5512820512820513
   },
   {
     "label": "\ud83d\udcd8 TypeScript SDK",
-    "total": 441,
-    "stable_count": 441,
+    "total": 442,
+    "stable_count": 442,
     "pre_count": 0,
     "first_date": "2023-01-31T16:17:07+00:00",
-    "latest_date": "2026-10-21T15:52:51+00:00",
-    "span_days": 1358,
-    "per_week": 2.2731958762886597,
+    "latest_date": "2026-10-21T21:54:03+00:00",
+    "span_days": 1359,
+    "per_week": 2.276674025018396,
     "gaps": [
       {
         "hours": 0.0625,
@@ -4894,6 +4901,13 @@
         "to_tag": "google-cloud-sdk-v1.0.0",
         "from_date": "2026-10-21T15:52:49+00:00",
         "to_date": "2026-10-21T15:52:51+00:00"
+      },
+      {
+        "hours": 6.02,
+        "from_tag": "google-cloud-sdk-v1.0.0",
+        "to_tag": "sdk-v1.1.0",
+        "from_date": "2026-10-21T15:52:51+00:00",
+        "to_date": "2026-10-21T21:54:03+00:00"
       }
     ],
     "fastest_gap": {
@@ -4910,13 +4924,13 @@
       "from_date": "2023-04-04T12:25:14+00:00",
       "to_date": "2023-06-05T20:25:36+00:00"
     },
-    "avg_gap_h": 74.12635353535353,
-    "median_gap_h": 1.7808333333333333,
-    "stdev_gap_h": 170.090231400244,
+    "avg_gap_h": 73.9719173595364,
+    "median_gap_h": 1.8072222222222223,
+    "stdev_gap_h": 169.9277886092439,
     "cl_present": true,
     "cl_max": 38867,
     "cl_min": 26,
-    "cl_avg": 865.6,
+    "cl_avg": 863.827664399093,
     "cl_max_rel": {
       "tag": "sdk-v0.12.4",
       "name": "sdk: v0.12.4",
@@ -4941,7 +4955,7 @@
     },
     "dow": {
       "Tuesday": 98,
-      "Wednesday": 107,
+      "Wednesday": 108,
       "Friday": 75,
       "Monday": 49,
       "Saturday": 11,
@@ -4991,17 +5005,17 @@
       "2026-07": 13,
       "2026-08": 33,
       "2026-09": 47,
-      "2026-10": 32
+      "2026-10": 33
     },
     "years": {
       "2023": 40,
       "2024": 107,
       "2025": 82,
-      "2026": 212
+      "2026": 213
     },
     "fav_dow": [
       "Wednesday",
-      107
+      108
     ],
     "busiest_month": [
       "2026-09",
@@ -5011,22 +5025,22 @@
     "streak_start": "2026-08-13T19:53:37+00:00",
     "vtypes": {
       "patch": 253,
-      "minor": 182,
+      "minor": 183,
       "major": 6
     },
     "vel_trend": "accelerating",
-    "vel_first": 1.5127701375245581,
+    "vel_first": 1.5136986301369864,
     "vel_second": 4.604166666666667
   },
   {
     "label": "\u2615 Java SDK",
-    "total": 117,
-    "stable_count": 106,
+    "total": 118,
+    "stable_count": 107,
     "pre_count": 11,
     "first_date": "2024-12-09T19:45:55+00:00",
-    "latest_date": "2026-10-21T15:50:16+00:00",
-    "span_days": 680,
-    "per_week": 1.2044117647058823,
+    "latest_date": "2026-10-21T21:48:41+00:00",
+    "span_days": 681,
+    "per_week": 1.212922173274596,
     "gaps": [
       {
         "hours": 21.24416666666667,
@@ -5839,6 +5853,13 @@
         "to_tag": "v3.0.0",
         "from_date": "2026-10-20T22:12:04+00:00",
         "to_date": "2026-10-21T15:50:16+00:00"
+      },
+      {
+        "hours": 5.973611111111111,
+        "from_tag": "v3.0.0",
+        "to_tag": "v3.1.0",
+        "from_date": "2026-10-21T15:50:16+00:00",
+        "to_date": "2026-10-21T21:48:41+00:00"
       }
     ],
     "fastest_gap": {
@@ -5855,13 +5876,13 @@
       "from_date": "2025-11-19T23:24:26+00:00",
       "to_date": "2026-01-29T18:32:31+00:00"
     },
-    "avg_gap_h": 140.86269396551725,
-    "median_gap_h": 75.36152777777778,
-    "stdev_gap_h": 203.38586233180578,
+    "avg_gap_h": 139.70979582146248,
+    "median_gap_h": 74.49194444444444,
+    "stdev_gap_h": 202.89090804675007,
     "cl_present": true,
     "cl_max": 7045,
-    "cl_min": 219,
-    "cl_avg": 1551.4700854700855,
+    "cl_min": 131,
+    "cl_avg": 1539.4322033898304,
     "cl_max_rel": {
       "tag": "v2.12.0",
       "name": "v2.12.0",
@@ -5874,20 +5895,20 @@
       "ver_type": "minor"
     },
     "cl_min_rel": {
-      "tag": "v2.75.0",
-      "name": "v2.75.0",
-      "date": "2026-10-20T22:12:04+00:00",
-      "cl_chars": 219,
-      "cl_lines": 9,
-      "cl_body": "### Features\n\n* **api:** add org webhook endpoints and user profile enforcement events\n\n\n### Chores\n\n* **ci:** run the changelog check on a standard runner\n* **internal:** remove an unused entry from the detekt baseline",
+      "tag": "v3.1.0",
+      "name": "v3.1.0",
+      "date": "2026-10-21T21:48:41+00:00",
+      "cl_chars": 131,
+      "cl_lines": 4,
+      "cl_body": "### Features\n\n* **api:** add enforcement status, actions and filter to user profiles\n* **client:** add GraalVM native image support",
       "pre": false,
-      "url": "https://github.com/anthropics/anthropic-sdk-java/releases/tag/v2.75.0",
+      "url": "https://github.com/anthropics/anthropic-sdk-java/releases/tag/v3.1.0",
       "ver_type": "minor"
     },
     "dow": {
       "Monday": 11,
       "Tuesday": 26,
-      "Wednesday": 35,
+      "Wednesday": 36,
       "Saturday": 3,
       "Friday": 16,
       "Thursday": 26
@@ -5914,16 +5935,16 @@
       "2026-07": 7,
       "2026-08": 7,
       "2026-09": 9,
-      "2026-10": 8
+      "2026-10": 9
     },
     "years": {
       "2024": 6,
       "2025": 39,
-      "2026": 72
+      "2026": 73
     },
     "fav_dow": [
       "Wednesday",
-      35
+      36
     ],
     "busiest_month": [
       "2026-06",
@@ -5933,23 +5954,23 @@
     "streak_start": "2026-06-05T16:02:40+00:00",
     "vtypes": {
       "pre": 11,
-      "minor": 88,
+      "minor": 89,
       "patch": 15,
       "major": 3
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.8371134020618556,
-    "vel_second": 2.1288659793814433
+    "vel_first": 0.8497942386831275,
+    "vel_second": 2.1736842105263157
   },
   {
     "label": "\ud83d\udc39 Go SDK",
-    "total": 124,
-    "stable_count": 105,
+    "total": 125,
+    "stable_count": 106,
     "pre_count": 19,
     "first_date": "2024-08-14T19:02:27+00:00",
-    "latest_date": "2026-10-21T15:47:11+00:00",
-    "span_days": 797,
-    "per_week": 1.0890840652446674,
+    "latest_date": "2026-10-21T21:47:14+00:00",
+    "span_days": 798,
+    "per_week": 1.0964912280701755,
     "gaps": [
       {
         "hours": 1220.6505555555555,
@@ -6811,6 +6832,13 @@
         "to_tag": "v2.0.0",
         "from_date": "2026-10-20T22:10:31+00:00",
         "to_date": "2026-10-21T15:47:11+00:00"
+      },
+      {
+        "hours": 6.0008333333333335,
+        "from_tag": "v2.0.0",
+        "to_tag": "v2.1.0",
+        "from_date": "2026-10-21T15:47:11+00:00",
+        "to_date": "2026-10-21T21:47:14+00:00"
       }
     ],
     "fastest_gap": {
@@ -6827,13 +6855,13 @@
       "from_date": "2025-11-24T20:58:28+00:00",
       "to_date": "2026-01-29T17:25:56+00:00"
     },
-    "avg_gap_h": 155.6808581752484,
-    "median_gap_h": 71.24888888888889,
-    "stdev_gap_h": 251.76028988995182,
+    "avg_gap_h": 154.47376120071684,
+    "median_gap_h": 70.76902777777778,
+    "stdev_gap_h": 251.0948246127557,
     "cl_present": true,
     "cl_max": 9654,
-    "cl_min": 128,
-    "cl_avg": 1091.3629032258063,
+    "cl_min": 84,
+    "cl_avg": 1083.304,
     "cl_max_rel": {
       "tag": "v0.2.0-beta.4",
       "name": "v0.2.0-beta.4",
@@ -6846,18 +6874,18 @@
       "ver_type": "pre"
     },
     "cl_min_rel": {
-      "tag": "v1.9.1",
-      "name": "v1.9.1",
-      "date": "2025-08-12T17:27:46+00:00",
-      "cl_chars": 128,
+      "tag": "v2.1.0",
+      "name": "v2.1.0",
+      "date": "2026-10-21T21:47:14+00:00",
+      "cl_chars": 84,
       "cl_lines": 3,
-      "cl_body": "## 1.9.1 (2025-08-12)\n\nFull Changelog: [v1.9.0...v1.9.1](https://github.com/anthropics/anthropic-sdk-go/compare/v1.9.0...v1.9.1)",
+      "cl_body": "### Features\n\n* **api:** add enforcement status, actions and filter to user profiles",
       "pre": false,
-      "url": "https://github.com/anthropics/anthropic-sdk-go/releases/tag/v1.9.1",
-      "ver_type": "patch"
+      "url": "https://github.com/anthropics/anthropic-sdk-go/releases/tag/v2.1.0",
+      "ver_type": "minor"
     },
     "dow": {
-      "Wednesday": 28,
+      "Wednesday": 29,
       "Friday": 16,
       "Tuesday": 34,
       "Thursday": 29,
@@ -6889,12 +6917,12 @@
       "2026-07": 8,
       "2026-08": 8,
       "2026-09": 11,
-      "2026-10": 8
+      "2026-10": 9
     },
     "years": {
       "2024": 10,
       "2025": 35,
-      "2026": 79
+      "2026": 80
     },
     "fav_dow": [
       "Tuesday",
@@ -6909,22 +6937,22 @@
     "vtypes": {
       "pre": 19,
       "major": 2,
-      "minor": 84,
+      "minor": 85,
       "patch": 19
     },
     "vel_trend": "accelerating",
     "vel_first": 0.7221297836938435,
-    "vel_second": 2.2371134020618557
+    "vel_second": 2.2615384615384615
   },
   {
     "label": "\ud83d\udc8e Ruby SDK",
-    "total": 108,
-    "stable_count": 99,
+    "total": 109,
+    "stable_count": 100,
     "pre_count": 9,
     "first_date": "2025-04-08T21:53:03+00:00",
-    "latest_date": "2026-10-21T16:02:21+00:00",
+    "latest_date": "2026-10-21T21:49:56+00:00",
     "span_days": 560,
-    "per_week": 1.35,
+    "per_week": 1.3625,
     "gaps": [
       {
         "hours": 21.309722222222224,
@@ -7674,6 +7702,13 @@
         "to_tag": "v2.0.0",
         "from_date": "2026-10-20T22:16:42+00:00",
         "to_date": "2026-10-21T16:02:21+00:00"
+      },
+      {
+        "hours": 5.793055555555555,
+        "from_tag": "v2.0.0",
+        "to_tag": "v2.1.0",
+        "from_date": "2026-10-21T16:02:21+00:00",
+        "to_date": "2026-10-21T21:49:56+00:00"
       }
     ],
     "fastest_gap": {
@@ -7690,13 +7725,13 @@
       "from_date": "2025-05-28T13:21:00+00:00",
       "to_date": "2025-07-18T13:34:28+00:00"
     },
-    "avg_gap_h": 125.77714953271028,
-    "median_gap_h": 60.861666666666665,
-    "stdev_gap_h": 180.41273390206874,
+    "avg_gap_h": 124.66618569958848,
+    "median_gap_h": 56.98111111111111,
+    "stdev_gap_h": 179.93848553097973,
     "cl_present": true,
     "cl_max": 68129,
     "cl_min": 135,
-    "cl_avg": 1723.25,
+    "cl_avg": 1709.5045871559632,
     "cl_max_rel": {
       "tag": "v0.1.0-alpha.1",
       "name": "v0.1.0-alpha.1",
@@ -7721,7 +7756,7 @@
     },
     "dow": {
       "Tuesday": 25,
-      "Wednesday": 33,
+      "Wednesday": 34,
       "Friday": 14,
       "Thursday": 23,
       "Monday": 10,
@@ -7745,15 +7780,15 @@
       "2026-07": 8,
       "2026-08": 8,
       "2026-09": 9,
-      "2026-10": 8
+      "2026-10": 9
     },
     "years": {
       "2025": 33,
-      "2026": 75
+      "2026": 76
     },
     "fav_dow": [
       "Wednesday",
-      33
+      34
     ],
     "busiest_month": [
       "2026-04",
@@ -7764,22 +7799,22 @@
     "vtypes": {
       "pre": 9,
       "major": 2,
-      "minor": 82,
+      "minor": 83,
       "patch": 15
     },
     "vel_trend": "accelerating",
     "vel_first": 1.0216216216216216,
-    "vel_second": 2.0106382978723403
+    "vel_second": 2.0478723404255317
   },
   {
     "label": "\ud83d\udd37 C# SDK",
-    "total": 151,
-    "stable_count": 151,
+    "total": 152,
+    "stable_count": 152,
     "pre_count": 0,
     "first_date": "2025-10-30T03:50:08+00:00",
-    "latest_date": "2026-10-21T15:51:39+00:00",
+    "latest_date": "2026-10-21T21:50:03+00:00",
     "span_days": 356,
-    "per_week": 2.9691011235955056,
+    "per_week": 2.9887640449438204,
     "gaps": [
       {
         "hours": 216.92944444444444,
@@ -8830,6 +8865,13 @@
         "to_tag": "GoogleCloud-v1.0.0",
         "from_date": "2026-10-21T15:51:36+00:00",
         "to_date": "2026-10-21T15:51:39+00:00"
+      },
+      {
+        "hours": 5.973333333333334,
+        "from_tag": "GoogleCloud-v1.0.0",
+        "to_tag": "Anthropic-v13.1.0",
+        "from_date": "2026-10-21T15:51:39+00:00",
+        "to_date": "2026-10-21T21:50:03+00:00"
       }
     ],
     "fastest_gap": {
@@ -8846,13 +8888,13 @@
       "from_date": "2026-02-19T20:25:30+00:00",
       "to_date": "2026-03-16T16:08:31+00:00"
     },
-    "avg_gap_h": 57.04016851851852,
-    "median_gap_h": 4.278611111111111,
-    "stdev_gap_h": 100.53304627019232,
+    "avg_gap_h": 56.70197755702723,
+    "median_gap_h": 4.378611111111111,
+    "stdev_gap_h": 100.28352030704643,
     "cl_present": true,
     "cl_max": 13492,
-    "cl_min": 86,
-    "cl_avg": 945.225165562914,
+    "cl_min": 84,
+    "cl_avg": 939.5592105263158,
     "cl_max_rel": {
       "tag": "v0.1.0",
       "name": "v0.1.0",
@@ -8865,21 +8907,21 @@
       "ver_type": "minor"
     },
     "cl_min_rel": {
-      "tag": "Anthropic-v12.60.0",
-      "name": "Anthropic-v12.60.0",
-      "date": "2026-10-20T22:15:42+00:00",
-      "cl_chars": 86,
+      "tag": "Anthropic-v13.1.0",
+      "name": "Anthropic-v13.1.0",
+      "date": "2026-10-21T21:50:03+00:00",
+      "cl_chars": 84,
       "cl_lines": 3,
-      "cl_body": "### Features\n\n* **api:** add org webhook endpoints and user profile enforcement events",
+      "cl_body": "### Features\n\n* **api:** add enforcement status, actions and filter to user profiles",
       "pre": false,
-      "url": "https://github.com/anthropics/anthropic-sdk-csharp/releases/tag/Anthropic-v12.60.0",
+      "url": "https://github.com/anthropics/anthropic-sdk-csharp/releases/tag/Anthropic-v13.1.0",
       "ver_type": "minor"
     },
     "dow": {
       "Thursday": 32,
       "Saturday": 3,
       "Tuesday": 43,
-      "Wednesday": 48,
+      "Wednesday": 49,
       "Monday": 13,
       "Friday": 12
     },
@@ -8896,40 +8938,40 @@
       "2026-07": 9,
       "2026-08": 14,
       "2026-09": 14,
-      "2026-10": 24
+      "2026-10": 25
     },
     "years": {
       "2025": 14,
-      "2026": 137
+      "2026": 138
     },
     "fav_dow": [
       "Wednesday",
-      48
+      49
     ],
     "busiest_month": [
       "2026-10",
-      24
+      25
     ],
     "streak": 20,
     "streak_start": "2026-10-14T17:14:58+00:00",
     "vtypes": {
-      "minor": 102,
+      "minor": 103,
       "patch": 41,
       "major": 8
     },
     "vel_trend": "accelerating",
-    "vel_first": 2.364864864864865,
-    "vel_second": 4.0
+    "vel_first": 2.3963963963963963,
+    "vel_second": 3.970149253731343
   },
   {
     "label": "\ud83d\udc18 PHP SDK",
-    "total": 67,
-    "stable_count": 67,
+    "total": 68,
+    "stable_count": 68,
     "pre_count": 0,
     "first_date": "2025-08-27T01:47:27+00:00",
-    "latest_date": "2026-10-21T15:48:49+00:00",
+    "latest_date": "2026-10-21T21:51:03+00:00",
     "span_days": 420,
-    "per_week": 1.1166666666666667,
+    "per_week": 1.1333333333333333,
     "gaps": [
       {
         "hours": 1.158611111111111,
@@ -9392,6 +9434,13 @@
         "to_tag": "v1.0.0",
         "from_date": "2026-10-20T22:15:59+00:00",
         "to_date": "2026-10-21T15:48:49+00:00"
+      },
+      {
+        "hours": 6.037222222222222,
+        "from_tag": "v1.0.0",
+        "to_tag": "v1.1.0",
+        "from_date": "2026-10-21T15:48:49+00:00",
+        "to_date": "2026-10-21T21:51:03+00:00"
       }
     ],
     "fastest_gap": {
@@ -9408,13 +9457,13 @@
       "from_date": "2025-09-02T18:56:20+00:00",
       "to_date": "2025-11-24T23:38:45+00:00"
     },
-    "avg_gap_h": 152.93973905723905,
-    "median_gap_h": 74.60777777777778,
-    "stdev_gap_h": 315.34963445856823,
+    "avg_gap_h": 150.7471641791045,
+    "median_gap_h": 72.66083333333333,
+    "stdev_gap_h": 313.4656892838086,
     "cl_present": true,
     "cl_max": 7873,
-    "cl_min": 220,
-    "cl_avg": 1329.9850746268658,
+    "cl_min": 84,
+    "cl_avg": 1311.6617647058824,
     "cl_max_rel": {
       "tag": "v0.5.0",
       "name": "v0.5.0",
@@ -9427,18 +9476,18 @@
       "ver_type": "minor"
     },
     "cl_min_rel": {
-      "tag": "v0.61.0",
-      "name": "v0.61.0",
-      "date": "2026-10-20T22:15:59+00:00",
-      "cl_chars": 220,
-      "cl_lines": 9,
-      "cl_body": "### Features\n\n* **api:** add org webhook endpoints and user profile enforcement events\n\n\n### Chores\n\n* **ci:** run the changelog check on a standard runner\n* **docs:** remove the repeated autoloading note from the README",
+      "tag": "v1.1.0",
+      "name": "v1.1.0",
+      "date": "2026-10-21T21:51:03+00:00",
+      "cl_chars": 84,
+      "cl_lines": 3,
+      "cl_body": "### Features\n\n* **api:** add enforcement status, actions and filter to user profiles",
       "pre": false,
-      "url": "https://github.com/anthropics/anthropic-sdk-php/releases/tag/v0.61.0",
+      "url": "https://github.com/anthropics/anthropic-sdk-php/releases/tag/v1.1.0",
       "ver_type": "minor"
     },
     "dow": {
-      "Wednesday": 17,
+      "Wednesday": 18,
       "Tuesday": 18,
       "Monday": 9,
       "Friday": 7,
@@ -9458,14 +9507,14 @@
       "2026-07": 8,
       "2026-08": 5,
       "2026-09": 9,
-      "2026-10": 8
+      "2026-10": 9
     },
     "years": {
       "2025": 4,
-      "2026": 63
+      "2026": 64
     },
     "fav_dow": [
-      "Tuesday",
+      "Wednesday",
       18
     ],
     "busiest_month": [
@@ -9475,23 +9524,23 @@
     "streak": 6,
     "streak_start": "2026-06-29T14:58:51+00:00",
     "vtypes": {
-      "minor": 61,
+      "minor": 62,
       "patch": 5,
       "major": 1
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.7830508474576271,
-    "vel_second": 2.016949152542373
+    "vel_first": 0.7906976744186046,
+    "vel_second": 2.0877192982456143
   },
   {
     "label": "\u26a1 Claude Code",
-    "total": 550,
-    "stable_count": 550,
+    "total": 552,
+    "stable_count": 552,
     "pre_count": 0,
     "first_date": "2025-02-24T18:03:41.458000+00:00",
-    "latest_date": "2026-10-21T03:16:31+00:00",
-    "span_days": 603,
-    "per_week": 6.384742951907131,
+    "latest_date": "2026-10-22T04:34:55+00:00",
+    "span_days": 604,
+    "per_week": 6.397350993377483,
     "gaps": [
       {
         "hours": 0.4709886111111111,
@@ -13335,6 +13384,20 @@
         "to_tag": "v2.1.306",
         "from_date": "2026-10-20T20:46:50+00:00",
         "to_date": "2026-10-21T03:16:31+00:00"
+      },
+      {
+        "hours": 19.00861111111111,
+        "from_tag": "v2.1.306",
+        "to_tag": "v2.1.307",
+        "from_date": "2026-10-21T03:16:31+00:00",
+        "to_date": "2026-10-21T22:17:02+00:00"
+      },
+      {
+        "hours": 6.298055555555556,
+        "from_tag": "v2.1.307",
+        "to_tag": "v2.1.308",
+        "from_date": "2026-10-21T22:17:02+00:00",
+        "to_date": "2026-10-22T04:34:55+00:00"
       }
     ],
     "fastest_gap": {
@@ -13351,13 +13414,13 @@
       "from_date": "2025-12-20T17:19:09.800000+00:00",
       "to_date": "2026-01-06T00:26:25.533000+00:00"
     },
-    "avg_gap_h": 26.377438545840924,
-    "median_gap_h": 22.216923333333334,
-    "stdev_gap_h": 28.754961256018085,
+    "avg_gap_h": 26.327623281911677,
+    "median_gap_h": 22.174572222222224,
+    "stdev_gap_h": 28.717074634656015,
     "cl_present": true,
     "cl_max": 28783,
     "cl_min": 1,
-    "cl_avg": 3971.4698795180725,
+    "cl_avg": 3966.2151394422312,
     "cl_max_rel": {
       "tag": "v2.1.281",
       "name": "v2.1.281",
@@ -13383,8 +13446,8 @@
     "dow": {
       "Monday": 68,
       "Tuesday": 107,
-      "Wednesday": 106,
-      "Thursday": 105,
+      "Wednesday": 107,
+      "Thursday": 106,
       "Friday": 111,
       "Saturday": 43,
       "Sunday": 10
@@ -13410,11 +13473,11 @@
       "2026-07": 23,
       "2026-08": 29,
       "2026-09": 27,
-      "2026-10": 18
+      "2026-10": 20
     },
     "years": {
       "2025": 284,
-      "2026": 266
+      "2026": 268
     },
     "fav_dow": [
       "Friday",
@@ -13427,23 +13490,23 @@
     "streak": 14,
     "streak_start": "2025-04-25T17:15:09.772000+00:00",
     "vtypes": {
-      "patch": 547,
+      "patch": 549,
       "major": 2,
       "minor": 1
     },
     "vel_trend": "steady",
-    "vel_first": 6.637931034482758,
-    "vel_second": 6.1501597444089455
+    "vel_first": 6.662068965517241,
+    "vel_second": 6.172523961661342
   },
   {
     "label": "\ud83e\udd16 Agent SDK",
-    "total": 248,
-    "stable_count": 248,
+    "total": 250,
+    "stable_count": 250,
     "pre_count": 0,
     "first_date": "2025-12-17T21:55:57+00:00",
-    "latest_date": "2026-10-21T03:17:07+00:00",
-    "span_days": 307,
-    "per_week": 5.654723127035831,
+    "latest_date": "2026-10-22T04:35:21+00:00",
+    "span_days": 308,
+    "per_week": 5.681818181818182,
     "gaps": [
       {
         "hours": 27.060277777777777,
@@ -15173,6 +15236,20 @@
         "to_tag": "v0.3.306",
         "from_date": "2026-10-20T20:46:46+00:00",
         "to_date": "2026-10-21T03:17:07+00:00"
+      },
+      {
+        "hours": 19.00138888888889,
+        "from_tag": "v0.3.306",
+        "to_tag": "v0.3.307",
+        "from_date": "2026-10-21T03:17:07+00:00",
+        "to_date": "2026-10-21T22:17:12+00:00"
+      },
+      {
+        "hours": 6.3025,
+        "from_tag": "v0.3.307",
+        "to_tag": "v0.3.308",
+        "from_date": "2026-10-21T22:17:12+00:00",
+        "to_date": "2026-10-22T04:35:21+00:00"
       }
     ],
     "fastest_gap": {
@@ -15189,13 +15266,13 @@
       "from_date": "2025-12-19T22:13:22+00:00",
       "to_date": "2026-01-07T20:37:12+00:00"
     },
-    "avg_gap_h": 29.851630679262257,
-    "median_gap_h": 23.205833333333334,
-    "stdev_gap_h": 37.11932990919404,
+    "avg_gap_h": 29.71348058902276,
+    "median_gap_h": 23.19,
+    "stdev_gap_h": 37.00573852848182,
     "cl_present": true,
     "cl_max": 2267,
     "cl_min": 1,
-    "cl_avg": 561.8548387096774,
+    "cl_avg": 561.044,
     "cl_max_rel": {
       "tag": "v0.3.257",
       "name": "v0.3.257",
@@ -15219,13 +15296,13 @@
       "ver_type": "patch"
     },
     "dow": {
-      "Wednesday": 52,
+      "Wednesday": 53,
       "Friday": 50,
       "Sunday": 7,
       "Monday": 20,
       "Tuesday": 47,
       "Saturday": 28,
-      "Thursday": 44
+      "Thursday": 45
     },
     "months": {
       "2025-12": 3,
@@ -15238,15 +15315,15 @@
       "2026-07": 22,
       "2026-08": 27,
       "2026-09": 27,
-      "2026-10": 18
+      "2026-10": 20
     },
     "years": {
       "2025": 3,
-      "2026": 245
+      "2026": 247
     },
     "fav_dow": [
       "Wednesday",
-      52
+      53
     ],
     "busiest_month": [
       "2026-06",
@@ -15255,21 +15332,21 @@
     "streak": 10,
     "streak_start": "2026-02-19T23:28:39+00:00",
     "vtypes": {
-      "patch": 248
+      "patch": 250
     },
-    "vel_trend": "steady",
-    "vel_first": 5.325153374233129,
-    "vel_second": 6.112676056338029
+    "vel_trend": "accelerating",
+    "vel_first": 5.335365853658537,
+    "vel_second": 6.161971830985916
   },
   {
     "label": "\ud83d\udcd8 TS SDK [npm]",
-    "total": 219,
-    "stable_count": 218,
+    "total": 220,
+    "stable_count": 219,
     "pre_count": 1,
     "first_date": "2023-01-31T15:44:00.296000+00:00",
-    "latest_date": "2026-10-21T16:00:53.043000+00:00",
+    "latest_date": "2026-10-21T22:03:12.817000+00:00",
     "span_days": 1359,
-    "per_week": 1.1280353200883002,
+    "per_week": 1.133186166298749,
     "gaps": [
       {
         "hours": 0.5668377777777778,
@@ -16796,6 +16873,13 @@
         "to_tag": "1.0.0",
         "from_date": "2026-10-20T22:23:13.094000+00:00",
         "to_date": "2026-10-21T16:00:53.043000+00:00"
+      },
+      {
+        "hours": 6.038826111111112,
+        "from_tag": "1.0.0",
+        "to_tag": "1.1.0",
+        "from_date": "2026-10-21T16:00:53.043000+00:00",
+        "to_date": "2026-10-21T22:03:12.817000+00:00"
       }
     ],
     "fastest_gap": {
@@ -16812,9 +16896,9 @@
       "from_date": "2023-04-04T12:26:00.968000+00:00",
       "to_date": "2023-06-05T20:26:18.990000+00:00"
     },
-    "avg_gap_h": 149.6159693514271,
-    "median_gap_h": 78.51995402777777,
-    "stdev_gap_h": 226.2495637510853,
+    "avg_gap_h": 148.9603659576357,
+    "median_gap_h": 76.51233388888889,
+    "stdev_gap_h": 225.93845058366819,
     "cl_present": false,
     "cl_max": 0,
     "cl_min": 0,
@@ -16823,7 +16907,7 @@
     "cl_min_rel": null,
     "dow": {
       "Tuesday": 52,
-      "Wednesday": 51,
+      "Wednesday": 52,
       "Friday": 34,
       "Monday": 34,
       "Saturday": 6,
@@ -16872,13 +16956,13 @@
       "2026-07": 12,
       "2026-08": 7,
       "2026-09": 9,
-      "2026-10": 8
+      "2026-10": 9
     },
     "years": {
       "2023": 37,
       "2024": 59,
       "2025": 40,
-      "2026": 83
+      "2026": 84
     },
     "fav_dow": [
       "Tuesday",
@@ -16891,13 +16975,13 @@
     "streak": 8,
     "streak_start": "2026-07-16T19:38:50.369000+00:00",
     "vtypes": {
-      "minor": 123,
+      "minor": 124,
       "patch": 94,
       "pre": 1,
       "major": 1
     },
     "vel_trend": "accelerating",
-    "vel_first": 0.9181708784596871,
-    "vel_second": 1.4722753346080306
+    "vel_first": 0.9221556886227544,
+    "vel_second": 1.4893617021276595
   }
 ]
