@@ -293,6 +293,46 @@ export async function mergeSessionState(
 }
 
 /** List every indexed session for this cwd, newest activity first. */
+/**
+ * CC 2.1.309 parity — re-title an already-indexed session from a path that
+ * has no live `Session` to call `setSessionTitle` on (the non-live branch of
+ * `/api/sessions/rename`, e.g. renaming a reaped session from its detail
+ * page).
+ *
+ * Every title reader prefers this DB title over the SDK's JSONL
+ * `customTitle`, so a rename that only reached the JSONL left the old — often
+ * engine-generated — DB title shadowing it after a reload or resume. This
+ * updates the row wherever it exists.
+ *
+ * It only touches the `.claudius.db` of workspaces Claudius already knows
+ * about (never a caller-supplied path) and never creates a DB or a row: a
+ * session with no index row has no shadowing title, so the JSONL rename
+ * alone is enough. Returns how many rows were updated.
+ */
+export async function retitleIndexedSession(id: string, title: string): Promise<number> {
+  const trimmed = title.trim();
+  if (!id || !trimmed) return 0;
+  const workspaces = await listWorkspaces().catch(() => []);
+  let updated = 0;
+  const seen = new Set<string>();
+  for (const ws of workspaces) {
+    const root = ws.rootPath;
+    if (!root || seen.has(root)) continue;
+    seen.add(root);
+    // Probe read-only first so a workspace without a DB isn't given one.
+    const ro = await openDb(root, "readonly").catch(() => null);
+    if (!ro) continue;
+    const hit = ro.prepare("SELECT 1 FROM sessions WHERE id = ?").get(id);
+    if (!hit) continue;
+    const db = await openDb(root);
+    const res = db
+      .prepare("UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?")
+      .run(trimmed, Date.now(), id);
+    updated += res.changes;
+  }
+  return updated;
+}
+
 export async function listIndexedSessions(cwd: string): Promise<SessionRow[]> {
   const db = await openDb(cwd, "readonly").catch(() => null);
   if (!db) return [];

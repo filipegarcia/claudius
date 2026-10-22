@@ -295,7 +295,18 @@ export function useVoice(
       const data = (ev as MessageEvent).data;
       if (typeof data === "string") {
         try {
-          const parsed = JSON.parse(data) as { kind?: string; message?: string };
+          const parsed = JSON.parse(data) as { kind?: string; message?: string; hint?: string };
+          if (typeof parsed.hint === "string" && parsed.hint) {
+            // CC 2.1.309 parity — certificate-verification failure (e.g. a
+            // TLS-inspecting proxy). The proxy already closed the upstream,
+            // so tear down (otherwise `start()` stays locked on the stale
+            // session id) and show what to do in the footer status slot,
+            // not just Node's raw message on the mic tooltip.
+            setError(parsed.hint);
+            setNotice(parsed.hint);
+            cleanup();
+            return;
+          }
           setError(parsed.message ?? parsed.kind ?? "voice error");
         } catch {
           setError("voice error");

@@ -37,7 +37,7 @@ const FALLBACK_URL = "https://github.com/anthropics/claude-code/issues";
 
 type Rating = "up" | "down";
 type Phase = "prompt" | "submitting" | "ok" | "fail";
-type SubmitResult = { ok: boolean; stored: boolean; forwarded: boolean };
+type SubmitResult = { ok: boolean; stored: boolean; forwarded: boolean; reason?: string };
 
 function inCooldown(): boolean {
   if (typeof window === "undefined") return false;
@@ -166,20 +166,40 @@ export function FeedbackBanner({
   // ── Result: graceful fail ─────────────────────────────────────────────────
   if (phase === "fail") {
     const savedLocally = result?.stored ?? false;
+    // CC 2.1.309 parity — when Anthropic refused the forward and said why
+    // (e.g. "Your organization does not accept feedback."), show that reason
+    // instead of implying a connection problem, then point at where to
+    // report a bug (the "Open an issue" link below).
+    const refusal = result?.reason;
     return (
       <div
         data-pane-name="feedback-banner"
+        data-testid="feedback-banner-fail"
         className="flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs"
       >
         <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-        <span className="font-medium">
-          {savedLocally ? "Saved — but couldn't reach Anthropic" : "Couldn't submit your feedback"}
-        </span>
-        <span className="hidden text-[var(--muted)] sm:inline">
-          {savedLocally
-            ? "kept a local copy. You can also share it directly:"
-            : "you can still share it directly:"}
-        </span>
+        {refusal ? (
+          <>
+            <span className="shrink-0 font-medium">
+              {savedLocally ? "Saved locally — Anthropic didn't accept it:" : "Anthropic didn't accept your feedback:"}
+            </span>
+            <span data-testid="feedback-refusal-reason" className="min-w-0 truncate" title={refusal}>
+              {refusal}
+            </span>
+            <span className="hidden shrink-0 text-[var(--muted)] sm:inline">To report a bug:</span>
+          </>
+        ) : (
+          <>
+            <span className="font-medium">
+              {savedLocally ? "Saved — but couldn't reach Anthropic" : "Couldn't submit your feedback"}
+            </span>
+            <span className="hidden text-[var(--muted)] sm:inline">
+              {savedLocally
+                ? "kept a local copy. You can also share it directly:"
+                : "you can still share it directly:"}
+            </span>
+          </>
+        )}
         <a
           href={FALLBACK_URL}
           target="_blank"

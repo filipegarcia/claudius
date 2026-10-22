@@ -95,6 +95,8 @@ import {
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { hookAsk } from "@/lib/shared/hook-ask";
+import { feedbackRefusalReason } from "@/lib/shared/feedback-refusal";
+import { bypassDangerousRmDenial } from "@/lib/shared/dangerous-rm-deny";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
@@ -1916,6 +1918,12 @@ export class Session {
    */
   title?: string;
   private permissionMode: PermissionMode;
+  /**
+   * CC 2.1.309 — a title set via `rename()` whose SDK `renameSession` failed
+   * (no JSONL yet). Re-sent at the next turn boundary so the CLI and other
+   * sessions see the user's name instead of a generated one.
+   */
+  private pendingTitleMirror: string | null = null;
 
   private inputQueue = new AsyncQueue<SDKUserMessage>();
   private query: Query | null = null;
@@ -3607,15 +3615,38 @@ export class Session {
     }
     try {
       await renameSession(this.id, trimmed, { dir: this.cwd });
+      this.pendingTitleMirror = null;
     } catch {
       // Non-fatal. The most common reason this fails is "no JSONL yet" for a
-      // fresh session that hasn't completed a turn — once the SDK persists
-      // the first turn, our local title remains the source of truth and a
-      // future boot of any client reading both will see them in agreement.
+      // fresh session that hasn't completed a turn. CC 2.1.309 parity: the
+      // JSONL `customTitle` is what the CLI, `--resume` and other sessions
+      // read, so a name that only reached our index made the session show
+      // up elsewhere under a generated name. Remember it and re-mirror at
+      // the next turn boundary, once the JSONL exists
+      // (`flushPendingTitleMirror`).
+      this.pendingTitleMirror = trimmed;
     }
     this.title = trimmed;
     this.broadcast({ type: "session_title", title: trimmed });
     return { ok: true };
+  }
+
+  /**
+   * CC 2.1.309 — a rename whose JSONL write failed (made before the first
+   * turn flushed) is re-sent to the SDK once a turn has completed. Retried on
+   * each turn boundary until it lands or the user renames again; a later
+   * successful `rename()` clears it. Fire-and-forget from the result handler.
+   */
+  private async flushPendingTitleMirror(): Promise<void> {
+    const title = this.pendingTitleMirror;
+    if (!title) return;
+    try {
+      await renameSession(this.id, title, { dir: this.cwd });
+      // Only clear if no newer rename replaced it while we were awaiting.
+      if (this.pendingTitleMirror === title) this.pendingTitleMirror = null;
+    } catch {
+      // Still no JSONL (or a transient write error) — try again next turn.
+    }
   }
 
   private canUseTool: CanUseTool = (toolName, input, ctx) => {
@@ -3657,6 +3688,24 @@ export class Session {
         this.toolBudgetUsed[budgetKind] += 1;
         // Falls through to the normal permission flow below — the cap is a
         // pre-check, not a replacement for the usual allow/ask/deny decision.
+      }
+
+      // ── CC 2.1.309: dangerous rm in Bypass permissions → deny at once ──
+      // The engine still asks for a dangerous rm/rmdir in bypass mode (a
+      // safety check no mode can auto-allow). Like Desktop and VS Code,
+      // answer with an immediate deny plus a rewrite hint instead of parking
+      // a card, so an unattended bypass session keeps going. The engine shows
+      // the deny as the tool's error in the transcript. Skipped when a user
+      // ask rule forced the prompt, and in every other mode.
+      const rmDenial = bypassDangerousRmDenial({
+        permissionMode: this.permissionMode,
+        decisionReason: ctx.decisionReason,
+        decisionReasonType: (ctx as { decisionReasonType?: unknown }).decisionReasonType,
+        matchedAskRule: ctx.matchedAskRule,
+      });
+      if (rmDenial) {
+        resolve({ behavior: "deny", message: rmDenial });
+        return;
       }
 
       // ── ExitPlanMode is the model's "ready to execute" signal ─────────
@@ -5992,7 +6041,10 @@ export class Session {
    * through the same channel the CLI's session-quality survey uses to reach
    * Anthropic. We feature-detect and swallow failures: if a future SDK drops
    * the method, forwarding degrades to a no-op and the caller still persists
-   * the feedback locally. Returns whether the SDK accepted the forward.
+   * the feedback locally. Returns whether the SDK accepted the forward and,
+   * when it refused, the server's reason (CC 2.1.309 — e.g. an organization
+   * that doesn't accept feedback), so the banner can say why instead of
+   * blaming connectivity.
    *
    * When `attachTranscript` is set the SDK's `attach_transcript` option is
    * passed through, so the bundled `claude` binary packages the session
@@ -6004,7 +6056,7 @@ export class Session {
     description: string,
     surface = "claudius",
     attachTranscript = false,
-  ): Promise<boolean> {
+  ): Promise<{ forwarded: boolean; reason?: string }> {
     const q = this.query as
       | (Query & {
           submitFeedback?: (
@@ -6013,12 +6065,13 @@ export class Session {
           ) => Promise<unknown>;
         })
       | null;
-    if (!q || typeof q.submitFeedback !== "function") return false;
+    if (!q || typeof q.submitFeedback !== "function") return { forwarded: false };
     try {
       await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
-      return true;
-    } catch {
-      return false;
+      return { forwarded: true };
+    } catch (err) {
+      const reason = feedbackRefusalReason(err);
+      return reason ? { forwarded: false, reason } : { forwarded: false };
     }
   }
 
@@ -9244,6 +9297,9 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // CC 2.1.309 — the turn's JSONL now exists; land a rename that
+          // couldn't reach it earlier.
+          void this.flushPendingTitleMirror();
           // CC 2.1.273/2.1.288 — turn boundary is our mid-session poll point:
           // re-check MCP status so a server that dropped or now needs more
           // OAuth scope during the turn surfaces a notice (throttled inside).
