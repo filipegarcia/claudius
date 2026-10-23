@@ -33,6 +33,8 @@
 import WebSocket from "ws";
 
 import { readAccountsRaw } from "./accounts-store";
+import { EXTRA_CA_ENV, resolveExtraCaCerts } from "./extra-ca-certs";
+import { tlsCertFailureHint, tlsCertFailureLogHint } from "@/lib/shared/tls-cert-hint";
 
 /**
  * Bun's `ws` shim mis-translates the upstream's WS upgrade response
@@ -58,7 +60,11 @@ interface UpstreamConn {
   onClose: (cb: (code: number, reason: string) => void) => void;
 }
 
-function openUpstream(url: string, headers: Record<string, string>): UpstreamConn {
+function openUpstream(
+  url: string,
+  headers: Record<string, string>,
+  ca?: string[],
+): UpstreamConn {
   if (isBun) {
     // Bun's `new WebSocket(url, { headers })` is a documented extension
     // — same shape used by our voice-probe script that confirmed the
@@ -126,6 +132,10 @@ function openUpstream(url: string, headers: Record<string, string>): UpstreamCon
     // upstream OR for short JSON transcripts downstream. Matches the
     // CLI's connection options.
     perMessageDeflate: false,
+    // CC 2.1.307 — trust a `NODE_EXTRA_CA_CERTS` bundle that's set only
+    // in ~/.claude/settings.json (see `extra-ca-certs.ts`). Omitted when
+    // there's none, so Node's default trust store applies unchanged.
+    ...(ca ? { ca } : {}),
   });
   // Defensive: the CLI binary logs "unexpected-response fired with 101;
   // ignoring", meaning under some conditions `ws` emits this event
@@ -284,7 +294,21 @@ export async function openVoiceSession(
   }
 
   console.log(`[voice:${id}] openVoiceSession url=${url.split("?")[0]} ...?<params>`);
-  const upstream = openUpstream(url, headers);
+  const ca = await resolveExtraCaCerts();
+  // Re-check after the await: a duplicate open for the same id could have
+  // registered while the CA lookup was in flight.
+  if (sessions.has(id)) {
+    throw new Error(`voice session ${id} already exists`);
+  }
+  if (ca && isBun) {
+    // Bun's native WebSocket (the `isBun` branch of `openUpstream`) has no
+    // `ca` option, so the settings-only bundle can't be applied there. The
+    // normal `next dev` / packaged runtimes are Node and take the `ws` path.
+    console.warn(
+      `[voice:${id}] NODE_EXTRA_CA_CERTS from user settings is not applied under the Bun runtime — export it in the environment instead`,
+    );
+  }
+  const upstream = openUpstream(url, headers, ca);
 
   const session: VoiceSession = {
     id,
@@ -336,10 +360,22 @@ export async function openVoiceSession(
   });
 
   upstream.onError((err) => {
-    console.warn(`[voice:${id}] upstream error: ${err.message}`);
+    // CC 2.1.309 parity — a certificate-verification failure (typically a
+    // TLS-inspecting proxy) gets a warning that says what to do, both in the
+    // server log and in the payload the composer's mic shows.
+    // Under Bun the settings-only bundle is never applied to the socket
+    // (warned above), so it doesn't count as configured there.
+    const caOpts = {
+      extraCaConfigured: (ca !== undefined && !isBun) || Boolean(process.env[EXTRA_CA_ENV]),
+    };
+    const hint = tlsCertFailureHint(err, caOpts);
+    const logHint = tlsCertFailureLogHint(err, caOpts);
+    console.warn(
+      `[voice:${id}] upstream error: ${err.message}${logHint ? ` — ${logHint}` : ""}`,
+    );
     sink.send(
       "error",
-      JSON.stringify({ kind: "upstream", message: err.message }),
+      JSON.stringify({ kind: "upstream", message: err.message, ...(hint ? { hint } : {}) }),
     );
     closeSession(id, "upstream-error");
   });
@@ -397,6 +433,18 @@ export function finalizeVoiceSession(id: string): boolean {
 }
 
 /**
+ * CC 2.1.307 parity — the SSE `close` payload to send when the *proxy* ends a
+ * session on its own (today: the idle reaper), or null for close reasons the
+ * renderer already hears about (upstream close relays its own frame; client
+ * abort / user finalize need no notice). Same `{ code, reason }` shape as the
+ * upstream relay, parsed by `parseVoiceCloseFrame` in the renderer.
+ */
+export function selfStopCloseFrame(reason: string): string | null {
+  if (reason !== "idle-timeout") return null;
+  return JSON.stringify({ code: null, reason: "idle-timeout" });
+}
+
+/**
  * Tear down a session unconditionally. Safe to call multiple times.
  * `reason` shows up in logs to help diagnose unexpected drops.
  */
@@ -406,6 +454,18 @@ export function closeSession(id: string, reason: string): void {
   if (session.closed) return;
   console.log(`[voice:${id}] closeSession reason=${reason}`);
   session.closed = true;
+  // CC 2.1.307 parity — the idle reaper ends dictation without the user
+  // pressing stop. Tell the renderer why (same `close` frame shape the
+  // upstream-close path relays) so the composer can show its self-stop
+  // notice instead of the mic silently going grey.
+  const selfStop = selfStopCloseFrame(reason);
+  if (selfStop) {
+    try {
+      session.sink.send("close", selfStop);
+    } catch {
+      /* sink already gone */
+    }
+  }
   clearInterval(session.idleTimer);
   clearInterval(session.keepaliveTimer);
   try {

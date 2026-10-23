@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  describeVoiceSelfStop,
+  parseVoiceCloseFrame,
+  type VoiceSelfStop,
+} from "@/lib/shared/voice-stop-notice";
+
 /**
  * Voice dictation client.
  *
@@ -37,6 +43,15 @@ export interface UseVoiceResult {
   listening: boolean;
   /** Latest error message, or null. Cleared by the next successful `start()`. */
   error: string | null;
+  /**
+   * CC 2.1.307 parity — set when dictation stopped by itself (upstream
+   * closed, idle reaper, session gone) rather than via `stop()`. Says why,
+   * and that the text so far is kept. CC 2.1.309 — also carries the
+   * what-to-do hint when the upstream connection failed certificate
+   * verification. Cleared by `start()` / `dismissNotice()`.
+   */
+  notice: string | null;
+  dismissNotice: () => void;
   start: () => void;
   stop: () => void;
 }
@@ -87,6 +102,7 @@ export function useVoice(
 ): UseVoiceResult {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   // Lazy initializer runs once per component instance. On the server
   // it returns `false` (no `window`); on the client's first render it
   // returns the real feature-detect. This means a single render pass —
@@ -117,6 +133,8 @@ export function useVoice(
     upstreamReady: boolean;
     /** Queue of chunks captured before the upstream confirmed open. */
     pendingChunks: Uint8Array[];
+    /** True once the user pressed stop — the next close is expected, not a self-stop. */
+    userStopped: boolean;
   }>({
     sessionId: null,
     audioContext: null,
@@ -127,6 +145,7 @@ export function useVoice(
     uploadFill: 0,
     upstreamReady: false,
     pendingChunks: [],
+    userStopped: false,
   });
 
   // Tear down all resources. Idempotent — safe to call multiple times,
@@ -162,6 +181,20 @@ export function useVoice(
     setListening(false);
   }, []);
 
+  // The session ended without the user pressing stop. Surface why (CC
+  // 2.1.307's mic notice) and tear down. Guarded on `sessionId` so a late
+  // duplicate signal (410 racing the SSE `close`) after cleanup is a no-op.
+  const endOnItsOwn = useCallback(
+    (stop: VoiceSelfStop) => {
+      const s = stateRef.current;
+      if (s.sessionId && !s.userStopped) setNotice(describeVoiceSelfStop(stop));
+      cleanup();
+    },
+    [cleanup],
+  );
+
+  const dismissNotice = useCallback(() => setNotice(null), []);
+
   const flushUpload = useCallback(async (sessionId: string, bytes: Uint8Array) => {
     if (bytes.byteLength === 0) return;
     try {
@@ -172,20 +205,24 @@ export function useVoice(
           "Content-Type": "application/octet-stream",
         },
       });
-      if (res.status === 410) {
+      // Only act on a 410 for the *current* session — a straggler chunk
+      // from a previous one mustn't tear down (or notice-flag) a new start.
+      if (res.status === 410 && stateRef.current.sessionId === sessionId) {
         // Upstream is gone (timeout / network drop). The SSE handler
         // will also notice; tearing down here saves one round-trip.
-        cleanup();
+        endOnItsOwn({ kind: "gone" });
       }
     } catch {
       // Network failure on a single chunk is recoverable — the next
       // one may succeed. Don't tear down here.
     }
-  }, [cleanup]);
+  }, [endOnItsOwn]);
 
   const start = useCallback(() => {
     if (stateRef.current.sessionId) return; // already running
     setError(null);
+    setNotice(null);
+    stateRef.current.userStopped = false;
 
     // Generate a session id the renderer owns. The server uses it as
     // a one-shot capability that pairs the SSE with the chunk POSTs —
@@ -260,7 +297,23 @@ export function useVoice(
       const data = (ev as MessageEvent).data;
       if (typeof data === "string") {
         try {
-          const parsed = JSON.parse(data) as { kind?: string; message?: string };
+          const parsed = JSON.parse(data) as { kind?: string; message?: string; hint?: string };
+          if (parsed.kind === "upstream") {
+            // The proxy has already ended this session (`closeSession` right
+            // after the error frame, no `close` frame follows), so tear down
+            // — otherwise `start()` stays locked on the dead session id and
+            // the mic stays red.
+            if (typeof parsed.hint === "string" && parsed.hint) {
+              // CC 2.1.309 parity — certificate-verification failure (e.g. a
+              // TLS-inspecting proxy): say what to do in the footer status
+              // slot, not just Node's raw message on the mic tooltip.
+              setNotice(parsed.hint);
+            } else {
+              setError(parsed.message ?? "voice error");
+            }
+            cleanup();
+            return;
+          }
           setError(parsed.message ?? parsed.kind ?? "voice error");
         } catch {
           setError("voice error");
@@ -273,11 +326,12 @@ export function useVoice(
       }
     });
 
-    es.addEventListener("close", () => {
+    es.addEventListener("close", (ev) => {
       // Upstream has finalized. Audio capture is no longer useful —
       // shut everything down. We don't fire onTranscript here; the
       // final transcript was already delivered as TranscriptText.
-      cleanup();
+      // If the user didn't press stop, this is a self-stop: say why.
+      endOnItsOwn({ kind: "close", ...parseVoiceCloseFrame((ev as MessageEvent).data) });
     });
 
     // Wire mic → worklet asynchronously. Errors here translate to a
@@ -295,6 +349,14 @@ export function useVoice(
             channelCount: 1,
           },
         });
+        // The session may have ended (self-stop / user stop) while the
+        // permission prompt was up — don't attach a live mic to nothing.
+        if (stateRef.current.sessionId !== sessionId) {
+          for (const track of stream.getTracks()) {
+            try { track.stop(); } catch { /* ignore */ }
+          }
+          return;
+        }
         stateRef.current.mediaStream = stream;
 
         const Ctx =
@@ -305,6 +367,9 @@ export function useVoice(
         stateRef.current.audioContext = ctx;
 
         await ctx.audioWorklet.addModule("/voice-recorder-worklet.js");
+        // Same race: `cleanup()` already closed ctx + tracks — wiring a
+        // source onto the closed context would throw into the error path.
+        if (stateRef.current.sessionId !== sessionId) return;
         const source = ctx.createMediaStreamSource(stream);
         const worklet = new AudioWorkletNode(ctx, "voice-recorder");
         stateRef.current.workletNode = worklet;
@@ -357,11 +422,12 @@ export function useVoice(
         cleanup();
       }
     })();
-  }, [cleanup, flushUpload]);
+  }, [cleanup, endOnItsOwn, flushUpload]);
 
   const stop = useCallback(() => {
     const sid = stateRef.current.sessionId;
     if (!sid) return;
+    stateRef.current.userStopped = true;
     // Flush any tail audio before asking the upstream to finalize —
     // otherwise the last word might be missing.
     if (stateRef.current.uploadFill > 0) {
@@ -395,5 +461,5 @@ export function useVoice(
     return () => cleanup();
   }, [cleanup]);
 
-  return { supported, listening, error, start, stop };
+  return { supported, listening, error, notice, dismissNotice, start, stop };
 }

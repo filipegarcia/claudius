@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { list, type SessionListItem } from "@/lib/server/sessions-store";
 import { getSessionTitlesByCwd, listAllIndexedSessions } from "@/lib/server/sessions-db";
 import { lookupSessionAccount, resolveSessionAccounts } from "@/lib/server/session-accounts";
+import { sessionManager } from "@/lib/server/session-manager";
+import { isHistoryWorthyDbRow } from "@/lib/shared/session-history";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +28,13 @@ export async function GET(req: Request) {
     const synthetic: SessionListItem[] = [];
     for (const row of dbRows) {
       if (sdkIds.has(row.id)) continue;
+      // CC 2.1.309 parity — a new tab / `/clear` that was abandoned before
+      // its first message leaves an untitled DB row (Session.start upserts
+      // it right away) and no JSONL. Synthesizing those filled history with
+      // "(untitled)" entries and spent the picker's recency window on
+      // them. Keep only rows the user can tell apart (a title — the reason
+      // this fan-out exists) or that are still open right now.
+      if (!isHistoryWorthyDbRow(row, (id) => sessionManager.get(id) !== undefined)) continue;
       synthetic.push({
         sessionId: row.id,
         // `summary` is the SDK's display fallback; for a session that

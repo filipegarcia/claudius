@@ -20,7 +20,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const ws = await getWorkspace(id);
   if (!ws) return NextResponse.json({ error: "not found" }, { status: 404 });
-  const ids = await listWorkspaceSessionIds(ws.rootPath).catch(() => [] as string[]);
+  // Count what the history shows (CC 2.1.309: abandoned untitled sessions
+  // are hidden there), not every index row.
+  const ids = await listWorkspaceSessionIds(ws.rootPath, {
+    isLive: (sid) => sessionManager.get(sid) !== undefined,
+  }).catch(() => [] as string[]);
   const busy = sessionManager
     .sessionsByCwd(ws.rootPath)
     .filter((s) => s.getStatus() !== "idle").length;

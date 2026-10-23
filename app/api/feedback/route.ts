@@ -72,12 +72,18 @@ export async function POST(req: Request) {
   }
 
   let forwarded = false;
+  // CC 2.1.309 — the server's refusal reason (e.g. the organization doesn't
+  // accept feedback), shown by the banner instead of a generic "couldn't
+  // reach Anthropic". Sanitized and capped in `feedbackRefusalReason`.
+  let reason: string | undefined;
   try {
-    forwarded = await session.submitFeedback(
+    const r = await session.submitFeedback(
       forwardText(rating, comment),
       surface,
       attachTranscript,
     );
+    forwarded = r.forwarded;
+    reason = r.reason;
   } catch {
     forwarded = false;
   }
@@ -96,7 +102,12 @@ export async function POST(req: Request) {
     // best-effort persistence
   });
 
-  return NextResponse.json({ ok: true, stored: true, forwarded });
+  return NextResponse.json({
+    ok: true,
+    stored: true,
+    forwarded,
+    ...(!forwarded && reason ? { reason } : {}),
+  });
 }
 
 /** Recent feedback for the active session's workspace — handy for a future review surface. */

@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { ownRequestCertFailureHint } from "@/lib/shared/tls-cert-hint";
 
 /**
  * Anthropic OAuth manual-flow driver for the account switcher.
@@ -214,14 +215,26 @@ export async function exchangeOAuthCode(
   };
 
   // `fetch` is the standard runtime API since Node 18 — no axios dep.
-  const res = await fetch(OAUTH_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    // Keep the request snappy — a hung exchange will just bubble up as
-    // a fetch error and the user can retry. AbortController not needed
-    // because fetch's default timeout is reasonable for the auth path.
-  });
+  let res: Response;
+  try {
+    res = await fetch(OAUTH_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      // Keep the request snappy — a hung exchange will just bubble up as
+      // a fetch error and the user can retry. AbortController not needed
+      // because fetch's default timeout is reasonable for the auth path.
+    });
+  } catch (err) {
+    // CC 2.1.309 parity — behind a TLS-inspecting proxy the exchange fails
+    // certificate verification; say what to do instead of "fetch failed".
+    const certHint = ownRequestCertFailureHint(err);
+    if (certHint) {
+      console.warn(`[accounts] token exchange failed certificate verification — ${certHint}`);
+      throw new Error(`Sign-in couldn't reach Anthropic. ${certHint}`);
+    }
+    throw err;
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");

@@ -1501,7 +1501,7 @@ export type ChatActions = {
   submitFeedback(input: {
     rating?: "up" | "down";
     comment: string;
-  }): Promise<{ ok: boolean; stored: boolean; forwarded: boolean }>;
+  }): Promise<{ ok: boolean; stored: boolean; forwarded: boolean; reason?: string }>;
   /** Dismiss the feedback nudge without submitting. */
   dismissFeedback(): void;
   /** Dismiss the Opus overload nudge banner. Client-side only. */

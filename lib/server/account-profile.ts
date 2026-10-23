@@ -5,6 +5,7 @@ import {
 } from "./accounts-store";
 import { readClaudeGlobalOauthAccount } from "./claude-global-config";
 import { describeBedrockConfig } from "@/lib/shared/accounts";
+import { ownRequestCertFailureHint } from "@/lib/shared/tls-cert-hint";
 
 /**
  * Resolve account-profile metadata (email / org / subscription /
@@ -242,10 +243,15 @@ export async function getProfileInfoForAccount(
     // Network failure, JSON parse, etc. — return cached info with a
     // soft warning. Same don't-cache-transient logic as the !res.ok
     // branch above.
+    // CC 2.1.309 parity — a certificate-verification failure (typically a
+    // TLS-inspecting proxy) says what to do instead of undici's bare
+    // "fetch failed".
+    const certHint = ownRequestCertFailureHint(err);
+    if (certHint) console.warn(`[accounts] profile request failed certificate verification — ${certHint}`);
     return {
       ...fromCached,
       errored: !(fromCached.email || fromCached.subscriptionType),
-      error: err instanceof Error ? err.message : String(err),
+      error: certHint ?? (err instanceof Error ? err.message : String(err)),
     };
   }
 }

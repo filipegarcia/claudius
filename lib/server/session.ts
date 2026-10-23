@@ -95,6 +95,8 @@ import {
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { hookAsk } from "@/lib/shared/hook-ask";
+import { interpretFeedbackResponse } from "@/lib/shared/feedback-refusal";
+import { bypassDangerousRmDenial } from "@/lib/shared/dangerous-rm-deny";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
@@ -1916,6 +1918,12 @@ export class Session {
    */
   title?: string;
   private permissionMode: PermissionMode;
+  /**
+   * CC 2.1.309 — a title set via `rename()` whose SDK `renameSession` failed
+   * (no JSONL yet). Re-sent at the next turn boundary so the CLI and other
+   * sessions see the user's name instead of a generated one.
+   */
+  private pendingTitleMirror: string | null = null;
 
   private inputQueue = new AsyncQueue<SDKUserMessage>();
   private query: Query | null = null;
@@ -2770,7 +2778,15 @@ export class Session {
       // the user renamed this session id in a previous boot of Claudius.
       try {
         const local = await getSessionTitle(this.cwd, this.id);
-        if (local) this.title = local;
+        if (local) {
+          this.title = local;
+          // CC 2.1.309 — a rename made before the first turn of an earlier
+          // boot may never have reached the JSONL (the in-memory pending
+          // mirror died with that process). Re-send it at the next turn
+          // boundary. Fresh branch only: on resume the JSONL may hold a
+          // newer TUI rename this must not overwrite.
+          this.pendingTitleMirror = local;
+        }
       } catch {
         // ignore
       }
@@ -3605,17 +3621,78 @@ export class Session {
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
+    // CC 2.1.309 parity — tell the running engine too, the way an IDE host
+    // does (`rename_session` with source "host", which the CLI counts as a
+    // user rename). Without it the live process keeps its generated name,
+    // and that's what other sessions see. Feature-detected: the method is on
+    // the SDK's Query at runtime but not in its public typings.
+    const toldEngine = await this.renameInEngine(trimmed);
     try {
       await renameSession(this.id, trimmed, { dir: this.cwd });
+      this.pendingTitleMirror = null;
     } catch {
       // Non-fatal. The most common reason this fails is "no JSONL yet" for a
-      // fresh session that hasn't completed a turn — once the SDK persists
-      // the first turn, our local title remains the source of truth and a
-      // future boot of any client reading both will see them in agreement.
+      // fresh session that hasn't completed a turn. CC 2.1.309 parity: the
+      // JSONL `customTitle` is what the CLI, `--resume` and other sessions
+      // read, so a name that only reached our index made the session show
+      // up elsewhere under a generated name. Unless the engine took it (it
+      // then persists the title itself), remember it and re-mirror at the
+      // next turn boundary, once the JSONL exists (`flushPendingTitleMirror`).
+      this.pendingTitleMirror = toldEngine ? null : trimmed;
     }
     this.title = trimmed;
     this.broadcast({ type: "session_title", title: trimmed });
     return { ok: true };
+  }
+
+  /**
+   * CC 2.1.309 — a rename whose JSONL write failed (made before the first
+   * turn flushed) is re-sent to the SDK once a turn has completed. Retried on
+   * each turn boundary until it lands or the user renames again; a later
+   * successful `rename()` clears it. Fire-and-forget from the result handler.
+   */
+  private async flushPendingTitleMirror(): Promise<void> {
+    const title = this.pendingTitleMirror;
+    if (!title) return;
+    try {
+      await renameSession(this.id, title, { dir: this.cwd });
+      if (this.pendingTitleMirror === title) {
+        this.pendingTitleMirror = null;
+      } else if (this.title && this.title !== title) {
+        // A newer rename landed while this append was in flight; its own
+        // append may have been written first, leaving ours as the last
+        // custom-title line. Re-assert the current name.
+        await renameSession(this.id, this.title, { dir: this.cwd }).catch(() => {});
+      }
+    } catch {
+      // Still no JSONL (or a transient write error) — try again next turn.
+    }
+  }
+
+  /**
+   * Best-effort in-process rename through the SDK's `rename_session` control
+   * request (source "host"). Returns whether the engine accepted it. Bounded
+   * so a wedged control channel can't hang the rename route.
+   */
+  private async renameInEngine(title: string): Promise<boolean> {
+    const q = this.query as
+      | (Query & { renameSession?: (title: string, sessionId?: string) => Promise<unknown> })
+      | null;
+    if (!q || typeof q.renameSession !== "function") return false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        q.renameSession(title, this.id),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("rename_session timed out")), 5_000);
+        }),
+      ]);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   private canUseTool: CanUseTool = (toolName, input, ctx) => {
@@ -3657,6 +3734,26 @@ export class Session {
         this.toolBudgetUsed[budgetKind] += 1;
         // Falls through to the normal permission flow below — the cap is a
         // pre-check, not a replacement for the usual allow/ask/deny decision.
+      }
+
+      // ── CC 2.1.309: dangerous rm in Bypass permissions → deny at once ──
+      // The engine still asks for a dangerous rm/rmdir in bypass mode (a
+      // safety check no mode can auto-allow). Like Desktop and VS Code,
+      // answer with an immediate deny plus a rewrite hint instead of parking
+      // a card, so an unattended bypass session keeps going. The engine shows
+      // the deny as the tool's error in the transcript. Skipped when a user
+      // ask rule forced the prompt, and in every other mode. Decided on the
+      // session's mode: ctx doesn't carry a subagent's own permissionMode,
+      // so a bypass subagent under a non-bypass parent still gets the card.
+      const rmDenial = bypassDangerousRmDenial({
+        permissionMode: this.permissionMode,
+        decisionReason: ctx.decisionReason,
+        decisionReasonType: (ctx as { decisionReasonType?: unknown }).decisionReasonType,
+        matchedAskRule: ctx.matchedAskRule,
+      });
+      if (rmDenial) {
+        resolve({ behavior: "deny", message: rmDenial });
+        return;
       }
 
       // ── ExitPlanMode is the model's "ready to execute" signal ─────────
@@ -5992,7 +6089,10 @@ export class Session {
    * through the same channel the CLI's session-quality survey uses to reach
    * Anthropic. We feature-detect and swallow failures: if a future SDK drops
    * the method, forwarding degrades to a no-op and the caller still persists
-   * the feedback locally. Returns whether the SDK accepted the forward.
+   * the feedback locally. Returns whether the SDK accepted the forward and,
+   * when it refused, the server's reason (CC 2.1.309 — e.g. an organization
+   * that doesn't accept feedback), so the banner can say why instead of
+   * blaming connectivity.
    *
    * When `attachTranscript` is set the SDK's `attach_transcript` option is
    * passed through, so the bundled `claude` binary packages the session
@@ -6004,7 +6104,7 @@ export class Session {
     description: string,
     surface = "claudius",
     attachTranscript = false,
-  ): Promise<boolean> {
+  ): Promise<{ forwarded: boolean; reason?: string }> {
     const q = this.query as
       | (Query & {
           submitFeedback?: (
@@ -6013,12 +6113,16 @@ export class Session {
           ) => Promise<unknown>;
         })
       | null;
-    if (!q || typeof q.submitFeedback !== "function") return false;
+    if (!q || typeof q.submitFeedback !== "function") return { forwarded: false };
     try {
-      await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
-      return true;
+      // CC 2.1.309 — a refusal comes back as a resolved `{ feedback_id: null,
+      // unavailable_reason }`, not a rejection; read it.
+      const res = await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
+      return interpretFeedbackResponse(res);
     } catch {
-      return false;
+      // Transport / handler failure (e.g. the query closed): not a refusal,
+      // so no reason — the banner keeps its "couldn't reach Anthropic" copy.
+      return { forwarded: false };
     }
   }
 
@@ -9244,6 +9348,9 @@ export class Session {
           sawResult = true;
           this.turnInFlight = false;
           this.broadcastTurnStatusIfChanged();
+          // CC 2.1.309 — the turn's JSONL now exists; land a rename that
+          // couldn't reach it earlier.
+          void this.flushPendingTitleMirror();
           // CC 2.1.273/2.1.288 — turn boundary is our mid-session poll point:
           // re-check MCP status so a server that dropped or now needs more
           // OAuth scope during the turn surfaces a notice (throttled inside).

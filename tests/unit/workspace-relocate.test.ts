@@ -109,6 +109,20 @@ describe("listWorkspaceSessionIds", () => {
     expect(ids.sort()).toEqual([S1, S2, S_DB_ONLY].sort());
     expect(await listWorkspaceSessionIds(newRoot)).toEqual([]);
   });
+
+  test("with isLive, skips untitled DB-only rows that aren't open (CC 2.1.309)", async () => {
+    const db = await openDb(oldRoot);
+    db.prepare(
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES (?, ?, NULL, NULL, 1, 1, 1)",
+    ).run("abandoned-empty-tab", oldRoot);
+    db.prepare(
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES (?, ?, NULL, NULL, 1, 1, 1)",
+    ).run("open-empty-tab", oldRoot);
+    const all = await listWorkspaceSessionIds(oldRoot);
+    expect(all).toContain("abandoned-empty-tab");
+    const shown = await listWorkspaceSessionIds(oldRoot, { isLive: (id) => id === "open-empty-tab" });
+    expect(shown.sort()).toEqual([S1, S2, S_DB_ONLY, "open-empty-tab"].sort());
+  });
 });
 
 describe("relocateWorkspaceSessions", () => {
