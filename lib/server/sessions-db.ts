@@ -292,7 +292,6 @@ export async function mergeSessionState(
   ).run(id, cwd, next, now, now, now);
 }
 
-/** List every indexed session for this cwd, newest activity first. */
 /**
  * CC 2.1.309 parity — re-title an already-indexed session from a path that
  * has no live `Session` to call `setSessionTitle` on (the non-live branch of
@@ -319,20 +318,26 @@ export async function retitleIndexedSession(id: string, title: string): Promise<
     const root = ws.rootPath;
     if (!root || seen.has(root)) continue;
     seen.add(root);
-    // Probe read-only first so a workspace without a DB isn't given one.
+    // Probe read-only first so a workspace without a DB file isn't given one
+    // (no DB file created, no migrations run).
     const ro = await openDb(root, "readonly").catch(() => null);
     if (!ro) continue;
     const hit = ro.prepare("SELECT 1 FROM sessions WHERE id = ?").get(id);
     if (!hit) continue;
-    const db = await openDb(root);
-    const res = db
-      .prepare("UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?")
-      .run(trimmed, Date.now(), id);
-    updated += res.changes;
+    try {
+      const db = await openDb(root);
+      const res = db
+        .prepare("UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?")
+        .run(trimmed, Date.now(), id);
+      updated += res.changes;
+    } catch {
+      // One workspace's DB failing must not hide updates already made.
+    }
   }
   return updated;
 }
 
+/** List every indexed session for this cwd, newest activity first. */
 export async function listIndexedSessions(cwd: string): Promise<SessionRow[]> {
   const db = await openDb(cwd, "readonly").catch(() => null);
   if (!db) return [];

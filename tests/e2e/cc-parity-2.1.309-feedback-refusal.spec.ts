@@ -4,13 +4,14 @@
  * where to report a bug."
  *
  * Claudius's session-quality survey (FeedbackBanner) forwards through the
- * SDK's `submitFeedback`. A refusal used to collapse into `forwarded: false`,
- * so the banner always blamed connectivity ("couldn't reach Anthropic"). Now
+ * SDK's `submitFeedback`. The engine answers a refusal as a resolved
+ * `{ feedback_id: null, unavailable_reason }`, which Claudius ignored — the
+ * refused report showed "sent", and any failure blamed connectivity. Now
  * `/api/feedback` returns the refusal `reason` and the banner shows it next
  * to the existing "Open an issue" link. A failure with no reason keeps the
- * old copy.
+ * old copy, and an error response's machine code is never shown.
  *
- * The chat backend and `/api/feedback` are mocked; `feedbackRefusalReason`
+ * The chat backend and `/api/feedback` are mocked; `interpretFeedbackResponse`
  * (the server half) has vitest coverage.
  *
  * Screenshot target: docs/cc-parity/2.1.309/feedback-refusal.png
@@ -118,7 +119,7 @@ test("a refused feedback forward shows the server's reason and where to report a
   const fail = page.getByTestId("feedback-banner-fail");
   await expect(fail).toBeVisible();
   await expect(page.getByTestId("feedback-refusal-reason")).toHaveText(REFUSAL);
-  await expect(fail).toContainText("Saved locally — Anthropic didn't accept it:");
+  await expect(fail).toContainText("Saved locally — not sent:");
   // No connectivity framing when the server said why.
   await expect(fail).not.toContainText("couldn't reach Anthropic");
   // Where to report a bug.
@@ -141,5 +142,23 @@ test("a failure without a reason keeps the connectivity copy", async ({ page }) 
   const fail = page.getByTestId("feedback-banner-fail");
   await expect(fail).toBeVisible();
   await expect(fail).toContainText("Saved — but couldn't reach Anthropic");
+  await expect(page.getByTestId("feedback-refusal-reason")).toHaveCount(0);
+});
+
+test("an error response's machine code is never shown as a refusal", async ({ page }) => {
+  await page.route("**/api/feedback", (route: Route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    return route.fulfill({
+      status: 409,
+      json: { ok: false, stored: false, forwarded: false, reason: "session-unavailable" },
+    });
+  });
+  await page.goto("/");
+  await submitThumbsUp(page);
+
+  const fail = page.getByTestId("feedback-banner-fail");
+  await expect(fail).toBeVisible();
+  await expect(fail).toContainText("Couldn't submit your feedback");
+  await expect(fail).not.toContainText("session-unavailable");
   await expect(page.getByTestId("feedback-refusal-reason")).toHaveCount(0);
 });

@@ -22,11 +22,15 @@ import { stripAnsi } from "./hook-ask";
 /** Matches the engine's dangerous-rm safety-check wording (rm and rmdir). */
 const DANGEROUS_RM = /\bdangerous rm(?:dir)? operations?\b/i;
 
-/** Appended to the engine's own reason; the model reads it as the tool error. */
+/**
+ * Appended to the engine's own reason; the model reads it as the tool error.
+ * Deliberately generic: the engine's reason carries any case-specific advice
+ * (e.g. "use a literal path: $X is set in this command from …", where a
+ * `${X:?}` guard would *not* help), so this doesn't suggest a guard.
+ */
 export const DANGEROUS_RM_REWRITE_HINT =
   "Denied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. " +
-  "Rewrite the command so it removes only literal paths inside the project (guard any variable with ${NAME:?}), " +
-  "or leave the removal for the user to run.";
+  "Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.";
 
 const REASON_MAX = 600;
 

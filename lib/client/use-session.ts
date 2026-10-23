@@ -5888,10 +5888,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           /** CC 2.1.309 — why Anthropic refused the forward, when it said. */
           reason?: string;
         };
-        const reason = typeof j.reason === "string" && j.reason ? { reason: j.reason } : {};
         if (!res.ok) {
-          return { ok: false, stored: j.stored ?? false, forwarded: j.forwarded ?? false, ...reason };
+          // Error responses carry machine codes in `reason` (e.g. the 409's
+          // "session-unavailable") — never show those as a refusal.
+          return { ok: false, stored: j.stored ?? false, forwarded: j.forwarded ?? false };
         }
+        const reason = typeof j.reason === "string" && j.reason ? { reason: j.reason } : {};
         return { ok: j.ok ?? true, stored: j.stored ?? true, forwarded: j.forwarded ?? false, ...reason };
       } catch {
         return { ok: false, stored: false, forwarded: false };

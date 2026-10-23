@@ -4,6 +4,7 @@ import { resolve, sep } from "node:path";
 import { encodeProjectDir } from "./auto-memory";
 import { closeDb, openDb, type DB } from "./db";
 import { PathInjectionError } from "./safe-path";
+import { isHistoryWorthyDbRow } from "@/lib/shared/session-history";
 
 /**
  * Moving a workspace's root folder (Workspace settings → Root folder).
@@ -74,10 +75,17 @@ async function pathExists(p: string): Promise<boolean> {
 
 /**
  * Session ids recorded for `root`: every transcript on disk plus DB-only rows
- * (a session renamed before its first turn flushed has a DB row but no JSONL —
- * `/api/sessions/all` surfaces those too, so they count).
+ * (a session renamed before its first turn flushed has a DB row but no JSONL).
+ *
+ * CC 2.1.309 — `/api/sessions/all` no longer lists untitled DB-only rows
+ * (abandoned new tabs) unless they're still open. Pass `isLive` to count the
+ * same way, so the "move N sessions?" prompt matches what history shows.
+ * Without it every row counts (the move itself carries the whole DB anyway).
  */
-export async function listWorkspaceSessionIds(root: string): Promise<string[]> {
+export async function listWorkspaceSessionIds(
+  root: string,
+  opts: { isLive?: (id: string) => boolean } = {},
+): Promise<string[]> {
   const base = projectsBase();
   const dir = resolve(base, encodeProjectDir(root));
   if (!dir.startsWith(base + sep)) throw new PathInjectionError("project dir escapes base");
@@ -97,8 +105,14 @@ export async function listWorkspaceSessionIds(root: string): Promise<string[]> {
     const db = await openDb(root, "readonly").catch(() => null);
     if (db) {
       try {
-        const rows = db.prepare("SELECT id FROM sessions WHERE cwd = ?").all(root) as { id: string }[];
-        for (const r of rows) ids.add(r.id);
+        const rows = db
+          .prepare("SELECT id, title FROM sessions WHERE cwd = ?")
+          .all(root) as { id: string; title: string | null }[];
+        for (const r of rows) {
+          if (ids.has(r.id)) continue;
+          if (opts.isLive && !isHistoryWorthyDbRow(r, opts.isLive)) continue;
+          ids.add(r.id);
+        }
       } catch {
         // pre-v2 DB without a sessions table — transcripts are the full set
       }

@@ -2278,7 +2278,9 @@ export function PromptInput({
             // send-failed notice. Ranked after the short-lived invisible-
             // Unicode warning so a paste warning is never masked. The mic
             // turns amber and carries the same text in its title
-            // (aria-describedby points here).
+            // (aria-describedby points here). CC 2.1.309 — the same slot
+            // carries the certificate-failure hint when dictation couldn't
+            // connect (e.g. behind a TLS-inspecting proxy).
             <span
               role="status"
               id={`${testIdPrefix}-voice-stop-notice`}

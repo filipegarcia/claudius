@@ -363,7 +363,11 @@ export async function openVoiceSession(
     // CC 2.1.309 parity — a certificate-verification failure (typically a
     // TLS-inspecting proxy) gets a warning that says what to do, both in the
     // server log and in the payload the composer's mic shows.
-    const caOpts = { extraCaConfigured: ca !== undefined || Boolean(process.env[EXTRA_CA_ENV]) };
+    // Under Bun the settings-only bundle is never applied to the socket
+    // (warned above), so it doesn't count as configured there.
+    const caOpts = {
+      extraCaConfigured: (ca !== undefined && !isBun) || Boolean(process.env[EXTRA_CA_ENV]),
+    };
     const hint = tlsCertFailureHint(err, caOpts);
     const logHint = tlsCertFailureLogHint(err, caOpts);
     console.warn(

@@ -46,7 +46,9 @@ export interface UseVoiceResult {
   /**
    * CC 2.1.307 parity — set when dictation stopped by itself (upstream
    * closed, idle reaper, session gone) rather than via `stop()`. Says why,
-   * and that the text so far is kept. Cleared by `start()` / `dismissNotice()`.
+   * and that the text so far is kept. CC 2.1.309 — also carries the
+   * what-to-do hint when the upstream connection failed certificate
+   * verification. Cleared by `start()` / `dismissNotice()`.
    */
   notice: string | null;
   dismissNotice: () => void;
@@ -296,14 +298,19 @@ export function useVoice(
       if (typeof data === "string") {
         try {
           const parsed = JSON.parse(data) as { kind?: string; message?: string; hint?: string };
-          if (typeof parsed.hint === "string" && parsed.hint) {
-            // CC 2.1.309 parity — certificate-verification failure (e.g. a
-            // TLS-inspecting proxy). The proxy already closed the upstream,
-            // so tear down (otherwise `start()` stays locked on the stale
-            // session id) and show what to do in the footer status slot,
-            // not just Node's raw message on the mic tooltip.
-            setError(parsed.hint);
-            setNotice(parsed.hint);
+          if (parsed.kind === "upstream") {
+            // The proxy has already ended this session (`closeSession` right
+            // after the error frame, no `close` frame follows), so tear down
+            // — otherwise `start()` stays locked on the dead session id and
+            // the mic stays red.
+            if (typeof parsed.hint === "string" && parsed.hint) {
+              // CC 2.1.309 parity — certificate-verification failure (e.g. a
+              // TLS-inspecting proxy): say what to do in the footer status
+              // slot, not just Node's raw message on the mic tooltip.
+              setNotice(parsed.hint);
+            } else {
+              setError(parsed.message ?? "voice error");
+            }
             cleanup();
             return;
           }

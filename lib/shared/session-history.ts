@@ -10,6 +10,11 @@
  * filter, every new tab / `/clear` that was closed unused shows up as
  * "(untitled)" on `/sessions` and in the session picker.
  *
+ * "DB-only" here means "not in the SDK's (limit-capped) listing" — usually no
+ * JSONL yet, but also an older untitled session whose JSONL ranks past the
+ * caller's `limit`; that one simply stays at its real position in the SDK
+ * listing instead of being re-surfaced with a bumped timestamp.
+ *
  * A DB-only row is worth listing when it has a title — the user named it, and
  * that rename is exactly what the fan-out exists to surface — or when the
  * session is still live (the user's currently-open empty tab must stay

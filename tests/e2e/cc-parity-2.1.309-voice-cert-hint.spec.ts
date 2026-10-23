@@ -6,7 +6,8 @@
  * Claudius proxies dictation (`lib/server/voice-stream.ts`). A certificate-
  * verification failure on the upstream socket used to surface only as Node's
  * raw "unable to verify the first certificate" on the mic tooltip, and the
- * hook kept the dead session id so the mic couldn't restart. Now the proxy
+ * hook kept the dead session id after any upstream error, so the mic
+ * couldn't restart. Now the proxy
  * logs an actionable warning and forwards it as `hint`; the composer shows it
  * in the footer status slot (amber mic, same idiom as the 2.1.307 self-stop
  * notice) and the mic is free to try again.
@@ -162,7 +163,7 @@ test("a certificate failure tells the user to set NODE_EXTRA_CA_CERTS", async ({
   await expect(notice).toContainText("NODE_EXTRA_CA_CERTS");
   await expect(mic).not.toHaveClass(/bg-red-500/);
   await expect(mic).toHaveClass(/text-amber-500/);
-  await expect(mic).toHaveAttribute("title", `Voice: ${HINT}`);
+  await expect(mic).toHaveAttribute("title", `${HINT} Click to dictate again.`);
   // The draft is untouched.
   await expect(composer).toHaveValue("Draft the release notes for");
 
@@ -183,7 +184,12 @@ test("a non-certificate upstream error keeps the plain message and shows no hint
   await expect(composer).toBeEnabled({ timeout: 15_000 });
   const mic = page.getByTestId("prompt-mic");
   await mic.click();
+  await expect(mic).toHaveClass(/bg-red-500/);
   await emitVoice(page, "error", { kind: "upstream", message: "socket hang up" });
   await expect(page.getByTestId("prompt-voice-stop-notice")).toHaveCount(0);
   await expect(mic).toHaveAttribute("title", "Voice: socket hang up");
+  // The proxy ended the session, so the mic is released and can start again.
+  await expect(mic).not.toHaveClass(/bg-red-500/);
+  await mic.click();
+  await expect(mic).toHaveClass(/bg-red-500/);
 });

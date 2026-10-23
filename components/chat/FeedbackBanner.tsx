@@ -166,9 +166,9 @@ export function FeedbackBanner({
   // ── Result: graceful fail ─────────────────────────────────────────────────
   if (phase === "fail") {
     const savedLocally = result?.stored ?? false;
-    // CC 2.1.309 parity — when Anthropic refused the forward and said why
-    // (e.g. "Your organization does not accept feedback."), show that reason
-    // instead of implying a connection problem, then point at where to
+    // CC 2.1.309 parity — when the forward was refused and the server said
+    // why (e.g. "Your organization does not accept feedback."), show that
+    // reason instead of implying a connection problem, then point at where to
     // report a bug (the "Open an issue" link below).
     const refusal = result?.reason;
     return (
@@ -181,7 +181,7 @@ export function FeedbackBanner({
         {refusal ? (
           <>
             <span className="shrink-0 font-medium">
-              {savedLocally ? "Saved locally — Anthropic didn't accept it:" : "Anthropic didn't accept your feedback:"}
+              {savedLocally ? "Saved locally — not sent:" : "Feedback not sent:"}
             </span>
             <span data-testid="feedback-refusal-reason" className="min-w-0 truncate" title={refusal}>
               {refusal}

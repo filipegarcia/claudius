@@ -4,17 +4,29 @@ import {
   DANGEROUS_RM_REWRITE_HINT,
   bypassDangerousRmDenial,
 } from "@/lib/shared/dangerous-rm-deny";
-import { FEEDBACK_REASON_MAX, feedbackRefusalReason } from "@/lib/shared/feedback-refusal";
+import {
+  FEEDBACK_REASON_MAX,
+  feedbackRefusalReason,
+  interpretFeedbackResponse,
+} from "@/lib/shared/feedback-refusal";
 import { isHistoryWorthyDbRow } from "@/lib/shared/session-history";
-import { isCaTrustFailure, tlsCertFailureHint, tlsCertFailureLogHint } from "@/lib/shared/tls-cert-hint";
+import {
+  isCaTrustFailure,
+  ownRequestCertFailureHint,
+  tlsCertFailureHint,
+  tlsCertFailureLogHint,
+} from "@/lib/shared/tls-cert-hint";
 
-// Verbatim engine wording (bundled `claude` binary, CC 2.1.309).
-const RM_WORKSPACE =
-  "Dangerous rm operation detected: '.'\nThis command would remove a workspace directory (the working directory, an additional working directory, or one of their parent directories). This requires explicit approval and cannot be auto-allowed by permission rules.";
-const RMDIR_CRITICAL =
-  "Dangerous rmdir operation detected: '/usr'\nThis command would remove a critical system directory. This requires explicit approval and cannot be auto-allowed by permission rules.";
+// The `decision_reason` forms the engine (CC 2.1.309) forwards to canUseTool
+// for its dangerous-removal checks: `Dangerous ${rm|rmdir} operation <detail>`.
+const RM_WORKSPACE = "Dangerous rm operation on working directory or its ancestor: .";
+const RMDIR_CRITICAL = "Dangerous rmdir operation on critical path: /usr";
 const RM_UNCHECKED =
-  "This command could not be fully checked for dangerous rm operations: not all of its nested commands or function substitutions could be analyzed. This requires explicit approval.";
+  "Dangerous rm operation not ruled out — some nested commands or function substitutions could not be analyzed";
+const RM_SHELL_C =
+  "Dangerous rm operation in a shell -c script, on a target built from a value known only when it runs";
+const RM_DERIVED_VAR =
+  "Dangerous rm operation on possibly-empty variable path: ${OUT}/x (use a literal path: $OUT is set in this command from `mktemp -d`, which can print nothing)";
 
 describe("bypassDangerousRmDenial (CC 2.1.309)", () => {
   it("denies a dangerous rm safety check in bypass mode, with the engine reason and a rewrite hint", () => {
@@ -26,6 +38,9 @@ describe("bypassDangerousRmDenial (CC 2.1.309)", () => {
     expect(msg).not.toBeNull();
     expect(msg!.startsWith(RM_WORKSPACE)).toBe(true);
     expect(msg!.endsWith(DANGEROUS_RM_REWRITE_HINT)).toBe(true);
+    // The engine's own advice wins; the generic hint never suggests a guard
+    // (it can't help when the variable is set in the same command).
+    expect(DANGEROUS_RM_REWRITE_HINT).not.toContain("${");
   });
 
   it("covers rmdir, compound commands and the could-not-check variant", () => {
@@ -33,6 +48,8 @@ describe("bypassDangerousRmDenial (CC 2.1.309)", () => {
       [RMDIR_CRITICAL, "safetyCheck"],
       [RM_WORKSPACE, "subcommandResults"],
       [RM_UNCHECKED, "safetyCheck"],
+      [RM_SHELL_C, "safetyCheck"],
+      [RM_DERIVED_VAR, "subcommandResults"],
     ] as const) {
       expect(
         bypassDangerousRmDenial({ permissionMode: "bypassPermissions", decisionReason: reason, decisionReasonType: type }),
@@ -116,6 +133,13 @@ describe("tlsCertFailureHint (CC 2.1.309 dictation cert warning)", () => {
     expect(tlsCertFailureLogHint(leaf, { extraCaConfigured: false })).toContain("~/.claude/settings.json");
   });
 
+  it("sees through fetch's TypeError wrapper (code on `cause`) for Claudius's own requests", () => {
+    const wrapped = new TypeError("fetch failed", { cause: leaf });
+    expect(isCaTrustFailure(wrapped)).toBe(true);
+    expect(ownRequestCertFailureHint(wrapped)).toContain("Start Claudius with NODE_EXTRA_CA_CERTS");
+    expect(ownRequestCertFailureHint(new TypeError("fetch failed", { cause: new Error("ECONNREFUSED") }))).toBeNull();
+  });
+
   it("tells the user to check the bundle when one is already applied", () => {
     const hint = tlsCertFailureHint(leaf, { extraCaConfigured: true })!;
     expect(hint).toContain("even with NODE_EXTRA_CA_CERTS");
@@ -143,12 +167,50 @@ describe("feedbackRefusalReason (CC 2.1.309)", () => {
     expect(feedbackRefusalReason(null)).toBeUndefined();
   });
 
+  it("drops the CLI's trailing bug-report pointer (the banner links to issues)", () => {
+    expect(
+      feedbackRefusalReason("/feedback requires Anthropic credentials (OAuth or API key). Report issues at https://github.com/anthropics/claude-code/issues"),
+    ).toBe("/feedback requires Anthropic credentials (OAuth or API key).");
+  });
+
   it("caps by code point so an emoji is never cut in half", () => {
     const long = "🚫".repeat(FEEDBACK_REASON_MAX + 10);
     const out = feedbackRefusalReason(new Error(long))!;
     expect(Array.from(out)).toHaveLength(FEEDBACK_REASON_MAX);
     expect(out.endsWith("…")).toBe(true);
     expect(/[\ud800-\udbff](?![\udc00-\udfff])/.test(out)).toBe(false);
+  });
+});
+
+describe("interpretFeedbackResponse (CC 2.1.309 — refusals resolve, they don't reject)", () => {
+  it("reads an org refusal from a resolved response", () => {
+    expect(
+      interpretFeedbackResponse({ feedback_id: null, unavailable_reason: "Your organization does not accept feedback." }),
+    ).toEqual({ forwarded: false, reason: "Your organization does not accept feedback." });
+    expect(
+      interpretFeedbackResponse({
+        feedback_id: null,
+        is_zdr_org: true,
+        failure_reason: "http_error",
+        status_code: 403,
+        unavailable_reason: "Feedback collection is not available for organizations with custom data retention policies.",
+      }),
+    ).toEqual({
+      forwarded: false,
+      reason: "Feedback collection is not available for organizations with custom data retention policies.",
+    });
+  });
+
+  it("treats a failure code alone as not sent, without a reason", () => {
+    expect(interpretFeedbackResponse({ feedback_id: null, failure_reason: "http_error", status_code: 503 })).toEqual({
+      forwarded: false,
+    });
+  });
+
+  it("treats a feedback id, or an older SDK's empty answer, as sent", () => {
+    expect(interpretFeedbackResponse({ feedback_id: "fb_123" })).toEqual({ forwarded: true });
+    expect(interpretFeedbackResponse(undefined)).toEqual({ forwarded: true });
+    expect(interpretFeedbackResponse({})).toEqual({ forwarded: true });
   });
 });
 

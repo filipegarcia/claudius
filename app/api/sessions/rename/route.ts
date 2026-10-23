@@ -9,7 +9,8 @@ type Body = { sessionId: string; title: string; dir?: string };
 
 export async function POST(req: Request) {
   const body = (await req.json()) as Body;
-  if (!body?.sessionId || !body?.title) {
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  if (!body?.sessionId || !title) {
     return NextResponse.json({ error: "sessionId and title required" }, { status: 400 });
   }
   // If the session is live in-memory, route through Session.rename so the
@@ -18,13 +19,9 @@ export async function POST(req: Request) {
   // for sessions that aren't currently bound).
   const live = sessionManager.get(body.sessionId);
   if (live) {
-    const r = await live.rename(body.title);
+    const r = await live.rename(title);
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 500 });
     return NextResponse.json({ ok: true });
-  }
-  const title = body.title.trim();
-  if (!title) {
-    return NextResponse.json({ error: "sessionId and title required" }, { status: 400 });
   }
   // CC 2.1.309 parity — a rename must win over a generated name after a
   // reload or resume. Every title reader prefers the sessions-index title

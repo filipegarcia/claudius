@@ -34,11 +34,17 @@ const CA_TRUST_MESSAGE =
   /unable to verify the first certificate|unable to verify leaf signature|self[- ]signed certificate|unable to get (?:local )?issuer certificate|certificate (?:is )?(?:not )?(?:un)?trusted/i;
 
 export function isCaTrustFailure(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const code = (err as { code?: unknown }).code;
-  if (typeof code === "string" && CA_TRUST_CODES.has(code)) return true;
-  const message = (err as { message?: unknown }).message;
-  return typeof message === "string" && CA_TRUST_MESSAGE.test(message);
+  // `fetch` (undici) wraps the TLS error as `TypeError("fetch failed")` with
+  // the real one on `cause`; walk a couple of levels.
+  let cur: unknown = err;
+  for (let depth = 0; depth < 3 && cur && typeof cur === "object"; depth++) {
+    const code = (cur as { code?: unknown }).code;
+    if (typeof code === "string" && CA_TRUST_CODES.has(code)) return true;
+    const message = (cur as { message?: unknown }).message;
+    if (typeof message === "string" && CA_TRUST_MESSAGE.test(message)) return true;
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 /**
@@ -56,8 +62,8 @@ export function tlsCertFailureHint(
 ): string | null {
   if (!isCaTrustFailure(err)) return null;
   return opts.extraCaConfigured
-    ? "Dictation: certificate not trusted even with NODE_EXTRA_CA_CERTS. Check the bundle has your proxy's CA, then retry."
-    : "Dictation: certificate not trusted (TLS-inspecting proxy?). Set NODE_EXTRA_CA_CERTS to its CA bundle, then retry.";
+    ? "Dictation couldn't connect — certificate not trusted even with NODE_EXTRA_CA_CERTS. Check it has your proxy's CA."
+    : "Dictation couldn't connect — certificate not trusted. Set NODE_EXTRA_CA_CERTS to your proxy's CA bundle and try again.";
 }
 
 /**
@@ -75,4 +81,14 @@ export function tlsCertFailureLogHint(
   return opts.extraCaConfigured
     ? hint
     : `${hint} It can be set in the environment or in the env block of ~/.claude/settings.json.`;
+}
+
+/**
+ * For Claudius's own HTTPS requests to Anthropic (account sign-in / profile),
+ * which — unlike the dictation socket — only see a `NODE_EXTRA_CA_CERTS`
+ * present in the environment when Claudius started.
+ */
+export function ownRequestCertFailureHint(err: unknown): string | null {
+  if (!isCaTrustFailure(err)) return null;
+  return "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.";
 }

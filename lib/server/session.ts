@@ -95,7 +95,7 @@ import {
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { hookAsk } from "@/lib/shared/hook-ask";
-import { feedbackRefusalReason } from "@/lib/shared/feedback-refusal";
+import { interpretFeedbackResponse } from "@/lib/shared/feedback-refusal";
 import { bypassDangerousRmDenial } from "@/lib/shared/dangerous-rm-deny";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
@@ -2778,7 +2778,15 @@ export class Session {
       // the user renamed this session id in a previous boot of Claudius.
       try {
         const local = await getSessionTitle(this.cwd, this.id);
-        if (local) this.title = local;
+        if (local) {
+          this.title = local;
+          // CC 2.1.309 — a rename made before the first turn of an earlier
+          // boot may never have reached the JSONL (the in-memory pending
+          // mirror died with that process). Re-send it at the next turn
+          // boundary. Fresh branch only: on resume the JSONL may hold a
+          // newer TUI rename this must not overwrite.
+          this.pendingTitleMirror = local;
+        }
       } catch {
         // ignore
       }
@@ -3613,6 +3621,12 @@ export class Session {
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
+    // CC 2.1.309 parity — tell the running engine too, the way an IDE host
+    // does (`rename_session` with source "host", which the CLI counts as a
+    // user rename). Without it the live process keeps its generated name,
+    // and that's what other sessions see. Feature-detected: the method is on
+    // the SDK's Query at runtime but not in its public typings.
+    const toldEngine = await this.renameInEngine(trimmed);
     try {
       await renameSession(this.id, trimmed, { dir: this.cwd });
       this.pendingTitleMirror = null;
@@ -3621,10 +3635,10 @@ export class Session {
       // fresh session that hasn't completed a turn. CC 2.1.309 parity: the
       // JSONL `customTitle` is what the CLI, `--resume` and other sessions
       // read, so a name that only reached our index made the session show
-      // up elsewhere under a generated name. Remember it and re-mirror at
-      // the next turn boundary, once the JSONL exists
-      // (`flushPendingTitleMirror`).
-      this.pendingTitleMirror = trimmed;
+      // up elsewhere under a generated name. Unless the engine took it (it
+      // then persists the title itself), remember it and re-mirror at the
+      // next turn boundary, once the JSONL exists (`flushPendingTitleMirror`).
+      this.pendingTitleMirror = toldEngine ? null : trimmed;
     }
     this.title = trimmed;
     this.broadcast({ type: "session_title", title: trimmed });
@@ -3642,10 +3656,42 @@ export class Session {
     if (!title) return;
     try {
       await renameSession(this.id, title, { dir: this.cwd });
-      // Only clear if no newer rename replaced it while we were awaiting.
-      if (this.pendingTitleMirror === title) this.pendingTitleMirror = null;
+      if (this.pendingTitleMirror === title) {
+        this.pendingTitleMirror = null;
+      } else if (this.title && this.title !== title) {
+        // A newer rename landed while this append was in flight; its own
+        // append may have been written first, leaving ours as the last
+        // custom-title line. Re-assert the current name.
+        await renameSession(this.id, this.title, { dir: this.cwd }).catch(() => {});
+      }
     } catch {
       // Still no JSONL (or a transient write error) — try again next turn.
+    }
+  }
+
+  /**
+   * Best-effort in-process rename through the SDK's `rename_session` control
+   * request (source "host"). Returns whether the engine accepted it. Bounded
+   * so a wedged control channel can't hang the rename route.
+   */
+  private async renameInEngine(title: string): Promise<boolean> {
+    const q = this.query as
+      | (Query & { renameSession?: (title: string, sessionId?: string) => Promise<unknown> })
+      | null;
+    if (!q || typeof q.renameSession !== "function") return false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        q.renameSession(title, this.id),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("rename_session timed out")), 5_000);
+        }),
+      ]);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 
@@ -3696,7 +3742,9 @@ export class Session {
       // answer with an immediate deny plus a rewrite hint instead of parking
       // a card, so an unattended bypass session keeps going. The engine shows
       // the deny as the tool's error in the transcript. Skipped when a user
-      // ask rule forced the prompt, and in every other mode.
+      // ask rule forced the prompt, and in every other mode. Decided on the
+      // session's mode: ctx doesn't carry a subagent's own permissionMode,
+      // so a bypass subagent under a non-bypass parent still gets the card.
       const rmDenial = bypassDangerousRmDenial({
         permissionMode: this.permissionMode,
         decisionReason: ctx.decisionReason,
@@ -6067,11 +6115,14 @@ export class Session {
       | null;
     if (!q || typeof q.submitFeedback !== "function") return { forwarded: false };
     try {
-      await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
-      return { forwarded: true };
-    } catch (err) {
-      const reason = feedbackRefusalReason(err);
-      return reason ? { forwarded: false, reason } : { forwarded: false };
+      // CC 2.1.309 — a refusal comes back as a resolved `{ feedback_id: null,
+      // unavailable_reason }`, not a rejection; read it.
+      const res = await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
+      return interpretFeedbackResponse(res);
+    } catch {
+      // Transport / handler failure (e.g. the query closed): not a refusal,
+      // so no reason — the banner keeps its "couldn't reach Anthropic" copy.
+      return { forwarded: false };
     }
   }
 
