@@ -62,6 +62,14 @@ export type PermissionRequestEvent = {
    * only. Absent for every other kind of ask.
    */
   hookAsk?: HookAsk;
+  /**
+   * CC 2.1.310 — the file this Read/Edit/Write/NotebookEdit ask is about is a
+   * symbolic link; `target` is where it leads (resolved server-side by
+   * `resolvePermissionSymlink`; the SDK doesn't forward the engine's own
+   * value). `outsideWorkingDirs` flags a target outside the session cwd and
+   * every additional directory. Display only. Absent for non-links.
+   */
+  symlink?: { target: string; outsideWorkingDirs: boolean; operation: "read" | "modify" };
 };
 
 export type SessionReadyEvent = {

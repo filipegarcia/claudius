@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Lightbulb, Shield, Webhook } from "lucide-react";
+import { ChevronDown, ChevronRight, Lightbulb, Link2, Shield, Webhook } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
 import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
@@ -58,6 +58,12 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // text, so it gets the same invisible-character treatment.
   const hookAsk = request.hookAsk;
   const hookReasonVis = hookAsk?.reason ? visualizeInvisibleUnicode(hookAsk.reason) : null;
+  // CC 2.1.310 — the file this ask is about is a symlink; say where it leads
+  // (resolved server-side, see `resolvePermissionSymlink`). The target is a
+  // filesystem name the model chose, so it gets the invisible-character
+  // treatment too.
+  const symlink = request.symlink;
+  const symlinkTargetVis = symlink ? visualizeInvisibleUnicode(symlink.target) : null;
   // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
   // would write grants more than this ask's own action, so hide all three
   // standing-grant buttons. The auto-mode tip button is itself a one-click
@@ -80,7 +86,8 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // Fire the banner if hidden/bidi chars appear anywhere the user reads: the
   // title, the description, the tool input, or a hook's reason (CC 2.1.301).
   const hiddenCharCount =
-    summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount + (hookReasonVis?.count ?? 0);
+    summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount + (hookReasonVis?.count ?? 0) +
+    (symlinkTargetVis?.count ?? 0);
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -174,6 +181,30 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
                 <span className="min-w-0 break-words">
                   <span className="font-medium">Asked by a hook{hookReasonVis ? ":" : ""}</span>
                   {hookReasonVis && <>{" "}{hookReasonVis.visualized}</>}
+                </span>
+              </div>
+            )}
+            {symlink && symlinkTargetVis && (
+              <div
+                data-testid="permission-symlink-target"
+                data-outside-working-dirs={symlink.outsideWorkingDirs ? "true" : undefined}
+                title="The path in this request is a symbolic link — this is the file it actually resolves to"
+                className="mt-1.5 flex items-start gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-200"
+              >
+                <Link2 className="mt-0.5 h-3 w-3 shrink-0" />
+                <span className="min-w-0 break-all">
+                  {symlink.outsideWorkingDirs ? (
+                    <>
+                      This will {symlink.operation}{" "}
+                      <code className="font-mono text-amber-100">{symlinkTargetVis.visualized}</code>{" "}
+                      <span className="font-medium">(outside working directory)</span> via a symlink
+                    </>
+                  ) : (
+                    <>
+                      Symlink target:{" "}
+                      <code className="font-mono text-amber-100">{symlinkTargetVis.visualized}</code>
+                    </>
+                  )}
                 </span>
               </div>
             )}

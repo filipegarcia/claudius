@@ -124,6 +124,7 @@ import {
   thinkingReplayErrorFrom,
 } from "./thinking-replay-recovery";
 import { extractReadPaths } from "@/lib/shared/read-tool-paths";
+import { permissionFilePath, resolvePermissionSymlink } from "./permission-symlink";
 import { parseTaskListResult } from "@/lib/shared/parse-tasklist-result";
 import {
   buildSystemPromptOption,
@@ -3879,29 +3880,53 @@ export class Session {
           })),
         ),
       };
-      this.pendingPermissions.set(requestId, {
-        requestId,
-        resolve,
-        meta,
-        // CC 2.1.235 — keep the raw suggestions so resolvePermission can echo
-        // them back as the standing grant instead of a whole-tool rule.
-        suggestions: ctx.suggestions,
-      });
-      this.broadcast(meta);
-      this.broadcastTurnStatusIfChanged();
-
-      ctx.signal.addEventListener("abort", () => {
-        const pending = this.pendingPermissions.get(requestId);
-        if (!pending) return;
-        this.pendingPermissions.delete(requestId);
-        // Clear the matching inbox row so an aborted permission request
-        // doesn't sit unread on the badge. Mirror of resolvePermission; see
-        // drainPendingDecisions for the full rationale.
-        void notificationBus.markReadByRequestId(this.cwd, requestId);
-        pending.resolve({ behavior: "deny", message: "Aborted" });
-        this.broadcastPromptSettled("permission", requestId);
+      const park = () => {
+        this.pendingPermissions.set(requestId, {
+          requestId,
+          resolve,
+          meta,
+          // CC 2.1.235 — keep the raw suggestions so resolvePermission can echo
+          // them back as the standing grant instead of a whole-tool rule.
+          suggestions: ctx.suggestions,
+        });
+        this.broadcast(meta);
         this.broadcastTurnStatusIfChanged();
-      });
+
+        ctx.signal.addEventListener("abort", () => {
+          const pending = this.pendingPermissions.get(requestId);
+          if (!pending) return;
+          this.pendingPermissions.delete(requestId);
+          // Clear the matching inbox row so an aborted permission request
+          // doesn't sit unread on the badge. Mirror of resolvePermission; see
+          // drainPendingDecisions for the full rationale.
+          void notificationBus.markReadByRequestId(this.cwd, requestId);
+          pending.resolve({ behavior: "deny", message: "Aborted" });
+          this.broadcastPromptSettled("permission", requestId);
+          this.broadcastTurnStatusIfChanged();
+        });
+      };
+
+      // CC 2.1.310 — show where a symlinked file leads. The engine resolves it
+      // for its own terminal card but doesn't forward it through canUseTool,
+      // so resolve it here before the card goes out. Only file tools pay the
+      // async hop; everything else parks synchronously as before. Set on
+      // `meta`, so the reconnect re-emit and /pending-prompts carry it too.
+      if (!permissionFilePath(toolName, input)) {
+        park();
+        return;
+      }
+      void resolvePermissionSymlink(toolName, input, this.cwd, this.additionalDirectories ?? [])
+        .catch(() => null)
+        .then((symlink) => {
+          // Aborted during the lookup: no listener is registered yet, so
+          // settle here rather than parking a card nobody can answer.
+          if (ctx.signal.aborted) {
+            resolve({ behavior: "deny", message: "Aborted" });
+            return;
+          }
+          if (symlink) meta.symlink = symlink;
+          park();
+        });
     });
   };
 
