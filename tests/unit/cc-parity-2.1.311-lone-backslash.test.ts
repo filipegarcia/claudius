@@ -10,7 +10,7 @@ import { preserveLoneBackslashes } from "@/lib/shared/lone-backslash";
  */
 
 const render = (text: string, math = true): string =>
-  renderToStaticMarkup(createElement(Markdown, { math }, text));
+  renderToStaticMarkup(createElement(Markdown, { math } as { math: boolean; children: string }, text));
 
 /** Visible text of the rendered HTML (tags stripped, entities decoded). */
 const visible = (html: string): string =>
