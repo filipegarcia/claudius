@@ -149,6 +149,7 @@ import {
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
+import { hasUltrathinkKeyword } from "@/lib/shared/ultrathink-keyword";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -286,9 +287,15 @@ export function isRateLimitHitSdkMessage(message: unknown): boolean {
  *
  * Exported for unit testing — the regex boundary behavior (`ultrathinking`
  * must NOT match, `Ultrathink.` must) is the contract worth pinning.
+ *
+ * CC 2.1.311 — the keyword only counts where the engine's quote- and
+ * path-aware finder sees it (`lib/shared/ultrathink-keyword.ts`): not inside
+ * backticks, quotes or brackets, not as part of a file path or flag, and not
+ * inside a large paste (`inlinePastes`, which Claude Code scans as a
+ * `[Pasted text #N]` placeholder).
  */
-export function ultrathinkReminderBody(text: string): string | null {
-  if (!/\bultrathink\b/i.test(text)) return null;
+export function ultrathinkReminderBody(text: string, inlinePastes?: readonly string[]): string | null {
+  if (!hasUltrathinkKeyword(text, inlinePastes)) return null;
   return (
     'The user included the keyword "ultrathink", requesting deeper reasoning ' +
     "on this turn. Reason as thoroughly as the task warrants."
@@ -4352,7 +4359,7 @@ export class Session {
     // The block is appended by the existing `takePendingReminders` drain in
     // both branches, so it rides THIS turn (same call ordering as the goal
     // reminder).
-    const ultrathinkBody = ultrathinkReminderBody(text);
+    const ultrathinkBody = ultrathinkReminderBody(text, opts?.inlinePastes);
     if (ultrathinkBody) queueReminder(this, "ultrathink-prose", ultrathinkBody);
 
     // Mid-turn user inject nudge (Claude Code TUI parity, feature 37). When

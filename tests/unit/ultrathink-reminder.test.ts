@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { ultrathinkReminderBody } from "@/lib/server/session";
 
 /**
- * Boundary behavior for the `\bultrathink\b` prose-keyword detector that
+ * Boundary behavior for the `ultrathink` prose-keyword detector that
  * triggers the per-turn deeper-reasoning `<system-reminder>` (Claude Code
  * TUI parity, feature 27). The detector must:
  *   - match the bare word in any case;
@@ -32,7 +32,46 @@ describe("ultrathinkReminderBody", () => {
   test("matches across word boundaries (start, end, punctuation)", () => {
     expect(ultrathinkReminderBody("ultrathink")).not.toBeNull();
     expect(ultrathinkReminderBody("ok ultrathink.")).not.toBeNull();
-    expect(ultrathinkReminderBody("(ultrathink)")).not.toBeNull();
+    expect(ultrathinkReminderBody("ultrathink, then fix it")).not.toBeNull();
+    expect(ultrathinkReminderBody("Ultrathink!")).not.toBeNull();
+  });
+
+  // CC 2.1.311 — the keyword only counts where the engine's quote- and
+  // path-aware finder sees it. `(ultrathink)` used to match; it is now a
+  // bracketed mention, like the quoted and path cases below.
+  test("ignores the keyword inside quotes, backticks and brackets (CC 2.1.311)", () => {
+    expect(ultrathinkReminderBody("(ultrathink)")).toBeNull();
+    expect(ultrathinkReminderBody("what does `ultrathink` do?")).toBeNull();
+    expect(ultrathinkReminderBody('the word "ultrathink" is special')).toBeNull();
+    expect(ultrathinkReminderBody("rename the 'ultrathink' flag")).toBeNull();
+    expect(ultrathinkReminderBody("see [ultrathink] in the docs")).toBeNull();
+    expect(ultrathinkReminderBody("set {ultrathink} in the template")).toBeNull();
+  });
+
+  test("ignores the keyword as part of a path, flag or file name (CC 2.1.311)", () => {
+    expect(ultrathinkReminderBody("open docs/ultrathink.md")).toBeNull();
+    expect(ultrathinkReminderBody("read ultrathink.md first")).toBeNull();
+    expect(ultrathinkReminderBody("pass --ultrathink-mode")).toBeNull();
+    expect(ultrathinkReminderBody("check src\\ultrathink\\x")).toBeNull();
+    expect(ultrathinkReminderBody("what is ultrathink?")).toBeNull();
+    expect(ultrathinkReminderBody("/tmp/notes ultrathink")).toBeNull();
+  });
+
+  test("an apostrophe in a contraction does not open a quoted span", () => {
+    expect(ultrathinkReminderBody("don't stop, ultrathink this")).not.toBeNull();
+    expect(ultrathinkReminderBody("it's tricky so ultrathink")).not.toBeNull();
+  });
+
+  test("still matches when a bare mention sits beside a quoted one", () => {
+    expect(ultrathinkReminderBody('"ultrathink" means this — ultrathink now')).not.toBeNull();
+  });
+
+  test("a keyword only inside a large paste doesn't count", () => {
+    const paste = "log line: ultrathink enabled\nmore log";
+    expect(ultrathinkReminderBody(`look at this ${paste}`, [paste])).toBeNull();
+    expect(ultrathinkReminderBody(`ultrathink about ${paste}`, [paste])).not.toBeNull();
+    // No paste provenance → scanned as typed text.
+    expect(ultrathinkReminderBody(`look at this ${paste}`)).not.toBeNull();
   });
 
   test("rejects extensions that just contain the substring", () => {
