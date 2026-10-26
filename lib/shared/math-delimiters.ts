@@ -90,6 +90,28 @@ function stripQuoteMarkers(line: string, depth: number): string {
 }
 
 /**
+ * Index just past the backtick run (or the whole inline code span) starting
+ * at `i`: a run of N backticks closes at the next run of exactly N; with no
+ * closer, only the opening run is consumed and it stays literal.
+ */
+export function inlineCodeEnd(text: string, i: number): number {
+  const n = text.length;
+  let run = 1;
+  while (text[i + run] === "`") run++;
+  const fence = "`".repeat(run);
+  let search = i + run;
+  while (search < n) {
+    const at = text.indexOf(fence, search);
+    if (at === -1) break;
+    let len = run;
+    while (text[at + len] === "`") len++;
+    if (len === run) return at + run;
+    search = at + len;
+  }
+  return i + run;
+}
+
+/**
  * Rewrite the math delimiters in one prose segment (no fenced code inside;
  * inline code spans are handled here).
  */
@@ -100,31 +122,11 @@ function normalizeProse(text: string): string {
   while (i < n) {
     const ch = text[i];
 
-    // Inline code span: a run of N backticks closes at the next run of exactly N.
+    // Inline code span: copied verbatim (an unmatched run stays literal).
     if (ch === "`") {
-      let run = 1;
-      while (text[i + run] === "`") run++;
-      const fence = "`".repeat(run);
-      let search = i + run;
-      let close = -1;
-      while (search < n) {
-        const at = text.indexOf(fence, search);
-        if (at === -1) break;
-        let len = run;
-        while (text[at + len] === "`") len++;
-        if (len === run) {
-          close = at;
-          break;
-        }
-        search = at + len;
-      }
-      if (close === -1) {
-        out += fence;
-        i += run;
-      } else {
-        out += text.slice(i, close + run);
-        i = close + run;
-      }
+      const end = inlineCodeEnd(text, i);
+      out += text.slice(i, end);
+      i = end;
       continue;
     }
 
@@ -236,6 +238,18 @@ function indentColumns(line: string): number {
  */
 export function normalizeMathDelimiters(markdown: string): string {
   if (!mayContainMath(markdown)) return markdown;
+  return mapProseSegments(markdown, normalizeProse);
+}
+
+/**
+ * Apply `rewrite` to every prose run of `markdown` — the text between fenced
+ * code blocks (``` / ~~~, including one still open while a reply streams)
+ * and indented code blocks, which are copied verbatim. Each prose run is
+ * passed whole (it may span lines); inline code spans inside it are the
+ * callback's to skip (see `inlineCodeEnd`). Shared by the math pre-pass and
+ * the lone-backslash pre-pass (`lib/shared/lone-backslash.ts`).
+ */
+export function mapProseSegments(markdown: string, rewrite: (prose: string) => string): string {
   const lines = markdown.split("\n");
   const out: string[] = [];
   let prose: string[] = [];
@@ -249,7 +263,7 @@ export function normalizeMathDelimiters(markdown: string): string {
   let indentedCode = false;
 
   const flushProse = () => {
-    if (prose.length) out.push(normalizeProse(prose.join("\n")));
+    if (prose.length) out.push(rewrite(prose.join("\n")));
     prose = [];
   };
 
