@@ -37,6 +37,13 @@ function reapMs(): number {
  * enough to satisfy with a hand-rolled stub; see
  * `tests/unit/session-manager.test.ts`.
  */
+/** Consecutive dead-process restarts allowed without a successful turn. */
+export const MAX_DEAD_RESTARTS = 3;
+
+export type RestartIfDeadResult =
+  | { ok: true; session: Session; restarted: boolean }
+  | { ok: false; reason: "gone" | "max_attempts" | "failed"; error?: string };
+
 export class SessionManager {
   private sessions = new Map<string, Session>();
   /** Active reap timers keyed by session id. */
@@ -52,6 +59,15 @@ export class SessionManager {
    * session, where each successful turn clears the budget.
    */
   private thinkingRecoveryAttempts = new Map<string, number>();
+  /**
+   * Per-id count of consecutive dead-process restarts (see `restartIfDead`),
+   * cleared by `noteThinkingRecoverySuccess` on any successful turn. Caps a
+   * process that dies on boot (bad credentials, broken config) so every send
+   * doesn't spawn another doomed child.
+   */
+  private deadRestartAttempts = new Map<string, number>();
+  /** In-flight dead-process restarts, so concurrent sends share one rebuild. */
+  private restarting = new Map<string, Promise<RestartIfDeadResult>>();
   /**
    * In-flight `create()` calls keyed by the session id being built, published
    * for the whole duration of `session.start()`.
@@ -286,6 +302,59 @@ export class SessionManager {
    */
   noteThinkingRecoverySuccess(id: string): void {
     this.thinkingRecoveryAttempts.delete(id);
+    // A turn completed, so the process is healthy again — reset the
+    // dead-restart budget too (see `restartIfDead`).
+    this.deadRestartAttempts.delete(id);
+  }
+
+  /**
+   * CC 2.1.311 parity — "Fixed a background session that crashed between
+   * turns not being restarted while it was attached, pinned, or had a
+   * scheduled task or wake-up set".
+   *
+   * When a session's SDK process ends on its own (`Session.isDead()`), the
+   * Session stays in the map with `done` set and `sendInput` silently drops
+   * every message. This rebuilds it under the SAME id, resumed from its own
+   * transcript (the `restartInPlace` path), then closes the old instance's
+   * SSE streams so open tabs reconnect to the new one. The new session's
+   * `start()` drains anything left in the persisted queue.
+   *
+   * Returns the live session unchanged when it isn't dead, and `gone` when
+   * the id isn't live. Concurrent callers share one rebuild. Capped at
+   * `MAX_DEAD_RESTARTS` consecutive restarts without a successful turn, so a
+   * process that dies on boot surfaces instead of respawning on every send.
+   */
+  async restartIfDead(id: string): Promise<RestartIfDeadResult> {
+    const inFlight = this.restarting.get(id);
+    if (inFlight) return inFlight;
+    const existing = this.sessions.get(id);
+    if (!existing) return { ok: false, reason: "gone" };
+    if (!existing.isDead()) return { ok: true, session: existing, restarted: false };
+    const attempts = this.deadRestartAttempts.get(id) ?? 0;
+    if (attempts >= MAX_DEAD_RESTARTS) return { ok: false, reason: "max_attempts" };
+    this.deadRestartAttempts.set(id, attempts + 1);
+
+    const run = (async (): Promise<RestartIfDeadResult> => {
+      const carry = existing.getRebuildOpts();
+      await this.remove(id);
+      try {
+        const session = await this.create({ ...carry, resume: id });
+        return { ok: true, session, restarted: true };
+      } catch (err) {
+        return { ok: false, reason: "failed", error: err instanceof Error ? err.message : String(err) };
+      } finally {
+        // Either way the old instance is finished: let its tabs reconnect.
+        // On success they bind to the new session; on failure the stream
+        // route resumes from disk (or 404s) and the user sees the error.
+        existing.closeStreams();
+      }
+    })();
+    this.restarting.set(id, run);
+    try {
+      return await run;
+    } finally {
+      this.restarting.delete(id);
+    }
   }
 
   private handleSubscriberCount(id: string, count: number): void {

@@ -854,6 +854,13 @@ export type ChatState = {
    */
   pendingPermissionCount: number;
   errors: string[];
+  /**
+   * CC 2.1.311 — the SDK process behind this session ended on its own (an
+   * `error` event with `sessionEnded`). The error banner adds "send a message
+   * to restart it"; the next send rebuilds the session from its transcript.
+   * Cleared together with `errors`.
+   */
+  processExited: boolean;
   /** CC 2.1.302 — why the last `createSession` failed (null once one succeeds or starts). */
   createError: string | null;
   slashCommands: string[];

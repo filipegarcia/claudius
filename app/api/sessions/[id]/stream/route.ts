@@ -49,9 +49,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         controller.enqueue(encoder.encode(payload));
       };
 
+      // CC 2.1.311 — when the session is rebuilt under the same id (its SDK
+      // process died and the next message restarted it), the old Session
+      // closes this stream so the tab's EventSource reconnects and binds to
+      // the new one. `cleanup` is declared below; the hook runs much later.
       const unsubscribe = session.subscribe(send, {
         ...(tail !== undefined ? { tail } : {}),
         ...(tabId ? { tabId } : {}),
+        onClose: () => cleanup(),
       });
 
       // Belt-and-suspenders ready emit. The Session.subscribe() path also

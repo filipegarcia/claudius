@@ -10,8 +10,25 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const session = sessionManager.get(id);
+  let session = sessionManager.get(id);
   if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
+  // CC 2.1.311 — the SDK process ended on its own (crash, non-zero exit):
+  // `sendInput` would silently drop this message while we answered `ok`.
+  // Restart the session from its transcript first; if that's not possible,
+  // say so instead of pretending the message went through.
+  if (session.isDead()) {
+    const restarted = await sessionManager.restartIfDead(id);
+    if (!restarted.ok) {
+      const error =
+        restarted.reason === "max_attempts"
+          ? "This session's process keeps exiting, so it wasn't restarted again. Check the error in the chat, or start a new session."
+          : restarted.reason === "gone"
+            ? "session not found"
+            : `Couldn't restart the session: ${restarted.error ?? "unknown error"}`;
+      return NextResponse.json({ error }, { status: restarted.reason === "gone" ? 404 : 503 });
+    }
+    session = restarted.session;
+  }
   const body = (await req.json()) as SendInputRequest;
   const hasText = typeof body?.text === "string" && body.text.length > 0;
   const hasImages = Array.isArray(body?.images) && body.images.length > 0;

@@ -1951,6 +1951,8 @@ export class Session {
    */
   private resumedTranscriptFile: string | undefined;
   private subscribers = new Set<Subscriber>();
+  /** `controller.close()` hooks for the attached SSE streams — see `closeStreams`. */
+  private streamClosers = new Set<() => void>();
   private subscriberCountListeners = new Set<(count: number) => void>();
   /**
    * tabId of the SSE client that currently holds write access.
@@ -5450,7 +5452,44 @@ export class Session {
    * holds the timer) alive. See `loop-keepalive.ts`.
    */
   hasArmedLoops(now: number = Date.now()): boolean {
+    // CC 2.1.311 — a dead SDK process took the loop timers with it, so an
+    // ended session has nothing to keep alive. Without this the reaper
+    // re-armed forever and pinned the dead Session in memory.
+    if (this.done) return false;
     return hasArmedLoop(this.scheduledLoops.values(), now);
+  }
+
+  /**
+   * CC 2.1.311 parity — "Fixed a background session that crashed between
+   * turns not being restarted while it was attached, pinned, or had a
+   * scheduled task or wake-up set". True when the SDK process ended on its
+   * own (crash, non-zero exit, iterator error) rather than through `end()` —
+   * the reaper, a restart, or a delete all abort the controller first.
+   * `sendInput` bails on `done`, so a dead session silently drops every
+   * message until `SessionManager.restartIfDead` rebuilds it.
+   */
+  isDead(): boolean {
+    return this.done && !this.abortController.signal.aborted;
+  }
+
+  /**
+   * Close every attached SSE stream (the stream route registers its
+   * `controller.close()` via `subscribe(…, { onClose })`). Used after the
+   * session was rebuilt under the same id: the tabs' EventSources reconnect,
+   * the stream route resolves the NEW Session, and its replay brings them
+   * up to date. Without this an open tab stays subscribed to the dead
+   * instance and never sees the restarted session's reply.
+   */
+  closeStreams(): void {
+    const closers = [...this.streamClosers];
+    this.streamClosers.clear();
+    for (const close of closers) {
+      try {
+        close();
+      } catch {
+        // a stream that's already gone is fine
+      }
+    }
   }
 
   /**
@@ -7526,7 +7565,10 @@ export class Session {
     return { added };
   }
 
-  subscribe(fn: Subscriber, opts?: { tail?: number; tabId?: string }): () => void {
+  subscribe(
+    fn: Subscriber,
+    opts?: { tail?: number; tabId?: string; onClose?: () => void },
+  ): () => void {
     const replayWindow = selectReplayWindow(this.buffer, opts?.tail);
     const startIdx = replayWindow.startIdx;
     const hasMoreAbove = replayWindow.hasMoreAbove || this.bufferTrimmed;
@@ -7760,6 +7802,8 @@ export class Session {
       });
     }
     this.subscribers.add(fn);
+    const onClose = opts?.onClose;
+    if (onClose) this.streamClosers.add(onClose);
     this.notifySubscriberCount();
     // Holder tracking: first tab to subscribe with a tabId claims the write
     // lock. All current subscribers (including this one) are notified; later
@@ -7803,6 +7847,7 @@ export class Session {
     void this.sendQueueSnapshot(fn);
     return () => {
       this.subscribers.delete(fn);
+      if (onClose) this.streamClosers.delete(onClose);
       // Release the holder slot when the holder's SSE stream disconnects so
       // the next tab to subscribe can claim it.
       if (tabId && tabId === this.holderId) {
@@ -9630,7 +9675,11 @@ export class Session {
       // mirrors `useNotifications.notify`'s OS-popup suppression).
       if (!this.abortController.signal.aborted) {
         const message = err instanceof Error ? err.message : String(err);
-        this.broadcast({ type: "error", message });
+        // CC 2.1.311 — the iterator threw, so the SDK process is gone
+        // (`done` is set in `finally`). Flag it so the client says how to
+        // resume (send a message → `restartIfDead`) instead of leaving a raw
+        // "process exited" line with no way forward.
+        this.broadcast({ type: "error", message, sessionEnded: true });
         sawError = true;
         // A thrown 529 lands here when the SDK iterator gives up (not as a
         // synthetic API-error assistant message). Feed it through the same

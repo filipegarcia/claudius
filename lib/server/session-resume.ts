@@ -93,6 +93,15 @@ export async function getOrResumeSession(id: string): Promise<Session | null> {
        
       console.log("[sess-load] getOrResumeSession in-memory hit", { id });
     }
+    // CC 2.1.311 — a session whose SDK process died between turns is
+    // restarted while a tab is attached (stream connect, pollers). Capped in
+    // `restartIfDead`; when it can't restart, the dead instance is still
+    // returned so read-only routes keep working and the input route reports
+    // the failure.
+    if (existing.isDead()) {
+      const restarted = await sessionManager.restartIfDead(id);
+      return restarted.ok ? restarted.session : existing;
+    }
     return existing;
   }
   try {
