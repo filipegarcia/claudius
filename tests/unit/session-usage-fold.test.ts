@@ -317,6 +317,34 @@ describe("mergeModelUsage / addSessionUsage", () => {
     expect(merged["claude-opus-5"].thinkingTokens).toBe(5);
   });
 
+  // SDK 0.3.311 — the 5m/1h split of cacheCreationInputTokens accumulates
+  // across SDK-process merges; absent on one side is carried, not zeroed.
+  test("accumulates cache-creation 5m/1h split across merges (SDK 0.3.311)", () => {
+    const merged = mergeModelUsage(
+      {
+        "claude-opus-5": {
+          cacheCreationInputTokens: 300,
+          cacheCreationEphemeral5mInputTokens: 100,
+          cacheCreationEphemeral1hInputTokens: 200,
+        },
+      },
+      {
+        "claude-opus-5": {
+          cacheCreationInputTokens: 30,
+          cacheCreationEphemeral5mInputTokens: 10,
+          cacheCreationEphemeral1hInputTokens: 20,
+        },
+      },
+    ) as Record<string, Record<string, unknown>>;
+    expect(merged["claude-opus-5"].cacheCreationEphemeral5mInputTokens).toBe(110);
+    expect(merged["claude-opus-5"].cacheCreationEphemeral1hInputTokens).toBe(220);
+    const carried = mergeModelUsage(
+      { "claude-opus-5": { cacheCreationInputTokens: 300 } },
+      { "claude-opus-5": { cacheCreationInputTokens: 30, cacheCreationEphemeral1hInputTokens: 20 } },
+    ) as Record<string, Record<string, unknown>>;
+    expect(carried["claude-opus-5"].cacheCreationEphemeral1hInputTokens).toBe(20);
+  });
+
   test("addSessionUsage sums scalars and carries merged modelUsage", () => {
     const a: SessionUsageTotals = {
       ...zeroSessionUsage(),

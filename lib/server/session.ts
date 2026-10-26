@@ -1315,6 +1315,11 @@ const ADDITIVE_MODEL_USAGE_FIELDS = new Set([
   "thinkingTokens",
   "cacheReadInputTokens",
   "cacheCreationInputTokens",
+  // SDK 0.3.311 — the 5m / 1h split of `cacheCreationInputTokens` (both
+  // already counted inside it). Optional; accumulate like the parent so a
+  // resumed session's per-model breakdown doesn't go last-write-wins.
+  "cacheCreationEphemeral5mInputTokens",
+  "cacheCreationEphemeral1hInputTokens",
   "webSearchRequests",
   "costUSD",
 ]);
