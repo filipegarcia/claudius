@@ -803,6 +803,24 @@ export function PromptInput({
     voice.start();
   }
 
+  /**
+   * CC 2.1.311 parity ([VSCode] "Fixed voice dictation continuing to record
+   * after a message was sent with the Send button; sending now stops
+   * dictation first, as pressing Enter already did"). In Claudius neither
+   * Send nor Enter stopped it: the mic stayed live, and because `stop()`
+   * waits for the upstream's final transcript, that transcript was written
+   * back as `baseRef + text` into the composer the send had just cleared.
+   * Called from the post-dispatch reset of every send path (prompt and
+   * `!`-mode), not at the top of `submit()`, so a send that bounces (disabled,
+   * hidden characters to review) keeps dictating. The rest of the transcript
+   * is dropped — it belongs to the message that already left.
+   */
+  function stopDictationForSend() {
+    baseRef.current = "";
+    interimRef.current = "";
+    if (voice.listening) voice.stop({ discardTranscript: true });
+  }
+
   function autosize() {
     const el = taRef.current;
     if (!el) return;
@@ -910,6 +928,7 @@ export function PromptInput({
     // doesn't accidentally include the just-sent command. Mirrors the
     // `submit()` reset block but without the model-bound side effects
     // (suggested/queue/history) — bash-mode doesn't participate in those.
+    stopDictationForSend();
     setValue("");
     setDismissedHints(new Set());
     setImages([]);
@@ -1049,6 +1068,7 @@ export function PromptInput({
     }
     // Clear right away rather than after the outcome: a fast follow-up
     // keystroke must not land in the message that just left.
+    stopDictationForSend();
     setValue("");
     setDismissedHints(new Set());
     setImages([]);

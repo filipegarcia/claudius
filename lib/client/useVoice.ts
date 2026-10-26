@@ -53,7 +53,14 @@ export interface UseVoiceResult {
   notice: string | null;
   dismissNotice: () => void;
   start: () => void;
-  stop: () => void;
+  /**
+   * Stop capturing and ask the upstream to finalize. Pass
+   * `{ discardTranscript: true }` when the composer has just sent the
+   * dictated text (CC 2.1.311 [VSCode] "sending now stops dictation first"):
+   * the final transcript that follows would otherwise be written back into
+   * the composer the send just cleared.
+   */
+  stop: (opts?: { discardTranscript?: boolean }) => void;
 }
 
 // Feature-detect on every render — `navigator` is undefined during SSR
@@ -135,6 +142,11 @@ export function useVoice(
     pendingChunks: Uint8Array[];
     /** True once the user pressed stop — the next close is expected, not a self-stop. */
     userStopped: boolean;
+    /**
+     * True once the dictated text was sent: transcript events still in flight
+     * for this session (the upstream's final `TranscriptText`) are dropped.
+     */
+    discardTranscript: boolean;
   }>({
     sessionId: null,
     audioContext: null,
@@ -146,6 +158,7 @@ export function useVoice(
     upstreamReady: false,
     pendingChunks: [],
     userStopped: false,
+    discardTranscript: false,
   });
 
   // Tear down all resources. Idempotent — safe to call multiple times,
@@ -223,6 +236,7 @@ export function useVoice(
     setError(null);
     setNotice(null);
     stateRef.current.userStopped = false;
+    stateRef.current.discardTranscript = false;
 
     // Generate a session id the renderer owns. The server uses it as
     // a one-shot capability that pairs the SSE with the chunk POSTs —
@@ -265,6 +279,14 @@ export function useVoice(
     es.addEventListener("message", (ev) => {
       try {
         const msg = JSON.parse(ev.data) as UpstreamMessage;
+        // The dictated text already left with a send — anything still
+        // arriving for this session belongs to that message, not the next.
+        if (
+          stateRef.current.discardTranscript &&
+          (msg.type === "TranscriptInterim" || msg.type === "TranscriptText")
+        ) {
+          return;
+        }
         switch (msg.type) {
           case "TranscriptInterim":
             if (msg.data) onTranscriptRef.current(msg.data, false);
@@ -424,10 +446,20 @@ export function useVoice(
     })();
   }, [cleanup, endOnItsOwn, flushUpload]);
 
-  const stop = useCallback(() => {
+  const stop = useCallback((opts?: { discardTranscript?: boolean }) => {
     const sid = stateRef.current.sessionId;
     if (!sid) return;
     stateRef.current.userStopped = true;
+    if (opts?.discardTranscript) {
+      // The dictated text already left with a send: nothing that arrives
+      // from here on is wanted, so there's no final transcript to wait for.
+      // Release the upstream and tear down now — the mic goes idle the
+      // moment the message is sent instead of after the upstream's close.
+      stateRef.current.discardTranscript = true;
+      void fetch(`/api/voice/close?id=${sid}`, { method: "POST" }).catch(() => {});
+      cleanup();
+      return;
+    }
     // Flush any tail audio before asking the upstream to finalize —
     // otherwise the last word might be missing.
     if (stateRef.current.uploadFill > 0) {
@@ -452,7 +484,7 @@ export function useVoice(
       // (upstream close raced). Either way, the SSE will fire its
       // own close and `cleanup()` will run.
     });
-  }, [flushUpload]);
+  }, [cleanup, flushUpload]);
 
   // Belt-and-braces cleanup if the component unmounts mid-recording.
   // Without this an unmount during dictation leaks the AudioContext
