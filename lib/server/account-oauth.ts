@@ -163,6 +163,41 @@ export function startOAuthFlow(): OAuthStartResult {
 }
 
 /**
+ * CC 2.1.311 parity — "Improved the message shown when a pasted sign-in code
+ * is refused: it now says the code may have expired or been used, and to sign
+ * in again". Verbatim from the bundled CLI's `AuthCodeRefusedError`.
+ */
+export const REFUSED_AUTH_CODE_MESSAGE =
+  "That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.";
+
+/**
+ * The engine's predicate for a refused pasted code: the token endpoint
+ * answered 400 or 401 with the OAuth `invalid_grant` error (RFC 6749 §5.2).
+ * OAuth servers send that as a 400, so Claudius's old 401-only branch never
+ * fired and users saw `token exchange failed (400): {"error":"invalid_grant"…}`.
+ * Any other failure keeps its own message.
+ */
+export function isRefusedAuthCode(status: number, bodyText: string): boolean {
+  if (status !== 400 && status !== 401) return false;
+  let body: unknown;
+  try {
+    body = JSON.parse(bodyText);
+  } catch {
+    return false;
+  }
+  if (!body || typeof body !== "object") return false;
+  const err = (body as { error?: unknown }).error;
+  if (err === "invalid_grant") return true;
+  // Tolerate the Anthropic API's nested error envelope too.
+  return (
+    !!err &&
+    typeof err === "object" &&
+    ((err as { type?: unknown }).type === "invalid_grant" ||
+      (err as { code?: unknown }).code === "invalid_grant")
+  );
+}
+
+/**
  * Exchange the user-pasted code for an access token. The user pastes a
  * single string of the form `<code>#<state>` (Claude's manual-redirect
  * success page emits exactly that — see the CLI's
@@ -238,6 +273,7 @@ export async function exchangeOAuthCode(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    if (isRefusedAuthCode(res.status, text)) throw new Error(REFUSED_AUTH_CODE_MESSAGE);
     if (res.status === 401) {
       throw new Error(
         "Invalid authorization code. The codes expire fast — try signing in again.",
