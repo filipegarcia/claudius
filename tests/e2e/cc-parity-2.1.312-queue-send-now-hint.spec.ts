@@ -123,7 +123,7 @@ test("the queue hint names Ctrl+Enter, and clicking it does what the key does", 
   const hint = page.getByTestId("prompt-queue-send-now-hint");
   await expect(hint).toBeVisible();
   await expect(hint).toHaveText("· Ctrl+Enter to send now");
-  await expect(hint).toHaveAttribute("title", /as Ctrl\+Enter does/);
+  await expect(hint).toHaveAttribute("title", /\(Ctrl\+Enter\)/);
 
   await hint.scrollIntoViewIfNeeded();
   await page.waitForTimeout(200);
@@ -138,4 +138,14 @@ test("the queue hint names Ctrl+Enter, and clicking it does what the key does", 
   await page.keyboard.press("Control+Enter");
   await expect.poll(() => calls.sendAll).toBe(2);
   expect(calls.sendOne).toHaveLength(0);
+
+  // Sending just one is unchanged: plain Enter on the empty composer sends the
+  // first queued message, and so does that row's own "Send now".
+  await page.keyboard.press("Enter");
+  await expect.poll(() => calls.sendOne.length).toBe(1);
+  expect(calls.sendOne[0]).toContain("/queue/q-1/send-now");
+  await strip.getByTestId("queue-item").nth(1).getByRole("button", { name: /Send now/ }).click();
+  await expect.poll(() => calls.sendOne.length).toBe(2);
+  expect(calls.sendOne[1]).toContain("/queue/q-2/send-now");
+  expect(calls.sendAll).toBe(2);
 });

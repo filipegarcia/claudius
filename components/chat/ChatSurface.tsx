@@ -1602,18 +1602,16 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // on|off` toggles ultracode; bare `/effort` shows the current state.
           const parsed = parseEffortArgs(args);
           if (parsed.kind === "level") {
-            void session.setEffort(parsed.level, { sessionOnly: parsed.sessionOnly });
             // CC 2.1.312 — a change made mid-task "may wait for your next
             // message". The toast says so too, because the effort pill lives
-            // in the side rail, which can be hidden.
+            // in the side rail, which can be hidden. Asked before the pick so
+            // it sees the same wait state the pill will.
+            const waits = session.effortChangeWouldWait(parsed.level);
+            void session.setEffort(parsed.level, { sessionOnly: parsed.sessionOnly });
             showToast(
               effortToastText(
                 `Effort set to ${parsed.level}${parsed.sessionOnly ? " (this session only)" : ""}`,
-                {
-                  pending: session.pending,
-                  picked: parsed.level,
-                  shown: session.appliedEffort === null ? null : (session.appliedEffort ?? session.effort),
-                },
+                waits,
               ),
             );
           } else if (parsed.kind === "ultracode") {

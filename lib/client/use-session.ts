@@ -100,6 +100,7 @@ import {
   NO_EFFORT_WAIT,
   effortApplied,
   effortPicked,
+  effortRequestStarted,
   type EffortWaitState,
 } from "@/lib/shared/effort-wait-note";
 import { isScheduleWakeupStop, markWakeupsStopped } from "@/lib/shared/stop-self-paced-loop";
@@ -3288,7 +3289,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // the newly picked effort, so the "may wait" note no longer applies.
           // A subagent's requests run at their own effort and don't count.
           if (subagentParent === null && effortWaitRef.current.inForce !== null) {
-            updateEffortWait(NO_EFFORT_WAIT);
+            updateEffortWait(effortRequestStarted(effortWaitRef.current));
           }
           scopeMessageIdRef.current.set(scopeKey, evt.message.id);
           // Initialize a (possibly empty) scratch so subsequent
@@ -6373,6 +6374,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    * source of truth as long as users only change effort through the
    * picker.
    */
+  // CC 2.1.312 — the one decision behind the pill's "may wait" note and the
+  // `/effort` toast: what picking `level` now would do to the wait state.
+  const nextEffortWait = useCallback(
+    (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto"): EffortWaitState =>
+      effortPicked(effortWaitRef.current, {
+        pending: pendingRef.current,
+        picked: level,
+        shownBefore: appliedEffortRef.current ?? effortRef.current,
+        noEffortParam: appliedEffortRef.current === null,
+      }),
+    [],
+  );
+  const effortChangeWouldWait = useCallback(
+    (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => nextEffortWait(level).waits,
+    [nextEffortWait],
+  );
+
   const setEffort = useCallback(
     async (
       level: "low" | "medium" | "high" | "xhigh" | "max" | "auto",
@@ -6386,13 +6404,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // off). The mirror is left untouched.
       // CC 2.1.312 — mid-turn, the running request keeps the level it was
       // sent with; note it on the pill until a later request picks this up.
-      updateEffortWait(
-        effortPicked(effortWaitRef.current, {
-          pending: pendingRef.current,
-          picked: level,
-          shownBefore: appliedEffortRef.current ?? effortRef.current,
-        }),
-      );
+      updateEffortWait(nextEffortWait(level));
       setEffortState(level);
       // Drop the old applied level so the pill shows the new pick right away
       // instead of the previous level. The server sends a fresh
@@ -6408,7 +6420,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         }),
       }).catch(() => {});
     },
-    [updateEffortWait],
+    [updateEffortWait, nextEffortWait],
   );
 
   /**
@@ -6744,6 +6756,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     effort,
     appliedEffort,
     effortChangeWaits,
+    effortChangeWouldWait,
     ultracode,
     fastMode,
     advisorModel,

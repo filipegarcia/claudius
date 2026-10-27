@@ -996,6 +996,10 @@ export function PromptInput({
           // Best-effort — the next edit saves over it anyway.
         });
       }
+      // And count the clear as typed, so the debounced save also writes the
+      // empty draft. That later PUT wins over an echo PUT of the old text that
+      // was already in flight when the DELETE went out.
+      userTypedRef.current = true;
     }
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
@@ -2389,7 +2393,7 @@ export function PromptInput({
                   onClick={onSendAllQueuedNow ?? onSendQueuedNow}
                   title={
                     onSendAllQueuedNow
-                      ? "Send the queued messages now instead of waiting, as Ctrl+Enter does"
+                      ? "Send all queued messages now (Ctrl+Enter) — running tools move to the background"
                       : "Send the first queued message now instead of waiting"
                   }
                   className="text-[var(--muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--foreground)]"

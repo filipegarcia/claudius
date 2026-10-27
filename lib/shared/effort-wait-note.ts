@@ -14,8 +14,10 @@
  * Claudius doesn't see the effort each request is sent with, so it tracks the
  * level in force when the change was made and drops the note when one of these
  * happens:
- *  - a new main-thread request starts (`message_start`), which picks up the
- *    new level;
+ *  - a new main-thread request starts (`message_start`) after the server has
+ *    applied the pick (`effort_applied`), so that request carries the new
+ *    level. A request that started before the pick reached the SDK doesn't
+ *    count;
  *  - the level resolves back to the one in force (a switch back, or an "auto"
  *    pick that lands on the same level);
  *  - the model takes no effort parameter (`applied === null`);
@@ -39,9 +41,14 @@ export type EffortWaitState = {
   inForce: EffortFlagLevel | null;
   /** Whether the note shows. */
   waits: boolean;
+  /**
+   * Whether the server has reported the applied level (`effort_applied`)
+   * since the latest pick. Only after that does a new request carry it.
+   */
+  appliedSeen: boolean;
 };
 
-export const NO_EFFORT_WAIT: EffortWaitState = { inForce: null, waits: false };
+export const NO_EFFORT_WAIT: EffortWaitState = { inForce: null, waits: false, appliedSeen: false };
 
 /**
  * The user picked `picked` (via `/effort` or the picker). `shownBefore` is the
@@ -50,11 +57,17 @@ export const NO_EFFORT_WAIT: EffortWaitState = { inForce: null, waits: false };
  */
 export function effortPicked(
   state: EffortWaitState,
-  opts: { pending: boolean; picked: EffortFlagLevel; shownBefore: EffortFlagLevel },
+  opts: {
+    pending: boolean;
+    picked: EffortFlagLevel;
+    shownBefore: EffortFlagLevel;
+    /** The model takes no effort parameter (`applied === null`): nothing to wait for. */
+    noEffortParam?: boolean;
+  },
 ): EffortWaitState {
-  if (!opts.pending) return NO_EFFORT_WAIT;
+  if (!opts.pending || opts.noEffortParam) return NO_EFFORT_WAIT;
   const inForce = state.inForce ?? opts.shownBefore;
-  return { inForce, waits: opts.picked !== inForce };
+  return { inForce, waits: opts.picked !== inForce, appliedSeen: false };
 }
 
 /**
@@ -66,18 +79,25 @@ export function effortPicked(
 export function effortApplied(state: EffortWaitState, applied: EffortTier | null): EffortWaitState {
   if (state.inForce === null) return state;
   if (applied === null) return NO_EFFORT_WAIT;
-  return applied === state.inForce ? NO_EFFORT_WAIT : { ...state, waits: true };
+  return applied === state.inForce ? NO_EFFORT_WAIT : { ...state, waits: true, appliedSeen: true };
 }
 
 /**
- * The text for a `/effort <level>` confirmation toast. When the change is
- * made mid-turn and differs from the level the pill shows now, add Claude
- * Code's note.
+ * A new main-thread request started (`message_start`). It carries the new
+ * level only if the server had applied the pick by then; otherwise it still
+ * runs at the old one and the note stays.
  */
-export function effortToastText(
-  base: string,
-  opts: { pending: boolean; picked: EffortFlagLevel; shown: EffortFlagLevel | null },
-): string {
-  if (!opts.pending || opts.shown === null || opts.picked === opts.shown) return base;
-  return `${base} · ${EFFORT_WAIT_NOTE}`;
+export function effortRequestStarted(state: EffortWaitState): EffortWaitState {
+  if (state.inForce === null) return state;
+  return state.appliedSeen ? NO_EFFORT_WAIT : state;
+}
+
+/**
+ * The text for a `/effort <level>` confirmation toast: Claude Code's note is
+ * added when the pick waits. `waits` comes from the same `effortPicked`
+ * decision that drives the pill (`ChatState.effortChangeWouldWait`), so the
+ * two never disagree.
+ */
+export function effortToastText(base: string, waits: boolean): string {
+  return waits ? `${base} · ${EFFORT_WAIT_NOTE}` : base;
 }
