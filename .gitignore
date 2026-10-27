@@ -80,3 +80,7 @@ ds-bundle/
 
 # Build-time self-signed loopback cert for the HTTP/2 proxy (regenerated each build; contains a private key)
 /build/cert/
+
+# bun install cache used by CI (BUN_INSTALL_CACHE_DIR); also keeps Tailwind's
+# source scanner out of it
+/.bun-cache/

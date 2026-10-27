@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* CI points BUN_INSTALL_CACHE_DIR at ./.bun-cache (inside the workspace). Its
+   package READMEs/changelogs yield junk utility candidates (e.g.
+   `[agentkeepalive:deprecated]`) that break the CSS parser, so keep the
+   scanner out of it. */
+@source not "../.bun-cache";
+
 :root,
 :root[data-theme="dark"] {
   --background: #0b0b0c;
