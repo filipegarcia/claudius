@@ -33,6 +33,7 @@ function stubSession(id: string, dead: boolean): { stub: Stub; session: Session 
     closeStreams: () => {
       stub.closeStreamsCalls += 1;
     },
+    onSubscriberCountChange: () => () => {},
   } as unknown as Session;
   return { stub, session };
 }
@@ -118,7 +119,7 @@ describe("SessionManager.restartIfDead", () => {
     expect((await manager.restartIfDead("boot-loop")).ok).toBe(true);
   });
 
-  test("a failed rebuild reports why and still releases the old tabs", async () => {
+  test("a failed rebuild reports why and keeps the dead session bound, with its tabs attached", async () => {
     const manager = new SessionManager();
     const { stub, session } = stubSession("crashed", true);
     internals(manager).sessions.set("crashed", session);
@@ -126,7 +127,13 @@ describe("SessionManager.restartIfDead", () => {
 
     const res = await manager.restartIfDead("crashed");
     expect(res).toEqual({ ok: false, reason: "failed", error: "spawn failed: claude exited with code 1" });
-    expect(stub.closeStreamsCalls).toBe(1);
+    // Regression: a process that dies on boot (CI runs as root, so the CLI
+    // refuses --dangerously-skip-permissions) used to leave the id unbound
+    // after the failed rebuild, 404ing every later route for that session.
+    expect(manager.get("crashed")).toBe(session);
+    // Streams stay on the restored instance; closing them would just
+    // reconnect into another doomed restart.
+    expect(stub.closeStreamsCalls).toBe(0);
   });
 });
 
@@ -142,6 +149,27 @@ describe("Session dead-process predicates", () => {
     // end() (reaper, restart, delete) aborts first — not a crash.
     expect(isDead(true, true)).toBe(false);
     expect(isDead(false, false)).toBe(false);
+  });
+
+  test("isDead stays true after end() when the process had already died on its own", async () => {
+    const abortController = new AbortController();
+    const fake = {
+      done: true,
+      abortController,
+      diedOnItsOwn: false,
+      inputQueue: { close: () => {} },
+      stopJsonlWatcher: () => {},
+      drainPendingDecisions: () => {},
+      scheduledLoops: new Map(),
+      pendingScheduledLoops: new Map(),
+      appliedWakeupStops: new Set(),
+      pendingLoopTickAttribution: [],
+      id: "dead-then-ended",
+    } as unknown as Session;
+    expect(Session.prototype.isDead.call(fake)).toBe(true);
+    await Session.prototype.end.call(fake);
+    expect(abortController.signal.aborted).toBe(true);
+    expect(Session.prototype.isDead.call(fake)).toBe(true);
   });
 
   test("hasArmedLoops is false once the process is gone (the timers died with it)", () => {

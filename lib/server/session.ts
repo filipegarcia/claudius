@@ -1951,6 +1951,8 @@ export class Session {
    */
   private resumedTranscriptFile: string | undefined;
   private subscribers = new Set<Subscriber>();
+  /** Set by `end()` when the SDK process had already died on its own — see `isDead`. */
+  private diedOnItsOwn = false;
   /** `controller.close()` hooks for the attached SSE streams — see `closeStreams`. */
   private streamClosers = new Set<() => void>();
   private subscriberCountListeners = new Set<(count: number) => void>();
@@ -5469,7 +5471,7 @@ export class Session {
    * message until `SessionManager.restartIfDead` rebuilds it.
    */
   isDead(): boolean {
-    return this.done && !this.abortController.signal.aborted;
+    return this.done && (this.diedOnItsOwn || !this.abortController.signal.aborted);
   }
 
   /**
@@ -7368,6 +7370,11 @@ export class Session {
   }
 
   async end(): Promise<void> {
+    // Remember a death that predates this call: `end()` aborts the controller,
+    // which would otherwise make `isDead()` read false for a session that
+    // `SessionManager.restartIfDead` removed and then had to put back because
+    // the rebuild failed.
+    if (this.done && !this.abortController.signal.aborted) this.diedOnItsOwn = true;
     this.inputQueue.close();
     this.abortController.abort();
     this.done = true;

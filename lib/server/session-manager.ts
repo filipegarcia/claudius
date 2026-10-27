@@ -122,21 +122,7 @@ export class SessionManager {
       await session.start();
 
       // Only now is the session safe to hand out via `get()`.
-      this.sessions.set(session.id, session);
-
-      // Wire idle reaping: when subscribers drop to 0, schedule end() after
-      // the grace window. New subscribers cancel the timer.
-      const unsubscribe = session.onSubscriberCountChange((count) => {
-        this.handleSubscriberCount(session.id, count);
-      });
-      this.subscriberWatchers.set(session.id, unsubscribe);
-
-      // Sessions are created with 0 subscribers; the client's POST → SSE
-      // round-trip happens in milliseconds. Arm the initial timer so a session
-      // that's created and then immediately abandoned (e.g. POST succeeds, the
-      // browser tab is closed before the SSE opens) doesn't leak the SDK
-      // process forever.
-      this.scheduleReap(session.id);
+      this.register(session);
       return session;
     })();
 
@@ -152,6 +138,27 @@ export class SessionManager {
     } finally {
       this.starting.delete(session.id);
     }
+  }
+
+  /**
+   * Publish a started session in the map and wire its idle reaping: when
+   * subscribers drop to 0, `end()` is scheduled after the grace window and new
+   * subscribers cancel the timer. Shared by `create()` and the failed-restart
+   * path of `restartIfDead`.
+   */
+  private register(session: Session): void {
+    this.sessions.set(session.id, session);
+    const unsubscribe = session.onSubscriberCountChange((count) => {
+      this.handleSubscriberCount(session.id, count);
+    });
+    this.subscriberWatchers.set(session.id, unsubscribe);
+
+    // Sessions are created with 0 subscribers; the client's POST → SSE
+    // round-trip happens in milliseconds. Arm the initial timer so a session
+    // that's created and then immediately abandoned (e.g. POST succeeds, the
+    // browser tab is closed before the SSE opens) doesn't leak the SDK
+    // process forever.
+    this.scheduleReap(session.id);
   }
 
   get(id: string): Session | undefined {
@@ -339,14 +346,18 @@ export class SessionManager {
       await this.remove(id);
       try {
         const session = await this.create({ ...carry, resume: id });
+        // The old instance is finished: let its tabs reconnect and bind to
+        // the new session.
+        existing.closeStreams();
         return { ok: true, session, restarted: true };
       } catch (err) {
+        // The rebuild failed (e.g. the process dies on boot). Keep the dead
+        // instance bound — `remove()` dropped it, but read-only routes and
+        // its still-attached streams need something to talk to, and the input
+        // route reports the failure from `isDead()`. Its streams stay open
+        // (closing them would just reconnect into another doomed restart).
+        if (!this.sessions.has(id)) this.register(existing);
         return { ok: false, reason: "failed", error: err instanceof Error ? err.message : String(err) };
-      } finally {
-        // Either way the old instance is finished: let its tabs reconnect.
-        // On success they bind to the new session; on failure the stream
-        // route resumes from disk (or 404s) and the user sees the error.
-        existing.closeStreams();
       }
     })();
     this.restarting.set(id, run);
