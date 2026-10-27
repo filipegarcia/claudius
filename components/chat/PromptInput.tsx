@@ -915,6 +915,9 @@ export function PromptInput({
     const cmd = cleaned.trim();
     if (!cmd) return;
     if (commandNeedsSudo(cmd)) {
+      // The command is committed to the password modal; dictation must not
+      // keep appending to it behind the modal.
+      stopDictationForSend();
       setSudoPrompt({ command: cmd });
       return;
     }
@@ -1159,6 +1162,11 @@ export function PromptInput({
     pendingPasteRef.current = null;
     pasteRangesRef.current = sent.pasteRanges;
     prevValueRef.current = sent.text;
+    // A dictation started after the send seeded `baseRef` from the emptied
+    // composer; re-seed it so the next transcript appends to the restored
+    // message instead of overwriting it.
+    baseRef.current = sent.text;
+    interimRef.current = "";
     setValue(sent.text);
     // CC 2.1.300 — the restored message goes back as written: no menu opens
     // over it until the user edits, so Enter re-sends it verbatim.

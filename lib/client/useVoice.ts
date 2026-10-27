@@ -429,6 +429,11 @@ export function useVoice(
         // we don't connect it to ctx.destination. This also avoids
         // a brief feedback loop on some setups.
       } catch (err) {
+        // A send (or a new start) tore this attempt down mid-setup — e.g.
+        // `addModule` rejecting on the context `cleanup()` just closed. That
+        // isn't a failure to report, and cleaning up here would end the
+        // newer session.
+        if (stateRef.current.sessionId !== sessionId) return;
         const message =
           err instanceof Error && err.name === "NotAllowedError"
             ? "Microphone permission denied — enable it for Claudius in System Settings."
