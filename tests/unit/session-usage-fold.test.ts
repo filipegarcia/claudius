@@ -1,22 +1,27 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  addSessionUsage,
   foldResultIntoSessionUsage,
   mergeModelUsage,
-  reconcileUsageBaselineOnFirstFold,
+  zeroSdkCumulativeUsage,
   zeroSessionUsage,
 } from "@/lib/server/session";
+import type { SdkCumulativeUsage } from "@/lib/server/sdk-cost-state";
 import type { SessionUsageTotals } from "@/lib/shared/events";
 
 /**
- * SDK `result` fields (`total_cost_usd`, `num_turns`, durations,
- * `modelUsage`) are RUNNING TOTALS per SDK process in streaming-input
- * sessions — verified empirically (consecutive results carried num_turns
- * 6→19 and total_cost_usd 14.22→16.48 matching the cumulative modelUsage
- * cost sums). These tests pin the accumulator model:
- * totals = persisted baseline + latest running block, with /clear-style
- * resets banked into the baseline and zeroed crash frames ignored.
+ * SDK `result` fields are of two kinds (read off the CLI's result builder):
+ *
+ * - PER-TURN: `num_turns` ("model round-trips within one turn") and
+ *   `duration_ms` — summed across results.
+ * - PROCESS-CUMULATIVE: `total_cost_usd`, `modelUsage`, `duration_api_ms` —
+ *   only their growth since the previous result is new spend. A resumed CLI
+ *   restores them from the transcript's last `cost-state` checkpoint, which
+ *   the caller seeds as `last`.
+ *
+ * The pre-fix fold treated `num_turns` as cumulative, so every turn shorter
+ * than the previous one looked like a `/clear` and re-banked the session's
+ * whole running cost — a real 1.5-day session read $12,078 for ~$730 of spend.
  */
 
 function resultMsg(over: Record<string, unknown>): Record<string, unknown> {
@@ -48,14 +53,24 @@ function mu(models: Record<string, { in?: number; out?: number; cr?: number; cc?
   );
 }
 
-describe("foldResultIntoSessionUsage", () => {
-  test("consecutive cumulative results do NOT sum — latest running total wins", () => {
-    let baseline = zeroSessionUsage();
-    let running = zeroSessionUsage();
+/** Fold a sequence of result messages from a starting state. */
+function foldAll(
+  messages: Record<string, unknown>[],
+  start: { totals?: SessionUsageTotals; last?: SdkCumulativeUsage } = {},
+): SessionUsageTotals {
+  let totals = start.totals ?? zeroSessionUsage();
+  let last = start.last ?? zeroSdkCumulativeUsage();
+  for (const m of messages) {
+    const folded = foldResultIntoSessionUsage(totals, last, m);
+    if (!folded) continue;
+    ({ totals, last } = folded);
+  }
+  return totals;
+}
 
-    const first = foldResultIntoSessionUsage(
-      baseline,
-      running,
+describe("foldResultIntoSessionUsage", () => {
+  test("cumulative cost/modelUsage count only their growth; per-turn num_turns/duration_ms are summed", () => {
+    const totals = foldAll([
       resultMsg({
         total_cost_usd: 14.22,
         num_turns: 6,
@@ -63,228 +78,183 @@ describe("foldResultIntoSessionUsage", () => {
         duration_api_ms: 1_250_927,
         modelUsage: mu({ "claude-opus-5": { in: 5270, out: 87_894, cost: 14.22 } }),
       }),
-    );
-    expect(first).not.toBeNull();
-    ({ baseline, running } = first!);
-
-    const second = foldResultIntoSessionUsage(
-      baseline,
-      running,
       resultMsg({
         total_cost_usd: 16.47,
         num_turns: 19,
-        duration_ms: 127_857,
+        duration_ms: 56_129,
         duration_api_ms: 1_368_269,
         modelUsage: mu({ "claude-opus-5": { in: 5806, out: 95_575, cost: 16.47 } }),
       }),
-    );
-    expect(second).not.toBeNull();
-    ({ baseline, running } = second!);
-
-    const totals = addSessionUsage(baseline, running);
-    // The old client-side additive fold would have reported ~$30.69 here.
+    ]);
     expect(totals.totalCostUsd).toBeCloseTo(16.47, 6);
-    expect(totals.numTurns).toBe(19);
+    expect(totals.numTurns).toBe(25);
     expect(totals.durationMs).toBe(127_857);
+    expect(totals.durationApiMs).toBe(1_368_269);
+    expect(totals.inputTokens).toBe(5806);
     expect(totals.outputTokens).toBe(95_575);
+    const opus = (totals.modelUsage as Record<string, Record<string, unknown>>)["claude-opus-5"];
+    expect(opus.costUSD).toBeCloseTo(16.47, 6);
+    expect(opus.outputTokens).toBe(95_575);
   });
 
-  test("a /clear-style reset (decreasing counters) banks the old running block", () => {
-    let baseline = zeroSessionUsage();
-    let running = zeroSessionUsage();
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
-      resultMsg({ total_cost_usd: 2.5, num_turns: 10, duration_ms: 60_000 }),
-    )!);
-    // Post-clear: running totals restart small.
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
-      resultMsg({ total_cost_usd: 0.3, num_turns: 2, duration_ms: 5_000 }),
-    )!);
-    const totals = addSessionUsage(baseline, running);
+  test("REGRESSION: a turn with fewer round-trips than the last is NOT a reset (no re-banking)", () => {
+    // Long turn, then two short ones — the shape that inflated real sessions.
+    const totals = foldAll([
+      resultMsg({ total_cost_usd: 10, num_turns: 40, modelUsage: mu({ m: { out: 1000, cost: 10 } }) }),
+      resultMsg({ total_cost_usd: 11, num_turns: 3, modelUsage: mu({ m: { out: 1100, cost: 11 } }) }),
+      resultMsg({ total_cost_usd: 12, num_turns: 1, modelUsage: mu({ m: { out: 1200, cost: 12 } }) }),
+    ]);
+    // Old fold: 10 + 11 + 12 = 33.
+    expect(totals.totalCostUsd).toBeCloseTo(12, 6);
+    expect(totals.outputTokens).toBe(1200);
+    expect(totals.numTurns).toBe(44);
+  });
+
+  test("a /clear (cumulative cost decreases) counts the new block from zero, keeping the old", () => {
+    const totals = foldAll([
+      resultMsg({ total_cost_usd: 2.5, num_turns: 10, duration_ms: 60_000, duration_api_ms: 40_000 }),
+      resultMsg({ total_cost_usd: 0.3, num_turns: 2, duration_ms: 5_000, duration_api_ms: 3_000 }),
+    ]);
     expect(totals.totalCostUsd).toBeCloseTo(2.8, 6);
     expect(totals.numTurns).toBe(12);
     expect(totals.durationMs).toBe(65_000);
+    expect(totals.durationApiMs).toBe(43_000);
   });
 
   test("zeroed crash frame is ignored, not read as a reset (would double-count)", () => {
-    let baseline = zeroSessionUsage();
-    let running = zeroSessionUsage();
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
+    let totals = zeroSessionUsage();
+    let last = zeroSdkCumulativeUsage();
+    ({ totals, last } = foldResultIntoSessionUsage(
+      totals,
+      last,
       resultMsg({ total_cost_usd: 5, num_turns: 4, duration_ms: 30_000 }),
     )!);
     // SDK docs: crash/startup-error results "may carry zeroed values".
-    const crash = foldResultIntoSessionUsage(baseline, running, resultMsg({}));
-    expect(crash).toBeNull();
-    // Next real result continues the SAME running block — totals must not
-    // have banked the pre-crash block on the zero frame.
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
-      resultMsg({ total_cost_usd: 6, num_turns: 5, duration_ms: 40_000 }),
+    expect(foldResultIntoSessionUsage(totals, last, resultMsg({}))).toBeNull();
+    ({ totals, last } = foldResultIntoSessionUsage(
+      totals,
+      last,
+      resultMsg({ total_cost_usd: 6, num_turns: 1, duration_ms: 10_000 }),
     )!);
-    const totals = addSessionUsage(baseline, running);
     expect(totals.totalCostUsd).toBeCloseTo(6, 6);
     expect(totals.numTurns).toBe(5);
   });
 
-  test("SDK 0.3.274: an empty queued-completion frame with nonzero duration is ignored, not read as a reset", () => {
-    let baseline = zeroSessionUsage();
-    let running = zeroSessionUsage();
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
+  test("SDK 0.3.274: an empty queued-completion frame with nonzero duration is ignored", () => {
+    let totals = zeroSessionUsage();
+    let last = zeroSdkCumulativeUsage();
+    ({ totals, last } = foldResultIntoSessionUsage(
+      totals,
+      last,
       resultMsg({ total_cost_usd: 5, num_turns: 4, duration_ms: 30_000 }),
     )!);
-    // Queued background-task completions can share one model call: all but
-    // the last get num_turns: 0 and no cost/modelUsage, but may still carry
-    // a nonzero duration_ms for the wall-clock time that elapsed. Must NOT
-    // be treated as a decreasing-counter reset (that would double-count the
-    // next real result, same failure mode as the crash-frame case above).
-    const empty = foldResultIntoSessionUsage(
-      baseline,
-      running,
-      resultMsg({ duration_ms: 1_200 }),
-    );
-    expect(empty).toBeNull();
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
-      resultMsg({ total_cost_usd: 6, num_turns: 5, duration_ms: 40_000 }),
+    expect(foldResultIntoSessionUsage(totals, last, resultMsg({ duration_ms: 1_200 }))).toBeNull();
+    ({ totals, last } = foldResultIntoSessionUsage(
+      totals,
+      last,
+      resultMsg({ total_cost_usd: 6, num_turns: 1, duration_ms: 10_000 }),
     )!);
-    const totals = addSessionUsage(baseline, running);
     expect(totals.totalCostUsd).toBeCloseTo(6, 6);
     expect(totals.numTurns).toBe(5);
+    expect(totals.durationMs).toBe(40_000);
   });
 
-  test("tokens come from cumulative modelUsage sums across models", () => {
-    const { baseline, running } = foldResultIntoSessionUsage(
-      zeroSessionUsage(),
-      zeroSessionUsage(),
+  test("token deltas are per model — a model that didn't grow adds nothing", () => {
+    const totals = foldAll([
       resultMsg({
         total_cost_usd: 1,
         num_turns: 1,
         modelUsage: mu({
-          "claude-opus-5": { in: 100, out: 200, cr: 1000, cc: 50 },
-          "claude-haiku-4-5": { in: 10, out: 20, cr: 0, cc: 0 },
+          "claude-opus-5": { in: 100, out: 200, cr: 1000, cc: 50, cost: 0.9 },
+          "claude-haiku-4-5": { in: 10, out: 20, cost: 0.1 },
         }),
       }),
-    )!;
-    const totals = addSessionUsage(baseline, running);
-    expect(totals.inputTokens).toBe(110);
-    expect(totals.outputTokens).toBe(220);
-    expect(totals.cacheReadInputTokens).toBe(1000);
+      resultMsg({
+        total_cost_usd: 1.5,
+        num_turns: 2,
+        modelUsage: mu({
+          "claude-opus-5": { in: 150, out: 300, cr: 3000, cc: 50, cost: 1.4 },
+          "claude-haiku-4-5": { in: 10, out: 20, cost: 0.1 },
+        }),
+      }),
+    ]);
+    expect(totals.inputTokens).toBe(160);
+    expect(totals.outputTokens).toBe(320);
+    expect(totals.cacheReadInputTokens).toBe(3000);
     expect(totals.cacheCreationInputTokens).toBe(50);
+    const byModel = totals.modelUsage as Record<string, Record<string, unknown>>;
+    expect(byModel["claude-opus-5"].costUSD).toBeCloseTo(1.4, 9);
+    expect(byModel["claude-haiku-4-5"].inputTokens).toBe(10);
   });
 
   test("without modelUsage, per-turn main-loop usage accumulates additively", () => {
-    let baseline = zeroSessionUsage();
-    let running = zeroSessionUsage();
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
+    const totals = foldAll([
       resultMsg({ total_cost_usd: 0.1, num_turns: 1, usage: { input_tokens: 10, output_tokens: 20 } }),
-    )!);
-    ({ baseline, running } = foldResultIntoSessionUsage(
-      baseline,
-      running,
       resultMsg({ total_cost_usd: 0.2, num_turns: 2, usage: { input_tokens: 5, output_tokens: 7 } }),
-    )!);
-    const totals = addSessionUsage(baseline, running);
+    ]);
+    expect(totals.totalCostUsd).toBeCloseTo(0.2, 9);
     expect(totals.inputTokens).toBe(15);
     expect(totals.outputTokens).toBe(27);
   });
 });
 
-describe("reconcileUsageBaselineOnFirstFold (SDK 0.3.277)", () => {
-  test("zero baseline passes through untouched (fresh, never-resumed session)", () => {
-    const baseline = zeroSessionUsage();
-    const running: SessionUsageTotals = { ...zeroSessionUsage(), totalCostUsd: 4, numTurns: 3 };
-    const out = reconcileUsageBaselineOnFirstFold(baseline, running);
-    expect(out).toBe(baseline);
+describe("resume: seeded checkpoint vs persisted totals", () => {
+  // Persisted totals ($7) are ahead of the transcript checkpoint ($5): the
+  // previous CLI kept spending after its last graceful exit and was then
+  // killed, so it never wrote a newer `cost-state`.
+  const persisted: SessionUsageTotals = {
+    ...zeroSessionUsage(),
+    totalCostUsd: 7,
+    numTurns: 30,
+    outputTokens: 7000,
+    modelUsage: mu({ "claude-opus-5": { out: 7000, cost: 7 } }),
+  };
+  const checkpoint: SdkCumulativeUsage = {
+    totalCostUsd: 5,
+    durationApiMs: 90_000,
+    modelUsage: mu({ "claude-opus-5": { out: 5000, cost: 5 } }),
+  };
+
+  test("the restored checkpoint isn't counted again — only this process's spend is added", () => {
+    const totals = foldAll(
+      [
+        resultMsg({
+          total_cost_usd: 5.5,
+          num_turns: 2,
+          duration_api_ms: 95_000,
+          modelUsage: mu({ "claude-opus-5": { out: 5500, cost: 5.5 } }),
+        }),
+      ],
+      { totals: persisted, last: checkpoint },
+    );
+    expect(totals.totalCostUsd).toBeCloseTo(7.5, 6);
+    expect(totals.outputTokens).toBe(7500);
+    expect(totals.numTurns).toBe(32);
+    expect(totals.durationApiMs).toBe(5_000);
+    expect(
+      (totals.modelUsage as Record<string, Record<string, unknown>>)["claude-opus-5"].costUSD,
+    ).toBeCloseTo(7.5, 9);
   });
 
-  test("SDK's first post-resume result already reaches the baseline cost: cost/tokens/modelUsage zeroed, numTurns/durations preserved", () => {
-    const baseline: SessionUsageTotals = {
-      totalCostUsd: 5,
-      numTurns: 10,
-      durationMs: 60_000,
-      durationApiMs: 50_000,
-      inputTokens: 1000,
-      outputTokens: 2000,
-      cacheReadInputTokens: 300,
-      cacheCreationInputTokens: 40,
-      modelUsage: mu({ "claude-opus-5": { in: 1000, out: 2000, cost: 5 } }),
-    };
-    // Post-fix SDK: the first result after resume already carries the
-    // pre-resume total_cost_usd (5) plus whatever this process itself has
-    // added so far (0.5) — 5.5 total, at/above the baseline's 5.
-    const firstResultRunning: SessionUsageTotals = {
-      ...zeroSessionUsage(),
-      totalCostUsd: 5.5,
-      numTurns: 1,
-    };
-    const out = reconcileUsageBaselineOnFirstFold(baseline, firstResultRunning);
-    expect(out.totalCostUsd).toBe(0);
-    expect(out.inputTokens).toBe(0);
-    expect(out.outputTokens).toBe(0);
-    expect(out.cacheReadInputTokens).toBe(0);
-    expect(out.cacheCreationInputTokens).toBe(0);
-    expect(out.modelUsage).toBeUndefined();
-    // Not named in the SDK's fix — left exactly as seeded.
-    expect(out.numTurns).toBe(10);
-    expect(out.durationMs).toBe(60_000);
-    expect(out.durationApiMs).toBe(50_000);
+  test("a CLI that did NOT restore the checkpoint (first result below it) counts from zero", () => {
+    const totals = foldAll(
+      [resultMsg({ total_cost_usd: 0.4, num_turns: 1, modelUsage: mu({ "claude-opus-5": { out: 400, cost: 0.4 } }) })],
+      { totals: persisted, last: checkpoint },
+    );
+    expect(totals.totalCostUsd).toBeCloseTo(7.4, 6);
+    expect(totals.outputTokens).toBe(7400);
   });
 
-  test("SDK's first post-resume result does NOT reach the baseline cost (no transcript continuity): baseline left untouched", () => {
-    const baseline: SessionUsageTotals = {
-      ...zeroSessionUsage(),
-      totalCostUsd: 5,
-      numTurns: 10,
-    };
-    // Pre-fix-shaped SDK behavior, or a transcript with nothing to
-    // continue from ("when it has one" carve-out) — the first result
-    // starts low, same as before 0.3.277.
-    const firstResultRunning: SessionUsageTotals = {
-      ...zeroSessionUsage(),
-      totalCostUsd: 0.1,
-      numTurns: 1,
-    };
-    const out = reconcileUsageBaselineOnFirstFold(baseline, firstResultRunning);
-    expect(out).toEqual(baseline);
-  });
-
-  test("end-to-end via foldResultIntoSessionUsage: reconciled baseline + running does not double-count post-resume", () => {
-    const seededBaseline: SessionUsageTotals = {
-      ...zeroSessionUsage(),
-      totalCostUsd: 5,
-      numTurns: 10,
-      modelUsage: mu({ "claude-opus-5": { cost: 5 } }),
-    };
-    const rawMessage = resultMsg({
-      total_cost_usd: 5.5,
-      num_turns: 1,
-      modelUsage: mu({ "claude-opus-5": { cost: 5.5 } }),
-    });
-    const probe = foldResultIntoSessionUsage(zeroSessionUsage(), zeroSessionUsage(), rawMessage)!;
-    const reconciled = reconcileUsageBaselineOnFirstFold(seededBaseline, probe.running);
-    const folded = foldResultIntoSessionUsage(reconciled, zeroSessionUsage(), rawMessage)!;
-    const totals = addSessionUsage(folded.baseline, folded.running);
-    // Without reconciliation this would read 5 (stale baseline) + 5.5
-    // (running, which already includes the pre-resume 5) = 10.5.
-    expect(totals.totalCostUsd).toBeCloseTo(5.5, 6);
-    // numTurns isn't part of the fix, so the old additive model still
-    // applies there: baseline's 10 + this process's 1 = 11.
-    expect(totals.numTurns).toBe(11);
+  test("a $0 checkpoint left by a side process means the whole first result is new", () => {
+    const totals = foldAll(
+      [resultMsg({ total_cost_usd: 0.8, num_turns: 3, modelUsage: mu({ "claude-opus-5": { out: 800, cost: 0.8 } }) })],
+      { totals: persisted, last: { totalCostUsd: 0, durationApiMs: 0 } },
+    );
+    expect(totals.totalCostUsd).toBeCloseTo(7.8, 6);
   });
 });
 
-describe("mergeModelUsage / addSessionUsage", () => {
+describe("mergeModelUsage", () => {
   test("adds counter fields per model, latest wins for descriptive fields", () => {
     const merged = mergeModelUsage(
       mu({ "claude-opus-5": { in: 100, out: 200, cost: 1.5 } }),
@@ -297,10 +267,9 @@ describe("mergeModelUsage / addSessionUsage", () => {
   });
 
   // SDK 0.3.257 — `thinkingTokens` is a subset already counted inside
-  // `outputTokens`. It must accumulate the same way outputTokens does
-  // across SDK-process merges, not last-write-wins like a descriptive
-  // field (contextWindow).
-  test("accumulates thinkingTokens across merges (SDK 0.3.257)", () => {
+  // `outputTokens`. It must accumulate the same way outputTokens does,
+  // not last-write-wins like a descriptive field (contextWindow).
+  test("accumulates thinkingTokens (SDK 0.3.257)", () => {
     const merged = mergeModelUsage(
       { "claude-opus-5": { outputTokens: 200, thinkingTokens: 50 } },
       { "claude-opus-5": { outputTokens: 20, thinkingTokens: 5 } },
@@ -345,25 +314,26 @@ describe("mergeModelUsage / addSessionUsage", () => {
     expect(carried["claude-opus-5"].cacheCreationEphemeral1hInputTokens).toBe(20);
   });
 
-  test("addSessionUsage sums scalars and carries merged modelUsage", () => {
-    const a: SessionUsageTotals = {
-      ...zeroSessionUsage(),
-      totalCostUsd: 1,
-      numTurns: 2,
-      inputTokens: 10,
-      modelUsage: mu({ m: { in: 10, cost: 1 } }),
-    };
-    const b: SessionUsageTotals = {
-      ...zeroSessionUsage(),
-      totalCostUsd: 0.5,
-      numTurns: 3,
-      inputTokens: 5,
-      modelUsage: mu({ m: { in: 5, cost: 0.5 } }),
-    };
-    const sum = addSessionUsage(a, b);
-    expect(sum.totalCostUsd).toBeCloseTo(1.5, 9);
-    expect(sum.numTurns).toBe(5);
-    expect(sum.inputTokens).toBe(15);
-    expect((sum.modelUsage as Record<string, Record<string, unknown>>).m.inputTokens).toBe(15);
+  test("the fold's per-model deltas cover the 5m/1h split too (SDK 0.3.311)", () => {
+    const split = (cc: number, m5: number, h1: number, cost: number) => ({
+      m: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadInputTokens: 0,
+        cacheCreationInputTokens: cc,
+        cacheCreationEphemeral5mInputTokens: m5,
+        cacheCreationEphemeral1hInputTokens: h1,
+        webSearchRequests: 0,
+        costUSD: cost,
+      },
+    });
+    const totals = foldAll([
+      resultMsg({ total_cost_usd: 1, num_turns: 1, modelUsage: split(300, 100, 200, 1) }),
+      resultMsg({ total_cost_usd: 1.2, num_turns: 1, modelUsage: split(330, 110, 220, 1.2) }),
+    ]);
+    const m = (totals.modelUsage as Record<string, Record<string, unknown>>).m;
+    expect(m.cacheCreationEphemeral5mInputTokens).toBe(110);
+    expect(m.cacheCreationEphemeral1hInputTokens).toBe(220);
+    expect(totals.cacheCreationInputTokens).toBe(330);
   });
 });
