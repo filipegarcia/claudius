@@ -12,10 +12,21 @@ import { preserveLoneBackslashes } from "@/lib/shared/lone-backslash";
 const render = (text: string, math = true): string =>
   renderToStaticMarkup(createElement(Markdown, { math } as { math: boolean; children: string }, text));
 
+/** Drop everything between `<` and `>` with a scanner (not a tag-stripping regex). */
+const textOutsideTags = (html: string): string => {
+  let out = "";
+  let inTag = false;
+  for (const ch of html) {
+    if (ch === "<") inTag = true;
+    else if (ch === ">" && inTag) inTag = false;
+    else if (!inTag) out += ch;
+  }
+  return out;
+};
+
 /** Visible text of the rendered HTML (tags stripped, entities decoded). */
 const visible = (html: string): string =>
-  html
-    .replace(/<[^>]+>/g, "")
+  textOutsideTags(html)
     .replace(/&quot;/g, '"')
     .replace(/&#x27;|&#39;/g, "'")
     .replace(/&lt;/g, "<")
