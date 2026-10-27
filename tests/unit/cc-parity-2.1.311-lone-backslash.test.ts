@@ -64,6 +64,37 @@ describe("preserveLoneBackslashes", () => {
     const indented = 'Text:\n\n    sep = "\\"\n';
     expect(preserveLoneBackslashes(indented)).toBe(indented);
   });
+
+  test("code the segmenter can't see (quoted fences, indented code in lists) is untouched", () => {
+    for (const s of [
+      '> ~~~\n> split("\\")\n> ~~~',
+      '> ```\n> split("\\")',
+      '>     sep = "\\"',
+      '- item\n\n        sep = "\\"',
+    ]) {
+      expect(preserveLoneBackslashes(s)).toBe(s);
+    }
+  });
+
+  test("URLs, link syntax and HTML attributes keep their backslash as typed", () => {
+    for (const s of [
+      "<https://x.com/a(\\)b>",
+      "see https://x.com/a(\\) ok",
+      "[\\](https://example.com)",
+      "[a](\\)",
+      '<a href="\\">x</a>',
+    ]) {
+      expect(preserveLoneBackslashes(s)).toBe(s);
+    }
+  });
+});
+
+describe("Markdown keeps code blocks as typed", () => {
+  test("a tilde fence inside a quote shows one backslash", () => {
+    const out = visible(render('> ~~~\n> split("\\")\n> ~~~'));
+    expect(out).toContain('split("\\")');
+    expect(out).not.toContain('split("\\\\")');
+  });
 });
 
 describe("Markdown renders the lone backslash", () => {

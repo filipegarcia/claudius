@@ -18,7 +18,8 @@
  *    so empty LaTeX delimiters (`\(\)`, `\[\]`) and escaped braces (`\{\}`)
  *    are left alone;
  *  - fenced / indented code blocks and inline code spans are never touched
- *    (they already show backslashes as typed);
+ *    (they already show backslashes as typed), nor are quote lines, URLs,
+ *    link syntax or HTML attributes (see `isUnsafeSpot`);
  *  - every other backslash pair is copied unchanged, so `\\`, `\*` and
  *    `\(x\)` keep their meaning.
  */
@@ -33,6 +34,39 @@ const CLOSER_FOR: Readonly<Record<string, string>> = {
   "{": "}",
   "<": ">",
 };
+
+/**
+ * Places where doubling would change what renders, because the surrounding
+ * construct doesn't process escapes or isn't prose. `mapProseSegments` only
+ * knows top-level fences and indented code, so these are judged locally from
+ * the backslash's own line and token:
+ *  - a blockquote line (`> …`): a fence or indented code inside a quote isn't
+ *    seen as code by the segmenter, and the code-block Copy button would copy
+ *    the doubled backslash;
+ *  - a line indented 4+ spaces or a tab: indented code, including inside a
+ *    list item;
+ *  - a token with `://` (bare URL or autolink): the backslash goes into the
+ *    href as typed;
+ *  - link syntax: `[\](…)` or `(\)` straight after `]`, which would turn
+ *    literal text into a link;
+ *  - an HTML attribute value (`="\"`).
+ * Skipping keeps the old CommonMark rendering there, the conservative side.
+ */
+function isUnsafeSpot(text: string, i: number): boolean {
+  const lineStart = text.lastIndexOf("\n", i - 1) + 1;
+  const linePrefix = text.slice(lineStart, i);
+  if (/^ {0,3}>/.test(linePrefix) || /^(?: {4}|\t)/.test(linePrefix)) return true;
+  let tokStart = i;
+  while (tokStart > lineStart && !/\s/.test(text[tokStart - 1])) tokStart--;
+  let tokEnd = i;
+  while (tokEnd < text.length && !/\s/.test(text[tokEnd])) tokEnd++;
+  if (text.slice(tokStart, tokEnd).includes("://")) return true;
+  const opener = text[i - 1];
+  if (opener === "[" && text[i + 2] === "(") return true;
+  if (opener === "(" && text[i - 2] === "]") return true;
+  if ((opener === '"' || opener === "'") && text[i - 2] === "=") return true;
+  return false;
+}
 
 function preserveInProse(text: string): string {
   let out = "";
@@ -55,7 +89,8 @@ function preserveInProse(text: string): string {
         prev !== undefined &&
         lastPlain === i - 1 &&
         Object.hasOwn(CLOSER_FOR, prev) &&
-        next === CLOSER_FOR[prev]
+        next === CLOSER_FOR[prev] &&
+        !isUnsafeSpot(text, i)
       ) {
         // Lone backslash between an opener and its closer: make it literal.
         out += "\\\\";
