@@ -149,6 +149,12 @@ export type SessionAccountChangedEvent = {
 export type SessionErrorEvent = {
   type: "error";
   message: string;
+  /**
+   * CC 2.1.311 — set when the error ended the SDK process (the iterator
+   * threw). The client adds "send a message to restart it": the next send
+   * rebuilds the session from its transcript (`SessionManager.restartIfDead`).
+   */
+  sessionEnded?: boolean;
 };
 
 export type ModeChangedEvent = {

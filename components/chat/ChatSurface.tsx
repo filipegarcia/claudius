@@ -2711,6 +2711,20 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                   {e}
                 </div>
               ))}
+              {/* CC 2.1.311 parity — "Improved the messages shown when a
+                  background session's process exits: they no longer promise
+                  a restart that isn't coming, and they say how to resume the
+                  session". The next send rebuilds the session from its
+                  transcript (`SessionManager.restartIfDead`). */}
+              {session.processExited && (
+                <div
+                  data-testid="session-ended-hint"
+                  className="mt-1 px-3 text-xs text-[var(--muted)]"
+                >
+                  The session&apos;s process exited. Send a message to restart it — the conversation so far
+                  is kept.
+                </div>
+              )}
             </div>
           )}
           <PromptSuggestions

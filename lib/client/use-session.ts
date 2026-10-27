@@ -1071,6 +1071,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     errorReason: null,
   });
   const [errors, setErrors] = useState<string[]>([]);
+  const [processExited, setProcessExited] = useState(false);
   // CC 2.1.302 — the last failed `createSession`, kept apart from `errors` so
   // the no-tabs empty state can show why "+ New session" failed without also
   // surfacing stale errors from a session the user already closed.
@@ -1753,6 +1754,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       errorReason: null,
     });
     setErrors([]);
+    setProcessExited(false);
     setSlashCommands([]);
     setAgents([]);
     setMainAgent(null);
@@ -2193,6 +2195,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "error") {
         setErrors((e) => [...e, ev.message]);
+        if (ev.sessionEnded) setProcessExited(true);
         setPendingTracked(false);
         return;
       }
@@ -5630,6 +5633,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // which until the POST resolves. The SSE `turn_status` echo (and
       // `queue:updated` if it was enqueued) will set the right state.
       setErrors([]);
+      setProcessExited(false);
       // Roll back any optimistic bubble we added — there's no message in
       // flight, so it must not sit in the transcript (dimmed "Sending…"
       // forever) as if it had been sent. The caller gets `ok: false` and the
@@ -5672,7 +5676,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         return { ok: false, error: "network" };
       }
       if (!res.ok) {
-        setErrors((e) => [...e, `send failed: ${res.status}`]);
+        // CC 2.1.311 — a 503 means the session's SDK process is gone and
+        // couldn't be restarted; the server says why.
+        let detail = String(res.status);
+        if (res.status === 503) {
+          const body = (await res.json().catch(() => null)) as { error?: string } | null;
+          if (body?.error) detail = body.error;
+        }
+        setErrors((e) => [...e, `send failed: ${detail}`]);
         rollBack();
         return { ok: false, error: `http ${res.status}` };
       }
@@ -6670,6 +6681,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     tips,
     sessionRecap,
     errors,
+    processExited,
     createError,
     slashCommands,
     agents,

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { recordSendUses } from "@/lib/server/asset-ingest";
-import { sessionManager } from "@/lib/server/session-manager";
+import { deadSessionResponse, sessionManager } from "@/lib/server/session-manager";
 import { recordSuggestedMessage } from "@/lib/server/suggested-messages-db";
 import { recordGoalMessage } from "@/lib/server/goal-messages-db";
 import type { SendInputRequest, SendInputResponse } from "@/lib/shared/events";
@@ -10,14 +10,25 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const session = sessionManager.get(id);
-  if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
-  const body = (await req.json()) as SendInputRequest;
+  // Validate before any restart below, so an empty (or cross-origin) POST
+  // can't spawn an SDK child just to be told 400.
+  const body = (await req.json().catch(() => null)) as SendInputRequest | null;
   const hasText = typeof body?.text === "string" && body.text.length > 0;
   const hasImages = Array.isArray(body?.images) && body.images.length > 0;
-  if (!hasText && !hasImages) {
+  if (!body || (!hasText && !hasImages)) {
     return NextResponse.json({ error: "text or images required" }, { status: 400 });
   }
+  // CC 2.1.311 — the SDK process ended on its own (crash, non-zero exit):
+  // `sendInput` would silently drop this message while we answered `ok`.
+  // `restartIfDead` hands back the live session unchanged, rebuilds a dead
+  // one from its transcript, or joins a rebuild another send started; if it
+  // can't, say so instead of pretending the message went through.
+  const live = await sessionManager.restartIfDead(id);
+  if (!live.ok) {
+    const { error, status } = deadSessionResponse(live);
+    return NextResponse.json({ error }, { status });
+  }
+  const session = live.session;
 
   // Stable uuid for this message — used by both branches (immediate dispatch
   // and queue enqueue) so provenance bookkeeping below is consistent whether
@@ -106,9 +117,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // a paste that's queued-then-drained loses only the marker, not the text.)
   const sendOpts: { uuid: string; slash?: boolean; inlinePastes?: string[] } = { uuid };
   if (body.slash) sendOpts.slash = true;
-  if (Array.isArray(body.inlinePastes) && body.inlinePastes.length > 0) {
-    sendOpts.inlinePastes = body.inlinePastes;
-  }
+  // The body is untyped JSON: keep only real, non-empty strings.
+  const inlinePastes = Array.isArray(body.inlinePastes)
+    ? (body.inlinePastes as unknown[]).filter((p): p is string => typeof p === "string" && p.length > 0)
+    : [];
+  if (inlinePastes.length > 0) sendOpts.inlinePastes = inlinePastes;
   session.sendInput(text, body.images, sendOpts);
 
   const res: SendInputResponse = { ok: true, queued: false, uuid };

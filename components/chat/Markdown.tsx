@@ -14,6 +14,7 @@ import { filesHref, isLocalFileRef, looksLikeFilePath, normalizeLocalPath, strip
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
+import { preserveLoneBackslashes } from "@/lib/shared/lone-backslash";
 import { CodeBlock } from "./CodeBlock";
 import { ImageLightbox } from "./ImageLightbox";
 import { LazyPreview } from "./LazyPreview";
@@ -497,7 +498,13 @@ export const Markdown = memo(function Markdown({
   // bubble re-renders on every delta. Past the cap, the parser would overflow
   // the stack (quotes) or stall the tab (lists), so render plain text instead.
   const tooDeep = useMemo(() => isMarkdownTooDeep(children), [children]);
-  const source = useMemo(() => (math ? normalizeMathDelimiters(children) : children), [children, math]);
+  // CC 2.1.311 — keep a lone `\` in `"\"` / `(\)` / `[\]` visible (CommonMark
+  // would read it as an escape). Runs before the math pass, which keeps the
+  // doubled backslash as a pair.
+  const source = useMemo(() => {
+    const kept = preserveLoneBackslashes(children);
+    return math ? normalizeMathDelimiters(kept) : kept;
+  }, [children, math]);
   const remarkPlugins = useMemo(() => {
     const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [remarkGfm];
     if (breaks) plugins.push(remarkBreaks);

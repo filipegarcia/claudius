@@ -46,6 +46,15 @@ export async function POST(req: Request): Promise<NextResponse<CancelSessionLoop
   if (!session) {
     return NextResponse.json({ ok: false, error: "session not found" }, { status: 404 });
   }
+  // CC 2.1.311 — the SDK process ended on its own and took its loop timers
+  // with it, so there's nothing left to cancel; `sendInput` would drop the
+  // prompt while we answered `ok`. Don't restart a session just for this.
+  if (session.isDead()) {
+    return NextResponse.json(
+      { ok: false, error: "this session's process exited, so its loops no longer run" },
+      { status: 410 },
+    );
+  }
 
   // Validate `loopId` against the session's actual known loops before
   // interpolating it into a prompt the agent will read. Two reasons:

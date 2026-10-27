@@ -37,6 +37,39 @@ function reapMs(): number {
  * enough to satisfy with a hand-rolled stub; see
  * `tests/unit/session-manager.test.ts`.
  */
+/** Consecutive dead-process restarts allowed without a successful turn. */
+export const MAX_DEAD_RESTARTS = 3;
+/**
+ * The dead-restart budget refills after this long without an attempt, so a
+ * session whose boot failure the user has since fixed (credentials, config)
+ * can be restarted again without closing every tab first.
+ */
+export const DEAD_RESTART_COOLDOWN_MS = 5 * 60_000;
+
+export type RestartIfDeadResult =
+  | { ok: true; session: Session; restarted: boolean }
+  | { ok: false; reason: "gone" | "max_attempts" | "failed" | "skipped"; error?: string };
+
+/**
+ * The JSON error + status a route answers when `restartIfDead` couldn't hand
+ * back a live session, so the input, queue and loop-cancel routes all report
+ * a dead SDK process the same way instead of answering `ok` for a message
+ * that went nowhere.
+ */
+export function deadSessionResponse(
+  res: Extract<RestartIfDeadResult, { ok: false }>,
+): { error: string; status: number } {
+  if (res.reason === "gone") return { error: "session not found", status: 404 };
+  if (res.reason === "max_attempts") {
+    return {
+      error:
+        "This session's process keeps exiting, so it wasn't restarted again. Check the error in the chat, or start a new session.",
+      status: 503,
+    };
+  }
+  return { error: `Couldn't restart the session: ${res.error ?? "unknown error"}`, status: 503 };
+}
+
 export class SessionManager {
   private sessions = new Map<string, Session>();
   /** Active reap timers keyed by session id. */
@@ -52,6 +85,15 @@ export class SessionManager {
    * session, where each successful turn clears the budget.
    */
   private thinkingRecoveryAttempts = new Map<string, number>();
+  /**
+   * Per-id count of consecutive dead-process restarts (see `restartIfDead`),
+   * cleared by `noteThinkingRecoverySuccess` on any successful turn. Caps a
+   * process that dies on boot (bad credentials, broken config) so every send
+   * doesn't spawn another doomed child.
+   */
+  private deadRestartAttempts = new Map<string, { count: number; at: number }>();
+  /** In-flight dead-process restarts, so concurrent sends share one rebuild. */
+  private restarting = new Map<string, Promise<RestartIfDeadResult>>();
   /**
    * In-flight `create()` calls keyed by the session id being built, published
    * for the whole duration of `session.start()`.
@@ -106,21 +148,7 @@ export class SessionManager {
       await session.start();
 
       // Only now is the session safe to hand out via `get()`.
-      this.sessions.set(session.id, session);
-
-      // Wire idle reaping: when subscribers drop to 0, schedule end() after
-      // the grace window. New subscribers cancel the timer.
-      const unsubscribe = session.onSubscriberCountChange((count) => {
-        this.handleSubscriberCount(session.id, count);
-      });
-      this.subscriberWatchers.set(session.id, unsubscribe);
-
-      // Sessions are created with 0 subscribers; the client's POST → SSE
-      // round-trip happens in milliseconds. Arm the initial timer so a session
-      // that's created and then immediately abandoned (e.g. POST succeeds, the
-      // browser tab is closed before the SSE opens) doesn't leak the SDK
-      // process forever.
-      this.scheduleReap(session.id);
+      this.register(session);
       return session;
     })();
 
@@ -136,6 +164,27 @@ export class SessionManager {
     } finally {
       this.starting.delete(session.id);
     }
+  }
+
+  /**
+   * Publish a started session in the map and wire its idle reaping: when
+   * subscribers drop to 0, `end()` is scheduled after the grace window and new
+   * subscribers cancel the timer. Shared by `create()` and the failed-restart
+   * path of `restartIfDead`.
+   */
+  private register(session: Session): void {
+    this.sessions.set(session.id, session);
+    const unsubscribe = session.onSubscriberCountChange((count) => {
+      this.handleSubscriberCount(session.id, count);
+    });
+    this.subscriberWatchers.set(session.id, unsubscribe);
+
+    // Sessions are created with 0 subscribers; the client's POST → SSE
+    // round-trip happens in milliseconds. Arm the initial timer so a session
+    // that's created and then immediately abandoned (e.g. POST succeeds, the
+    // browser tab is closed before the SSE opens) doesn't leak the SDK
+    // process forever.
+    this.scheduleReap(session.id);
   }
 
   get(id: string): Session | undefined {
@@ -286,6 +335,79 @@ export class SessionManager {
    */
   noteThinkingRecoverySuccess(id: string): void {
     this.thinkingRecoveryAttempts.delete(id);
+    // A turn completed, so the process is healthy again — reset the
+    // dead-restart budget too (see `restartIfDead`).
+    this.deadRestartAttempts.delete(id);
+  }
+
+  /**
+   * CC 2.1.311 parity — "Fixed a background session that crashed between
+   * turns not being restarted while it was attached, pinned, or had a
+   * scheduled task or wake-up set".
+   *
+   * When a session's SDK process ends on its own (`Session.isDead()`), the
+   * Session stays in the map with `done` set and `sendInput` silently drops
+   * every message. This rebuilds it under the SAME id, resumed from its own
+   * transcript (the `restartInPlace` path), then closes the old instance's
+   * SSE streams so open tabs reconnect to the new one. The new session's
+   * `start()` drains anything left in the persisted queue.
+   *
+   * Returns the live session unchanged when it isn't dead, and `gone` when
+   * the id isn't live. Concurrent callers share one rebuild. Capped at
+   * `MAX_DEAD_RESTARTS` consecutive restarts without a successful turn, so a
+   * process that dies on boot surfaces instead of respawning on every send;
+   * the budget refills after `DEAD_RESTART_COOLDOWN_MS` without an attempt.
+   *
+   * `passive` callers (stream connect, background pollers — not a user
+   * action) only get the first attempt, and only for a session whose process
+   * came up live (`Session.cameUpLive`): a poll every few seconds must not
+   * burn the whole budget before the user has sent anything, and a process
+   * that dies on boot would only die again — while the rebuild unbinds the
+   * id and replaces the instance under its open tabs. They get `skipped`
+   * instead and keep using the dead instance read-only.
+   *
+   * Write routes should call this unconditionally rather than gating on
+   * `get(id)?.isDead()`: while a rebuild is under way the id is briefly
+   * unbound, and only this method joins the in-flight rebuild.
+   */
+  async restartIfDead(id: string, opts?: { passive?: boolean }): Promise<RestartIfDeadResult> {
+    const inFlight = this.restarting.get(id);
+    if (inFlight) return inFlight;
+    const existing = this.sessions.get(id);
+    if (!existing) return { ok: false, reason: "gone" };
+    if (!existing.isDead()) return { ok: true, session: existing, restarted: false };
+    const now = Date.now();
+    const prior = this.deadRestartAttempts.get(id);
+    const attempts = prior && now - prior.at < DEAD_RESTART_COOLDOWN_MS ? prior.count : 0;
+    if (opts?.passive && (attempts > 0 || !existing.cameUpLive())) return { ok: false, reason: "skipped" };
+    if (attempts >= MAX_DEAD_RESTARTS) return { ok: false, reason: "max_attempts" };
+    this.deadRestartAttempts.set(id, { count: attempts + 1, at: now });
+
+    const run = (async (): Promise<RestartIfDeadResult> => {
+      const carry = existing.getRebuildOpts();
+      await this.remove(id);
+      try {
+        const session = await this.create({ ...carry, resume: id });
+        // The old instance is finished: let its tabs reconnect and bind to
+        // the new session.
+        existing.closeStreams();
+        return { ok: true, session, restarted: true };
+      } catch (err) {
+        // The rebuild failed (e.g. the process dies on boot). Keep the dead
+        // instance bound — `remove()` dropped it, but read-only routes and
+        // its still-attached streams need something to talk to, and the input
+        // route reports the failure from `isDead()`. Its streams stay open
+        // (closing them would just reconnect into another doomed restart).
+        if (!this.sessions.has(id)) this.register(existing);
+        return { ok: false, reason: "failed", error: err instanceof Error ? err.message : String(err) };
+      }
+    })();
+    this.restarting.set(id, run);
+    try {
+      return await run;
+    } finally {
+      this.restarting.delete(id);
+    }
   }
 
   private handleSubscriberCount(id: string, count: number): void {

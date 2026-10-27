@@ -178,9 +178,19 @@ function RewindPreview({
   return (
     <>
       <h2 className="mb-1 text-sm font-semibold">Restore files to this message?</h2>
-      <p className="mb-3 text-xs text-[var(--muted)]">
-        This rewinds the working tree to its checkpointed state at this point. Unsaved later edits to
-        these files will be lost.
+      {/* CC 2.1.311 parity — "Fixed the /rewind warning that wrongly said
+          manual and Bash edits are never affected by a code restore". The
+          old copy ("Unsaved later edits … will be lost") implied saved edits
+          were safe. The SDK's `rewindFiles` writes each checkpointed file
+          back whatever changed it since, so later manual and Bash edits to
+          these files are overwritten too, and files Claude created since are
+          removed (`rewindFiles` restores or deletes tracked files). Files that
+          only Bash or the user touched aren't checkpointed, so they're left as
+          they are. */}
+      <p data-testid="restore-files-preview-note" className="mb-3 text-xs text-[var(--muted)]">
+        Restores the files Claude edited to their state at this message, removing any it created
+        since. Later changes to them are overwritten, including your own edits and Bash&apos;s; files
+        changed only by you or by Bash commands are left as they are.
       </p>
       <FileStat result={result} />
       <div className="flex justify-end gap-2">

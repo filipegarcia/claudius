@@ -149,6 +149,7 @@ import {
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
+import { hasUltrathinkKeyword } from "@/lib/shared/ultrathink-keyword";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -268,12 +269,13 @@ export function isRateLimitHitSdkMessage(message: unknown): boolean {
 }
 
 /**
- * The Claude Code TUI scans each outgoing prose prompt for the bare word
- * `ultrathink` (case-insensitive, on word boundaries) and, when present,
+ * The Claude Code TUI scans each outgoing prose prompt for the keyword
+ * `ultrathink` (case-insensitive; see the 2.1.311 note below for which
+ * occurrences count) and, when present,
  * injects a transient `<system-reminder>` that lifts the reasoning budget for
  * just that turn — distinct from `/effort max`, which is a sticky config
- * change. Grounded in the `\bultrathink\b` regex and `ultrathink-active`
- * identifier embedded in the CLI binary.
+ * change. Grounded in the `ultrathink-active` identifier embedded in the
+ * CLI binary.
  *
  * Returns the reminder body (without the wrapper tag) for prompts that match,
  * or `null` otherwise. Caller queues it through `queueReminder` so the same
@@ -284,11 +286,17 @@ export function isRateLimitHitSdkMessage(message: unknown): boolean {
  * general channel contract; this caller uses synchronous in-call ordering to
  * land on the current turn instead.
  *
- * Exported for unit testing — the regex boundary behavior (`ultrathinking`
- * must NOT match, `Ultrathink.` must) is the contract worth pinning.
+ * Exported for unit testing — the boundary behavior (`ultrathinking` must
+ * NOT match, `Ultrathink.` must) is the contract worth pinning.
+ *
+ * CC 2.1.311 — the keyword only counts where the engine's quote- and
+ * path-aware finder sees it (`lib/shared/ultrathink-keyword.ts`): not inside
+ * backticks, quotes or brackets, not as part of a file path or flag, and not
+ * inside a large paste (`inlinePastes`, which Claude Code scans as a
+ * `[Pasted text #N]` placeholder).
  */
-export function ultrathinkReminderBody(text: string): string | null {
-  if (!/\bultrathink\b/i.test(text)) return null;
+export function ultrathinkReminderBody(text: string, inlinePastes?: readonly string[]): string | null {
+  if (!hasUltrathinkKeyword(text, inlinePastes)) return null;
   return (
     'The user included the keyword "ultrathink", requesting deeper reasoning ' +
     "on this turn. Reason as thoroughly as the task warrants."
@@ -1315,6 +1323,11 @@ const ADDITIVE_MODEL_USAGE_FIELDS = new Set([
   "thinkingTokens",
   "cacheReadInputTokens",
   "cacheCreationInputTokens",
+  // SDK 0.3.311 — the 5m / 1h split of `cacheCreationInputTokens` (both
+  // already counted inside it). Optional; accumulate like the parent so a
+  // resumed session's per-model breakdown doesn't go last-write-wins.
+  "cacheCreationEphemeral5mInputTokens",
+  "cacheCreationEphemeral1hInputTokens",
   "webSearchRequests",
   "costUSD",
 ]);
@@ -1939,6 +1952,12 @@ export class Session {
    */
   private resumedTranscriptFile: string | undefined;
   private subscribers = new Set<Subscriber>();
+  /** Set by `end()` when the SDK process had already died on its own — see `isDead`. */
+  private diedOnItsOwn = false;
+  /** Set on the first live (not replayed) `system:init` — see `cameUpLive`. */
+  private sawLiveInit = false;
+  /** `controller.close()` hooks for the attached SSE streams — see `closeStreams`. */
+  private streamClosers = new Set<() => void>();
   private subscriberCountListeners = new Set<(count: number) => void>();
   /**
    * tabId of the SSE client that currently holds write access.
@@ -4347,7 +4366,7 @@ export class Session {
     // The block is appended by the existing `takePendingReminders` drain in
     // both branches, so it rides THIS turn (same call ordering as the goal
     // reminder).
-    const ultrathinkBody = ultrathinkReminderBody(text);
+    const ultrathinkBody = ultrathinkReminderBody(text, opts?.inlinePastes);
     if (ultrathinkBody) queueReminder(this, "ultrathink-prose", ultrathinkBody);
 
     // Mid-turn user inject nudge (Claude Code TUI parity, feature 37). When
@@ -5438,7 +5457,56 @@ export class Session {
    * holds the timer) alive. See `loop-keepalive.ts`.
    */
   hasArmedLoops(now: number = Date.now()): boolean {
+    // CC 2.1.311 — a dead SDK process took the loop timers with it, so an
+    // ended session has nothing to keep alive. Without this the reaper
+    // re-armed forever and pinned the dead Session in memory.
+    if (this.done) return false;
     return hasArmedLoop(this.scheduledLoops.values(), now);
+  }
+
+  /**
+   * CC 2.1.311 parity — "Fixed a background session that crashed between
+   * turns not being restarted while it was attached, pinned, or had a
+   * scheduled task or wake-up set". True when the SDK process ended on its
+   * own (crash, non-zero exit, iterator error) rather than through `end()` —
+   * the reaper, a restart, or a delete all abort the controller first.
+   * `sendInput` bails on `done`, so a dead session silently drops every
+   * message until `SessionManager.restartIfDead` rebuilds it.
+   */
+  isDead(): boolean {
+    return this.done && (this.diedOnItsOwn || !this.abortController.signal.aborted);
+  }
+
+  /**
+   * True once this instance's SDK process sent a live `system:init` (not one
+   * replayed from the transcript), i.e. it actually came up. Passive callers
+   * of `SessionManager.restartIfDead` (stream connect, pollers) only restart
+   * such a session — one that "crashed between turns". A process that dies on
+   * boot never gets here; restarting it from a poll just spawns another
+   * doomed child and swaps the instance out from under its open tabs.
+   */
+  cameUpLive(): boolean {
+    return this.sawLiveInit;
+  }
+
+  /**
+   * Close every attached SSE stream (the stream route registers its
+   * `controller.close()` via `subscribe(…, { onClose })`). Used after the
+   * session was rebuilt under the same id: the tabs' EventSources reconnect,
+   * the stream route resolves the NEW Session, and its replay brings them
+   * up to date. Without this an open tab stays subscribed to the dead
+   * instance and never sees the restarted session's reply.
+   */
+  closeStreams(): void {
+    const closers = [...this.streamClosers];
+    this.streamClosers.clear();
+    for (const close of closers) {
+      try {
+        close();
+      } catch {
+        // a stream that's already gone is fine
+      }
+    }
   }
 
   /**
@@ -7317,6 +7385,11 @@ export class Session {
   }
 
   async end(): Promise<void> {
+    // Remember a death that predates this call: `end()` aborts the controller,
+    // which would otherwise make `isDead()` read false for a session that
+    // `SessionManager.restartIfDead` removed and then had to put back because
+    // the rebuild failed.
+    if (this.done && !this.abortController.signal.aborted) this.diedOnItsOwn = true;
     this.inputQueue.close();
     this.abortController.abort();
     this.done = true;
@@ -7514,7 +7587,10 @@ export class Session {
     return { added };
   }
 
-  subscribe(fn: Subscriber, opts?: { tail?: number; tabId?: string }): () => void {
+  subscribe(
+    fn: Subscriber,
+    opts?: { tail?: number; tabId?: string; onClose?: () => void },
+  ): () => void {
     const replayWindow = selectReplayWindow(this.buffer, opts?.tail);
     const startIdx = replayWindow.startIdx;
     const hasMoreAbove = replayWindow.hasMoreAbove || this.bufferTrimmed;
@@ -7748,6 +7824,8 @@ export class Session {
       });
     }
     this.subscribers.add(fn);
+    const onClose = opts?.onClose;
+    if (onClose) this.streamClosers.add(onClose);
     this.notifySubscriberCount();
     // Holder tracking: first tab to subscribe with a tabId claims the write
     // lock. All current subscribers (including this one) are notified; later
@@ -7791,6 +7869,7 @@ export class Session {
     void this.sendQueueSnapshot(fn);
     return () => {
       this.subscribers.delete(fn);
+      if (onClose) this.streamClosers.delete(onClose);
       // Release the holder slot when the holder's SSE stream disconnects so
       // the next tab to subscribe can claim it.
       if (tabId && tabId === this.holderId) {
@@ -8030,6 +8109,9 @@ export class Session {
    * `sendInput`). The per-item button leaves it off.
    */
   async sendQueuedNow(uuid: string, opts?: { priority?: "now" }): Promise<boolean> {
+    // CC 2.1.311 — `sendInput` drops input once the process has ended, so a
+    // dead session must leave the row queued for its restart to drain.
+    if (this.done) return false;
     await this.loadQueueIfNeeded();
     const row = await popQueuedByUuid(this.cwd, this.id, uuid);
     if (!row) return false;
@@ -8377,6 +8459,7 @@ export class Session {
         }
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
+          this.sawLiveInit = true;
           void this.noteMcpNeedsAuthAtStartup();
           void this.noteMcpDisconnectedAtStartup();
           this.noteTokenExpiringAtStartup();
@@ -9618,7 +9701,11 @@ export class Session {
       // mirrors `useNotifications.notify`'s OS-popup suppression).
       if (!this.abortController.signal.aborted) {
         const message = err instanceof Error ? err.message : String(err);
-        this.broadcast({ type: "error", message });
+        // CC 2.1.311 — the iterator threw, so the SDK process is gone
+        // (`done` is set in `finally`). Flag it so the client says how to
+        // resume (send a message → `restartIfDead`) instead of leaving a raw
+        // "process exited" line with no way forward.
+        this.broadcast({ type: "error", message, sessionEnded: true });
         sawError = true;
         // A thrown 529 lands here when the SDK iterator gives up (not as a
         // synthetic API-error assistant message). Feed it through the same

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sessionManager } from "@/lib/server/session-manager";
+import { deadSessionResponse, sessionManager } from "@/lib/server/session-manager";
 
 export const runtime = "nodejs";
 
@@ -27,10 +27,16 @@ export const runtime = "nodejs";
  */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const session = sessionManager.get(id);
-  if (!session) {
-    return NextResponse.json({ error: "session not found" }, { status: 404 });
+  // CC 2.1.311 — a session whose SDK process died between turns would pop
+  // the row and drop it while we answered `ok`. Restart it first (or join a
+  // rebuild already under way); the rebuilt session drains the persisted
+  // queue on start, so a row it already sent reads as "already on its way".
+  const live = await sessionManager.restartIfDead(id);
+  if (!live.ok) {
+    const { error, status } = deadSessionResponse(live);
+    return NextResponse.json({ error }, { status });
   }
+  const session = live.session;
   const snapshot = await session.getQueueSnapshot();
   const dispatched: string[] = [];
   // Node is single-threaded and nothing else in this process writes to
