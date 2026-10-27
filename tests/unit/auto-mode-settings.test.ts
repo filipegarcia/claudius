@@ -59,6 +59,18 @@ describe("updateAutoMode", () => {
     });
   });
 
+  // SDK 0.3.312 — `autoMode.classifyAllShell` is a boolean, not a string list.
+  test("persists classifyAllShell alongside the list sections", async () => {
+    await updateAutoMode(cwd, { allow: ["$defaults"] });
+    await updateAutoMode(cwd, { classifyAllShell: true });
+    expect((await readSettings("user", cwd)).autoMode).toEqual({
+      allow: ["$defaults"],
+      classifyAllShell: true,
+    });
+    await updateAutoMode(cwd, { classifyAllShell: false });
+    expect((await readSettings("user", cwd)).autoMode?.classifyAllShell).toBe(false);
+  });
+
   test("a later patch overwrites only the section it names", async () => {
     await updateAutoMode(cwd, { soft_deny: ["$defaults", "Never force-push"] });
     await updateAutoMode(cwd, { soft_deny: [] });

@@ -285,9 +285,10 @@ export default function PermissionsPage() {
  */
 function AutoModeTab() {
   const { config, loading, error, updateConfig, reset } = useAutoMode();
-  const hasConfig = (["environment", "allow", "soft_deny", "hard_deny"] as const).some(
-    (k) => (config[k]?.length ?? 0) > 0,
-  );
+  const hasConfig =
+    (["environment", "allow", "soft_deny", "hard_deny"] as const).some(
+      (k) => (config[k]?.length ?? 0) > 0,
+    ) || config.classifyAllShell !== undefined;
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs text-[var(--muted)]">
@@ -319,6 +320,25 @@ function AutoModeTab() {
         {loading && <span className="ml-2">loading…</span>}
         {error && <span className="ml-2 text-red-400">{error}</span>}
       </div>
+      {/* SDK 0.3.312 — `autoMode.classifyAllShell`. */}
+      <label
+        className="flex items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs"
+      >
+        <input
+          type="checkbox"
+          data-testid="auto-mode-classify-all-shell"
+          className="mt-0.5"
+          checked={config.classifyAllShell === true}
+          onChange={(e) => void updateConfig({ classifyAllShell: e.target.checked })}
+        />
+        <span>
+          <span className="font-medium text-[var(--foreground)]">Classify all shell commands</span>
+          <span className="mt-0.5 block text-[10px] text-[var(--muted)]">
+            Suspend every Bash/PowerShell allow rule while Auto mode is active so all shell commands
+            go through the classifier — safer, but more classifier calls. Off by default.
+          </span>
+        </span>
+      </label>
       <AutoModeSection
         id="environment"
         title="Environment"

@@ -1274,6 +1274,20 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: 'Disable Auto mode (the autonomous permission mode) entirely — hides "Auto" from the mode picker and the Shift+Tab cycle. Default/absent leaves Auto mode available. Matches the SDK\'s single-literal key exactly (no separate "enabled" value).',
   },
   {
+    // SDK 0.3.312 — sibling of skipDangerousModePermissionPrompt for Auto mode.
+    key: "skipAutoPermissionPrompt",
+    type: "boolean",
+    section: "Permissions",
+    desc: "Whether the user has accepted the auto mode opt-in dialog",
+  },
+  {
+    // SDK 0.3.312 — plan mode can borrow Auto mode's classifier semantics.
+    key: "useAutoModeDuringPlan",
+    type: "boolean",
+    section: "Permissions",
+    desc: "Whether plan mode uses auto mode semantics when auto mode is available (SDK default: true)",
+  },
+  {
     key: "crossSessionInbound",
     type: "enum",
     section: "Collaboration",
