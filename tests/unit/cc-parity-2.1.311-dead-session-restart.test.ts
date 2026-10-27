@@ -1,5 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
-import { MAX_DEAD_RESTARTS, SessionManager } from "@/lib/server/session-manager";
+import {
+  DEAD_RESTART_COOLDOWN_MS,
+  MAX_DEAD_RESTARTS,
+  SessionManager,
+  deadSessionResponse,
+} from "@/lib/server/session-manager";
 import { Session } from "@/lib/server/session";
 
 /**
@@ -117,6 +122,69 @@ describe("SessionManager.restartIfDead", () => {
 
     manager.noteThinkingRecoverySuccess("boot-loop");
     expect((await manager.restartIfDead("boot-loop")).ok).toBe(true);
+  });
+
+  test("the budget refills after the cooldown, without a successful turn", async () => {
+    vi.useFakeTimers();
+    try {
+      const manager = new SessionManager();
+      vi.spyOn(manager, "create").mockImplementation(async (req) => {
+        const { session } = stubSession(req?.resume ?? "x", true);
+        internals(manager).sessions.set(session.id, session);
+        return session;
+      });
+      internals(manager).sessions.set("boot-loop", stubSession("boot-loop", true).session);
+      for (let i = 0; i < MAX_DEAD_RESTARTS; i++) await manager.restartIfDead("boot-loop");
+      expect((await manager.restartIfDead("boot-loop")).ok).toBe(false);
+
+      vi.advanceTimersByTime(DEAD_RESTART_COOLDOWN_MS + 1);
+      expect((await manager.restartIfDead("boot-loop")).ok).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("passive callers (pollers, stream connect) get only the first attempt", async () => {
+    const manager = new SessionManager();
+    vi.spyOn(manager, "create").mockImplementation(async (req) => {
+      const { session } = stubSession(req?.resume ?? "x", true);
+      internals(manager).sessions.set(session.id, session);
+      return session;
+    });
+    internals(manager).sessions.set("boot-loop", stubSession("boot-loop", true).session);
+
+    expect((await manager.restartIfDead("boot-loop", { passive: true })).ok).toBe(true);
+    // A poll every few seconds must not use up the user's restarts.
+    expect(await manager.restartIfDead("boot-loop", { passive: true })).toEqual({ ok: false, reason: "skipped" });
+    expect(await manager.restartIfDead("boot-loop", { passive: true })).toEqual({ ok: false, reason: "skipped" });
+    // The user's send still gets the remaining budget.
+    expect((await manager.restartIfDead("boot-loop")).ok).toBe(true);
+  });
+
+  test("a send that arrives while a rebuild is unbinding the id joins it instead of 404ing", async () => {
+    const manager = new SessionManager();
+    const { session } = stubSession("crashed", true);
+    internals(manager).sessions.set("crashed", session);
+    const create = stubCreate(manager, { delayMs: 10 });
+
+    const first = manager.restartIfDead("crashed");
+    // The first rebuild has removed the dead instance; `get` alone would 404.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(manager.get("crashed")).toBeUndefined();
+    const second = await manager.restartIfDead("crashed");
+    expect(second.ok).toBe(true);
+    expect(await first).toBe(second);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  test("deadSessionResponse maps each failure to the route's error and status", () => {
+    expect(deadSessionResponse({ ok: false, reason: "gone" })).toEqual({ error: "session not found", status: 404 });
+    expect(deadSessionResponse({ ok: false, reason: "max_attempts" }).status).toBe(503);
+    expect(deadSessionResponse({ ok: false, reason: "failed", error: "boom" })).toEqual({
+      error: "Couldn't restart the session: boom",
+      status: 503,
+    });
   });
 
   test("a failed rebuild reports why and keeps the dead session bound, with its tabs attached", async () => {

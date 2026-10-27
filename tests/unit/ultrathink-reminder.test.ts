@@ -74,6 +74,27 @@ describe("ultrathinkReminderBody", () => {
     expect(ultrathinkReminderBody(`look at this ${paste}`)).not.toBeNull();
   });
 
+  test("quotes, backticks or a leading / inside a paste don't hide a typed keyword", () => {
+    const quote = 'he said "hello\nand left';
+    expect(ultrathinkReminderBody(`${quote} ultrathink about "x"`, [quote])).not.toBeNull();
+    const path = "/var/log/app.log line 1\nline 2";
+    expect(ultrathinkReminderBody(`${path} ultrathink why`, [path])).not.toBeNull();
+    const tick = "a ` stray backtick";
+    expect(ultrathinkReminderBody(`${tick} ultrathink, then run \`npm test\``, [tick])).not.toBeNull();
+  });
+
+  test("non-string paste entries from a request body are ignored, not looped on", () => {
+    const bad = [123, null, "", { length: 3 }] as unknown as string[];
+    expect(ultrathinkReminderBody("ultrathink 123", bad)).not.toBeNull();
+  });
+
+  test("stays linear on long prompts", () => {
+    const long = "() ultrathink ".repeat(70_000); // ~1 MB
+    const t0 = Date.now();
+    expect(ultrathinkReminderBody(long, ['"ultrathink"'])).not.toBeNull();
+    expect(Date.now() - t0).toBeLessThan(1500);
+  });
+
   test("rejects extensions that just contain the substring", () => {
     // `\b` denies these — they're distinct words, not the keyword the TUI
     // grounds the nudge on.

@@ -39,10 +39,36 @@ function reapMs(): number {
  */
 /** Consecutive dead-process restarts allowed without a successful turn. */
 export const MAX_DEAD_RESTARTS = 3;
+/**
+ * The dead-restart budget refills after this long without an attempt, so a
+ * session whose boot failure the user has since fixed (credentials, config)
+ * can be restarted again without closing every tab first.
+ */
+export const DEAD_RESTART_COOLDOWN_MS = 5 * 60_000;
 
 export type RestartIfDeadResult =
   | { ok: true; session: Session; restarted: boolean }
-  | { ok: false; reason: "gone" | "max_attempts" | "failed"; error?: string };
+  | { ok: false; reason: "gone" | "max_attempts" | "failed" | "skipped"; error?: string };
+
+/**
+ * The JSON error + status a route answers when `restartIfDead` couldn't hand
+ * back a live session, so the input, queue and loop-cancel routes all report
+ * a dead SDK process the same way instead of answering `ok` for a message
+ * that went nowhere.
+ */
+export function deadSessionResponse(
+  res: Extract<RestartIfDeadResult, { ok: false }>,
+): { error: string; status: number } {
+  if (res.reason === "gone") return { error: "session not found", status: 404 };
+  if (res.reason === "max_attempts") {
+    return {
+      error:
+        "This session's process keeps exiting, so it wasn't restarted again. Check the error in the chat, or start a new session.",
+      status: 503,
+    };
+  }
+  return { error: `Couldn't restart the session: ${res.error ?? "unknown error"}`, status: 503 };
+}
 
 export class SessionManager {
   private sessions = new Map<string, Session>();
@@ -65,7 +91,7 @@ export class SessionManager {
    * process that dies on boot (bad credentials, broken config) so every send
    * doesn't spawn another doomed child.
    */
-  private deadRestartAttempts = new Map<string, number>();
+  private deadRestartAttempts = new Map<string, { count: number; at: number }>();
   /** In-flight dead-process restarts, so concurrent sends share one rebuild. */
   private restarting = new Map<string, Promise<RestartIfDeadResult>>();
   /**
@@ -329,17 +355,30 @@ export class SessionManager {
    * Returns the live session unchanged when it isn't dead, and `gone` when
    * the id isn't live. Concurrent callers share one rebuild. Capped at
    * `MAX_DEAD_RESTARTS` consecutive restarts without a successful turn, so a
-   * process that dies on boot surfaces instead of respawning on every send.
+   * process that dies on boot surfaces instead of respawning on every send;
+   * the budget refills after `DEAD_RESTART_COOLDOWN_MS` without an attempt.
+   *
+   * `passive` callers (stream connect, background pollers — not a user
+   * action) only get the first attempt: a poll every few seconds must not
+   * burn the whole budget before the user has sent anything. They get
+   * `skipped` instead and keep using the dead instance read-only.
+   *
+   * Write routes should call this unconditionally rather than gating on
+   * `get(id)?.isDead()`: while a rebuild is under way the id is briefly
+   * unbound, and only this method joins the in-flight rebuild.
    */
-  async restartIfDead(id: string): Promise<RestartIfDeadResult> {
+  async restartIfDead(id: string, opts?: { passive?: boolean }): Promise<RestartIfDeadResult> {
     const inFlight = this.restarting.get(id);
     if (inFlight) return inFlight;
     const existing = this.sessions.get(id);
     if (!existing) return { ok: false, reason: "gone" };
     if (!existing.isDead()) return { ok: true, session: existing, restarted: false };
-    const attempts = this.deadRestartAttempts.get(id) ?? 0;
+    const now = Date.now();
+    const prior = this.deadRestartAttempts.get(id);
+    const attempts = prior && now - prior.at < DEAD_RESTART_COOLDOWN_MS ? prior.count : 0;
+    if (opts?.passive && attempts > 0) return { ok: false, reason: "skipped" };
     if (attempts >= MAX_DEAD_RESTARTS) return { ok: false, reason: "max_attempts" };
-    this.deadRestartAttempts.set(id, attempts + 1);
+    this.deadRestartAttempts.set(id, { count: attempts + 1, at: now });
 
     const run = (async (): Promise<RestartIfDeadResult> => {
       const carry = existing.getRebuildOpts();

@@ -17,8 +17,19 @@ type FakeSession = {
   sendQueuedNow: ReturnType<typeof vi.fn>;
 };
 
-const mockManager = { get: vi.fn<(id: string) => FakeSession | undefined>() };
-vi.mock("@/lib/server/session-manager", () => ({ sessionManager: mockManager }));
+const mockManager = {
+  get: vi.fn<(id: string) => FakeSession | undefined>(),
+  // CC 2.1.311 — the route goes through `restartIfDead` (live sessions come
+  // back unchanged); these fakes are never dead, so it just wraps `get`.
+  restartIfDead: async (id: string) => {
+    const session = mockManager.get(id);
+    return session ? { ok: true, session, restarted: false } : { ok: false, reason: "gone" };
+  },
+};
+vi.mock("@/lib/server/session-manager", () => ({
+  sessionManager: mockManager,
+  deadSessionResponse: () => ({ error: "session not found", status: 404 }),
+}));
 
 const { POST } = await import("@/app/api/sessions/[id]/queue/send-all/route");
 

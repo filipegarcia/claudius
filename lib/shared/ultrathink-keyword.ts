@@ -83,11 +83,16 @@ export function findKeyword(text: string, keyword: string): KeywordMatch[] {
   }
 
   // Pass 2 — whole-word matches outside those spans and not part of a path.
+  // Spans come out sorted and non-overlapping and matches in ascending
+  // order, so one forward pointer replaces a per-match scan (which was
+  // quadratic on long prompts — this runs behind an HTTP route).
   const out: KeywordMatch[] = [];
+  let si = 0;
   for (const m of text.matchAll(new RegExp(`\\b${keyword}\\b`, "gi"))) {
     const start = m.index;
     const end = start + m[0].length;
-    if (spans.some((s) => start >= s.start && start < s.end)) continue;
+    while (si < spans.length && spans[si].end <= start) si++;
+    if (si < spans.length && start >= spans[si].start) continue;
     const before = text[start - 1];
     const after = text[end];
     if (before === "/" || before === "\\" || before === "-") continue;
@@ -103,18 +108,19 @@ export function findKeyword(text: string, keyword: string): KeywordMatch[] {
  * the composer recorded for this prompt (`inline_pastes`): Claude Code scans
  * the prompt *before* paste expansion, where those are `[Pasted text #N]`
  * placeholders, so a keyword that only appears inside pasted text doesn't
- * count.
+ * count — and quotes, backticks or a leading `/` inside a paste don't open
+ * spans that hide a keyword the user typed. Mirrored by collapsing each paste
+ * back to a placeholder before scanning.
+ *
+ * `pastes` comes from a request body, so non-string entries are ignored
+ * (a non-string has no usable `length`, and searching for it could loop).
  */
-export function hasUltrathinkKeyword(text: string, pastes: readonly string[] = []): boolean {
-  const matches = findKeyword(text, "ultrathink");
-  if (matches.length === 0) return false;
-  if (pastes.length === 0) return true;
-  const pasted: Array<{ start: number; end: number }> = [];
+export function hasUltrathinkKeyword(text: string, pastes: readonly unknown[] = []): boolean {
+  if (!text.toLowerCase().includes("ultrathink")) return false;
+  let scan = text;
   for (const p of pastes) {
-    if (!p) continue;
-    for (let at = text.indexOf(p); at !== -1; at = text.indexOf(p, at + p.length)) {
-      pasted.push({ start: at, end: at + p.length });
-    }
+    if (typeof p !== "string" || p.length === 0) continue;
+    scan = scan.split(p).join("[Pasted text]");
   }
-  return matches.some((m) => !pasted.some((r) => m.start >= r.start && m.end <= r.end));
+  return findKeyword(scan, "ultrathink").length > 0;
 }

@@ -269,12 +269,13 @@ export function isRateLimitHitSdkMessage(message: unknown): boolean {
 }
 
 /**
- * The Claude Code TUI scans each outgoing prose prompt for the bare word
- * `ultrathink` (case-insensitive, on word boundaries) and, when present,
+ * The Claude Code TUI scans each outgoing prose prompt for the keyword
+ * `ultrathink` (case-insensitive; see the 2.1.311 note below for which
+ * occurrences count) and, when present,
  * injects a transient `<system-reminder>` that lifts the reasoning budget for
  * just that turn — distinct from `/effort max`, which is a sticky config
- * change. Grounded in the `\bultrathink\b` regex and `ultrathink-active`
- * identifier embedded in the CLI binary.
+ * change. Grounded in the `ultrathink-active` identifier embedded in the
+ * CLI binary.
  *
  * Returns the reminder body (without the wrapper tag) for prompts that match,
  * or `null` otherwise. Caller queues it through `queueReminder` so the same
@@ -285,8 +286,8 @@ export function isRateLimitHitSdkMessage(message: unknown): boolean {
  * general channel contract; this caller uses synchronous in-call ordering to
  * land on the current turn instead.
  *
- * Exported for unit testing — the regex boundary behavior (`ultrathinking`
- * must NOT match, `Ultrathink.` must) is the contract worth pinning.
+ * Exported for unit testing — the boundary behavior (`ultrathinking` must
+ * NOT match, `Ultrathink.` must) is the contract worth pinning.
  *
  * CC 2.1.311 — the keyword only counts where the engine's quote- and
  * path-aware finder sees it (`lib/shared/ultrathink-keyword.ts`): not inside
@@ -8094,6 +8095,9 @@ export class Session {
    * `sendInput`). The per-item button leaves it off.
    */
   async sendQueuedNow(uuid: string, opts?: { priority?: "now" }): Promise<boolean> {
+    // CC 2.1.311 — `sendInput` drops input once the process has ended, so a
+    // dead session must leave the row queued for its restart to drain.
+    if (this.done) return false;
     await this.loadQueueIfNeeded();
     const row = await popQueuedByUuid(this.cwd, this.id, uuid);
     if (!row) return false;
