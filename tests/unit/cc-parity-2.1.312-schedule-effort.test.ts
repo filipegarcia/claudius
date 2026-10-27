@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { tmpdir } from "node:os";
-import type { Job, Run } from "@/lib/server/scheduler-store";
+import type { Job } from "@/lib/server/scheduler-store";
 import {
   isScheduleFormDirty,
   parseScheduleEffort,
@@ -24,8 +24,8 @@ vi.mock("@/lib/server/notification-bus", () => ({
 
 const jobs = new Map<string, Job>();
 vi.mock("@/lib/server/scheduler-store", () => ({
-  appendRun: vi.fn(async (_r: Run) => {}),
-  updateRun: vi.fn(async (_r: Run) => {}),
+  appendRun: vi.fn(async () => {}),
+  updateRun: vi.fn(async () => {}),
   listRuns: vi.fn(async () => []),
   saveJob: vi.fn(),
   listJobs: vi.fn(async () => [...jobs.values()]),
