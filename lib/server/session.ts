@@ -1379,10 +1379,12 @@ function modelUsageDelta(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [model, rawCur] of Object.entries(cur)) {
-    if (!rawCur || typeof rawCur !== "object") continue;
+    if (!rawCur || typeof rawCur !== "object" || Array.isArray(rawCur)) continue;
     const before = prev?.[model];
     const prevEntry =
-      before && typeof before === "object" ? (before as Record<string, unknown>) : undefined;
+      before && typeof before === "object" && !Array.isArray(before)
+        ? (before as Record<string, unknown>)
+        : undefined;
     const entry: Record<string, unknown> = {};
     for (const [field, value] of Object.entries(rawCur as Record<string, unknown>)) {
       const was = prevEntry?.[field];
@@ -1461,7 +1463,10 @@ export function foldResultIntoSessionUsage(
   const durationMs = num(r.duration_ms);
   const durationApiMs = num(r.duration_api_ms);
   const modelUsage =
-    r.modelUsage && typeof r.modelUsage === "object" && Object.keys(r.modelUsage).length > 0
+    r.modelUsage &&
+    typeof r.modelUsage === "object" &&
+    !Array.isArray(r.modelUsage) &&
+    Object.keys(r.modelUsage).length > 0
       ? (r.modelUsage as Record<string, unknown>)
       : undefined;
 

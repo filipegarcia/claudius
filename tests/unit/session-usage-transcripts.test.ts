@@ -11,6 +11,7 @@ import {
   priceForModel,
 } from "@/lib/server/litellm-pricing";
 import { lastRecordedCostState } from "@/lib/server/sdk-cost-state";
+import { costFromTokens } from "@/lib/shared/cost-pricing";
 
 /**
  * Transcript-side inputs to session cost accounting:
@@ -166,10 +167,13 @@ describe("subagent transcripts", () => {
     expect(r.totalUsd).toBeCloseTo(expected, 10);
   });
 
-  test("estimateSessionUsageFromTranscripts sums main + subagents; numTurns counts main-thread calls", async () => {
+  test("estimateSessionUsageFromTranscripts sums main + subagents at the static list prices; numTurns counts main-thread calls", async () => {
     await writeSessionWithSubagents();
     const est = await estimateSessionUsageFromTranscripts(cwd, SID);
-    const expected = 4 * (await perCall(1000)) + (await perCall(5000));
+    const call = (output: number) =>
+      costFromTokens("claude-opus-4-7", { input: 100, output, cacheRead: 0, cacheWrite5m: 0, cacheWrite1h: 0 });
+    // Summed in transcript order: main1, main2, sub1, sub2, wf1.
+    const expected = call(1000) + call(1000) + call(1000) + call(1000) + call(5000);
     expect(est).not.toBeNull();
     expect(est!.totalCostUsd).toBeCloseTo(expected, 10);
     expect(est!.numTurns).toBe(2);
@@ -178,6 +182,38 @@ describe("subagent transcripts", () => {
     const m = (est!.modelUsage as Record<string, Record<string, number>>)["claude-opus-4-7"];
     expect(m.outputTokens).toBe(9000);
     expect(m.costUSD).toBeCloseTo(expected, 10);
+  });
+
+  test("estimate prices the 1h cache-write share at its own rate, honors costUSD and the US premium", async () => {
+    const rec = (id: string, extra: Record<string, unknown>, usage: Record<string, unknown>) =>
+      JSON.stringify({
+        type: "assistant",
+        requestId: `req_${id}`,
+        ...extra,
+        message: { id, model: "claude-opus-5-5", usage },
+      });
+    await write(`${SID}.jsonl`, [
+      rec("c1", {}, {
+        input_tokens: 10,
+        output_tokens: 20,
+        cache_read_input_tokens: 300,
+        cache_creation_input_tokens: 400,
+        cache_creation: { ephemeral_5m_input_tokens: 100, ephemeral_1h_input_tokens: 300 },
+      }),
+      rec("c2", { costUSD: 0.5 }, { input_tokens: 1, output_tokens: 1 }),
+      rec("c3", {}, { input_tokens: 1000, output_tokens: 0, inference_geo: "us" }),
+      rec("c4", {}, { input_tokens: "12", output_tokens: null }), // non-numbers count as 0
+    ]);
+    const est = (await estimateSessionUsageFromTranscripts(cwd, SID))!;
+    const expected =
+      costFromTokens("claude-opus-5-5", { input: 10, output: 20, cacheRead: 300, cacheWrite5m: 100, cacheWrite1h: 300 }) +
+      0.5 +
+      costFromTokens("claude-opus-5-5", { input: 1000, output: 0, cacheRead: 0, cacheWrite5m: 0, cacheWrite1h: 0 }) * 1.1 +
+      0;
+    expect(est.totalCostUsd).toBeCloseTo(expected, 12);
+    expect(est.numTurns).toBe(4);
+    expect(est.inputTokens).toBe(1011);
+    expect(est.cacheCreationInputTokens).toBe(400);
   });
 
   test("estimate is null for a session with no priced calls", async () => {

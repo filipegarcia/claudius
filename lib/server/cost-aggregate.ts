@@ -14,7 +14,7 @@ import {
   resolveManagedModelPricing,
 } from "./model-pricing-override";
 import { getSessionTitlesByCwd } from "./sessions-db";
-import { inferenceGeoMultiplier } from "@/lib/shared/cost-pricing";
+import { costFromTokens, inferenceGeoMultiplier } from "@/lib/shared/cost-pricing";
 import { lookupSessionAccount, resolveSessionAccounts } from "./session-accounts";
 import { readSettings, type ModelPricingSettings } from "./settings";
 import type { SessionUsageTotals } from "@/lib/shared/events";
@@ -532,13 +532,77 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   };
 }
 
+/** One deduplicable API call read off a transcript line, for the seed estimate. */
+type TranscriptApiCall = {
+  /** `message.id:requestId`; null (never deduped) without a string message id. */
+  key: string | null;
+  model: string;
+  input: number;
+  output: number;
+  cacheRead: number;
+  /** All cache-creation tokens; `cacheWrite1h` of them at the 1-hour rate. */
+  cacheWrite: number;
+  cacheWrite1h: number;
+  usd: number;
+};
+
+/**
+ * Parse one transcript line into an API call, or null. Token fields count
+ * only when they're finite numbers. Cost is the record's own `costUSD` when
+ * present, else the static list prices (`costFromTokens`, the 1-hour share
+ * of cache writes at its own rate) times the US data-residency premium.
+ */
+function transcriptApiCall(line: string): TranscriptApiCall | null {
+  if (!line.startsWith("{")) return null;
+  let r: Record<string, unknown>;
+  try {
+    r = JSON.parse(line) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  if (!r || typeof r !== "object" || r.type !== "assistant") return null;
+  const message = r.message as Record<string, unknown> | null | undefined;
+  if (!message || typeof message !== "object" || Array.isArray(message)) return null;
+  const u = message.usage as Record<string, unknown> | null | undefined;
+  if (!u || typeof u !== "object" || Array.isArray(u)) return null;
+  const model = typeof message.model === "string" ? message.model : "(unknown)";
+  if (isSyntheticModel(model)) return null;
+  const n = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  const cc = u.cache_creation;
+  const buckets =
+    cc && typeof cc === "object" && !Array.isArray(cc) ? (cc as Record<string, unknown>) : null;
+  const input = n(u.input_tokens);
+  const output = n(u.output_tokens);
+  const cacheRead = n(u.cache_read_input_tokens);
+  const cacheWrite =
+    n(u.cache_creation_input_tokens) ||
+    n(buckets?.ephemeral_5m_input_tokens) + n(buckets?.ephemeral_1h_input_tokens);
+  const cacheWrite1h = Math.min(Math.max(n(buckets?.ephemeral_1h_input_tokens), 0), Math.max(cacheWrite, 0));
+  const id = typeof message.id === "string" ? message.id : null;
+  const req = typeof r.requestId === "string" ? r.requestId : "";
+  const usd =
+    typeof r.costUSD === "number" && Number.isFinite(r.costUSD)
+      ? r.costUSD
+      : costFromTokens(model, {
+          input,
+          output,
+          cacheRead,
+          cacheWrite5m: cacheWrite - cacheWrite1h,
+          cacheWrite1h,
+        }) * inferenceGeoMultiplier(typeof u.inference_geo === "string" ? u.inference_geo : null);
+  return { key: id === null ? null : `${id}:${req}`, model, input, output, cacheRead, cacheWrite, cacheWrite1h, usd };
+}
+
 /**
  * All-time usage of one session estimated from its transcripts — the main
- * `<id>.jsonl` plus every subagent / workflow-agent transcript — priced the
- * same way as the Cost page. Seeds the `session_usage` row for a session that
- * has none (`Session.seedUsageBaseline`). `numTurns` counts main-thread API
- * calls (what the SDK's per-turn `num_turns` adds up to); durations aren't
- * in the JSONL and stay 0. Null when no priced API call is found.
+ * `<id>.jsonl` plus every subagent / workflow-agent transcript (sorted) —
+ * deduplicated by `message.id:requestId` across them. Priced with the static
+ * list prices the seed has always used (`lib/shared/cost-pricing.ts`, the
+ * same table the Rust port mirrors), not the Cost page's LiteLLM table.
+ * Seeds the `session_usage` row for a session that has none
+ * (`Session.seedUsageBaseline`). `numTurns` counts main-thread API calls
+ * (what the SDK's per-turn `num_turns` adds up to); durations aren't in the
+ * JSONL and stay 0. Null when no API call is found.
  */
 export async function estimateSessionUsageFromTranscripts(
   cwd: string,
@@ -549,8 +613,6 @@ export async function estimateSessionUsageFromTranscripts(
   const main = resolve(dir, `${sessionId}.jsonl`);
   if (!main.startsWith(dir + sep)) return null;
   const files = [main, ...(await subagentTranscripts(dir, sessionId))];
-  const table = await getPricingTable();
-  const pricing = await resolvePricing(cwd);
 
   const totals: SessionUsageTotals = {
     totalCostUsd: 0,
@@ -562,41 +624,52 @@ export async function estimateSessionUsageFromTranscripts(
     cacheReadInputTokens: 0,
     cacheCreationInputTokens: 0,
   };
-  const modelUsage: Record<string, Record<string, number>> = {};
-  const dedup = new Set<string>();
+  // A Map, not an object literal: a model id like `__proto__` must be a key.
+  const modelUsage = new Map<string, Record<string, number>>();
+  const seen = new Set<string>();
   let calls = 0;
   for (const path of files) {
-    const { rows } = await summarizeFile(path, 0, 0);
-    for (const row of rows) {
-      if (row.k) {
-        if (dedup.has(row.k)) continue;
-        dedup.add(row.k);
+    let text: string;
+    try {
+      text = await fs.readFile(path, "utf8");
+    } catch {
+      continue;
+    }
+    for (const line of text.split("\n")) {
+      const call = transcriptApiCall(line);
+      if (!call) continue;
+      if (call.key !== null) {
+        if (seen.has(call.key)) continue;
+        seen.add(call.key);
       }
       calls += 1;
-      const usd = rowUsd(row, table, pricing);
-      totals.totalCostUsd += usd;
       if (path === main) totals.numTurns += 1;
-      totals.inputTokens += row.i;
-      totals.outputTokens += row.o;
-      totals.cacheReadInputTokens += row.cr;
-      totals.cacheCreationInputTokens += row.cw;
-      const m = (modelUsage[row.m] ??= {
-        inputTokens: 0,
-        outputTokens: 0,
-        cacheReadInputTokens: 0,
-        cacheCreationInputTokens: 0,
-        webSearchRequests: 0,
-        costUSD: 0,
-      });
-      m.inputTokens += row.i;
-      m.outputTokens += row.o;
-      m.cacheReadInputTokens += row.cr;
-      m.cacheCreationInputTokens += row.cw;
-      m.costUSD += usd;
+      totals.totalCostUsd += call.usd;
+      totals.inputTokens += call.input;
+      totals.outputTokens += call.output;
+      totals.cacheReadInputTokens += call.cacheRead;
+      totals.cacheCreationInputTokens += call.cacheWrite;
+      let m = modelUsage.get(call.model);
+      if (!m) {
+        m = {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheReadInputTokens: 0,
+          cacheCreationInputTokens: 0,
+          webSearchRequests: 0,
+          costUSD: 0,
+        };
+        modelUsage.set(call.model, m);
+      }
+      m.inputTokens += call.input;
+      m.outputTokens += call.output;
+      m.cacheReadInputTokens += call.cacheRead;
+      m.cacheCreationInputTokens += call.cacheWrite;
+      m.costUSD += call.usd;
     }
   }
   if (calls === 0) return null;
-  return { ...totals, modelUsage };
+  return { ...totals, modelUsage: Object.fromEntries(modelUsage) };
 }
 
 function emptyReport(): CostReport {
