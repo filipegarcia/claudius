@@ -183,12 +183,14 @@ function RewindPreview({
           old copy ("Unsaved later edits … will be lost") implied saved edits
           were safe. The SDK's `rewindFiles` writes each checkpointed file
           back whatever changed it since, so later manual and Bash edits to
-          these files are overwritten too. Files that only Bash or the user
-          touched aren't checkpointed, so they're left as they are. */}
+          these files are overwritten too, and files Claude created since are
+          removed (`rewindFiles` restores or deletes tracked files). Files that
+          only Bash or the user touched aren't checkpointed, so they're left as
+          they are. */}
       <p data-testid="restore-files-preview-note" className="mb-3 text-xs text-[var(--muted)]">
-        Restores the files Claude edited to their state at this message. Any later changes to these
-        files are overwritten, including your own edits and edits made by Bash commands. Files that
-        only Bash commands or you changed are not restored.
+        Restores the files Claude edited to their state at this message, removing any it created
+        since. Later changes to them are overwritten, including your own edits and Bash&apos;s; files
+        changed only by you or by Bash commands are left as they are.
       </p>
       <FileStat result={result} />
       <div className="flex justify-end gap-2">

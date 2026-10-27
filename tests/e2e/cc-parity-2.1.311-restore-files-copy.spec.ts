@@ -134,9 +134,9 @@ test("the Restore files preview says later manual and Bash edits are overwritten
   await expect(dialog.getByText("3 files")).toBeVisible();
 
   const note = page.getByTestId("restore-files-preview-note");
-  await expect(note).toContainText("Any later changes to these files are overwritten");
-  await expect(note).toContainText("including your own edits and edits made by Bash commands");
-  await expect(note).toContainText("Files that only Bash commands or you changed are not restored.");
+  await expect(note).toContainText("removing any it created since");
+  await expect(note).toContainText("Later changes to them are overwritten, including your own edits and Bash's");
+  await expect(note).toContainText("files changed only by you or by Bash commands are left as they are.");
   // The old wording implied saved edits were safe.
   await expect(note).not.toContainText("Unsaved");
 

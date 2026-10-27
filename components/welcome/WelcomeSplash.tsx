@@ -91,6 +91,11 @@ export function WelcomeSplash() {
       setOauthCode("");
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : "Sign-in failed");
+      // The server spends the flow on every attempt, so the code box would
+      // only answer "flow expired" next time. Drop back to "Sign in" so the
+      // user can start over, as the error tells them to (CC 2.1.311).
+      setOauthFlow(null);
+      setOauthCode("");
     } finally {
       setLoginBusy(false);
     }

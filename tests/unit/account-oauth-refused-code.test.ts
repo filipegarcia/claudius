@@ -39,6 +39,12 @@ describe("isRefusedAuthCode", () => {
     expect(isRefusedAuthCode(400, "Bad Request")).toBe(false);
     expect(isRefusedAuthCode(400, "")).toBe(false);
   });
+
+  test("an on-hold account is not told to sign in again (engine exclusion)", () => {
+    expect(
+      isRefusedAuthCode(400, '{"error":"invalid_grant","error_description":"account_on_hold"}'),
+    ).toBe(false);
+  });
 });
 
 describe("exchangeOAuthCode — refused code", () => {

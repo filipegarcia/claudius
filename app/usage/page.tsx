@@ -751,6 +751,11 @@ function AccountsSection({
       reset();
     } catch (err) {
       setAddError(err instanceof Error ? err.message : String(err));
+      // The server spends the flow on every attempt, so the code box would
+      // only answer "flow expired" next time. Drop back to the start button
+      // so the user can sign in again, as the error tells them to (CC 2.1.311).
+      setFlow(null);
+      setOauthCode("");
     } finally {
       setBusy(false);
     }
@@ -1307,7 +1312,10 @@ function AccountsSection({
           )}
 
           {addError && (
-            <div className="rounded-md border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-300">
+            <div
+              data-testid="account-add-error"
+              className="rounded-md border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-300"
+            >
               {addError}
             </div>
           )}

@@ -186,6 +186,9 @@ export function isRefusedAuthCode(status: number, bodyText: string): boolean {
     return false;
   }
   if (!body || typeof body !== "object") return false;
+  // The engine excludes an on-hold account: signing in again can't fix that,
+  // so it keeps its own (raw) message instead of "Sign in again".
+  if ((body as { error_description?: unknown }).error_description === "account_on_hold") return false;
   const err = (body as { error?: unknown }).error;
   if (err === "invalid_grant") return true;
   // Tolerate the Anthropic API's nested error envelope too.
