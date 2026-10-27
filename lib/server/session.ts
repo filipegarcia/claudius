@@ -1954,6 +1954,8 @@ export class Session {
   private subscribers = new Set<Subscriber>();
   /** Set by `end()` when the SDK process had already died on its own — see `isDead`. */
   private diedOnItsOwn = false;
+  /** Set on the first live (not replayed) `system:init` — see `cameUpLive`. */
+  private sawLiveInit = false;
   /** `controller.close()` hooks for the attached SSE streams — see `closeStreams`. */
   private streamClosers = new Set<() => void>();
   private subscriberCountListeners = new Set<(count: number) => void>();
@@ -5476,6 +5478,18 @@ export class Session {
   }
 
   /**
+   * True once this instance's SDK process sent a live `system:init` (not one
+   * replayed from the transcript), i.e. it actually came up. Passive callers
+   * of `SessionManager.restartIfDead` (stream connect, pollers) only restart
+   * such a session — one that "crashed between turns". A process that dies on
+   * boot never gets here; restarting it from a poll just spawns another
+   * doomed child and swaps the instance out from under its open tabs.
+   */
+  cameUpLive(): boolean {
+    return this.sawLiveInit;
+  }
+
+  /**
    * Close every attached SSE stream (the stream route registers its
    * `controller.close()` via `subscribe(…, { onClose })`). Used after the
    * session was rebuilt under the same id: the tabs' EventSources reconnect,
@@ -8445,6 +8459,7 @@ export class Session {
         }
         // Fire the one-shot MCP needs-auth notice on the first live system:init.
         if (sdkMsg.subtype === "init" && !this.isReplayingTranscript) {
+          this.sawLiveInit = true;
           void this.noteMcpNeedsAuthAtStartup();
           void this.noteMcpDisconnectedAtStartup();
           this.noteTokenExpiringAtStartup();

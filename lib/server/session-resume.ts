@@ -95,10 +95,11 @@ export async function getOrResumeSession(id: string): Promise<Session | null> {
     }
     // CC 2.1.311 — a session whose SDK process died between turns is
     // restarted while a tab is attached (stream connect, pollers). Passive:
-    // these callers get only the first attempt, so a poll can't use up the
-    // budget meant for the user's next send. When it can't restart, the dead
-    // instance is still returned so read-only routes keep working and the
-    // input route reports the failure.
+    // these callers get only the first attempt, and only once the process
+    // had come up, so a poll can't use up the budget meant for the user's
+    // next send or respawn a process that dies on boot. When it can't
+    // restart, the dead instance is still returned so read-only routes keep
+    // working and the input route reports the failure.
     if (existing.isDead()) {
       const restarted = await sessionManager.restartIfDead(id, { passive: true });
       return restarted.ok ? restarted.session : existing;

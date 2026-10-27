@@ -6,6 +6,7 @@ import {
   deadSessionResponse,
 } from "@/lib/server/session-manager";
 import { Session } from "@/lib/server/session";
+import type { ServerEvent } from "@/lib/shared/events";
 
 /**
  * CC 2.1.311 parity — "Fixed a background session that crashed between turns
@@ -26,11 +27,12 @@ type Stub = {
   closeStreamsCalls: number;
 };
 
-function stubSession(id: string, dead: boolean): { stub: Stub; session: Session } {
+function stubSession(id: string, dead: boolean, cameUpLive = true): { stub: Stub; session: Session } {
   const stub: Stub = { id, dead, endCalls: 0, closeStreamsCalls: 0 };
   const session = {
     id,
     isDead: () => stub.dead,
+    cameUpLive: () => cameUpLive,
     getRebuildOpts: () => ({ cwd: "/tmp/project", model: "claude-sonnet-4-6" }),
     end: vi.fn(async () => {
       stub.endCalls += 1;
@@ -161,6 +163,27 @@ describe("SessionManager.restartIfDead", () => {
     expect((await manager.restartIfDead("boot-loop")).ok).toBe(true);
   });
 
+  test("a passive caller doesn't restart a process that died on boot; a send still does", async () => {
+    const manager = new SessionManager();
+    const { stub, session } = stubSession("boot-dead", true, false);
+    internals(manager).sessions.set("boot-dead", session);
+    const create = stubCreate(manager);
+
+    // Regression: CI runs as root, so the CLI refuses
+    // --dangerously-skip-permissions and every session dies on boot. Each
+    // stream connect rebuilt it, unbinding the id mid-rebuild (dev-broadcast,
+    // commands, … 404'd) and swapping the instance out from under the tab.
+    expect(await manager.restartIfDead("boot-dead", { passive: true })).toEqual({ ok: false, reason: "skipped" });
+    expect(create).not.toHaveBeenCalled();
+    expect(stub.endCalls).toBe(0);
+    expect(manager.get("boot-dead")).toBe(session);
+
+    // The user's send is an explicit action and still gets a restart.
+    const res = await manager.restartIfDead("boot-dead");
+    expect(res.ok && res.restarted).toBe(true);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   test("a send that arrives while a rebuild is unbinding the id joins it instead of 404ing", async () => {
     const manager = new SessionManager();
     const { session } = stubSession("crashed", true);
@@ -238,6 +261,19 @@ describe("Session dead-process predicates", () => {
     await Session.prototype.end.call(fake);
     expect(abortController.signal.aborted).toBe(true);
     expect(Session.prototype.isDead.call(fake)).toBe(true);
+  });
+
+  test("cameUpLive: only a live system:init counts, not one replayed from the transcript", () => {
+    const s = new Session({ id: "came-up-live", cwd: "/tmp/project" });
+    const internalsOf = s as unknown as { broadcast(e: ServerEvent): void; isReplayingTranscript: boolean };
+    const init = { type: "sdk", message: { type: "system", subtype: "init" } } as unknown as ServerEvent;
+    expect(s.cameUpLive()).toBe(false);
+    internalsOf.isReplayingTranscript = true;
+    internalsOf.broadcast(init);
+    expect(s.cameUpLive()).toBe(false);
+    internalsOf.isReplayingTranscript = false;
+    internalsOf.broadcast(init);
+    expect(s.cameUpLive()).toBe(true);
   });
 
   test("hasArmedLoops is false once the process is gone (the timers died with it)", () => {

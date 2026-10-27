@@ -359,9 +359,12 @@ export class SessionManager {
    * the budget refills after `DEAD_RESTART_COOLDOWN_MS` without an attempt.
    *
    * `passive` callers (stream connect, background pollers — not a user
-   * action) only get the first attempt: a poll every few seconds must not
-   * burn the whole budget before the user has sent anything. They get
-   * `skipped` instead and keep using the dead instance read-only.
+   * action) only get the first attempt, and only for a session whose process
+   * came up live (`Session.cameUpLive`): a poll every few seconds must not
+   * burn the whole budget before the user has sent anything, and a process
+   * that dies on boot would only die again — while the rebuild unbinds the
+   * id and replaces the instance under its open tabs. They get `skipped`
+   * instead and keep using the dead instance read-only.
    *
    * Write routes should call this unconditionally rather than gating on
    * `get(id)?.isDead()`: while a rebuild is under way the id is briefly
@@ -376,7 +379,7 @@ export class SessionManager {
     const now = Date.now();
     const prior = this.deadRestartAttempts.get(id);
     const attempts = prior && now - prior.at < DEAD_RESTART_COOLDOWN_MS ? prior.count : 0;
-    if (opts?.passive && attempts > 0) return { ok: false, reason: "skipped" };
+    if (opts?.passive && (attempts > 0 || !existing.cameUpLive())) return { ok: false, reason: "skipped" };
     if (attempts >= MAX_DEAD_RESTARTS) return { ok: false, reason: "max_attempts" };
     this.deadRestartAttempts.set(id, { count: attempts + 1, at: now });
 
