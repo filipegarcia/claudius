@@ -980,6 +980,22 @@ export function PromptInput({
     // CC 2.1.288 — stash a non-empty draft so plain ↑ can bring it back.
     if (shouldStashClearedDraft(value, images.length)) {
       clearedDraftRef.current = { text: value, images };
+      // CC 2.1.312 — "Fixed agent view restoring input text on the next
+      // launch after it was cleared with Ctrl+C just before exiting". A draft
+      // restored from the server after a reload isn't "typed"
+      // (`userTypedRef` is false), so the debounced save skips the now-empty
+      // composer and the server keeps the old draft, which the next launch
+      // brings back. Clearing is a deliberate edit: drop the server copy
+      // right away, the way a send does, instead of relying on the debounce
+      // or the pagehide flush. Only when there was something to clear, so a
+      // Ctrl+C on an empty composer can't throw away a draft still being
+      // seeded.
+      pendingDraftRef.current = null;
+      if (sessionId) {
+        fetch(`/api/sessions/${sessionId}/prompt-draft`, { method: "DELETE" }).catch(() => {
+          // Best-effort — the next edit saves over it anyway.
+        });
+      }
     }
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
@@ -2359,14 +2375,26 @@ export function PromptInput({
           ) : (
             <span className="flex items-center gap-1.5">
               <span>{queueHint}</span>
-              {pending && queuedCount > 0 && onSendQueuedNow ? (
+              {/* CC 2.1.312 — "Added click to send: clicking the 'to send
+                  now' hint under a queued message sends it right away, as
+                  its key does". The hint names the send-now key and a click
+                  runs that key's action (Ctrl+Enter flushes every queued
+                  message into the running turn). The per-row "Send now" in
+                  the queue strip still sends just one. Falls back to the
+                  first-only send when a host wires no send-all handler. */}
+              {pending && queuedCount > 0 && (onSendAllQueuedNow || onSendQueuedNow) ? (
                 <button
                   type="button"
-                  onClick={onSendQueuedNow}
-                  title="Send the first queued message now instead of waiting"
+                  data-testid={`${testIdPrefix}-queue-send-now-hint`}
+                  onClick={onSendAllQueuedNow ?? onSendQueuedNow}
+                  title={
+                    onSendAllQueuedNow
+                      ? "Send the queued messages now instead of waiting, as Ctrl+Enter does"
+                      : "Send the first queued message now instead of waiting"
+                  }
                   className="text-[var(--muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--foreground)]"
                 >
-                  · send now
+                  {onSendAllQueuedNow ? "· Ctrl+Enter to send now" : "· send now"}
                 </button>
               ) : null}
             </span>

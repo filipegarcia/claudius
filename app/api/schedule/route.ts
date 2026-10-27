@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { validateCron } from "@/lib/shared/cron";
 import { scheduler } from "@/lib/server/scheduler";
 import type { Job } from "@/lib/server/scheduler-store";
+import { parseScheduleEffort } from "@/lib/shared/schedule-form";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,8 @@ type CreateBody = {
   cron?: string;
   prompt?: string;
   model?: string;
+  /** CC 2.1.312 — one of low/medium/high/xhigh/max; absent or "" = model default. */
+  effort?: unknown;
   cwd?: string;
   enabled?: boolean;
 };
@@ -31,6 +34,9 @@ export async function POST(req: Request) {
   if (!body?.prompt?.trim()) return NextResponse.json({ error: "prompt required" }, { status: 400 });
   const v = validateCron(body.cron);
   if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
+  // The body is untrusted: only a known level is stored.
+  const effort = body.effort === undefined ? null : parseScheduleEffort(body.effort);
+  if (effort === undefined) return NextResponse.json({ error: "unknown effort" }, { status: 400 });
 
   // A scheduled job's cwd is where the agent will actually be spawned, so it
   // must be a directory the user registered — not one named by the caller.
@@ -44,6 +50,7 @@ export async function POST(req: Request) {
     cron: v.cron,
     prompt: body.prompt,
     model: body.model || undefined,
+    ...(effort ? { effort } : {}),
     cwd,
     enabled: body.enabled !== false,
     createdAt: now,

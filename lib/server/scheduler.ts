@@ -307,6 +307,8 @@ class Scheduler {
       const options: Options = {
         cwd: job.cwd,
         model: job.model,
+        // CC 2.1.312 — the job's effort level, when one was picked.
+        ...(job.effort ? { effort: job.effort } : {}),
         // No canUseTool — one-shot runs can't ask the user for permissions.
         // The session inherits user/project allow rules; deny anything not
         // pre-approved by setting permissionMode.
