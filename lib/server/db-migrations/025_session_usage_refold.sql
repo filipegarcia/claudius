@@ -1,0 +1,12 @@
+-- v25: discard every `session_usage` row written by the pre-fix usage fold.
+--
+-- WHY: that fold treated the SDK result's `num_turns` as a running total and
+-- read any decrease as a `/clear`-style reset, re-banking the whole running
+-- cost into the baseline. But `num_turns` is PER-TURN (model round-trips
+-- within one turn), so it "decreased" on most turns and each one re-added the
+-- session's entire cost so far — one 1.5-day session read $12,078 against
+-- ~$730 of real spend (durations inflated the same way). The rows can't be
+-- repaired in SQL. Deleting them makes each session re-seed on its next start
+-- from a transcript estimate (main + subagent JSONLs —
+-- `estimateSessionUsageFromTranscripts`) and accumulate correctly from there.
+DELETE FROM session_usage;

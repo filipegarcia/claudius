@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { encodeProjectDir } from "./auto-memory";
 import {
   costFromUsage,
@@ -14,9 +14,10 @@ import {
   resolveManagedModelPricing,
 } from "./model-pricing-override";
 import { getSessionTitlesByCwd } from "./sessions-db";
-import { inferenceGeoMultiplier } from "@/lib/shared/cost-pricing";
+import { costFromTokens, inferenceGeoMultiplier } from "@/lib/shared/cost-pricing";
 import { lookupSessionAccount, resolveSessionAccounts } from "./session-accounts";
 import { readSettings, type ModelPricingSettings } from "./settings";
+import type { SessionUsageTotals } from "@/lib/shared/events";
 
 export type ByDay = {
   date: string; // YYYY-MM-DD (server local tz)
@@ -136,6 +137,47 @@ function isSyntheticModel(model: string): boolean {
   // assistant turns (e.g. "Prompt is too long"). These never hit the API and
   // have no cost — ccusage drops them, so do we.
   return model.startsWith("<synthetic>");
+}
+
+/** Session id a transcript belongs to: `<id>.jsonl`, or anything under `<id>/`. */
+function sessionIdForTranscript(dir: string, path: string): string {
+  return (relative(dir, path).split(sep)[0] ?? "").replace(/\.jsonl$/, "");
+}
+
+/** Workflow agents nest at `subagents/workflows/wf_<id>/agent-*.jsonl`. */
+const SUBAGENT_MAX_DEPTH = 4;
+
+/**
+ * Task-subagent and Workflow-agent transcripts of one session
+ * (every `*.jsonl` under `<dir>/<id>/subagents/`). Their API calls are real spend on
+ * the session but never appear in the main `<id>.jsonl` — skipping them
+ * under-reported a subagent-heavy session by more than half.
+ */
+async function subagentTranscripts(dir: string, sessionId: string): Promise<string[]> {
+  if (!/^[\w-]+$/.test(sessionId)) return [];
+  const root = resolve(dir, sessionId, "subagents");
+  const out: string[] = [];
+  const stack: Array<[string, number]> = [[root, 0]];
+  while (stack.length > 0) {
+    const [at, depth] = stack.pop()!;
+    const target = resolve(root, at);
+    if (!target.startsWith(dir + sep)) continue;
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fs.readdir(target, { withFileTypes: true });
+    } catch {
+      continue; // no subagents dir (the common case) or unreadable
+    }
+    for (const e of entries) {
+      const child = resolve(target, e.name);
+      if (e.isDirectory()) {
+        if (depth < SUBAGENT_MAX_DEPTH) stack.push([child, depth + 1]);
+      } else if (e.isFile() && e.name.endsWith(".jsonl")) {
+        out.push(child);
+      }
+    }
+  }
+  return out.sort();
 }
 
 async function readCache(cwd: string): Promise<CacheShape> {
@@ -263,6 +305,19 @@ function rowUsd(
   );
 }
 
+/**
+ * CC 2.1.271 — the engine honors modelPricing only from managed sources, so
+ * prefer the managed/policy tier (via resolveSettings) over Claudius's own
+ * user-scope setting; fall back to user scope when no managed value is set.
+ */
+async function resolvePricing(cwd: string): Promise<ModelPricingSettings | undefined> {
+  const userPricing = await readSettings("user", cwd)
+    .then((s) => s.modelPricing)
+    .catch(() => undefined);
+  const managedPricing = await resolveManagedModelPricing(cwd);
+  return managedPricing ?? userPricing;
+}
+
 export async function aggregate(cwd: string): Promise<CostReport> {
   const dir = projectDir(cwd);
   let entries: string[];
@@ -278,9 +333,14 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   const seen = new Set<string>();
   let dirty = false;
 
+  const transcripts: string[] = [];
   for (const name of entries) {
     if (!name.endsWith(".jsonl")) continue;
-    const path = join(dir, name);
+    transcripts.push(join(dir, name));
+    transcripts.push(...(await subagentTranscripts(dir, name.replace(/\.jsonl$/, ""))));
+  }
+
+  for (const path of transcripts) {
     let stat: import("node:fs").Stats;
     try {
       stat = await fs.stat(path);
@@ -304,14 +364,7 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   if (dirty) await writeCache(cwd, cache).catch(() => {});
 
   const table = await getPricingTable();
-  // CC 2.1.271 — the engine honors modelPricing only from managed sources, so
-  // prefer the managed/policy tier (via resolveSettings) over Claudius's own
-  // user-scope setting; fall back to user scope when no managed value is set.
-  const userPricing = await readSettings("user", cwd)
-    .then((s) => s.modelPricing)
-    .catch(() => undefined);
-  const managedPricing = await resolveManagedModelPricing(cwd);
-  const pricing = managedPricing ?? userPricing;
+  const pricing = await resolvePricing(cwd);
 
   // Dedup is global across files: when a session is resumed or forked, the new
   // JSONL replays prior turns verbatim (same message.id + requestId). We count
@@ -325,7 +378,11 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   const dedup = new Set<string>();
   const byDayMap = new Map<string, ByDay>();
   const byModelMap = new Map<string, ByModel>();
-  const sessions: BySession[] = [];
+  // A session's main transcript and its subagent transcripts fold into one row.
+  const sessionAcc = new Map<
+    string,
+    { firstSeenMs: number; lastSeenMs: number; usd: number; turns: number; modelHist: Record<string, number> }
+  >();
   let totalUsd = 0;
 
   for (const file of files) {
@@ -371,25 +428,41 @@ export async function aggregate(cwd: string): Promise<CostReport> {
 
     if (sessionTurns === 0) continue; // fully duplicated elsewhere
 
+    const sessionId = sessionIdForTranscript(dir, file.path);
+    const acc = sessionAcc.get(sessionId);
+    if (!acc) {
+      sessionAcc.set(sessionId, {
+        firstSeenMs: file.firstSeenMs,
+        lastSeenMs: file.lastSeenMs,
+        usd: sessionUsd,
+        turns: sessionTurns,
+        modelHist,
+      });
+      continue;
+    }
+    acc.firstSeenMs = Math.min(acc.firstSeenMs, file.firstSeenMs);
+    acc.lastSeenMs = Math.max(acc.lastSeenMs, file.lastSeenMs);
+    acc.usd += sessionUsd;
+    acc.turns += sessionTurns;
+    for (const [m, n] of Object.entries(modelHist)) acc.modelHist[m] = (acc.modelHist[m] ?? 0) + n;
+  }
+
+  const sessions: BySession[] = [];
+  for (const [sessionId, acc] of sessionAcc) {
     let best: string | undefined;
     let bestN = 0;
-    for (const [m, n] of Object.entries(modelHist)) {
+    for (const [m, n] of Object.entries(acc.modelHist)) {
       if (n > bestN) {
         best = m;
         bestN = n;
       }
     }
-
-    const sessionId = file.path
-      .split("/")
-      .pop()!
-      .replace(/\.jsonl$/, "");
     sessions.push({
       sessionId,
-      firstSeenMs: file.firstSeenMs,
-      lastSeenMs: file.lastSeenMs,
-      numTurns: sessionTurns,
-      totalUsd: sessionUsd,
+      firstSeenMs: acc.firstSeenMs,
+      lastSeenMs: acc.lastSeenMs,
+      numTurns: acc.turns,
+      totalUsd: acc.usd,
       model: best,
     });
   }
@@ -457,6 +530,146 @@ export async function aggregate(cwd: string): Promise<CostReport> {
       ? "Cost uses your org's contracted modelPricing rates (settings.json) instead of list price where a rate matches; deduplicated by message+request id so resumed/forked sessions aren't double-counted."
       : "Cost uses on-disk token counts priced with LiteLLM public list prices (1-hour cache writes at 2× input, as Claude Code bills them), deduplicated by message+request id so resumed/forked sessions aren't double-counted.",
   };
+}
+
+/** One deduplicable API call read off a transcript line, for the seed estimate. */
+type TranscriptApiCall = {
+  /** `message.id:requestId`; null (never deduped) without a string message id. */
+  key: string | null;
+  model: string;
+  input: number;
+  output: number;
+  cacheRead: number;
+  /** All cache-creation tokens; `cacheWrite1h` of them at the 1-hour rate. */
+  cacheWrite: number;
+  cacheWrite1h: number;
+  usd: number;
+};
+
+/**
+ * Parse one transcript line into an API call, or null. Token fields count
+ * only when they're finite numbers. Cost is the record's own `costUSD` when
+ * present, else the static list prices (`costFromTokens`, the 1-hour share
+ * of cache writes at its own rate) times the US data-residency premium.
+ */
+function transcriptApiCall(line: string): TranscriptApiCall | null {
+  if (!line.startsWith("{")) return null;
+  let r: Record<string, unknown>;
+  try {
+    r = JSON.parse(line) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  if (!r || typeof r !== "object" || r.type !== "assistant") return null;
+  const message = r.message as Record<string, unknown> | null | undefined;
+  if (!message || typeof message !== "object" || Array.isArray(message)) return null;
+  const u = message.usage as Record<string, unknown> | null | undefined;
+  if (!u || typeof u !== "object" || Array.isArray(u)) return null;
+  const model = typeof message.model === "string" ? message.model : "(unknown)";
+  if (isSyntheticModel(model)) return null;
+  const n = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  const cc = u.cache_creation;
+  const buckets =
+    cc && typeof cc === "object" && !Array.isArray(cc) ? (cc as Record<string, unknown>) : null;
+  const input = n(u.input_tokens);
+  const output = n(u.output_tokens);
+  const cacheRead = n(u.cache_read_input_tokens);
+  const cacheWrite =
+    n(u.cache_creation_input_tokens) ||
+    n(buckets?.ephemeral_5m_input_tokens) + n(buckets?.ephemeral_1h_input_tokens);
+  const cacheWrite1h = Math.min(Math.max(n(buckets?.ephemeral_1h_input_tokens), 0), Math.max(cacheWrite, 0));
+  const id = typeof message.id === "string" ? message.id : null;
+  const req = typeof r.requestId === "string" ? r.requestId : "";
+  const usd =
+    typeof r.costUSD === "number" && Number.isFinite(r.costUSD)
+      ? r.costUSD
+      : costFromTokens(model, {
+          input,
+          output,
+          cacheRead,
+          cacheWrite5m: cacheWrite - cacheWrite1h,
+          cacheWrite1h,
+        }) * inferenceGeoMultiplier(typeof u.inference_geo === "string" ? u.inference_geo : null);
+  return { key: id === null ? null : `${id}:${req}`, model, input, output, cacheRead, cacheWrite, cacheWrite1h, usd };
+}
+
+/**
+ * All-time usage of one session estimated from its transcripts — the main
+ * `<id>.jsonl` plus every subagent / workflow-agent transcript (sorted) —
+ * deduplicated by `message.id:requestId` across them. Priced with the static
+ * list prices the seed has always used (`lib/shared/cost-pricing.ts`, the
+ * same table the Rust port mirrors), not the Cost page's LiteLLM table.
+ * Seeds the `session_usage` row for a session that has none
+ * (`Session.seedUsageBaseline`). `numTurns` counts main-thread API calls
+ * (what the SDK's per-turn `num_turns` adds up to); durations aren't in the
+ * JSONL and stay 0. Null when no API call is found.
+ */
+export async function estimateSessionUsageFromTranscripts(
+  cwd: string,
+  sessionId: string,
+): Promise<SessionUsageTotals | null> {
+  if (!/^[\w-]+$/.test(sessionId)) return null;
+  const dir = projectDir(cwd);
+  const main = resolve(dir, `${sessionId}.jsonl`);
+  if (!main.startsWith(dir + sep)) return null;
+  const files = [main, ...(await subagentTranscripts(dir, sessionId))];
+
+  const totals: SessionUsageTotals = {
+    totalCostUsd: 0,
+    numTurns: 0,
+    durationMs: 0,
+    durationApiMs: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+  };
+  // A Map, not an object literal: a model id like `__proto__` must be a key.
+  const modelUsage = new Map<string, Record<string, number>>();
+  const seen = new Set<string>();
+  let calls = 0;
+  for (const path of files) {
+    let text: string;
+    try {
+      text = await fs.readFile(path, "utf8");
+    } catch {
+      continue;
+    }
+    for (const line of text.split("\n")) {
+      const call = transcriptApiCall(line);
+      if (!call) continue;
+      if (call.key !== null) {
+        if (seen.has(call.key)) continue;
+        seen.add(call.key);
+      }
+      calls += 1;
+      if (path === main) totals.numTurns += 1;
+      totals.totalCostUsd += call.usd;
+      totals.inputTokens += call.input;
+      totals.outputTokens += call.output;
+      totals.cacheReadInputTokens += call.cacheRead;
+      totals.cacheCreationInputTokens += call.cacheWrite;
+      let m = modelUsage.get(call.model);
+      if (!m) {
+        m = {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheReadInputTokens: 0,
+          cacheCreationInputTokens: 0,
+          webSearchRequests: 0,
+          costUSD: 0,
+        };
+        modelUsage.set(call.model, m);
+      }
+      m.inputTokens += call.input;
+      m.outputTokens += call.output;
+      m.cacheReadInputTokens += call.cacheRead;
+      m.cacheCreationInputTokens += call.cacheWrite;
+      m.costUSD += call.usd;
+    }
+  }
+  if (calls === 0) return null;
+  return { ...totals, modelUsage: Object.fromEntries(modelUsage) };
 }
 
 function emptyReport(): CostReport {
