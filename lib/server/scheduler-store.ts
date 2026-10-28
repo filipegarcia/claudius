@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { ServerEvent } from "@/lib/shared/events";
+import type { ScheduleEffort } from "@/lib/shared/schedule-form";
 
 export type Job = {
   id: string;
@@ -10,6 +11,11 @@ export type Job = {
   prompt: string;
   /** When set, overrides the system prompt's default model. */
   model?: string;
+  /**
+   * CC 2.1.312 — the effort level the run uses (SDK `effort` option). Unset
+   * means the model's default.
+   */
+  effort?: ScheduleEffort;
   /** Working directory the one-shot session runs in. */
   cwd: string;
   enabled: boolean;

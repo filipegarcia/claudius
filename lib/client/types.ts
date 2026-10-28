@@ -921,6 +921,19 @@ export type ChatState = {
    */
   appliedEffort: "low" | "medium" | "high" | "xhigh" | "max" | null | undefined;
   /**
+   * CC 2.1.312 — true while an effort change made mid-turn hasn't reached a
+   * request yet: the running request keeps the level it was sent with, so the
+   * pill says the new level "may wait for your next message". Clears at the
+   * next main-thread request, when the level resolves back to the one in
+   * force, or at turn end. See `lib/shared/effort-wait-note.ts`.
+   */
+  effortChangeWaits: boolean;
+  /**
+   * CC 2.1.312 — whether picking `level` right now would show the "may wait"
+   * note. The `/effort` toast uses it, so the toast and the pill agree.
+   */
+  effortChangeWouldWait: (level: "low" | "medium" | "high" | "xhigh" | "max" | "auto") => boolean;
+  /**
    * Whether "ultracode" (Dynamic Workflows) is enabled for the session —
    * Opus 4.8's xhigh-effort + parallel-subagent orchestration mode.
    * Optimistic, same as `effort`: the SDK emits no event for it, so this

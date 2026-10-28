@@ -124,6 +124,7 @@ import { findSlashCommand, isSlashCommandHead, resolveFastCommandArgs, userComma
 import { OPEN_ADVISOR_PICKER_EVENT, requestOpenModelPicker } from "@/lib/client/model-picker-events";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { parseEffortArgs } from "@/lib/shared/effort-flags";
+import { effortToastText } from "@/lib/shared/effort-wait-note";
 import {
   PROMPT_COLOR_NAMES,
   PROMPT_COLOR_RESET_WORDS,
@@ -1601,9 +1602,17 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           // on|off` toggles ultracode; bare `/effort` shows the current state.
           const parsed = parseEffortArgs(args);
           if (parsed.kind === "level") {
+            // CC 2.1.312 — a change made mid-task "may wait for your next
+            // message". The toast says so too, because the effort pill lives
+            // in the side rail, which can be hidden. Asked before the pick so
+            // it sees the same wait state the pill will.
+            const waits = session.effortChangeWouldWait(parsed.level);
             void session.setEffort(parsed.level, { sessionOnly: parsed.sessionOnly });
             showToast(
-              `Effort set to ${parsed.level}${parsed.sessionOnly ? " (this session only)" : ""}`,
+              effortToastText(
+                `Effort set to ${parsed.level}${parsed.sessionOnly ? " (this session only)" : ""}`,
+                waits,
+              ),
             );
           } else if (parsed.kind === "ultracode") {
             void session.setUltracode(parsed.on);
@@ -2809,6 +2818,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         model={session.model}
         effort={session.effort}
         appliedEffort={session.appliedEffort}
+        effortChangeWaits={session.effortChangeWaits}
         permissionMode={session.permissionMode}
         cwd={session.cwd}
         usage={session.usage}

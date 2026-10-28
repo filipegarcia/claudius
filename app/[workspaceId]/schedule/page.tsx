@@ -22,7 +22,7 @@ import { SideNav } from "@/components/nav/SideNav";
 import { CronEditor } from "@/components/schedule/CronEditor";
 import { fmtElapsedSec } from "@/components/panels/widgets/format";
 import { describeCron } from "@/lib/shared/cron";
-import { isScheduleFormDirty } from "@/lib/shared/schedule-form";
+import { isScheduleFormDirty, SCHEDULE_EFFORT_LEVELS, type ScheduleEffort } from "@/lib/shared/schedule-form";
 import { isScheduleDue } from "@/lib/shared/schedule-due";
 import { activeSkip, runNoteText } from "@/lib/shared/schedule-skip";
 import type { Job, Run, RunStatus } from "@/lib/server/scheduler-store";
@@ -246,7 +246,7 @@ export default function SchedulePage() {
 
   const active = useMemo(() => jobs.find((j) => j.id === activeId) ?? null, [jobs, activeId]);
 
-  const onCreate = async (input: Pick<Job, "name" | "cron" | "prompt" | "cwd"> & { model?: string }) => {
+  const onCreate = async (input: Pick<Job, "name" | "cron" | "prompt" | "cwd"> & { model?: string; effort?: ScheduleEffort }) => {
     const res = await fetch("/api/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -416,7 +416,7 @@ function JobForm({
   onDirtyChange,
   initial,
 }: {
-  onSubmit: (input: Pick<Job, "name" | "cron" | "prompt" | "cwd"> & { model?: string }) => Promise<boolean>;
+  onSubmit: (input: Pick<Job, "name" | "cron" | "prompt" | "cwd"> & { model?: string; effort?: ScheduleEffort }) => Promise<boolean>;
   onCancel: () => void;
   /** CC 2.1.273 (H10) — report unsaved-input state up so the parent's discard paths can confirm. */
   onDirtyChange?: (dirty: boolean) => void;
@@ -429,6 +429,7 @@ function JobForm({
       prompt: initial?.prompt ?? "",
       cwd: initial?.cwd ?? "",
       model: initial?.model ?? "",
+      effort: (initial?.effort ?? "") as ScheduleEffort | "",
     }),
     [initial],
   );
@@ -437,10 +438,12 @@ function JobForm({
   const [prompt, setPrompt] = useState(initialFields.prompt);
   const [cwd, setCwd] = useState(initialFields.cwd);
   const [model, setModel] = useState(initialFields.model);
+  // CC 2.1.312 — "" = the model's default effort.
+  const [effort, setEffort] = useState<ScheduleEffort | "">(initialFields.effort);
   const [submitting, setSubmitting] = useState(false);
 
   // CC 2.1.273 (H10) — surface unsaved-input state to the parent.
-  const dirty = isScheduleFormDirty({ name, cron, prompt, cwd, model }, initialFields);
+  const dirty = isScheduleFormDirty({ name, cron, prompt, cwd, model, effort }, initialFields);
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
@@ -454,7 +457,14 @@ function JobForm({
         if (!canSubmit) return;
         setSubmitting(true);
         try {
-          await onSubmit({ name: name.trim(), cron: cron.trim(), prompt, cwd, model: model || undefined });
+          await onSubmit({
+            name: name.trim(),
+            cron: cron.trim(),
+            prompt,
+            cwd,
+            model: model || undefined,
+            effort: effort || undefined,
+          });
         } finally {
           setSubmitting(false);
         }
@@ -490,14 +500,35 @@ function JobForm({
           className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
         />
       </Field>
-      <Field label="Model (optional)">
-        <input
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          placeholder="claude-sonnet-4-6"
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
-        />
-      </Field>
+      {/* CC 2.1.312 — "[Cloud sessions] Added an effort level to the model
+          picker when you create or edit a routine". Effort sits beside the
+          model it applies to; blank keeps the model's default. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_10rem] gap-3">
+        <Field label="Model (optional)">
+          <input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder="claude-sonnet-4-6"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+          />
+        </Field>
+        <Field label="Effort (optional)">
+          <select
+            value={effort}
+            onChange={(e) => setEffort(e.target.value as ScheduleEffort | "")}
+            data-testid="schedule-effort-select"
+            title="Reasoning effort for each run. Default uses the model's own level; models without effort ignore it."
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
+          >
+            <option value="">Default</option>
+            {SCHEDULE_EFFORT_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
       <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-3">
         <button
           type="button"
@@ -591,6 +622,9 @@ function JobDetail({
           />
           <Stat label="cwd" value={<code className="font-mono break-all">{job.cwd}</code>} />
           {job.model && <Stat label="Model" value={<code className="font-mono">{job.model}</code>} />}
+          {job.effort && (
+            <Stat label="Effort" value={<span data-testid="job-effort">{job.effort}</span>} />
+          )}
         </div>
       </div>
       {skip && (

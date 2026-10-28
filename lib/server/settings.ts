@@ -13,6 +13,12 @@ export type PermissionRules = {
   ask?: string[];
   deny?: string[];
   defaultMode?: string;
+  /**
+   * SDK 0.3.312 — `permissions.disableAutoMode`: the nested spelling of the
+   * single-literal "disable Auto mode" flag (see `ClaudeSettings.disableAutoMode`
+   * for the top-level one). Honoured through `isAutoModeDisabled`.
+   */
+  disableAutoMode?: "disable";
   additionalDirectories?: string[];
   /**
    * CC 2.1.257 — "Refuse file-tool reads (Read, Grep, Glob, LSP) outside
@@ -53,6 +59,12 @@ export type AutoModeConfig = {
   allow?: string[];
   soft_deny?: string[];
   hard_deny?: string[];
+  /**
+   * SDK 0.3.312 — when true, every Bash/PowerShell allow rule is suspended
+   * while Auto mode is active so ALL shell commands are routed through the
+   * classifier (higher safety, more classifier calls). Default false.
+   */
+  classifyAllShell?: boolean;
 };
 
 /**
@@ -209,6 +221,14 @@ export type ClaudeSettings = {
   // "Auto" from the ModeSelector / Shift+Tab cycle) read this via
   // `readSettings("user", cwd)` — the "user" scope only, matching upstream.
   disableAutoMode?: "disable";
+  // SDK 0.3.312 — whether the user has accepted the Auto mode opt-in dialog
+  // (the sibling of `skipDangerousModePermissionPrompt`). Claudius has no
+  // opt-in dialog of its own; this is a plain settings toggle so the value
+  // an upstream CLI wrote stays visible/editable.
+  skipAutoPermissionPrompt?: boolean;
+  // SDK 0.3.312 — whether plan mode uses Auto mode semantics when Auto mode
+  // is available (SDK default: true).
+  useAutoModeDuringPlan?: boolean;
   // SDK 0.3.219 — advisory size guideline for "ultracode" (Dynamic
   // Workflows): how large a fan-out the model's own Workflow tool should
   // aim for when it plans a run. Mirrors the SDK's `Settings.workflowSizeGuideline`

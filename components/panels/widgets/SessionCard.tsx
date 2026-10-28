@@ -18,6 +18,7 @@ import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
 import { type AdvisorChoice, badgeAdvisorLabel, prettyModelName } from "@/lib/shared/advisor";
 import { useMaxEffortLevel } from "@/lib/client/useMaxEffortLevel";
+import { EFFORT_WAIT_NOTE } from "@/lib/shared/effort-wait-note";
 import {
   OPEN_ADVISOR_PICKER_EVENT,
   OPEN_MODEL_PICKER_EVENT,
@@ -42,6 +43,12 @@ type Props = {
    * `undefined` fall back to `effort`.
    */
   appliedEffort?: Exclude<EffortLevel, "auto"> | null;
+  /**
+   * CC 2.1.312 — an effort change made mid-turn hasn't reached a request yet
+   * (`ChatState.effortChangeWaits`). The pill adds Claude Code's
+   * "may wait for your next message" note.
+   */
+  effortChangeWaits?: boolean;
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
@@ -96,6 +103,7 @@ export function SessionCard({
   model,
   effort,
   appliedEffort = null,
+  effortChangeWaits = false,
   permissionMode,
   cwd,
   usage,
@@ -236,6 +244,7 @@ export function SessionCard({
             model={model}
             effort={effort}
             appliedEffort={appliedEffort}
+            effortChangeWaits={effortChangeWaits}
             permissionMode={permissionMode}
             ultracode={ultracode}
             fastMode={fastMode}
@@ -249,6 +258,7 @@ export function SessionCard({
             model={model}
             effort={effort}
             appliedEffort={appliedEffort}
+            effortChangeWaits={effortChangeWaits}
             permissionMode={permissionMode}
             ultracode={ultracode}
             fastMode={fastMode}
@@ -350,6 +360,7 @@ function CardHead({
   model,
   effort,
   appliedEffort,
+  effortChangeWaits,
   permissionMode,
   ultracode,
   fastMode,
@@ -359,6 +370,7 @@ function CardHead({
   model: string | null;
   effort: EffortLevel;
   appliedEffort: Exclude<EffortLevel, "auto"> | null;
+  effortChangeWaits: boolean;
   permissionMode: PermissionMode;
   ultracode: boolean;
   fastMode: boolean;
@@ -391,7 +403,7 @@ function CardHead({
         )}
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <EffortPill effort={effort} applied={appliedEffort} />
+        <EffortPill effort={effort} applied={appliedEffort} waits={effortChangeWaits} />
         {ultracode && <UltracodeBadge />}
         {fastMode && <FastBadge />}
         {advisorBadge && <AdvisorBadge label={advisorBadge} raw={advisorModel} />}
@@ -507,9 +519,12 @@ const EFFORT_LABEL: Record<EffortLevel, string> = {
 function EffortPill({
   effort,
   applied,
+  waits,
 }: {
   effort: EffortLevel;
   applied: Exclude<EffortLevel, "auto"> | null;
+  /** CC 2.1.312 — the running request still uses the earlier level. */
+  waits: boolean;
 }) {
   const shown: EffortLevel = applied ?? effort;
   const note =
@@ -523,11 +538,21 @@ function EffortPill({
       data-testid="session-card-effort-pill"
       data-effort={shown}
       data-effort-picked={effort}
-      title={`Reasoning effort: ${EFFORT_LABEL[shown]}${note}`}
+      data-effort-waits={waits ? "true" : undefined}
+      title={`Reasoning effort: ${EFFORT_LABEL[shown]}${note}${
+        waits ? ` — changed during a task, so it ${EFFORT_WAIT_NOTE}` : ""
+      }`}
       className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-px text-[9px] text-[var(--muted)]"
     >
       <Gauge className="h-2.5 w-2.5" />
       {EFFORT_LABEL[shown]}
+      {/* CC 2.1.312 — "<level> · may wait for your next message" while a
+          mid-task change hasn't reached a request yet. */}
+      {waits && (
+        <span data-testid="session-card-effort-wait-note" className="text-[var(--muted)]/80">
+          · {EFFORT_WAIT_NOTE}
+        </span>
+      )}
     </span>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ClaudeSettings } from "@/lib/server/settings";
+import { isAutoModeDisabled } from "@/lib/shared/auto-mode-disabled";
 
 /**
  * Whether Auto mode (the SDK's autonomous permission mode) is disabled via
@@ -31,7 +32,7 @@ export function useDisableAutoMode(cwd: string | null): boolean {
       .then(async (res) => {
         if (!res.ok) return;
         const data = (await res.json()) as { settings: ClaudeSettings };
-        setDisabled(data.settings.disableAutoMode === "disable");
+        setDisabled(isAutoModeDisabled(data.settings));
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;

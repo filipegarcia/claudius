@@ -3,6 +3,7 @@ import { validateCron } from "@/lib/shared/cron";
 import { scheduler } from "@/lib/server/scheduler";
 import { deleteJob, patchJob, type Job } from "@/lib/server/scheduler-store";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
+import { parseScheduleEffort } from "@/lib/shared/schedule-form";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,8 @@ type Patch = Partial<{
   cron: string;
   prompt: string;
   model: string | null;
+  /** CC 2.1.312 — a level, or null / "" to go back to the model's default. */
+  effort: unknown;
   cwd: string;
   enabled: boolean;
 }>;
@@ -41,6 +44,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (typeof body.enabled === "boolean") patch.enabled = body.enabled;
   if (body.model === null) patch.model = undefined;
   else if (typeof body.model === "string") patch.model = body.model || undefined;
+  if (body.effort !== undefined) {
+    const effort = parseScheduleEffort(body.effort);
+    if (effort === undefined) return NextResponse.json({ error: "unknown effort" }, { status: 400 });
+    patch.effort = effort ?? undefined;
+  }
   if (typeof body.cwd === "string") {
     // Same rule as POST: the agent spawns here, so only a registered dir.
     const cwd = await resolveTrustedCwd(body.cwd);

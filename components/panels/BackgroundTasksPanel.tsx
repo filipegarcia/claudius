@@ -59,6 +59,8 @@ type Props = {
   effort: "low" | "medium" | "high" | "xhigh" | "max" | "auto";
   /** Effort the SDK actually applies (resolves "auto"); see ChatState.appliedEffort. */
   appliedEffort?: "low" | "medium" | "high" | "xhigh" | "max" | null;
+  /** CC 2.1.312 — a mid-turn effort change hasn't reached a request yet; see ChatState.effortChangeWaits. */
+  effortChangeWaits?: boolean;
   permissionMode: PermissionMode;
   cwd: string | null;
   usage: SessionUsage | null;
@@ -255,6 +257,7 @@ export function BackgroundTasksPanel({
   model,
   effort,
   appliedEffort,
+  effortChangeWaits = false,
   permissionMode,
   cwd,
   usage,
@@ -568,6 +571,7 @@ export function BackgroundTasksPanel({
           model={model}
           effort={effort}
           appliedEffort={appliedEffort}
+          effortChangeWaits={effortChangeWaits}
           permissionMode={permissionMode}
           cwd={cwd}
           usage={usage}

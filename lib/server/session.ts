@@ -101,6 +101,7 @@ import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { lastRecordedCostState, type SdkCumulativeUsage } from "./sdk-cost-state";
 import { estimateSessionUsageFromTranscripts } from "./cost-aggregate";
 import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
+import { isAutoModeDisabled } from "@/lib/shared/auto-mode-disabled";
 import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse-init";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
@@ -5271,7 +5272,7 @@ export class Session {
     // auto-mode config from the repo-local `.claude/settings.local.json`.
     if (mode === "auto") {
       const gate = await readSettings("user", this.cwd).catch(() => ({}) as ClaudeSettings);
-      if (gate.disableAutoMode === "disable") mode = "default";
+      if (isAutoModeDisabled(gate)) mode = "default";
     }
     // CC 2.1.299 parity — "Fixed SDK and headless sessions staying in auto
     // mode after the host switched to a model that doesn't support auto
