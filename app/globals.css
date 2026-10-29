@@ -82,6 +82,37 @@
   --accent: #ff6ad5;
 }
 
+/* Categorical chart series (stacked spend by project / account). Fixed hue
+ * order — never cycled; past six series the tail folds into a neutral
+ * "other" gray. Dark steps on the dark themes, light steps on the light
+ * ones, each validated against that theme's card surface (CVD-separated
+ * adjacent pairs; on the light themes the lighter hues sit under 3:1, so the
+ * charts ship a legend and a table view). */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="midnight"],
+:root[data-theme="tui"],
+:root[data-theme="synthwave"] {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-other: #5f5f66;
+}
+:root[data-theme="light"],
+:root[data-theme="paper"],
+:root[data-theme="tui-light"] {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-other: #b9b6ae;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

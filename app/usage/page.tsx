@@ -20,6 +20,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { SpendOverview } from "@/components/cost/SpendOverview";
 import { cn } from "@/lib/utils/cn";
 import {
   ACCOUNT_KIND_LABEL,
@@ -438,6 +439,8 @@ export default function UsagePage() {
                 setAccountsError(null);
               }}
             />
+
+            <SpendOverview refreshKey={refetchTrigger} />
 
             <Section title="Account" icon={Building2}>
               {/* When the account-switcher has an active profile, the

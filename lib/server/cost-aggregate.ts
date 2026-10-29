@@ -79,7 +79,7 @@ export type CostReport = {
  * deliberately *not* baked in here — it's applied at aggregate time from the
  * live LiteLLM table, so a pricing refresh doesn't require re-parsing JSONL.
  */
-type Row = {
+export type Row = {
   /** Dedup key `message.id:requestId`, or null when either is absent. */
   k: string | null;
   m: string; // model
@@ -100,7 +100,7 @@ type Row = {
   geo?: string | null;
 };
 
-type FileSummary = {
+export type FileSummary = {
   path: string;
   mtimeMs: number;
   size: number;
@@ -124,7 +124,7 @@ function projectDir(cwd: string): string {
   return join(homedir(), ".claude", "projects", encodeProjectDir(cwd));
 }
 
-function dayKey(ms: number): string {
+export function dayKey(ms: number): string {
   const d = new Date(ms);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -140,7 +140,7 @@ function isSyntheticModel(model: string): boolean {
 }
 
 /** Session id a transcript belongs to: `<id>.jsonl`, or anything under `<id>/`. */
-function sessionIdForTranscript(dir: string, path: string): string {
+export function sessionIdForTranscript(dir: string, path: string): string {
   return (relative(dir, path).split(sep)[0] ?? "").replace(/\.jsonl$/, "");
 }
 
@@ -180,8 +180,8 @@ async function subagentTranscripts(dir: string, sessionId: string): Promise<stri
   return out.sort();
 }
 
-async function readCache(cwd: string): Promise<CacheShape> {
-  const path = join(projectDir(cwd), CACHE_FILE);
+async function readCache(dir: string): Promise<CacheShape> {
+  const path = join(dir, CACHE_FILE);
   try {
     const buf = await fs.readFile(path, "utf8");
     const parsed = JSON.parse(buf) as CacheShape;
@@ -192,8 +192,8 @@ async function readCache(cwd: string): Promise<CacheShape> {
   return { version: CACHE_VERSION, files: {} };
 }
 
-async function writeCache(cwd: string, cache: CacheShape): Promise<void> {
-  const path = join(projectDir(cwd), CACHE_FILE);
+async function writeCache(dir: string, cache: CacheShape): Promise<void> {
+  const path = join(dir, CACHE_FILE);
   await fs.mkdir(dirname(path), { recursive: true });
   await fs.writeFile(path, JSON.stringify(cache), "utf8");
 }
@@ -273,7 +273,7 @@ async function summarizeFile(path: string, mtimeMs: number, size: number): Promi
   return summary;
 }
 
-function rowUsd(
+export function rowUsd(
   row: Row,
   table: PricingTable,
   pricing: ModelPricingSettings | undefined,
@@ -310,7 +310,7 @@ function rowUsd(
  * prefer the managed/policy tier (via resolveSettings) over Claudius's own
  * user-scope setting; fall back to user scope when no managed value is set.
  */
-async function resolvePricing(cwd: string): Promise<ModelPricingSettings | undefined> {
+export async function resolvePricing(cwd: string): Promise<ModelPricingSettings | undefined> {
   const userPricing = await readSettings("user", cwd)
     .then((s) => s.modelPricing)
     .catch(() => undefined);
@@ -318,18 +318,23 @@ async function resolvePricing(cwd: string): Promise<ModelPricingSettings | undef
   return managedPricing ?? userPricing;
 }
 
-export async function aggregate(cwd: string): Promise<CostReport> {
-  const dir = projectDir(cwd);
+/**
+ * Every transcript in one project dir — each `<id>.jsonl` plus its subagent
+ * transcripts — summarized into per-turn rows, through the dir's
+ * `.claudius-cost-cache.json` (a file is re-parsed only when its mtime or
+ * size changed). Null when the dir doesn't exist.
+ */
+export async function summarizeProjectDir(dir: string): Promise<FileSummary[] | null> {
   let entries: string[];
   try {
     entries = await fs.readdir(dir);
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
-    if (e.code === "ENOENT") return emptyReport();
+    if (e.code === "ENOENT" || e.code === "ENOTDIR") return null;
     throw err;
   }
 
-  const cache = await readCache(cwd);
+  const cache = await readCache(dir);
   const seen = new Set<string>();
   let dirty = false;
 
@@ -361,7 +366,14 @@ export async function aggregate(cwd: string): Promise<CostReport> {
     }
   }
 
-  if (dirty) await writeCache(cwd, cache).catch(() => {});
+  if (dirty) await writeCache(dir, cache).catch(() => {});
+  return Object.values(cache.files);
+}
+
+export async function aggregate(cwd: string): Promise<CostReport> {
+  const dir = projectDir(cwd);
+  const summaries = await summarizeProjectDir(dir);
+  if (!summaries) return emptyReport();
 
   const table = await getPricingTable();
   const pricing = await resolvePricing(cwd);
@@ -371,7 +383,7 @@ export async function aggregate(cwd: string): Promise<CostReport> {
   // each unique turn once, attributing it to the first file that contains it.
   // A deterministic order (oldest-first, then path) makes attribution stable;
   // grand totals are order-independent regardless.
-  const files = Object.values(cache.files)
+  const files = summaries
     .filter((f) => f.rows.length > 0)
     .sort((a, b) => a.firstSeenMs - b.firstSeenMs || a.path.localeCompare(b.path));
 
