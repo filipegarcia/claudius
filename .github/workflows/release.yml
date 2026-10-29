@@ -8,7 +8,8 @@
 #                   retired Nov 2026). Ships zip + dmg.
 #                   The cross-compile rebuilds better-sqlite3 for x64 and
 #                   stages `@next/swc-darwin-x64` before `next build`.
-#   • Linux x64   — AppImage + deb + rpm. Built on `ubuntu-latest`.
+#   • Linux x64   — AppImage + deb + rpm. Built on `ubuntu-24.04` (pinned:
+#                   26.04's rpm 6 breaks the rpm target, see linux-x64).
 # Windows is intentionally not built here.
 #
 # The two macOS jobs are intentionally SEPARATE — a single mixed job
@@ -886,7 +887,15 @@ jobs:
 
   linux-x64:
     name: Linux (x64)
-    runs-on: ubuntu-latest
+    # Pinned, NOT ubuntu-latest: ubuntu-latest moved to 26.04 on 2026-10-20,
+    # which ships rpm 6.0.1. electron-builder 25's bundled fpm 1.9.3 drives
+    # rpmbuild with `--define buildroot …`, which rpm >= 4.20 broke — the rpm
+    # target dies with a bare "rpmbuild failed (exit code 1)" and, because it
+    # fails the whole job, the AppImage + deb that DID build never upload.
+    # 24.04 ships rpm 4.18.2 (green through v0.3.303.0). Before unpinning,
+    # move to an fpm that supports rpm >= 4.20 (USE_SYSTEM_FPM=true + a gem
+    # fpm, or a newer electron-builder) and prove it on a workflow_dispatch.
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -995,7 +1004,9 @@ jobs:
   linux-smoke:
     name: Linux AppImage smoke (launch test)
     needs: linux-x64
-    runs-on: ubuntu-latest
+    # Same image as the build job (see linux-x64's runs-on note) so the
+    # smoke test exercises the AppImage on the distro it was verified on.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
