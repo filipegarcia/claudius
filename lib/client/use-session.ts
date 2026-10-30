@@ -295,6 +295,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
     "your organization requires its policy limits and managed settings, and they could not be loaded — retrying may succeed",
   org_config_refused:
     "your organization requires its policy limits and managed settings, and Anthropic refused them for this sign-in — sign in again",
+  // SDK 0.3.314 — a required sandbox (sandbox settings mark it mandatory) cannot run here.
+  sandbox_required_unavailable:
+    "a sandbox is required for this session but cannot run on this machine — install or enable the sandbox, or ask your administrator",
 };
 
 /**

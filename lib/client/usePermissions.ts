@@ -7,13 +7,13 @@ export type Scope = "user" | "project" | "local";
 
 export type ScopedRules = Record<
   Scope,
-  { allow: string[]; ask: string[]; deny: string[]; blockReadsOutsideWorkingDirectories: boolean }
+  { allow: string[]; ask: string[]; deny: string[]; blockReadsOutsideWorkingDirectories: boolean; blockWritesOutsideWorkingDirectories: boolean }
 >;
 
 const EMPTY: ScopedRules = {
-  user: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false },
-  project: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false },
-  local: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false },
+  user: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false },
+  project: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false },
+  local: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false },
 };
 
 /**
@@ -34,7 +34,7 @@ export function usePermissions() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return (await res.json()) as Record<
           Scope,
-          { allow?: string[]; ask?: string[]; deny?: string[]; blockReadsOutsideWorkingDirectories?: boolean }
+          { allow?: string[]; ask?: string[]; deny?: string[]; blockReadsOutsideWorkingDirectories?: boolean; blockWritesOutsideWorkingDirectories?: boolean }
         >;
       })
       .then((data) => {
@@ -44,18 +44,21 @@ export function usePermissions() {
             ask: data.user?.ask ?? [],
             deny: data.user?.deny ?? [],
             blockReadsOutsideWorkingDirectories: data.user?.blockReadsOutsideWorkingDirectories ?? false,
+            blockWritesOutsideWorkingDirectories: data.user?.blockWritesOutsideWorkingDirectories ?? false,
           },
           project: {
             allow: data.project?.allow ?? [],
             ask: data.project?.ask ?? [],
             deny: data.project?.deny ?? [],
             blockReadsOutsideWorkingDirectories: data.project?.blockReadsOutsideWorkingDirectories ?? false,
+            blockWritesOutsideWorkingDirectories: data.project?.blockWritesOutsideWorkingDirectories ?? false,
           },
           local: {
             allow: data.local?.allow ?? [],
             ask: data.local?.ask ?? [],
             deny: data.local?.deny ?? [],
             blockReadsOutsideWorkingDirectories: data.local?.blockReadsOutsideWorkingDirectories ?? false,
+            blockWritesOutsideWorkingDirectories: data.local?.blockWritesOutsideWorkingDirectories ?? false,
           },
         };
         setRules(normalized);
@@ -115,5 +118,30 @@ export function usePermissions() {
     [refresh],
   );
 
-  return { rules, loading, error, refresh, updateRules, updateBlockReadsOutsideWorkingDirectories };
+  // SDK 0.3.314 — write-side twin of the reads toggle above.
+  const updateBlockWritesOutsideWorkingDirectories = useCallback(
+    async (scope: Scope, next: boolean) => {
+      setRules((prev) => ({ ...prev, [scope]: { ...prev[scope], blockWritesOutsideWorkingDirectories: next } }));
+      const res = await fetch("/api/settings/permissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope, patch: { blockWritesOutsideWorkingDirectories: next } }),
+      });
+      if (!res.ok) {
+        setError(`save failed: ${res.status}`);
+        refresh();
+      }
+    },
+    [refresh],
+  );
+
+  return {
+    rules,
+    loading,
+    error,
+    refresh,
+    updateRules,
+    updateBlockReadsOutsideWorkingDirectories,
+    updateBlockWritesOutsideWorkingDirectories,
+  };
 }
