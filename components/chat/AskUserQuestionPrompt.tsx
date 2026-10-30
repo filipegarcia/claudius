@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, CheckSquare, Minus, Pencil, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { isTypingInField } from "@/lib/client/typing-focus";
+import { readBridgeOnClient } from "@/lib/client/useElectron";
+import { resolveDroppedPath } from "@/lib/client/file-paths";
+import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 
 type Props = {
@@ -128,17 +132,58 @@ export function AskUserQuestionPrompt({
   function onPaste(e: React.ClipboardEvent<HTMLDivElement>) {
     const t = e.target as HTMLElement | null;
     if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.isContentEditable)) return;
-    const text = e.clipboardData.getData("text/plain");
+    // Same clean-up as the composer's paste: LF line ends (a textarea stores
+    // CRLF as LF, so raw CRLF state would fight the controlled value) and no
+    // invisible Unicode in text that goes to the model.
+    const text = stripInvisibleUnicode(e.clipboardData.getData("text/plain").replace(/\r\n?/g, "\n")).cleaned;
     if (!text) return;
     e.preventDefault();
+    appendToOther(text);
+  }
+
+  function appendToOther(text: string) {
     update(active, (cur) => ({
       ...cur,
       showOther: true,
       selectedLabels: cur.showOther || q.multiSelect ? cur.selectedLabels : [],
-      custom: cur.custom + text,
+      custom: cur.custom ? `${cur.custom}${/\s$/.test(cur.custom) ? "" : " "}${text}` : text,
     }));
     setFocusOtherNonce((n) => n + 1);
   }
+
+  /**
+   * The "dragged-in files" half of the same CC 2.1.314 entry, modal variant
+   * only. The modal (a reopened question) renders outside the chat area, so
+   * no drop target caught a file dropped on it, and the browser navigated
+   * away to the file, throwing the question away. Non-image files land in
+   * Other as `@path` (the composer's form); images have no answer slot. The
+   * inline card sits inside the chat area, whose drop target already puts
+   * files in the composer, so it is left alone.
+   */
+  function isFilesDrag(e: React.DragEvent): boolean {
+    return Array.from(e.dataTransfer?.types ?? []).includes("Files");
+  }
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    if (inline || !isFilesDrag(e)) return;
+    e.preventDefault();
+    const bridge = readBridgeOnClient();
+    const paths = Array.from(e.dataTransfer.files)
+      .filter((f) => !f.type.startsWith("image/"))
+      .map((f) => `@${resolveDroppedPath(bridge?.files?.getPath(f) ?? null, f.name, null)}`);
+    if (paths.length) appendToOther(paths.join(" "));
+  }
+
+  // Modal variant: put focus on the first option once per question, so the
+  // keyboard shortcuts and a paste have an anchor inside the card (focus
+  // otherwise stays on the transcript row that reopened it). Like
+  // PermissionPrompt, never steal focus from a field the user is typing in.
+  const firstOptionRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (inline || isTypingInField(document.activeElement)) return;
+    firstOptionRef.current?.focus();
+    // Once per request — `requestId` is a stable per-question identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request.requestId]);
 
   function update(qIdx: number, fn: (cur: Working) => Working) {
     setWorking((prev) => prev.map((w, i) => (i === qIdx ? fn(w) : w)));
@@ -274,6 +319,10 @@ export function AskUserQuestionPrompt({
       data-testid="ask-user-question"
       data-inline={inline ? "true" : "false"}
       onPaste={onPaste}
+      onDragOver={(e) => {
+        if (!inline && isFilesDrag(e)) e.preventDefault();
+      }}
+      onDrop={onDrop}
       className={cn(
         inline
           ? // In-flow transcript card: no backdrop, no fixed positioning, no
@@ -438,6 +487,7 @@ export function AskUserQuestionPrompt({
                 return (
                   <li key={opt.label}>
                     <button
+                      ref={i === 0 ? firstOptionRef : undefined}
                       onClick={() => {
                         pick(opt.label);
                         setFocusedOption(i);

@@ -98,13 +98,17 @@ async function mockChatBackend(page: Page): Promise<void> {
   );
 }
 
-/** A real `paste` event (Cmd/Ctrl+V) on whatever has focus. */
-async function pasteIntoFocused(page: Page, text: string): Promise<void> {
-  await page.evaluate((t) => {
+/**
+ * A `paste` event (as Cmd/Ctrl+V fires) on whatever has focus. Returns true
+ * when nothing called preventDefault — i.e. the browser's own paste would
+ * have gone ahead.
+ */
+async function pasteIntoFocused(page: Page, text: string): Promise<boolean> {
+  return page.evaluate((t) => {
     const dt = new DataTransfer();
     dt.setData("text/plain", t);
     const target = document.activeElement ?? document.body;
-    target.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    return target.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
   }, text);
 }
 
@@ -131,11 +135,16 @@ test("pasting while an option row has focus lands the text in Other", async ({ p
   await expect(other).toHaveValue(PASTED);
   await expect(other).toBeFocused();
 
-  // A second paste from an option row appends; a paste inside the textarea
-  // is left to the textarea (not doubled).
+  // A second paste from an option row appends (CRLF arrives as LF).
   await option.focus();
-  await pasteIntoFocused(page, " v0.4.0");
-  await expect(other).toHaveValue(`${PASTED} v0.4.0`);
+  expect(await pasteIntoFocused(page, "v0.4.0\r\nthen announce")).toBe(false);
+  await expect(other).toHaveValue(`${PASTED} v0.4.0\nthen announce`);
+
+  // A paste inside the Other textarea is left to the textarea: the card
+  // doesn't intercept it (no double insert).
+  await other.focus();
+  expect(await pasteIntoFocused(page, "ignored by the card")).toBe(true);
+  await expect(other).toHaveValue(`${PASTED} v0.4.0\nthen announce`);
 
   await page.waitForTimeout(200);
   await page.screenshot({ path: resolve(SHOTS_DIR, "ask-paste-other.png"), fullPage: false });
