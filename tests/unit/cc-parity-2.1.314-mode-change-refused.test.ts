@@ -35,7 +35,7 @@ type FakeQuery = {
   supportedModels: () => Promise<unknown[]>;
 };
 
-type SessionInternals = Pick<Session, "setPermissionMode" | "getPermissionMode"> & {
+type SessionInternals = Pick<Session, "id" | "setPermissionMode" | "getPermissionMode"> & {
   query: FakeQuery | null;
   buffer: ServerEvent[];
 };
