@@ -73,6 +73,10 @@ export function AskUserQuestionPrompt({
   );
   const [focusedOption, setFocusedOption] = useState(0);
   const otherInputRef = useRef<HTMLTextAreaElement>(null);
+  const otherInlineInputRef = useRef<HTMLTextAreaElement>(null);
+  // Bumped by a paste that lands outside the Other textarea, to move focus
+  // into it even when Other was already open (CC 2.1.314, see `onPaste`).
+  const [focusOtherNonce, setFocusOtherNonce] = useState(0);
 
   const total = request.questions.length;
   const q = request.questions[active];
@@ -103,10 +107,38 @@ export function AskUserQuestionPrompt({
     setFocusedOption(0);
   }
 
-  // Focus the Other input when revealed.
+  // Focus the Other input when revealed (or after a paste was routed into
+  // it). Whichever textarea is actually laid out: the right pane's on md+,
+  // the inline one under the Other row on narrow screens.
   useEffect(() => {
-    if (w.showOther) otherInputRef.current?.focus();
-  }, [w.showOther]);
+    if (!w.showOther) return;
+    const visible = [otherInputRef.current, otherInlineInputRef.current].find(
+      (el) => el && el.offsetParent !== null,
+    );
+    (visible ?? otherInputRef.current)?.focus();
+  }, [w.showOther, focusOtherNonce]);
+
+  /**
+   * CC 2.1.314 parity — "Fixed pasted text … being lost in Claude's question
+   * dialog unless the 'Other' row had focus". With focus on an option row (a
+   * button), a paste had nowhere to go. Route it into "Other": open it (as
+   * picking Other does — single-select drops the other pick) and append the
+   * text. Pastes inside a text field are left to that field.
+   */
+  function onPaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.isContentEditable)) return;
+    const text = e.clipboardData.getData("text/plain");
+    if (!text) return;
+    e.preventDefault();
+    update(active, (cur) => ({
+      ...cur,
+      showOther: true,
+      selectedLabels: cur.showOther || q.multiSelect ? cur.selectedLabels : [],
+      custom: cur.custom + text,
+    }));
+    setFocusOtherNonce((n) => n + 1);
+  }
 
   function update(qIdx: number, fn: (cur: Working) => Working) {
     setWorking((prev) => prev.map((w, i) => (i === qIdx ? fn(w) : w)));
@@ -241,6 +273,7 @@ export function AskUserQuestionPrompt({
     <div
       data-testid="ask-user-question"
       data-inline={inline ? "true" : "false"}
+      onPaste={onPaste}
       className={cn(
         inline
           ? // In-flow transcript card: no backdrop, no fixed positioning, no
@@ -495,6 +528,7 @@ export function AskUserQuestionPrompt({
                     )}
                   >
                     <textarea
+                      ref={otherInlineInputRef}
                       data-testid="ask-other-input-inline"
                       value={w.custom}
                       onChange={(e) => setCustom(e.target.value)}
