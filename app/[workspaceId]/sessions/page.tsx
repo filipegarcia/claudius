@@ -484,7 +484,7 @@ export default function SessionsPage() {
                             setActionError(null);
                             void remove(s.sessionId, s.cwd).then((r) => {
                               if (!r.ok) {
-                                setActionError(`Couldn't delete session ${s.sessionId.slice(0, 8)}: ${r.error}`);
+                                setActionError(`Delete failed (${s.sessionId.slice(0, 8)}): ${r.error}`);
                               }
                             });
                           }

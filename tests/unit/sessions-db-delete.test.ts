@@ -7,6 +7,15 @@ import {
 } from "@/lib/server/sessions-db";
 import { setSessionTitle as setLegacyTitle, getSessionTitle as getLegacyTitle, deleteSessionTitle } from "@/lib/server/session-titles";
 import { openDb } from "@/lib/server/db";
+import {
+  getActiveTab,
+  getOpenTabs,
+  getPinnedTabs,
+  removeSessionFromSavedTabs,
+  setActiveTab,
+  setOpenTabs,
+  setPinnedTabs,
+} from "@/lib/server/open-tabs-db";
 import { createWorkspace } from "@/lib/server/workspaces-store";
 import { isHistoryWorthyDbRow } from "@/lib/shared/session-history";
 
@@ -69,5 +78,25 @@ describe("deleteIndexedSession", () => {
     // getSessionTitle's legacy-migration branch would have re-inserted it.
     expect(await getSessionTitle(CWD_A, "sess-1")).toBeNull();
     expect((await listAllIndexedSessions(CWD_A)).some((r) => r.id === "sess-1")).toBe(false);
+  });
+});
+
+describe("removeSessionFromSavedTabs", () => {
+  test("drops the id from open, pinned and active tabs, leaving the rest", async () => {
+    await setOpenTabs(CWD_A, ["sess-1", "sess-2"]);
+    await setPinnedTabs(CWD_A, ["sess-1"]);
+    await setActiveTab(CWD_A, "sess-1");
+    expect(await removeSessionFromSavedTabs("sess-1")).toBe(1);
+    expect(await getOpenTabs(CWD_A)).toEqual(["sess-2"]);
+    expect(await getPinnedTabs(CWD_A)).toEqual([]);
+    expect(await getActiveTab(CWD_A)).toBeNull();
+  });
+
+  test("touches nothing when the id isn't in any saved strip", async () => {
+    await setOpenTabs(CWD_A, ["sess-2"]);
+    await setActiveTab(CWD_A, "sess-2");
+    expect(await removeSessionFromSavedTabs("sess-1")).toBe(0);
+    expect(await getOpenTabs(CWD_A)).toEqual(["sess-2"]);
+    expect(await getActiveTab(CWD_A)).toBe("sess-2");
   });
 });

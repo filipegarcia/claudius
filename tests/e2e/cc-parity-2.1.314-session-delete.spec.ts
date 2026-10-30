@@ -97,6 +97,13 @@ test("a deleted session stays deleted after a reload", async ({ page }) => {
   await relisted;
   await expect(row).toHaveCount(0);
   expect(await listedIds(page)).not.toContain(id);
+
+  // It was the open (active) chat tab: the next chat boot must not resume
+  // it and re-index it as a live, almost empty entry.
+  await page.goto("/");
+  await waitForBoundSession(page);
+  expect(page.url()).not.toContain(id);
+  expect(await listedIds(page)).not.toContain(id);
 });
 
 test("a delete the server refuses says why instead of failing silently", async ({ page }) => {
@@ -115,7 +122,7 @@ test("a delete the server refuses says why instead of failing silently", async (
 
   const err = page.getByTestId("sessions-action-error");
   await expect(err).toBeVisible();
-  await expect(err).toContainText(`Couldn't delete session ${id.slice(0, 8)}`);
+  await expect(err).toContainText(`Delete failed (${id.slice(0, 8)})`);
   await expect(err).toContainText("EACCES: permission denied");
   // The row is still there: nothing was deleted.
   await expect(page.locator(`[data-testid="session-row"][data-session-id="${id}"]`)).toBeVisible();
