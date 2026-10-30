@@ -84,6 +84,7 @@ import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { BashViewer } from "@/components/panels/BashViewer";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { BackgroundBash } from "@/lib/client/types";
+import { isLetterKey } from "@/lib/client/key-match";
 
 function todayKey(): string {
   const d = new Date();
@@ -963,7 +964,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   const [findNonce, setFindNonce] = useState(0);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+      if ((e.metaKey || e.ctrlKey) && isLetterKey(e, "f")) {
         e.preventDefault();
         setSearchOpen(true);
         setFindNonce((n) => n + 1);

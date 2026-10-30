@@ -51,6 +51,7 @@ import {
   type PasteRange,
 } from "@/lib/shared/large-paste";
 import { describeOversizedImages } from "@/lib/client/image-intake";
+import { isLetterKey } from "@/lib/client/key-match";
 
 type Props = {
   pending: boolean;
@@ -1369,7 +1370,8 @@ export function PromptInput({
     // ── Ctrl+C — Claude Code parity ────────────────────────────────────────
     // Only intercept when there is no active text selection (otherwise the
     // user is copying text and we should leave the browser default alone).
-    if (e.ctrlKey && e.key === "c") {
+    // `isLetterKey`: CC 2.1.314 — also fires under non-Latin layouts.
+    if (e.ctrlKey && isLetterKey(e, "c")) {
       const sel = e.currentTarget.selectionStart !== e.currentTarget.selectionEnd;
       if (!sel) {
         e.preventDefault();

@@ -8,6 +8,7 @@ import {
   scrollRangeIntoView,
   supportsHighlightApi,
 } from "@/lib/client/find-in-transcript";
+import { isLetterKey } from "@/lib/client/key-match";
 
 /**
  * Browser-style find bar for the open transcript (Cmd/Ctrl+F).
@@ -198,7 +199,7 @@ export function TranscriptSearch({
   // mirroring the browser binding. Enter / Shift+Enter work from the input.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && (e.key === "g" || e.key === "G")) {
+      if ((e.metaKey || e.ctrlKey) && isLetterKey(e, "g")) {
         e.preventDefault();
         step(e.shiftKey ? -1 : 1);
       }
