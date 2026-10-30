@@ -1195,6 +1195,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     uuid: string;
     model: string;
   } | null>(null);
+  /**
+   * CC 2.1.314 parity — the session refused a permission-mode switch. The
+   * pill shows the mode in use; this transient notice says the switch didn't
+   * happen. Set from `setPermissionMode`'s 409 response (only the tab that
+   * asked is told; every tab's pill reverts via `mode_changed`).
+   */
+  const [modeChangeRefusedNotice, setModeChangeRefusedNotice] = useState<{
+    uuid: string;
+    requested: PermissionMode;
+    mode: PermissionMode;
+    reason: string;
+  } | null>(null);
+  const permissionModeReqRef = useRef(0);
   // Prior fast_mode_state observed on a result event. Used to detect edges
   // without depending on the (stale-in-closure) `fastModeState` state value.
   const prevFastModeStateRef = useRef<"off" | "cooldown" | "on" | null>(null);
@@ -1805,6 +1818,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setFastModeDisabledReason(null);
     setFastModeNotice(null);
     setAutoModeOffNotice(null);
+    setModeChangeRefusedNotice(null);
     prevFastModeStateRef.current = null;
     setPromptSuggestions([]);
     setReplaying(true);
@@ -5994,6 +6008,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setAutoModeOffNotice(null);
   }, []);
 
+  const dismissModeChangeRefusedNotice = useCallback(() => {
+    setModeChangeRefusedNotice(null);
+  }, []);
+
   /**
    * Re-enable the advisor after it was auto-disabled on a model change.
    * Calls the same advisor route the picker uses, so both settings.json and
@@ -6119,12 +6137,30 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const setPermissionMode = useCallback(async (mode: PermissionMode) => {
     const id = sessionIdRef.current;
     if (!id) return;
+    const req = ++permissionModeReqRef.current;
     setPermissionModeState(mode);
-    await fetch(`/api/sessions/${id}/mode`, {
+    setModeChangeRefusedNotice(null);
+    const res = await fetch(`/api/sessions/${id}/mode`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode }),
-    }).catch(() => {});
+    }).catch(() => null);
+    // CC 2.1.314 — a refused switch (409) leaves the session in the mode it
+    // was in. Show that mode and say so, unless a newer pick superseded this
+    // request or the user moved to another session meanwhile.
+    if (!res || res.status !== 409) return;
+    const body = (await res.json().catch(() => null)) as {
+      mode?: PermissionMode;
+      refused?: { requested?: PermissionMode; reason?: string };
+    } | null;
+    if (!body?.mode || req !== permissionModeReqRef.current || sessionIdRef.current !== id) return;
+    setPermissionModeState(body.mode);
+    setModeChangeRefusedNotice({
+      uuid: crypto.randomUUID(),
+      requested: body.refused?.requested ?? mode,
+      mode: body.mode,
+      reason: body.refused?.reason ?? "",
+    });
   }, []);
 
   const resolvePlan = useCallback(async (decision: PlanDecision) => {
@@ -6780,6 +6816,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     chatCommandModelNotice,
     advisorDisabledNotice,
     autoModeOffNotice,
+    modeChangeRefusedNotice,
     promptSuggestions,
     suggestedUuids,
     goalUuids,
@@ -6817,6 +6854,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     dismissChatCommandModelNotice,
     dismissAdvisorDisabledNotice,
     dismissAutoModeOffNotice,
+    dismissModeChangeRefusedNotice,
     reEnableAdvisor,
     requestRecap,
     dismissRecap,

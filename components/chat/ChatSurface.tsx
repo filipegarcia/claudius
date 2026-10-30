@@ -24,6 +24,7 @@ import { TokenExpiringPanel } from "@/components/chat/TokenExpiringPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { AutoModeOffNoticePanel } from "@/components/chat/AutoModeOffNoticePanel";
+import { ModeChangeRefusedNoticePanel } from "@/components/chat/ModeChangeRefusedNoticePanel";
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
@@ -2543,6 +2544,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         <AutoModeOffNoticePanel
           notice={session.autoModeOffNotice}
           onDismiss={session.dismissAutoModeOffNotice}
+        />
+        <ModeChangeRefusedNoticePanel
+          notice={session.modeChangeRefusedNotice}
+          onDismiss={session.dismissModeChangeRefusedNotice}
         />
         <SkippedSessionNotice
           sessionId={session.skippedBootSession}

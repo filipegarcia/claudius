@@ -141,7 +141,11 @@ import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import { readCronNextFireAt, type SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
-import { findModelInfo, shouldLeaveAutoForModel } from "@/lib/shared/permission-modes";
+import {
+  findModelInfo,
+  shouldLeaveAutoForModel,
+  type SetPermissionModeResult,
+} from "@/lib/shared/permission-modes";
 import {
   readSettings,
   writeSettings,
@@ -1896,6 +1900,12 @@ export class Session {
    */
   title?: string;
   private permissionMode: PermissionMode;
+  /**
+   * Bumped on every `permissionMode` write after construction, so a refused
+   * `setPermissionMode` only rolls back if nothing wrote the mode during its
+   * await (CC 2.1.314).
+   */
+  private permissionModeSeq = 0;
   /**
    * CC 2.1.309 — a title set via `rename()` whose SDK `renameSession` failed
    * (no JSONL yet). Re-sent at the next turn boundary so the CLI and other
@@ -4130,6 +4140,7 @@ export class Session {
     // the plan. Returning the setMode as part of the allow lets the SDK
     // perform the transition atomically and the tool returns success.
     this.permissionMode = "acceptEdits";
+    this.permissionModeSeq++;
     // `updatedInput` is REQUIRED on the allow branch even though sdk.d.ts
     // marks it optional — the SDK's runtime Zod validator rejects
     // `undefined` with "Invalid input: expected record, received undefined"
@@ -5259,7 +5270,7 @@ export class Session {
   async setPermissionMode(
     mode: PermissionMode,
     opts: { skipAutoExitReminder?: boolean } = {},
-  ): Promise<void> {
+  ): Promise<SetPermissionModeResult> {
     // Restricted mode refuses bypassPermissions — coerce before anything else
     // so the lockdown holds regardless of what the client requested.
     mode = this.coerceRestrictedMode(mode);
@@ -5308,7 +5319,32 @@ export class Session {
     // above — and gate on the *transition* so a redundant
     // `setPermissionMode("auto")` while already in auto can't re-fire.
     const wasAuto = this.permissionMode === "auto";
+    const prev = this.permissionMode;
+    const seq = ++this.permissionModeSeq;
     this.permissionMode = mode;
+    // CC 2.1.314 parity — "[Cloud sessions] Fixed the permission mode picker
+    // staying on Auto after a running … session refused the switch; it now
+    // shows the mode in use and tells you". The engine answers a refused
+    // `set_permission_mode` with an error control response, and
+    // `Query.setPermissionMode` rejects. That rejection used to be dropped,
+    // so `mode_changed` broadcast the requested mode to every tab while the
+    // engine kept the old one. Now roll back and report the refusal.
+    if (this.query) {
+      try {
+        await this.query.setPermissionMode(mode);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        // Only undo our own write: a later switch that landed during the
+        // await owns `permissionMode` now.
+        if (seq === this.permissionModeSeq) {
+          this.permissionMode = prev;
+          this.broadcast({ type: "mode_changed", mode: prev });
+        }
+        return { mode: this.permissionMode, refused: { requested: mode, reason } };
+      }
+    }
+    // Reminders only once the engine took the switch — a refused switch
+    // didn't leave plan or auto.
     if (!wasPlan && mode === "plan") {
       const state: Record<string, unknown> = await getSessionState(this.cwd, this.id).catch(
         () => ({}),
@@ -5321,7 +5357,6 @@ export class Session {
     if (wasAuto && mode !== "auto" && !opts.skipAutoExitReminder) {
       queueReminder(this, "auto-mode-exit", autoModeExitReminderBody());
     }
-    if (this.query) await this.query.setPermissionMode(mode).catch(() => {});
     this.broadcast({
       type: "mode_changed",
       mode,
@@ -5333,6 +5368,7 @@ export class Session {
     if (mode === "auto" && (this.model ?? this.sdkModel) !== autoCheckedModel) {
       await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel);
     }
+    return { mode: this.permissionMode };
   }
 
   getPermissionMode(): PermissionMode {

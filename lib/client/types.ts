@@ -1058,6 +1058,18 @@ export type ChatState = {
     model: string;
   } | null;
   /**
+   * CC 2.1.314 parity — transient notice shown when the session refused a
+   * permission-mode switch: the pill shows `mode` (still in use) and this
+   * says the switch to `requested` didn't happen, with the engine's reason.
+   * See `ModeChangeRefusedNoticePanel`.
+   */
+  modeChangeRefusedNotice: {
+    uuid: string;
+    requested: PermissionMode;
+    mode: PermissionMode;
+    reason: string;
+  } | null;
+  /**
    * Transient toast shown when the server automatically disabled the advisor
    * because the user switched to a model incompatible with the active advisor
    * tool. Carries the previous advisor id so the "Re-enable" button can
@@ -1540,6 +1552,8 @@ export type ChatActions = {
   dismissChatCommandModelNotice(): void;
   /** Dismiss the auto-mode-off-on-model-switch notice. Client-side only. */
   dismissAutoModeOffNotice(): void;
+  /** Dismiss the refused-permission-mode-switch notice. Client-side only. */
+  dismissModeChangeRefusedNotice(): void;
   /** Dismiss the advisor-auto-disabled notice. Client-side only. */
   dismissAdvisorDisabledNotice(): void;
   /**
