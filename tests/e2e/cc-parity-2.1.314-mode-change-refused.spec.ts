@@ -98,11 +98,29 @@ test("an accepted switch shows no notice", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/");
   await page.waitForURL(/[?&]session=[0-9a-f-]{36}/i, { timeout: 30_000 });
+  const sessionId = page.url().match(/[?&]session=([0-9a-f-]{36})/i)![1];
   const trigger = page.getByTestId("mode-selector-trigger");
   await expect(trigger).toBeVisible({ timeout: 15_000 });
+  const serverMode = async () =>
+    ((await (await page.request.get(`/api/sessions/${sessionId}/mode`)).json()) as { mode: string }).mode;
+  // Wait for the boot-time workspace default to settle, then remember it.
+  let original = await serverMode();
+  await expect
+    .poll(async () => {
+      original = await serverMode();
+      return (await trigger.getAttribute("title")) ?? "";
+    }, { timeout: 15_000 })
+    .toContain(`Permission mode: ${LABEL[original]} —`);
+  const target = original === "acceptEdits" ? "plan" : "acceptEdits";
+
   await trigger.click();
-  await page.getByTestId("mode-selector-option-acceptEdits").click();
-  await expect(trigger).toHaveAttribute("title", /^Permission mode: Accept edits —/);
+  await page.getByTestId(`mode-selector-option-${target}`).click();
+  await expect(trigger).toHaveAttribute("title", new RegExp(`^Permission mode: ${LABEL[target]} —`));
+  await expect.poll(serverMode).toBe(target);
   await page.waitForTimeout(500);
   await expect(page.getByTestId("mode-change-refused-notice")).toHaveCount(0);
+
+  // Leave the real session as we found it: later specs may resume it.
+  const restore = await page.request.post(`/api/sessions/${sessionId}/mode`, { data: { mode: original } });
+  expect(restore.ok()).toBeTruthy();
 });
