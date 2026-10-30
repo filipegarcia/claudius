@@ -1129,6 +1129,15 @@ type PendingPlan = {
  * Exported for unit testing — pure over one event, worth pinning down
  * separately from the Session lifecycle.
  */
+/**
+ * The SDK's own "can't reach the engine" rejections, as opposed to the
+ * engine answering a control request with an error (a refusal). CC 2.1.314:
+ * `setPermissionMode` only rolls back on a real refusal.
+ */
+export function isTransportClosedError(message: string): boolean {
+  return /query closed before response|transport is not ready|transport closed|process exited|aborted/i.test(message);
+}
+
 export function shouldBufferEvent(event: ServerEvent): boolean {
   if (event.type === "queue:updated" || event.type === "holder_changed") return false;
   // `usage_snapshot` is also a SNAPSHOT (cumulative totals, not a log entry) —
@@ -1906,6 +1915,8 @@ export class Session {
    * await (CC 2.1.314).
    */
   private permissionModeSeq = 0;
+  /** Serializes `setPermissionMode` calls (CC 2.1.314, see there). */
+  private permissionModeChain: Promise<unknown> = Promise.resolve();
   /**
    * CC 2.1.309 — a title set via `rename()` whose SDK `renameSession` failed
    * (no JSONL yet). Re-sent at the next turn boundary so the CLI and other
@@ -5267,9 +5278,21 @@ export class Session {
    * which would misdescribe a capability kick-out; the engine already tells
    * the model on its side ("<model> doesn't support auto mode").
    */
-  async setPermissionMode(
+  setPermissionMode(
     mode: PermissionMode,
     opts: { skipAutoExitReminder?: boolean } = {},
+  ): Promise<SetPermissionModeResult> {
+    // CC 2.1.314: run switches one at a time, so each one's rollback target
+    // (`prev`) is a mode the engine already answered for. Two quick refused
+    // switches could otherwise roll back onto the first, also-refused pick.
+    const run = this.permissionModeChain.then(() => this.applyPermissionMode(mode, opts));
+    this.permissionModeChain = run.catch(() => undefined);
+    return run;
+  }
+
+  private async applyPermissionMode(
+    mode: PermissionMode,
+    opts: { skipAutoExitReminder?: boolean },
   ): Promise<SetPermissionModeResult> {
     // Restricted mode refuses bypassPermissions — coerce before anything else
     // so the lockdown holds regardless of what the client requested.
@@ -5334,13 +5357,18 @@ export class Session {
         await this.query.setPermissionMode(mode);
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
-        // Only undo our own write: a later switch that landed during the
-        // await owns `permissionMode` now.
-        if (seq === this.permissionModeSeq) {
-          this.permissionMode = prev;
-          this.broadcast({ type: "mode_changed", mode: prev });
+        // A dead or closing session can't answer at all ("Query closed
+        // before response received"). That isn't a refusal: keep the pick,
+        // as before, so the restart (`getRebuildOpts`) carries it.
+        if (!this.isDead() && !this.done && !isTransportClosedError(reason)) {
+          // Only undo our own write: plan acceptance may have written the
+          // mode during the await.
+          if (seq === this.permissionModeSeq) {
+            this.permissionMode = prev;
+            this.broadcast({ type: "mode_changed", mode: prev });
+          }
+          return { mode: this.permissionMode, refused: { requested: mode, reason } };
         }
-        return { mode: this.permissionMode, refused: { requested: mode, reason } };
       }
     }
     // Reminders only once the engine took the switch — a refused switch
@@ -5366,7 +5394,7 @@ export class Session {
     // against the `auto` just written — do it now (after our own
     // `mode_changed`, so the `default` one broadcasts last).
     if (mode === "auto" && (this.model ?? this.sdkModel) !== autoCheckedModel) {
-      await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel);
+      await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel, undefined, { insideModeSwitch: true });
     }
     return { mode: this.permissionMode };
   }
@@ -5424,11 +5452,19 @@ export class Session {
   private async leaveAutoIfModelUnsupported(
     model: string | undefined,
     models?: readonly ModelInfo[],
+    opts: { insideModeSwitch?: boolean } = {},
   ): Promise<string | undefined> {
     if (this.permissionMode !== "auto" || !model) return undefined;
     const info = models ? findModelInfo(models, model) : await this.modelCatalogInfo(model);
     if (!shouldLeaveAutoForModel(this.permissionMode, info)) return undefined;
-    await this.setPermissionMode("default", { skipAutoExitReminder: true });
+    // From inside a running mode switch, apply directly: queueing behind the
+    // switch that's waiting on us would deadlock the serialized chain.
+    const switched = opts.insideModeSwitch
+      ? await this.applyPermissionMode("default", { skipAutoExitReminder: true })
+      : await this.setPermissionMode("default", { skipAutoExitReminder: true });
+    // The engine refused to leave auto: the session is still in auto, so
+    // there is no "auto mode is off" to announce.
+    if (switched.refused) return undefined;
     return info?.displayName || model;
   }
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 
-import { Session } from "@/lib/server/session";
+import { Session, isTransportClosedError } from "@/lib/server/session";
 import { openDb } from "@/lib/server/db";
 import { pendingReminderCount } from "@/lib/server/system-reminders";
 import type { ServerEvent } from "@/lib/shared/events";
@@ -90,23 +90,55 @@ describe("Session.setPermissionMode — the engine refuses the switch", () => {
     expect(pendingReminderCount(session)).toBe(1);
   });
 
-  test("a later switch that lands during the refused one's await is not rolled back", async () => {
+  test("switches run one at a time: a refused one rolls back before the next applies", async () => {
     let rejectFirst: (e: Error) => void = () => {};
-    let calls = 0;
+    const seen: PermissionMode[] = [];
     const session = makeSession("default", (m) => {
-      calls++;
-      if (calls === 1) return new Promise<void>((_, reject) => (rejectFirst = reject));
-      void m;
+      seen.push(m);
+      if (seen.length === 1) return new Promise<void>((_, reject) => (rejectFirst = reject));
       return Promise.resolve();
     });
     const first = session.setPermissionMode("bypassPermissions");
-    // Let the first call reach the engine await, then switch again.
+    const second = session.setPermissionMode("acceptEdits");
     await new Promise((r) => setTimeout(r, 0));
-    await session.setPermissionMode("acceptEdits");
+    // The second hasn't reached the engine while the first is in flight.
+    expect(seen).toEqual(["bypassPermissions"]);
     rejectFirst(new Error("refused"));
-    const r1 = await first;
-    expect(r1.refused?.requested).toBe("bypassPermissions");
+    expect((await first).refused?.requested).toBe("bypassPermissions");
+    expect(await second).toEqual({ mode: "acceptEdits" });
     expect(session.getPermissionMode()).toBe("acceptEdits");
-    expect(r1.mode).toBe("acceptEdits");
+    expect(modeEvents(session)).toEqual(["default", "acceptEdits"]);
+  });
+
+  test("two quick refused switches end on the mode the engine is really in", async () => {
+    const session = makeSession("default", async () => {
+      throw new Error("refused");
+    });
+    const a = session.setPermissionMode("auto");
+    const b = session.setPermissionMode("bypassPermissions");
+    expect((await a).mode).toBe("default");
+    expect((await b).mode).toBe("default");
+    expect(session.getPermissionMode()).toBe("default");
+    expect(modeEvents(session)).toEqual(["default", "default"]);
+  });
+
+  test("a closed transport is not a refusal: the pick is kept for the restart", async () => {
+    const session = makeSession("default", async () => {
+      throw new Error("Query closed before response received");
+    });
+    const result = await session.setPermissionMode("acceptEdits");
+    expect(result).toEqual({ mode: "acceptEdits" });
+    expect(session.getPermissionMode()).toBe("acceptEdits");
+  });
+});
+
+describe("isTransportClosedError", () => {
+  test("SDK transport rejections vs engine refusals", () => {
+    expect(isTransportClosedError("Query closed before response received")).toBe(true);
+    expect(isTransportClosedError("ProcessTransport is not ready for writing")).toBe(true);
+    expect(isTransportClosedError(REFUSAL)).toBe(false);
+    expect(
+      isTransportClosedError("set_permission_mode is not supported in this context (onSetPermissionMode callback not registered)"),
+    ).toBe(false);
   });
 });
