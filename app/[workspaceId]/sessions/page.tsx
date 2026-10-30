@@ -70,6 +70,8 @@ export default function SessionsPage() {
   // (same exact-match rule the server uses for `/api/sessions?workspaceId`),
   // which also keeps the brief pre-resolution window (workspaceRoot == null →
   // unscoped fetch) correct.
+  // CC 2.1.314: a delete that can't be saved says so instead of failing silently.
+  const [actionError, setActionError] = useState<string | null>(null);
   const { sessions, accountsConfigured, loading, error, refresh, remove, hasMore, loadMore } =
     useSessionsHistory({
       dir: workspaceRoot ?? undefined,
@@ -268,6 +270,11 @@ export default function SessionsPage() {
             <span className="text-[var(--muted)]">searching transcripts…</span>
           )}
           {error && <span className="text-red-400">{error}</span>}
+          {actionError && (
+            <span role="alert" data-testid="sessions-action-error" className="truncate text-red-400" title={actionError}>
+              {actionError}
+            </span>
+          )}
           <div className="flex flex-1 items-center justify-center gap-2 px-3">
             <div className="relative w-full max-w-md">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
@@ -474,7 +481,12 @@ export default function SessionsPage() {
                       <button
                         onClick={() => {
                           if (confirm(`Delete session ${s.sessionId.slice(0, 8)}?`)) {
-                            void remove(s.sessionId, s.cwd);
+                            setActionError(null);
+                            void remove(s.sessionId, s.cwd).then((r) => {
+                              if (!r.ok) {
+                                setActionError(`Couldn't delete session ${s.sessionId.slice(0, 8)}: ${r.error}`);
+                              }
+                            });
                           }
                         }}
                         className={cn(

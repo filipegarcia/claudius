@@ -337,6 +337,40 @@ export async function retitleIndexedSession(id: string, title: string): Promise<
   return updated;
 }
 
+/**
+ * CC 2.1.314 — "Fixed a rare case where a deleted session could reappear in
+ * the resume list as an almost empty entry". Deleting a session only
+ * unlinked the SDK transcript; its `.claudius.db` row stayed, and
+ * `/api/sessions/all` synthesizes a list entry for every titled DB row the
+ * SDK doesn't return — so a renamed session came back as a title-only stub.
+ *
+ * Same fan-out and safety shape as `retitleIndexedSession`: only the DBs of
+ * workspaces Claudius already knows about (never a caller-supplied path), a
+ * read-only probe first so no DB file is created. Returns rows deleted.
+ */
+export async function deleteIndexedSession(id: string): Promise<number> {
+  if (!id) return 0;
+  const workspaces = await listWorkspaces().catch(() => []);
+  let deleted = 0;
+  const seen = new Set<string>();
+  for (const ws of workspaces) {
+    const root = ws.rootPath;
+    if (!root || seen.has(root)) continue;
+    seen.add(root);
+    const ro = await openDb(root, "readonly").catch(() => null);
+    if (!ro) continue;
+    const hit = ro.prepare("SELECT 1 FROM sessions WHERE id = ?").get(id);
+    if (!hit) continue;
+    try {
+      const db = await openDb(root);
+      deleted += db.prepare("DELETE FROM sessions WHERE id = ?").run(id).changes;
+    } catch {
+      // One workspace's DB failing must not undo deletes already made.
+    }
+  }
+  return deleted;
+}
+
 /** List every indexed session for this cwd, newest activity first. */
 export async function listIndexedSessions(cwd: string): Promise<SessionRow[]> {
   const db = await openDb(cwd, "readonly").catch(() => null);
