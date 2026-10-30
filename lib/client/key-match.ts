@@ -15,9 +15,13 @@
  * else (Cyrillic, Greek, Hebrew, …) fall back to the physical key, as the CLI
  * and VS Code do.
  */
-export function isLetterKey(e: { key: string; code: string }, letter: string): boolean {
+export function isLetterKey(e: { key: string; code: string; altKey?: boolean }, letter: string): boolean {
   const want = letter.toLowerCase();
   const typed = e.key.length === 1 ? e.key.toLowerCase() : "";
   if (/^[a-z]$/.test(typed)) return typed === want;
+  // No physical-key fallback when Alt is down: on Windows AltGr arrives as
+  // Ctrl+Alt, so AltGr+C typing "ć" (Polish) or "&" (Hungarian) must stay a
+  // character, not become Ctrl+C. Nor during IME composition ("Process").
+  if (e.altKey || e.key === "Process") return false;
   return e.code === `Key${want.toUpperCase()}`;
 }

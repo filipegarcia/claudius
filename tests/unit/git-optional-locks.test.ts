@@ -15,7 +15,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getDiff, getStatus } from "@/lib/server/git";
+import { diffBranchAgainstWorktree, getDiff, getDiffForCommit, getStatus } from "@/lib/server/git";
 
 function gitEnv(): NodeJS.ProcessEnv {
   // Same isolation as git-diff-no-textconv.test.ts: hooks export GIT_DIR /
@@ -112,5 +112,17 @@ describe("background git reads leave the index alone (CC 2.1.314)", () => {
     const result = await getDiff(repo, "blob.bin", "worktree");
     if ("code" in result) throw new Error(`getDiff failed: ${result.message}`);
     expect(result.binary).toBe(true);
+  });
+
+  test("getDiffForCommit and diffBranchAgainstWorktree don't rewrite .git/index either", async () => {
+    const before = indexStamp(repo);
+    const forCommit = await getDiffForCommit(repo, ["edited.txt", "touched.txt"]);
+    if ("code" in forCommit) throw new Error(`getDiffForCommit failed: ${forCommit.message}`);
+    expect(forCommit.diff).toContain("+line two");
+    expect(forCommit.diff).not.toContain("touched.txt");
+    const vsBranch = await diffBranchAgainstWorktree(repo, "main");
+    if ("code" in vsBranch) throw new Error(`diffBranchAgainstWorktree failed: ${vsBranch.message}`);
+    expect(vsBranch.output).toContain("+line two");
+    expect(indexStamp(repo)).toBe(before);
   });
 });

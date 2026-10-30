@@ -20,6 +20,9 @@ describe("normalizeDottedModelVersion", () => {
     ["claude-fable-5.1", "claude-fable-5-1"],
     ["anthropic/claude-opus-4.8", "anthropic/claude-opus-4-8"],
     ["CLAUDE-OPUS-5.5", "CLAUDE-OPUS-5-5"],
+    ["sonnet-5.5", "sonnet-5-5"],
+    ["fable-5.1", "fable-5-1"],
+    ["anthropic/sonnet-5.5", "anthropic/sonnet-5-5"],
   ])("%s → %s", (input, out) => {
     expect(normalizeDottedModelVersion(input)).toBe(out);
   });
@@ -31,6 +34,7 @@ describe("normalizeDottedModelVersion", () => {
     "claude-instant-1.2",
     "claude-opus-4-5-20251101",
     "gpt-4.1",
+    "claude-3.5-sonnet",
   ])("leaves %s alone", (id) => {
     expect(normalizeDottedModelVersion(id)).toBe(id);
   });
@@ -43,6 +47,8 @@ describe("priceFor (browser estimator) — dotted == dashed", () => {
     ["claude-sonnet-5.5", "claude-sonnet-5-5"],
     ["claude-haiku-5.5", "claude-haiku-5-5"],
     ["claude-fable-5.1", "claude-fable-5-1"],
+    ["fable-5.1", "fable-5-1"],
+    ["sonnet-5.5", "sonnet-5-5"],
   ])("%s prices like %s", (dotted, dashed) => {
     expect(priceFor(dotted)).toEqual(priceFor(dashed));
   });

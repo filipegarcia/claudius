@@ -32,4 +32,14 @@ describe("isLetterKey", () => {
     expect(isLetterKey({ key: "Enter", code: "Enter" }, "c")).toBe(false);
     expect(isLetterKey({ key: "Control", code: "ControlLeft" }, "c")).toBe(false);
   });
+
+  test("AltGr (Ctrl+Alt on Windows) characters are typing, not shortcuts", () => {
+    expect(isLetterKey({ key: "ć", code: "KeyC", altKey: true }, "c")).toBe(false); // Polish
+    expect(isLetterKey({ key: "&", code: "KeyC", altKey: true }, "c")).toBe(false); // Hungarian
+    expect(isLetterKey({ key: "[", code: "KeyF", altKey: true }, "f")).toBe(false);
+  });
+
+  test("IME composition never matches", () => {
+    expect(isLetterKey({ key: "Process", code: "KeyC" }, "c")).toBe(false);
+  });
 });

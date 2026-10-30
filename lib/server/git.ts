@@ -593,8 +593,10 @@ export async function getDiffForCommit(
     if (tracked.length > 0) {
       // `--no-textconv` — this diff is fed to a model to draft a commit
       // message; a textconv filter could hide the actual change from it.
+      // Plumbing `diff-index -p HEAD` = `git diff HEAD` without the index
+      // refresh under `index.lock` (CC 2.1.314, see `gitEnv`/`getDiff`).
       const { stdout } = await git(
-        ["diff", "HEAD", "--no-color", "--no-textconv", "--", ...tracked],
+        ["diff-index", "-p", "--no-color", "--no-textconv", "HEAD", "--", ...tracked],
         root,
       );
       if (stdout) parts.push(stdout);
@@ -1217,7 +1219,9 @@ export async function diffBranchAgainstWorktree(
   try {
     // `--no-textconv` — same raw-blob guarantee as `getDiff`/`diffNoIndex`;
     // this output is piped straight into the GitConsole for the user to read.
-    const r = await git(["diff", "--no-color", "--no-textconv", branch], root);
+    // Plumbing `diff-index -p` = `git diff <branch>` without the index
+    // refresh under `index.lock` (CC 2.1.314, see `gitEnv`/`getDiff`).
+    const r = await git(["diff-index", "-p", "--no-color", "--no-textconv", branch], root);
     const out = r.stdout.trim();
     return { ok: true, output: out || `(no differences between ${branch} and the working tree)` };
   } catch (err) {
