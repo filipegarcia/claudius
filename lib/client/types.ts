@@ -1109,6 +1109,13 @@ export type ChatState = {
   streamStatus: StreamStatus;
   /** True if older history exists above what's currently loaded. */
   hasMoreAbove: boolean;
+  /**
+   * CC 2.1.316 parity — "[Cloud sessions] Added a 'Catching up…' line that
+   * shows while a cloud or Remote Control session you switch back to is
+   * still bringing its messages up to date". True from a switch-back / boot
+   * resume until the session's history replay finishes (`replay_done`).
+   */
+  catchingUp: boolean;
   /** True while a loadOlder() request is in flight. */
   loadingOlder: boolean;
   /** Latest payload from a TodoWrite tool_use — the agent's current task list. */
