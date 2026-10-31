@@ -24,6 +24,7 @@ import { TokenExpiringPanel } from "@/components/chat/TokenExpiringPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { AutoModeOffNoticePanel } from "@/components/chat/AutoModeOffNoticePanel";
+import { ModeChangeRefusedNoticePanel } from "@/components/chat/ModeChangeRefusedNoticePanel";
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
@@ -83,6 +84,7 @@ import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { BashViewer } from "@/components/panels/BashViewer";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { BackgroundBash } from "@/lib/client/types";
+import { isLetterKey } from "@/lib/client/key-match";
 
 function todayKey(): string {
   const d = new Date();
@@ -962,7 +964,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   const [findNonce, setFindNonce] = useState(0);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+      if ((e.metaKey || e.ctrlKey) && isLetterKey(e, "f")) {
         e.preventDefault();
         setSearchOpen(true);
         setFindNonce((n) => n + 1);
@@ -2544,6 +2546,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           notice={session.autoModeOffNotice}
           onDismiss={session.dismissAutoModeOffNotice}
         />
+        <ModeChangeRefusedNoticePanel
+          notice={session.modeChangeRefusedNotice}
+          onDismiss={session.dismissModeChangeRefusedNotice}
+        />
         <SkippedSessionNotice
           sessionId={session.skippedBootSession}
           onOpenAnyway={session.openSkippedBootSession}
@@ -2596,6 +2602,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             toolProgress={session.toolProgress}
             replaying={session.replaying}
             hasMoreAbove={session.hasMoreAbove}
+            catchingUp={session.catchingUp}
             loadingOlder={session.loadingOlder}
             onLoadOlder={session.loadOlder}
             onPickExample={handleSend}

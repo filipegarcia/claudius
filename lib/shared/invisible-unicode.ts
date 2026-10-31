@@ -55,13 +55,90 @@
 const INVISIBLE_UNICODE_RE =
   /[\u{200B}\u{2060}\u{FEFF}\u{202A}-\u{202E}\u{2066}-\u{2069}\u{E0001}\u{E0020}-\u{E007F}]/gu;
 
-export function stripInvisibleUnicode(text: string): { cleaned: string; removedCount: number } {
+/** The bidi-control subset of `INVISIBLE_UNICODE_RE` (LRE..RLO, LRI..PDI). */
+const BIDI_CONTROL_RE = /^[\u{202A}-\u{202E}\u{2066}-\u{2069}]$/u;
+
+/**
+ * `bidiCount` is how many of the removed characters were bidi controls (CC
+ * 2.1.316 — those always hold a prompt for review, see
+ * `invisibleStripNeedsReview`). Existing callers that only read `cleaned` /
+ * `removedCount` are unaffected.
+ */
+export function stripInvisibleUnicode(text: string): {
+  cleaned: string;
+  removedCount: number;
+  bidiCount: number;
+} {
   let removedCount = 0;
-  const cleaned = text.replace(INVISIBLE_UNICODE_RE, () => {
+  let bidiCount = 0;
+  const cleaned = text.replace(INVISIBLE_UNICODE_RE, (ch) => {
     removedCount += 1;
+    if (BIDI_CONTROL_RE.test(ch)) bidiCount += 1;
     return "";
   });
-  return { cleaned, removedCount };
+  return { cleaned, removedCount, bidiCount };
+}
+
+/**
+ * CC 2.1.316 parity — "Fixed prompts containing invisible characters needing
+ * a second Enter to send; plain prompts now send cleaned on the first Enter,
+ * and commands still wait for review".
+ *
+ * Whether a prompt that had invisible characters stripped must be put back
+ * for review instead of being sent cleaned. Hold when nothing is left to
+ * send (empty once cleaned and nothing attached — an attached image still
+ * goes out, as an image-only send does), when a bidi control was removed (it
+ * could have been reordering what the user saw - the "Trojan Source" case),
+ * or when the cleaned text is a command (`/slash` or `!bash`) rather than a
+ * message to Claude. Claudius has no bare-word exit commands (only `/exit`,
+ * which the `/` rule covers), so "quit" with a stray zero-width space is a
+ * message and sends cleaned.
+ *
+ * `cleaned` is the text after `stripInvisibleUnicode`; `bidiCount` is its
+ * `bidiCount`; `hasAttachments` is whether images are attached to the send.
+ */
+export function invisibleStripNeedsReview(
+  cleaned: string,
+  bidiCount: number,
+  opts: { hasAttachments?: boolean } = {},
+): boolean {
+  const trimmed = cleaned.trim();
+  if (bidiCount > 0) return true;
+  if (trimmed === "") return !opts.hasAttachments;
+  return /^[/!]/.test(trimmed);
+}
+
+/**
+ * CC 2.1.316 — carry `{start, end}` offset ranges into `text` across
+ * `stripInvisibleUnicode(text)`, so ranges recorded against the composer's
+ * raw text (the large-paste ranges) still point at the same characters in
+ * the cleaned text that is actually sent. An offset inside a removed
+ * character lands where it was; a range that collapses to nothing is dropped.
+ */
+export function rebaseRangesThroughStrip<R extends { start: number; end: number }>(
+  ranges: R[],
+  text: string,
+): R[] {
+  const removed: Array<{ index: number; length: number }> = [];
+  for (const m of text.matchAll(INVISIBLE_UNICODE_RE)) {
+    removed.push({ index: m.index, length: m[0].length });
+  }
+  if (removed.length === 0) return ranges;
+  const map = (offset: number): number => {
+    let shift = 0;
+    for (const r of removed) {
+      if (r.index >= offset) break;
+      shift += Math.min(r.length, offset - r.index);
+    }
+    return offset - shift;
+  };
+  const out: R[] = [];
+  for (const r of ranges) {
+    const start = map(r.start);
+    const end = map(r.end);
+    if (end > start) out.push({ ...r, start, end });
+  }
+  return out;
 }
 
 /**

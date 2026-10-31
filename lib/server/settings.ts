@@ -32,6 +32,13 @@ export type PermissionRules = {
    * Claudius merging them itself).
    */
   blockReadsOutsideWorkingDirectories?: boolean;
+  /**
+   * SDK 0.3.314 — "Refuse file-tool writes (Write, Edit, NotebookEdit)
+   * outside the working directories in every permission mode; true in any
+   * settings source wins. No allow rule lifts it." Write-side twin of
+   * `blockReadsOutsideWorkingDirectories`; same per-scope plain toggle.
+   */
+  blockWritesOutsideWorkingDirectories?: boolean;
 };
 
 /**
@@ -318,8 +325,8 @@ export type ClaudeSettings = {
   syncClaudeAiSkills?: boolean;
   // SDK 0.3.292 — set to false to stop Claude Code compacting a long
   // conversation while the session is idle. Mirrors `Settings.idleCompaction`
-  // ("setting it to true does not turn idle compaction on", i.e. only
-  // false is honored). Config-passthrough: read by the bundled binary from
+  // (SDK 0.3.314: "Defaults to true", i.e. false is the opt-out).
+  // Config-passthrough: read by the bundled binary from
   // `~/.claude/settings.json`; the catalog row is all Claudius needs.
   idleCompaction?: boolean;
   // Claude Code 2.1.238 — set to "readline" to make Ctrl+W in the CLI's own

@@ -124,3 +124,78 @@ export function hasUltrathinkKeyword(text: string, pastes: readonly unknown[] = 
   }
   return findKeyword(scan, "ultrathink").length > 0;
 }
+
+/**
+ * CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns the
+ * ultrathink keyword off".
+ *
+ * The engine's gate is `!process.env.CLAUDE_CODE_DISABLE_ULTRATHINK && …`, so
+ * ANY non-empty value turns the keyword off — `"1"`, but also `"0"` and
+ * `"false"`. Only an unset or empty variable leaves it on. Claudius injects
+ * its own per-turn ultrathink reminder (`ultrathinkReminderBody` in
+ * `lib/server/session.ts`), so the session reads the same variable — from the
+ * env it hands the engine plus the settings `env` blocks — through this
+ * helper and skips the reminder when it's set.
+ */
+export function isUltrathinkDisabled(env: Readonly<Record<string, unknown>>): boolean {
+  const v = env.CLAUDE_CODE_DISABLE_ULTRATHINK;
+  return typeof v === "string" && v.length > 0;
+}
+
+/**
+ * `isUltrathinkDisabled` over the env the engine actually ends up with: the
+ * query env with each settings scope's `env` block applied on top, in order
+ * (user < project < local — later scopes win, so a local `""` re-enables a
+ * user-scope `"1"`). A layer whose `env` isn't an object adds nothing.
+ */
+export function isUltrathinkDisabledFor(
+  queryEnv: Readonly<Record<string, unknown>>,
+  settingsLayers: readonly unknown[] = [],
+): boolean {
+  const merged: Record<string, unknown> = { ...queryEnv };
+  for (const layer of settingsLayers) {
+    const layerEnv = layer && typeof layer === "object" ? (layer as { env?: unknown }).env : undefined;
+    if (layerEnv && typeof layerEnv === "object") Object.assign(merged, layerEnv);
+  }
+  return isUltrathinkDisabled(merged);
+}
+
+/**
+ * The scopes `resolveUltrathinkDisabled` reads after the user layer, in
+ * precedence order (later wins).
+ */
+export const ULTRATHINK_SETTINGS_SCOPES = ["project", "local"] as const;
+
+/**
+ * Session-start resolution of `CLAUDE_CODE_DISABLE_ULTRATHINK` (what
+ * `Session.start()` stores in `ultrathinkDisabled`). The engine reads the
+ * variable from its own env: the query env we hand it with each settings
+ * scope's `env` block applied on top (user < project < local). Restricted
+ * sessions ignore settings files engine-side (CC 2.1.248), so there only the
+ * query env counts and no scope is read. A scope whose read rejects adds
+ * nothing. `readScope` is injected so this stays pure (and testable) —
+ * the session passes `readSettings(scope, cwd)`.
+ */
+export async function resolveUltrathinkDisabled({
+  queryEnv,
+  restricted,
+  userSettings,
+  readScope,
+}: {
+  queryEnv: Readonly<Record<string, unknown>>;
+  restricted: boolean;
+  userSettings: unknown;
+  readScope: (scope: (typeof ULTRATHINK_SETTINGS_SCOPES)[number]) => Promise<unknown>;
+}): Promise<boolean> {
+  if (restricted) return isUltrathinkDisabledFor(queryEnv);
+  const scoped = await Promise.all(
+    ULTRATHINK_SETTINGS_SCOPES.map((scope) => {
+      try {
+        return Promise.resolve(readScope(scope)).catch(() => ({}));
+      } catch {
+        return Promise.resolve({});
+      }
+    }),
+  );
+  return isUltrathinkDisabledFor(queryEnv, [userSettings, ...scoped]);
+}

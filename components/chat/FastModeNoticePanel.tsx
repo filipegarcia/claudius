@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Zap, X } from "lucide-react";
-import { fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
+import { OPUS48_FAST_MIGRATE_HINT, fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
 
 /**
  * Transient toast-style banner that marks the *transition moment* when fast
@@ -31,7 +31,16 @@ import { fastModeDisabledReasonLabel } from "@/lib/shared/fast-mode";
  * Claudius derives it itself by comparing `supportsFastMode` for the old and
  * new model (see `Session.setModel`'s `fastModeNowSupported`).
  */
-export type FastModeNoticeKind = "cooldown" | "recovered" | "model-switch";
+/*
+ * A fourth kind, "deprecation" (CC 2.1.316 parity — "Deprecated fast mode for
+ * Opus 4.8 as of October 30, 2026; it will be removed on November 30,
+ * 2026…Migrate to Opus 5.5 to keep the speedup"), fires when the user turns
+ * fast mode on from the picker on Opus 4.8. The engine only emits its
+ * `opus48-fast-mode-deprecation` notice from its own `/fast` command, never
+ * for the `applyFlagSettings` path Claudius uses, so `use-session.ts` raises
+ * the engine's text here instead (amber — a warning, not an error).
+ */
+export type FastModeNoticeKind = "cooldown" | "recovered" | "model-switch" | "deprecation";
 
 export type FastModeNotice =
   | {
@@ -45,7 +54,9 @@ export type FastModeNotice =
        */
       reason?: string;
     }
-  | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean };
+  | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+  /** CC 2.1.316 — `text` is the engine's verbatim deprecation notice. */
+  | { uuid: string; kind: "deprecation"; text: string };
 
 const AUTO_DISMISS_MS = 8_000;
 
@@ -70,26 +81,32 @@ export function FastModeNoticePanel({
   const isModelSwitch = notice.kind === "model-switch";
   // For "model-switch", tone/headline hinge on whether fast mode just
   // became available (positive, like "recovered") or unavailable (negative,
-  // like "cooldown") on the newly-picked model.
+  // like "cooldown") on the newly-picked model. "deprecation" is amber.
   const isPositive = isModelSwitch ? notice.nowSupported : notice.kind === "recovered";
   const tone = isPositive
     ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-100"
     : "border-amber-500/40 bg-amber-500/10 text-amber-100";
   const iconTone = isPositive ? "text-emerald-400" : "text-amber-400";
-  const headline = isModelSwitch
-    ? notice.nowSupported
-      ? `Fast mode is now available on ${notice.model}`
-      : `Fast mode is no longer available on ${notice.model}`
-    : notice.kind === "cooldown"
-      ? "Fast mode temporarily unavailable"
-      : "Fast mode reset — back to fast";
-  const detail = isModelSwitch
-    ? notice.nowSupported
-      ? "You can turn it on for this session."
-      : "Running in normal mode on this model."
-    : notice.kind === "cooldown"
-      ? fastModeDisabledReasonLabel(notice.reason)
-      : "Now using fast mode again.";
+  const headline =
+    notice.kind === "deprecation"
+      ? notice.text
+      : isModelSwitch
+        ? notice.nowSupported
+          ? `Fast mode is now available on ${notice.model}`
+          : `Fast mode is no longer available on ${notice.model}`
+        : notice.kind === "cooldown"
+          ? "Fast mode temporarily unavailable"
+          : "Fast mode reset — back to fast";
+  const detail =
+    notice.kind === "deprecation"
+      ? OPUS48_FAST_MIGRATE_HINT
+      : isModelSwitch
+        ? notice.nowSupported
+          ? "You can turn it on for this session."
+          : "Running in normal mode on this model."
+        : notice.kind === "cooldown"
+          ? fastModeDisabledReasonLabel(notice.reason)
+          : "Now using fast mode again.";
 
   return (
     <div

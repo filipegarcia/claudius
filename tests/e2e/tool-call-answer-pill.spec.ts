@@ -37,10 +37,23 @@ async function reopenCount(page: Page): Promise<number> {
   return Number(txt);
 }
 
+/**
+ * The preview page is server-rendered, so its pills are visible (and
+ * clickable) before React attaches handlers; a click in that window is lost
+ * and the counter stays put. Wait until the root carries React's fiber key.
+ */
+async function waitForHydration(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="tool-call-preview-root"]');
+    return !!el && Object.keys(el).some((k) => k.startsWith("__reactFiber"));
+  });
+}
+
 test.describe("AskUserQuestion pill", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dev/tool-call-preview");
     await expect(page.getByTestId("tool-call-preview-root")).toBeVisible();
+    await waitForHydration(page);
   });
 
   test("renders live (pulsing) Answer pill on the matching row", async ({ page }) => {
@@ -98,8 +111,7 @@ test.describe("AskUserQuestion pill", () => {
     const scope = page.getByTestId("case-body:ask-live-match");
     const before = await reopenCount(page);
     await pillIn(scope).click();
-    const after = await reopenCount(page);
-    expect(after - before).toBe(1);
+    await expect.poll(() => reopenCount(page)).toBe(before + 1);
 
     // The expand body is conditionally rendered ("input" label appears only
     // when open). Confirm the row stayed collapsed after the pill click.
@@ -119,8 +131,7 @@ test.describe("AskUserQuestion pill", () => {
     const before = await reopenCount(page);
     await pillIn(scope).focus();
     await page.keyboard.press("Enter");
-    const after = await reopenCount(page);
-    expect(after - before).toBe(1);
+    await expect.poll(() => reopenCount(page)).toBe(before + 1);
   });
 
   test("pill is keyboard-activatable (Space) and counts as a reopen", async ({ page }) => {
@@ -128,8 +139,7 @@ test.describe("AskUserQuestion pill", () => {
     const before = await reopenCount(page);
     await pillIn(scope).focus();
     await page.keyboard.press(" ");
-    const after = await reopenCount(page);
-    expect(after - before).toBe(1);
+    await expect.poll(() => reopenCount(page)).toBe(before + 1);
   });
 
   test("rapid double-click counts as two reopens (no debouncing)", async ({ page }) => {
@@ -142,8 +152,7 @@ test.describe("AskUserQuestion pill", () => {
     const before = await reopenCount(page);
     await pillIn(scope).click();
     await pillIn(scope).click();
-    const after = await reopenCount(page);
-    expect(after - before).toBe(2);
+    await expect.poll(() => reopenCount(page)).toBe(before + 2);
   });
 });
 
@@ -151,6 +160,7 @@ test.describe("AssistantMessage integration — pill variant per row", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dev/tool-call-preview");
     await expect(page.getByTestId("tool-call-preview-root")).toBeVisible();
+    await waitForHydration(page);
   });
 
   test("the live (matching) ask row is suppressed; the non-matching one shows the historic pill", async ({
@@ -196,7 +206,6 @@ test.describe("AssistantMessage integration — pill variant per row", () => {
     const scope = page.getByTestId("case:integration-matching");
     const before = await reopenCount(page);
     await pillIn(scope).first().click();
-    const after = await reopenCount(page);
-    expect(after - before).toBe(1);
+    await expect.poll(() => reopenCount(page)).toBe(before + 1);
   });
 });

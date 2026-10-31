@@ -95,7 +95,19 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       { status: 409 },
     );
   }
-  return NextResponse.json({ ok: true, model: result.model ?? null });
+  // CC 2.1.316 — the unknown-model warning (chat-command switches only) also
+  // rides the response, so the tab that typed `/model <id>` shows it even if
+  // the `model_changed` broadcast raced ahead of or behind it.
+  return NextResponse.json({
+    ok: true,
+    model: result.model ?? null,
+    ...(result.unrecognizedModelWarning
+      ? {
+          unrecognizedModelWarning: result.unrecognizedModelWarning,
+          unrecognizedModelWarningId: result.unrecognizedModelWarningId,
+        }
+      : {}),
+  });
 }
 
 /**

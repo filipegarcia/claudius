@@ -39,6 +39,27 @@ export type StoredSession = SDKSessionInfo & {
  * makes the limit per-workspace, so every session in that workspace is
  * visible. Omit `dir` for a genuinely global listing.
  */
+/**
+ * CC 2.1.314 — "[VSCode] Fixed session group changes that cannot be saved,
+ * such as a delete, failing silently; an error notification now appears".
+ * Claudius has no session groups, but its delete and rename had the same
+ * silent failure: the hook returned a bare boolean, and the pages dropped
+ * it. Callers now get the reason so they can show it.
+ */
+export type SessionActionResult = { ok: true } | { ok: false; error: string };
+
+async function sessionAction(url: string, init: RequestInit): Promise<SessionActionResult> {
+  try {
+    const res = await fetch(url, init);
+    if (res.ok) return { ok: true };
+    const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+    const error = typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`;
+    return { ok: false, error };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export function useSessionsHistory(opts: { dir?: string } = {}) {
   const { dir } = opts;
   const [sessions, setSessions] = useState<StoredSession[]>([]);
@@ -106,14 +127,14 @@ export function useSessionsHistory(opts: { dir?: string } = {}) {
   const hasMore = hasMoreSessions(sessions.length, limit);
 
   const rename = useCallback(
-    async (sessionId: string, title: string, dir?: string) => {
-      const res = await fetch("/api/sessions/rename", {
+    async (sessionId: string, title: string, dir?: string): Promise<SessionActionResult> => {
+      const result = await sessionAction("/api/sessions/rename", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, title, dir }),
       });
-      if (res.ok) refresh();
-      return res.ok;
+      if (result.ok) refresh();
+      return result;
     },
     [refresh],
   );
@@ -136,11 +157,11 @@ export function useSessionsHistory(opts: { dir?: string } = {}) {
   );
 
   const remove = useCallback(
-    async (sessionId: string, dir?: string) => {
+    async (sessionId: string, dir?: string): Promise<SessionActionResult> => {
       const url = `/api/sessions/file/${sessionId}${dir ? `?dir=${encodeURIComponent(dir)}` : ""}`;
-      const res = await fetch(url, { method: "DELETE" });
-      if (res.ok) refresh();
-      return res.ok;
+      const result = await sessionAction(url, { method: "DELETE" });
+      if (result.ok) refresh();
+      return result;
     },
     [refresh],
   );

@@ -22,6 +22,7 @@ import { FileTree, type Entry } from "@/components/files/FileTree";
 import { HighlightedEditor } from "@/components/files/HighlightedEditor";
 import { BinaryFilePlaceholder, saveButtonTitle } from "@/components/files/BinaryFilePlaceholder";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
+import { isLetterKey } from "@/lib/client/key-match";
 
 type FileContent = {
   /** Server-resolved root id (`primary` or `extra:<n>`). */
@@ -572,7 +573,7 @@ export default function FilesPage() {
                             (e.metaKey || e.ctrlKey) &&
                             !e.shiftKey &&
                             !e.altKey &&
-                            e.key.toLowerCase() === "s"
+                            isLetterKey(e, "s")
                           ) {
                             e.preventDefault();
                             void onSave();

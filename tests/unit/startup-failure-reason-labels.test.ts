@@ -31,6 +31,7 @@ describe("STARTUP_FAILURE_REASON_LABELS", () => {
     "bypass_root",
     "org_config_required_unavailable",
     "org_config_refused",
+    "sandbox_required_unavailable",
   ];
 
   test("covers every reason value the SDK documents", () => {
