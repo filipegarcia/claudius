@@ -117,6 +117,8 @@ import {
   removeByUuid as removeQueuedByUuid,
   updateByUuid as updateQueuedByUuid,
   moveByUuid as moveQueuedByUuid,
+  holdAll as holdAllQueued,
+  releaseHolds as releaseQueuedHolds,
   type QueuedMessageRow,
 } from "./queued-messages-db";
 import type { QueuedMessageMeta } from "@/lib/shared/events";
@@ -3573,7 +3575,12 @@ export class Session {
     // run. `flushQueueIfIdle` guards on `getStatus() === "idle"`, so if a
     // resumed turn is somehow already running we'll skip and the result-
     // handler drain picks it up later.
-    void this.flushQueueIfIdle().catch(() => {});
+    //
+    // CC 2.1.316 parity — "Self-hosted runner: Fixed a message sent while
+    // Claude was working being answered after a Stop, once the session's
+    // process had been replaced": rows the user stopped behind stay queued
+    // (`unlessHeld`), just as the replaced Session would have left them.
+    void this.flushQueueIfIdle({ unlessHeld: true }).catch(() => {});
   }
 
   private startJsonlWatcher(): void {
@@ -5291,6 +5298,23 @@ export class Session {
    */
   async interrupt(): Promise<{ stillQueued: string[] }> {
     if (!this.query) return { stillQueued: [] };
+    // CC 2.1.316 parity — "Self-hosted runner: Fixed a message sent while
+    // Claude was working being answered after a Stop, once the session's
+    // process had been replaced". Stop leaves queued messages in place and
+    // this Session won't drain them (only a successful turn does), but a
+    // replacement Session — dead-process restart, account switch, idle-reaper
+    // revival, server restart — drains the persisted queue at the end of
+    // `start()`. Mark what's queued behind the stopped turn as held so that
+    // drain leaves it alone. Status is read before any await; a DB failure
+    // must never stop the interrupt itself from going out.
+    if (this.getStatus() !== "idle") {
+      try {
+        await holdAllQueued(this.cwd, this.id);
+        this.queueCache = this.queueCache.map((r) => ({ ...r, heldByStop: true }));
+      } catch {
+        // best-effort — worst case is the pre-2.1.316 behaviour
+      }
+    }
     const receipt = await this.query.interrupt().catch(() => undefined);
     return { stillQueued: receipt?.still_queued ?? [] };
   }
@@ -8148,6 +8172,10 @@ export class Session {
     fromGoal?: boolean;
   }): Promise<string> {
     await this.loadQueueIfNeeded();
+    // CC 2.1.316 parity — a fresh message from the user after a Stop ends the
+    // Stop's hold on the rows ahead of it (see `interrupt`): the queue goes
+    // back to draining exactly as it does in-process.
+    await this.releaseQueueHolds();
     const uuid = input.uuid ?? randomUUID();
     const row = await enqueueTail(this.cwd, {
       sessionId: this.id,
@@ -8276,8 +8304,15 @@ export class Session {
    *
    * Guarded by `isDraining` to prevent two concurrent callers from popping
    * twice in one boundary (see the field comment).
+   *
+   * CC 2.1.316 parity — "Self-hosted runner: Fixed a message sent while
+   * Claude was working being answered after a Stop, once the session's
+   * process had been replaced". `opts.unlessHeld` (the `start()` call only)
+   * leaves the queue intact when its head is held by a Stop (`interrupt`);
+   * every other drain behaves as before. Holds clear on the next successful
+   * turn (`drainQueueAfterSuccess`) or a fresh enqueue.
    */
-  private async flushQueueIfIdle(): Promise<void> {
+  private async flushQueueIfIdle(opts?: { unlessHeld?: boolean }): Promise<void> {
     if (this.done) return;
     if (this.isDraining) return;
     if (this.getStatus() !== "idle") return;
@@ -8289,7 +8324,7 @@ export class Session {
       // could have flipped us back to running between the guard above and
       // the popHead below.
       if (this.getStatus() !== "idle") return;
-      const head = await popQueueHead(this.cwd, this.id);
+      const head = await popQueueHead(this.cwd, this.id, opts?.unlessHeld ? { unlessHeld: true } : undefined);
       if (!head) return;
       this.queueCache = this.queueCache.filter((r) => r.uuid !== head.uuid);
       this.broadcastQueue();
@@ -8308,6 +8343,33 @@ export class Session {
     } finally {
       this.isDraining = false;
     }
+  }
+
+  /**
+   * CC 2.1.316 parity — clear any Stop hold on this session's queue (see
+   * `interrupt`). The cache mirrors the DB's flag (loaded from it, and
+   * updated by `interrupt`), so nothing is written when nothing is held.
+   */
+  private async releaseQueueHolds(): Promise<void> {
+    await this.loadQueueIfNeeded();
+    if (!this.queueCache.some((r) => r.heldByStop)) return;
+    try {
+      await releaseQueuedHolds(this.cwd, this.id);
+    } catch {
+      return; // keep the cache in step with the DB, which still holds them
+    }
+    this.queueCache = this.queueCache.map((r) => (r.heldByStop ? { ...r, heldByStop: false } : r));
+  }
+
+  /**
+   * The drain after a turn that ended in success. CC 2.1.316 parity — a
+   * successful turn ends any Stop hold first (`releaseQueueHolds`), so the
+   * queue then drains exactly as it does in a Session that was never
+   * replaced.
+   */
+  private async drainQueueAfterSuccess(): Promise<void> {
+    await this.releaseQueueHolds();
+    await this.flushQueueIfIdle();
   }
 
   /**
@@ -9731,7 +9793,7 @@ export class Session {
               () => {},
             );
             void todosSettled.then(() =>
-              this.flushQueueIfIdle().catch(() => {
+              this.drainQueueAfterSuccess().catch(() => {
                 // drain failures are non-fatal; the next idle transition
                 // will retry.
               }),
