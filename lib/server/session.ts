@@ -146,6 +146,7 @@ import {
   shouldLeaveAutoForModel,
   type SetPermissionModeResult,
 } from "@/lib/shared/permission-modes";
+import { unknownModelWarning } from "@/lib/shared/model-recognition";
 import {
   readSettings,
   writeSettings,
@@ -5829,7 +5830,10 @@ export class Session {
   async setModel(
     model?: string,
     source: "picker" | "chat_command" = "picker",
-  ): Promise<{ ok: true; model?: string } | { ok: false; error: string; model?: string }> {
+  ): Promise<
+    | { ok: true; model?: string; unrecognizedModelWarning?: string }
+    | { ok: false; error: string; model?: string }
+  > {
     // Forward the pick to the active SDK query and surface its rejection
     // instead of swallowing. Previously a `.catch(() => {})` discarded
     // failures, so the picker would close and the optimistic UI would claim
@@ -5915,12 +5919,20 @@ export class Session {
     const autoModeOffFor = models
       ? await this.leaveAutoIfModelUnsupported(model ?? this.sdkModel, models)
       : undefined;
+    // CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
+    // recognized by this version and auto-compact will assume a 200K context
+    // window". The engine only warns from its own terminal `/model`; Claudius
+    // runs `/model <id>` itself, so it warns here (same catalog fetch as
+    // above) for a chat-command switch to an id it can't recognize.
+    const unrecognizedModelWarning =
+      source === "chat_command" ? await this.unrecognizedModelWarningFor(model, models) : null;
     this.broadcast({
       type: "model_changed",
       model,
       source,
       ...(fastModeNowSupported !== undefined ? { fastModeNowSupported } : {}),
       ...(autoModeOffFor ? { autoModeOffFor } : {}),
+      ...(unrecognizedModelWarning ? { unrecognizedModelWarning } : {}),
     });
 
     // Auto-disable the advisor when the model changes. The advisor tool
@@ -5958,7 +5970,35 @@ export class Session {
       });
     }
 
-    return { ok: true, model };
+    return { ok: true, model, ...(unrecognizedModelWarning ? { unrecognizedModelWarning } : {}) };
+  }
+
+  /**
+   * CC 2.1.316 — the engine's unknown-model warning for a `/model <id>`
+   * switch, or `null`. Gates read the env the engine sees (`process.env`
+   * under the settings files' `env` blocks) and the layered settings
+   * (user < project < local) for `autoCompactEnabled` / `autoCompactWindow` /
+   * `modelSettings`. Best-effort: a settings read failure just means fewer
+   * gates, never a failed switch.
+   */
+  private async unrecognizedModelWarningFor(
+    model: string | undefined,
+    models: ModelInfo[] | undefined,
+  ): Promise<string | null> {
+    if (!model) return null;
+    const layers = await Promise.all(
+      (["user", "project", "local"] as const).map((scope) =>
+        readSettings(scope, this.cwd).catch(() => ({}) as ClaudeSettings),
+      ),
+    );
+    const merged: Record<string, unknown> = {};
+    const env: Record<string, string | undefined> = { ...process.env };
+    for (const layer of layers) {
+      const { env: layerEnv, ...rest } = layer as Record<string, unknown>;
+      Object.assign(merged, rest);
+      if (layerEnv && typeof layerEnv === "object") Object.assign(env, layerEnv);
+    }
+    return unknownModelWarning({ model, models, env, settings: merged });
   }
 
   /**

@@ -221,6 +221,14 @@ export type ModelChangedEvent = {
    * `mode_changed`, broadcast just before this event.
    */
   autoModeOffFor?: string;
+  /**
+   * CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
+   * recognized by this version and auto-compact will assume a 200K context
+   * window". Set only on a `chat_command` switch to an id Claudius can't
+   * recognize (see `lib/shared/model-recognition.ts`); carries the engine's
+   * verbatim warning for the chat-command model notice.
+   */
+  unrecognizedModelWarning?: string;
 };
 
 /**

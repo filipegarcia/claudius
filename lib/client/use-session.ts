@@ -1190,6 +1190,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     uuid: string;
     model: string;
     reason: "chat_command" | "auto";
+    /**
+     * CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
+     * recognized by this version and auto-compact will assume a 200K context
+     * window". Filled from `model_changed.unrecognizedModelWarning` (live
+     * only, never on replay) or the `/model` POST response.
+     */
+    unrecognizedModelWarning?: string;
   } | null>(null);
   /**
    * Transient toast shown when the server auto-disabled the advisor because
@@ -2487,7 +2494,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // When the switch came from a `/model` chat command (not the picker),
         // surface the "Your pick becomes the default for new sessions" notice.
         if (ev.source === "chat_command" && ev.model) {
-          setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model, reason: "chat_command" });
+          // CC 2.1.316 — the unknown-model warning sticks until dismissed, so
+          // a reload replaying an old switch must not resurrect it.
+          const warning = !replayingRef.current ? ev.unrecognizedModelWarning : undefined;
+          setChatCommandModelNotice({
+            uuid: crypto.randomUUID(),
+            model: ev.model,
+            reason: "chat_command",
+            ...(warning ? { unrecognizedModelWarning: warning } : {}),
+          });
         } else if (ev.source === "auto" && ev.model) {
           // Automatic fallback (SDK 0.3.251 PostModelSwitch hook) — this used
           // to swap the running model with no client-visible signal at all.
@@ -6412,6 +6427,20 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           attempted: m,
           error: body.error ?? `HTTP ${r.status}`,
         });
+      } else if (source === "chat_command" && m) {
+        // CC 2.1.316 — the unknown-model warning also rides the response, so
+        // this tab shows it whichever of the response / `model_changed`
+        // broadcast lands first. Merge into the switch notice if the
+        // broadcast already raised it, otherwise raise it.
+        const body = (await r.json().catch(() => ({}))) as { unrecognizedModelWarning?: string };
+        const warning = body.unrecognizedModelWarning;
+        if (typeof warning === "string" && warning) {
+          setChatCommandModelNotice((prev) =>
+            prev && prev.reason === "chat_command" && prev.model === m
+              ? { ...prev, unrecognizedModelWarning: warning }
+              : { uuid: crypto.randomUUID(), model: m, reason: "chat_command", unrecognizedModelWarning: warning },
+          );
+        }
       }
     } catch {
       // Network blip — leave the optimistic state and let the next event /

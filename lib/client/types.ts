@@ -1050,6 +1050,8 @@ export type ChatState = {
     /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
     model: string;
     reason: "chat_command" | "auto";
+    /** CC 2.1.316 — the engine's unknown-model warning (`/model <id>` only). */
+    unrecognizedModelWarning?: string;
   } | null;
   /**
    * CC 2.1.299 parity — transient notice shown when a model switch took the
