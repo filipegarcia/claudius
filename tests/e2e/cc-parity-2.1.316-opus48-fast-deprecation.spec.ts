@@ -64,7 +64,7 @@ const PRELUDE: SdkEvent[] = [
   { type: "replay_done", hasMoreAbove: false },
 ];
 
-async function mockChatBackend(page: Page) {
+async function mockChatBackend(page: Page, live: SdkEvent[] = []) {
   await page.route("**/api/sessions", async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: FAKE_SESSION_ID }) });
@@ -73,7 +73,7 @@ async function mockChatBackend(page: Page) {
     return route.fulfill({
       status: 200,
       headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
-      body: sseBody(PRELUDE),
+      body: sseBody([...PRELUDE, ...live]),
     });
   });
   await page.route(`**/api/sessions/${FAKE_SESSION_ID}/model`, async (route: Route) => {
@@ -160,4 +160,30 @@ test("Opus 5.5 (the opus alias) shows no deprecation", async ({ page }) => {
   await panel.getByTestId("model-picker-fast").click();
   await page.waitForTimeout(300);
   await expect(page.locator('[data-fast-mode-notice="deprecation"]')).toHaveCount(0);
+});
+
+test("the engine's own deprecation notice (typed /fast on) renders as a warning, not an error", async ({ page }) => {
+  // The 2.1.316 engine emits it from its `/fast` command: priority
+  // `immediate` (which alone tones a notification red) but color `warning`.
+  await mockChatBackend(page, [
+    {
+      type: "sdk",
+      message: {
+        type: "system",
+        subtype: "notification",
+        uuid: "notif-316-o48-dep",
+        session_id: FAKE_SESSION_ID,
+        key: "opus48-fast-mode-deprecation",
+        text: ENGINE_TEXT,
+        priority: "immediate",
+        color: "warning",
+      },
+    },
+  ]);
+  await page.goto("/");
+  const line = page.getByText(ENGINE_TEXT, { exact: true });
+  await expect(line).toBeVisible({ timeout: 30_000 });
+  const icon = line.locator("xpath=preceding-sibling::*[local-name()='svg'][1]");
+  await expect(icon).toHaveClass(/text-amber-400/);
+  await expect(icon).not.toHaveClass(/text-red-400/);
 });

@@ -5889,7 +5889,7 @@ export class Session {
     model?: string,
     source: "picker" | "chat_command" = "picker",
   ): Promise<
-    | { ok: true; model?: string; unrecognizedModelWarning?: string }
+    | { ok: true; model?: string; unrecognizedModelWarning?: string; unrecognizedModelWarningId?: string }
     | { ok: false; error: string; model?: string }
   > {
     // Forward the pick to the active SDK query and surface its rejection
@@ -5984,13 +5984,20 @@ export class Session {
     // above) for a chat-command switch to an id it can't recognize.
     const unrecognizedModelWarning =
       source === "chat_command" ? await this.unrecognizedModelWarningFor(model, models) : null;
+    // One id per warning, on both the broadcast and the POST result, so the
+    // client shows each warning at most once — an SSE blip replaying this
+    // event, or the response landing after it, can't resurrect a dismissed
+    // one.
+    const warning = unrecognizedModelWarning
+      ? { unrecognizedModelWarning, unrecognizedModelWarningId: randomUUID() }
+      : {};
     this.broadcast({
       type: "model_changed",
       model,
       source,
       ...(fastModeNowSupported !== undefined ? { fastModeNowSupported } : {}),
       ...(autoModeOffFor ? { autoModeOffFor } : {}),
-      ...(unrecognizedModelWarning ? { unrecognizedModelWarning } : {}),
+      ...warning,
     });
 
     // Auto-disable the advisor when the model changes. The advisor tool
@@ -6028,7 +6035,7 @@ export class Session {
       });
     }
 
-    return { ok: true, model, ...(unrecognizedModelWarning ? { unrecognizedModelWarning } : {}) };
+    return { ok: true, model, ...warning };
   }
 
   /**
@@ -6036,7 +6043,9 @@ export class Session {
    * switch, or `null`. Gates read the env the engine sees (`process.env`
    * under the settings files' `env` blocks) and the layered settings
    * (user < project < local) for `autoCompactEnabled` / `autoCompactWindow` /
-   * `modelSettings`. Best-effort: a settings read failure just means fewer
+   * `modelSettings`, and `modelOverrides` (whose keys / values count as
+   * recognized ids; shallow merge — the highest layer's whole map wins, as
+   * in the engine). Best-effort: a settings read failure just means fewer
    * gates, never a failed switch.
    */
   private async unrecognizedModelWarningFor(

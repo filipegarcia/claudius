@@ -226,9 +226,15 @@ export type ModelChangedEvent = {
    * recognized by this version and auto-compact will assume a 200K context
    * window". Set only on a `chat_command` switch to an id Claudius can't
    * recognize (see `lib/shared/model-recognition.ts`); carries the engine's
-   * verbatim warning for the chat-command model notice.
+   * warning (its wording, except "Update Claudius" and the docs URL moved
+   * into the notice's link) for the chat-command model notice.
    */
   unrecognizedModelWarning?: string;
+  /**
+   * Server-minted id of that warning (also on the `/model` POST response),
+   * so the client shows each warning at most once across SSE replays.
+   */
+  unrecognizedModelWarningId?: string;
 };
 
 /**

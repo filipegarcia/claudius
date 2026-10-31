@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   OPUS48_FAST_DEPRECATION_KEY,
   OPUS48_FAST_REMOVAL_ISO,
+  notificationColor,
   opus48FastDeprecationText,
 } from "@/lib/shared/fast-mode";
 
@@ -43,5 +44,25 @@ describe("opus48FastDeprecationText", () => {
     expect(opus48FastDeprecationText("claude-opus-4-8", removal - 1)).toBe(TEXT);
     expect(opus48FastDeprecationText("claude-opus-4-8", removal)).toBeNull();
     expect(opus48FastDeprecationText("claude-opus-4-8", removal + 86_400_000)).toBeNull();
+  });
+});
+
+describe("notificationColor", () => {
+  // The engine sends the deprecation as `immediate` + color `warning`; the
+  // priority alone would tone the transcript pill red.
+  test("an engine color wins", () => {
+    expect(notificationColor({ key: OPUS48_FAST_DEPRECATION_KEY, color: "warning" })).toBe("warning");
+    expect(notificationColor({ key: "fast-mode-overage-rejected", color: "error" })).toBe("error");
+    expect(notificationColor({ key: "x", color: "warning" })).toBe("warning");
+  });
+
+  test("the deprecation key is a warning even without a color", () => {
+    expect(notificationColor({ key: OPUS48_FAST_DEPRECATION_KEY })).toBe("warning");
+  });
+
+  test("anything else is toned by priority", () => {
+    expect(notificationColor({ key: "x" })).toBeUndefined();
+    expect(notificationColor({ key: "x", color: "suggestion" })).toBeUndefined();
+    expect(notificationColor({})).toBeUndefined();
   });
 });

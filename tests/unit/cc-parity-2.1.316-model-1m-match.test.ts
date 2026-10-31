@@ -30,6 +30,16 @@ describe("findModelEntry", () => {
     expect(findModelEntry([SONNET, OPUS], "claude-opus-5-5[1m]")).toBe(OPUS);
   });
 
+  test("a tagged full id prefers an explicit row over the leading Default row", () => {
+    // The engine always lists `{ value: "default", resolvedModel: <default> }` first.
+    const DEFAULT = { value: "default", resolvedModel: "claude-opus-5-5", displayName: "Default" };
+    expect(findModelEntry([DEFAULT, SONNET, OPUS], "claude-opus-5-5[1m]")).toBe(OPUS);
+    // Only the Default row resolves there → Default.
+    expect(findModelEntry([DEFAULT, SONNET], "claude-opus-5-5[1m]")).toBe(DEFAULT);
+    // An exact `default` pick still checks Default.
+    expect(findModelEntry([DEFAULT, OPUS], "default")).toBe(DEFAULT);
+  });
+
   test("never crosses families", () => {
     expect(findModelEntry([SONNET], "opus[1m]")).toBeNull();
     expect(findModelEntry([OPUS], "sonnet[1m]")).toBeNull();

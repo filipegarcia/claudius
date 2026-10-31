@@ -103,6 +103,18 @@ export function isFastModeCreditsRejectedNotice(msg: unknown): boolean {
  */
 export const OPUS48_FAST_DEPRECATION_KEY = "opus48-fast-mode-deprecation";
 
+/**
+ * The pill tone for a `system/notification`: its `color` when the engine
+ * sends `warning` / `error`, else `undefined` (toned by priority). The Opus
+ * 4.8 deprecation is a warning (amber) even when it arrives without a color
+ * — its `immediate` priority alone would render it red.
+ */
+export function notificationColor(msg: { key?: unknown; color?: unknown }): "warning" | "error" | undefined {
+  if (msg.color === "warning" || msg.color === "error") return msg.color;
+  if (msg.key === OPUS48_FAST_DEPRECATION_KEY) return "warning";
+  return undefined;
+}
+
 /** Removal date — the engine's `tengu_sunset_penguin_opus48` flag default. */
 export const OPUS48_FAST_REMOVAL_ISO = "2026-11-30";
 

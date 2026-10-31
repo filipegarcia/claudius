@@ -12,18 +12,32 @@
  * Claudius can't see the engine's model catalog, so "recognized" is
  * deliberately generous — a stale hand list would warn on every new model.
  * An id is recognized when ANY of: it's a model alias; it matches a
- * `supportedModels()` row (`value` or `resolvedModel`); or it parses as a
- * Claude family id of any version (`claude-opus-9-1`, Bedrock / Vertex
- * wrappers, dotted gateway spellings, legacy `claude-3-5-sonnet`). Only ids
- * outside all of those (`my-gateway-model`, `gpt-x`) warn.
+ * `supportedModels()` row (`value` or `resolvedModel`); it's a key or value
+ * of the merged `settings.modelOverrides` map (Anthropic id → provider id);
+ * or it parses as a Claude family id of any version (`claude-opus-9-1`,
+ * Bedrock / Vertex wrappers, dotted gateway spellings, legacy
+ * `claude-3-5-sonnet`). Only ids outside all of those (`my-gateway-model`,
+ * `gpt-x`) warn.
+ *
+ * The family check is anchored: the `claude-` (or bare `opus-` / `sonnet-`
+ * …) token must start the id or follow a provider-wrapper boundary (`.`,
+ * `/`, `:`, `@` — `us.anthropic.claude-…`, `anthropic.claude-…`,
+ * `publishers/anthropic/models/claude-…`, `arn:…/us.anthropic.claude-…`), so
+ * `my-claude-sonnet-4-finetune` warns. What follows the version is not
+ * checked: future versions of a known family (`claude-opus-9-1`) must stay
+ * recognized without a Claudius release, and the accepted cost of that
+ * no-false-positive trade-off is that a custom id that merely starts with a
+ * family token (`claude-sonnet-4-finetune`) is treated as recognized too.
  */
 
-import { canonicalModelId } from "./advisor";
-import { normalizeDottedModelVersion, stripOneMTag } from "./model-id";
+import { stripOneMTag } from "./model-id";
 
 /** Docs anchor the engine links (verbatim, `fIo` in the 2.1.316 bundle). */
 export const UNKNOWN_MODEL_WINDOW_DOCS_URL =
   "https://code.claude.com/docs/en/model-config#correct-the-window-for-a-gateway-or-custom-model-id";
+
+/** The warning's words the notice links to the docs anchor above. */
+export const UNKNOWN_MODEL_WINDOW_LINK_TEXT = "set the window";
 
 /** The window auto-compact assumes for a model it doesn't know. */
 export const UNKNOWN_MODEL_ASSUMED_WINDOW = 200_000;
@@ -39,31 +53,38 @@ const MODEL_ALIASES = new Set([
   "opusplan",
 ]);
 
+// Each pattern is anchored at the start of the id or a provider-wrapper
+// boundary (`.` `/` `:` `@`) — see the module header.
+/** `claude-<family>-<n>` of any version, dashed or dotted (`claude-opus-4.8`). */
+const CLAUDE_FAMILY_VERSION = /(?:^|[./:@])claude-(?:opus|sonnet|haiku|fable|mythos)-\d/;
 /** Bare gateway spellings (`sonnet-5.5`, `opus-4-8`) of a known family. */
-const BARE_FAMILY_VERSION = /(?:^|[^a-z])(?:opus|sonnet|haiku|fable|mythos)-\d/;
+const BARE_FAMILY_VERSION = /(?:^|[./:@])(?:opus|sonnet|haiku|fable|mythos)-\d/;
 /** Legacy ids: `claude-3-5-sonnet-…`, `claude-instant-1.2`, `claude-2.1`. */
-const LEGACY_CLAUDE = /claude-(?:\d+(?:[-.]\d+)?-(?:opus|sonnet|haiku)\b|instant\b|[12](?:\.\d)?$)/;
+const LEGACY_CLAUDE = /(?:^|[./:@])claude-(?:\d+(?:[-.]\d+)?-(?:opus|sonnet|haiku)\b|instant\b|[12](?:\.\d)?$)/;
 
 type CatalogRow = { value: string; resolvedModel?: string };
+
+function sameId(a: string, bare: string): boolean {
+  return stripOneMTag(a).toLowerCase() === bare;
+}
 
 export function isRecognizedModel(
   id: string | null | undefined,
   models?: readonly CatalogRow[] | null,
+  modelOverrides?: unknown,
 ): boolean {
   if (typeof id !== "string" || !id.trim()) return true; // nothing to warn about
   const bare = stripOneMTag(id).toLowerCase();
   if (MODEL_ALIASES.has(bare)) return true;
-  if (
-    models?.some(
-      (m) =>
-        stripOneMTag(m.value).toLowerCase() === bare ||
-        (!!m.resolvedModel && stripOneMTag(m.resolvedModel).toLowerCase() === bare),
-    )
-  ) {
+  if (models?.some((m) => sameId(m.value, bare) || (!!m.resolvedModel && sameId(m.resolvedModel, bare)))) {
     return true;
   }
-  if (canonicalModelId(normalizeDottedModelVersion(bare))) return true;
-  return BARE_FAMILY_VERSION.test(bare) || LEGACY_CLAUDE.test(bare);
+  if (modelOverrides && typeof modelOverrides === "object") {
+    for (const [from, to] of Object.entries(modelOverrides as Record<string, unknown>)) {
+      if (sameId(from, bare) || (typeof to === "string" && sameId(to, bare))) return true;
+    }
+  }
+  return CLAUDE_FAMILY_VERSION.test(bare) || BARE_FAMILY_VERSION.test(bare) || LEGACY_CLAUDE.test(bare);
 }
 
 const TRUTHY = /^(?:1|true|yes|on)$/i;
@@ -122,9 +143,19 @@ function compactTokens(n: number): string {
   return String(n);
 }
 
-/** Verbatim engine text (`i6n` in the 2.1.316 bundle). */
+/**
+ * The engine's warning (`i6n` in the 2.1.316 bundle), with two deliberate
+ * deviations:
+ * - "Update Claude Code" → "Update Claudius": Claudius bundles the engine, so
+ *   updating a separately installed Claude Code doesn't change what runs here.
+ * - "…or see <url> to set the window." → "…or set the window." The raw docs
+ *   URL wrapped badly in the notice; the panel instead renders the trailing
+ *   `UNKNOWN_MODEL_WINDOW_LINK_TEXT` as a link to
+ *   `UNKNOWN_MODEL_WINDOW_DOCS_URL`.
+ * Everything else is the engine's wording.
+ */
 export function unknownModelWarningText(model: string, window = UNKNOWN_MODEL_ASSUMED_WINDOW): string {
-  return `Claude Code doesn't recognize the model "${displayModelId(model)}", so it assumes a context window of ${compactTokens(window)} tokens. Update Claude Code, or see ${UNKNOWN_MODEL_WINDOW_DOCS_URL} to set the window.`;
+  return `Claude Code doesn't recognize the model "${displayModelId(model)}", so it assumes a context window of ${compactTokens(window)} tokens. Update Claudius, or ${UNKNOWN_MODEL_WINDOW_LINK_TEXT}.`;
 }
 
 /**
@@ -141,7 +172,7 @@ export function unknownModelWarning(opts: {
   const { model } = opts;
   if (typeof model !== "string" || !model.trim()) return null;
   if (/\[1m\]$/i.test(model.trim())) return null;
-  if (isRecognizedModel(model, opts.models)) return null;
+  if (isRecognizedModel(model, opts.models, opts.settings?.modelOverrides)) return null;
   if (unknownModelWarningSuppressed(model, opts.env, opts.settings)) return null;
   return unknownModelWarningText(model);
 }

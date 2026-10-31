@@ -333,6 +333,14 @@ export type SystemEntry = {
    */
   priority?: "low" | "medium" | "high" | "immediate";
   /**
+   * CC 2.1.316 — only for `kind === "notification"`: the engine's `color`
+   * when it names a tone the pill maps (`warning` amber, `error` red), which
+   * then wins over the priority tone. The engine sends some `immediate`
+   * notices as warnings (the Opus 4.8 fast-mode deprecation), which the
+   * priority alone would paint red.
+   */
+  notificationColor?: "warning" | "error";
+  /**
    * CC 2.1.217 — only for `kind === "info"` carrying an SDK
    * `system/informational` message: its render level, used to tone the pill
    * (notice gray, suggestion sky, warning amber). `info`-level lines are

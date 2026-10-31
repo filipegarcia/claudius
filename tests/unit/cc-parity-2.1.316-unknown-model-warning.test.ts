@@ -24,8 +24,11 @@ const CATALOG = [
   { value: "acme-internal-coder" },
 ];
 
+// The engine's wording, except "Update Claudius" (Claudius bundles the
+// engine) and the docs URL, which the notice renders as the "set the window"
+// link instead of raw text.
 const TEXT =
-  'Claude Code doesn\'t recognize the model "my-gateway-model", so it assumes a context window of 200k tokens. Update Claude Code, or see https://code.claude.com/docs/en/model-config#correct-the-window-for-a-gateway-or-custom-model-id to set the window.';
+  'Claude Code doesn\'t recognize the model "my-gateway-model", so it assumes a context window of 200k tokens. Update Claudius, or set the window.';
 
 describe("isRecognizedModel", () => {
   test.each([
@@ -38,9 +41,15 @@ describe("isRecognizedModel", () => {
     "claude-opus-4.8",
     "claude-opus-4-8-20260101",
     "us.anthropic.claude-sonnet-5-5-v1:0",
+    "anthropic.claude-opus-4-8-v1:0",
+    "publishers/anthropic/models/claude-sonnet-5-5",
+    "arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-opus-4-8-v1:0",
     "claude-opus-4-8@20260101",
     "claude-opus-9-1", // a future version is still a Claude family id
     "claude-mythos-7",
+    // Accepted trade-off (prefix-only check): a custom id that starts with a
+    // family token reads as a future version of that family.
+    "claude-sonnet-4-finetune",
     "sonnet-5.5", // bare gateway spelling
     "claude-3-5-sonnet-20241022",
     "claude-2.1",
@@ -50,8 +59,27 @@ describe("isRecognizedModel", () => {
     expect(isRecognizedModel(id, CATALOG)).toBe(true);
   });
 
-  test.each(["my-gateway-model", "gpt-x", "llama-70b", "claude-custom"])("%s is not recognized", (id) => {
+  test.each([
+    "my-gateway-model",
+    "gpt-x",
+    "llama-70b",
+    "claude-custom",
+    // The family token must start the id or follow `.` `/` `:` `@`.
+    "my-claude-sonnet-4-finetune",
+    "foo-claude-opus-5",
+    "my-opus-4-x",
+    "my-claude-3-5-sonnet",
+  ])("%s is not recognized", (id) => {
     expect(isRecognizedModel(id, CATALOG)).toBe(false);
+  });
+
+  test("a settings.modelOverrides key or value is recognized", () => {
+    const overrides = { "claude-opus-4-8": "arn:aws:bedrock:us-east-1:1:application-inference-profile/abc123" };
+    expect(isRecognizedModel("arn:aws:bedrock:us-east-1:1:application-inference-profile/abc123", CATALOG, overrides)).toBe(true);
+    expect(isRecognizedModel("ARN:aws:bedrock:us-east-1:1:application-inference-profile/ABC123[1m]", CATALOG, overrides)).toBe(true);
+    expect(isRecognizedModel("my-gateway-model", CATALOG, { "my-gateway-model": "x" })).toBe(true);
+    expect(isRecognizedModel("my-gateway-model", CATALOG, overrides)).toBe(false);
+    expect(isRecognizedModel("my-gateway-model", CATALOG, "not-a-map")).toBe(false);
   });
 });
 
@@ -106,6 +134,9 @@ describe("unknownModelWarning", () => {
       }),
     ).toBeNull();
     expect(unknownModelWarning({ model: "my-gateway-model", env: {}, settings: { autoCompactEnabled: false } })).toBeNull();
+    expect(
+      unknownModelWarning({ model: "my-gateway-model", env: {}, settings: { modelOverrides: { "claude-opus-4-8": "my-gateway-model" } } }),
+    ).toBeNull();
   });
 
   test("skips [1m]-tagged and empty ids", () => {
@@ -121,18 +152,34 @@ describe("unknownModelWarning", () => {
 
 const CWD = "/tmp/fake-session-unknown-model-cwd";
 let tmp: TmpHome;
-const savedEnv = process.env.CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT;
+// Every env gate `unknownModelWarningSuppressed` reads — cleared per test so a
+// developer's shell (e.g. `DISABLE_AUTO_COMPACT=1`) can't suppress the
+// warning the Session tests expect.
+const GATE_ENV = [
+  "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT",
+  "DISABLE_AUTO_COMPACT",
+  "DISABLE_COMPACT",
+  "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
+  "CLAUDE_CODE_MAX_CONTEXT_TOKENS",
+] as const;
+let savedEnv: Record<string, string | undefined> = {};
 
 beforeEach(async () => {
   tmp = makeTempHome();
   await openDb(CWD);
-  delete process.env.CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT;
+  savedEnv = {};
+  for (const k of GATE_ENV) {
+    savedEnv[k] = process.env[k];
+    delete process.env[k];
+  }
 });
 
 afterEach(() => {
   tmp.restore();
-  if (savedEnv === undefined) delete process.env.CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT;
-  else process.env.CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT = savedEnv;
+  for (const k of GATE_ENV) {
+    if (savedEnv[k] === undefined) delete process.env[k];
+    else process.env[k] = savedEnv[k];
+  }
 });
 
 type SessionInternals = Pick<Session, "setModel"> & {
@@ -159,13 +206,22 @@ describe("Session.setModel — unknown-model warning", () => {
     const session = makeSession();
     const result = await session.setModel("my-gateway-model", "chat_command");
     expect(result).toMatchObject({ ok: true, unrecognizedModelWarning: TEXT });
-    expect(lastModelChanged(session)?.unrecognizedModelWarning).toBe(TEXT);
+    const ev = lastModelChanged(session);
+    expect(ev?.unrecognizedModelWarning).toBe(TEXT);
+    // One server-minted id on both, so the client shows it at most once.
+    const id = (result as { unrecognizedModelWarningId?: string }).unrecognizedModelWarningId;
+    expect(id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(ev?.unrecognizedModelWarningId).toBe(id);
+    // A second switch to the same id is a new warning with a new id.
+    const again = await session.setModel("my-gateway-model", "chat_command");
+    expect((again as { unrecognizedModelWarningId?: string }).unrecognizedModelWarningId).not.toBe(id);
   });
 
   test("a recognized id, or a picker switch, carries none", async () => {
     const session = makeSession();
     await session.setModel("claude-opus-9-1", "chat_command");
     expect(lastModelChanged(session)?.unrecognizedModelWarning).toBeUndefined();
+    expect(lastModelChanged(session)?.unrecognizedModelWarningId).toBeUndefined();
     const picker = await session.setModel("my-gateway-model", "picker");
     expect(picker).not.toHaveProperty("unrecognizedModelWarning");
     expect(lastModelChanged(session)?.unrecognizedModelWarning).toBeUndefined();

@@ -37,7 +37,8 @@ export function normalizeDottedModelVersion(model: string): string {
  * tag, fall back to a case-insensitive match with the tag stripped from both
  * sides, then to the row whose `resolvedModel` equals `current` without the
  * tag (`claude-opus-5-5[1m]` → the `opus` row resolving to
- * `claude-opus-5-5`). Untagged ids keep today's exact-only behaviour. Only
+ * `claude-opus-5-5`), preferring any row over the engine's synthetic
+ * `default` row resolving to the same id. Untagged ids keep today's exact-only behaviour. Only
  * the lookup changes; what's persisted / sent to the engine is untouched.
  */
 const ONE_M_TAG = /\[1m\]$/i;
@@ -57,8 +58,13 @@ export function findModelEntry<T extends { value: string; resolvedModel?: string
   const bare = stripOneMTag(current).toLowerCase();
   const byValue = models.find((m) => stripOneMTag(m.value).toLowerCase() === bare);
   if (byValue) return byValue;
-  return (
-    models.find((m) => !!m.resolvedModel && stripOneMTag(m.resolvedModel).toLowerCase() === bare) ??
-    null
+  // The engine always lists a synthetic `{ value: "default", resolvedModel:
+  // <default model> }` row first, so a plain `find` would check Default for
+  // `claude-opus-5-5[1m]` even when an explicit `opus` row resolves to the
+  // same id. Prefer any non-default row; Default only when nothing else
+  // resolves there.
+  const byResolved = models.filter(
+    (m) => !!m.resolvedModel && stripOneMTag(m.resolvedModel).toLowerCase() === bare,
   );
+  return byResolved.find((m) => m.value !== "default") ?? byResolved[0] ?? null;
 }

@@ -102,7 +102,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     ok: true,
     model: result.model ?? null,
     ...(result.unrecognizedModelWarning
-      ? { unrecognizedModelWarning: result.unrecognizedModelWarning }
+      ? {
+          unrecognizedModelWarning: result.unrecognizedModelWarning,
+          unrecognizedModelWarningId: result.unrecognizedModelWarningId,
+        }
       : {}),
   });
 }

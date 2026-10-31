@@ -39,6 +39,7 @@ import { readCronNextFireAt } from "@/lib/shared/session-loops";
 import {
   OPUS48_FAST_DEPRECATION_KEY,
   isFastModeCreditsRejectedNotice,
+  notificationColor,
   opus48FastDeprecationText,
 } from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
@@ -1194,7 +1195,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
      * CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
      * recognized by this version and auto-compact will assume a 200K context
      * window". Filled from `model_changed.unrecognizedModelWarning` (live
-     * only, never on replay) or the `/model` POST response.
+     * only, never on replay) or the `/model` POST response — each
+     * server-minted warning id at most once (see
+     * `handledUnknownModelWarningIdsRef`).
      */
     unrecognizedModelWarning?: string;
   } | null>(null);
@@ -1703,6 +1706,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // old notice would flip the toggle Off again after the user re-enabled
   // fast. Not cleared on reset — uuids are unique per notice.
   const handledFastCreditsNoticeUuidsRef = useRef<Set<string>>(new Set());
+  // CC 2.1.316 — server-minted ids (`unrecognizedModelWarningId`) of
+  // unknown-model warnings already shown. The warning sticks until
+  // dismissed, and both the `model_changed` broadcast and the `/model` POST
+  // response carry it; a merge-path SSE blip (no `resetState`, so
+  // `replayingRef` stays false) replays the buffer tail. Without this a
+  // dismissed warning would come back. Not cleared on reset — ids are unique.
+  const handledUnknownModelWarningIdsRef = useRef<Set<string>>(new Set());
   // True while a server-dispatched `/compact` slash command — sent while
   // idle — is awaiting its outcome. Set on the `slash_invoked` breadcrumb,
   // cleared either by a successful `compact_boundary` (compaction worked) or,
@@ -1849,6 +1859,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setFastModeState(null);
     setFastModeDisabledReason(null);
     setFastModeNotice(null);
+    // CC 2.1.316 — the unknown-model warning sticks until dismissed; it (and
+    // the switch notice it rides on) belongs to the session being left.
+    setChatCommandModelNotice(null);
     setAutoModeOffNotice(null);
     setModeChangeRefusedNotice(null);
     prevFastModeStateRef.current = null;
@@ -2505,18 +2518,32 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // surface the "Your pick becomes the default for new sessions" notice.
         if (ev.source === "chat_command" && ev.model) {
           // CC 2.1.316 — the unknown-model warning sticks until dismissed, so
-          // a reload replaying an old switch must not resurrect it.
-          const warning = !replayingRef.current ? ev.unrecognizedModelWarning : undefined;
-          setChatCommandModelNotice({
-            uuid: crypto.randomUUID(),
-            model: ev.model,
-            reason: "chat_command",
-            ...(warning ? { unrecognizedModelWarning: warning } : {}),
-          });
+          // a reload replaying an old switch must not resurrect it, and each
+          // server-minted warning id shows at most once. An already-handled
+          // id means the POST response raised it first (keep that notice) or
+          // the user dismissed it (keep it gone) — leave the notice alone.
+          const warningId = ev.unrecognizedModelWarningId;
+          if (!warningId || !handledUnknownModelWarningIdsRef.current.has(warningId)) {
+            if (warningId) handledUnknownModelWarningIdsRef.current.add(warningId);
+            const warning = !replayingRef.current ? ev.unrecognizedModelWarning : undefined;
+            setChatCommandModelNotice({
+              uuid: crypto.randomUUID(),
+              model: ev.model,
+              reason: "chat_command",
+              ...(warning ? { unrecognizedModelWarning: warning } : {}),
+            });
+          }
         } else if (ev.source === "auto" && ev.model) {
           // Automatic fallback (SDK 0.3.251 PostModelSwitch hook) — this used
           // to swap the running model with no client-visible signal at all.
           setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model, reason: "auto" });
+        } else {
+          // CC 2.1.316 — any other switch (picker, resume, sdk) to a
+          // different model makes the "Switched to X" notice — and its sticky
+          // unknown-model warning about X — stale. The same model (the
+          // subscribe-time `sdk` re-emit) leaves it up.
+          const next = ev.model ?? null;
+          setChatCommandModelNotice((prev) => (prev && prev.model !== next ? null : prev));
         }
         // `"resume"` / `"sdk"` sources update the model pill (setModelState
         // above) without a toast — resume happens before the user is looking
@@ -4885,6 +4912,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             (sysAny as { key?: unknown }).key === OPUS48_FAST_DEPRECATION_KEY &&
             fastDeprecationShownRef.current;
           if (text && !dupOfLocalDeprecation) {
+            // CC 2.1.316 — the engine's `color` (e.g. `warning` on the
+            // `immediate` Opus 4.8 deprecation) tones the pill over priority.
+            const color = notificationColor(sysAny as { key?: unknown; color?: unknown });
             setSystemEntries((prev) => [
               ...prev,
               {
@@ -4892,6 +4922,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 kind: "notification",
                 label: text,
                 ...(n.priority ? { priority: n.priority } : {}),
+                ...(color ? { notificationColor: color } : {}),
               },
             ]);
           }
@@ -6450,10 +6481,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // CC 2.1.316 — the unknown-model warning also rides the response, so
         // this tab shows it whichever of the response / `model_changed`
         // broadcast lands first. Merge into the switch notice if the
-        // broadcast already raised it, otherwise raise it.
-        const body = (await r.json().catch(() => ({}))) as { unrecognizedModelWarning?: string };
+        // broadcast already raised it, otherwise raise it. Skipped once the
+        // user has moved to another session (both awaits are race windows)
+        // or the broadcast already handled this warning id.
+        const body = (await r.json().catch(() => ({}))) as {
+          unrecognizedModelWarning?: string;
+          unrecognizedModelWarningId?: string;
+        };
+        if (sessionIdRef.current !== id) return;
         const warning = body.unrecognizedModelWarning;
-        if (typeof warning === "string" && warning) {
+        const warningId = body.unrecognizedModelWarningId;
+        const handled = !!warningId && handledUnknownModelWarningIdsRef.current.has(warningId);
+        if (typeof warning === "string" && warning && !handled) {
+          if (warningId) handledUnknownModelWarningIdsRef.current.add(warningId);
           setChatCommandModelNotice((prev) =>
             prev && prev.reason === "chat_command" && prev.model === m
               ? { ...prev, unrecognizedModelWarning: warning }
