@@ -156,7 +156,7 @@ import {
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
-import { hasUltrathinkKeyword } from "@/lib/shared/ultrathink-keyword";
+import { hasUltrathinkKeyword, isUltrathinkDisabledFor } from "@/lib/shared/ultrathink-keyword";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -1996,6 +1996,14 @@ export class Session {
   private envOverride: { [envVar: string]: string | undefined } | null = null;
 
   /**
+   * CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
+   * the ultrathink keyword off". Resolved once per `start()` (so a restart or
+   * resume re-reads it) from the env the engine is handed plus the settings
+   * `env` blocks; when set, `sendInput` skips the ultrathink reminder.
+   */
+  private ultrathinkDisabled = false;
+
+  /**
    * Epoch ms of the last completed (or in-flight) recap firing. Backs the
    * multi-tab dedupe guard in `requestRecap`: when N tabs each regain focus
    * after a long blur they all POST to `/recap` within milliseconds, and
@@ -2960,6 +2968,26 @@ export class Session {
     const envOverride = activeProfile ? await buildEnvForProfile(activeProfile) : null;
     // Freeze for off-band queries (recap) — see `envOverride` field doc.
     this.envOverride = envOverride;
+    // CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
+    // the ultrathink keyword off". The engine reads the variable from its own
+    // env, which is the env we pass it with each settings scope's `env` block
+    // applied on top (user < project < local, later scopes win — so a local
+    // `""` re-enables a user-scope `"1"`). Merge the same way and ask once.
+    // Restricted sessions ignore settings files engine-side, so only the
+    // query env counts there. A scope that fails to parse adds nothing.
+    this.ultrathinkDisabled = isUltrathinkDisabledFor(
+      buildQueryEnv(envOverride, this.restrictedMode),
+      this.restrictedMode
+        ? []
+        : [
+            userSettings,
+            ...(await Promise.all(
+              (["project", "local"] as const).map((scope) =>
+                readSettings(scope, this.cwd).catch(() => ({}) as ClaudeSettings),
+              ),
+            )),
+          ],
+    );
 
     // Cache the effective advisor on `this` so the client can prime its
     // optimistic mirror via GET /api/sessions/[id]/advisor — the SDK's
@@ -4346,7 +4374,13 @@ export class Session {
     // The block is appended by the existing `takePendingReminders` drain in
     // both branches, so it rides THIS turn (same call ordering as the goal
     // reminder).
-    const ultrathinkBody = ultrathinkReminderBody(text, opts?.inlinePastes);
+    //
+    // CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
+    // the ultrathink keyword off": with the variable set (see
+    // `ultrathinkDisabled`), the keyword is plain text and no reminder rides.
+    const ultrathinkBody = this.ultrathinkDisabled
+      ? null
+      : ultrathinkReminderBody(text, opts?.inlinePastes);
     if (ultrathinkBody) queueReminder(this, "ultrathink-prose", ultrathinkBody);
 
     // Mid-turn user inject nudge (Claude Code TUI parity, feature 37). When

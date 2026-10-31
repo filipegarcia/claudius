@@ -124,3 +124,38 @@ export function hasUltrathinkKeyword(text: string, pastes: readonly unknown[] = 
   }
   return findKeyword(scan, "ultrathink").length > 0;
 }
+
+/**
+ * CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns the
+ * ultrathink keyword off".
+ *
+ * The engine's gate is `!process.env.CLAUDE_CODE_DISABLE_ULTRATHINK && …`, so
+ * ANY non-empty value turns the keyword off — `"1"`, but also `"0"` and
+ * `"false"`. Only an unset or empty variable leaves it on. Claudius injects
+ * its own per-turn ultrathink reminder (`ultrathinkReminderBody` in
+ * `lib/server/session.ts`), so the session reads the same variable — from the
+ * env it hands the engine plus the settings `env` blocks — through this
+ * helper and skips the reminder when it's set.
+ */
+export function isUltrathinkDisabled(env: Readonly<Record<string, unknown>>): boolean {
+  const v = env.CLAUDE_CODE_DISABLE_ULTRATHINK;
+  return typeof v === "string" && v.length > 0;
+}
+
+/**
+ * `isUltrathinkDisabled` over the env the engine actually ends up with: the
+ * query env with each settings scope's `env` block applied on top, in order
+ * (user < project < local — later scopes win, so a local `""` re-enables a
+ * user-scope `"1"`). A layer whose `env` isn't an object adds nothing.
+ */
+export function isUltrathinkDisabledFor(
+  queryEnv: Readonly<Record<string, unknown>>,
+  settingsLayers: readonly unknown[] = [],
+): boolean {
+  const merged: Record<string, unknown> = { ...queryEnv };
+  for (const layer of settingsLayers) {
+    const layerEnv = layer && typeof layer === "object" ? (layer as { env?: unknown }).env : undefined;
+    if (layerEnv && typeof layerEnv === "object") Object.assign(merged, layerEnv);
+  }
+  return isUltrathinkDisabled(merged);
+}
