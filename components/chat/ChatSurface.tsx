@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useNavIntentRouter } from "@/lib/client/nav-intent";
 import { SideNav } from "@/components/nav/SideNav";
 import { StatusLine } from "@/components/chat/StatusLine";
 import { LoadingBar } from "@/components/chat/LoadingBar";
@@ -235,7 +236,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // without depending on the active-customization cookie. Workspaces pass null
   // and let the server resolve cwd from the active-workspace cookie.
   const session = useSession({ defaultCwd: kind === "customization" ? contextCwd : null });
-  const router = useRouter();
+  // Pushes record a navigation intent so use-session's `?session=` writer
+  // doesn't clobber them (native slash commands push right after a bind).
+  const router = useNavIntentRouter();
   const [rewindingUuid, setRewindingUuid] = useState<string | null>(null);
   // Tracks the session this one was cleared from (set by /clear or the header
   // Clear button). Drives the ClearedFromBanner so the user can undo a /clear

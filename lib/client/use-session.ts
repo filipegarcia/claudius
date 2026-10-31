@@ -12,6 +12,7 @@ import {
   type SkippedBoot,
 } from "@/lib/client/boot-guard";
 import { usePathname } from "next/navigation";
+import { navIntentSeq } from "./nav-intent";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AuthFailedNudgeEvent,
@@ -1414,7 +1415,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     //
     // Hash-only anchors (href="#" or "#section") don't navigate away
     // from `/`, so we keep the writer enabled for those.
+    //
+    // Neither signal sees a programmatic `router.push` until its RSC payload
+    // commits, and our replaceState inside that gap makes Next drop the
+    // pending push. Native slash commands (`/usage`, `/rate-limit-options`,
+    // …) push right after a bind on a fast backend. So pushes made through
+    // `useNavIntentRouter` (lib/client/nav-intent.ts) bump a counter
+    // up front, and any bump during the wait also cancels the write.
     let navigated = false;
+    const intentSeqAtStart = navIntentSeq();
 
     const onAnchorClick = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null;
@@ -1437,7 +1446,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     nav?.addEventListener?.("navigate", onNav);
 
     const handle = setTimeout(() => {
-      if (navigated) return;
+      if (navigated || navIntentSeq() !== intentSeqAtStart) return;
       // Re-check committed pathname against the same "is this a chat root?"
       // predicate the effect-level guard used. The 500ms gap can let a
       // pending router navigation finish (committed pathname flips to
