@@ -171,6 +171,9 @@ export function MessageList({
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
+  // CC 2.1.302 / 2.1.316 — while the session stream is reconnecting, the
+  // "Catching up…" line below must not claim progress (see that branch).
+  const streamDisconnected = useStreamDisconnected();
   const endRef = useRef<HTMLDivElement>(null);
 
   // Last scrollTop we either observed in a scroll event or wrote ourselves.
@@ -547,13 +550,26 @@ export function MessageList({
     // shows while a cloud or Remote Control session you switch back to is
     // still bringing its messages up to date". The session has history on
     // its way (resume POST → SSE replay); the new-session splash would make
-    // it look empty. Top-level notices still render under the line.
+    // it look empty. Top-level notices still render under the line. While
+    // the stream is down nothing can be catching up, so it says what the
+    // working row says (CC 2.1.302) instead of claiming progress.
     const top = grouped.get("") ?? [];
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <div role="status" data-testid="transcript-catching-up" className="text-sm text-[var(--muted)]">
-          Catching up…
-        </div>
+        {streamDisconnected ? (
+          <div
+            role="status"
+            data-testid="transcript-catching-up-disconnected"
+            className="flex items-center gap-2 text-sm text-[var(--muted)]"
+          >
+            <WifiOff className="h-3.5 w-3.5 text-amber-300" />
+            Disconnected — reconnecting…
+          </div>
+        ) : (
+          <div role="status" data-testid="transcript-catching-up" className="text-sm text-[var(--muted)]">
+            Catching up…
+          </div>
+        )}
         {top.length > 0 && (
           <div className="mt-6 w-full max-w-md text-left">
             {top.map((e) => (

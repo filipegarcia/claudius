@@ -21,14 +21,17 @@ import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
  * Session only drains after a successful turn. A replacement Session
  * (restartIfDead / restartInPlace / reaper revival / server restart) drains
  * at the end of `start()` — so `interrupt()` now marks the queue held, and
- * the `start()` drain (`flushQueueIfIdle({ unlessHeld: true })`) leaves a
- * held head in place. A successful turn or a fresh enqueue releases the hold;
- * an explicit "Send now" sends a held row regardless.
+ * the `start()` drain (`drainQueueOnStart` → `flushQueueIfIdle({ unlessHeld:
+ * true })`) leaves a held head in place. Only a successful turn releases the
+ * hold — a fresh enqueue queues behind it — and an explicit "Send now" sends
+ * a held row regardless.
  *
  * Reaches into Session privates through a standalone shape cast via
  * `unknown`, like `session-interrupt-still-queued.test.ts`. `sendInput` is
  * spied so nothing needs the SDK subprocess; "nothing was sent" is asserted
- * from the spy plus the DB, never by awaiting an empty input queue.
+ * from the spy plus the DB, never by awaiting an empty input queue. The
+ * success-turn case drives the real `consume()` loop over a fake query
+ * stream, so it pins the production wiring of the result handler.
  */
 
 const CWD = "/tmp/fake-queue-held-after-stop-cwd";
@@ -36,6 +39,9 @@ const CWD = "/tmp/fake-queue-held-after-stop-cwd";
 type SessionInternals = {
   query: { interrupt: () => Promise<undefined> } | null;
   turnInFlight: boolean;
+  done: boolean;
+  consume: () => Promise<void>;
+  drainQueueOnStart: () => Promise<void>;
   interrupt: () => Promise<{ stillQueued: string[] }>;
   enqueueMessage: (input: { text: string; uuid?: string }) => Promise<string>;
   sendQueuedNow: (uuid: string) => Promise<boolean>;
@@ -102,7 +108,7 @@ describe("Stop on a working turn holds the queue (CC 2.1.316)", () => {
   test("a replacement Session's start() drain does not send a held row", async () => {
     await stopWithQueued(["answer me later"]);
     const { session: replaced, sent } = makeSession();
-    await replaced.flushQueueIfIdle({ unlessHeld: true });
+    await replaced.drainQueueOnStart();
     expect(sent).not.toHaveBeenCalled();
     const rows = await listQueue(CWD, sessionId);
     expect(rows.map((r) => r.text)).toEqual(["answer me later"]);
@@ -112,7 +118,7 @@ describe("Stop on a working turn holds the queue (CC 2.1.316)", () => {
   test("control: the start() drain still sends a row nobody stopped behind", async () => {
     await enqueueTail(CWD, { sessionId, uuid: "q-free", text: "not stopped" });
     const { session, sent } = makeSession();
-    await session.flushQueueIfIdle({ unlessHeld: true });
+    await session.drainQueueOnStart();
     expect(sent).toHaveBeenCalledWith("not stopped", "q-free");
     expect(await listQueue(CWD, sessionId)).toHaveLength(0);
   });
@@ -136,17 +142,73 @@ describe("Stop on a working turn holds the queue (CC 2.1.316)", () => {
     expect(await listQueue(CWD, sessionId)).toHaveLength(0);
   });
 
-  test("a fresh message from the user releases the hold", async () => {
+  test("a successful turn through consume() releases the hold and drains the head", async () => {
+    await stopWithQueued(["first", "second"]);
+    const { session, sent } = makeSession();
+    // The real result handler chains the drain after an async todos sync, and
+    // `consume()`'s `finally` sets `done` (which stops any drain) — so the
+    // fake stream stays open after the result until the drain has landed.
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const result = {
+      type: "result",
+      subtype: "success",
+      uuid: "result-1",
+      session_id: sessionId,
+      is_error: false,
+      result: "done",
+      total_cost_usd: 0,
+      num_turns: 1,
+      duration_ms: 1,
+      duration_api_ms: 1,
+      usage: { input_tokens: 0, output_tokens: 0 },
+      modelUsage: {},
+      permission_denials: [],
+    };
+    const fakeQuery = {
+      interrupt: async () => undefined,
+      supportedModels: async () => [],
+      mcpServerStatus: async () => [],
+      usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET: async () => {
+        throw new Error("not in tests");
+      },
+      async *[Symbol.asyncIterator]() {
+        yield result;
+        await gate;
+      },
+    };
+    session.query = fakeQuery;
+    session.turnInFlight = true;
+    const consumed = session.consume();
+    try {
+      await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(1), { timeout: 5_000 });
+    } finally {
+      release();
+      await consumed;
+    }
+    expect(sent).toHaveBeenCalledWith("first", "q-0");
+    const rows = await listQueue(CWD, sessionId);
+    // A plain drain would also pop the held head; only the release clears the
+    // hold on the row behind it.
+    expect(rows.map((r) => [r.text, r.heldByStop])).toEqual([["second", false]]);
+  });
+
+  test("a fresh message after a Stop queues behind the held rows without releasing them", async () => {
     await stopWithQueued(["before stop"]);
     const { session, sent } = makeSession();
     await session.enqueueMessage({ text: "after stop", uuid: "q-fresh" });
     const rows = await listQueue(CWD, sessionId);
     expect(rows.map((r) => [r.text, r.heldByStop])).toEqual([
-      ["before stop", false],
+      ["before stop", true],
       ["after stop", false],
     ]);
-    await session.flushQueueIfIdle({ unlessHeld: true });
-    expect(sent).toHaveBeenCalledWith("before stop", "q-0");
+    // A later replacement still answers neither — the fresh row waits behind
+    // the held head, as it would in a never-replaced Session.
+    await session.drainQueueOnStart();
+    expect(sent).not.toHaveBeenCalled();
+    expect(await listQueue(CWD, sessionId)).toHaveLength(2);
   });
 });
 

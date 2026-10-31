@@ -1,7 +1,11 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { Session } from "@/lib/server/session";
-import { isUltrathinkDisabled, isUltrathinkDisabledFor } from "@/lib/shared/ultrathink-keyword";
+import {
+  isUltrathinkDisabled,
+  isUltrathinkDisabledFor,
+  resolveUltrathinkDisabled,
+} from "@/lib/shared/ultrathink-keyword";
 
 /**
  * CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns the
@@ -59,6 +63,109 @@ describe("isUltrathinkDisabledFor (query env + settings env blocks)", () => {
 
   test("a malformed env block adds nothing", () => {
     expect(isUltrathinkDisabledFor({}, [{ env: "CLAUDE_CODE_DISABLE_ULTRATHINK=1" }, null])).toBe(false);
+  });
+});
+
+const DISABLE = "CLAUDE_CODE_DISABLE_ULTRATHINK";
+
+/** Fake settings layers keyed by scope; a scope set to an Error rejects. */
+function fakeScopes(layers: Partial<Record<"project" | "local", unknown>>) {
+  return vi.fn(async (scope: "project" | "local") => {
+    const layer = layers[scope];
+    if (layer instanceof Error) throw layer;
+    return layer ?? {};
+  });
+}
+
+describe("resolveUltrathinkDisabled (Session.start() resolution)", () => {
+  test("the query env is the baseline when no scope sets the variable", async () => {
+    const readScope = fakeScopes({});
+    await expect(
+      resolveUltrathinkDisabled({ queryEnv: { [DISABLE]: "1" }, restricted: false, userSettings: {}, readScope }),
+    ).resolves.toBe(true);
+    await expect(
+      resolveUltrathinkDisabled({ queryEnv: {}, restricted: false, userSettings: {}, readScope }),
+    ).resolves.toBe(false);
+    expect(readScope.mock.calls.map((c) => c[0])).toEqual(["project", "local", "project", "local"]);
+  });
+
+  test("precedence is query env < user < project < local", async () => {
+    // user disables, local re-enables with "".
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: {},
+        restricted: false,
+        userSettings: { env: { [DISABLE]: "1" } },
+        readScope: fakeScopes({ local: { env: { [DISABLE]: "" } } }),
+      }),
+    ).resolves.toBe(false);
+    // project disables over a query env that leaves it on.
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: { [DISABLE]: "" },
+        restricted: false,
+        userSettings: {},
+        readScope: fakeScopes({ project: { env: { [DISABLE]: "0" } } }),
+      }),
+    ).resolves.toBe(true);
+    // local disables over a project that re-enabled a user value.
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: {},
+        restricted: false,
+        userSettings: { env: { [DISABLE]: "1" } },
+        readScope: fakeScopes({ project: { env: { [DISABLE]: "" } }, local: { env: { [DISABLE]: "yes" } } }),
+      }),
+    ).resolves.toBe(true);
+    // user re-enables a query-env value.
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: { [DISABLE]: "1" },
+        restricted: false,
+        userSettings: { env: { [DISABLE]: "" } },
+        readScope: fakeScopes({}),
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("a scope whose read rejects adds nothing", async () => {
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: {},
+        restricted: false,
+        userSettings: { env: { [DISABLE]: "1" } },
+        readScope: fakeScopes({ project: new Error("EACCES"), local: new Error("bad json") }),
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: {},
+        restricted: false,
+        userSettings: {},
+        readScope: fakeScopes({ project: new Error("EACCES"), local: { env: { [DISABLE]: "1" } } }),
+      }),
+    ).resolves.toBe(true);
+  });
+
+  test("restricted mode counts only the query env and reads no settings scope", async () => {
+    const readScope = fakeScopes({ project: { env: { [DISABLE]: "1" } }, local: { env: { [DISABLE]: "1" } } });
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: {},
+        restricted: true,
+        userSettings: { env: { [DISABLE]: "1" } },
+        readScope,
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      resolveUltrathinkDisabled({
+        queryEnv: { [DISABLE]: "1" },
+        restricted: true,
+        userSettings: { env: { [DISABLE]: "" } },
+        readScope,
+      }),
+    ).resolves.toBe(true);
+    expect(readScope).not.toHaveBeenCalled();
   });
 });
 

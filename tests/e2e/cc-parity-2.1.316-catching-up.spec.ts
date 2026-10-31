@@ -104,3 +104,39 @@ test("switching back to a session shows 'Catching up…' instead of the splash u
   await expect(catchingUp).toHaveCount(0);
   await expect(page.getByTestId("splash-greeting")).toHaveCount(0);
 });
+
+test("while the stream is down the catching-up line says it's reconnecting instead of claiming progress", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto("/");
+  const idA = await waitForBoundSession(page);
+
+  // A second session so there's something to switch back from.
+  await page.locator('button[title="New session tab"]').click();
+  await waitForBoundSession(page, { not: idA });
+  await expect(page.getByTestId("splash-greeting")).toBeVisible({ timeout: 15_000 });
+
+  // A's stream is unreachable after the switch, so its replay (and
+  // `replay_done`) never arrives and the pane stays catching up.
+  let refused = 0;
+  await page.route(`**/api/sessions/${idA}/stream*`, (route) => {
+    refused++;
+    return route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" });
+  });
+
+  const tab = page.locator(`[data-testid="session-tab"][data-tab-id="${idA}"] button`).first();
+  await tab.scrollIntoViewIfNeeded();
+  await tab.click();
+
+  // The reconnecting badge is debounced (STREAM_BADGE_AFTER_MS), then the
+  // line swaps to the working row's disconnected copy.
+  const disconnected = page.getByTestId("transcript-catching-up-disconnected");
+  await expect(disconnected).toBeVisible({ timeout: 15_000 });
+  await expect(disconnected).toHaveText("Disconnected — reconnecting…");
+  await expect(disconnected).toHaveAttribute("role", "status");
+  await expect(page.getByTestId("transcript-catching-up")).toHaveCount(0);
+  await expect(page.getByTestId("splash-greeting")).toHaveCount(0);
+  expect(refused).toBeGreaterThan(0);
+  await page.screenshot({ path: resolve(SHOTS_DIR, "catching-up-disconnected.png"), fullPage: false });
+});

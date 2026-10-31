@@ -159,3 +159,43 @@ export function isUltrathinkDisabledFor(
   }
   return isUltrathinkDisabled(merged);
 }
+
+/**
+ * The scopes `resolveUltrathinkDisabled` reads after the user layer, in
+ * precedence order (later wins).
+ */
+export const ULTRATHINK_SETTINGS_SCOPES = ["project", "local"] as const;
+
+/**
+ * Session-start resolution of `CLAUDE_CODE_DISABLE_ULTRATHINK` (what
+ * `Session.start()` stores in `ultrathinkDisabled`). The engine reads the
+ * variable from its own env: the query env we hand it with each settings
+ * scope's `env` block applied on top (user < project < local). Restricted
+ * sessions ignore settings files engine-side (CC 2.1.248), so there only the
+ * query env counts and no scope is read. A scope whose read rejects adds
+ * nothing. `readScope` is injected so this stays pure (and testable) —
+ * the session passes `readSettings(scope, cwd)`.
+ */
+export async function resolveUltrathinkDisabled({
+  queryEnv,
+  restricted,
+  userSettings,
+  readScope,
+}: {
+  queryEnv: Readonly<Record<string, unknown>>;
+  restricted: boolean;
+  userSettings: unknown;
+  readScope: (scope: (typeof ULTRATHINK_SETTINGS_SCOPES)[number]) => Promise<unknown>;
+}): Promise<boolean> {
+  if (restricted) return isUltrathinkDisabledFor(queryEnv);
+  const scoped = await Promise.all(
+    ULTRATHINK_SETTINGS_SCOPES.map((scope) => {
+      try {
+        return Promise.resolve(readScope(scope)).catch(() => ({}));
+      } catch {
+        return Promise.resolve({});
+      }
+    }),
+  );
+  return isUltrathinkDisabledFor(queryEnv, [userSettings, ...scoped]);
+}

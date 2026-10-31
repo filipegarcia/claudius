@@ -81,7 +81,20 @@ export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
   // through a coalescing runner (`lib/client/git-poll.ts`): a token change
   // while one is in flight queues a single follow-up, started once it
   // settles and spaced by how long it took. A workspace switch still aborts.
+  //
+  // Each runner also records the `refreshToken` it was created under: a fresh
+  // runner fetches immediately, so that token is already covered and the
+  // token effect below must not queue a redundant follow-up for it. Per
+  // runner (not one shared ref) so a commit that swaps the diff runner AND
+  // bumps the token still refreshes the status runner. `tokenNowRef` mirrors
+  // the prop (updated in an effect declared before the runner effects, so it
+  // is current when they run) without making the token a runner dependency.
+  const tokenNowRef = useRef(refreshToken);
+  useEffect(() => {
+    tokenNowRef.current = refreshToken;
+  }, [refreshToken]);
   const statusRunnerRef = useRef<CoalescedRunner | null>(null);
+  const statusTokenRef = useRef(refreshToken);
   useEffect(() => {
     if (!workspaceId) return;
     const runner = createCoalescedRunner((signal) =>
@@ -114,6 +127,7 @@ export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
         }),
     );
     statusRunnerRef.current = runner;
+    statusTokenRef.current = tokenNowRef.current;
     return () => {
       if (statusRunnerRef.current === runner) statusRunnerRef.current = null;
       runner.dispose();
@@ -132,6 +146,7 @@ export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
   // follow-up behind the running fetch; picking another file (new
   // `selected`) still aborts and starts over.
   const diffRunnerRef = useRef<CoalescedRunner | null>(null);
+  const diffTokenRef = useRef(refreshToken);
   useEffect(() => {
     if (!workspaceId || !selected) return;
     const runner = createCoalescedRunner((signal) =>
@@ -159,6 +174,7 @@ export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
         }),
     );
     diffRunnerRef.current = runner;
+    diffTokenRef.current = tokenNowRef.current;
     return () => {
       if (diffRunnerRef.current === runner) diffRunnerRef.current = null;
       runner.dispose();
@@ -167,14 +183,17 @@ export function DiffOverlay({ workspaceId, onClose, refreshToken }: Props) {
 
   // `refreshToken` (CC 2.1.260 / H5) re-pulls the file list and the open
   // diff as Claude edits — through the runners above, so it never aborts a
-  // running git call. The token seen at mount is skipped: the runners
-  // already fetched for it.
-  const lastTokenRef = useRef(refreshToken);
+  // running git call. A runner whose recorded token already matches is
+  // skipped: it was (re)created for this token and fetched on creation.
   useEffect(() => {
-    if (lastTokenRef.current === refreshToken) return;
-    lastTokenRef.current = refreshToken;
-    statusRunnerRef.current?.request();
-    diffRunnerRef.current?.request();
+    if (statusTokenRef.current !== refreshToken) {
+      statusTokenRef.current = refreshToken;
+      statusRunnerRef.current?.request();
+    }
+    if (diffTokenRef.current !== refreshToken) {
+      diffTokenRef.current = refreshToken;
+      diffRunnerRef.current?.request();
+    }
   }, [refreshToken]);
 
   const files = useMemo(() => status?.files ?? [], [status]);

@@ -158,7 +158,7 @@ import {
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
-import { hasUltrathinkKeyword, isUltrathinkDisabledFor } from "@/lib/shared/ultrathink-keyword";
+import { hasUltrathinkKeyword, resolveUltrathinkDisabled } from "@/lib/shared/ultrathink-keyword";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -2001,7 +2001,14 @@ export class Session {
    * CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
    * the ultrathink keyword off". Resolved once per `start()` (so a restart or
    * resume re-reads it) from the env the engine is handed plus the settings
-   * `env` blocks; when set, `sendInput` skips the ultrathink reminder.
+   * `env` blocks (`resolveUltrathinkDisabled`); when set, `sendInput` skips
+   * the ultrathink reminder.
+   *
+   * Known limitation: the user layer is always Claudius's own user-scope
+   * settings (`readSettings("user")`). Under an account profile the engine
+   * runs with `CLAUDE_CONFIG_DIR` pointed at the profile's config dir, so it
+   * reads ITS user settings instead — a variable set only in one of the two
+   * user files can disagree with the engine until this follows that dir.
    */
   private ultrathinkDisabled = false;
 
@@ -2971,25 +2978,16 @@ export class Session {
     // Freeze for off-band queries (recap) — see `envOverride` field doc.
     this.envOverride = envOverride;
     // CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
-    // the ultrathink keyword off". The engine reads the variable from its own
-    // env, which is the env we pass it with each settings scope's `env` block
-    // applied on top (user < project < local, later scopes win — so a local
-    // `""` re-enables a user-scope `"1"`). Merge the same way and ask once.
-    // Restricted sessions ignore settings files engine-side, so only the
-    // query env counts there. A scope that fails to parse adds nothing.
-    this.ultrathinkDisabled = isUltrathinkDisabledFor(
-      buildQueryEnv(envOverride, this.restrictedMode),
-      this.restrictedMode
-        ? []
-        : [
-            userSettings,
-            ...(await Promise.all(
-              (["project", "local"] as const).map((scope) =>
-                readSettings(scope, this.cwd).catch(() => ({}) as ClaudeSettings),
-              ),
-            )),
-          ],
-    );
+    // the ultrathink keyword off". Same env the engine ends up with: the
+    // query env plus each settings scope's `env` block (user < project <
+    // local); restricted sessions count the query env only. See
+    // `resolveUltrathinkDisabled`.
+    this.ultrathinkDisabled = await resolveUltrathinkDisabled({
+      queryEnv: buildQueryEnv(envOverride, this.restrictedMode),
+      restricted: Boolean(this.restrictedMode),
+      userSettings,
+      readScope: (scope) => readSettings(scope, this.cwd),
+    });
 
     // Cache the effective advisor on `this` so the client can prime its
     // optimistic mirror via GET /api/sessions/[id]/advisor — the SDK's
@@ -3580,7 +3578,16 @@ export class Session {
     // Claude was working being answered after a Stop, once the session's
     // process had been replaced": rows the user stopped behind stay queued
     // (`unlessHeld`), just as the replaced Session would have left them.
-    void this.flushQueueIfIdle({ unlessHeld: true }).catch(() => {});
+    void this.drainQueueOnStart().catch(() => {});
+  }
+
+  /**
+   * The drain at the end of `start()` (see the comment there). CC 2.1.316
+   * parity — `unlessHeld`: a head the user stopped behind (`interrupt`)
+   * stays queued, so a replacement Session never answers it on its own.
+   */
+  private drainQueueOnStart(): Promise<void> {
+    return this.flushQueueIfIdle({ unlessHeld: true });
   }
 
   private startJsonlWatcher(): void {
@@ -5305,8 +5312,11 @@ export class Session {
     // replacement Session — dead-process restart, account switch, idle-reaper
     // revival, server restart — drains the persisted queue at the end of
     // `start()`. Mark what's queued behind the stopped turn as held so that
-    // drain leaves it alone. Status is read before any await; a DB failure
-    // must never stop the interrupt itself from going out.
+    // drain leaves it alone. The hold lasts until a turn here ends in success
+    // (a message sent after the Stop queues behind the held rows, it doesn't
+    // release them) or the user sends a held row explicitly (Send now /
+    // send-all). Status is read before any await; a DB failure must never
+    // stop the interrupt itself from going out.
     if (this.getStatus() !== "idle") {
       try {
         await holdAllQueued(this.cwd, this.id);
@@ -8181,10 +8191,13 @@ export class Session {
     fromGoal?: boolean;
   }): Promise<string> {
     await this.loadQueueIfNeeded();
-    // CC 2.1.316 parity — a fresh message from the user after a Stop ends the
-    // Stop's hold on the rows ahead of it (see `interrupt`): the queue goes
-    // back to draining exactly as it does in-process.
-    await this.releaseQueueHolds();
+    // CC 2.1.316 parity — a fresh message does NOT end a Stop's hold on the
+    // rows ahead of it (see `interrupt`). Releasing here would start no drain,
+    // so the held row would just be answered at the next process replacement
+    // — the original bug one hop later. The fresh row waits behind the held
+    // ones exactly as it does in a never-replaced Session; holds clear only on
+    // a successful turn (`drainQueueAfterSuccess`) or an explicit Send now /
+    // send-all.
     const uuid = input.uuid ?? randomUUID();
     const row = await enqueueTail(this.cwd, {
       sessionId: this.id,
@@ -8318,8 +8331,9 @@ export class Session {
    * Claude was working being answered after a Stop, once the session's
    * process had been replaced". `opts.unlessHeld` (the `start()` call only)
    * leaves the queue intact when its head is held by a Stop (`interrupt`);
-   * every other drain behaves as before. Holds clear on the next successful
-   * turn (`drainQueueAfterSuccess`) or a fresh enqueue.
+   * every other drain behaves as before. Holds clear only on the next
+   * successful turn (`drainQueueAfterSuccess`); Send now / send-all send a
+   * held row regardless. A fresh enqueue leaves them in place.
    */
   private async flushQueueIfIdle(opts?: { unlessHeld?: boolean }): Promise<void> {
     if (this.done) return;
@@ -8356,8 +8370,12 @@ export class Session {
 
   /**
    * CC 2.1.316 parity — clear any Stop hold on this session's queue (see
-   * `interrupt`). The cache mirrors the DB's flag (loaded from it, and
-   * updated by `interrupt`), so nothing is written when nothing is held.
+   * `interrupt`). Called only from `drainQueueAfterSuccess`, right before
+   * the drain that the successful turn starts — never on its own, since a
+   * release with no drain behind it just leaves the held row to be answered
+   * by the next replacement Session. The cache mirrors the DB's flag (loaded
+   * from it, and updated by `interrupt`), so nothing is written when nothing
+   * is held.
    */
   private async releaseQueueHolds(): Promise<void> {
     await this.loadQueueIfNeeded();
