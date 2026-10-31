@@ -2602,6 +2602,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             toolProgress={session.toolProgress}
             replaying={session.replaying}
             hasMoreAbove={session.hasMoreAbove}
+            catchingUp={session.catchingUp}
             loadingOlder={session.loadingOlder}
             onLoadOlder={session.loadOlder}
             onPickExample={handleSend}

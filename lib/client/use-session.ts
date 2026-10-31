@@ -1266,6 +1266,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    */
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("live");
   const [hasMoreAbove, setHasMoreAbove] = useState(false);
+  /**
+   * CC 2.1.316 parity — "[Cloud sessions] Added a 'Catching up…' line that
+   * shows while a cloud or Remote Control session you switch back to is
+   * still bringing its messages up to date". True from the moment an
+   * existing session is switched to (or resumed at boot) until its history
+   * replay finishes (`replay_done`), so `MessageList` shows "Catching up…"
+   * instead of the brand-new-session splash over the cleared transcript.
+   * Brand-new sessions never set it — they keep the splash.
+   */
+  const [catchingUp, setCatchingUp] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [latestTodos, setLatestTodos] = useState<AgentTodo[]>([]);
   /**
@@ -2772,6 +2782,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         setReplaying(false);
         replayingRef.current = false;
         setHasMoreAbove(ev.hasMoreAbove);
+        setCatchingUp(false);
         // The assistant-message handler marks every replayed message as
         // `streaming: true` and flips pending — that's correct for live
         // turns but wrong for historical ones. Reconcile here once the
@@ -5255,6 +5266,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       sessionIdRef.current = null;
       setSessionId(null);
       resetState();
+      // CC 2.1.316 — the cleared pane is an existing session catching up,
+      // not a new one: "Catching up…" until its replay lands. A failed wake
+      // POST still binds (below), so the line stays until `replay_done`.
+      setCatchingUp(true);
       // AWAIT the wake POST before opening the SSE — this mirrors the
       // boot path exactly (`createSession` does `await fetch(...)` then
       // `bindToSession`). Earlier we used `void fetch(...)` for a tighter
@@ -5325,6 +5340,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       sessionIdRef.current = null;
       setSessionId(null);
       resetState();
+      // CC 2.1.316 — a boot `resume` (`?session=` / last-active tab) is an
+      // existing session catching up; a brand-new session keeps the splash.
+      setCatchingUp(Boolean(opts.resume));
       setCreateError(null);
       try {
         let res: Response;
@@ -5379,6 +5397,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // A newer create/switch superseded this one — its failure is moot.
         if (switchGenRef.current !== gen) return null;
         const msg = err instanceof Error ? err.message : String(err);
+        setCatchingUp(false);
         setErrors((e) => [...e, msg]);
         setCreateError(msg);
         return null;
@@ -6886,6 +6905,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     replaying,
     streamStatus,
     hasMoreAbove,
+    catchingUp,
     loadingOlder,
     latestTodos,
     todosStale,
