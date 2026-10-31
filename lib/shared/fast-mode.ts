@@ -16,6 +16,8 @@
  * this mirrors.
  */
 
+import { canonicalModelId } from "./advisor";
+
 /** Verbatim from `FastModeDisabledReason` in sdk.d.ts, kept here as a type-only mirror. */
 export type FastModeDisabledReason =
   | "free"
@@ -85,4 +87,47 @@ export function isFastModeCreditsRejectedNotice(msg: unknown): boolean {
   if (!msg || typeof msg !== "object") return false;
   const m = msg as { type?: unknown; subtype?: unknown; key?: unknown };
   return m.type === "system" && m.subtype === "notification" && m.key === FAST_MODE_CREDITS_REJECTED_KEY;
+}
+
+/**
+ * CC 2.1.316 parity — "Deprecated fast mode for Opus 4.8 as of October 30,
+ * 2026; it will be removed on November 30, 2026…Migrate to Opus 5.5 to keep
+ * the speedup".
+ *
+ * The 2.1.316 engine emits a `system/notification` with this key (priority
+ * `immediate`, color `warning`) when fast mode is turned ON on Opus 4.8, but
+ * only from its own `/fast` command / TUI picker. Claudius's picker toggles
+ * fast through `applyFlagSettings`, which never emits it, so the client
+ * raises the same text itself. The key lets the transcript skip the engine's
+ * copy while Claudius's own notice is showing.
+ */
+export const OPUS48_FAST_DEPRECATION_KEY = "opus48-fast-mode-deprecation";
+
+/** Removal date — the engine's `tengu_sunset_penguin_opus48` flag default. */
+export const OPUS48_FAST_REMOVAL_ISO = "2026-11-30";
+
+/** Claudius's call to action under the engine's text. */
+export const OPUS48_FAST_MIGRATE_HINT = "Switch to Opus 5.5 to keep the speedup.";
+
+/**
+ * The engine's notice text for turning fast mode on with `model`, or `null`
+ * when it doesn't apply: anything that isn't Opus 4.8 once canonicalized
+ * (`[1m]` tags, date suffixes, Bedrock / Vertex wrappers all reduce to
+ * `claude-opus-4-8`), or at/after the removal instant. A bare alias like
+ * `opus` can't be told apart here (it resolves to Opus 5.5 today), so pass
+ * the catalog row's `resolvedModel` when there is one.
+ */
+export function opus48FastDeprecationText(
+  model: string | null | undefined,
+  now: number = Date.now(),
+): string | null {
+  if (canonicalModelId(model) !== "claude-opus-4-8") return null;
+  const removal = Date.parse(OPUS48_FAST_REMOVAL_ISO);
+  if (Number.isNaN(removal) || now >= removal) return null;
+  const date = new Date(removal).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+  return `Opus 4.8 fast mode is deprecated and will be removed on ${date}`;
 }

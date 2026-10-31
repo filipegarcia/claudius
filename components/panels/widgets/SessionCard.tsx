@@ -79,7 +79,8 @@ type Props = {
    */
   fastMode?: boolean;
   /** Toggle fast mode. Surfaced in the picker on fast-capable models. */
-  onChangeFast?: (enabled: boolean) => Promise<void> | void;
+  /** `model` — see ModelPicker's `onToggleFast` (CC 2.1.316). */
+  onChangeFast?: (enabled: boolean, model?: string) => Promise<void> | void;
   /**
    * Per-session advisor-model pick. `null` means "no per-session override";
    * the actual SDK value still defaults to whatever settings.json carries
@@ -335,8 +336,8 @@ export function SessionCard({
           }}
           onToggleFast={
             onChangeFast
-              ? async (enabled) => {
-                  await onChangeFast(enabled);
+              ? async (enabled, activeModelId) => {
+                  await onChangeFast(enabled, activeModelId);
                   setPickerOpen(false);
                 }
               : undefined

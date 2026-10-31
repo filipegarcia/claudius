@@ -36,7 +36,11 @@ import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { readCronNextFireAt } from "@/lib/shared/session-loops";
-import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
+import {
+  OPUS48_FAST_DEPRECATION_KEY,
+  isFastModeCreditsRejectedNotice,
+  opus48FastDeprecationText,
+} from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
@@ -1150,8 +1154,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     // switch (see `Session.setModel`'s `fastModeNowSupported`), not from the
     // SDK's bare `fast_mode_state` edge — that field carries no "why".
     | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    // CC 2.1.316 parity: raised by `setFast(true, model)` on Opus 4.8 — the
+    // engine's deprecation notice, which it never emits for the
+    // `applyFlagSettings` path the picker uses.
+    | { uuid: string; kind: "deprecation"; text: string }
     | null
   >(null);
+  // CC 2.1.316 — whether the panel is showing Claudius's own Opus 4.8
+  // deprecation notice right now. Read by the `system/notification` branch to
+  // skip the engine's keyed copy of the same text while ours is up.
+  const fastDeprecationShownRef = useRef(false);
+  useEffect(() => {
+    fastDeprecationShownRef.current = fastModeNotice?.kind === "deprecation";
+  }, [fastModeNotice]);
   // Transient toast for a rejected `/model` switch — the local analogue of the
   // TUI's "Remote session couldn't switch to <model>" notice. Fires when the
   // POST /api/sessions/<id>/model round-trip returns a non-ok result (SDK
@@ -4836,7 +4851,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             if (typeof nUuid === "string") handledFastCreditsNoticeUuidsRef.current.add(nUuid);
             if (firstSight && !replayingRef.current) setFastEnabled(false);
           }
-          if (text) {
+          // CC 2.1.316 — the engine's Opus 4.8 fast-mode deprecation notice
+          // duplicates the FastModeNoticePanel one Claudius raised for the
+          // same toggle; drop it while ours is showing. On the typed
+          // `/fast on` path no local notice exists, so it still renders.
+          const dupOfLocalDeprecation =
+            (sysAny as { key?: unknown }).key === OPUS48_FAST_DEPRECATION_KEY &&
+            fastDeprecationShownRef.current;
+          if (text && !dupOfLocalDeprecation) {
             setSystemEntries((prev) => [
               ...prev,
               {
@@ -6487,11 +6509,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    * that calls `applyFlagSettings({ fastMode })` server-side. Unlike ultracode
    * there's NO effort side effect: fast mode is orthogonal to effort, so the
    * effort mirror is left wherever the user last set it.
+   *
+   * CC 2.1.316 parity — "Deprecated fast mode for Opus 4.8 as of October 30,
+   * 2026; it will be removed on November 30, 2026…Migrate to Opus 5.5 to
+   * keep the speedup". The engine only tells the user from its own `/fast`
+   * command; turning fast ON here (picker → `applyFlagSettings`) on Opus 4.8
+   * raises the same text in the FastModeNoticePanel. `model` is the picker's
+   * resolved id for the active row; without it the live model is used (an
+   * unresolved alias like `opus` never matches).
    */
-  const setFast = useCallback(async (enabled: boolean) => {
+  const setFast = useCallback(async (enabled: boolean, model?: string) => {
     const id = sessionIdRef.current;
     if (!id) return;
     setFastEnabled(enabled);
+    if (enabled) {
+      const text = opus48FastDeprecationText(model ?? modelRef.current);
+      if (text) setFastModeNotice({ uuid: crypto.randomUUID(), kind: "deprecation", text });
+    }
     await fetch(`/api/sessions/${id}/fast`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

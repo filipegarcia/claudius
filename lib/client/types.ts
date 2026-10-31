@@ -1012,10 +1012,16 @@ export type ChatState = {
    * A third variant, "model-switch" (CC 2.1.218 parity), fires when a model
    * switch changes fast-mode *capability* — see `FastModeNoticePanel`'s doc
    * and `Session.setModel`'s `fastModeNowSupported`.
+   *
+   * A fourth, "deprecation" (CC 2.1.316 parity — "Deprecated fast mode for
+   * Opus 4.8 as of October 30, 2026; it will be removed on November 30,
+   * 2026…"), carries the engine's notice text when fast mode is turned on
+   * from the picker on Opus 4.8.
    */
   fastModeNotice:
     | { uuid: string; kind: "cooldown" | "recovered"; reason?: string }
     | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    | { uuid: string; kind: "deprecation"; text: string }
     | null;
   /**
    * Transient toast for a rejected `/model` switch. Mirrors the Claude Code
@@ -1407,7 +1413,8 @@ export type ChatActions = {
    * Routed through `applyFlagSettings({ fastMode })` server-side. Orthogonal to
    * effort: unlike `setUltracode` it does NOT move the effort mirror.
    */
-  setFast(enabled: boolean): Promise<void>;
+  /** `model` (CC 2.1.316): the picker's resolved id, for the Opus 4.8 deprecation notice. */
+  setFast(enabled: boolean, model?: string): Promise<void>;
   /**
    * Set the per-session "Advisor" model — the SDK escalates to this model
    * for stronger judgment mid-turn. Routed through

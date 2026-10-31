@@ -28,6 +28,7 @@ import {
   prettyModelName,
 } from "@/lib/shared/advisor";
 import { findModelEntry } from "@/lib/shared/model-id";
+import { OPUS48_FAST_MIGRATE_HINT, opus48FastDeprecationText } from "@/lib/shared/fast-mode";
 
 /**
  * Mirror of `ModelInfo` from `@anthropic-ai/claude-agent-sdk`. We don't
@@ -123,7 +124,12 @@ type Props = {
    * mode.
    */
   fastMode?: boolean;
-  onToggleFast?: (enabled: boolean) => Promise<void> | void;
+  /**
+   * `model` is the active row's canonical id (`resolvedModel ?? value`), so
+   * the host can raise the CC 2.1.316 Opus 4.8 fast-mode deprecation notice
+   * without re-resolving an alias.
+   */
+  onToggleFast?: (enabled: boolean, model?: string) => Promise<void> | void;
   /**
    * Called with the model list once it loads (not on a failed fetch). Lets
    * the host learn per-model capabilities the picker gates rows on — the
@@ -879,6 +885,12 @@ export function ModelPicker({
         if (!onToggleFast || !activeModel?.supportsFastMode) {
           return null;
         }
+        // CC 2.1.316 parity — "Deprecated fast mode for Opus 4.8 as of
+        // October 30, 2026; it will be removed on November 30, 2026…Migrate
+        // to Opus 5.5 to keep the speedup". Resolved through the catalog row
+        // so the `opus` alias (Opus 5.5) never warns; null after removal.
+        const activeId = activeModel.resolvedModel ?? activeModel.value;
+        const deprecation = opus48FastDeprecationText(activeId);
         return (
           <div className="border-t border-[var(--border)]/60 px-3 py-2">
             <button
@@ -886,7 +898,7 @@ export function ModelPicker({
               data-testid="model-picker-fast"
               data-enabled={fastMode ? "1" : "0"}
               aria-pressed={fastMode}
-              onClick={() => onToggleFast(!fastMode)}
+              onClick={() => onToggleFast(!fastMode, activeId)}
               className={cn(
                 "flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition",
                 fastMode
@@ -928,6 +940,14 @@ export function ModelPicker({
                 />
               </span>
             </button>
+            {deprecation && (
+              <p
+                data-testid="model-picker-fast-deprecation"
+                className="mt-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] leading-snug text-amber-200"
+              >
+                {deprecation}. {OPUS48_FAST_MIGRATE_HINT}
+              </p>
+            )}
           </div>
         );
       })()}
