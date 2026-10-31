@@ -1045,12 +1045,23 @@ export function PromptInput({
     // CC 2.1.316 parity — "Fixed prompts containing invisible characters
     // needing a second Enter to send; plain prompts now send cleaned on the
     // first Enter, and commands still wait for review". Only a prompt that is
-    // empty once cleaned, had a bidi control removed (it may have reordered
-    // what the user saw), or is a command (`/…`, `!…`, an exit word) is still
-    // held; any other prompt goes out cleaned right away with a footer
-    // notice saying how many characters were removed.
+    // empty once cleaned with nothing attached, had a bidi control removed
+    // (it may have reordered what the user saw), or is a `/…` command is
+    // still held; any other prompt (or an image with only invisible text)
+    // goes out cleaned right away with a footer notice saying how many
+    // characters were removed.
+    //
+    // `!` input never reaches this check: it was routed to `submitBash()`
+    // above, which keeps its 2.1.280 strip-and-run. The helper's `!` rule
+    // only catches a `!` command that got here because it didn't start the
+    // raw value — after leading whitespace (` !ls`) or a leading invisible
+    // character (`​!ls`, which cleans to `!ls`, so the next Send routes
+    // it to bash) — holding it lets the user see what it really is first.
     const { cleaned: strippedValue, removedCount, bidiCount } = stripInvisibleUnicode(value);
-    if (removedCount > 0 && invisibleStripNeedsReview(strippedValue, bidiCount)) {
+    if (
+      removedCount > 0 &&
+      invisibleStripNeedsReview(strippedValue, bidiCount, { hasAttachments: images.length > 0 })
+    ) {
       setValue(strippedValue);
       onNotice?.(
         `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"} from your prompt — review and press Send again.`,
@@ -1105,11 +1116,12 @@ export function PromptInput({
       setSendFailed({ sessionId, text: sendFailedCopy(outcome.error, "restore") });
       return;
     }
-    // CC 2.1.316 — the prompt left cleaned; say so (engine wording).
+    // CC 2.1.316 — the prompt left cleaned; say so. Same "hidden" wording as
+    // the paste notice in this footer slot and the hold-for-review toast.
     if (removedCount > 0) {
       noteInvisibleStrip(
         removedCount,
-        `Removed ${removedCount} invisible character${removedCount === 1 ? "" : "s"} from your prompt`,
+        `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"} from your prompt`,
       );
     }
     // Clear right away rather than after the outcome: a fast follow-up

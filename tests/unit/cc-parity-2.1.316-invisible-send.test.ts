@@ -19,9 +19,9 @@ const RLO = "\u{202E}";
 const LRI = "\u{2066}";
 const TAG_A = "\u{E0041}";
 
-function needsReview(raw: string): boolean {
+function needsReview(raw: string, opts?: { hasAttachments?: boolean }): boolean {
   const { cleaned, bidiCount } = stripInvisibleUnicode(raw);
-  return invisibleStripNeedsReview(cleaned, bidiCount);
+  return invisibleStripNeedsReview(cleaned, bidiCount, opts);
 }
 
 describe("stripInvisibleUnicode bidiCount (CC 2.1.316)", () => {
@@ -49,23 +49,39 @@ describe("invisibleStripNeedsReview (CC 2.1.316)", () => {
     expect(needsReview(`isolate ${LRI}text`)).toBe(true);
   });
 
-  it("holds slash and bang commands, even after leading whitespace", () => {
+  it("holds slash commands, even after leading whitespace", () => {
     expect(needsReview(`/compact${ZWSP}`)).toBe(true);
     expect(needsReview(`  /review${ZWSP} the diff`)).toBe(true);
-    expect(needsReview(`!ls${ZWSP}`)).toBe(true);
+    expect(needsReview(`/exit${ZWSP}`)).toBe(true);
   });
 
-  it("holds the exit words", () => {
+  it("holds a `!` command that reached submit() without starting the raw value", () => {
+    // A raw value starting with `!` never gets here — PromptInput routes it
+    // to submitBash(), which keeps its 2.1.280 strip-and-run. Only a `!`
+    // behind leading whitespace or a leading invisible character does.
+    expect(needsReview(` !ls${ZWSP}`)).toBe(true);
+    expect(needsReview(`${ZWSP}!ls`)).toBe(true);
+  });
+
+  it("sends bare exit-like words cleaned — Claudius has no bare-word exit commands", () => {
     for (const word of ["exit", "quit", ":q", ":q!", ":wq", ":wq!"]) {
-      expect(needsReview(`${word}${ZWSP}`)).toBe(true);
+      expect(needsReview(`${word}${ZWSP}`)).toBe(false);
     }
-    // Only an exact match — a prompt that merely mentions exiting is a message.
-    expect(needsReview(`exit${ZWSP} the loop early`)).toBe(false);
   });
 
   it("holds a prompt that was nothing but invisible characters (empty once cleaned)", () => {
     expect(needsReview(`${ZWSP}${ZWSP}`)).toBe(true);
     expect(needsReview(` ${ZWSP}\n`)).toBe(true);
+    expect(needsReview(`${ZWSP}`, { hasAttachments: false })).toBe(true);
+  });
+
+  it("sends an attached image whose text was only invisible characters, as an image-only send does", () => {
+    expect(needsReview(`${ZWSP}${ZWSP}`, { hasAttachments: true })).toBe(false);
+    expect(needsReview(` ${ZWSP}\n`, { hasAttachments: true })).toBe(false);
+    // An attachment doesn't excuse a bidi control or a command.
+    expect(needsReview(`${RLO}`, { hasAttachments: true })).toBe(true);
+    expect(needsReview(`look ${RLO}here`, { hasAttachments: true })).toBe(true);
+    expect(needsReview(`/compact${ZWSP}`, { hasAttachments: true })).toBe(true);
   });
 });
 

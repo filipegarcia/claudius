@@ -4,7 +4,9 @@
  * and the fix for each".
  *
  * Pins `certFailureCause` (code → cause, message fallback, `cause` walking)
- * and that every hint names its own cause and fix.
+ * and each cause's hints: an incomplete chain keeps the proxy one-liner in the
+ * composer (intermediate case only in the long forms), a broken local CA
+ * names its own fix.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -70,18 +72,28 @@ describe("cert hints by cause (CC 2.1.316)", () => {
     }
   });
 
-  it("names the missing intermediate for an incomplete chain, with the full-chain fix in the long forms", () => {
+  it("gives an incomplete chain the proxy one-liner verbatim, the intermediate case only in the long forms", () => {
     const err = SAMPLE["incomplete-chain"];
-    expect(tlsCertFailureHint(err, { extraCaConfigured: false })).toContain("intermediate");
-    expect(tlsCertFailureHint(err, { extraCaConfigured: true })).toContain("intermediate");
+    // Every caller talks to Anthropic, whose chain the user can't fix: the
+    // composer text is byte-identical to the untrusted-authority one.
+    for (const extraCaConfigured of [false, true]) {
+      expect(tlsCertFailureHint(err, { extraCaConfigured })).toBe(
+        tlsCertFailureHint(SAMPLE["untrusted-ca"], { extraCaConfigured }),
+      );
+      expect(tlsCertFailureHint(err, { extraCaConfigured })).not.toContain("intermediate");
+    }
+    expect(tlsCertFailureHint(err, { extraCaConfigured: true })).toContain("Check it has your proxy's CA");
     const log = tlsCertFailureLogHint(err, { extraCaConfigured: false })!;
-    expect(log).toContain("full chain");
-    expect(log).toContain("NODE_EXTRA_CA_CERTS");
-    expect(log).toContain("~/.claude/settings.json");
     const own = ownRequestCertFailureHint(new TypeError("fetch failed", { cause: err }))!;
-    expect(own).toContain("leaves out an intermediate certificate");
-    expect(own).toContain("full chain");
+    expect(log).toContain("~/.claude/settings.json");
     expect(own).toContain("Start Claudius with NODE_EXTRA_CA_CERTS");
+    for (const text of [log, own]) {
+      expect(text).toContain("gateway");
+      expect(text).toContain("intermediate certificate");
+      expect(text).toContain("full chain");
+      // The proxy / NODE_EXTRA_CA_CERTS advice comes first.
+      expect(text.indexOf("NODE_EXTRA_CA_CERTS")).toBeLessThan(text.indexOf("intermediate"));
+    }
   });
 
   it("keeps the proxy / NODE_EXTRA_CA_CERTS advice for an untrusted authority", () => {
@@ -105,7 +117,19 @@ describe("cert hints by cause (CC 2.1.316)", () => {
       expect(text.toLowerCase()).not.toContain("proxy");
       expect(text).not.toContain("Set NODE_EXTRA_CA_CERTS");
     }
-    expect(texts[0]).toContain("missing its issuer");
+    for (const text of texts) {
+      // Claudius's Node server trusts its bundled roots plus the
+      // NODE_EXTRA_CA_CERTS file, not the OS store.
+      expect(text).not.toContain("system certificate store");
+      expect(text).not.toContain("this computer");
+      expect(text).toContain("NODE_EXTRA_CA_CERTS");
+    }
+    // Both composer variants name the fix and where it goes.
+    for (const composer of texts.slice(0, 2)) {
+      expect(composer).toContain("missing its issuer");
+      expect(composer).toContain("add its issuer");
+    }
+    expect(texts[1]).not.toContain("add it.");
     expect(texts[2]).toContain("leftover from a renewal");
     expect(texts[4]).toContain("add its issuer");
   });

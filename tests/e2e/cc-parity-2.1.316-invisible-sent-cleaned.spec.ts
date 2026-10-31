@@ -8,7 +8,8 @@
  * put back for review, so a stray zero-width space from a web copy-paste
  * cost a second Send. Now a plain prompt goes out cleaned on the first
  * Enter and the footer says how many characters were removed; a bidi
- * control, a command or an empty-once-cleaned prompt is still held
+ * control, a `/` command or an empty-once-cleaned prompt with nothing
+ * attached is still held
  * (`invisibleStripNeedsReview`, pinned by the vitest
  * `cc-parity-2.1.316-invisible-send.test.ts`).
  *
@@ -93,7 +94,7 @@ test("a plain prompt with invisible characters sends cleaned on the first Enter"
   await expect(page.getByTestId("chat-toast")).toHaveCount(0);
 
   const notice = page.getByTestId("prompt-invisible-unicode-notice");
-  await expect(notice).toHaveText("Removed 2 invisible characters from your prompt");
+  await expect(notice).toHaveText("Removed 2 hidden characters from your prompt");
 
   // The footer notice auto-dismisses after a few seconds — capture it now.
   await page.screenshot({ path: resolve(SHOTS_DIR, "invisible-sent-cleaned.png"), fullPage: false });
@@ -106,11 +107,13 @@ test("a command with an invisible character still waits for review", async ({ pa
   const composer = page.getByTestId("prompt-input");
   await expect(composer).toBeEnabled({ timeout: 15_000 });
 
-  await composer.fill("exit\u{200B}");
-  await composer.press("Enter");
+  // Click Send rather than pressing Enter: a leading `/word` opens the slash
+  // picker, which would take the Enter itself.
+  await composer.fill("/exit\u{200B}");
+  await page.getByTestId("prompt-send").click();
 
   await expect(page.getByTestId("chat-toast")).toContainText(/review and press Send again/);
-  await expect(composer).toHaveValue("exit");
+  await expect(composer).toHaveValue("/exit");
   await page.waitForTimeout(300);
   expect(sentTexts).toEqual([]);
   await expect(page.getByTestId("prompt-invisible-unicode-notice")).toHaveCount(0);

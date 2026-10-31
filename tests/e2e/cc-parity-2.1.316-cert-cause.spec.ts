@@ -6,9 +6,12 @@
  * `lib/shared/tls-cert-hint.ts` now tells chain-of-trust failures apart
  * (`certFailureCause`) instead of blaming a TLS-inspecting proxy for all of
  * them. This drives the cause the old copy got most wrong: OpenSSL's
- * UNABLE_TO_GET_ISSUER_CERT, where a CA certificate this computer trusts is
+ * UNABLE_TO_GET_ISSUER_CERT, where a CA certificate Claudius trusts is
  * missing its own issuer (a renewal leftover) — setting NODE_EXTRA_CA_CERTS
- * to a proxy CA can't fix that.
+ * to a proxy CA can't fix that; adding the issuer to the NODE_EXTRA_CA_CERTS
+ * file can. An incomplete chain (every caller talks to Anthropic, whose chain
+ * the user can't change) keeps the proxy one-liner in the composer; the
+ * missing-intermediate cause is only in the longer log form.
  *
  * Same harness as `cc-parity-2.1.309-voice-cert-hint.spec.ts`: the
  * voice-stream EventSource is a test-driven fake and Chromium's fake mic
@@ -159,6 +162,7 @@ test("a trusted CA missing its issuer gets its own cause and fix, not the proxy 
   await expect(notice).toHaveAttribute("role", "status");
   await expect(notice).toContainText("missing its issuer");
   await expect(notice).toContainText("add its issuer");
+  await expect(notice).toContainText("NODE_EXTRA_CA_CERTS");
   await expect(notice).not.toContainText(/proxy/i);
   await expect(notice).not.toContainText("Set NODE_EXTRA_CA_CERTS");
   await expect(mic).toHaveAttribute("title", `${HINT} Click to dictate again.`);
@@ -169,7 +173,7 @@ test("a trusted CA missing its issuer gets its own cause and fix, not the proxy 
   await page.screenshot({ path: resolve(SHOTS_DIR, "cert-cause-hint.png"), fullPage: false });
 });
 
-test("a server that leaves out an intermediate is named as a likely cause", async ({ page }) => {
+test("an incomplete chain keeps the proxy / NODE_EXTRA_CA_CERTS one-liner in the composer", async ({ page }) => {
   await mockVoice(page);
   await page.goto("/");
   const composer = page.getByTestId("prompt-input");
@@ -185,6 +189,13 @@ test("a server that leaves out an intermediate is named as a likely cause", asyn
   await emitVoice(page, "error", { kind: "upstream", message: "unable to get local issuer certificate", hint });
 
   const notice = page.getByTestId("prompt-voice-stop-notice");
-  await expect(notice).toContainText("intermediate");
-  await expect(notice).toContainText("NODE_EXTRA_CA_CERTS");
+  // Byte-identical to the untrusted-authority (proxy) hint.
+  const proxyHint = tlsCertFailureHint(
+    Object.assign(new Error("self-signed certificate in certificate chain"), { code: "SELF_SIGNED_CERT_IN_CHAIN" }),
+    { extraCaConfigured: false },
+  )!;
+  expect(hint).toBe(proxyHint);
+  await expect(notice).toContainText(proxyHint);
+  await expect(notice).toContainText("Set NODE_EXTRA_CA_CERTS");
+  await expect(notice).not.toContainText("intermediate");
 });

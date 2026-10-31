@@ -145,7 +145,7 @@ test.describe("Invisible-Unicode prompt hardening (CC 2.1.277 parity)", () => {
     expect(sentTexts).toHaveLength(1);
     await expect(composer).toHaveValue("");
     await expect(page.getByTestId("prompt-invisible-unicode-notice")).toContainText(
-      "Removed 1 invisible character from your prompt",
+      "Removed 1 hidden character from your prompt",
     );
   });
 

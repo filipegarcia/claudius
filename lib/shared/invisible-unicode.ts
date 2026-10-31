@@ -79,25 +79,33 @@ export function stripInvisibleUnicode(text: string): {
   return { cleaned, removedCount, bidiCount };
 }
 
-/** Prompts the engine treats as a command to the CLI itself, not a message. */
-const EXIT_WORDS = new Set(["exit", "quit", ":q", ":q!", ":wq", ":wq!"]);
-
 /**
  * CC 2.1.316 parity — "Fixed prompts containing invisible characters needing
  * a second Enter to send; plain prompts now send cleaned on the first Enter,
  * and commands still wait for review".
  *
  * Whether a prompt that had invisible characters stripped must be put back
- * for review instead of being sent cleaned. Mirrors the engine's rule: hold
- * when nothing is left to send, when a bidi control was removed (it could
- * have been reordering what the user saw - the "Trojan Source" case), or when
- * the cleaned text is a command (`/slash`, `!bash`, or an exit word) rather
- * than a message to Claude. `cleaned` is the text after
- * `stripInvisibleUnicode`; `bidiCount` is its `bidiCount`.
+ * for review instead of being sent cleaned. Hold when nothing is left to
+ * send (empty once cleaned and nothing attached — an attached image still
+ * goes out, as an image-only send does), when a bidi control was removed (it
+ * could have been reordering what the user saw - the "Trojan Source" case),
+ * or when the cleaned text is a command (`/slash` or `!bash`) rather than a
+ * message to Claude. Claudius has no bare-word exit commands (only `/exit`,
+ * which the `/` rule covers), so "quit" with a stray zero-width space is a
+ * message and sends cleaned.
+ *
+ * `cleaned` is the text after `stripInvisibleUnicode`; `bidiCount` is its
+ * `bidiCount`; `hasAttachments` is whether images are attached to the send.
  */
-export function invisibleStripNeedsReview(cleaned: string, bidiCount: number): boolean {
+export function invisibleStripNeedsReview(
+  cleaned: string,
+  bidiCount: number,
+  opts: { hasAttachments?: boolean } = {},
+): boolean {
   const trimmed = cleaned.trim();
-  return trimmed === "" || bidiCount > 0 || /^[/!]/.test(trimmed) || EXIT_WORDS.has(trimmed);
+  if (bidiCount > 0) return true;
+  if (trimmed === "") return !opts.hasAttachments;
+  return /^[/!]/.test(trimmed);
 }
 
 /**

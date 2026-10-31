@@ -16,18 +16,24 @@
  * CC 2.1.316 parity — "Improved SSL certificate errors to name the likely
  * causes, among them a server that leaves out an intermediate certificate,
  * and the fix for each". The engine now splits the old one-size "behind a
- * TLS-inspecting proxy, set NODE_EXTRA_CA_CERTS" advice by error code:
+ * TLS-inspecting proxy, set NODE_EXTRA_CA_CERTS" advice by error code.
+ * Every Claudius caller connects to Anthropic (dictation's
+ * wss://api.anthropic.com, OAuth sign-in, the profile fetch), whose chain the
+ * user can't change, so Claudius weighs the causes accordingly:
  *  - incomplete chain (UNABLE_TO_VERIFY_LEAF_SIGNATURE,
- *    UNABLE_TO_GET_ISSUER_CERT_LOCALLY): the server may leave out an
- *    intermediate certificate (browsers fetch it themselves; Node doesn't),
- *    so whoever runs it must send its full chain — or it's a proxy / private
- *    CA, fixed with NODE_EXTRA_CA_CERTS;
+ *    UNABLE_TO_GET_ISSUER_CERT_LOCALLY): for these hosts almost always a
+ *    TLS-inspecting proxy or private CA, so the composer one-liner is the
+ *    proxy / NODE_EXTRA_CA_CERTS advice, word for word the untrusted-authority
+ *    text. Only the longer log / own-request forms add, briefly, the
+ *    engine's missing-intermediate cause — as the gateway case, where a
+ *    server the user points Claudius at must send its full chain;
  *  - untrusted authority (self-signed in chain, ...): the proxy / private-CA
  *    advice as before;
- *  - broken local CA (UNABLE_TO_GET_ISSUER_CERT): a CA this computer trusts
- *    is missing its own issuer, often a renewal leftover — remove it or add
- *    its issuer; a proxy has nothing to do with it.
- * Claudius copies that split into each of its hints below.
+ *  - broken local CA (UNABLE_TO_GET_ISSUER_CERT): a CA Claudius trusts is
+ *    missing its own issuer, often a renewal leftover — remove it or add its
+ *    issuer; a proxy has nothing to do with it. Claudius's Node server trusts
+ *    its bundled roots plus the NODE_EXTRA_CA_CERTS file (not the OS store),
+ *    so the fix points at that file.
  */
 
 export type CertFailureCause = "incomplete-chain" | "untrusted-ca" | "broken-local-ca";
@@ -82,7 +88,7 @@ export function isCaTrustFailure(err: unknown): boolean {
 /**
  * The hint for a chain-of-trust failure, or `null` when `err` isn't one. Kept
  * short (≤120 chars): it's shown in the composer's one-line footer status
- * slot, so it names the causes and the full advice goes to the log.
+ * slot, so it gives the fix and the log carries the fuller explanation.
  *
  * `extraCaConfigured` — whether an extra CA bundle was already in effect for
  * the socket (`NODE_EXTRA_CA_CERTS` in the real environment, or the
@@ -94,18 +100,17 @@ export function tlsCertFailureHint(
   opts: { extraCaConfigured: boolean },
 ): string | null {
   switch (certFailureCause(err)) {
+    // An incomplete chain to Anthropic's hosts is the proxy / private-CA case
+    // for the user, so it gets the untrusted-authority one-liner verbatim.
     case "incomplete-chain":
-      return opts.extraCaConfigured
-        ? "Dictation couldn't connect — certificate not trusted even with NODE_EXTRA_CA_CERTS. Server may omit an intermediate."
-        : "Dictation couldn't connect — certificate not trusted. Server may omit an intermediate. Proxy? Set NODE_EXTRA_CA_CERTS.";
     case "untrusted-ca":
       return opts.extraCaConfigured
         ? "Dictation couldn't connect — certificate not trusted even with NODE_EXTRA_CA_CERTS. Check it has your proxy's CA."
         : "Dictation couldn't connect — certificate not trusted. Set NODE_EXTRA_CA_CERTS to your proxy's CA bundle and try again.";
     case "broken-local-ca":
       return opts.extraCaConfigured
-        ? "Dictation couldn't connect — a CA in NODE_EXTRA_CA_CERTS or the system store is missing its issuer. Remove it or add it."
-        : "Dictation couldn't connect — a CA certificate this computer trusts is missing its issuer. Remove it or add its issuer.";
+        ? "Dictation couldn't connect — a CA in your NODE_EXTRA_CA_CERTS file is missing its issuer. Remove it or add its issuer."
+        : "Dictation couldn't connect — a trusted CA is missing its issuer. To fix, add its issuer to a NODE_EXTRA_CA_CERTS file.";
     default:
       return null;
   }
@@ -115,12 +120,20 @@ export function tlsCertFailureHint(
 const WHERE_TO_SET =
   "It can be set in the environment or in the env block of ~/.claude/settings.json.";
 
+/** CC 2.1.316 — the engine's missing-intermediate cause, as the gateway case. */
+const GATEWAY_INTERMEDIATE =
+  "If you point Claudius at a gateway, that server may be leaving out an intermediate certificate — it must send its full chain.";
+
+/** CC 2.1.316 — what a CA "missing its issuer" means and where to fix it. */
+const BROKEN_LOCAL_CA =
+  "A CA certificate Claudius trusts (its bundled roots plus the NODE_EXTRA_CA_CERTS file) is missing its own issuer, often a leftover from a renewal: remove it from the NODE_EXTRA_CA_CERTS file or add its issuer there.";
+
 /**
- * The longer server-log form: the composer hint plus the engine's full
- * explanation of the cause and its fix, and where the variable can live.
- * Claudius applies a user-settings `env.NODE_EXTRA_CA_CERTS` to the dictation
- * socket itself (CC 2.1.307, `lib/server/extra-ca-certs.ts`), so either place
- * works without a restart.
+ * The longer server-log form: the composer hint plus where the variable can
+ * live and, by cause, the engine's fuller explanation. Claudius applies a
+ * user-settings `env.NODE_EXTRA_CA_CERTS` to the dictation socket itself (CC
+ * 2.1.307, `lib/server/extra-ca-certs.ts`), so either place works without a
+ * restart.
  */
 export function tlsCertFailureLogHint(
   err: unknown,
@@ -128,34 +141,36 @@ export function tlsCertFailureLogHint(
 ): string | null {
   const hint = tlsCertFailureHint(err, opts);
   if (!hint) return null;
+  const where = opts.extraCaConfigured ? [] : [WHERE_TO_SET];
   switch (certFailureCause(err)) {
     case "incomplete-chain":
-      return [
-        hint,
-        "The certificates the server sent don't lead to a trusted authority. If the server leaves out an intermediate certificate, which browsers fetch by themselves, whoever runs it must have it send its full chain. If it is a TLS-inspecting proxy or a gateway signed by a private CA, NODE_EXTRA_CA_CERTS must point at that CA bundle.",
-        ...(opts.extraCaConfigured ? [] : [WHERE_TO_SET]),
-      ].join(" ");
+      // Proxy / NODE_EXTRA_CA_CERTS advice first; the intermediate case last.
+      return [hint, ...where, GATEWAY_INTERMEDIATE].join(" ");
     case "broken-local-ca":
-      // Nothing to set: the fix is in the trusted CA list itself.
-      return `${hint} The certificates this computer trusts include a CA certificate whose own issuer is missing, often a leftover from a renewal: remove it from the system certificate store or the NODE_EXTRA_CA_CERTS file, or add its issuer there.`;
+      return [hint, BROKEN_LOCAL_CA, ...where].join(" ");
     default:
-      return opts.extraCaConfigured ? hint : `${hint} ${WHERE_TO_SET}`;
+      return [hint, ...where].join(" ");
   }
 }
 
 /**
  * For Claudius's own HTTPS requests to Anthropic (account sign-in / profile),
  * which — unlike the dictation socket — only see a `NODE_EXTRA_CA_CERTS`
- * present in the environment when Claudius started.
+ * present in the environment when Claudius started. Kept short: it renders
+ * inline in the /usage account header.
  */
 export function ownRequestCertFailureHint(err: unknown): string | null {
+  const proxy =
+    "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.";
   switch (certFailureCause(err)) {
     case "incomplete-chain":
-      return "The certificates the server sent don't lead to a trusted authority. If the server leaves out an intermediate certificate, which browsers fetch by themselves, whoever runs it must have it send its full chain. Start Claudius with NODE_EXTRA_CA_CERTS set to the CA bundle if it is a TLS-inspecting proxy or a gateway signed by a private CA.";
+      // Sign-in / profile URLs are fixed to api.anthropic.com, so the
+      // intermediate case is only a network gateway in between — one sentence.
+      return `${proxy} Behind a gateway, it must send its full chain, intermediate certificate included.`;
     case "untrusted-ca":
-      return "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.";
+      return proxy;
     case "broken-local-ca":
-      return "The certificates this computer trusts include a CA certificate whose own issuer is missing, often a leftover from a renewal. Remove it from the system certificate store or the NODE_EXTRA_CA_CERTS file, or add its issuer there, then restart Claudius.";
+      return "A CA certificate Claudius trusts is missing its own issuer, often a leftover from a renewal. Remove it from the NODE_EXTRA_CA_CERTS file or add its issuer there, then restart Claudius.";
     default:
       return null;
   }
