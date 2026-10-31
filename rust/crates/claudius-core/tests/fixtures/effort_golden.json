@@ -1,0 +1,544 @@
+{
+ "sdkVersion": "0.3.299",
+ "routeLevels": [
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+  "auto"
+ ],
+ "build": [
+  {
+   "level": "low",
+   "ultracode": false,
+   "out": {
+    "effortLevel": "low"
+   }
+  },
+  {
+   "level": "low",
+   "ultracode": true,
+   "out": {
+    "effortLevel": "low",
+    "ultracode": true
+   }
+  },
+  {
+   "level": "medium",
+   "ultracode": false,
+   "out": {
+    "effortLevel": "medium"
+   }
+  },
+  {
+   "level": "medium",
+   "ultracode": true,
+   "out": {
+    "effortLevel": "medium",
+    "ultracode": true
+   }
+  },
+  {
+   "level": "high",
+   "ultracode": false,
+   "out": {
+    "effortLevel": "high"
+   }
+  },
+  {
+   "level": "high",
+   "ultracode": true,
+   "out": {
+    "effortLevel": "high",
+    "ultracode": true
+   }
+  },
+  {
+   "level": "xhigh",
+   "ultracode": false,
+   "out": {
+    "effortLevel": "xhigh"
+   }
+  },
+  {
+   "level": "xhigh",
+   "ultracode": true,
+   "out": {
+    "effortLevel": "xhigh",
+    "ultracode": true
+   }
+  },
+  {
+   "level": "max",
+   "ultracode": false,
+   "out": {
+    "effortLevel": "max"
+   }
+  },
+  {
+   "level": "max",
+   "ultracode": true,
+   "out": {
+    "effortLevel": "max",
+    "ultracode": true
+   }
+  },
+  {
+   "level": "auto",
+   "ultracode": false,
+   "out": {
+    "effortLevel": null
+   }
+  },
+  {
+   "level": "auto",
+   "ultracode": true,
+   "out": {
+    "effortLevel": null,
+    "ultracode": true
+   }
+  }
+ ],
+ "parse": [
+  {
+   "response": {
+    "value": null
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "undefined": true
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": 0
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": 1
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": ""
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": "applied"
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": true
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": []
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": [
+     {
+      "applied": {
+       "effort": "high"
+      }
+     }
+    ]
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {}
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": null
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {}
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": 0
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": "high"
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": true
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": []
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": [
+      "high"
+     ]
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {}
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "model": "claude-opus-4-8"
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": null
+     }
+    }
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {}
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "low"
+     }
+    }
+   },
+   "out": {
+    "value": "low"
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "medium"
+     }
+    }
+   },
+   "out": {
+    "value": "medium"
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "high"
+     }
+    }
+   },
+   "out": {
+    "value": "high"
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "xhigh"
+     }
+    }
+   },
+   "out": {
+    "value": "xhigh"
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "max"
+     }
+    }
+   },
+   "out": {
+    "value": "max"
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "auto"
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "HIGH"
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": " high"
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": "ultra"
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": ""
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": 3
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": 0
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": false
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": [
+       "high"
+      ]
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "applied": {
+      "effort": {
+       "level": "high"
+      }
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "effort": "high"
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "effective": {
+      "effortLevel": "high"
+     }
+    }
+   },
+   "out": {
+    "undefined": true
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "effective": {
+      "effortLevel": "xhigh",
+      "model": "opus"
+     },
+     "applied": {
+      "model": "claude-opus-4-8",
+      "effort": "xhigh",
+      "advisor": null,
+      "ultracode": false
+     }
+    }
+   },
+   "out": {
+    "value": "xhigh"
+   }
+  },
+  {
+   "response": {
+    "value": {
+     "effective": {},
+     "applied": {
+      "model": "fake-model",
+      "effort": null
+     }
+    }
+   },
+   "out": {
+    "value": null
+   }
+  }
+ ]
+}

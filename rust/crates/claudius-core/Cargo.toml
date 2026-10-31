@@ -1,0 +1,42 @@
+[package]
+name = "claudius-core"
+description = "Claudius domain core: stores, SQLite, sessions, session manager"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+claudius-agent.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+futures.workspace = true
+getrandom.workspace = true
+hyper.workspace = true
+icu_collator.workspace = true
+indexmap.workspace = true
+jiff.workspace = true
+notify.workspace = true
+regex.workspace = true
+reqwest.workspace = true
+rusqlite.workspace = true
+rustls.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+url.workspace = true
+unicode-normalization.workspace = true
+uuid.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+# Paused clock for the JSONL watcher's debounce tests.
+tokio = { workspace = true, features = ["test-util"] }

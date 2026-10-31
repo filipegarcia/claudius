@@ -1,0 +1,766 @@
+{
+ "staleTodoTurnThreshold": 15,
+ "midTurnToolUseThreshold": 12,
+ "staleFlagTurns": 3,
+ "staleClearTurns": 6,
+ "parse": [
+  {
+   "text": {
+    "value": null
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "undefined": true
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": ""
+   },
+   "out": {
+    "value": []
+   }
+  },
+  {
+   "text": {
+    "value": "   "
+   },
+   "out": {
+    "value": []
+   }
+  },
+  {
+   "text": {
+    "value": "\n\n"
+   },
+   "out": {
+    "value": []
+   }
+  },
+  {
+   "text": {
+    "value": " ﻿"
+   },
+   "out": {
+    "value": []
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [completed] Add shared advisor constants module\n#2 [in_progress] Plumb advisorModel through use-session.ts"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "Add shared advisor constants module",
+      "status": "completed"
+     },
+     {
+      "id": "2",
+      "content": "Plumb advisorModel through use-session.ts",
+      "status": "in_progress"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending]  spaced   subject  "
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "spaced   subject",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1[pending] no space after id"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending]"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] "
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [] empty status"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "# [pending] empty id"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#a#b [x] y"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "a#b",
+      "content": "y",
+      "status": "x"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [a]b] c"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [ in progress ] subject"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "subject",
+      "status": "in progress"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1\t[pending]\tTabbed subject"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "Tabbed subject",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] crlf one\r\n#2 [completed] crlf two\r\n"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "crlf one",
+      "status": "pending"
+     },
+     {
+      "id": "2",
+      "content": "crlf two",
+      "status": "completed"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] nbsp separators"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "nbsp separators",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1[pending] nel is not js whitespace"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending]nel before subject"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] ﻿bom-led subject"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "bom-led subject",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] line separator inside"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] carriage\rreturn inside"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pend ing] status with a separator"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "status with a separator",
+      "status": "pend ing"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [ pending ] status trimmed of separators"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "status trimmed of separators",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "   #3 [completed] leading spaces"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "3",
+      "content": "leading spaces",
+      "status": "completed"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "garbage"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "No tasks found"
+   },
+   "out": {
+    "value": null
+   }
+  },
+  {
+   "text": {
+    "value": "Task list:\n#1 [pending] header line skipped"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "header line skipped",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] fix [bug] here"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "fix [bug] here",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] emoji 🎉 ok"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "emoji 🎉 ok",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#10 [pending] x\n#2 [completed] y\nnot a task\n#3 [deleted] z"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "10",
+      "content": "x",
+      "status": "pending"
+     },
+     {
+      "id": "2",
+      "content": "y",
+      "status": "completed"
+     },
+     {
+      "id": "3",
+      "content": "z",
+      "status": "deleted"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#🎉 [pending] astral id"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "🎉",
+      "content": "astral id",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending] trailing tab\t"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "trailing tab",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending]                                                                                                     x"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "x",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "##1 [pending] double hash"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "#1",
+      "content": "double hash",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1  [pending]  wide gaps"
+   },
+   "out": {
+    "value": [
+     {
+      "id": "1",
+      "content": "wide gaps",
+      "status": "pending"
+     }
+    ]
+   }
+  },
+  {
+   "text": {
+    "value": "#1 [pending]x no space after bracket"
+   },
+   "out": {
+    "value": null
+   }
+  }
+ ],
+ "realIds": [
+  {
+   "text": "Task #1 created successfully: Foo",
+   "out": "1"
+  },
+  {
+   "text": "task #A1 CREATED",
+   "out": "A1"
+  },
+  {
+   "text": "Task #12  created",
+   "out": "12"
+  },
+  {
+   "text": "Task #12created",
+   "out": null
+  },
+  {
+   "text": "Task  #3 created",
+   "out": null
+  },
+  {
+   "text": "Created Task #4 created",
+   "out": "4"
+  },
+  {
+   "text": "prefix Task #5 created suffix",
+   "out": "5"
+  },
+  {
+   "text": "Task # 7 created",
+   "out": null
+  },
+  {
+   "text": "Task #x created",
+   "out": "x"
+  },
+  {
+   "text": "Task #xcreated",
+   "out": null
+  },
+  {
+   "text": "Task #xy created",
+   "out": "xy"
+  },
+  {
+   "text": "TASK #9 Created",
+   "out": "9"
+  },
+  {
+   "text": "Task #1 created\n{\"task\":{\"id\":\"99\"}}",
+   "out": "1"
+  },
+  {
+   "text": "{\"task\":{\"id\":\"42\"}}",
+   "out": "42"
+  },
+  {
+   "text": "{\"task\":{\"id\":\"\"}}",
+   "out": null
+  },
+  {
+   "text": "{\"task\":{\"id\":5}}",
+   "out": null
+  },
+  {
+   "text": "{\"task\":null}",
+   "out": null
+  },
+  {
+   "text": "{\"task\":{\"id\":\"8\",\"subject\":\"s\"},\"ok\":true}",
+   "out": "8"
+  },
+  {
+   "text": " {\"task\":{\"id\":\"7\"}}\n",
+   "out": "7"
+  },
+  {
+   "text": "﻿{\"task\":{\"id\":\"7\"}}",
+   "out": null
+  },
+  {
+   "text": "null",
+   "out": null
+  },
+  {
+   "text": "[]",
+   "out": null
+  },
+  {
+   "text": "\"str\"",
+   "out": null
+  },
+  {
+   "text": "",
+   "out": null
+  },
+  {
+   "text": "not json",
+   "out": null
+  },
+  {
+   "text": "Task #1 created",
+   "out": "1"
+  },
+  {
+   "text": "Taſk #1 created",
+   "out": null
+  },
+  {
+   "text": "tasK #b created",
+   "out": "b"
+  },
+  {
+   "text": "Task #k Created",
+   "out": "k"
+  },
+  {
+   "text": "Task #1\tcreated",
+   "out": "1"
+  },
+  {
+   "text": "Task #1 created",
+   "out": "1"
+  },
+  {
+   "text": "Task # created",
+   "out": null
+  },
+  {
+   "text": "Task #a Task #b created",
+   "out": "b"
+  }
+ ],
+ "bodies": [
+  {
+   "todos": [],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable."
+  },
+  {
+   "todos": [
+    {
+     "content": "a",
+     "status": "pending",
+     "activeForm": "Doing a"
+    }
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"content\": \"a\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Doing a\"\n  }\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"content\": \"a\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Doing a\"\n  }\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"content\": \"a\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Doing a\"\n  }\n]"
+  },
+  {
+   "todos": [
+    {
+     "id": "1",
+     "content": "x",
+     "status": "completed"
+    },
+    {
+     "id": "2",
+     "content": "y",
+     "status": "in_progress"
+    }
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"x\",\n    \"status\": \"completed\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"y\",\n    \"status\": \"in_progress\"\n  }\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"x\",\n    \"status\": \"completed\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"y\",\n    \"status\": \"in_progress\"\n  }\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"x\",\n    \"status\": \"completed\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"y\",\n    \"status\": \"in_progress\"\n  }\n]"
+  },
+  {
+   "todos": [
+    {
+     "2": 2,
+     "10": 1,
+     "b": 3,
+     "a": 4
+    }
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"2\": 2,\n    \"10\": 1,\n    \"b\": 3,\n    \"a\": 4\n  }\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"2\": 2,\n    \"10\": 1,\n    \"b\": 3,\n    \"a\": 4\n  }\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"2\": 2,\n    \"10\": 1,\n    \"b\": 3,\n    \"a\": 4\n  }\n]"
+  },
+  {
+   "todos": [
+    {
+     "n": 1.5,
+     "big": 1e+21,
+     "small": 1e-7,
+     "int": 3,
+     "neg": -2.25
+    }
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"n\": 1.5,\n    \"big\": 1e+21,\n    \"small\": 1e-7,\n    \"int\": 3,\n    \"neg\": -2.25\n  }\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"n\": 1.5,\n    \"big\": 1e+21,\n    \"small\": 1e-7,\n    \"int\": 3,\n    \"neg\": -2.25\n  }\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"n\": 1.5,\n    \"big\": 1e+21,\n    \"small\": 1e-7,\n    \"int\": 3,\n    \"neg\": -2.25\n  }\n]"
+  },
+  {
+   "todos": [
+    null,
+    "str",
+    5,
+    [],
+    {},
+    true
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  null,\n  \"str\",\n  5,\n  [],\n  {},\n  true\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  null,\n  \"str\",\n  5,\n  [],\n  {},\n  true\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  null,\n  \"str\",\n  5,\n  [],\n  {},\n  true\n]"
+  },
+  {
+   "todos": [
+    {
+     "content": "emoji 🎉 and   separator",
+     "status": "pending"
+    }
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"content\": \"emoji 🎉 and   separator\",\n    \"status\": \"pending\"\n  }\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"content\": \"emoji 🎉 and   separator\",\n    \"status\": \"pending\"\n  }\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"content\": \"emoji 🎉 and   separator\",\n    \"status\": \"pending\"\n  }\n]"
+  },
+  {
+   "todos": [
+    {
+     "a": {
+      "b": [
+       1,
+       {
+        "c": []
+       }
+      ],
+      "d": {}
+     }
+    }
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"a\": {\n      \"b\": [\n        1,\n        {\n          \"c\": []\n        }\n      ],\n      \"d\": {}\n    }\n  }\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"a\": {\n      \"b\": [\n        1,\n        {\n          \"c\": []\n        }\n      ],\n      \"d\": {}\n    }\n  }\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"a\": {\n      \"b\": [\n        1,\n        {\n          \"c\": []\n        }\n      ],\n      \"d\": {}\n    }\n  }\n]"
+  },
+  {
+   "todos": [
+    {
+     "content": "quote \" and \\ backslash\nnewline",
+     "status": "pending"
+    }
+   ],
+   "current": "The current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"content\": \"quote \\\" and \\\\ backslash\\nnewline\",\n    \"status\": \"pending\"\n  }\n]",
+   "midTurn": "You've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"content\": \"quote \\\" and \\\\ backslash\\nnewline\",\n    \"status\": \"pending\"\n  }\n]",
+   "stale": "The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"content\": \"quote \\\" and \\\\ backslash\\nnewline\",\n    \"status\": \"pending\"\n  }\n]"
+  }
+ ],
+ "openCounts": [
+  {
+   "snapshot": null,
+   "out": 0
+  },
+  {
+   "snapshot": [],
+   "out": 0
+  },
+  {
+   "snapshot": [
+    {
+     "status": "completed"
+    }
+   ],
+   "out": 0
+  },
+  {
+   "snapshot": [
+    {
+     "status": "pending"
+    },
+    {
+     "status": "completed"
+    },
+    {}
+   ],
+   "out": 2
+  },
+  {
+   "snapshot": [
+    "str",
+    5,
+    [],
+    {
+     "status": "Completed"
+    }
+   ],
+   "out": 4
+  },
+  {
+   "snapshot": [
+    {
+     "status": [
+      "completed"
+     ]
+    },
+    {
+     "status": "completed",
+     "id": "x"
+    }
+   ],
+   "out": 1
+  }
+ ]
+}

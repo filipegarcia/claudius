@@ -1,0 +1,3452 @@
+{
+ "sdkVersion": "0.3.299",
+ "bodies": [
+  {
+   "delta": {},
+   "body": null
+  },
+  {
+   "delta": {
+    "added": [],
+    "removed": [],
+    "disabled": [],
+    "reconnecting": []
+   },
+   "body": null
+  },
+  {
+   "delta": {
+    "added": [
+     ""
+    ]
+   },
+   "body": null
+  },
+  {
+   "delta": {
+    "added": [
+     "",
+     ""
+    ],
+    "removed": [
+     ""
+    ],
+    "disabled": [
+     ""
+    ],
+    "reconnecting": [
+     ""
+    ]
+   },
+   "body": null
+  },
+  {
+   "delta": {
+    "added": [
+     "linear"
+    ]
+   },
+   "body": "The following MCP servers are now available: linear.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "removed": [
+     "linear"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (removed from this session): linear.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "disabled": [
+     "linear"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (disabled by the user): linear.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "reconnecting": [
+     "linear"
+    ]
+   },
+   "body": "The following MCP servers were just reconnected and may still be connecting: linear.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "linear",
+     "slack"
+    ]
+   },
+   "body": "The following MCP servers are now available: linear, slack.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "removed": [
+     "linear",
+     "slack",
+     "github"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (removed from this session): linear, slack, github.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "disabled": [
+     "a",
+     "b"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (disabled by the user): a, b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "reconnecting": [
+     "a",
+     "b"
+    ]
+   },
+   "body": "The following MCP servers were just reconnected and may still be connecting: a, b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "linear"
+    ],
+    "removed": [
+     "slack"
+    ]
+   },
+   "body": "The following MCP servers are now available: linear.\nThe following MCP servers are no longer available (removed from this session): slack.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "a"
+    ],
+    "reconnecting": [
+     "b"
+    ]
+   },
+   "body": "The following MCP servers are now available: a.\nThe following MCP servers were just reconnected and may still be connecting: b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "disabled": [
+     "c"
+    ],
+    "reconnecting": [
+     "d"
+    ]
+   },
+   "body": "The following MCP servers were just reconnected and may still be connecting: d.\nThe following MCP servers are no longer available (disabled by the user): c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "removed": [
+     "r"
+    ],
+    "disabled": [
+     "d"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (disabled by the user): d.\nThe following MCP servers are no longer available (removed from this session): r.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "a1",
+     "a2"
+    ],
+    "removed": [
+     "r1"
+    ],
+    "disabled": [
+     "d1",
+     "d2"
+    ],
+    "reconnecting": [
+     "c1"
+    ]
+   },
+   "body": "The following MCP servers are now available: a1, a2.\nThe following MCP servers were just reconnected and may still be connecting: c1.\nThe following MCP servers are no longer available (disabled by the user): d1, d2.\nThe following MCP servers are no longer available (removed from this session): r1.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "reconnecting": [
+     "c"
+    ],
+    "removed": [
+     "r"
+    ],
+    "disabled": [
+     "d"
+    ],
+    "added": [
+     "a"
+    ]
+   },
+   "body": "The following MCP servers are now available: a.\nThe following MCP servers were just reconnected and may still be connecting: c.\nThe following MCP servers are no longer available (disabled by the user): d.\nThe following MCP servers are no longer available (removed from this session): r.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "",
+     "a",
+     ""
+    ],
+    "removed": [
+     "",
+     "r"
+    ]
+   },
+   "body": "The following MCP servers are now available: a.\nThe following MCP servers are no longer available (removed from this session): r.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     ""
+    ],
+    "removed": [
+     "r"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (removed from this session): r.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [],
+    "reconnecting": [
+     "x"
+    ]
+   },
+   "body": "The following MCP servers were just reconnected and may still be connecting: x.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "a",
+     "a",
+     "a"
+    ]
+   },
+   "body": "The following MCP servers are now available: a, a, a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "removed": [
+     "dup",
+     "other",
+     "dup"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (removed from this session): dup, other, dup.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "same"
+    ],
+    "removed": [
+     "same"
+    ],
+    "disabled": [
+     "same"
+    ],
+    "reconnecting": [
+     "same"
+    ]
+   },
+   "body": "The following MCP servers are now available: same.\nThe following MCP servers were just reconnected and may still be connecting: same.\nThe following MCP servers are no longer available (disabled by the user): same.\nThe following MCP servers are no longer available (removed from this session): same.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     " "
+    ]
+   },
+   "body": "The following MCP servers are now available:  .\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "\t",
+     "\n",
+     " ",
+     "﻿",
+     " ",
+     "　"
+    ]
+   },
+   "body": "The following MCP servers are now available: \t, \n,  , ﻿,  , 　.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "reconnecting": [
+     "  padded  "
+    ]
+   },
+   "body": "The following MCP servers were just reconnected and may still be connecting:   padded  .\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "disabled": [
+     "a\nb",
+     "c\r\nd"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (disabled by the user): a\nb, c\r\nd.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "sërvér",
+     "😀",
+     "𝄞 clef",
+     "中文"
+    ]
+   },
+   "body": "The following MCP servers are now available: sërvér, 😀, 𝄞 clef, 中文.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "removed": [
+     "é",
+     "\u0000nul"
+    ]
+   },
+   "body": "The following MCP servers are no longer available (removed from this session): é, \u0000nul.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "a, b",
+     "c."
+    ]
+   },
+   "body": "The following MCP servers are now available: a, b, c..\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "$1",
+     "$&",
+     "`x`",
+     "<system-reminder>",
+     "</system-reminder>"
+    ]
+   },
+   "body": "The following MCP servers are now available: $1, $&, `x`, <system-reminder>, </system-reminder>.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "quote\"d",
+     "back\\slash"
+    ]
+   },
+   "body": "The following MCP servers are now available: quote\"d, back\\slash.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-"
+    ]
+   },
+   "body": "The following MCP servers are now available: srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "reconnecting": [
+     "srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-",
+     "short"
+    ]
+   },
+   "body": "The following MCP servers were just reconnected and may still be connecting: srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-, short.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "server-0",
+     "server-1",
+     "server-2",
+     "server-3",
+     "server-4",
+     "server-5",
+     "server-6",
+     "server-7",
+     "server-8",
+     "server-9",
+     "server-10",
+     "server-11",
+     "server-12",
+     "server-13",
+     "server-14",
+     "server-15",
+     "server-16",
+     "server-17",
+     "server-18",
+     "server-19",
+     "server-20",
+     "server-21",
+     "server-22",
+     "server-23",
+     "server-24",
+     "server-25",
+     "server-26",
+     "server-27",
+     "server-28",
+     "server-29",
+     "server-30",
+     "server-31",
+     "server-32",
+     "server-33",
+     "server-34",
+     "server-35",
+     "server-36",
+     "server-37",
+     "server-38",
+     "server-39"
+    ]
+   },
+   "body": "The following MCP servers are now available: server-0, server-1, server-2, server-3, server-4, server-5, server-6, server-7, server-8, server-9, server-10, server-11, server-12, server-13, server-14, server-15, server-16, server-17, server-18, server-19, server-20, server-21, server-22, server-23, server-24, server-25, server-26, server-27, server-28, server-29, server-30, server-31, server-32, server-33, server-34, server-35, server-36, server-37, server-38, server-39.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  },
+  {
+   "delta": {
+    "added": [
+     "server-0",
+     "server-1",
+     "server-2",
+     "server-3",
+     "server-4",
+     "server-5",
+     "server-6",
+     "server-7",
+     "server-8",
+     "server-9"
+    ],
+    "removed": [
+     "server-10",
+     "server-11",
+     "server-12",
+     "server-13",
+     "server-14",
+     "server-15",
+     "server-16",
+     "server-17",
+     "server-18",
+     "server-19"
+    ],
+    "disabled": [
+     "server-20",
+     "server-21",
+     "server-22",
+     "server-23",
+     "server-24",
+     "server-25",
+     "server-26",
+     "server-27",
+     "server-28",
+     "server-29"
+    ],
+    "reconnecting": [
+     "server-30",
+     "server-31",
+     "server-32",
+     "server-33",
+     "server-34",
+     "server-35",
+     "server-36",
+     "server-37",
+     "server-38",
+     "server-39"
+    ]
+   },
+   "body": "The following MCP servers are now available: server-0, server-1, server-2, server-3, server-4, server-5, server-6, server-7, server-8, server-9.\nThe following MCP servers were just reconnected and may still be connecting: server-30, server-31, server-32, server-33, server-34, server-35, server-36, server-37, server-38, server-39.\nThe following MCP servers are no longer available (disabled by the user): server-20, server-21, server-22, server-23, server-24, server-25, server-26, server-27, server-28, server-29.\nThe following MCP servers are no longer available (removed from this session): server-10, server-11, server-12, server-13, server-14, server-15, server-16, server-17, server-18, server-19.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching."
+  }
+ ],
+ "controls": [
+  {
+   "name": "status default",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": []
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "status list",
+   "script": {
+    "control": {
+     "mcp_status": {
+      "mcpServers": [
+       {
+        "name": "a",
+        "status": "connected",
+        "tools": [
+         {
+          "name": "t"
+         }
+        ]
+       },
+       {
+        "name": "b",
+        "status": "pending"
+       },
+       {
+        "name": "c",
+        "status": "needs-auth",
+        "n": 1.5
+       }
+      ]
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": [
+       {
+        "name": "a",
+        "status": "connected",
+        "tools": [
+         {
+          "name": "t"
+         }
+        ]
+       },
+       {
+        "name": "b",
+        "status": "pending"
+       },
+       {
+        "name": "c",
+        "status": "needs-auth",
+        "n": 1.5
+       }
+      ]
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "status no list",
+   "script": {
+    "control": {
+     "mcp_status": {}
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": null,
+      "dataUndefined": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "status null list",
+   "script": {
+    "control": {
+     "mcp_status": {
+      "mcpServers": null
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": null
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "status string reply",
+   "script": {
+    "control": {
+     "mcp_status": "x"
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": null,
+      "dataUndefined": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "status error",
+   "script": {
+    "control": {
+     "mcp_status": {
+      "$error": "status failed"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "status failed"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "reconnect",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      "github"
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"github\"}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting: github.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "reconnect empty name",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      ""
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "reconnect space",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      " "
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\" \"}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting:  .\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "reconnect unicode",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      "sërvér 😀"
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"sërvér 😀\"}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting: sërvér 😀.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "reconnect newline",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      "a\nb"
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"a\\nb\"}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting: a\nb.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "reconnect long",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      "srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-"
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-\"}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting: srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "reconnect null reply",
+   "script": {
+    "control": {
+     "mcp_reconnect": null
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      "github"
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"github\"}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting: github.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "reconnect error",
+   "script": {
+    "control": {
+     "mcp_reconnect": {
+      "$error": "Server not found: github"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      "github"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "Server not found: github"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"github\"}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "enable",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "toggleMcp",
+      "linear",
+      true
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_toggle\",\"serverName\":\"linear\",\"enabled\":true}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: linear.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "disable",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "toggleMcp",
+      "linear",
+      false
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_toggle\",\"serverName\":\"linear\",\"enabled\":false}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are no longer available (disabled by the user): linear.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "enable empty name",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "toggleMcp",
+      "",
+      true
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_toggle\",\"serverName\":\"\",\"enabled\":true}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "disable empty name",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "toggleMcp",
+      "",
+      false
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_toggle\",\"serverName\":\"\",\"enabled\":false}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "toggle unicode",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "toggleMcp",
+      "中文",
+      false
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_toggle\",\"serverName\":\"中文\",\"enabled\":false}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are no longer available (disabled by the user): 中文.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "toggle error",
+   "script": {
+    "control": {
+     "mcp_toggle": {
+      "$error": "toggle failed"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "toggleMcp",
+      "linear",
+      false
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "toggle failed"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_toggle\",\"serverName\":\"linear\",\"enabled\":false}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set default diff",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "b": {
+        "command": "b"
+       },
+       "a": {
+        "type": "http",
+        "url": "http://x"
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        "b"
+       ],
+       "removed": [],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"b\":{\"command\":\"b\"},\"a\":{\"type\":\"http\",\"url\":\"http://x\"}}}}"
+     ]
+    },
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "type": "http",
+        "url": "http://x"
+       },
+       "c": {
+        "command": "c"
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "c"
+       ],
+       "removed": [
+        "b"
+       ],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"type\":\"http\",\"url\":\"http://x\"},\"c\":{\"command\":\"c\"}}}}"
+     ]
+    },
+    {
+     "call": [
+      "setMcpServers",
+      {}
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [],
+       "removed": [
+        "a",
+        "c"
+       ],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ]
+    },
+    {
+     "call": [
+      "setMcpServers",
+      {}
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [],
+       "removed": [],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a, b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n<system-reminder>\nThe following MCP servers are now available: c.\nThe following MCP servers are no longer available (removed from this session): b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n<system-reminder>\nThe following MCP servers are no longer available (removed from this session): a, c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set added",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       "b"
+      ],
+      "removed": [],
+      "errors": {}
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        "b"
+       ],
+       "removed": [],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a, b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set added removed errored",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       "b"
+      ],
+      "removed": [
+       "c"
+      ],
+      "errors": {
+       "b": "connect failed"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        "b"
+       ],
+       "removed": [
+        "c"
+       ],
+       "errors": {
+        "b": "connect failed"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nThe following MCP servers are no longer available (removed from this session): c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set removed only",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [],
+      "removed": [
+       "x",
+       "y"
+      ],
+      "errors": {}
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [],
+       "removed": [
+        "x",
+        "y"
+       ],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are no longer available (removed from this session): x, y.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set nothing",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [],
+      "removed": [],
+      "errors": {}
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [],
+       "removed": [],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set all errored",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [],
+      "errors": {
+       "a": "boom"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": {
+        "a": "boom"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set all errored with removal",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [
+       "z"
+      ],
+      "errors": {
+       "a": "boom"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [
+        "z"
+       ],
+       "errors": {
+        "a": "boom"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are no longer available (removed from this session): z.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set empty object",
+   "script": {
+    "control": {
+     "mcp_set_servers": {}
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {}
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set null",
+   "script": {
+    "control": {
+     "mcp_set_servers": null
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": null
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set string",
+   "script": {
+    "control": {
+     "mcp_set_servers": "str"
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": "str"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set number",
+   "script": {
+    "control": {
+     "mcp_set_servers": 5
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": 5
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set true",
+   "script": {
+    "control": {
+     "mcp_set_servers": true
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set array",
+   "script": {
+    "control": {
+     "mcp_set_servers": [
+      "a"
+     ]
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": [
+       "a"
+      ]
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set added not an array",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": "a",
+      "removed": "r"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": "a",
+       "removed": "r"
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set added an object",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": {
+       "0": "a"
+      },
+      "removed": {
+       "0": "r"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": {
+        "0": "a"
+       },
+       "removed": {
+        "0": "r"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "set non-string entries",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       5,
+       null,
+       true,
+       {},
+       [],
+       "b",
+       "",
+       1.5
+      ],
+      "removed": [
+       1,
+       "r",
+       null,
+       "",
+       false,
+       [
+        "x"
+       ]
+      ],
+      "errors": {}
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        5,
+        null,
+        true,
+        {},
+        [],
+        "b",
+        "",
+        1.5
+       ],
+       "removed": [
+        1,
+        "r",
+        null,
+        "",
+        false,
+        [
+         "x"
+        ]
+       ],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a, b.\nThe following MCP servers are no longer available (removed from this session): r.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors null",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [],
+      "errors": null
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": null
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors array",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "0",
+       "1",
+       "2",
+       "a"
+      ],
+      "removed": [],
+      "errors": [
+       "x",
+       "y"
+      ]
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "0",
+        "1",
+        "2",
+        "a"
+       ],
+       "removed": [],
+       "errors": [
+        "x",
+        "y"
+       ]
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: 2, a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors empty array",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "0",
+       "a"
+      ],
+      "removed": [],
+      "errors": []
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "0",
+        "a"
+       ],
+       "removed": [],
+       "errors": []
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: 0, a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors string",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       "0"
+      ],
+      "removed": [],
+      "errors": "a"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        "0"
+       ],
+       "removed": [],
+       "errors": "a"
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a, 0.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors number",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [],
+      "errors": 7
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": 7
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors true",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [],
+      "errors": true
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": true
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors false",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [],
+      "errors": false
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": false
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors null value",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       "b"
+      ],
+      "removed": [],
+      "errors": {
+       "a": null
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        "b"
+       ],
+       "removed": [],
+       "errors": {
+        "a": null
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors nested",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       "b"
+      ],
+      "removed": [
+       "b"
+      ],
+      "errors": {
+       "b": {
+        "message": "x",
+        "code": 1
+       }
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        "b"
+       ],
+       "removed": [
+        "b"
+       ],
+       "errors": {
+        "b": {
+         "message": "x",
+         "code": 1
+        }
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nThe following MCP servers are no longer available (removed from this session): b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors proto key",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "__proto__",
+       "a"
+      ],
+      "removed": [],
+      "errors": {
+       "__proto__": "e"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "__proto__",
+        "a"
+       ],
+       "removed": [],
+       "errors": {
+        "__proto__": "e"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors index keys",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "1",
+       "10",
+       "x"
+      ],
+      "removed": [],
+      "errors": {
+       "1": "e",
+       "10": "e"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "1",
+        "10",
+        "x"
+       ],
+       "removed": [],
+       "errors": {
+        "1": "e",
+        "10": "e"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: x.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set errors unknown name",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [],
+      "errors": {
+       "zz": "e"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": {
+        "zz": "e"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set duplicates",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       "a",
+       "b"
+      ],
+      "removed": [
+       "c",
+       "c"
+      ],
+      "errors": {
+       "b": "e"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a",
+        "a",
+        "b"
+       ],
+       "removed": [
+        "c",
+        "c"
+       ],
+       "errors": {
+        "b": "e"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a, a.\nThe following MCP servers are no longer available (removed from this session): c, c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set unicode",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "😀",
+       "sërv"
+      ],
+      "removed": [
+       "中"
+      ],
+      "errors": {}
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "😀",
+        "sërv"
+       ],
+       "removed": [
+        "中"
+       ],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: 😀, sërv.\nThe following MCP servers are no longer available (removed from this session): 中.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set extra keys",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a"
+      ],
+      "removed": [],
+      "errors": {},
+      "extra": {
+       "n": 1.5
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": {},
+       "extra": {
+        "n": 1.5
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set removed errored",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [],
+      "removed": [
+       "a"
+      ],
+      "errors": {
+       "a": "e"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [],
+       "removed": [
+        "a"
+       ],
+       "errors": {
+        "a": "e"
+       }
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are no longer available (removed from this session): a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set number text",
+   "script": "{\"control\":{\"mcp_set_servers\":{\"added\":[\"a\"],\"removed\":[],\"errors\":{\"b\":1.0},\"n\":1e2,\"2\":-0.0,\"f\":0.1}}}",
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "2": 0,
+       "added": [
+        "a"
+       ],
+       "removed": [],
+       "errors": {
+        "b": 1
+       },
+       "n": 100,
+       "f": 0.1
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "set error",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "$error": "set failed"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "set failed"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ]
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "sequence",
+   "script": {
+    "control": {
+     "mcp_toggle": {
+      "$error": "toggle refused"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "call": [
+      "reconnectMcp",
+      "a"
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"a\"}}"
+     ]
+    },
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "x": {
+        "command": "x"
+       },
+       "y": {
+        "command": "y"
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [
+        "x",
+        "y"
+       ],
+       "removed": [],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"x\":{\"command\":\"x\"},\"y\":{\"command\":\"y\"}}}}"
+     ]
+    },
+    {
+     "call": [
+      "toggleMcp",
+      "b",
+      false
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "toggle refused"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_toggle\",\"serverName\":\"b\",\"enabled\":false}}"
+     ]
+    },
+    {
+     "call": [
+      "reconnectMcp",
+      ""
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"\"}}"
+     ]
+    },
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "y": {
+        "command": "y"
+       }
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "added": [],
+       "removed": [
+        "x"
+       ],
+       "errors": {}
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"y\":{\"command\":\"y\"}}}}"
+     ]
+    },
+    {
+     "call": [
+      "reconnectMcp",
+      "c"
+     ],
+     "outcome": {
+      "ok": true
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_reconnect\",\"serverName\":\"c\"}}"
+     ]
+    }
+   ],
+   "reminder": "<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n<system-reminder>\nThe following MCP servers are now available: x, y.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n<system-reminder>\nThe following MCP servers are no longer available (removed from this session): x.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n<system-reminder>\nThe following MCP servers were just reconnected and may still be connecting: c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+  },
+  {
+   "name": "no query",
+   "script": null,
+   "query": "none",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "no active query"
+     },
+     "wire": []
+    },
+    {
+     "call": [
+      "reconnectMcp",
+      "a"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "no active query"
+     },
+     "wire": []
+    },
+    {
+     "call": [
+      "toggleMcp",
+      "a",
+      true
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "no active query"
+     },
+     "wire": []
+    },
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "no active query"
+     },
+     "wire": []
+    }
+   ],
+   "reminder": null
+  },
+  {
+   "name": "ended",
+   "script": null,
+   "query": "ended",
+   "calls": [
+    {
+     "call": [
+      "mcpServerStatus"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "Query closed before response received"
+     },
+     "wire": []
+    },
+    {
+     "call": [
+      "reconnectMcp",
+      "a"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "Query closed before response received"
+     },
+     "wire": []
+    },
+    {
+     "call": [
+      "toggleMcp",
+      "a",
+      false
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "Query closed before response received"
+     },
+     "wire": []
+    },
+    {
+     "call": [
+      "setMcpServers",
+      {
+       "a": {
+        "command": "node",
+        "args": [
+         "a.js"
+        ]
+       }
+      }
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "Query closed before response received"
+     },
+     "wire": []
+    }
+   ],
+   "reminder": null
+  }
+ ],
+ "route": [
+  {
+   "name": "validation",
+   "script": null,
+   "query": "live",
+   "cases": [
+    {
+     "id": "missing",
+     "request": "{\"servers\":{}}",
+     "status": 404,
+     "body": "{\"error\":\"session not found\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "not json",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "null",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "[]",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "5",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "0",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "true",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "false",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "\"\"",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "\"x\"",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"server\":{}}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":null}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":[]}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":[{\"a\":1}]}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":\"x\"}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":\"\"}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":5}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":true}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":false}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "[{\"servers\":{}}]",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[],\"removed\":[],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"a\"],\"removed\":[],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]},\"b\":{\"type\":\"http\",\"url\":\"http://x\",\"headers\":{\"h\":\"v\"}}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"b\"],\"removed\":[],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"node\",\"args\":[\"a.js\"]},\"b\":{\"type\":\"http\",\"url\":\"http://x\",\"headers\":{\"h\":\"v\"}}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"b\":{\"type\":\"http\",\"url\":\"http://x\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[],\"removed\":[\"a\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"b\":{\"type\":\"http\",\"url\":\"http://x\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are no longer available (removed from this session): a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "﻿{\"servers\":{\"c\":{\"command\":\"c\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"c\"],\"removed\":[\"b\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"c\":{\"command\":\"c\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: c.\nThe following MCP servers are no longer available (removed from this session): b.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"c\":{\"command\":\"c\"}},\"extra\":1}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[],\"removed\":[],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"c\":{\"command\":\"c\"}}}}"
+     ],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{},\"servers\":{\"d\":{\"command\":\"d\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"d\"],\"removed\":[\"c\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"d\":{\"command\":\"d\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: d.\nThe following MCP servers are no longer available (removed from this session): c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"d\":\"str\",\"e\":5,\"f\":[],\"g\":true}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"e\",\"f\",\"g\"],\"removed\":[],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"d\":\"str\",\"e\":5,\"f\":[],\"g\":true}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: e, f, g.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"z\":{\"command\":\"z\"},\"2\":{\"command\":\"two\"},\"y\":{\"command\":\"y\"},\"10\":{\"command\":\"ten\"},\"1\":{\"command\":\"one\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"1\",\"10\",\"2\",\"y\",\"z\"],\"removed\":[\"d\",\"e\",\"f\",\"g\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"1\":{\"command\":\"one\"},\"2\":{\"command\":\"two\"},\"10\":{\"command\":\"ten\"},\"z\":{\"command\":\"z\"},\"y\":{\"command\":\"y\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: 1, 10, 2, y, z.\nThe following MCP servers are no longer available (removed from this session): d, e, f, g.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"n\":{\"command\":\"n\",\"timeout\":1.0,\"x\":1e2,\"y\":-0.0,\"z\":2.5,\"env\":{\"b\":\"1\",\"3\":\"x\",\"a\":\"2\"}}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"n\"],\"removed\":[\"1\",\"10\",\"2\",\"y\",\"z\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"n\":{\"command\":\"n\",\"timeout\":1,\"x\":100,\"y\":0,\"z\":2.5,\"env\":{\"3\":\"x\",\"b\":\"1\",\"a\":\"2\"}}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: n.\nThe following MCP servers are no longer available (removed from this session): 1, 10, 2, y, z.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"s\\u00ebrv\\u00e9r \\ud83d\\ude00\":{\"command\":\"u\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"sërvér 😀\"],\"removed\":[\"n\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"sërvér 😀\":{\"command\":\"u\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: sërvér 😀.\nThe following MCP servers are no longer available (removed from this session): n.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"\":{\"command\":\"empty\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"\"],\"removed\":[\"sërvér 😀\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"\":{\"command\":\"empty\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are no longer available (removed from this session): sërvér 😀.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"x\":{\"type\":\"sdk\",\"name\":\"x\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"x\"],\"removed\":[\"\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"x\":{\"type\":\"sdk\",\"name\":\"x\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: x.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":null}}",
+     "status": 503,
+     "body": "{\"error\":\"Cannot read properties of null (reading 'type')\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"ok\":{\"command\":\"ok\"},\"a\":null}}",
+     "status": 503,
+     "body": "{\"error\":\"Cannot read properties of null (reading 'type')\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"x\":{\"type\":\"sdk\",\"instance\":{}}}}",
+     "status": 503,
+     "body": "{\"error\":\"t.instance.connect is not a function\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"x\":{\"type\":\"sdk\",\"instance\":null}}}",
+     "status": 503,
+     "body": "{\"error\":\"Cannot read properties of null (reading 'connect')\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"__proto__\":{\"servers\":{}}}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"__proto__\":{\"command\":\"p\"},\"q\":{\"command\":\"q\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"q\"],\"removed\":[\"x\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"q\":{\"command\":\"q\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: q.\nThe following MCP servers are no longer available (removed from this session): x.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"__proto__\":null}}",
+     "status": 503,
+     "body": "{\"error\":\"Cannot read properties of null (reading 'type')\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"__proto__\":\"p\"}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[],\"removed\":[\"q\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are no longer available (removed from this session): q.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"big\":{\"command\":\"b\",\"n\":1e21,\"m\":1e-7}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"big\"],\"removed\":[],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"big\":{\"command\":\"b\",\"n\":1e+21,\"m\":1e-7}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: big.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"nums\":{\"command\":\"n\",\"a\":0.000001,\"b\":1e-7,\"c\":123456789012345680000,\"d\":5e-324,\"e\":1.7976931348623157e308,\"f\":-1.5e-10,\"g\":1e300,\"h\":0.1,\"i\":100.0}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"nums\"],\"removed\":[\"big\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"nums\":{\"command\":\"n\",\"a\":0.000001,\"b\":1e-7,\"c\":123456789012345680000,\"d\":5e-324,\"e\":1.7976931348623157e+308,\"f\":-1.5e-10,\"g\":1e+300,\"h\":0.1,\"i\":100}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: nums.\nThe following MCP servers are no longer available (removed from this session): big.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[],\"removed\":[\"nums\"],\"errors\":{}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are no longer available (removed from this session): nums.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    }
+   ]
+  },
+  {
+   "name": "error",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "$error": "set failed"
+     }
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}",
+     "status": 503,
+     "body": "{\"error\":\"set failed\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}}"
+     ],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{}}",
+     "status": 503,
+     "body": "{\"error\":\"set failed\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": null
+    }
+   ]
+  },
+  {
+   "name": "null reply",
+   "script": {
+    "control": {
+     "mcp_set_servers": null
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}",
+     "status": 200,
+     "body": "{\"result\":null}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}}"
+     ],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{}}",
+     "status": 200,
+     "body": "{\"result\":null}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": null
+    }
+   ]
+  },
+  {
+   "name": "string reply",
+   "script": {
+    "control": {
+     "mcp_set_servers": "str"
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}",
+     "status": 200,
+     "body": "{\"result\":\"str\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}}"
+     ],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{}}",
+     "status": 200,
+     "body": "{\"result\":\"str\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": null
+    }
+   ]
+  },
+  {
+   "name": "numbers in the reply",
+   "script": "{\"control\":{\"mcp_set_servers\":{\"added\":[\"a\"],\"removed\":[],\"errors\":{\"b\":{\"code\":1.0,\"at\":1e2}},\"x\":[1.0,1e21],\"2\":1.5}}}",
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"2\":1.5,\"added\":[\"a\"],\"removed\":[],\"errors\":{\"b\":{\"code\":1,\"at\":100}},\"x\":[1,1e+21]}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{}}",
+     "status": 200,
+     "body": "{\"result\":{\"2\":1.5,\"added\":[\"a\"],\"removed\":[],\"errors\":{\"b\":{\"code\":1,\"at\":100}},\"x\":[1,1e+21]}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: a.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    }
+   ]
+  },
+  {
+   "name": "errored added",
+   "script": {
+    "control": {
+     "mcp_set_servers": {
+      "added": [
+       "a",
+       "b"
+      ],
+      "removed": [
+       "c"
+      ],
+      "errors": {
+       "a": "boom"
+      }
+     }
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"a\",\"b\"],\"removed\":[\"c\"],\"errors\":{\"a\":\"boom\"}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: b.\nThe following MCP servers are no longer available (removed from this session): c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":{}}",
+     "status": 200,
+     "body": "{\"result\":{\"added\":[\"a\",\"b\"],\"removed\":[\"c\"],\"errors\":{\"a\":\"boom\"}}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_set_servers\",\"servers\":{}}}"
+     ],
+     "reminder": "<system-reminder>\nThe following MCP servers are now available: b.\nThe following MCP servers are no longer available (removed from this session): c.\nWait for connecting servers and search their tools once available. Do not report a capability as unavailable without first searching.\n</system-reminder>\n\n"
+    }
+   ]
+  },
+  {
+   "name": "no query",
+   "script": null,
+   "query": "none",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"servers\":{\"a\":{\"command\":\"a\"},\"b\":{\"command\":\"b\"}}}",
+     "status": 503,
+     "body": "{\"error\":\"no active query\"}",
+     "wire": [],
+     "reminder": null
+    },
+    {
+     "id": "live",
+     "request": "{\"servers\":[]}",
+     "status": 400,
+     "body": "{\"error\":\"servers object required\"}",
+     "wire": [],
+     "reminder": null
+    }
+   ]
+  }
+ ]
+}

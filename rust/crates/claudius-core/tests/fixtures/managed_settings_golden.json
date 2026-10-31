@@ -1,0 +1,4761 @@
+{
+  "sdkVersion": "0.3.299",
+  "regCalls": [
+    [
+      "query",
+      "HKCU\\SOFTWARE\\Policies\\ClaudeCode",
+      "/v",
+      "Settings"
+    ],
+    [
+      "query",
+      "HKLM\\SOFTWARE\\Policies\\ClaudeCode",
+      "/v",
+      "Settings"
+    ]
+  ],
+  "cases": [
+    {
+      "name": "no_files",
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "empty_object",
+      "files": {
+        "managed-settings.json": "{}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "unrelated_keys_only",
+      "files": {
+        "managed-settings.json": "{\"model\":\"x\",\"env\":{\"A\":\"1\"}}"
+      },
+      "managed": null,
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_basic",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"opus\",\"claude-sonnet-5\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "opus",
+          "claude-sonnet-5"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "opus",
+          "claude-sonnet-5"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_filters_non_strings_keeps_dupes",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"a\",\"a\",3,null,{},\"b\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "a",
+          "a",
+          "b"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a",
+          "a",
+          "b"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_all_invalid_is_empty",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[1,2]}"
+      },
+      "managed": {
+        "deniedModels": []
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_empty_array",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[]}"
+      },
+      "managed": {
+        "deniedModels": []
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_string_dropped",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":\"opus\"}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_null_dropped",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":null}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_object_dropped",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":{\"0\":\"a\"}}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_union_across_docs",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"a\",\"a\",\"b\"]}",
+        "managed-settings.d/10.json": "{\"deniedModels\":[\"b\",\"c\",7]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a",
+          "b",
+          "c"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_later_invalid_keeps_earlier",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"a\"]}",
+        "managed-settings.d/a.json": "{\"deniedModels\":\"x\"}",
+        "managed-settings.d/b.json": "{\"deniedModels\":null}"
+      },
+      "managed": {
+        "deniedModels": [
+          "a"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_only_in_drop_in",
+      "files": {
+        "managed-settings.d/x.json": "{\"deniedModels\":[\"z\",\"z\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "z",
+          "z"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "z",
+          "z"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "denied_dedupe_is_exact_string",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"Opus\"]}",
+        "managed-settings.d/a.json": "{\"deniedModels\":[\"opus\",\" Opus\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "Opus",
+          "opus",
+          " Opus"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "Opus",
+          "opus",
+          " Opus"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_prefix",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"prefix\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "prefix"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_exact",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"exact\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_bogus_fails_closed",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"bogus\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_uppercase_fails_closed",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"PREFIX\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_number_fails_closed",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":5}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_false_fails_closed",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":false}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_array_fails_closed",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":[\"prefix\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_null_dropped",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":null}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_later_doc_wins",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"exact\"}",
+        "managed-settings.d/a.json": "{\"availableModelsMatch\":\"prefix\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "prefix"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_later_bogus_wins",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"prefix\"}",
+        "managed-settings.d/a.json": "{\"availableModelsMatch\":\"bogus\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "match_later_null_keeps_earlier",
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"exact\"}",
+        "managed-settings.d/a.json": "{\"availableModelsMatch\":null}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "pricing_empty_object_kept",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{}}"
+      },
+      "managed": {
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "pricing_string_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":\"x\"}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "pricing_null_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":null}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "pricing_array_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":[1]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "pricing_multiplier_bounds",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":10}}",
+        "managed-settings.d/1.json": "{\"modelPricing\":{\"multiplier\":10.5}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "multiplier": 10
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 10
+      }
+    },
+    {
+      "name": "pricing_multiplier_zero_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":0}}"
+      },
+      "managed": {
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "pricing_multiplier_negative_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":-1}}"
+      },
+      "managed": {
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "pricing_multiplier_string_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":\"0.8\"}}"
+      },
+      "managed": {
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "pricing_multiplier_tiny_kept",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":1e-9}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "multiplier": 1e-9
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 1e-9
+      }
+    },
+    {
+      "name": "pricing_multiplier_later_invalid_keeps_earlier",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":0.5}}",
+        "managed-settings.d/a.json": "{\"modelPricing\":{\"multiplier\":-3}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "multiplier": 0.5
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 0.5
+      }
+    },
+    {
+      "name": "pricing_overrides_rows",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"extra\":1,\"overrides\":{\"ok\":{\"cacheWrite\":4,\"cacheRead\":3,\"output\":2,\"input\":1,\"note\":\"x\"},\"zero\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0},\"max\":{\"input\":10000,\"output\":10000,\"cacheRead\":10000,\"cacheWrite\":10000},\"over\":{\"input\":10001,\"output\":10001,\"cacheRead\":10001,\"cacheWrite\":10001},\"neg\":{\"input\":-1,\"output\":1,\"cacheRead\":1,\"cacheWrite\":1},\"missing\":{\"input\":1,\"output\":1,\"cacheRead\":1},\"str\":{\"input\":1,\"output\":\"2\",\"cacheRead\":1,\"cacheWrite\":1},\"notobj\":5},\"multiplier\":2}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "multiplier": 2,
+          "overrides": {
+            "ok": {
+              "input": 1,
+              "output": 2,
+              "cacheRead": 3,
+              "cacheWrite": 4
+            },
+            "zero": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "max": {
+              "input": 10000,
+              "output": 10000,
+              "cacheRead": 10000,
+              "cacheWrite": 10000
+            }
+          }
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 2,
+        "overrides": {
+          "ok": {
+            "input": 1,
+            "output": 2,
+            "cacheRead": 3,
+            "cacheWrite": 4
+          },
+          "zero": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "max": {
+            "input": 10000,
+            "output": 10000,
+            "cacheRead": 10000,
+            "cacheWrite": 10000
+          }
+        }
+      }
+    },
+    {
+      "name": "pricing_overrides_array_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":1,\"overrides\":[{\"input\":1,\"output\":1,\"cacheRead\":1,\"cacheWrite\":1}]}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "multiplier": 1
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 1
+      }
+    },
+    {
+      "name": "pricing_overrides_null_dropped",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"overrides\":null}}"
+      },
+      "managed": {
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "pricing_overrides_empty_object",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"overrides\":{}}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "overrides": {}
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "overrides": {}
+      }
+    },
+    {
+      "name": "pricing_deep_merge_across_docs",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"overrides\":{\"a\":{\"input\":1,\"output\":1,\"cacheRead\":1,\"cacheWrite\":1},\"b\":{\"input\":2,\"output\":2,\"cacheRead\":2,\"cacheWrite\":2}}}}",
+        "managed-settings.d/a.json": "{\"modelPricing\":{\"multiplier\":3,\"overrides\":{\"b\":{\"input\":5,\"output\":5,\"cacheRead\":5,\"cacheWrite\":5},\"c\":{\"input\":6,\"output\":6,\"cacheRead\":6,\"cacheWrite\":6}}}}",
+        "managed-settings.d/b.json": "{\"modelPricing\":{\"overrides\":{\"a\":{\"input\":20000,\"output\":9,\"cacheRead\":9,\"cacheWrite\":9}}}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "overrides": {
+            "a": {
+              "input": 1,
+              "output": 1,
+              "cacheRead": 1,
+              "cacheWrite": 1
+            },
+            "b": {
+              "input": 5,
+              "output": 5,
+              "cacheRead": 5,
+              "cacheWrite": 5
+            },
+            "c": {
+              "input": 6,
+              "output": 6,
+              "cacheRead": 6,
+              "cacheWrite": 6
+            }
+          },
+          "multiplier": 3
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "overrides": {
+          "a": {
+            "input": 1,
+            "output": 1,
+            "cacheRead": 1,
+            "cacheWrite": 1
+          },
+          "b": {
+            "input": 5,
+            "output": 5,
+            "cacheRead": 5,
+            "cacheWrite": 5
+          },
+          "c": {
+            "input": 6,
+            "output": 6,
+            "cacheRead": 6,
+            "cacheWrite": 6
+          }
+        },
+        "multiplier": 3
+      }
+    },
+    {
+      "name": "pricing_later_invalid_keeps_earlier",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":2}}",
+        "managed-settings.d/a.json": "{\"modelPricing\":\"x\"}"
+      },
+      "managed": {
+        "modelPricing": {
+          "multiplier": 2
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 2
+      }
+    },
+    {
+      "name": "all_three_keys",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":1.5},\"deniedModels\":[\"fable\"],\"availableModelsMatch\":\"exact\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "fable"
+        ],
+        "modelPricing": {
+          "multiplier": 1.5
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "fable"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {
+        "multiplier": 1.5
+      }
+    },
+    {
+      "name": "bad_sibling_keys_dont_drop_doc",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"a\"],\"permissions\":5,\"model\":3,\"hooks\":\"x\",\"env\":[1],\"apiKeyHelper\":{}}"
+      },
+      "managed": {
+        "deniedModels": [
+          "a"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "drop_in_sort_order",
+      "files": {
+        "managed-settings.d/a.json": "{\"availableModelsMatch\":\"prefix\"}",
+        "managed-settings.d/Z.json": "{\"availableModelsMatch\":\"exact\"}",
+        "managed-settings.d/10.json": "{\"deniedModels\":[\"ten\"]}",
+        "managed-settings.d/9.json": "{\"deniedModels\":[\"nine\"]}",
+        "managed-settings.d/é.json": "{\"deniedModels\":[\"accent\"]}",
+        "managed-settings.d/y.json": "{\"deniedModels\":[\"y\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "prefix",
+        "deniedModels": [
+          "ten",
+          "nine",
+          "y",
+          "accent"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "ten",
+          "nine",
+          "y",
+          "accent"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "drop_in_ignores_dotfiles_and_other_ext",
+      "files": {
+        "managed-settings.d/.hidden.json": "{\"deniedModels\":[\"hidden\"]}",
+        "managed-settings.d/notes.txt": "{\"deniedModels\":[\"txt\"]}",
+        "managed-settings.d/x.JSON": "{\"deniedModels\":[\"upper\"]}",
+        "managed-settings.d/y.json": "{\"deniedModels\":[\"y\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "y"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "y"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "drop_in_directory_named_json_skipped",
+      "dirs": [
+        "managed-settings.d/dir.json"
+      ],
+      "files": {
+        "managed-settings.d/a.json": "{\"deniedModels\":[\"a\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "a"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "drop_in_symlink_followed",
+      "files": {
+        "target.txt": "{\"deniedModels\":[\"linked\"]}"
+      },
+      "symlinks": {
+        "managed-settings.d/l.json": "../target.txt"
+      },
+      "managed": {
+        "deniedModels": [
+          "linked"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "linked"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "drop_in_dangling_symlink_skipped",
+      "symlinks": {
+        "managed-settings.d/l.json": "../missing.txt"
+      },
+      "files": {
+        "managed-settings.d/m.json": "{\"deniedModels\":[\"m\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "m"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "m"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "drop_in_dir_is_a_file",
+      "files": {
+        "managed-settings.d": "{\"deniedModels\":[\"no\"]}",
+        "managed-settings.json": "{\"deniedModels\":[\"yes\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "yes"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "yes"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "main_file_is_a_directory",
+      "dirs": [
+        "managed-settings.json"
+      ],
+      "files": {
+        "managed-settings.d/a.json": "{\"deniedModels\":[\"a\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "a"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "bad_json_skipped",
+      "files": {
+        "managed-settings.json": "{bad",
+        "managed-settings.d/a.json": "{\"deniedModels\":[\"a\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "a"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "comments_not_allowed",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"c\"] // x\n}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "trailing_comma_not_allowed",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"c\"],}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "non_object_roots_skipped",
+      "files": {
+        "managed-settings.json": "[\"a\"]",
+        "managed-settings.d/a.json": "\"x\"",
+        "managed-settings.d/b.json": "null",
+        "managed-settings.d/c.json": "5",
+        "managed-settings.d/d.json": "{\"deniedModels\":[\"d\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "empty_and_blank_files",
+      "files": {
+        "managed-settings.json": "",
+        "managed-settings.d/a.json": " \n\t",
+        "managed-settings.d/b.json": "﻿",
+        "managed-settings.d/c.json": "{\"deniedModels\":[\"c\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "c"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "c"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "bom_stripped",
+      "files": {
+        "managed-settings.json": "﻿{\"deniedModels\":[\"bom\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "bom"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "bom"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "leading_whitespace_ok",
+      "files": {
+        "managed-settings.json": "\n  {\"deniedModels\":[\"ws\"]}  \n"
+      },
+      "managed": {
+        "deniedModels": [
+          "ws"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "ws"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "duplicate_keys_last_wins",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"first\"],\"deniedModels\":[\"second\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "second"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "second"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "huge_number_is_infinity",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"x\",1e400],\"availableModelsMatch\":-1e400,\"modelPricing\":{\"multiplier\":1e400,\"overrides\":{\"r\":{\"input\":1,\"output\":1,\"cacheRead\":1,\"cacheWrite\":1e999}}},\"other\":1e309}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "x"
+        ],
+        "modelPricing": {
+          "overrides": {}
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "x"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {
+        "overrides": {}
+      }
+    },
+    {
+      "name": "huge_number_elsewhere_keeps_doc",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"kept\"],\"cleanupPeriodDays\":1e400}"
+      },
+      "managed": {
+        "deniedModels": [
+          "kept"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "kept"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "tiny_number_underflows_to_zero",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"overrides\":{\"r\":{\"input\":1e-400,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0}}}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "overrides": {
+            "r": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            }
+          }
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "overrides": {
+          "r": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "js_number_forms_and_integer_keys",
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"multiplier\":2.0,\"overrides\":{\"b\":{\"input\":1e2,\"output\":1,\"cacheRead\":1,\"cacheWrite\":1},\"10\":{\"input\":1.0,\"output\":0.0,\"cacheRead\":-0,\"cacheWrite\":1.50},\"2\":{\"input\":1,\"output\":1,\"cacheRead\":1,\"cacheWrite\":1}}}}"
+      },
+      "managed": {
+        "modelPricing": {
+          "multiplier": 2,
+          "overrides": {
+            "2": {
+              "input": 1,
+              "output": 1,
+              "cacheRead": 1,
+              "cacheWrite": 1
+            },
+            "10": {
+              "input": 1,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 1.5
+            },
+            "b": {
+              "input": 100,
+              "output": 1,
+              "cacheRead": 1,
+              "cacheWrite": 1
+            }
+          }
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 2,
+        "overrides": {
+          "2": {
+            "input": 1,
+            "output": 1,
+            "cacheRead": 1,
+            "cacheWrite": 1
+          },
+          "10": {
+            "input": 1,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 1.5
+          },
+          "b": {
+            "input": 100,
+            "output": 1,
+            "cacheRead": 1,
+            "cacheWrite": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "unicode_model_names",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"clåude-ø\",\"\\u0000\",\"😀\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "clåude-ø",
+          "\u0000",
+          "😀"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "clåude-ø",
+          "\u0000",
+          "😀"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_device_only",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>exact</string>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_binary_plist",
+      "plists": {
+        "device": {
+          "base64": "YnBsaXN0MDDSAQIDBVxkZW5pZWRNb2RlbHNcbW9kZWxQcmljaW5noQRTYmlu0QYHWm11bHRpcGxpZXIjQAQAAAAAAAAIDRonKS0wOwAAAAAAAAEBAAAAAAAAAAgAAAAAAAAAAAAAAAAAAABE"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "bin"
+        ],
+        "modelPricing": {
+          "multiplier": 2.5
+        }
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "bin"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 2.5
+      }
+    },
+    {
+      "name": "mdm_user_over_device",
+      "plists": {
+        "user": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>u</string>\n\t</array>\n</dict>\n</plist>\n"
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_user_empty_dict_hides_device",
+      "plists": {
+        "user": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict/>\n</plist>\n"
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_user_only_behavior_hides_device",
+      "plists": {
+        "user": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>managedSourcesBehavior</key>\n\t<string>merge</string>\n</dict>\n</plist>\n"
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_user_invalid_value_hides_device_file_used",
+      "plists": {
+        "user": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<string>x</string>\n</dict>\n</plist>\n"
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_user_garbage_hides_device_file_used",
+      "plists": {
+        "user": {
+          "xml": "not a plist"
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_user_date_unreadable_device_used",
+      "plists": {
+        "user": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict><key>deniedModels</key><array><string>u</string></array><key>when</key><date>2026-01-01T00:00:00Z</date></dict></plist>\n"
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_user_no_permission_device_used",
+      "plists": {
+        "user": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>u</string>\n\t</array>\n</dict>\n</plist>\n",
+          "mode": 0
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_user_path_is_directory_device_used",
+      "plists": {
+        "user": {
+          "dir": true
+        },
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_device_data_value_file_used",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<plist version=\"1.0\"><dict><key>deniedModels</key><array><string>d</string></array><key>blob</key><data>AAEC</data></dict></plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_numbers_and_nesting",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>PREFIX</string>\n\t<key>modelPricing</key>\n\t<dict>\n\t\t<key>multiplier</key>\n\t\t<integer>10</integer>\n\t\t<key>overrides</key>\n\t\t<dict>\n\t\t\t<key>10</key>\n\t\t\t<dict>\n\t\t\t\t<key>cacheRead</key>\n\t\t\t\t<real>1.25</real>\n\t\t\t\t<key>cacheWrite</key>\n\t\t\t\t<real>1.25</real>\n\t\t\t\t<key>input</key>\n\t\t\t\t<real>1.25</real>\n\t\t\t\t<key>output</key>\n\t\t\t\t<real>1.25</real>\n\t\t\t</dict>\n\t\t\t<key>bad</key>\n\t\t\t<dict>\n\t\t\t\t<key>cacheRead</key>\n\t\t\t\t<integer>1</integer>\n\t\t\t\t<key>cacheWrite</key>\n\t\t\t\t<integer>1</integer>\n\t\t\t\t<key>input</key>\n\t\t\t\t<integer>20000</integer>\n\t\t\t\t<key>output</key>\n\t\t\t\t<integer>1</integer>\n\t\t\t</dict>\n\t\t\t<key>claude-x</key>\n\t\t\t<dict>\n\t\t\t\t<key>cacheRead</key>\n\t\t\t\t<integer>3</integer>\n\t\t\t\t<key>cacheWrite</key>\n\t\t\t\t<integer>3</integer>\n\t\t\t\t<key>input</key>\n\t\t\t\t<integer>3</integer>\n\t\t\t\t<key>output</key>\n\t\t\t\t<integer>3</integer>\n\t\t\t</dict>\n\t\t</dict>\n\t</dict>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "modelPricing": {
+          "multiplier": 10,
+          "overrides": {
+            "10": {
+              "input": 1.25,
+              "output": 1.25,
+              "cacheRead": 1.25,
+              "cacheWrite": 1.25
+            },
+            "claude-x": {
+              "input": 3,
+              "output": 3,
+              "cacheRead": 3,
+              "cacheWrite": 3
+            }
+          }
+        }
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {
+        "multiplier": 10,
+        "overrides": {
+          "10": {
+            "input": 1.25,
+            "output": 1.25,
+            "cacheRead": 1.25,
+            "cacheWrite": 1.25
+          },
+          "claude-x": {
+            "input": 3,
+            "output": 3,
+            "cacheRead": 3,
+            "cacheWrite": 3
+          }
+        }
+      }
+    },
+    {
+      "name": "mdm_over_file_first_wins",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"],\"availableModelsMatch\":\"exact\",\"modelPricing\":{\"multiplier\":2}}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_substitute_loses_but_binds_exact",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"],\"availableModelsMatch\":\"prefix\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_substitute_binds_when_file_lacks_key",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"],\"modelPricing\":{\"multiplier\":2}}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ],
+        "modelPricing": {
+          "multiplier": 2
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {
+        "multiplier": 2
+      }
+    },
+    {
+      "name": "mdm_void_loses_binds_nothing",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>modelPricing</key>\n\t<dict>\n\t\t<key>multiplier</key>\n\t\t<integer>-1</integer>\n\t</dict>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_authored_beats_file_substitute",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"bogus\"}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_substitute_ties_file_substitute",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"x2\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_void_ties_file_void",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"modelPricing\":{\"overrides\":{}}}"
+      },
+      "managed": {
+        "modelPricing": {}
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "mdm_void_loses_to_file_substitute_only",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"x2\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_substitute_plus_void_is_substitute_only",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_substitute_plus_filtered_array_is_authored",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<integer>1</integer>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": []
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_substitute_plus_other_key_is_authored",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>model</key>\n\t<string>x</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_other_key_only_wins_with_no_consumer_keys",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>model</key>\n\t<string>x</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": null,
+      "origin": "plist",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_other_key_beats_void_mdm",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"model\":\"x\"}"
+      },
+      "managed": null,
+      "origin": "file",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_substitute_docs_tie_mdm_substitute",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"x\"}",
+        "managed-settings.d/a.json": "{\"modelPricing\":{}}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_authored_doc_beats_mdm_substitute",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"x\"}",
+        "managed-settings.d/a.json": "{\"deniedModels\":[\"late\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "late"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "late"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_merge",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t\t<string>x</string>\n\t</array>\n\t<key>managedSourcesBehavior</key>\n\t<string>merge</string>\n\t<key>modelPricing</key>\n\t<dict>\n\t\t<key>overrides</key>\n\t\t<dict>\n\t\t\t<key>a</key>\n\t\t\t<dict>\n\t\t\t\t<key>cacheRead</key>\n\t\t\t\t<integer>1</integer>\n\t\t\t\t<key>cacheWrite</key>\n\t\t\t\t<integer>1</integer>\n\t\t\t\t<key>input</key>\n\t\t\t\t<integer>1</integer>\n\t\t\t\t<key>output</key>\n\t\t\t\t<integer>1</integer>\n\t\t\t</dict>\n\t\t</dict>\n\t</dict>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"x\",\"f\"],\"availableModelsMatch\":\"exact\",\"modelPricing\":{\"multiplier\":2,\"overrides\":{\"a\":{\"input\":9,\"output\":9,\"cacheRead\":9,\"cacheWrite\":9},\"b\":{\"input\":8,\"output\":8,\"cacheRead\":8,\"cacheWrite\":8}}}}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "d",
+          "x",
+          "f"
+        ],
+        "modelPricing": {
+          "multiplier": 2,
+          "overrides": {
+            "a": {
+              "input": 1,
+              "output": 1,
+              "cacheRead": 1,
+              "cacheWrite": 1
+            },
+            "b": {
+              "input": 8,
+              "output": 8,
+              "cacheRead": 8,
+              "cacheWrite": 8
+            }
+          }
+        }
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d",
+          "x",
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {
+        "multiplier": 2,
+        "overrides": {
+          "a": {
+            "input": 1,
+            "output": 1,
+            "cacheRead": 1,
+            "cacheWrite": 1
+          },
+          "b": {
+            "input": 8,
+            "output": 8,
+            "cacheRead": 8,
+            "cacheWrite": 8
+          }
+        }
+      }
+    },
+    {
+      "name": "mdm_merge_exact_from_either_side",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>prefix</string>\n\t<key>managedSourcesBehavior</key>\n\t<string>merge</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"exact\"}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_merge_drops_prefix_only_lower_tiers_set",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n\t<key>managedSourcesBehavior</key>\n\t<string>merge</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"availableModelsMatch\":\"prefix\",\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d",
+          "f"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d",
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_merge_with_drop_ins",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n\t<key>managedSourcesBehavior</key>\n\t<string>merge</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"a\"]}",
+        "managed-settings.d/x.json": "{\"deniedModels\":[\"b\",\"d\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d",
+          "a",
+          "b"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d",
+          "a",
+          "b"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_merge_without_file_tier",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n\t<key>managedSourcesBehavior</key>\n\t<string>merge</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_merge_ignored_when_mdm_primary",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_first_wins_explicit",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n\t<key>managedSourcesBehavior</key>\n\t<string>first-wins</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "mdm_invalid_behavior_is_first_wins",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n\t<key>managedSourcesBehavior</key>\n\t<string>bogus</string>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "losing_mdm_declares_merge",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>managedSourcesBehavior</key>\n\t<string>merge</string>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ],
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "losing_mdm_invalid_behavior_file_merge",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>managedSourcesBehavior</key>\n\t<integer>5</integer>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ],
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "losing_mdm_invalid_string_behavior_file_merge",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>managedSourcesBehavior</key>\n\t<string>Merge</string>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ],
+        "modelPricing": {}
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {}
+    },
+    {
+      "name": "losing_mdm_first_wins_overrides_file_merge",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>managedSourcesBehavior</key>\n\t<string>first-wins</string>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_merge_with_losing_mdm",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>availableModelsMatch</key>\n\t<string>bogus</string>\n\t<key>modelPricing</key>\n\t<dict/>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"f\"],\"modelPricing\":{\"multiplier\":3}}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ],
+        "modelPricing": {
+          "multiplier": 3
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": {
+        "multiplier": 3
+      }
+    },
+    {
+      "name": "file_utf16le_bom_decoded",
+      "files": {
+        "managed-settings.json": {
+          "base64": "//57ACIAZABlAG4AaQBlAGQATQBvAGQAZQBsAHMAIgA6AFsAIgB3AGkAZABlACIALAAiAPwAIgBdAH0A"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "wide",
+          "ü"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "wide",
+          "ü"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_utf16le_odd_trailing_byte_dropped",
+      "files": {
+        "managed-settings.json": {
+          "base64": "//57ACIAZABlAG4AaQBlAGQATQBvAGQAZQBsAHMAIgA6AFsAIgBvAGQAZAAiAF0AfQBB"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "odd"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "odd"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_utf16be_bom_not_decoded",
+      "files": {
+        "managed-settings.json": {
+          "base64": "/v8AewAiAGQAZQBuAGkAZQBkAE0AbwBkAGUAbABzACIAOgBbACIAYgBlACIAXQB9"
+        },
+        "managed-settings.d/a.json": "{\"deniedModels\":[\"fallback\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "fallback"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "fallback"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_invalid_utf8_read_lossily",
+      "files": {
+        "managed-settings.json": {
+          "base64": "eyJkZW5pZWRNb2RlbHMiOlsiYf/DIiwiYiJdfQ=="
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "a��",
+          "b"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "a��",
+          "b"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_exactly_2mib_read",
+      "files": {
+        "managed-settings.json": {
+          "text": "{\"deniedModels\":[\"max\"]}",
+          "padTo": 2097152
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "max"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "max"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "file_over_2mib_skipped",
+      "files": {
+        "managed-settings.json": {
+          "text": "{\"deniedModels\":[\"big\"]}",
+          "padTo": 2097153
+        },
+        "managed-settings.d/a.json": "{\"deniedModels\":[\"small\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "small"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "small"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_only",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"],\"availableModelsMatch\":\"exact\"}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_only",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"],\"modelPricing\":{\"multiplier\":3}}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ],
+        "modelPricing": {
+          "multiplier": 3
+        }
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 3
+      }
+    },
+    {
+      "name": "reg_hklm_over_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_beats_file",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_substitute_loses_to_file_but_binds",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"availableModelsMatch\":\"bogus\"}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_merge_with_file",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"],\"modelPricing\":{\"multiplier\":2}}"
+      },
+      "managed": {
+        "deniedModels": [
+          "h",
+          "f"
+        ],
+        "modelPricing": {
+          "multiplier": 2
+        }
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h",
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 2
+      }
+    },
+    {
+      "name": "reg_file_beats_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_empty_object_hkcu_used",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_behavior_only_hkcu_used",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"managedSourcesBehavior\":\"merge\"}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_invalid_value_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":\"x\"}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_bad_json_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {bad\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_bad_json_file_still_used",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {bad\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_non_object_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    [1]\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_overflow_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n",
+          "pad": 2097152
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_overflow_file_still_used",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n",
+          "pad": 2097152
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_just_under_buffer_read",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n",
+          "pad": 2097049
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_missing_hkcu_used",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"availableModelsMatch\":\"exact\"}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_dword_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_DWORD    0x1\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_multi_sz_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_MULTI_SZ    {\"deniedModels\":[\"m\"]}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_expand_sz_case_insensitive",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    settings    reg_expand_sz    {\"deniedModels\":[\"e\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "e"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "e"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_value_runs_to_end_of_output",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\nEnd of search\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_value_after_other_values",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY\r\n    Other    REG_SZ    x\r\n\tSettings\tREG_SZ\t{\"deniedModels\":[\"t\"]}  \r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "t"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "t"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_long_s_not_case_folded",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    ſettings    REG_SZ    {\"deniedModels\":[\"s\"]}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_overflow_ignored",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n",
+          "pad": 2097152
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_bad_json_ignored",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {bad\r\n\r\n"
+        }
+      },
+      "files": {},
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_drops_composition_keys",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"managedSourcesBehavior\":\"merge\",\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_substitute",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"availableModelsMatch\":\"bogus\"}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "availableModelsMatch": "exact"
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_admin_only_keys_dropped",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"managedMcpServers\":{\"a\":{\"command\":\"x\"}},\"isolation\":{},\"prependPlugins\":[\"p\"],\"enabledPlugins\":{\"a@m\":true,\"b@builtin\":false}}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_disabling_plugin_kept",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"enabledPlugins\":{\"c@m\":false},\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_bad_json_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{bad"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_blank_keeps_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": " \n"
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_invalid_value_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":\"x\"}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_behavior_only_keeps_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"managedSourcesBehavior\":\"merge\"}"
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_drop_in_bad_json_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.d/z.json": "nope"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_dot_drop_in_ignored",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.d/.z.json": "nope",
+        "managed-settings.d/z.txt": "nope"
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_main_is_directory_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "dirs": [
+        "managed-settings.json"
+      ],
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_dangling_drop_in_keeps_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "symlinks": {
+        "managed-settings.d/l.json": "../missing.json"
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_enotdir_main_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "f": "x"
+      },
+      "symlinks": {
+        "managed-settings.json": "f/x"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_enotdir_drop_in_dir_keeps_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "f": "x"
+      },
+      "symlinks": {
+        "managed-settings.d": "f/x"
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_enotdir_drop_in_entry_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "f": "x"
+      },
+      "symlinks": {
+        "managed-settings.d/l.json": "../f/x"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_drop_in_dir_loop_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"managedSourcesBehavior\":\"merge\"}"
+      },
+      "symlinks": {
+        "managed-settings.d": "managed-settings.d"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_too_big_shuts_hkcu",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": {
+          "text": "{\"deniedModels\":[\"big\"]}",
+          "padTo": 2097153
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_file_utf16_counts",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": {
+          "base64": "//57ACIAZABlAG4AaQBlAGQATQBvAGQAZQBsAHMAIgA6AFsAIgB3ACIAXQB9AA=="
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_nothing",
+      "wsl": true,
+      "registry": {},
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_local_file_alone",
+      "wsl": true,
+      "registry": {},
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_unarmed_hklm_ignored",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_unarmed_hklm_keeps_local_file",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_unarmed_windows_file_ignored",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_unarmed_hkcu_ignored",
+      "wsl": true,
+      "registry": {
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_armed",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_armed_by_string_true",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"true\",\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_flag_false",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":false,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_flag_string_false",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"false\",\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_flag_null",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":null,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_flag_uppercase_unreadable_with_content",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"TRUE\",\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_flag_unreadable_only_binds_empty",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":1}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_flag_only_reads_local_file",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_flag_only_windows_file_wins",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_armed_ties_windows_file",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_armed_merges_windows_file",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "h",
+          "w"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h",
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_armed_substitute_binds_beside_windows_file",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"availableModelsMatch\":\"bogus\"}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
+        }
+      },
+      "managed": {
+        "availableModelsMatch": "exact",
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "exact"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_unreadable_windows_armed",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":5}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_false_windows_armed",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":false}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_file_arms",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_file_flag_only_reads_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_drop_in_arms",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.d/a.json": "{\"wslInheritsWindowsSettings\":true}",
+          "managed-settings.d/b.json": "{\"deniedModels\":[\"b\"]}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "b"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "b"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_unreadable_then_armed_drop_in",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"wslInheritsWindowsSettings\":\"x\"}",
+          "managed-settings.d/z.json": "{\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"z\"]}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "z"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "z"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_unreadable_flag_with_content",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":\"maybe\"}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_unreadable_flag_only",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"wslInheritsWindowsSettings\":2}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_dot_and_txt_drop_ins_skipped",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.d/.a.json": "{\"wslInheritsWindowsSettings\":true}",
+          "managed-settings.d/a.txt": "{\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_utf16_flag_arms",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": {
+            "base64": "//57ACIAdwBzAGwASQBuAGgAZQByAGkAdABzAFcAaQBuAGQAbwB3AHMAUwBlAHQAdABpAG4AZwBzACIAOgB0AHIAdQBlACwAIgBkAGUAbgBpAGUAZABNAG8AZABlAGwAcwAiADoAWwAiAHcAMQA2ACIAXQB9AA=="
+          }
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "w16"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w16"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_bad_json_shuts_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": "{bad"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_blank_file_keeps_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.json": " \n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_dangling_drop_in_keeps_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "symlinks": {
+          "managed-settings.d/l.json": "../missing.json"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_enotdir_main_keeps_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "f": "x"
+        },
+        "symlinks": {
+          "managed-settings.json": "f/x"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_drop_in_symlink_to_dir_shuts_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "dirs": [
+          "sub"
+        ],
+        "symlinks": {
+          "managed-settings.d/x.json": "../sub"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_main_is_directory_shuts_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "dirs": [
+          "managed-settings.json"
+        ]
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_overflow_shuts_local",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n",
+          "pad": 2097152
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_bad_json_shuts_local",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {bad\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_overflow_windows_armed",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n",
+          "pad": 2097152
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_armed_windows_bad_json",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{bad"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_needs_its_own_flag",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_armed_used",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_string_true_used",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"true\",\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_with_windows_flag_file",
+      "wsl": true,
+      "registry": {
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_shut_out_by_windows_file",
+      "wsl": true,
+      "registry": {
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "w"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_shut_out_by_local_file",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_shut_out_by_windows_bad_drop_in",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.d/z.json": "nope"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hklm_unreadable_windows_flag_arms_hkcu",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":5}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_main_armed_beats_unreadable_drop_in",
+      "wsl": true,
+      "registry": {
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"wslInheritsWindowsSettings\":true}",
+          "managed-settings.d/a.json": "{\"wslInheritsWindowsSettings\":\"x\"}"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_drop_in_unreadable_flag_only",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "files": {
+          "managed-settings.d/a.json": "{\"wslInheritsWindowsSettings\":2}"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_dot_drop_in_doesnt_arm_hkcu",
+      "wsl": true,
+      "registry": {
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.d/.a.json": "{\"wslInheritsWindowsSettings\":true}",
+          "managed-settings.d/a.txt": "{\"wslInheritsWindowsSettings\":true}"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_windows_drop_in_dir_loop_shuts_local",
+      "wsl": true,
+      "registry": {},
+      "win": {
+        "symlinks": {
+          "managed-settings.d": "managed-settings.d"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_drops_composition_keys",
+      "wsl": true,
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "remote_cache_ignored_alone",
+      "remote": "{\"deniedModels\":[\"r\"],\"availableModelsMatch\":\"exact\",\"modelPricing\":{\"multiplier\":2}}",
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "remote_cache_ignored_over_file",
+      "remote": "{\"deniedModels\":[\"r\"]}",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "remote_cache_substitute_does_not_bind",
+      "remote": "{\"availableModelsMatch\":\"bogus\"}",
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "f"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "f"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "remote_cache_ignored_over_mdm",
+      "remote": "{\"deniedModels\":[\"r\"]}",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "remote_cache_merge_ignored",
+      "remote": "{\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"r\"]}",
+      "plists": {
+        "device": {
+          "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>deniedModels</key>\n\t<array>\n\t\t<string>d</string>\n\t</array>\n</dict>\n</plist>\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"f\"]}"
+      },
+      "managed": {
+        "deniedModels": [
+          "d"
+        ]
+      },
+      "origin": "plist",
+      "policy": {
+        "deniedModels": [
+          "d"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    }
+  ]
+}

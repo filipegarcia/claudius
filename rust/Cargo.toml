@@ -1,0 +1,69 @@
+[workspace]
+resolver = "3"
+members = ["crates/claudius-agent", "crates/claudius-core", "crates/claudius-server"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/claudius-network/claudius"
+rust-version = "1.85"
+
+[workspace.dependencies]
+claudius-agent = { path = "crates/claudius-agent" }
+claudius-core = { path = "crates/claudius-core" }
+
+anyhow = "1"
+async-trait = "0.1"
+axum = { version = "0.8", features = ["macros"] }
+bytes = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# IANA zones for cron's explicit `tz`, from the system tzdb like Node's
+# local zone (chrono-tz stops applying DST rules after 2099; ICU doesn't).
+jiff = "0.2"
+# Look-around for the fixed secret-redaction patterns ported from the SDK
+# (never compiled from input).
+fancy-regex = "0.20"
+futures = "0.3"
+# Profile ids and temp-file names for the account store (`randomBytes`).
+getrandom = "0.4"
+# `String.prototype.localeCompare`: ICU collation with the root (en) data, as
+# V8 compares with ICU4C (fs/dirs entry order).
+icu_collator = "2"
+indexmap = "2"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["client", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "tokio"] }
+libc = "0.2"
+# `fs.watch` on the session's transcript dir (JSONL watcher).
+notify = "8.2"
+regex = "1"
+# The workspace's one outbound HTTP(S) client (`claudius_core::fetch`: the
+# OAuth token exchange, the OAuth profile lookup). HTTP/1.1 only, as undici's
+# fetch; rustls on ring with the OS trust store (rustls-platform-verifier);
+# no proxy, compression or charset features.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rusqlite = { version = "0.37", features = ["bundled"] }
+# reqwest's TLS crypto provider (ring: no cmake, a small C build).
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+# The linter-modified-file reminder's post-write hashes (`createHash("sha256")`).
+sha2 = "0.11"
+tempfile = "3"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tower-http = { version = "0.6", features = ["trace", "cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# WHATWG URL parsing (`new URL()`), for the Bedrock `baseUrl` check.
+url = "2"
+# NFC, as the SDK's `normalize("NFC")` (`listSessions` paths, the config dir).
+unicode-normalization = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 4

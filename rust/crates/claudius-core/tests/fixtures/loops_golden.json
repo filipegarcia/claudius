@@ -1,0 +1,6704 @@
+{
+ "db": {
+  "sessionId": "golden-db",
+  "steps": [
+   [
+    "record",
+    {
+     "sessionId": "golden-db",
+     "sessionTitle": "Title",
+     "toolUseId": "a",
+     "prompt": "/loop a",
+     "firedAt": 1000,
+     "noop": false
+    }
+   ],
+   [
+    "record",
+    {
+     "sessionId": "golden-db",
+     "sessionTitle": null,
+     "toolUseId": "b",
+     "prompt": "",
+     "firedAt": 2000,
+     "noop": true
+    }
+   ],
+   [
+    "record",
+    {
+     "sessionId": "golden-db",
+     "sessionTitle": "Other",
+     "toolUseId": "a",
+     "prompt": "changed",
+     "firedAt": 3000,
+     "noop": true
+    }
+   ],
+   [
+    "attach",
+    "a",
+    12.5
+   ],
+   [
+    "attach",
+    "a",
+    99
+   ],
+   [
+    "attach",
+    "b",
+    -3
+   ],
+   [
+    "attach",
+    "missing",
+    5
+   ],
+   [
+    "record",
+    {
+     "sessionId": "golden-db",
+     "sessionTitle": "Héllo 🎉",
+     "toolUseId": "c",
+     "prompt": "p",
+     "firedAt": 4000.5,
+     "noop": false
+    }
+   ],
+   [
+    "attach",
+    "c",
+    12.4
+   ],
+   [
+    "record",
+    {
+     "sessionId": "golden-db",
+     "sessionTitle": null,
+     "toolUseId": "d",
+     "prompt": "p",
+     "firedAt": 5000,
+     "noop": false
+    }
+   ],
+   [
+    "attach",
+    "d",
+    -0.5
+   ],
+   [
+    "record",
+    {
+     "sessionId": "golden-db",
+     "sessionTitle": null,
+     "toolUseId": "e",
+     "prompt": "p",
+     "firedAt": 6000,
+     "noop": false
+    }
+   ],
+   [
+    "attach",
+    "e",
+    2.5
+   ],
+   [
+    "record",
+    {
+     "sessionId": "golden-db",
+     "sessionTitle": null,
+     "toolUseId": "f",
+     "prompt": "p",
+     "firedAt": 7000,
+     "noop": false
+    }
+   ],
+   [
+    "attach",
+    "f",
+    1000000000000
+   ]
+  ],
+  "after": [
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": 12,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": 12,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "d",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 5000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": 12,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "d",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 5000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": 12,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "d",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 5000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "e",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 6000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": 12,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "d",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 5000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "e",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 6000,
+     "fired_at:type": "integer",
+     "tokens": 3,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": 12,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "d",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 5000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "e",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 6000,
+     "fired_at:type": "integer",
+     "tokens": 3,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "f",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 7000,
+     "fired_at:type": "integer",
+     "tokens": null,
+     "tokens:type": "null",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ],
+   [
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Title",
+     "session_title:type": "text",
+     "tool_use_id": "a",
+     "tool_use_id:type": "text",
+     "prompt": "/loop a",
+     "prompt:type": "text",
+     "fired_at": 1000,
+     "fired_at:type": "integer",
+     "tokens": 13,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "b",
+     "tool_use_id:type": "text",
+     "prompt": "",
+     "prompt:type": "text",
+     "fired_at": 2000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 1,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": "Héllo 🎉",
+     "session_title:type": "text",
+     "tool_use_id": "c",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 4000.5,
+     "fired_at:type": "real",
+     "tokens": 12,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "d",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 5000,
+     "fired_at:type": "integer",
+     "tokens": 0,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "e",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 6000,
+     "fired_at:type": "integer",
+     "tokens": 3,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    },
+    {
+     "id:type": "integer",
+     "session_id": "golden-db",
+     "session_id:type": "text",
+     "session_title": null,
+     "session_title:type": "null",
+     "tool_use_id": "f",
+     "tool_use_id:type": "text",
+     "prompt": "p",
+     "prompt:type": "text",
+     "fired_at": 7000,
+     "fired_at:type": "integer",
+     "tokens": 1000000000000,
+     "tokens:type": "integer",
+     "noop": 0,
+     "noop:type": "integer",
+     "created_at:type": "integer"
+    }
+   ]
+  ]
+ },
+ "breakdown": {
+  "rows": [
+   {
+    "session_id": "s1",
+    "session_title": null,
+    "tool_use_id": "r1",
+    "prompt": "first",
+    "fired_at": 100,
+    "tokens": 10,
+    "noop": 0
+   },
+   {
+    "session_id": "s1",
+    "session_title": "B title",
+    "tool_use_id": "r2",
+    "prompt": "second",
+    "fired_at": 300,
+    "tokens": null,
+    "noop": 1
+   },
+   {
+    "session_id": "s1",
+    "session_title": "A title",
+    "tool_use_id": "r3",
+    "prompt": "middle",
+    "fired_at": 200,
+    "tokens": 5,
+    "noop": null
+   },
+   {
+    "session_id": "s2",
+    "session_title": null,
+    "tool_use_id": "r4",
+    "prompt": "only",
+    "fired_at": 500,
+    "tokens": null,
+    "noop": 0
+   },
+   {
+    "session_id": "s3",
+    "session_title": "T",
+    "tool_use_id": "r5",
+    "prompt": "x",
+    "fired_at": 50,
+    "tokens": 7,
+    "noop": 0
+   },
+   {
+    "session_id": "s3",
+    "session_title": "T",
+    "tool_use_id": "r6",
+    "prompt": "y",
+    "fired_at": 60,
+    "tokens": 0,
+    "noop": 0
+   },
+   {
+    "session_id": "s3",
+    "session_title": "T",
+    "tool_use_id": "r7",
+    "prompt": "z",
+    "fired_at": 70,
+    "tokens": 0,
+    "noop": 0
+   },
+   {
+    "session_id": "s4",
+    "session_title": "half",
+    "tool_use_id": "r8",
+    "prompt": "h1",
+    "fired_at": 40,
+    "tokens": 3,
+    "noop": 0
+   },
+   {
+    "session_id": "s4",
+    "session_title": "half",
+    "tool_use_id": "r9",
+    "prompt": "h2",
+    "fired_at": 45,
+    "tokens": 2,
+    "noop": 0
+   }
+  ],
+  "list": [
+   {
+    "sessionId": "s2",
+    "sessionTitle": null,
+    "runCount": 1,
+    "totalTokens": 0,
+    "tokensPerRun": 0,
+    "lastRun": 500,
+    "lastPrompt": "only"
+   },
+   {
+    "sessionId": "s1",
+    "sessionTitle": "B title",
+    "runCount": 3,
+    "totalTokens": 15,
+    "tokensPerRun": 5,
+    "lastRun": 300,
+    "lastPrompt": "second"
+   },
+   {
+    "sessionId": "s3",
+    "sessionTitle": "T",
+    "runCount": 3,
+    "totalTokens": 7,
+    "tokensPerRun": 2,
+    "lastRun": 70,
+    "lastPrompt": "z"
+   },
+   {
+    "sessionId": "s4",
+    "sessionTitle": "half",
+    "runCount": 2,
+    "totalTokens": 5,
+    "tokensPerRun": 3,
+    "lastRun": 45,
+    "lastPrompt": "h2"
+   }
+  ],
+  "noDb": []
+ },
+ "scenarios": [
+  {
+   "name": "cron-lifecycle",
+   "sessionId": "golden-cron-lifecycle",
+   "title": "Loop session",
+   "steps": [
+    {
+     "clock": 1,
+     "at": 1000,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_c1",
+         "name": "CronCreate",
+         "input": {
+          "cron": "*/5 * * * *",
+          "prompt": "check",
+          "recurring": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2,
+     "at": 1100,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "tu_c1",
+         "content": "Scheduled recurring job abc123 (Every 5 minutes). Session-only (not written to disk, dies when Claude exits)."
+        }
+       ]
+      },
+      "tool_use_result": {
+       "id": "abc123",
+       "nextFireAt": 1300000
+      }
+     }
+    },
+    {
+     "clock": 3,
+     "at": 1200,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_l1",
+         "name": "CronList",
+         "input": {}
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 4,
+     "at": 1300,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "tu_l1",
+         "content": "1 job"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "jobs": [
+        {
+         "id": "abc123",
+         "nextFireAt": 1600000
+        },
+        {
+         "id": "zzz",
+         "nextFireAt": 5
+        },
+        {
+         "id": "",
+         "nextFireAt": 9
+        },
+        {
+         "id": "abc123",
+         "nextFireAt": 0
+        },
+        null,
+        7,
+        {
+         "id": 5,
+         "nextFireAt": 10
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 5,
+     "at": 1400,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_l2",
+         "name": "CronList",
+         "input": {}
+        },
+        {
+         "type": "tool_use",
+         "id": "tu_l3",
+         "name": "CronList",
+         "input": {}
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 6,
+     "at": 1500,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "tu_l2",
+         "content": "boom",
+         "is_error": true
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "tu_l3",
+         "content": "ok"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "jobs": [
+        {
+         "id": "abc123",
+         "nextFireAt": 42
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 7,
+     "at": 1550,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_l4",
+         "name": "CronList",
+         "input": {}
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 8,
+     "at": 1560,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "tu_l4",
+         "content": "ok"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "jobs": "nope"
+      }
+     }
+    },
+    {
+     "clock": 8,
+     "at": 1570,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_l5",
+         "name": "CronList",
+         "input": {}
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 8,
+     "at": 1580,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "tu_l5",
+         "content": "boom",
+         "is_error": true
+        }
+       ]
+      },
+      "tool_use_result": {
+       "jobs": [
+        {
+         "id": "abc123",
+         "nextFireAt": 7777
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 9,
+     "at": 1600,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_d0",
+         "name": "CronDelete",
+         "input": {
+          "id": "nope"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "tu_d1",
+         "name": "CronDelete",
+         "input": {
+          "id": ""
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 10,
+     "at": 1700,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_d2",
+         "name": "CronDelete",
+         "input": {
+          "id": 5
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "tu_d3",
+         "name": "CronDelete",
+         "input": {
+          "id": "abc123"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 11,
+     "at": 1800,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "tu_d4",
+         "name": "CronDelete",
+         "input": {
+          "id": "abc123"
+         }
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "after": [
+    {
+     "loops": [],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "tu_c1",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 1300000
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 1300000
+      }
+     ],
+     "pending": [],
+     "cronLists": [
+      "tu_l1"
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 1600000
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 1600000
+      }
+     ],
+     "pending": [],
+     "cronLists": [
+      "tu_l2",
+      "tu_l3"
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [
+      "tu_l4"
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [
+      "tu_l5"
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": false,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": true,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "abc123",
+       "toolUseId": "tu_c1",
+       "cron": "*/5 * * * *",
+       "humanSchedule": "Every 5 minutes",
+       "delaySeconds": null,
+       "prompt": "check",
+       "recurring": true,
+       "durable": false,
+       "startedAt": 1000,
+       "cancelled": true,
+       "nextFireAt": 42
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    }
+   ]
+  },
+  {
+   "name": "cron-results",
+   "sessionId": "golden-cron-results",
+   "title": null,
+   "steps": [
+    {
+     "clock": 10,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "r1",
+         "name": "CronCreate",
+         "input": {
+          "cron": "0 9 * * *",
+          "prompt": "daily"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r2",
+         "name": "CronCreate",
+         "input": {
+          "cron": "0 * * * *",
+          "prompt": "hourly",
+          "recurring": "true"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r3",
+         "name": "CronCreate",
+         "input": {
+          "cron": "* * * * *",
+          "prompt": "minutely",
+          "recurring": false
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r4",
+         "name": "CronCreate",
+         "input": {
+          "cron": "*/2 * * * *",
+          "prompt": "two"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r5",
+         "name": "CronCreate",
+         "input": {
+          "cron": "1 * * * *",
+          "prompt": "five"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r6",
+         "name": "CronCreate",
+         "input": {
+          "cron": "2 * * * *",
+          "prompt": "six"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r7",
+         "name": "CronCreate",
+         "input": {
+          "cron": "3 * * * *",
+          "prompt": "seven"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r8",
+         "name": "CronCreate",
+         "input": {
+          "cron": "4 * * * *",
+          "prompt": "eight"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r9",
+         "name": "CronCreate",
+         "input": {
+          "cron": "5 * * * *",
+          "prompt": "nine"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r10",
+         "name": "CronCreate",
+         "input": {
+          "cron": "6 * * * *",
+          "prompt": "ten"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r11",
+         "name": "CronCreate",
+         "input": {
+          "cron": "7 * * * *",
+          "prompt": "eleven"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r12",
+         "name": "CronCreate",
+         "input": {
+          "cron": "8 * * * *",
+          "prompt": "twelve"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r13",
+         "name": "CronCreate",
+         "input": {
+          "cron": "9 * * * *",
+          "prompt": "thirteen"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r14",
+         "name": "CronCreate",
+         "input": {
+          "cron": "10 * * * *",
+          "prompt": "fourteen"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r15",
+         "name": "CronCreate",
+         "input": {
+          "cron": "11 * * * *",
+          "prompt": "fifteen"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "r16",
+         "name": "CronCreate",
+         "input": {
+          "cron": "12 * * * *",
+          "prompt": "sixteen"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 20,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "r1",
+         "content": [
+          {
+           "type": "text",
+           "text": "Created job "
+          },
+          {
+           "type": "image",
+           "source": {}
+          },
+          {
+           "type": "text",
+           "text": ""
+          },
+          {
+           "type": "text",
+           "text": "x9Z (daily at 9am)."
+          }
+         ]
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r2",
+         "content": "No id in this text. session only"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r3",
+         "content": "Failed",
+         "is_error": true
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r4",
+         "content": 42
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "unknown",
+         "content": "job zz (never)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": 1.5
+      }
+     }
+    },
+    {
+     "clock": 30,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "r5",
+         "content": "JOB UPPER1 (Every minute) SESSION ONLY"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r6",
+         "content": "job nbsp1 (nbsp)"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r7",
+         "content": "jobnel1 (next line) then job ok7 (fallback)"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r8",
+         "content": "job﻿bom1 (bom)"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r9",
+         "content": "job Kelvin (kelvin) ſession-only"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r10",
+         "content": "job abc ( no close"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r11",
+         "content": "job a_b (underscore) job c1(tight)"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r12",
+         "content": "jobs abc (plural)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": -5
+      }
+     }
+    },
+    {
+     "clock": 40,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "r13",
+         "content": "job dup (first) session-Only"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r14",
+         "content": "job dup (second)"
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r15",
+         "content": [
+          {
+           "type": "text",
+           "text": "job multi\n(line\nbreaks)"
+          }
+         ]
+        },
+        {
+         "type": "tool_result",
+         "tool_use_id": "r16",
+         "content": "Job  spaced   (  padded  )"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": "123"
+      }
+     }
+    }
+   ],
+   "after": [
+    {
+     "loops": [],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "r1",
+       "toolUseId": "r1",
+       "cron": "0 9 * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "daily",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r2",
+       "toolUseId": "r2",
+       "cron": "0 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "hourly",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r3",
+       "toolUseId": "r3",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "minutely",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r4",
+       "toolUseId": "r4",
+       "cron": "*/2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "two",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r5",
+       "toolUseId": "r5",
+       "cron": "1 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "five",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r6",
+       "toolUseId": "r6",
+       "cron": "2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "six",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r7",
+       "toolUseId": "r7",
+       "cron": "3 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "seven",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r8",
+       "toolUseId": "r8",
+       "cron": "4 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "eight",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r9",
+       "toolUseId": "r9",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "nine",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r10",
+       "toolUseId": "r10",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "ten",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r11",
+       "toolUseId": "r11",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "eleven",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r12",
+       "toolUseId": "r12",
+       "cron": "8 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "twelve",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r13",
+       "toolUseId": "r13",
+       "cron": "9 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "thirteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r14",
+       "toolUseId": "r14",
+       "cron": "10 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "fourteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r15",
+       "toolUseId": "r15",
+       "cron": "11 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "fifteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r16",
+       "toolUseId": "r16",
+       "cron": "12 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "sixteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "x9Z",
+       "toolUseId": "r1",
+       "cron": "0 9 * * *",
+       "humanSchedule": "daily at 9am",
+       "delaySeconds": null,
+       "prompt": "daily",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "r2",
+       "toolUseId": "r2",
+       "cron": "0 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "hourly",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "r4",
+       "toolUseId": "r4",
+       "cron": "*/2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "two",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "r5",
+       "toolUseId": "r5",
+       "cron": "1 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "five",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r6",
+       "toolUseId": "r6",
+       "cron": "2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "six",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r7",
+       "toolUseId": "r7",
+       "cron": "3 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "seven",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r8",
+       "toolUseId": "r8",
+       "cron": "4 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "eight",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r9",
+       "toolUseId": "r9",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "nine",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r10",
+       "toolUseId": "r10",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "ten",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r11",
+       "toolUseId": "r11",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "eleven",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r12",
+       "toolUseId": "r12",
+       "cron": "8 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "twelve",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r13",
+       "toolUseId": "r13",
+       "cron": "9 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "thirteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r14",
+       "toolUseId": "r14",
+       "cron": "10 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "fourteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r15",
+       "toolUseId": "r15",
+       "cron": "11 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "fifteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r16",
+       "toolUseId": "r16",
+       "cron": "12 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "sixteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "x9Z",
+       "toolUseId": "r1",
+       "cron": "0 9 * * *",
+       "humanSchedule": "daily at 9am",
+       "delaySeconds": null,
+       "prompt": "daily",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "r2",
+       "toolUseId": "r2",
+       "cron": "0 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "hourly",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "r4",
+       "toolUseId": "r4",
+       "cron": "*/2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "two",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "UPPER1",
+       "toolUseId": "r5",
+       "cron": "1 * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "five",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nbsp1",
+       "toolUseId": "r6",
+       "cron": "2 * * * *",
+       "humanSchedule": "nbsp",
+       "delaySeconds": null,
+       "prompt": "six",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "ok7",
+       "toolUseId": "r7",
+       "cron": "3 * * * *",
+       "humanSchedule": "fallback",
+       "delaySeconds": null,
+       "prompt": "seven",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "bom1",
+       "toolUseId": "r8",
+       "cron": "4 * * * *",
+       "humanSchedule": "bom",
+       "delaySeconds": null,
+       "prompt": "eight",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r9",
+       "toolUseId": "r9",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "nine",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r10",
+       "toolUseId": "r10",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "ten",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "c1",
+       "toolUseId": "r11",
+       "cron": "7 * * * *",
+       "humanSchedule": "tight",
+       "delaySeconds": null,
+       "prompt": "eleven",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r12",
+       "toolUseId": "r12",
+       "cron": "8 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "twelve",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "r13",
+       "toolUseId": "r13",
+       "cron": "9 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "thirteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r14",
+       "toolUseId": "r14",
+       "cron": "10 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "fourteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r15",
+       "toolUseId": "r15",
+       "cron": "11 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "fifteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r16",
+       "toolUseId": "r16",
+       "cron": "12 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "sixteen",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "x9Z",
+       "toolUseId": "r1",
+       "cron": "0 9 * * *",
+       "humanSchedule": "daily at 9am",
+       "delaySeconds": null,
+       "prompt": "daily",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "r2",
+       "toolUseId": "r2",
+       "cron": "0 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "hourly",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "r4",
+       "toolUseId": "r4",
+       "cron": "*/2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "two",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false,
+       "nextFireAt": 1.5
+      },
+      {
+       "kind": "cron",
+       "id": "UPPER1",
+       "toolUseId": "r5",
+       "cron": "1 * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "five",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nbsp1",
+       "toolUseId": "r6",
+       "cron": "2 * * * *",
+       "humanSchedule": "nbsp",
+       "delaySeconds": null,
+       "prompt": "six",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "ok7",
+       "toolUseId": "r7",
+       "cron": "3 * * * *",
+       "humanSchedule": "fallback",
+       "delaySeconds": null,
+       "prompt": "seven",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "bom1",
+       "toolUseId": "r8",
+       "cron": "4 * * * *",
+       "humanSchedule": "bom",
+       "delaySeconds": null,
+       "prompt": "eight",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r9",
+       "toolUseId": "r9",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "nine",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r10",
+       "toolUseId": "r10",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "ten",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "c1",
+       "toolUseId": "r11",
+       "cron": "7 * * * *",
+       "humanSchedule": "tight",
+       "delaySeconds": null,
+       "prompt": "eleven",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "r12",
+       "toolUseId": "r12",
+       "cron": "8 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "twelve",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "dup",
+       "toolUseId": "r14",
+       "cron": "10 * * * *",
+       "humanSchedule": "second",
+       "delaySeconds": null,
+       "prompt": "fourteen",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "multi",
+       "toolUseId": "r15",
+       "cron": "11 * * * *",
+       "humanSchedule": "line\nbreaks",
+       "delaySeconds": null,
+       "prompt": "fifteen",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "spaced",
+       "toolUseId": "r16",
+       "cron": "12 * * * *",
+       "humanSchedule": "  padded  ",
+       "delaySeconds": null,
+       "prompt": "sixteen",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 10,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    }
+   ]
+  },
+  {
+   "name": "cron-create-edge",
+   "sessionId": "golden-cron-create-edge",
+   "title": "Edge",
+   "steps": [
+    {
+     "clock": 100,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "e1",
+         "name": "CronCreate",
+         "input": {
+          "cron": "",
+          "prompt": "empty"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "e2",
+         "name": "CronCreate",
+         "input": {
+          "cron": 5,
+          "prompt": "number"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "e3",
+         "name": "CronCreate",
+         "input": {
+          "cron": "* * * * *"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "e4",
+         "name": "CronCreate",
+         "input": {
+          "cron": "* * * * *",
+          "prompt": 7,
+          "recurring": 1
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 200,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "e3",
+         "name": "CronCreate",
+         "input": {
+          "cron": "1 1 * * *",
+          "prompt": "changed"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 300,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "e3",
+         "content": "job edge1 (Every minute)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": 99
+      }
+     }
+    },
+    {
+     "clock": 310,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "del",
+         "name": "CronDelete",
+         "input": {
+          "id": "edge1"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 400,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "e3",
+         "name": "CronCreate",
+         "input": {
+          "cron": "2 2 * * *",
+          "prompt": "again"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 500,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "e3",
+         "content": "job edge1 (Every minute)"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 600,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "e4",
+         "content": "job e4id (x)"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 700,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "",
+         "name": "CronCreate",
+         "input": {
+          "cron": "5 5 * * *",
+          "prompt": "blank"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 710,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "",
+         "content": "no id here"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 720,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "e_list",
+         "name": "CronList",
+         "input": {}
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 730,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "e_list",
+         "content": "1 job"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "jobs": [
+        {
+         "id": "",
+         "nextFireAt": 77
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "after": [
+    {
+     "loops": [],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "e3",
+       "toolUseId": "e3",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e4",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "e3",
+       "toolUseId": "e3",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e4",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": false,
+       "nextFireAt": 99
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "e4",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": true,
+       "nextFireAt": 99
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "e4",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": true,
+       "nextFireAt": 99
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "e4",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e3",
+       "toolUseId": "e3",
+       "cron": "2 2 * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "again",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 400,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "2 2 * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "again",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 400,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "e4",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "2 2 * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "again",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 400,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e4id",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": "x",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "2 2 * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "again",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 400,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e4id",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": "x",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "",
+       "toolUseId": "",
+       "cron": "5 5 * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "blank",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 700,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "2 2 * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "again",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 400,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e4id",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": "x",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "",
+       "toolUseId": "",
+       "cron": "5 5 * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "blank",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 700,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "2 2 * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "again",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 400,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e4id",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": "x",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "",
+       "toolUseId": "",
+       "cron": "5 5 * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "blank",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 700,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [
+      "e_list"
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "edge1",
+       "toolUseId": "e3",
+       "cron": "2 2 * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "again",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 400,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "e4id",
+       "toolUseId": "e4",
+       "cron": "* * * * *",
+       "humanSchedule": "x",
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 100,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "",
+       "toolUseId": "",
+       "cron": "5 5 * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "blank",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 700,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    }
+   ]
+  },
+  {
+   "name": "wakeup-chain",
+   "sessionId": "golden-wakeup-chain",
+   "title": "Chain",
+   "steps": [
+    {
+     "clock": 2000,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w1",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 60,
+          "reason": "watch CI",
+          "prompt": "/loop x",
+          "noop": false
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2100,
+     "message": {
+      "type": "result",
+      "subtype": "success",
+      "usage": {
+       "input_tokens": 10,
+       "output_tokens": 5,
+       "cache_creation_input_tokens": null,
+       "cache_read_input_tokens": 2.5
+      }
+     }
+    },
+    {
+     "clock": 2150,
+     "message": {
+      "type": "result",
+      "subtype": "success",
+      "usage": {
+       "input_tokens": 1
+      }
+     }
+    },
+    {
+     "clock": 2200,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w2",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 120.5,
+          "reason": "quiet",
+          "prompt": "/loop x",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2300,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w3",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": "60",
+          "reason": 5,
+          "prompt": "/loop x",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2350,
+     "message": {
+      "type": "result",
+      "subtype": "success"
+     }
+    },
+    {
+     "clock": 2400,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w4",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 1800,
+          "prompt": "/loop x",
+          "noop": "true"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2450,
+     "message": {
+      "type": "result",
+      "subtype": "success",
+      "usage": {
+       "input_tokens": 3,
+       "output_tokens": 4
+      }
+     }
+    },
+    {
+     "clock": 2500,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w4",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 5,
+          "prompt": "other",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2600,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w2",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 120.5,
+          "reason": "quiet",
+          "prompt": "/loop x",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2700,
+     "message": {
+      "type": "result",
+      "subtype": "success",
+      "usage": {
+       "input_tokens": 0,
+       "output_tokens": 0,
+       "cache_read_input_tokens": 7
+      }
+     }
+    },
+    {
+     "clock": 2800,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w5",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 60,
+          "prompt": "a",
+          "noop": true
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "w6",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 60,
+          "prompt": "b",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 2900,
+     "message": {
+      "type": "result",
+      "subtype": "success",
+      "usage": {
+       "input_tokens": 2,
+       "output_tokens": 2
+      }
+     }
+    },
+    {
+     "clock": 3000,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "w7",
+         "name": "ScheduleWakeup",
+         "input": {}
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "after": [
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w1",
+       "toolUseId": "w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "/loop x",
+       "reason": "watch CI",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2000,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "w1"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w1",
+       "toolUseId": "w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "/loop x",
+       "reason": "watch CI",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2000,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w1",
+       "toolUseId": "w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "/loop x",
+       "reason": "watch CI",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2000,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w2",
+       "toolUseId": "w2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 120.5,
+       "prompt": "/loop x",
+       "reason": "quiet",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2200,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "w2"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w3",
+       "toolUseId": "w3",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "/loop x",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2300,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 2
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "w2",
+      "w3"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w3",
+       "toolUseId": "w3",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "/loop x",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2300,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 2
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w4",
+       "toolUseId": "w4",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 1800,
+       "prompt": "/loop x",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2400,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "w4"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w4",
+       "toolUseId": "w4",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 1800,
+       "prompt": "/loop x",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2400,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": 7,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w4",
+       "toolUseId": "w4",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 1800,
+       "prompt": "/loop x",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2400,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": 7,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w2",
+       "toolUseId": "w2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 120.5,
+       "prompt": "/loop x",
+       "reason": "quiet",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2600,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "w2"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": 7,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w2",
+       "toolUseId": "w2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 120.5,
+       "prompt": "/loop x",
+       "reason": "quiet",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2600,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": 7,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w6",
+       "toolUseId": "w6",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "b",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2800,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 3
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "w5",
+      "w6"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": 7,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w5",
+       "tool_use_id:type": "text",
+       "prompt": "a",
+       "prompt:type": "text",
+       "fired_at": 2800,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w6",
+       "tool_use_id:type": "text",
+       "prompt": "b",
+       "prompt:type": "text",
+       "fired_at": 2800,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w6",
+       "toolUseId": "w6",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "b",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 2800,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 3
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": 7,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w5",
+       "tool_use_id:type": "text",
+       "prompt": "a",
+       "prompt:type": "text",
+       "fired_at": 2800,
+       "fired_at:type": "integer",
+       "tokens": 4,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w6",
+       "tool_use_id:type": "text",
+       "prompt": "b",
+       "prompt:type": "text",
+       "fired_at": 2800,
+       "fired_at:type": "integer",
+       "tokens": 4,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "w7",
+       "toolUseId": "w7",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 3000,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "w7"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w1",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2000,
+       "fired_at:type": "integer",
+       "tokens": 18,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w2",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2200,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w3",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2300,
+       "fired_at:type": "integer",
+       "tokens": 0,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w4",
+       "tool_use_id:type": "text",
+       "prompt": "/loop x",
+       "prompt:type": "text",
+       "fired_at": 2400,
+       "fired_at:type": "integer",
+       "tokens": 7,
+       "tokens:type": "integer",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w5",
+       "tool_use_id:type": "text",
+       "prompt": "a",
+       "prompt:type": "text",
+       "fired_at": 2800,
+       "fired_at:type": "integer",
+       "tokens": 4,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w6",
+       "tool_use_id:type": "text",
+       "prompt": "b",
+       "prompt:type": "text",
+       "fired_at": 2800,
+       "fired_at:type": "integer",
+       "tokens": 4,
+       "tokens:type": "integer",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-chain",
+       "session_id:type": "text",
+       "session_title": "Chain",
+       "session_title:type": "text",
+       "tool_use_id": "w7",
+       "tool_use_id:type": "text",
+       "prompt": "",
+       "prompt:type": "text",
+       "fired_at": 3000,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "wakeup-stop",
+   "sessionId": "golden-wakeup-stop",
+   "title": null,
+   "steps": [
+    {
+     "clock": 5,
+     "at": 100,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_w1",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 60,
+          "prompt": "p",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 6,
+     "at": 120,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_c1",
+         "name": "CronCreate",
+         "input": {
+          "cron": "* * * * *",
+          "prompt": "c"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 7,
+     "at": 130,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "s_c1",
+         "content": "job keep1 (Every minute)"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 8,
+     "at": 50,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_stop0",
+         "name": "ScheduleWakeup",
+         "input": {
+          "stop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 9,
+     "at": 200,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_stop1",
+         "name": "ScheduleWakeup",
+         "input": {
+          "stop": true,
+          "delaySeconds": 60
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 10,
+     "at": 300,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_w2",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 30,
+          "prompt": "p2",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 11,
+     "at": 200,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_stop1",
+         "name": "ScheduleWakeup",
+         "input": {
+          "stop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 12,
+     "at": 400,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_stop0",
+         "name": "ScheduleWakeup",
+         "input": {
+          "stop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 13,
+     "at": 500,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_stop2",
+         "name": "ScheduleWakeup",
+         "input": {
+          "stop": "true",
+          "delaySeconds": 9,
+          "prompt": "p3"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 14,
+     "at": 600,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_d1",
+         "name": "CronDelete",
+         "input": {
+          "id": "s_stop2"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 15,
+     "at": 700,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_w3",
+         "name": "ScheduleWakeup",
+         "input": {
+          "delaySeconds": 30,
+          "prompt": "p4",
+          "noop": true
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 16,
+     "at": 800,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "s_stop3",
+         "name": "ScheduleWakeup",
+         "input": {
+          "stop": true
+         }
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "after": [
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "s_w1"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "s_c1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 120,
+       "cancelled": false
+      }
+     ],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "s_w1"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [
+      "s_w1"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0"
+     ],
+     "attribution": [
+      "s_w1"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1"
+     ],
+     "attribution": [
+      "s_w1"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_w2",
+       "toolUseId": "s_w2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 30,
+       "prompt": "p2",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 300,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1"
+     ],
+     "attribution": [
+      "s_w1",
+      "s_w2"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w2",
+       "tool_use_id:type": "text",
+       "prompt": "p2",
+       "prompt:type": "text",
+       "fired_at": 300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_w2",
+       "toolUseId": "s_w2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 30,
+       "prompt": "p2",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 300,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1"
+     ],
+     "attribution": [
+      "s_w1",
+      "s_w2"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w2",
+       "tool_use_id:type": "text",
+       "prompt": "p2",
+       "prompt:type": "text",
+       "fired_at": 300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_w2",
+       "toolUseId": "s_w2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 30,
+       "prompt": "p2",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 300,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1"
+     ],
+     "attribution": [
+      "s_w1",
+      "s_w2"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w2",
+       "tool_use_id:type": "text",
+       "prompt": "p2",
+       "prompt:type": "text",
+       "fired_at": 300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_stop2",
+       "toolUseId": "s_stop2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 9,
+       "prompt": "p3",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 500,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1"
+     ],
+     "attribution": [
+      "s_w1",
+      "s_w2",
+      "s_stop2"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w2",
+       "tool_use_id:type": "text",
+       "prompt": "p2",
+       "prompt:type": "text",
+       "fired_at": 300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_stop2",
+       "tool_use_id:type": "text",
+       "prompt": "p3",
+       "prompt:type": "text",
+       "fired_at": 500,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_stop2",
+       "toolUseId": "s_stop2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 9,
+       "prompt": "p3",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 500,
+       "cancelled": true
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1"
+     ],
+     "attribution": [
+      "s_w1",
+      "s_w2",
+      "s_stop2"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w2",
+       "tool_use_id:type": "text",
+       "prompt": "p2",
+       "prompt:type": "text",
+       "fired_at": 300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_stop2",
+       "tool_use_id:type": "text",
+       "prompt": "p3",
+       "prompt:type": "text",
+       "fired_at": 500,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_stop2",
+       "toolUseId": "s_stop2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 9,
+       "prompt": "p3",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 500,
+       "cancelled": true
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_w3",
+       "toolUseId": "s_w3",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 30,
+       "prompt": "p4",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 700,
+       "cancelled": false,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1"
+     ],
+     "attribution": [
+      "s_w1",
+      "s_w2",
+      "s_stop2",
+      "s_w3"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w2",
+       "tool_use_id:type": "text",
+       "prompt": "p2",
+       "prompt:type": "text",
+       "fired_at": 300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_stop2",
+       "tool_use_id:type": "text",
+       "prompt": "p3",
+       "prompt:type": "text",
+       "fired_at": 500,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w3",
+       "tool_use_id:type": "text",
+       "prompt": "p4",
+       "prompt:type": "text",
+       "fired_at": 700,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    },
+    {
+     "loops": [
+      {
+       "kind": "wakeup",
+       "id": "s_w1",
+       "toolUseId": "s_w1",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 60,
+       "prompt": "p",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 100,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      },
+      {
+       "kind": "cron",
+       "id": "keep1",
+       "toolUseId": "s_c1",
+       "cron": "* * * * *",
+       "humanSchedule": "Every minute",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 120,
+       "cancelled": false
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_stop2",
+       "toolUseId": "s_stop2",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 9,
+       "prompt": "p3",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 500,
+       "cancelled": true
+      },
+      {
+       "kind": "wakeup",
+       "id": "s_w3",
+       "toolUseId": "s_w3",
+       "cron": null,
+       "humanSchedule": null,
+       "delaySeconds": 30,
+       "prompt": "p4",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 700,
+       "cancelled": true,
+       "noop": true,
+       "noopStreak": 1
+      }
+     ],
+     "pending": [],
+     "cronLists": [],
+     "stops": [
+      "s_stop0",
+      "s_stop1",
+      "s_stop3"
+     ],
+     "attribution": [
+      "s_w1",
+      "s_w2",
+      "s_stop2",
+      "s_w3"
+     ],
+     "ticks": [
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w1",
+       "tool_use_id:type": "text",
+       "prompt": "p",
+       "prompt:type": "text",
+       "fired_at": 100,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w2",
+       "tool_use_id:type": "text",
+       "prompt": "p2",
+       "prompt:type": "text",
+       "fired_at": 300,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_stop2",
+       "tool_use_id:type": "text",
+       "prompt": "p3",
+       "prompt:type": "text",
+       "fired_at": 500,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 0,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      },
+      {
+       "id:type": "integer",
+       "session_id": "golden-wakeup-stop",
+       "session_id:type": "text",
+       "session_title": null,
+       "session_title:type": "null",
+       "tool_use_id": "s_w3",
+       "tool_use_id:type": "text",
+       "prompt": "p4",
+       "prompt:type": "text",
+       "fired_at": 700,
+       "fired_at:type": "integer",
+       "tokens": null,
+       "tokens:type": "null",
+       "noop": 1,
+       "noop:type": "integer",
+       "created_at:type": "integer"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "ignored",
+   "sessionId": "golden-ignored",
+   "title": "Ignored",
+   "steps": [
+    {
+     "clock": 1,
+     "message": {
+      "type": "system",
+      "subtype": "init"
+     }
+    },
+    {
+     "clock": 2,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "content": "CronCreate"
+      }
+     }
+    },
+    {
+     "clock": 3,
+     "message": {
+      "type": "assistant"
+     }
+    },
+    {
+     "clock": 4,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "x",
+         "content": "job a (b)"
+        },
+        {
+         "type": "text",
+         "text": "hi"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 5,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "i1",
+         "name": "cronCreate",
+         "input": {
+          "cron": "* * * * *",
+          "prompt": "lower"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "i2",
+         "name": "ScheduleWakeUp",
+         "input": {
+          "delaySeconds": 1
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "i3",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 6,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "i4",
+         "name": "CronCreate",
+         "input": {
+          "cron": "* * * * *"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 7,
+     "message": {
+      "type": "user",
+      "message": {
+       "content": "job a (b)"
+      }
+     }
+    },
+    {
+     "clock": 8,
+     "message": {
+      "type": "result",
+      "subtype": "error_during_execution"
+     }
+    },
+    {
+     "clock": 9,
+     "message": {
+      "type": "stream_event",
+      "message": {
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "i5",
+         "name": "CronCreate",
+         "input": {
+          "cron": "* * * * *"
+         }
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "after": [
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [],
+     "pending": [],
+     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    }
+   ]
+  }
+ ]
+}

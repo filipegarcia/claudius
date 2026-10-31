@@ -1,0 +1,1079 @@
+{
+ "keys": [
+  "cache_miss",
+  "long_context",
+  "subagent_heavy",
+  "high_parallel",
+  "cron",
+  "max_effort",
+  "workflow",
+  "always_on_context",
+  "large_tool_results"
+ ],
+ "usage": [
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":1,\"behaviors\":[{\"key\":\"max_effort\",\"pct\":40,\"count\":4}],\"skills\":[]},\"week\":{\"request_count\":50,\"session_count\":3,\"behaviors\":[{\"key\":\"workflow\",\"pct\":25,\"count\":12}],\"skills\":[{\"name\":\"pdf\",\"pct\":12}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":1,\"behaviors\":[{\"key\":\"max_effort\",\"pct\":40,\"count\":4}]},\"week\":{\"requestCount\":50,\"sessionCount\":3,\"behaviors\":[{\"key\":\"workflow\",\"pct\":25,\"count\":12}]}}",
+   "skills": "[\"pdf\"]"
+  },
+  {
+   "text": "{\"session\":{\"total_cost_usd\":0},\"subscription_type\":null,\"rate_limits_available\":false,\"rate_limits\":{}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "null",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "0",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "5",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "true",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "false",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "\"behaviors\"",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "[]",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "[1,2]",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":null}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":0}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":1}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":\"\"}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":\"day\"}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":true}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":[]}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":[{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}]}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"__proto__\": {\"behaviors\": {\"day\": {}, \"week\": {}}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{},\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":[],\"week\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":[1,2],\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{},\"week\":[[]]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":null,\"week\":{}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{},\"week\":null}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":0,\"week\":{}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{},\"week\":1}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":\"\",\"week\":{}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{},\"week\":\"w\"}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":true,\"week\":{}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{},\"week\":false}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":1.5,\"session_count\":-3,\"behaviors\":[]},\"week\":{\"request_count\":0,\"session_count\":1e+300,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":1.5,\"sessionCount\":-3,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":1e+300,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":\"7\",\"session_count\":null,\"behaviors\":[]},\"week\":{\"request_count\":true,\"session_count\":[],\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":{},\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"behaviors\":[]},\"week\":{\"request_count\":3}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":3,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":1.0,\"session_count\":1e2,\"behaviors\":[]},\"week\":{\"request_count\":-0,\"session_count\":0.1e1,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":1,\"sessionCount\":100,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":1,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":1e21,\"session_count\":1E+21,\"behaviors\":[]},\"week\":{\"request_count\":9007199254740993,\"session_count\":123456789012345678901234567890,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":1e+21,\"sessionCount\":1e+21,\"behaviors\":[]},\"week\":{\"requestCount\":9007199254740992,\"sessionCount\":1.2345678901234568e+29,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":1e-7,\"session_count\":-1.5e-10,\"behaviors\":[]},\"week\":{\"request_count\":0.000001,\"session_count\":-0.0,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":1e-7,\"sessionCount\":-1.5e-10,\"behaviors\":[]},\"week\":{\"requestCount\":0.000001,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cache_miss\",\"pct\":0,\"count\":0},{\"key\":\"long_context\",\"pct\":7.5,\"count\":1},{\"key\":\"subagent_heavy\",\"pct\":15,\"count\":2},{\"key\":\"high_parallel\",\"pct\":22.5,\"count\":3},{\"key\":\"cron\",\"pct\":30,\"count\":4},{\"key\":\"max_effort\",\"pct\":37.5,\"count\":5},{\"key\":\"workflow\",\"pct\":45,\"count\":6},{\"key\":\"always_on_context\",\"pct\":52.5,\"count\":7},{\"key\":\"large_tool_results\",\"pct\":60,\"count\":8}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cache_miss\",\"pct\":0,\"count\":0},{\"key\":\"long_context\",\"pct\":7.5,\"count\":1},{\"key\":\"subagent_heavy\",\"pct\":15,\"count\":2},{\"key\":\"high_parallel\",\"pct\":22.5,\"count\":3},{\"key\":\"cron\",\"pct\":30,\"count\":4},{\"key\":\"max_effort\",\"pct\":37.5,\"count\":5},{\"key\":\"workflow\",\"pct\":45,\"count\":6},{\"key\":\"always_on_context\",\"pct\":52.5,\"count\":7},{\"key\":\"large_tool_results\",\"pct\":60,\"count\":8}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"foo\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"MAX_EFFORT\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\" max_effort\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"max_effort \",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"max-effort\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"__proto__\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"constructor\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"toString\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"hasOwnProperty\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"valueOf\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"headline\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"body\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":1,\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":null,\"pct\":50}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":[\"cron\"],\"pct\":50}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":{\"cron\":1},\"pct\":50}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":0,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":0,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":-5,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":-5,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":12.75,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":12.75,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":100,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":100,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":250,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":250,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":1e-9,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":1e-9,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":\"40\",\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":null,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":true,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":[40],\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":{\"v\":40},\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"behaviors\":[{\"key\":\"cron\",\"pct\":1.0,\"count\":2.0},{\"key\":\"cron\",\"pct\":-0,\"count\":-0},{\"key\":\"cron\",\"pct\":1e21,\"count\":1e21},{\"key\":\"cron\",\"pct\":5e-324,\"count\":1.7976931348623157e308}]},\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[{\"key\":\"cron\",\"pct\":1,\"count\":2},{\"key\":\"cron\",\"pct\":0,\"count\":0},{\"key\":\"cron\",\"pct\":1e+21,\"count\":1e+21},{\"key\":\"cron\",\"pct\":5e-324,\"count\":1.7976931348623157e+308}]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":\"4\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":null}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":true}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":[]}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":{}}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":2.5}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":2.5}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":-1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":-1}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[null,0,1,\"\",\"cron\",true,[],[\"cron\",50,1],{\"key\":\"cron\",\"pct\":9,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1,\"extra\":\"x\",\"headline\":\"h\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"extra\":1}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1},{\"key\":\"cron\",\"pct\":3,\"count\":0},{\"key\":\"workflow\",\"pct\":99,\"count\":9}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1},{\"key\":\"cron\",\"pct\":3,\"count\":0},{\"key\":\"workflow\",\"pct\":99,\"count\":9}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"behaviors\":[{\"count\":3,\"pct\":7,\"key\":\"cron\"}],\"session_count\":2,\"request_count\":1},\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":1,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":7,\"count\":3}]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":null},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":{\"0\":{\"key\":\"cron\",\"pct\":1,\"count\":1}}}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":\"cron\"},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":3}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":1,\"request_count\":2,\"behaviors\":[]},\"week\":{\"behaviors\":[{\"key\":\"cron\",\"key\":\"workflow\",\"pct\":1,\"pct\":2}]}},\"behaviors\":{\"day\":{},\"week\":{\"request_count\":9}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":9,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"pdf\",\"pct\":12},{\"name\":\"docx\",\"pct\":0},{\"name\":\"xlsx\",\"pct\":-1},{\"name\":\"pptx\"}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[\"pdf\",\"pptx\"]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"a\",\"pct\":\"0\"},{\"name\":\"b\",\"pct\":null},{\"name\":\"c\",\"pct\":true},{\"name\":\"d\",\"pct\":[]},{\"name\":\"e\",\"pct\":{}}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[\"a\",\"b\",\"c\",\"d\",\"e\"]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"\",\"pct\":5},{\"name\":5,\"pct\":5},{\"pct\":5},{\"name\":null},{\"name\":[\"x\"]},{\"name\":{\"n\":1}}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[null,0,\"pdf\",[],[\"pdf\",1],true,{\"name\":\"ok\",\"pct\":1e-300},{\"name\":\"big\",\"pct\":1e+300}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[\"ok\",\"big\"]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"dup\",\"pct\":1},{\"name\":\"dup\",\"pct\":2},{\"name\":\"Dup\",\"pct\":3}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[\"dup\",\"dup\",\"Dup\"]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\" spaced \",\"pct\":1},{\"name\":\"été\",\"pct\":1},{\"name\":\"😀\",\"pct\":1},{\"name\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"pct\":1}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "skills": "[\" spaced \",\"été\",\"😀\",\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{},\"week\":{\"skills\":[{\"name\":\"neg0\",\"pct\":-0},{\"name\":\"zero\",\"pct\":0.0},{\"name\":\"tiny\",\"pct\":5e-324},{\"name\":\"exp\",\"pct\":1e2}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[\"tiny\",\"exp\"]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"skills\":[{\"name\":\"day-only\",\"pct\":9}]},\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"week\":{\"skills\":[{\"name\":\"no-day\",\"pct\":9}]}}}",
+   "behaviors": "null",
+   "skills": "[\"no-day\"]"
+  },
+  {
+   "text": "{\"behaviors\":{\"week\":{\"skills\":{\"0\":{\"name\":\"obj\",\"pct\":1}}}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"week\":{\"skills\":\"pdf\"}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"week\":{\"skills\":null}}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"week\":[{\"skills\":[{\"name\":\"arr\",\"pct\":1}]}]}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"week\":\"skills\"}}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":[{\"week\":{\"skills\":[{\"name\":\"arr\",\"pct\":1}]}}]}",
+   "behaviors": "null",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":null,\"week\":{\"skills\":[{\"name\":\"top\",\"pct\":1}]}}",
+   "behaviors": "null",
+   "skills": "[]"
+  }
+ ],
+ "context": [
+  {
+   "text": "{}",
+   "summary": "{}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "{\"totalTokens\":1200,\"maxTokens\":200000,\"percentage\":0.6,\"categories\":[{\"name\":\"Skills\",\"tokens\":30}]}",
+   "summary": "{\"totalTokens\":1200,\"maxTokens\":200000,\"percentage\":0.6,\"categories\":[{\"name\":\"Skills\",\"tokens\":30}]}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"totalTokens\":1200,\"maxTokens\":200000,\"percentage\":0.6,\"categories\":[{\"name\":\"Skills\",\"tokens\":30}],\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"totalTokens\":1200,\"maxTokens\":200000,\"percentage\":0.6,\"categories\":[{\"name\":\"Skills\",\"tokens\":30}],\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"totalTokens\":1200,\"maxTokens\":200000,\"percentage\":0.6,\"categories\":[{\"name\":\"Skills\",\"tokens\":30}],\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"totalTokens\":1200,\"maxTokens\":200000,\"percentage\":0.6,\"categories\":[{\"name\":\"Skills\",\"tokens\":30}],\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "{\"weeklyUsedSkills\":5,\"a\":1}",
+   "summary": "{\"weeklyUsedSkills\":5,\"a\":1}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null,\"a\":1}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[],\"a\":1}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"],\"a\":1}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"],\"a\":1}"
+    }
+   ]
+  },
+  {
+   "text": "{\"a\":1,\"weeklyUsedSkills\":\"x\"}",
+   "summary": "{\"a\":1,\"weeklyUsedSkills\":\"x\"}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"a\":1,\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"a\":1,\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"a\":1,\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"a\":1,\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "{\"b\":1,\"2\":2,\"1\":3,\"10\":4,\"01\":5,\"-1\":6,\"4294967294\":7,\"4294967295\":8}",
+   "summary": "{\"1\":3,\"2\":2,\"10\":4,\"4294967294\":7,\"b\":1,\"01\":5,\"-1\":6,\"4294967295\":8}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"1\":3,\"2\":2,\"10\":4,\"4294967294\":7,\"b\":1,\"01\":5,\"-1\":6,\"4294967295\":8,\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"1\":3,\"2\":2,\"10\":4,\"4294967294\":7,\"b\":1,\"01\":5,\"-1\":6,\"4294967295\":8,\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"1\":3,\"2\":2,\"10\":4,\"4294967294\":7,\"b\":1,\"01\":5,\"-1\":6,\"4294967295\":8,\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"1\":3,\"2\":2,\"10\":4,\"4294967294\":7,\"b\":1,\"01\":5,\"-1\":6,\"4294967295\":8,\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "{\"n\":1.0,\"e\":1e2,\"big\":1e21,\"tiny\":1e-7,\"neg\":-0,\"nested\":{\"2\":1,\"1\":2,\"x\":3.50}}",
+   "summary": "{\"n\":1,\"e\":100,\"big\":1e+21,\"tiny\":1e-7,\"neg\":0,\"nested\":{\"1\":2,\"2\":1,\"x\":3.5}}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"n\":1,\"e\":100,\"big\":1e+21,\"tiny\":1e-7,\"neg\":0,\"nested\":{\"1\":2,\"2\":1,\"x\":3.5},\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"n\":1,\"e\":100,\"big\":1e+21,\"tiny\":1e-7,\"neg\":0,\"nested\":{\"1\":2,\"2\":1,\"x\":3.5},\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"n\":1,\"e\":100,\"big\":1e+21,\"tiny\":1e-7,\"neg\":0,\"nested\":{\"1\":2,\"2\":1,\"x\":3.5},\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"n\":1,\"e\":100,\"big\":1e+21,\"tiny\":1e-7,\"neg\":0,\"nested\":{\"1\":2,\"2\":1,\"x\":3.5},\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "null",
+   "summary": "null",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "[]",
+   "summary": "[]",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "[1,2]",
+   "summary": "[1,2]",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"0\":1,\"1\":2,\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"0\":1,\"1\":2,\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"0\":1,\"1\":2,\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"0\":1,\"1\":2,\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "[{\"a\":1}]",
+   "summary": "[{\"a\":1}]",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"0\":{\"a\":1},\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"0\":{\"a\":1},\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"0\":{\"a\":1},\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"0\":{\"a\":1},\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "\"ab\"",
+   "summary": "\"ab\"",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"0\":\"a\",\"1\":\"b\",\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"0\":\"a\",\"1\":\"b\",\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"0\":\"a\",\"1\":\"b\",\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"0\":\"a\",\"1\":\"b\",\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "\"\"",
+   "summary": "\"\"",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "5",
+   "summary": "5",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "0",
+   "summary": "0",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "true",
+   "summary": "true",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "false",
+   "summary": "false",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "{\"a\":1,\"a\":2}",
+   "summary": "{\"a\":2}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"a\":2,\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"a\":2,\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"a\":2,\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"a\":2,\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "{\"__proto__\":{\"x\":1},\"a\":1}",
+   "summary": "{\"__proto__\":{\"x\":1},\"a\":1}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"__proto__\":{\"x\":1},\"a\":1,\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"__proto__\":{\"x\":1},\"a\":1,\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"__proto__\":{\"x\":1},\"a\":1,\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"__proto__\":{\"x\":1},\"a\":1,\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  },
+  {
+   "text": "{\"weeklyUsedSkills\":null}",
+   "summary": "{\"weeklyUsedSkills\":null}",
+   "full": [
+    {
+     "weeklyUsedSkills": null,
+     "body": "{\"weeklyUsedSkills\":null}"
+    },
+    {
+     "weeklyUsedSkills": [],
+     "body": "{\"weeklyUsedSkills\":[]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\"]}"
+    },
+    {
+     "weeklyUsedSkills": [
+      "pdf",
+      "pdf",
+      "é"
+     ],
+     "body": "{\"weeklyUsedSkills\":[\"pdf\",\"pdf\",\"é\"]}"
+    }
+   ]
+  }
+ ]
+}

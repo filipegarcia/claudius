@@ -1,0 +1,16 @@
+{
+ "totals": {
+  "expected": 373,
+  "skipped": 7,
+  "unexpected": 1
+ },
+ "failures": [
+  {
+   "file": "notifications.spec.ts",
+   "title": "Notifications pipeline \u203a Session.broadcast still calls the bus (no HMR regression)",
+   "cat": "behavior",
+   "error": "Error: broadcast-driven row never landed in the inbox",
+   "api": []
+  }
+ ]
+}

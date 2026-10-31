@@ -1,0 +1,5044 @@
+{
+ "now": 1700000000000,
+ "live": {
+  "id": "00000000-0000-4000-8000-000000000001",
+  "cwd": "/claudius-golden/live"
+ },
+ "transcripts": [
+  {
+   "id": "00000000-0000-4000-8000-000000000001",
+   "dir": "-claudius-golden-projA",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/projA\",\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000002",
+   "dir": "-claudius-golden-projA",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/projA\",\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000003",
+   "dir": "-claudius-golden-projA",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/projA\",\"sessionId\":\"00000000-0000-4000-8000-000000000003\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000004",
+   "dir": "-claudius-golden-nodb",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/nodb\",\"sessionId\":\"00000000-0000-4000-8000-000000000004\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000005",
+   "dir": "-claudius-golden-odd",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"sessionId\":\"00000000-0000-4000-8000-000000000005\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000006",
+   "dir": "-claudius-golden-odd",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"\",\"sessionId\":\"00000000-0000-4000-8000-000000000006\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000008",
+   "dir": "-claudius-golden-broken",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/broken\",\"sessionId\":\"00000000-0000-4000-8000-000000000008\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000009",
+   "dir": "-claudius-golden-snooze",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/snooze\",\"sessionId\":\"00000000-0000-4000-8000-000000000009\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000010",
+   "dir": "-claudius-golden-foreign",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/foreign\",\"sessionId\":\"00000000-0000-4000-8000-000000000010\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000011",
+   "dir": "-claudius-golden-foreign",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/foreign\",\"sessionId\":\"00000000-0000-4000-8000-000000000011\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000012",
+   "dir": "-claudius-golden-foreign",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/foreign\",\"sessionId\":\"00000000-0000-4000-8000-000000000012\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000013",
+   "dir": "-claudius-golden-foreign",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/foreign\",\"sessionId\":\"00000000-0000-4000-8000-000000000013\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000014",
+   "dir": "-claudius-golden-foreign",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/foreign\",\"sessionId\":\"00000000-0000-4000-8000-000000000014\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000015",
+   "dir": "-claudius-golden-foreign",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/foreign\",\"sessionId\":\"00000000-0000-4000-8000-000000000015\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000016",
+   "dir": "-claudius-golden-foreign",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"/claudius-golden/foreign\",\"sessionId\":\"00000000-0000-4000-8000-000000000016\",\"version\":\"2.1.300\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-aaaaaaaaaaaa\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}\n"
+  }
+ ],
+ "steps": [
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000007",
+   "clock": 1700001000003,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "not-a-uuid",
+   "clock": 1700002000006,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000005",
+   "clock": 1700003000009,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "clock": 1700004000012,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000007",
+   "body": "{\"blocked\":true}",
+   "clock": 1700005000015,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000007",
+   "body": "null",
+   "clock": 1700006000018,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000007",
+   "body": "{",
+   "clock": 1700007000021,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "not-a-uuid",
+   "body": "{}",
+   "clock": 1700008000024,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "body": "null",
+   "clock": 1700009000027,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"session not found\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "clock": 1700010000030,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000004\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700011000033,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": null,
+   "clock": 1700012000036,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700013000039,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "clock": 1700014000042,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000003\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/projA",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "integer",
+     "0",
+     "null",
+     null
+    ]
+   ]
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{",
+   "clock": 1700015000045,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "",
+   "clock": 1700016000048,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "null",
+   "clock": 1700017000051,
+   "got": {
+    "threw": "Cannot read properties of null (reading 'blocked')"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "[]",
+   "clock": 1700018000054,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "[1,2]",
+   "clock": 1700019000057,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "\"blocked\"",
+   "clock": 1700020000060,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "7",
+   "clock": 1700021000063,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "true",
+   "clock": 1700022000066,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "1e400",
+   "clock": 1700023000069,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":true}",
+   "clock": 1700024000072,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700025000075,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":\"yes\"}",
+   "clock": 1700026000078,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":0}",
+   "clock": 1700027000081,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":null}",
+   "clock": 1700028000084,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":[]}",
+   "clock": 1700029000087,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":{}}",
+   "clock": 1700030000090,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700031000093,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":false}",
+   "clock": 1700032000096,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":5}",
+   "clock": 1700033000099,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":1700033300099}"
+   },
+   "snoozeMinutes": 5
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700034000102,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":1700033300099}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":true}",
+   "clock": 1700035000105,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700033300099}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{}",
+   "clock": 1700036000108,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700033300099}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":null}",
+   "clock": 1700037000111,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700038000114,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":0}",
+   "clock": 1700039000117,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":-1}",
+   "clock": 1700040000120,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":-0}",
+   "clock": 1700041000123,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":-0.5}",
+   "clock": 1700042000126,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":\"5\"}",
+   "clock": 1700043000129,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":\"\"}",
+   "clock": 1700044000132,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":\"abc\"}",
+   "clock": 1700045000135,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":\"NaN\"}",
+   "clock": 1700046000138,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":\"Infinity\"}",
+   "clock": 1700047000141,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":true}",
+   "clock": 1700048000144,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":false}",
+   "clock": 1700049000147,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":[5]}",
+   "clock": 1700050000150,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":{\"n\":5}}",
+   "clock": 1700051000153,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":1e400}",
+   "clock": 1700052000156,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":-1e400}",
+   "clock": 1700053000159,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":false,\"snoozeMinutes\":1e999}",
+   "clock": 1700054000162,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700055000165,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":1.9}",
+   "clock": 1700056000168,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700056060168}"
+   },
+   "snoozeMinutes": 1.9
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":0.5}",
+   "clock": 1700057000171,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700057000171}"
+   },
+   "snoozeMinutes": 0.5
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":5e-324}",
+   "clock": 1700058000174,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700058000174}"
+   },
+   "snoozeMinutes": 5e-324
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":1440}",
+   "clock": 1700059000177,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700145400177}"
+   },
+   "snoozeMinutes": 1440
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700060000180,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700145400177}"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/projA",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "integer",
+     "1",
+     "integer",
+     "1700145400177"
+    ]
+   ]
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":1000000000000}",
+   "clock": 1700061000183,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":60001700061000184}"
+   },
+   "snoozeMinutes": 1000000000000
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/projA",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "integer",
+     "1",
+     "integer",
+     "60001700061000184"
+    ]
+   ]
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":1000000000000000}",
+   "clock": 1700062000186,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":60000001700062000000}"
+   },
+   "snoozeMinutes": 1000000000000000
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700063000189,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":60000001700062000000}"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/projA",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "integer",
+     "1",
+     "real",
+     60000001700062000000
+    ]
+   ]
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":150000000000000000}",
+   "clock": 1700064000192,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":9.000000001700064e+21}"
+   },
+   "snoozeMinutes": 150000000000000000
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700065000195,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":9.000000001700064e+21}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":2.9e+303}",
+   "clock": 1700066000198,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1.7399999999999999e+308}"
+   },
+   "snoozeMinutes": 2.9e+303
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700067000201,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1.7399999999999999e+308}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":1e+308}",
+   "clock": 1700068000204,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   },
+   "snoozeMinutes": 1e+308
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700069000207,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/projA",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "integer",
+     "1",
+     "real",
+     null
+    ]
+   ]
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":false}",
+   "clock": 1700070000210,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":9007199254740993}",
+   "clock": 1700071000213,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":540431956984530530000}"
+   },
+   "snoozeMinutes": 9007199254740992
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":123456789.123}",
+   "clock": 1700072000216,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":9107479340216}"
+   },
+   "snoozeMinutes": 123456789.123
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":true,\"snoozeMinutes\":10}",
+   "clock": 1700073000219,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700073600219}"
+   },
+   "snoozeMinutes": 10
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700074000222,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":1700073600219}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":false,\"snoozeMinutes\":null}",
+   "clock": 1700075000225,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700076000228,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":true,\"snoozeMinutes\":0}",
+   "clock": 1700077000231,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":true,\"snoozeMinutes\":\"x\"}",
+   "clock": 1700078000234,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700079000237,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":\"true\",\"snoozeMinutes\":2}",
+   "clock": 1700080000240,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":1700080120240}"
+   },
+   "snoozeMinutes": 2
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"snoozeMinutes\":5,\"snoozeMinutes\":null,\"blocked\":true,\"blocked\":false}",
+   "clock": 1700081000243,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":true,\"extra\":{\"snoozeMinutes\":0},\"snoozeminutes\":0}",
+   "clock": 1700082000246,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "﻿{\"blocked\":false}",
+   "clock": 1700083000249,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": " \n {\"snoozeMinutes\" : 3 } \n",
+   "clock": 1700084000252,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":1700084180252}"
+   },
+   "snoozeMinutes": 3
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "body": "{\"blocked\":true} trailing",
+   "clock": 1700085000255,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":1700084180252}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "clock": 1700086000258,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000002\",\"blocked\":false,\"snoozeUntil\":1700084180252}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "body": "{\"snoozeMinutes\":null}",
+   "clock": 1700087000261,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000003\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "clock": 1700088000264,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000003\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "body": "{\"snoozeMinutes\":60}",
+   "clock": 1700089000267,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000003\",\"blocked\":false,\"snoozeUntil\":1700092600267}"
+   },
+   "snoozeMinutes": 60
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/projA",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "integer",
+     "0",
+     "integer",
+     "1700084180252"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "integer",
+     "0",
+     "integer",
+     "1700092600267"
+    ]
+   ]
+  },
+  {
+   "op": "sql",
+   "cwd": "/claudius-golden/projA",
+   "sql": "INSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000001', 1, 12345);"
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "clock": 1700090000270,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "body": "{\"blocked\":true}",
+   "clock": 1700091000273,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "clock": 1700092000276,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "body": "{\"snoozeMinutes\":3}",
+   "clock": 1700093000279,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"blocked\":true,\"snoozeUntil\":1700093180279}"
+   },
+   "snoozeMinutes": 3
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "clock": 1700094000282,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"blocked\":true,\"snoozeUntil\":1700093180279}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "body": "null",
+   "clock": 1700095000285,
+   "got": {
+    "threw": "Cannot read properties of null (reading 'blocked')"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/projA",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "integer",
+     "1",
+     "integer",
+     "12345"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "integer",
+     "0",
+     "integer",
+     "1700084180252"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "integer",
+     "0",
+     "integer",
+     "1700092600267"
+    ]
+   ]
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/live",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "integer",
+     "1",
+     "integer",
+     "1700093180279"
+    ]
+   ]
+  },
+  {
+   "op": "sql",
+   "cwd": "/claudius-golden/foreign",
+   "sql": "INSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000010', 2, NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000011', 'yes', NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000012', 0, 'abc');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000013', 1, 1.5);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000014', 0, X'00ff');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000015', 0, 9007199254740993);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000016', 0, 9e999);"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/foreign",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000010",
+     "integer",
+     "2",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000011",
+     "text",
+     "yes",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000012",
+     "integer",
+     "0",
+     "text",
+     "abc"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000013",
+     "integer",
+     "1",
+     "real",
+     1.5
+    ],
+    [
+     "00000000-0000-4000-8000-000000000014",
+     "integer",
+     "0",
+     "blob",
+     "00FF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000015",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740993"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000016",
+     "integer",
+     "0",
+     "real",
+     null
+    ]
+   ]
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000010",
+   "clock": 1700096000288,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000010\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000011",
+   "clock": 1700097000291,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000011\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000012",
+   "clock": 1700098000294,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000012\",\"blocked\":false,\"snoozeUntil\":\"abc\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000013",
+   "clock": 1700099000297,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000013\",\"blocked\":true,\"snoozeUntil\":1.5}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000014",
+   "clock": 1700100000300,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000014\",\"blocked\":false,\"snoozeUntil\":{\"type\":\"Buffer\",\"data\":[0,255]}}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000015",
+   "clock": 1700101000303,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000015\",\"blocked\":false,\"snoozeUntil\":9007199254740992}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000016",
+   "clock": 1700102000306,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000016\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000010",
+   "body": "{}",
+   "clock": 1700103000309,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000010\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000011",
+   "body": "{}",
+   "clock": 1700104000312,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000011\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000012",
+   "body": "{}",
+   "clock": 1700105000315,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000012\",\"blocked\":false,\"snoozeUntil\":\"abc\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000013",
+   "body": "{}",
+   "clock": 1700106000318,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000013\",\"blocked\":true,\"snoozeUntil\":1.5}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000014",
+   "body": "{}",
+   "clock": 1700107000321,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000014\",\"blocked\":false,\"snoozeUntil\":{\"type\":\"Buffer\",\"data\":[0,255]}}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000015",
+   "body": "{}",
+   "clock": 1700108000324,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000015\",\"blocked\":false,\"snoozeUntil\":9007199254740992}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000016",
+   "body": "{}",
+   "clock": 1700109000327,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000016\",\"blocked\":false,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/foreign",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000010",
+     "integer",
+     "0",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000011",
+     "integer",
+     "0",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000012",
+     "integer",
+     "0",
+     "text",
+     "abc"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000013",
+     "integer",
+     "1",
+     "real",
+     1.5
+    ],
+    [
+     "00000000-0000-4000-8000-000000000014",
+     "integer",
+     "0",
+     "blob",
+     "00FF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000015",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740992"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000016",
+     "integer",
+     "0",
+     "real",
+     null
+    ]
+   ]
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000010",
+   "body": "{\"blocked\":true}",
+   "clock": 1700110000330,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000010\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000011",
+   "body": "{\"blocked\":true}",
+   "clock": 1700111000333,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000011\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000012",
+   "body": "{\"blocked\":true}",
+   "clock": 1700112000336,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000012\",\"blocked\":true,\"snoozeUntil\":\"abc\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000013",
+   "body": "{\"blocked\":true}",
+   "clock": 1700113000339,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000013\",\"blocked\":true,\"snoozeUntil\":1.5}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000014",
+   "body": "{\"blocked\":true}",
+   "clock": 1700114000342,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000014\",\"blocked\":true,\"snoozeUntil\":{\"type\":\"Buffer\",\"data\":[0,255]}}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000015",
+   "body": "{\"blocked\":true}",
+   "clock": 1700115000345,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000015\",\"blocked\":true,\"snoozeUntil\":9007199254740992}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000016",
+   "body": "{\"blocked\":true}",
+   "clock": 1700116000348,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000016\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000010",
+   "clock": 1700117000351,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000010\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000011",
+   "clock": 1700118000354,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000011\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000012",
+   "clock": 1700119000357,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000012\",\"blocked\":true,\"snoozeUntil\":\"abc\"}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000013",
+   "clock": 1700120000360,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000013\",\"blocked\":true,\"snoozeUntil\":1.5}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000014",
+   "clock": 1700121000363,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000014\",\"blocked\":true,\"snoozeUntil\":{\"type\":\"Buffer\",\"data\":[0,255]}}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000015",
+   "clock": 1700122000366,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000015\",\"blocked\":true,\"snoozeUntil\":9007199254740992}"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000016",
+   "clock": 1700123000369,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000016\",\"blocked\":true,\"snoozeUntil\":null}"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/foreign",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000010",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000011",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000012",
+     "integer",
+     "1",
+     "text",
+     "abc"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000013",
+     "integer",
+     "1",
+     "real",
+     1.5
+    ],
+    [
+     "00000000-0000-4000-8000-000000000014",
+     "integer",
+     "1",
+     "blob",
+     "00FF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000015",
+     "integer",
+     "1",
+     "integer",
+     "9007199254740992"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000016",
+     "integer",
+     "1",
+     "real",
+     null
+    ]
+   ]
+  },
+  {
+   "op": "sql",
+   "cwd": "/claudius-golden/broken",
+   "sql": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO schema_meta VALUES ('version', '9999');",
+   "fresh": true
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "clock": 1700124000372,
+   "got": {
+    "threw": "no such table: session_notification_prefs"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "body": "{\"blocked\":true}",
+   "clock": 1700125000375,
+   "got": {
+    "threw": "no such table: session_notification_prefs"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "body": "{\"snoozeMinutes\":0}",
+   "clock": 1700126000378,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid snoozeMinutes\"}"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "body": "null",
+   "clock": 1700127000381,
+   "got": {
+    "threw": "Cannot read properties of null (reading 'blocked')"
+   }
+  },
+  {
+   "op": "post",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "body": "[]",
+   "clock": 1700128000384,
+   "got": {
+    "threw": "no such table: session_notification_prefs"
+   }
+  },
+  {
+   "op": "get",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "clock": 1700129000387,
+   "got": {
+    "threw": "no such table: session_notification_prefs"
+   }
+  }
+ ],
+ "snooze": [
+  {
+   "now": 0,
+   "minutes": 1,
+   "got": "60000"
+  },
+  {
+   "now": 0,
+   "minutes": 1.9,
+   "got": "60000"
+  },
+  {
+   "now": 0,
+   "minutes": 2,
+   "got": "120000"
+  },
+  {
+   "now": 0,
+   "minutes": 0.5,
+   "got": "0"
+  },
+  {
+   "now": 0,
+   "minutes": 5e-324,
+   "got": "0"
+  },
+  {
+   "now": 0,
+   "minutes": 1e-7,
+   "got": "0"
+  },
+  {
+   "now": 0,
+   "minutes": 59.99,
+   "got": "3540000"
+  },
+  {
+   "now": 0,
+   "minutes": 60,
+   "got": "3600000"
+  },
+  {
+   "now": 0,
+   "minutes": 1440,
+   "got": "86400000"
+  },
+  {
+   "now": 0,
+   "minutes": 525600,
+   "got": "31536000000"
+  },
+  {
+   "now": 0,
+   "minutes": 123.456,
+   "got": "7380000"
+  },
+  {
+   "now": 0,
+   "minutes": 1000000,
+   "got": "60000000000"
+  },
+  {
+   "now": 0,
+   "minutes": 1000000000,
+   "got": "60000000000000"
+  },
+  {
+   "now": 0,
+   "minutes": 1000000000000,
+   "got": "60000000000000000"
+  },
+  {
+   "now": 0,
+   "minutes": 1500000000000,
+   "got": "90000000000000000"
+  },
+  {
+   "now": 0,
+   "minutes": 9007199254740992,
+   "got": "540431955284459500000"
+  },
+  {
+   "now": 0,
+   "minutes": 9007199254740994,
+   "got": "540431955284459650000"
+  },
+  {
+   "now": 0,
+   "minutes": 1000000000000000,
+   "got": "60000000000000000000"
+  },
+  {
+   "now": 0,
+   "minutes": 10000000000000000,
+   "got": "600000000000000000000"
+  },
+  {
+   "now": 0,
+   "minutes": 123456700000000000,
+   "got": "7.407402e+21"
+  },
+  {
+   "now": 0,
+   "minutes": 150000000000000000,
+   "got": "9e+21"
+  },
+  {
+   "now": 0,
+   "minutes": 16666666666666666,
+   "got": "1e+21"
+  },
+  {
+   "now": 0,
+   "minutes": 100000000000000000000,
+   "got": "6e+24"
+  },
+  {
+   "now": 0,
+   "minutes": 3e+290,
+   "got": "1.8e+295"
+  },
+  {
+   "now": 0,
+   "minutes": 2.9e+303,
+   "got": "1.7399999999999999e+308"
+  },
+  {
+   "now": 0,
+   "minutes": 2.9961552247705e+303,
+   "got": "1.7976931348623e+308"
+  },
+  {
+   "now": 0,
+   "minutes": 2.99615522477053e+303,
+   "got": "null"
+  },
+  {
+   "now": 0,
+   "minutes": 3e+303,
+   "got": "null"
+  },
+  {
+   "now": 0,
+   "minutes": 1.7976931348623157e+308,
+   "got": "null"
+  },
+  {
+   "now": 1,
+   "minutes": 1,
+   "got": "60001"
+  },
+  {
+   "now": 1,
+   "minutes": 1.9,
+   "got": "60001"
+  },
+  {
+   "now": 1,
+   "minutes": 2,
+   "got": "120001"
+  },
+  {
+   "now": 1,
+   "minutes": 0.5,
+   "got": "1"
+  },
+  {
+   "now": 1,
+   "minutes": 5e-324,
+   "got": "1"
+  },
+  {
+   "now": 1,
+   "minutes": 1e-7,
+   "got": "1"
+  },
+  {
+   "now": 1,
+   "minutes": 59.99,
+   "got": "3540001"
+  },
+  {
+   "now": 1,
+   "minutes": 60,
+   "got": "3600001"
+  },
+  {
+   "now": 1,
+   "minutes": 1440,
+   "got": "86400001"
+  },
+  {
+   "now": 1,
+   "minutes": 525600,
+   "got": "31536000001"
+  },
+  {
+   "now": 1,
+   "minutes": 123.456,
+   "got": "7380001"
+  },
+  {
+   "now": 1,
+   "minutes": 1000000,
+   "got": "60000000001"
+  },
+  {
+   "now": 1,
+   "minutes": 1000000000,
+   "got": "60000000000001"
+  },
+  {
+   "now": 1,
+   "minutes": 1000000000000,
+   "got": "60000000000000000"
+  },
+  {
+   "now": 1,
+   "minutes": 1500000000000,
+   "got": "90000000000000000"
+  },
+  {
+   "now": 1,
+   "minutes": 9007199254740992,
+   "got": "540431955284459500000"
+  },
+  {
+   "now": 1,
+   "minutes": 9007199254740994,
+   "got": "540431955284459650000"
+  },
+  {
+   "now": 1,
+   "minutes": 1000000000000000,
+   "got": "60000000000000000000"
+  },
+  {
+   "now": 1,
+   "minutes": 10000000000000000,
+   "got": "600000000000000000000"
+  },
+  {
+   "now": 1,
+   "minutes": 123456700000000000,
+   "got": "7.407402e+21"
+  },
+  {
+   "now": 1,
+   "minutes": 150000000000000000,
+   "got": "9e+21"
+  },
+  {
+   "now": 1,
+   "minutes": 16666666666666666,
+   "got": "1e+21"
+  },
+  {
+   "now": 1,
+   "minutes": 100000000000000000000,
+   "got": "6e+24"
+  },
+  {
+   "now": 1,
+   "minutes": 3e+290,
+   "got": "1.8e+295"
+  },
+  {
+   "now": 1,
+   "minutes": 2.9e+303,
+   "got": "1.7399999999999999e+308"
+  },
+  {
+   "now": 1,
+   "minutes": 2.9961552247705e+303,
+   "got": "1.7976931348623e+308"
+  },
+  {
+   "now": 1,
+   "minutes": 2.99615522477053e+303,
+   "got": "null"
+  },
+  {
+   "now": 1,
+   "minutes": 3e+303,
+   "got": "null"
+  },
+  {
+   "now": 1,
+   "minutes": 1.7976931348623157e+308,
+   "got": "null"
+  },
+  {
+   "now": 999,
+   "minutes": 1,
+   "got": "60999"
+  },
+  {
+   "now": 999,
+   "minutes": 1.9,
+   "got": "60999"
+  },
+  {
+   "now": 999,
+   "minutes": 2,
+   "got": "120999"
+  },
+  {
+   "now": 999,
+   "minutes": 0.5,
+   "got": "999"
+  },
+  {
+   "now": 999,
+   "minutes": 5e-324,
+   "got": "999"
+  },
+  {
+   "now": 999,
+   "minutes": 1e-7,
+   "got": "999"
+  },
+  {
+   "now": 999,
+   "minutes": 59.99,
+   "got": "3540999"
+  },
+  {
+   "now": 999,
+   "minutes": 60,
+   "got": "3600999"
+  },
+  {
+   "now": 999,
+   "minutes": 1440,
+   "got": "86400999"
+  },
+  {
+   "now": 999,
+   "minutes": 525600,
+   "got": "31536000999"
+  },
+  {
+   "now": 999,
+   "minutes": 123.456,
+   "got": "7380999"
+  },
+  {
+   "now": 999,
+   "minutes": 1000000,
+   "got": "60000000999"
+  },
+  {
+   "now": 999,
+   "minutes": 1000000000,
+   "got": "60000000000999"
+  },
+  {
+   "now": 999,
+   "minutes": 1000000000000,
+   "got": "60000000000001000"
+  },
+  {
+   "now": 999,
+   "minutes": 1500000000000,
+   "got": "90000000000001000"
+  },
+  {
+   "now": 999,
+   "minutes": 9007199254740992,
+   "got": "540431955284459500000"
+  },
+  {
+   "now": 999,
+   "minutes": 9007199254740994,
+   "got": "540431955284459650000"
+  },
+  {
+   "now": 999,
+   "minutes": 1000000000000000,
+   "got": "60000000000000000000"
+  },
+  {
+   "now": 999,
+   "minutes": 10000000000000000,
+   "got": "600000000000000000000"
+  },
+  {
+   "now": 999,
+   "minutes": 123456700000000000,
+   "got": "7.407402e+21"
+  },
+  {
+   "now": 999,
+   "minutes": 150000000000000000,
+   "got": "9e+21"
+  },
+  {
+   "now": 999,
+   "minutes": 16666666666666666,
+   "got": "1e+21"
+  },
+  {
+   "now": 999,
+   "minutes": 100000000000000000000,
+   "got": "6e+24"
+  },
+  {
+   "now": 999,
+   "minutes": 3e+290,
+   "got": "1.8e+295"
+  },
+  {
+   "now": 999,
+   "minutes": 2.9e+303,
+   "got": "1.7399999999999999e+308"
+  },
+  {
+   "now": 999,
+   "minutes": 2.9961552247705e+303,
+   "got": "1.7976931348623e+308"
+  },
+  {
+   "now": 999,
+   "minutes": 2.99615522477053e+303,
+   "got": "null"
+  },
+  {
+   "now": 999,
+   "minutes": 3e+303,
+   "got": "null"
+  },
+  {
+   "now": 999,
+   "minutes": 1.7976931348623157e+308,
+   "got": "null"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1,
+   "got": "1700000060000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1.9,
+   "got": "1700000060000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 2,
+   "got": "1700000120000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 0.5,
+   "got": "1700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 5e-324,
+   "got": "1700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1e-7,
+   "got": "1700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 59.99,
+   "got": "1700003540000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 60,
+   "got": "1700003600000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1440,
+   "got": "1700086400000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 525600,
+   "got": "1731536000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 123.456,
+   "got": "1700007380000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1000000,
+   "got": "1760000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1000000000,
+   "got": "61700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1000000000000,
+   "got": "60001700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1500000000000,
+   "got": "90001700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 9007199254740992,
+   "got": "540431956984459500000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 9007199254740994,
+   "got": "540431956984459600000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1000000000000000,
+   "got": "60000001700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 10000000000000000,
+   "got": "600000001700000000000"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 123456700000000000,
+   "got": "7.4074020017e+21"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 150000000000000000,
+   "got": "9.0000000017e+21"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 16666666666666666,
+   "got": "1.0000000017e+21"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 100000000000000000000,
+   "got": "6.0000000000017e+24"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 3e+290,
+   "got": "1.8e+295"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 2.9e+303,
+   "got": "1.7399999999999999e+308"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 2.9961552247705e+303,
+   "got": "1.7976931348623e+308"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 2.99615522477053e+303,
+   "got": "null"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 3e+303,
+   "got": "null"
+  },
+  {
+   "now": 1700000000000,
+   "minutes": 1.7976931348623157e+308,
+   "got": "null"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1,
+   "got": "1700000060001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1.9,
+   "got": "1700000060001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 2,
+   "got": "1700000120001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 0.5,
+   "got": "1700000000001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 5e-324,
+   "got": "1700000000001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1e-7,
+   "got": "1700000000001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 59.99,
+   "got": "1700003540001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 60,
+   "got": "1700003600001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1440,
+   "got": "1700086400001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 525600,
+   "got": "1731536000001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 123.456,
+   "got": "1700007380001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1000000,
+   "got": "1760000000001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1000000000,
+   "got": "61700000000001"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1000000000000,
+   "got": "60001700000000000"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1500000000000,
+   "got": "90001700000000000"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 9007199254740992,
+   "got": "540431956984459500000"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 9007199254740994,
+   "got": "540431956984459600000"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1000000000000000,
+   "got": "60000001700000000000"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 10000000000000000,
+   "got": "600000001700000000000"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 123456700000000000,
+   "got": "7.4074020017e+21"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 150000000000000000,
+   "got": "9.0000000017e+21"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 16666666666666666,
+   "got": "1.0000000017e+21"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 100000000000000000000,
+   "got": "6.0000000000017e+24"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 3e+290,
+   "got": "1.8e+295"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 2.9e+303,
+   "got": "1.7399999999999999e+308"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 2.9961552247705e+303,
+   "got": "1.7976931348623e+308"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 2.99615522477053e+303,
+   "got": "null"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 3e+303,
+   "got": "null"
+  },
+  {
+   "now": 1700000000001,
+   "minutes": 1.7976931348623157e+308,
+   "got": "null"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1,
+   "got": "9007199254800992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1.9,
+   "got": "9007199254800992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 2,
+   "got": "9007199254860992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 0.5,
+   "got": "9007199254740991"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 5e-324,
+   "got": "9007199254740991"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1e-7,
+   "got": "9007199254740991"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 59.99,
+   "got": "9007199258280992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 60,
+   "got": "9007199258340992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1440,
+   "got": "9007199341140992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 525600,
+   "got": "9007230790740992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 123.456,
+   "got": "9007199262120992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1000000,
+   "got": "9007259254740992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1000000000,
+   "got": "9067199254740992"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1000000000000,
+   "got": "69007199254740990"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1500000000000,
+   "got": "99007199254741000"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 9007199254740992,
+   "got": "540440962483714260000"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 9007199254740994,
+   "got": "540440962483714400000"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1000000000000000,
+   "got": "60009007199254740000"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 10000000000000000,
+   "got": "600009007199254700000"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 123456700000000000,
+   "got": "7.407411007199255e+21"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 150000000000000000,
+   "got": "9.000009007199255e+21"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 16666666666666666,
+   "got": "1.0000090071992547e+21"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 100000000000000000000,
+   "got": "6.000000009007199e+24"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 3e+290,
+   "got": "1.8e+295"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 2.9e+303,
+   "got": "1.7399999999999999e+308"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 2.9961552247705e+303,
+   "got": "1.7976931348623e+308"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 2.99615522477053e+303,
+   "got": "null"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 3e+303,
+   "got": "null"
+  },
+  {
+   "now": 9007199254740991,
+   "minutes": 1.7976931348623157e+308,
+   "got": "null"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1,
+   "got": "8640000000060000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1.9,
+   "got": "8640000000060000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 2,
+   "got": "8640000000120000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 0.5,
+   "got": "8640000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 5e-324,
+   "got": "8640000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1e-7,
+   "got": "8640000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 59.99,
+   "got": "8640000003540000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 60,
+   "got": "8640000003600000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1440,
+   "got": "8640000086400000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 525600,
+   "got": "8640031536000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 123.456,
+   "got": "8640000007380000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1000000,
+   "got": "8640060000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1000000000,
+   "got": "8700000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1000000000000,
+   "got": "68640000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1500000000000,
+   "got": "98640000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 9007199254740992,
+   "got": "540440595284459500000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 9007199254740994,
+   "got": "540440595284459650000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1000000000000000,
+   "got": "60008640000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 10000000000000000,
+   "got": "600008640000000000000"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 123456700000000000,
+   "got": "7.40741064e+21"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 150000000000000000,
+   "got": "9.00000864e+21"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 16666666666666666,
+   "got": "1.00000864e+21"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 100000000000000000000,
+   "got": "6.00000000864e+24"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 3e+290,
+   "got": "1.8e+295"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 2.9e+303,
+   "got": "1.7399999999999999e+308"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 2.9961552247705e+303,
+   "got": "1.7976931348623e+308"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 2.99615522477053e+303,
+   "got": "null"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 3e+303,
+   "got": "null"
+  },
+  {
+   "now": 8640000000000000,
+   "minutes": 1.7976931348623157e+308,
+   "got": "null"
+  }
+ ],
+ "db": [
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "got": null
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "got": null
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "snoozeUntil": 1700000001000
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": true,
+    "snoozeUntil": 1700000001000
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "blocked": false
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": false,
+    "snoozeUntil": 1700000001000
+   }
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": false,
+    "snoozeUntil": 1700000001000
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000999,
+   "got": true
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000001000,
+   "got": false
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000001001,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": false,
+    "snoozeUntil": 1700000001000
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "snoozeUntil": null
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "blocked": true,
+    "snoozeUntil": null
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "patch": {
+    "blocked": true,
+    "snoozeUntil": 1699999999995
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000003",
+    "blocked": true,
+    "snoozeUntil": 1699999999995
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "patch": {
+    "blocked": false
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000003",
+    "blocked": false,
+    "snoozeUntil": 1699999999995
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "patch": {
+    "snoozeUntil": "Infinity"
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000004",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000004",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "now": 8640000000000000,
+   "got": true
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "patch": {
+    "blocked": false
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000004",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000005",
+   "patch": {
+    "snoozeUntil": 1.5
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000005",
+    "blocked": false,
+    "snoozeUntil": 1.5
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000005",
+   "now": 1,
+   "got": true
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000005",
+   "now": 2,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "patch": {
+    "snoozeUntil": 0
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000006",
+    "blocked": false,
+    "snoozeUntil": 0
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "now": -1,
+   "got": true
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "now": 0,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000007",
+   "patch": {
+    "snoozeUntil": -1
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000007",
+    "blocked": false,
+    "snoozeUntil": -1
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "patch": {
+    "snoozeUntil": 60000000000000000000
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000008",
+    "blocked": false,
+    "snoozeUntil": 60000000000000000000
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000008",
+   "now": 8640000000000000,
+   "got": true
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000009",
+   "patch": {
+    "blocked": false,
+    "snoozeUntil": 9007199254740994
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000009",
+    "blocked": false,
+    "snoozeUntil": 9007199254740994
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000010",
+   "patch": {
+    "snoozeUntil": 1.7976931348623157e+308
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000010",
+    "blocked": false,
+    "snoozeUntil": 1.7976931348623157e+308
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000011",
+   "patch": {
+    "snoozeUntil": 1e+21
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000011",
+    "blocked": false,
+    "snoozeUntil": 1e+21
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000012",
+   "patch": {
+    "snoozeUntil": 123.456
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000012",
+    "blocked": false,
+    "snoozeUntil": 123.456
+   }
+  },
+  {
+   "fn": "rows",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "integer",
+     "0",
+     "integer",
+     "1699999999995"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000004",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000005",
+     "integer",
+     "0",
+     "real",
+     1.5
+    ],
+    [
+     "00000000-0000-4000-8000-000000000006",
+     "integer",
+     "0",
+     "integer",
+     "0"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000007",
+     "integer",
+     "0",
+     "integer",
+     "-1"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000008",
+     "integer",
+     "0",
+     "real",
+     60000000000000000000
+    ],
+    [
+     "00000000-0000-4000-8000-000000000009",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740994"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000010",
+     "integer",
+     "0",
+     "real",
+     1.7976931348623157e+308
+    ],
+    [
+     "00000000-0000-4000-8000-000000000011",
+     "integer",
+     "0",
+     "real",
+     1e+21
+    ],
+    [
+     "00000000-0000-4000-8000-000000000012",
+     "integer",
+     "0",
+     "real",
+     123.456
+    ]
+   ]
+  },
+  {
+   "fn": "sql",
+   "sql": "INSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000021', 2, NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000022', 'yes', NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000023', 1.0, NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000024', '1', NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000025', 0, 'abc');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000026', 0, 'Infinity');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000027', 0, X'00ff');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000028', 0, X'3939393939393939393939393939');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000029', 0, 9007199254740993);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000030', 0, '0x1FFFFFFFFFFF');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000031', 0, '  ');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000032', 0, ' 99999999999999 ');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000033', 0, '1e400');\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000034', 0, -9e999);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000035', X'01', '');"
+  },
+  {
+   "fn": "rows",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "integer",
+     "0",
+     "integer",
+     "1699999999995"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000004",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000005",
+     "integer",
+     "0",
+     "real",
+     1.5
+    ],
+    [
+     "00000000-0000-4000-8000-000000000006",
+     "integer",
+     "0",
+     "integer",
+     "0"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000007",
+     "integer",
+     "0",
+     "integer",
+     "-1"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000008",
+     "integer",
+     "0",
+     "real",
+     60000000000000000000
+    ],
+    [
+     "00000000-0000-4000-8000-000000000009",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740994"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000010",
+     "integer",
+     "0",
+     "real",
+     1.7976931348623157e+308
+    ],
+    [
+     "00000000-0000-4000-8000-000000000011",
+     "integer",
+     "0",
+     "real",
+     1e+21
+    ],
+    [
+     "00000000-0000-4000-8000-000000000012",
+     "integer",
+     "0",
+     "real",
+     123.456
+    ],
+    [
+     "00000000-0000-4000-8000-000000000021",
+     "integer",
+     "2",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000022",
+     "text",
+     "yes",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000023",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000024",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000025",
+     "integer",
+     "0",
+     "text",
+     "abc"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000026",
+     "integer",
+     "0",
+     "text",
+     "Infinity"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000027",
+     "integer",
+     "0",
+     "blob",
+     "00FF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000028",
+     "integer",
+     "0",
+     "blob",
+     "3939393939393939393939393939"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000029",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740993"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000030",
+     "integer",
+     "0",
+     "text",
+     "0x1FFFFFFFFFFF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000031",
+     "integer",
+     "0",
+     "text",
+     "  "
+    ],
+    [
+     "00000000-0000-4000-8000-000000000032",
+     "integer",
+     "0",
+     "integer",
+     "99999999999999"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000033",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000034",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000035",
+     "blob",
+     "01",
+     "text",
+     ""
+    ]
+   ]
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000021",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000021",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000021",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000022",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000022",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000022",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000023",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000023",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000023",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000024",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000024",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000024",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000025",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000025",
+    "blocked": false,
+    "snoozeUntil": "abc"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000025",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000026",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000026",
+    "blocked": false,
+    "snoozeUntil": "Infinity"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000026",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000027",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000027",
+    "blocked": false,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      0,
+      255
+     ]
+    }
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000027",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000028",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000028",
+    "blocked": false,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+     ]
+    }
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000028",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000029",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000029",
+    "blocked": false,
+    "snoozeUntil": 9007199254740992
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000029",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000030",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000030",
+    "blocked": false,
+    "snoozeUntil": "0x1FFFFFFFFFFF"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000030",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000031",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000031",
+    "blocked": false,
+    "snoozeUntil": "  "
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000031",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000032",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000032",
+    "blocked": false,
+    "snoozeUntil": 99999999999999
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000032",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000033",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000033",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000033",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000034",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000034",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000034",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000035",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000035",
+    "blocked": false,
+    "snoozeUntil": ""
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000035",
+   "now": 1700000000000,
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000021",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000021",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000022",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000022",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000023",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000023",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000024",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000024",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000025",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000025",
+    "blocked": false,
+    "snoozeUntil": "abc"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000026",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000026",
+    "blocked": false,
+    "snoozeUntil": "Infinity"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000027",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000027",
+    "blocked": false,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      0,
+      255
+     ]
+    }
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000028",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000028",
+    "blocked": false,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+     ]
+    }
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000029",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000029",
+    "blocked": false,
+    "snoozeUntil": 9007199254740992
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000030",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000030",
+    "blocked": false,
+    "snoozeUntil": "0x1FFFFFFFFFFF"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000031",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000031",
+    "blocked": false,
+    "snoozeUntil": "  "
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000032",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000032",
+    "blocked": false,
+    "snoozeUntil": 99999999999999
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000033",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000033",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000034",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000034",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000035",
+   "patch": {},
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000035",
+    "blocked": false,
+    "snoozeUntil": ""
+   }
+  },
+  {
+   "fn": "rows",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "integer",
+     "0",
+     "integer",
+     "1699999999995"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000004",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000005",
+     "integer",
+     "0",
+     "real",
+     1.5
+    ],
+    [
+     "00000000-0000-4000-8000-000000000006",
+     "integer",
+     "0",
+     "integer",
+     "0"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000007",
+     "integer",
+     "0",
+     "integer",
+     "-1"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000008",
+     "integer",
+     "0",
+     "real",
+     60000000000000000000
+    ],
+    [
+     "00000000-0000-4000-8000-000000000009",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740994"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000010",
+     "integer",
+     "0",
+     "real",
+     1.7976931348623157e+308
+    ],
+    [
+     "00000000-0000-4000-8000-000000000011",
+     "integer",
+     "0",
+     "real",
+     1e+21
+    ],
+    [
+     "00000000-0000-4000-8000-000000000012",
+     "integer",
+     "0",
+     "real",
+     123.456
+    ],
+    [
+     "00000000-0000-4000-8000-000000000021",
+     "integer",
+     "0",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000022",
+     "integer",
+     "0",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000023",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000024",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000025",
+     "integer",
+     "0",
+     "text",
+     "abc"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000026",
+     "integer",
+     "0",
+     "text",
+     "Infinity"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000027",
+     "integer",
+     "0",
+     "blob",
+     "00FF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000028",
+     "integer",
+     "0",
+     "blob",
+     "3939393939393939393939393939"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000029",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740992"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000030",
+     "integer",
+     "0",
+     "text",
+     "0x1FFFFFFFFFFF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000031",
+     "integer",
+     "0",
+     "text",
+     "  "
+    ],
+    [
+     "00000000-0000-4000-8000-000000000032",
+     "integer",
+     "0",
+     "integer",
+     "99999999999999"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000033",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000034",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000035",
+     "integer",
+     "0",
+     "text",
+     ""
+    ]
+   ]
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000021",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000021",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000022",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000022",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000023",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000023",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000024",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000024",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000025",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000025",
+    "blocked": true,
+    "snoozeUntil": "abc"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000026",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000026",
+    "blocked": true,
+    "snoozeUntil": "Infinity"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000027",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000027",
+    "blocked": true,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      0,
+      255
+     ]
+    }
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000028",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000028",
+    "blocked": true,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+     ]
+    }
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000029",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000029",
+    "blocked": true,
+    "snoozeUntil": 9007199254740992
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000030",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000030",
+    "blocked": true,
+    "snoozeUntil": "0x1FFFFFFFFFFF"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000031",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000031",
+    "blocked": true,
+    "snoozeUntil": "  "
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000032",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000032",
+    "blocked": true,
+    "snoozeUntil": 99999999999999
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000033",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000033",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000034",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000034",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000035",
+   "patch": {
+    "blocked": true
+   },
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000035",
+    "blocked": true,
+    "snoozeUntil": ""
+   }
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000021",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000021",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000021",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000022",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000022",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000022",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000023",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000023",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000023",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000024",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000024",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000024",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000025",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000025",
+    "blocked": true,
+    "snoozeUntil": "abc"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000025",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000026",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000026",
+    "blocked": true,
+    "snoozeUntil": "Infinity"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000026",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000027",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000027",
+    "blocked": true,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      0,
+      255
+     ]
+    }
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000027",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000028",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000028",
+    "blocked": true,
+    "snoozeUntil": {
+     "type": "Buffer",
+     "data": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+     ]
+    }
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000028",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000029",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000029",
+    "blocked": true,
+    "snoozeUntil": 9007199254740992
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000029",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000030",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000030",
+    "blocked": true,
+    "snoozeUntil": "0x1FFFFFFFFFFF"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000030",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000031",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000031",
+    "blocked": true,
+    "snoozeUntil": "  "
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000031",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000032",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000032",
+    "blocked": true,
+    "snoozeUntil": 99999999999999
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000032",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000033",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000033",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000033",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000034",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000034",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000034",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000035",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000035",
+    "blocked": true,
+    "snoozeUntil": ""
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000035",
+   "now": 1700000000000,
+   "got": true
+  },
+  {
+   "fn": "rows",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "integer",
+     "0",
+     "integer",
+     "1699999999995"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000004",
+     "integer",
+     "0",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000005",
+     "integer",
+     "0",
+     "real",
+     1.5
+    ],
+    [
+     "00000000-0000-4000-8000-000000000006",
+     "integer",
+     "0",
+     "integer",
+     "0"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000007",
+     "integer",
+     "0",
+     "integer",
+     "-1"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000008",
+     "integer",
+     "0",
+     "real",
+     60000000000000000000
+    ],
+    [
+     "00000000-0000-4000-8000-000000000009",
+     "integer",
+     "0",
+     "integer",
+     "9007199254740994"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000010",
+     "integer",
+     "0",
+     "real",
+     1.7976931348623157e+308
+    ],
+    [
+     "00000000-0000-4000-8000-000000000011",
+     "integer",
+     "0",
+     "real",
+     1e+21
+    ],
+    [
+     "00000000-0000-4000-8000-000000000012",
+     "integer",
+     "0",
+     "real",
+     123.456
+    ],
+    [
+     "00000000-0000-4000-8000-000000000021",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000022",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000023",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000024",
+     "integer",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000025",
+     "integer",
+     "1",
+     "text",
+     "abc"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000026",
+     "integer",
+     "1",
+     "text",
+     "Infinity"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000027",
+     "integer",
+     "1",
+     "blob",
+     "00FF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000028",
+     "integer",
+     "1",
+     "blob",
+     "3939393939393939393939393939"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000029",
+     "integer",
+     "1",
+     "integer",
+     "9007199254740992"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000030",
+     "integer",
+     "1",
+     "text",
+     "0x1FFFFFFFFFFF"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000031",
+     "integer",
+     "1",
+     "text",
+     "  "
+    ],
+    [
+     "00000000-0000-4000-8000-000000000032",
+     "integer",
+     "1",
+     "integer",
+     "99999999999999"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000033",
+     "integer",
+     "1",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000034",
+     "integer",
+     "1",
+     "real",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000035",
+     "integer",
+     "1",
+     "text",
+     ""
+    ]
+   ]
+  },
+  {
+   "fn": "sql",
+   "sql": "DROP TABLE session_notification_prefs;\nCREATE TABLE session_notification_prefs (session_id TEXT PRIMARY KEY, blocked, snooze_until TEXT);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000004', 1.0, NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000005', '1', NULL);\nINSERT INTO session_notification_prefs(session_id, blocked, snooze_until) VALUES ('00000000-0000-4000-8000-000000000006', 2.5, NULL);",
+   "cwd": "/claudius-golden/db-loose"
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "blocked": true,
+    "snoozeUntil": 1700000001000
+   },
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": true,
+    "snoozeUntil": 1700000001000
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "patch": {
+    "snoozeUntil": 1.5
+   },
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000002",
+    "blocked": false,
+    "snoozeUntil": 1.5
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "patch": {
+    "blocked": false,
+    "snoozeUntil": "Infinity"
+   },
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000003",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "rows",
+   "cwd": "/claudius-golden/db-loose",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "real",
+     1,
+     "text",
+     "1700000001000.0"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "real",
+     0,
+     "text",
+     "1.5"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "real",
+     0,
+     "text",
+     "Inf"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000004",
+     "real",
+     1,
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000005",
+     "text",
+     "1",
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000006",
+     "real",
+     2.5,
+     "null",
+     null
+    ]
+   ]
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": true,
+    "snoozeUntil": "1700000001000.0"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-loose",
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000002",
+    "blocked": false,
+    "snoozeUntil": "1.5"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-loose",
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000003",
+    "blocked": false,
+    "snoozeUntil": "Inf"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-loose",
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000004",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-loose",
+   "got": true
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000005",
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000005",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000005",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-loose",
+   "got": false
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000006",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-loose",
+   "got": false
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {},
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": true,
+    "snoozeUntil": "1700000001000.0"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000002",
+   "patch": {},
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000002",
+    "blocked": false,
+    "snoozeUntil": "1.5"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000003",
+   "patch": {},
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000003",
+    "blocked": false,
+    "snoozeUntil": "Inf"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000004",
+   "patch": {},
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000004",
+    "blocked": true,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000005",
+   "patch": {},
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000005",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000006",
+   "patch": {},
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000006",
+    "blocked": false,
+    "snoozeUntil": null
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "blocked": false
+   },
+   "cwd": "/claudius-golden/db-loose",
+   "got": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "blocked": false,
+    "snoozeUntil": "1700000001000.0"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-loose",
+   "got": true
+  },
+  {
+   "fn": "rows",
+   "cwd": "/claudius-golden/db-loose",
+   "got": [
+    [
+     "00000000-0000-4000-8000-000000000001",
+     "real",
+     0,
+     "text",
+     "1700000001000.0"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000002",
+     "real",
+     0,
+     "text",
+     "1.5"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000003",
+     "real",
+     0,
+     "text",
+     "Inf"
+    ],
+    [
+     "00000000-0000-4000-8000-000000000004",
+     "real",
+     1,
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000005",
+     "real",
+     0,
+     "null",
+     null
+    ],
+    [
+     "00000000-0000-4000-8000-000000000006",
+     "real",
+     0,
+     "null",
+     null
+    ]
+   ]
+  },
+  {
+   "fn": "sql",
+   "sql": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO schema_meta VALUES ('version', '9999');",
+   "fresh": true,
+   "cwd": "/claudius-golden/db-broken"
+  },
+  {
+   "fn": "get",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "cwd": "/claudius-golden/db-broken",
+   "got": {
+    "threw": "no such table: session_notification_prefs"
+   }
+  },
+  {
+   "fn": "muted",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "now": 1700000000000,
+   "cwd": "/claudius-golden/db-broken",
+   "got": {
+    "threw": "no such table: session_notification_prefs"
+   }
+  },
+  {
+   "fn": "set",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "patch": {
+    "blocked": true
+   },
+   "cwd": "/claudius-golden/db-broken",
+   "got": {
+    "threw": "no such table: session_notification_prefs"
+   }
+  }
+ ]
+}

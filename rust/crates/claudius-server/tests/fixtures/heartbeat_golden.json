@@ -1,0 +1,779 @@
+{
+ "last": 25,
+ "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+ "steps": [
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"ok\",\"ts\":$TS}"
+   }
+  },
+  {
+   "op": "request",
+   "method": "HEAD",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "OPTIONS",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 204,
+    "headers": [
+     [
+      "allow",
+      "GET, HEAD, OPTIONS"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "POST",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "PUT",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "DELETE",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "PATCH",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "PROPFIND",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 400,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "write",
+   "path": "$HOME/.claude/projects",
+   "text": "a file where the projects dir goes\n"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"ENOTDIR: not a directory, mkdir '$HOME/.claude/projects/$ENC'\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "request",
+   "method": "HEAD",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects"
+  },
+  {
+   "op": "mkdir",
+   "path": "$HOME/.claude/projects"
+  },
+  {
+   "op": "write",
+   "path": "$HOME/.claude/projects/$ENC",
+   "text": "a file where the project dir goes\n"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"EEXIST: file already exists, mkdir '$HOME/.claude/projects/$ENC'\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects"
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude",
+   "mode": 365
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"EACCES: permission denied, mkdir '$HOME/.claude/projects'\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude",
+   "mode": 493
+  },
+  {
+   "op": "mkdir",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC",
+   "mode": 365
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"unable to open database file\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "request",
+   "method": "HEAD",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC",
+   "mode": 493
+  },
+  {
+   "op": "mkdir",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"unable to open database file\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db"
+  },
+  {
+   "op": "write",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "text": "this is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\n"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"file is not a database\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "request",
+   "method": "OPTIONS",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 204,
+    "headers": [
+     [
+      "allow",
+      "GET, HEAD, OPTIONS"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "POST",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "PUT",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "DELETE",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "PATCH",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 405,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "PROPFIND",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 400,
+    "headers": [
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db"
+  },
+  {
+   "op": "migrated",
+   "sql": ""
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "mode": 0
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"unable to open database file\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "mode": 420
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "migrated",
+   "sql": "UPDATE schema_meta SET value = '0' WHERE key = 'version';"
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "mode": 292
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"duplicate column name: goal\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "mode": 420
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "migrated",
+   "sql": "UPDATE schema_meta SET value = 'abc' WHERE key = 'version';"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"duplicate column name: goal\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "migrated",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY);"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"no such column: value\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "sql",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "sql": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO schema_meta VALUES ('version', '9999'), ('notifications_abort_cleanup_v1', 'x');"
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "mode": 292
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 503,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"fail\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"fail\",\"detail\":\"attempt to write a readonly database\"}],\"failed\":[\"db\"]}"
+   }
+  },
+  {
+   "op": "chmod",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "mode": 420
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"ok\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"ok\"}],\"failed\":[]}"
+   }
+  },
+  {
+   "op": "request",
+   "method": "HEAD",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"ok\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"ok\"}],\"failed\":[]}"
+   }
+  },
+  {
+   "op": "write",
+   "path": "$HOME/.claude/projects/$ENC/.claudius.db",
+   "text": "this is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\n"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"ok\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"ok\"}],\"failed\":[]}"
+   }
+  },
+  {
+   "op": "rm",
+   "path": "$HOME/.claude/projects/$ENC"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"ok\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"ok\"}],\"failed\":[]}"
+   }
+  },
+  {
+   "op": "write",
+   "path": "$HOME/.claude/projects",
+   "text": "a file where the projects dir goes\n"
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"ok\",\"ts\":$TS,\"checks\":[{\"id\":\"db\",\"status\":\"ok\"}],\"failed\":[]}"
+   }
+  },
+  {
+   "op": "request",
+   "method": "HEAD",
+   "path": "/api/heartbeatz",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": ""
+   }
+  },
+  {
+   "op": "request",
+   "method": "GET",
+   "path": "/api/heartbeat",
+   "got": {
+    "status": 200,
+    "headers": [
+     [
+      "content-type",
+      "application/json"
+     ],
+     [
+      "vary",
+      "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+     ]
+    ],
+    "body": "{\"status\":\"ok\",\"ts\":$TS}"
+   }
+  }
+ ]
+}

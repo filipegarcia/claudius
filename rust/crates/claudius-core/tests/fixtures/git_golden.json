@@ -1,0 +1,5665 @@
+{
+ "gitVersion": "git version 2.54.0 (Apple Git-157)",
+ "env": {
+  "HOME": "$ROOT/home",
+  "XDG_CONFIG_HOME": "$ROOT/home/.config",
+  "CLAUDE_CONFIG_DIR": "$ROOT/config",
+  "GIT_CONFIG_NOSYSTEM": "1",
+  "GIT_CEILING_DIRECTORIES": "$ROOT",
+  "GIT_AUTHOR_NAME": "Golden",
+  "GIT_AUTHOR_EMAIL": "golden@example.com",
+  "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z",
+  "GIT_COMMITTER_NAME": "Golden",
+  "GIT_COMMITTER_EMAIL": "golden@example.com",
+  "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z",
+  "LANG": "C",
+  "LC_ALL": "C",
+  "TZ": "UTC"
+ },
+ "parsers": {
+  "headers": [
+   {
+    "line": "## main",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "main",
+    "got": {}
+   },
+   {
+    "line": "",
+    "got": {}
+   },
+   {
+    "line": "##",
+    "got": {}
+   },
+   {
+    "line": "## ",
+    "got": {}
+   },
+   {
+    "line": "##  main",
+    "got": {}
+   },
+   {
+    "line": "## main...origin/main",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main...origin/main [ahead 1]",
+    "got": {
+     "branch": "main",
+     "ahead": 1
+    }
+   },
+   {
+    "line": "## main...origin/main [behind 2]",
+    "got": {
+     "branch": "main",
+     "behind": 2
+    }
+   },
+   {
+    "line": "## main...origin/main [ahead 1, behind 22]",
+    "got": {
+     "branch": "main",
+     "ahead": 1,
+     "behind": 22
+    }
+   },
+   {
+    "line": "## main...origin/main [gone]",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main...o/m [ahead x, ahead 007]",
+    "got": {
+     "branch": "main",
+     "ahead": 7
+    }
+   },
+   {
+    "line": "## main...o/m [ahead 1, ahead 2]",
+    "got": {
+     "branch": "main",
+     "ahead": 1
+    }
+   },
+   {
+    "line": "## main...o/m [behind 1 ahead 3]",
+    "got": {
+     "branch": "main",
+     "ahead": 3,
+     "behind": 1
+    }
+   },
+   {
+    "line": "## main...o/m [ahead -1]",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main...o/m [ahead 1.5]",
+    "got": {
+     "branch": "main",
+     "ahead": 1
+    }
+   },
+   {
+    "line": "## main...o/m [ahead 99999999999999999999]",
+    "got": {
+     "branch": "main",
+     "ahead": 100000000000000000000
+    }
+   },
+   {
+    "line": "## main...o/m [ahead 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999]",
+    "got": {
+     "branch": "main",
+     "ahead": null
+    }
+   },
+   {
+    "line": "## main...o/m [aheadd 1]",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main...o/m [AHEAD 1]",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main...o/m [ahead\t1]",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main...o/m   [ahead 2]  ",
+    "got": {
+     "branch": "main",
+     "ahead": 2
+    }
+   },
+   {
+    "line": "## main...o/m\t[ahead 2]\n",
+    "got": {
+     "branch": "main",
+     "ahead": 2
+    }
+   },
+   {
+    "line": "## main [ahead 2]",
+    "got": {
+     "branch": "main",
+     "ahead": 2
+    }
+   },
+   {
+    "line": "## main...o/m [ahead 2] x",
+    "got": {}
+   },
+   {
+    "line": "## main...o/m [ahead 2",
+    "got": {}
+   },
+   {
+    "line": "## main...o/m []",
+    "got": {}
+   },
+   {
+    "line": "## main...o/m [[ahead 3]]",
+    "got": {}
+   },
+   {
+    "line": "## main...o/m [a]b]",
+    "got": {}
+   },
+   {
+    "line": "## main...o/m[ahead 2]",
+    "got": {}
+   },
+   {
+    "line": "## main...o/m [x\n] ",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main...",
+    "got": {}
+   },
+   {
+    "line": "## main... ",
+    "got": {}
+   },
+   {
+    "line": "## main....x",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main..x",
+    "got": {}
+   },
+   {
+    "line": "## main.",
+    "got": {}
+   },
+   {
+    "line": "## .main",
+    "got": {}
+   },
+   {
+    "line": "## v1.2",
+    "got": {}
+   },
+   {
+    "line": "## release-1.2...origin/release-1.2",
+    "got": {}
+   },
+   {
+    "line": "## a[b",
+    "got": {}
+   },
+   {
+    "line": "## [ahead 1]",
+    "got": {}
+   },
+   {
+    "line": "## main  ",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main\n",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## main\nx",
+    "got": {}
+   },
+   {
+    "line": "## a b",
+    "got": {}
+   },
+   {
+    "line": "## ab",
+    "got": {
+     "branch": "ab"
+    }
+   },
+   {
+    "line": "## a﻿",
+    "got": {
+     "branch": "a"
+    }
+   },
+   {
+    "line": "## a ",
+    "got": {
+     "branch": "a"
+    }
+   },
+   {
+    "line": "## a b",
+    "got": {}
+   },
+   {
+    "line": "## a...b c",
+    "got": {}
+   },
+   {
+    "line": "## a...bc",
+    "got": {
+     "branch": "a"
+    }
+   },
+   {
+    "line": "## fé/日本...origin/fé",
+    "got": {
+     "branch": "fé/日本"
+    }
+   },
+   {
+    "line": "## 😀",
+    "got": {
+     "branch": "😀"
+    }
+   },
+   {
+    "line": "## HEAD (no branch)",
+    "got": {}
+   },
+   {
+    "line": "## HEAD (no branch) x",
+    "got": {}
+   },
+   {
+    "line": "## HEAD (no branch",
+    "got": {}
+   },
+   {
+    "line": "## HEAD",
+    "got": {
+     "branch": "HEAD"
+    }
+   },
+   {
+    "line": "## No commits yet on main",
+    "got": {
+     "branch": "main"
+    }
+   },
+   {
+    "line": "## No commits yet on v1.0",
+    "got": {
+     "branch": "v1.0"
+    }
+   },
+   {
+    "line": "## No commits yet on v1.0 x",
+    "got": {
+     "branch": "v1.0 x"
+    }
+   },
+   {
+    "line": "## No commits yet on ",
+    "got": {}
+   },
+   {
+    "line": "## No commits yet on  ",
+    "got": {
+     "branch": " "
+    }
+   },
+   {
+    "line": "## No commits yet on a b",
+    "got": {}
+   },
+   {
+    "line": "## No commits yet on a ",
+    "got": {}
+   },
+   {
+    "line": "## No commits yet on a\rb",
+    "got": {}
+   },
+   {
+    "line": "## No commits yet on a\nb",
+    "got": {}
+   },
+   {
+    "line": "## No commits yet on ab",
+    "got": {
+     "branch": "ab"
+    }
+   },
+   {
+    "line": "## No commits yet on a b",
+    "got": {
+     "branch": "a b"
+    }
+   },
+   {
+    "line": "## No commits yet onmain",
+    "got": {}
+   },
+   {
+    "line": "## no commits yet on main",
+    "got": {}
+   },
+   {
+    "line": "##  No commits yet on main",
+    "got": {}
+   }
+  ],
+  "porcelain": [
+   {
+    "buf": "",
+    "got": []
+   },
+   {
+    "buf": "\u0000",
+    "got": []
+   },
+   {
+    "buf": " M a\u0000",
+    "got": [
+     {
+      "path": "a",
+      "index": " ",
+      "worktree": "M",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": " M a",
+    "got": [
+     {
+      "path": "a",
+      "index": " ",
+      "worktree": "M",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "M  a\u0000MM b\u0000AM c\u0000 D d\u0000D  e\u0000 T f\u0000?? g h\u0000",
+    "got": [
+     {
+      "path": "a",
+      "index": "M",
+      "worktree": " ",
+      "untracked": false
+     },
+     {
+      "path": "b",
+      "index": "M",
+      "worktree": "M",
+      "untracked": false
+     },
+     {
+      "path": "c",
+      "index": "A",
+      "worktree": "M",
+      "untracked": false
+     },
+     {
+      "path": "d",
+      "index": " ",
+      "worktree": "D",
+      "untracked": false
+     },
+     {
+      "path": "e",
+      "index": "D",
+      "worktree": " ",
+      "untracked": false
+     },
+     {
+      "path": "f",
+      "index": " ",
+      "worktree": "T",
+      "untracked": false
+     },
+     {
+      "path": "g h",
+      "index": "?",
+      "worktree": "?",
+      "untracked": true
+     }
+    ]
+   },
+   {
+    "buf": "R  new\u0000old\u0000",
+    "got": [
+     {
+      "path": "new",
+      "oldPath": "old",
+      "index": "R",
+      "worktree": " ",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "R  new\u0000old",
+    "got": [
+     {
+      "path": "new",
+      "oldPath": "old",
+      "index": "R",
+      "worktree": " ",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "R  new\u0000",
+    "got": [
+     {
+      "path": "new",
+      "oldPath": "",
+      "index": "R",
+      "worktree": " ",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "R  new",
+    "got": [
+     {
+      "path": "new",
+      "index": "R",
+      "worktree": " ",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": " R new\u0000old\u0000M  x\u0000",
+    "got": [
+     {
+      "path": "new",
+      "oldPath": "old",
+      "index": " ",
+      "worktree": "R",
+      "untracked": false
+     },
+     {
+      "path": "x",
+      "index": "M",
+      "worktree": " ",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "C  copy\u0000src\u0000",
+    "got": [
+     {
+      "path": "copy",
+      "oldPath": "src",
+      "index": "C",
+      "worktree": " ",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "RM r\u0000o\u0000",
+    "got": [
+     {
+      "path": "r",
+      "oldPath": "o",
+      "index": "R",
+      "worktree": "M",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "UU u\u0000AA a\u0000DD d\u0000AU x\u0000UA y\u0000DU z\u0000UD w\u0000",
+    "got": [
+     {
+      "path": "u",
+      "index": "U",
+      "worktree": "U",
+      "untracked": false
+     },
+     {
+      "path": "a",
+      "index": "A",
+      "worktree": "A",
+      "untracked": false
+     },
+     {
+      "path": "d",
+      "index": "D",
+      "worktree": "D",
+      "untracked": false
+     },
+     {
+      "path": "x",
+      "index": "A",
+      "worktree": "U",
+      "untracked": false
+     },
+     {
+      "path": "y",
+      "index": "U",
+      "worktree": "A",
+      "untracked": false
+     },
+     {
+      "path": "z",
+      "index": "D",
+      "worktree": "U",
+      "untracked": false
+     },
+     {
+      "path": "w",
+      "index": "U",
+      "worktree": "D",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "M \u0000?? \u0000 M é\u0000",
+    "got": [
+     {
+      "path": "é",
+      "index": " ",
+      "worktree": "M",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "?? 😀\u0000",
+    "got": [
+     {
+      "path": "😀",
+      "index": "?",
+      "worktree": "?",
+      "untracked": true
+     }
+    ]
+   },
+   {
+    "buf": "?😀\u0000",
+    "got": []
+   },
+   {
+    "buf": "abc\u0000abcd\u0000",
+    "got": [
+     {
+      "path": "d",
+      "index": "a",
+      "worktree": "b",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "?M p\u0000M? q\u0000!! ign\u0000",
+    "got": [
+     {
+      "path": "p",
+      "index": "?",
+      "worktree": "M",
+      "untracked": false
+     },
+     {
+      "path": "q",
+      "index": "M",
+      "worktree": "?",
+      "untracked": false
+     },
+     {
+      "path": "ign",
+      "index": "!",
+      "worktree": "!",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "?? a\u0000\u0000\u0000?? b\u0000",
+    "got": [
+     {
+      "path": "a",
+      "index": "?",
+      "worktree": "?",
+      "untracked": true
+     },
+     {
+      "path": "b",
+      "index": "?",
+      "worktree": "?",
+      "untracked": true
+     }
+    ]
+   },
+   {
+    "buf": "XY  two spaces\u0000",
+    "got": [
+     {
+      "path": " two spaces",
+      "index": "X",
+      "worktree": "Y",
+      "untracked": false
+     }
+    ]
+   },
+   {
+    "buf": "?? new\nline\u0000?? tab\there\u0000",
+    "got": [
+     {
+      "path": "new\nline",
+      "index": "?",
+      "worktree": "?",
+      "untracked": true
+     },
+     {
+      "path": "tab\there",
+      "index": "?",
+      "worktree": "?",
+      "untracked": true
+     }
+    ]
+   },
+   {
+    "buf": "R  日本\u0000😀\u0000",
+    "got": [
+     {
+      "path": "日本",
+      "oldPath": "😀",
+      "index": "R",
+      "worktree": " ",
+      "untracked": false
+     }
+    ]
+   }
+  ],
+  "binary": [
+   {
+    "text": "",
+    "got": false
+   },
+   {
+    "text": "Binary files a and b differ",
+    "got": true
+   },
+   {
+    "text": "Binary files",
+    "got": false
+   },
+   {
+    "text": "binary files a",
+    "got": false
+   },
+   {
+    "text": "BINARY FILES a",
+    "got": false
+   },
+   {
+    "text": "x\nBinary files a",
+    "got": true
+   },
+   {
+    "text": "x\rBinary files a",
+    "got": true
+   },
+   {
+    "text": "x\r\nBinary files a",
+    "got": true
+   },
+   {
+    "text": "x Binary files a",
+    "got": true
+   },
+   {
+    "text": "x Binary files a",
+    "got": true
+   },
+   {
+    "text": "xBinary files a",
+    "got": false
+   },
+   {
+    "text": "x\tBinary files a",
+    "got": false
+   },
+   {
+    "text": " Binary files a",
+    "got": false
+   },
+   {
+    "text": "+Binary files a",
+    "got": false
+   },
+   {
+    "text": "+Binary files x\nBinary files y",
+    "got": true
+   },
+   {
+    "text": "fatal: path 'x' does not exist in 'HEAD'",
+    "got": false
+   },
+   {
+    "text": "fatal: path 'x' exists on disk, but not in 'HEAD'",
+    "got": false
+   },
+   {
+    "text": "fatal: path 'x' exists on disk, but not in the index",
+    "got": false
+   },
+   {
+    "text": "git show exited 128: fatal: Path 'x' DOES NOT EXIST",
+    "got": false
+   },
+   {
+    "text": "FATAL: PATH",
+    "got": false
+   },
+   {
+    "text": "Fatal: Path",
+    "got": false
+   },
+   {
+    "text": "fatal:  path",
+    "got": false
+   },
+   {
+    "text": "fatal: invalid object name 'x'.",
+    "got": false
+   },
+   {
+    "text": "fatal: bad object HEAD:sub",
+    "got": false
+   },
+   {
+    "text": "path 'x' exists on disk, but not in 'HEAD'",
+    "got": false
+   },
+   {
+    "text": "EXISTS ON DISK, BUT NOT IN",
+    "got": false
+   },
+   {
+    "text": "exists on disk,but not in",
+    "got": false
+   },
+   {
+    "text": "doesnot exist",
+    "got": false
+   },
+   {
+    "text": "does not exis",
+    "got": false
+   },
+   {
+    "text": "does not exiſt",
+    "got": false
+   },
+   {
+    "text": "does not exİst",
+    "got": false
+   },
+   {
+    "text": "DOES NOT EXIST",
+    "got": false
+   }
+  ],
+  "missing": [
+   {
+    "text": "",
+    "got": false
+   },
+   {
+    "text": "Binary files a and b differ",
+    "got": false
+   },
+   {
+    "text": "Binary files",
+    "got": false
+   },
+   {
+    "text": "binary files a",
+    "got": false
+   },
+   {
+    "text": "BINARY FILES a",
+    "got": false
+   },
+   {
+    "text": "x\nBinary files a",
+    "got": false
+   },
+   {
+    "text": "x\rBinary files a",
+    "got": false
+   },
+   {
+    "text": "x\r\nBinary files a",
+    "got": false
+   },
+   {
+    "text": "x Binary files a",
+    "got": false
+   },
+   {
+    "text": "x Binary files a",
+    "got": false
+   },
+   {
+    "text": "xBinary files a",
+    "got": false
+   },
+   {
+    "text": "x\tBinary files a",
+    "got": false
+   },
+   {
+    "text": " Binary files a",
+    "got": false
+   },
+   {
+    "text": "+Binary files a",
+    "got": false
+   },
+   {
+    "text": "+Binary files x\nBinary files y",
+    "got": false
+   },
+   {
+    "text": "fatal: path 'x' does not exist in 'HEAD'",
+    "got": true
+   },
+   {
+    "text": "fatal: path 'x' exists on disk, but not in 'HEAD'",
+    "got": true
+   },
+   {
+    "text": "fatal: path 'x' exists on disk, but not in the index",
+    "got": true
+   },
+   {
+    "text": "git show exited 128: fatal: Path 'x' DOES NOT EXIST",
+    "got": true
+   },
+   {
+    "text": "FATAL: PATH",
+    "got": true
+   },
+   {
+    "text": "Fatal: Path",
+    "got": true
+   },
+   {
+    "text": "fatal:  path",
+    "got": false
+   },
+   {
+    "text": "fatal: invalid object name 'x'.",
+    "got": false
+   },
+   {
+    "text": "fatal: bad object HEAD:sub",
+    "got": false
+   },
+   {
+    "text": "path 'x' exists on disk, but not in 'HEAD'",
+    "got": true
+   },
+   {
+    "text": "EXISTS ON DISK, BUT NOT IN",
+    "got": true
+   },
+   {
+    "text": "exists on disk,but not in",
+    "got": false
+   },
+   {
+    "text": "doesnot exist",
+    "got": false
+   },
+   {
+    "text": "does not exis",
+    "got": false
+   },
+   {
+    "text": "does not exiſt",
+    "got": false
+   },
+   {
+    "text": "does not exİst",
+    "got": false
+   },
+   {
+    "text": "DOES NOT EXIST",
+    "got": true
+   }
+  ],
+  "inspect": [
+   {
+    "arg": "\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x00'"
+   },
+   {
+    "arg": "a\u0000b",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'a\\x00b'"
+   },
+   {
+    "arg": "it's\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received \"it's\\x00\""
+   },
+   {
+    "arg": "q\"'\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received `q\"'\\x00`"
+   },
+   {
+    "arg": "q\"'`\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'q\"\\'`\\x00'"
+   },
+   {
+    "arg": "q\"'${\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'q\"\\'${\\x00'"
+   },
+   {
+    "arg": "q\"'$\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received `q\"'$\\x00`"
+   },
+   {
+    "arg": "q\"'{\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received `q\"'{\\x00`"
+   },
+   {
+    "arg": "\"\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\"\\x00'"
+   },
+   {
+    "arg": "`\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '`\\x00'"
+   },
+   {
+    "arg": "${\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '${\\x00'"
+   },
+   {
+    "arg": "\u0000\t\n\\\b\u000b\f\r\u001b ",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x7F\\x85\\x00\\t\\n\\\\\\b\\x0B\\f\\r\\x1B\\x9F '"
+   },
+   {
+    "arg": "é日本😀\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'é日本😀\\x00'"
+   },
+   {
+    "arg": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\u0000y\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\n",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\n' +\n ..."
+   },
+   {
+    "arg": "\u0000zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x00zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz..."
+   },
+   {
+    "arg": "aaaaaaaaaaaaaa\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'aaaaaaaaaaaaaa\\n\\x00'"
+   },
+   {
+    "arg": "aaaaaaaaaaaaaaa\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'aaaaaaaaaaaaaaa\\n\\x00'"
+   },
+   {
+    "arg": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\n\\x00'"
+   },
+   {
+    "arg": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\n' +\n  '\\x00'"
+   },
+   {
+    "arg": "aaaaaaaaaa\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'aaaaaaaaaa\\n\\x00'"
+   },
+   {
+    "arg": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\n' +..."
+   },
+   {
+    "arg": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\n' ..."
+   },
+   {
+    "arg": "a\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n  'a\\n' +\n..."
+   },
+   {
+    "arg": "'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n'\n\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n  \"'\\n\" +\n..."
+   },
+   {
+    "arg": "a\nb'\n\"c\ndddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\u0000",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received 'a\\n' +\n  \"b'\\n\" +\n  '\"c\\n' +\n  'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\x00'"
+   },
+   {
+    "arg": "\u0000\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x00\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n  '\\n' +\n..."
+   },
+   {
+    "arg": "\u0000\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x00\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x0..."
+   },
+   {
+    "arg": "\u0000😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x00😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\ud83d..."
+   },
+   {
+    "arg": "\u0000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..."
+   },
+   {
+    "arg": "\u0000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "got": "The argument 'args[1]' must be a string without null bytes. Received '\\x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..."
+   }
+  ]
+ },
+ "steps": [
+  {
+   "op": "write",
+   "path": "home/.gitconfig",
+   "text": "[init]\n\tdefaultBranch = main\n[protocol \"file\"]\n\tallow = always\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "emptybin"
+  },
+  {
+   "op": "mkdir",
+   "path": "plain"
+  },
+  {
+   "op": "write",
+   "path": "plain/f.txt",
+   "text": "outside the repos\n"
+  },
+  {
+   "op": "git",
+   "cwd": "servercwd",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "servercwd/server-cwd.txt",
+   "text": "the server's cwd\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/basic"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/a.txt",
+   "text": "a\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/b.txt",
+   "text": "b\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/bin.dat",
+   "hex": "780079ff00"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/keep.txt",
+   "text": "line of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/copy-src.txt",
+   "text": "line of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/mode.sh",
+   "text": "#!/bin/sh\necho hi\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/nonl.txt",
+   "text": "no newline"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/crlf.txt",
+   "text": "a\r\nb\r\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/del-staged.txt",
+   "text": "gone\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/typechange.txt",
+   "text": "t\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/mm.txt",
+   "text": "1\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/latin1.txt",
+   "hex": "6361666509"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/cr.txt",
+   "text": "plain\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/ls.txt",
+   "text": "plain\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/.gitignore",
+   "text": "ignored.log\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/sub dir/né.txt",
+   "text": "nested\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "add",
+    "-A"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "commit",
+    "-qm",
+    "init"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/a.txt",
+   "text": "a\na2\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "mv",
+    "b.txt",
+    "c.txt"
+   ]
+  },
+  {
+   "op": "rm",
+   "path": "repos/basic/bin.dat"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "rm",
+    "-q",
+    "del-staged.txt"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/mm.txt",
+   "text": "1\n2\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "add",
+    "mm.txt"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/mm.txt",
+   "text": "1\n2\n3\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/new-staged.txt",
+   "text": "fresh\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "add",
+    "new-staged.txt"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/am.txt",
+   "text": "added\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "add",
+    "am.txt"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/am.txt",
+   "text": "added\nthen modified\n"
+  },
+  {
+   "op": "rm",
+   "path": "repos/basic/typechange.txt"
+  },
+  {
+   "op": "symlink",
+   "path": "repos/basic/typechange.txt",
+   "target": "a.txt"
+  },
+  {
+   "op": "chmod",
+   "path": "repos/basic/mode.sh",
+   "mode": "755"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/nonl.txt",
+   "text": "no newline, still"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/crlf.txt",
+   "text": "a\r\nB\r\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/latin1.txt",
+   "hex": "636166e90a6e61ef76650a"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/cr.txt",
+   "text": "plain\rBinary files are text here\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/ls.txt",
+   "text": "plain Binary files are text here\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "mv",
+    "keep.txt",
+    "kept.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "reset",
+    "-q",
+    "--",
+    "keep.txt",
+    "kept.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "add",
+    "-N",
+    "kept.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "config",
+    "status.renames",
+    "copies"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/copy-dst.txt",
+   "text": "line of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/copy-src.txt",
+   "text": "line of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nline of text that is long enough for copy detection to see it\nchanged\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic",
+   "args": [
+    "add",
+    "copy-src.txt",
+    "copy-dst.txt"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/sp ace é.txt",
+   "text": "spaced\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/d/e/f",
+   "text": "deep\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/tab\there.txt",
+   "text": "tab\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/new\nline.txt",
+   "text": "newline\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/quote\".txt",
+   "text": "quote\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/back\\slash.txt",
+   "text": "backslash\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/日本.txt",
+   "text": "nihon\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/emoji 😀.txt",
+   "text": "emoji\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/-dash.txt",
+   "text": "dash\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/ignored.log",
+   "text": "ignored\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/basic/inner"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/basic/inner",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/inner/x",
+   "text": "inner repo\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/raw.bin",
+   "hex": "00ff10e282"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/empty"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/empty",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/emptydot"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/emptydot",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "v1.0"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/emptyls"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/emptyls",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "x y"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/emptynel"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/emptynel",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "ab"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/branches"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/branches/f.txt",
+   "text": "one\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "add",
+    "f.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "commit",
+    "-qm",
+    "one"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/branches/f.txt",
+   "text": "two\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "commit",
+    "-qam",
+    "two"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/upstream"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/upstream",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/upstream/u.txt",
+   "text": "u\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/upstream",
+   "args": [
+    "add",
+    "u.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/upstream",
+   "args": [
+    "commit",
+    "-qm",
+    "u1"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos",
+   "args": [
+    "clone",
+    "-q",
+    "upstream",
+    "tracking"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/tracking/t.txt",
+   "text": "t1\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "add",
+    "t.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "commit",
+    "-qm",
+    "t1"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/tracking/t.txt",
+   "text": "t2\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "commit",
+    "-qam",
+    "t2"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/upstream/u.txt",
+   "text": "u2\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/upstream",
+   "args": [
+    "commit",
+    "-qam",
+    "u2"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "fetch",
+    "-q"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "push",
+    "-q",
+    "origin",
+    "HEAD:refs/heads/gonebr"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "branch",
+    "-q",
+    "--track",
+    "gonebr",
+    "origin/gonebr"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/upstream",
+   "args": [
+    "branch",
+    "-q",
+    "-D",
+    "gonebr"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "fetch",
+    "-q",
+    "--prune"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/conflict"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/conflict/f.txt",
+   "text": "base\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/conflict/dm.txt",
+   "text": "dm\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "add",
+    "."
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "commit",
+    "-qm",
+    "base"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "other"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/conflict/f.txt",
+   "text": "other\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/conflict/new.txt",
+   "text": "o\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "rm",
+    "-q",
+    "dm.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "add",
+    "."
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "commit",
+    "-qm",
+    "other"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "switch",
+    "-q",
+    "main"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/conflict/f.txt",
+   "text": "main\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/conflict/new.txt",
+   "text": "m\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/conflict/dm.txt",
+   "text": "dm2\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "add",
+    "."
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "commit",
+    "-qm",
+    "main"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/conflict",
+   "args": [
+    "merge",
+    "-q",
+    "other"
+   ],
+   "fails": true
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/wtmain"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/wtmain",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/wtmain/w.txt",
+   "text": "w\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/wtmain",
+   "args": [
+    "add",
+    "w.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/wtmain",
+   "args": [
+    "commit",
+    "-qm",
+    "w"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/wtmain",
+   "args": [
+    "worktree",
+    "add",
+    "-q",
+    "../wt",
+    "-b",
+    "wtbr"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/wt/w.txt",
+   "text": "w in the worktree\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/wt/only-wt.txt",
+   "text": "untracked in the worktree\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/sub"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sub",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/sub/s.txt",
+   "text": "s\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sub",
+   "args": [
+    "add",
+    "s.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sub",
+   "args": [
+    "commit",
+    "-qm",
+    "s"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/sup"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sup",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/sup/t.txt",
+   "text": "t\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sup",
+   "args": [
+    "add",
+    "t.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sup",
+   "args": [
+    "commit",
+    "-qm",
+    "t"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sup",
+   "args": [
+    "submodule",
+    "add",
+    "-q",
+    "../sub",
+    "sub"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sup",
+   "args": [
+    "commit",
+    "-qm",
+    "add sub"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/sup/sub/s.txt",
+   "text": "s changed\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sup/sub",
+   "args": [
+    "commit",
+    "-qam",
+    "s2"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/sup/sub/untracked.txt",
+   "text": "u\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/bare.git"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/bare.git",
+   "args": [
+    "init",
+    "-q",
+    "--bare"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/corrupt"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/corrupt",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/corrupt/c.txt",
+   "text": "c\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/corrupt",
+   "args": [
+    "add",
+    "c.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/corrupt",
+   "args": [
+    "commit",
+    "-qm",
+    "c"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/corrupt/.git/index",
+   "text": "this is not an index file at all\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/textconv"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/textconv",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/textconv/.gitattributes",
+   "text": "*.txt diff=upper\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/textconv",
+   "args": [
+    "config",
+    "diff.upper.textconv",
+    "tr a-z A-Z"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/textconv",
+   "args": [
+    "config",
+    "color.ui",
+    "always"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/textconv/a.txt",
+   "text": "lower case\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/textconv",
+   "args": [
+    "add",
+    "."
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/textconv",
+   "args": [
+    "commit",
+    "-qm",
+    "tc"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/textconv/a.txt",
+   "text": "lower case, changed\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/textconv/new.txt",
+   "text": "new lower\n"
+  },
+  {
+   "op": "write",
+   "path": "tools/ext.sh",
+   "text": "#!/bin/sh\necho \"EXTERNAL $1\"\n"
+  },
+  {
+   "op": "chmod",
+   "path": "tools/ext.sh",
+   "mode": "755"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/extdiff"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/extdiff",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/extdiff/a.txt",
+   "text": "a\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/extdiff",
+   "args": [
+    "add",
+    "a.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/extdiff",
+   "args": [
+    "commit",
+    "-qm",
+    "a"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/extdiff",
+   "args": [
+    "config",
+    "diff.external",
+    "../../tools/ext.sh"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/extdiff/a.txt",
+   "text": "a changed\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/quotepath"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/quotepath",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/quotepath",
+   "args": [
+    "config",
+    "core.quotepath",
+    "false"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/quotepath/日本.txt",
+   "text": "x\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/quotepath",
+   "args": [
+    "add",
+    "."
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/quotepath",
+   "args": [
+    "commit",
+    "-qm",
+    "q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/quotepath/日本.txt",
+   "text": "y\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/quotepath/é.txt",
+   "text": "z\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/large"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/large",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/big.txt",
+   "kind": "lines",
+   "n": 1,
+   "tag": "aaa"
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/big3.txt",
+   "kind": "lines",
+   "n": 250000,
+   "tag": "ddd"
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/mid.txt",
+   "kind": "lines",
+   "n": 6000,
+   "tag": "mmm"
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/rand.bin",
+   "kind": "bytes",
+   "n": 300000,
+   "seed": 2463534242
+  },
+  {
+   "op": "git",
+   "cwd": "repos/large",
+   "args": [
+    "add",
+    "."
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/large",
+   "args": [
+    "commit",
+    "-qm",
+    "large"
+   ]
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/big.txt",
+   "kind": "lines",
+   "n": 250000,
+   "tag": "aaa"
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/big2.txt",
+   "kind": "lines",
+   "n": 250000,
+   "tag": "ccc"
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/mid.txt",
+   "kind": "lines",
+   "n": 6000,
+   "tag": "nnn"
+  },
+  {
+   "op": "gen",
+   "path": "repos/large/mid2.txt",
+   "kind": "lines",
+   "n": 3000,
+   "tag": "ooo"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/trail "
+  },
+  {
+   "op": "git",
+   "cwd": "repos/trail ",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/trail /x.txt",
+   "text": "x\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/twin"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/twin",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/twin/in-twin.txt",
+   "text": "the trimmed twin\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/twin "
+  },
+  {
+   "op": "git",
+   "cwd": "repos/twin ",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/twin /in-spaced-twin.txt",
+   "text": "the real one\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/nel"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/nel",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/nel/n.txt",
+   "text": "n\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "links"
+  },
+  {
+   "op": "symlink",
+   "path": "links/basic",
+   "target": "../repos/basic"
+  },
+  {
+   "op": "mkdir",
+   "path": "home/.claude/.claudius/customizations/cust_a/src"
+  },
+  {
+   "op": "git",
+   "cwd": "home/.claude/.claudius/customizations/cust_a/src",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/customizations/cust_a/src/mirror.txt",
+   "text": "mirror\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "home/.claude/.claudius/customizations/cust_c/src"
+  },
+  {
+   "op": "workspaces",
+   "list": [
+    {
+     "id": "wks_basic",
+     "root": "repos/basic"
+    },
+    {
+     "id": "wks_nested",
+     "root": "repos/basic/d"
+    },
+    {
+     "id": "wks_link",
+     "root": "links/basic"
+    },
+    {
+     "id": "wks_dotgit",
+     "root": "repos/basic/.git"
+    },
+    {
+     "id": "wks_empty",
+     "root": "repos/empty"
+    },
+    {
+     "id": "wks_emptydot",
+     "root": "repos/emptydot"
+    },
+    {
+     "id": "wks_emptyls",
+     "root": "repos/emptyls"
+    },
+    {
+     "id": "wks_emptynel",
+     "root": "repos/emptynel"
+    },
+    {
+     "id": "wks_branches",
+     "root": "repos/branches"
+    },
+    {
+     "id": "wks_tracking",
+     "root": "repos/tracking"
+    },
+    {
+     "id": "wks_conflict",
+     "root": "repos/conflict"
+    },
+    {
+     "id": "wks_wtmain",
+     "root": "repos/wtmain"
+    },
+    {
+     "id": "wks_wt",
+     "root": "repos/wt"
+    },
+    {
+     "id": "wks_wtgitfile",
+     "root": "repos/wt/.git"
+    },
+    {
+     "id": "wks_sup",
+     "root": "repos/sup"
+    },
+    {
+     "id": "wks_sub",
+     "root": "repos/sup/sub"
+    },
+    {
+     "id": "wks_bare",
+     "root": "repos/bare.git"
+    },
+    {
+     "id": "wks_corrupt",
+     "root": "repos/corrupt"
+    },
+    {
+     "id": "wks_textconv",
+     "root": "repos/textconv"
+    },
+    {
+     "id": "wks_extdiff",
+     "root": "repos/extdiff"
+    },
+    {
+     "id": "wks_quotepath",
+     "root": "repos/quotepath"
+    },
+    {
+     "id": "wks_large",
+     "root": "repos/large"
+    },
+    {
+     "id": "wks_trail",
+     "root": "repos/trail "
+    },
+    {
+     "id": "wks_twin",
+     "root": "repos/twin "
+    },
+    {
+     "id": "wks_nel",
+     "root": "repos/nel"
+    },
+    {
+     "id": "wks_plain",
+     "root": "plain"
+    },
+    {
+     "id": "wks_file",
+     "root": "plain/f.txt"
+    },
+    {
+     "id": "wks_missing",
+     "root": "nowhere/at/all"
+    },
+    {
+     "id": "wks_emptyroot",
+     "raw": ""
+    },
+    {
+     "id": "cust_a",
+     "root": "repos/branches"
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "basic",
+   "route": "status",
+   "id": "wks_basic",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/basic\",\"branch\":\"main\",\"files\":[{\"path\":\"a.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"am.txt\",\"index\":\"A\",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"bin.dat\",\"index\":\" \",\"worktree\":\"D\",\"untracked\":false},{\"path\":\"c.txt\",\"oldPath\":\"b.txt\",\"index\":\"R\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"copy-dst.txt\",\"oldPath\":\"copy-src.txt\",\"index\":\"C\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"copy-src.txt\",\"index\":\"M\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"cr.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"crlf.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"del-staged.txt\",\"index\":\"D\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"kept.txt\",\"oldPath\":\"keep.txt\",\"index\":\" \",\"worktree\":\"R\",\"untracked\":false},{\"path\":\"latin1.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"ls.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"mm.txt\",\"index\":\"M\",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"mode.sh\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"new-staged.txt\",\"index\":\"A\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"nonl.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"typechange.txt\",\"index\":\" \",\"worktree\":\"T\",\"untracked\":false},{\"path\":\"-dash.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"back\\\\slash.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"d/e/f\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"emoji 😀.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"inner/\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"new\\nline.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"quote\\\".txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"raw.bin\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"sp ace é.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"tab\\there.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"日本.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "route": "status",
+   "id": "wks_nope",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "nested dir: the toplevel",
+   "route": "status",
+   "id": "wks_nested",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/basic\",\"branch\":\"main\",\"files\":[{\"path\":\"a.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"am.txt\",\"index\":\"A\",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"bin.dat\",\"index\":\" \",\"worktree\":\"D\",\"untracked\":false},{\"path\":\"c.txt\",\"oldPath\":\"b.txt\",\"index\":\"R\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"copy-dst.txt\",\"oldPath\":\"copy-src.txt\",\"index\":\"C\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"copy-src.txt\",\"index\":\"M\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"cr.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"crlf.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"del-staged.txt\",\"index\":\"D\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"kept.txt\",\"oldPath\":\"keep.txt\",\"index\":\" \",\"worktree\":\"R\",\"untracked\":false},{\"path\":\"latin1.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"ls.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"mm.txt\",\"index\":\"M\",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"mode.sh\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"new-staged.txt\",\"index\":\"A\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"nonl.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"typechange.txt\",\"index\":\" \",\"worktree\":\"T\",\"untracked\":false},{\"path\":\"-dash.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"back\\\\slash.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"d/e/f\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"emoji 😀.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"inner/\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"new\\nline.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"quote\\\".txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"raw.bin\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"sp ace é.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"tab\\there.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"日本.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "through a symlink: the real path",
+   "route": "status",
+   "id": "wks_link",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/basic\",\"branch\":\"main\",\"files\":[{\"path\":\"a.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"am.txt\",\"index\":\"A\",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"bin.dat\",\"index\":\" \",\"worktree\":\"D\",\"untracked\":false},{\"path\":\"c.txt\",\"oldPath\":\"b.txt\",\"index\":\"R\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"copy-dst.txt\",\"oldPath\":\"copy-src.txt\",\"index\":\"C\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"copy-src.txt\",\"index\":\"M\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"cr.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"crlf.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"del-staged.txt\",\"index\":\"D\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"kept.txt\",\"oldPath\":\"keep.txt\",\"index\":\" \",\"worktree\":\"R\",\"untracked\":false},{\"path\":\"latin1.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"ls.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"mm.txt\",\"index\":\"M\",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"mode.sh\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"new-staged.txt\",\"index\":\"A\",\"worktree\":\" \",\"untracked\":false},{\"path\":\"nonl.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"typechange.txt\",\"index\":\" \",\"worktree\":\"T\",\"untracked\":false},{\"path\":\"-dash.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"back\\\\slash.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"d/e/f\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"emoji 😀.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"inner/\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"new\\nline.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"quote\\\".txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"raw.bin\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"sp ace é.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"tab\\there.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"日本.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": ".git dir",
+   "route": "status",
+   "id": "wks_dotgit",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo",
+   "route": "status",
+   "id": "wks_empty",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/empty\",\"branch\":\"main\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, dotted branch",
+   "route": "status",
+   "id": "wks_emptydot",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/emptydot\",\"branch\":\"v1.0\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, U+2028 branch",
+   "route": "status",
+   "id": "wks_emptyls",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/emptyls\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, NEL branch",
+   "route": "status",
+   "id": "wks_emptynel",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/emptynel\",\"branch\":\"ab\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "branch main",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"branch\":\"main\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "release-1.2"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "dotted branch reads as detached",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"head\":\"e0d90e2\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "feat/x"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "slashed branch",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"branch\":\"feat/x\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "fé"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "accented branch",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"branch\":\"fé\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "a b"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "NBSP branch reads as detached",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"head\":\"e0d90e2\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "ab"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "NEL branch",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"branch\":\"ab\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "x﻿"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "BOM-ended branch drops the BOM",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"branch\":\"x\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "-c",
+    "x y"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "U+2028 branch",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"head\":\"e0d90e2\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "checkout",
+    "-q",
+    "HEAD~1"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "detached HEAD",
+   "route": "status",
+   "id": "wks_branches",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/branches\",\"head\":\"756dc9e\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/branches",
+   "args": [
+    "switch",
+    "-q",
+    "main"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "tracking: ahead 2, behind 1",
+   "route": "status",
+   "id": "wks_tracking",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/tracking\",\"branch\":\"main\",\"ahead\":2,\"behind\":1,\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "switch",
+    "-q",
+    "gonebr"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "tracking: gone",
+   "route": "status",
+   "id": "wks_tracking",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/tracking\",\"branch\":\"gonebr\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/tracking",
+   "args": [
+    "switch",
+    "-q",
+    "main"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "conflict",
+   "route": "status",
+   "id": "wks_conflict",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/conflict\",\"branch\":\"main\",\"files\":[{\"path\":\"dm.txt\",\"index\":\"U\",\"worktree\":\"D\",\"untracked\":false},{\"path\":\"f.txt\",\"index\":\"U\",\"worktree\":\"U\",\"untracked\":false},{\"path\":\"new.txt\",\"index\":\"A\",\"worktree\":\"A\",\"untracked\":false}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "worktree main",
+   "route": "status",
+   "id": "wks_wtmain",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/wtmain\",\"branch\":\"main\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "linked worktree",
+   "route": "status",
+   "id": "wks_wt",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/wt\",\"branch\":\"wtbr\",\"files\":[{\"path\":\"w.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"only-wt.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a worktree's .git file",
+   "route": "status",
+   "id": "wks_wtgitfile",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "superproject",
+   "route": "status",
+   "id": "wks_sup",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/sup\",\"branch\":\"main\",\"files\":[{\"path\":\"sub\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "submodule",
+   "route": "status",
+   "id": "wks_sub",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/sup/sub\",\"branch\":\"main\",\"ahead\":1,\"files\":[{\"path\":\"untracked.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "bare repo",
+   "route": "status",
+   "id": "wks_bare",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "corrupt index",
+   "route": "status",
+   "id": "wks_corrupt",
+   "query": "",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git status exited 128: error: bad signature 0x73696874\\nfatal: index file corrupt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "textconv + color.ui",
+   "route": "status",
+   "id": "wks_textconv",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/textconv\",\"branch\":\"main\",\"files\":[{\"path\":\"a.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"new.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "quotepath false",
+   "route": "status",
+   "id": "wks_quotepath",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/quotepath\",\"branch\":\"main\",\"files\":[{\"path\":\"日本.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"é.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "large",
+   "route": "status",
+   "id": "wks_large",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/large\",\"branch\":\"main\",\"files\":[{\"path\":\"big.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"mid.txt\",\"index\":\" \",\"worktree\":\"M\",\"untracked\":false},{\"path\":\"big2.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true},{\"path\":\"mid2.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "trailing-space root: trimmed away",
+   "route": "status",
+   "id": "wks_trail",
+   "query": "",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"spawn git ENOENT\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "trailing-space twin: the trimmed twin",
+   "route": "status",
+   "id": "wks_twin",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/twin\",\"branch\":\"main\",\"files\":[{\"path\":\"in-twin.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "NEL root: not trimmed",
+   "route": "status",
+   "id": "wks_nel",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/nel\",\"branch\":\"main\",\"files\":[{\"path\":\"n.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "plain dir",
+   "route": "status",
+   "id": "wks_plain",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a file",
+   "route": "status",
+   "id": "wks_file",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "missing dir",
+   "route": "status",
+   "id": "wks_missing",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty rootPath",
+   "route": "status",
+   "id": "wks_emptyroot",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/servercwd\",\"branch\":\"main\",\"files\":[{\"path\":\"server-cwd.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "customization, no index",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_a\",\"name\":\"A\",\"createdAt\":1,\"updatedAt\":1}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization mirror",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/home/.claude/.claudius/customizations/cust_a/src\",\"branch\":\"main\",\"files\":[{\"path\":\"mirror.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "customization not in the index",
+   "route": "status",
+   "id": "cust_b",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "cust_ prefix only",
+   "route": "status",
+   "id": "cust_",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "cust prefix without the underscore",
+   "route": "status",
+   "id": "custom",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_c\"},{\"id\":\"cust_b\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization without a repo",
+   "route": "status",
+   "id": "cust_c",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "customization without a src dir",
+   "route": "status",
+   "id": "cust_b",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_x\"},null,{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization after a null entry",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "customization before a null entry",
+   "route": "status",
+   "id": "cust_x",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":false,\"files\":[]}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[\"cust_a\",5,[],true,{\"id\":5},{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization after odd entries",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/home/.claude/.claudius/customizations/cust_a/src\",\"branch\":\"main\",\"files\":[{\"path\":\"mirror.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":2,\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization index version 2",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1.0,\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization index version 1.0",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/home/.claude/.claudius/customizations/cust_a/src\",\"branch\":\"main\",\"files\":[{\"path\":\"mirror.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":\"1\",\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization index version string",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_a\"}]}"
+  },
+  {
+   "op": "req",
+   "label": "customization index without publishes",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":{\"0\":{\"id\":\"cust_a\"}},\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization index, object list",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[],"
+  },
+  {
+   "op": "req",
+   "label": "customization index malformed",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "null"
+  },
+  {
+   "op": "req",
+   "label": "customization index null",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "[1]"
+  },
+  {
+   "op": "req",
+   "label": "customization index array",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "﻿{\"version\":1,\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization index with a BOM",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "hex": "7b2276657273696f6e223a312c2278223a22ff222c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f61227d5d2c227075626c6973686573223a5b5d7d"
+  },
+  {
+   "op": "req",
+   "label": "customization index with a bad byte",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/home/.claude/.claudius/customizations/cust_a/src\",\"branch\":\"main\",\"files\":[{\"path\":\"mirror.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"x\":1e400,\"y\":\"\\ud800\",\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "customization index with 1e400 and a lone surrogate",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/home/.claude/.claudius/customizations/cust_a/src\",\"branch\":\"main\",\"files\":[{\"path\":\"mirror.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[],\"version\":2}"
+  },
+  {
+   "op": "req",
+   "label": "customization index, duplicate version key",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "custIndex",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_a\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "req",
+   "label": "worktree modified",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "staged rename, new name",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=c.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/c.txt b/c.txt\\nnew file mode 100644\\nindex 0000000..6178079\\n--- /dev/null\\n+++ b/c.txt\\n@@ -0,0 +1 @@\\n+b\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "staged rename, old name",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=b.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/b.txt b/b.txt\\ndeleted file mode 100644\\nindex 6178079..0000000\\n--- a/b.txt\\n+++ /dev/null\\n@@ -1 +0,0 @@\\n-b\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "worktree deleted binary",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=bin.dat&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/bin.dat b/bin.dat\\ndeleted file mode 100644\\nindex 93f6515..0000000\\nBinary files a/bin.dat and /dev/null differ\\n\",\"binary\":true}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "staged deleted",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=del-staged.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/del-staged.txt b/del-staged.txt\\ndeleted file mode 100644\\nindex 286c5f5..0000000\\n--- a/del-staged.txt\\n+++ /dev/null\\n@@ -1 +0,0 @@\\n-gone\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "worktree MM",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=mm.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/mm.txt b/mm.txt\\nindex 1191247..01e79c3 100644\\n--- a/mm.txt\\n+++ b/mm.txt\\n@@ -1,2 +1,3 @@\\n 1\\n 2\\n+3\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "staged MM",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=mm.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/mm.txt b/mm.txt\\nindex d00491f..1191247 100644\\n--- a/mm.txt\\n+++ b/mm.txt\\n@@ -1 +1,2 @@\\n 1\\n+2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "staged added",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=new-staged.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/new-staged.txt b/new-staged.txt\\nnew file mode 100644\\nindex 0000000..92d5444\\n--- /dev/null\\n+++ b/new-staged.txt\\n@@ -0,0 +1 @@\\n+fresh\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "worktree AM",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=am.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/am.txt b/am.txt\\nindex d5f7fc3..dba9e9f 100644\\n--- a/am.txt\\n+++ b/am.txt\\n@@ -1 +1,2 @@\\n added\\n+then modified\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "mode change",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=mode.sh&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/mode.sh b/mode.sh\\nold mode 100644\\nnew mode 100755\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "type change",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=typechange.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/typechange.txt b/typechange.txt\\ndeleted file mode 100644\\nindex 718f4d2..0000000\\n--- a/typechange.txt\\n+++ /dev/null\\n@@ -1 +0,0 @@\\n-t\\ndiff --git a/typechange.txt b/typechange.txt\\nnew file mode 120000\\nindex 0000000..8d14cbf\\n--- /dev/null\\n+++ b/typechange.txt\\n@@ -0,0 +1 @@\\n+a.txt\\n\\\\ No newline at end of file\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no newline at end",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=nonl.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/nonl.txt b/nonl.txt\\nindex 20cbb4d..0f92a3f 100644\\n--- a/nonl.txt\\n+++ b/nonl.txt\\n@@ -1 +1 @@\\n-no newline\\n\\\\ No newline at end of file\\n+no newline, still\\n\\\\ No newline at end of file\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "crlf",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=crlf.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/crlf.txt b/crlf.txt\\nindex c30dea8..57213eb 100644\\n--- a/crlf.txt\\n+++ b/crlf.txt\\n@@ -1,2 +1,2 @@\\n a\\r\\n-b\\r\\n+B\\r\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "latin1 bytes",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=latin1.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/latin1.txt b/latin1.txt\\nindex 8558139..a5f55ce 100644\\n--- a/latin1.txt\\n+++ b/latin1.txt\\n@@ -1 +1,2 @@\\n-cafe\\t\\n\\\\ No newline at end of file\\n+caf�\\n+na�ve\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "\\r then Binary files: binary",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=cr.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/cr.txt b/cr.txt\\nindex b9bca01..84aee4e 100644\\n--- a/cr.txt\\n+++ b/cr.txt\\n@@ -1 +1 @@\\n-plain\\n+plain\\rBinary files are text here\\n\",\"binary\":true}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "U+2028 then Binary files: binary",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=ls.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/ls.txt b/ls.txt\\nindex b9bca01..1d2de51 100644\\n--- a/ls.txt\\n+++ b/ls.txt\\n@@ -1 +1 @@\\n-plain\\n+plain Binary files are text here\\n\",\"binary\":true}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "intent-to-add rename",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=kept.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/kept.txt b/kept.txt\\nnew file mode 100644\\nindex 0000000..3581838\\n--- /dev/null\\n+++ b/kept.txt\\n@@ -0,0 +1,8 @@\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "staged copy",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=copy-dst.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/copy-dst.txt b/copy-dst.txt\\nnew file mode 100644\\nindex 0000000..37cf4e7\\n--- /dev/null\\n+++ b/copy-dst.txt\\n@@ -0,0 +1,10 @@\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unicode dir",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=sub%20dir%2Fn%C3%A9.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unchanged",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=sub%20dir&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "glob pathspec",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=*.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\ndiff --git a/am.txt b/am.txt\\nindex d5f7fc3..dba9e9f 100644\\n--- a/am.txt\\n+++ b/am.txt\\n@@ -1 +1,2 @@\\n added\\n+then modified\\ndiff --git a/cr.txt b/cr.txt\\nindex b9bca01..84aee4e 100644\\n--- a/cr.txt\\n+++ b/cr.txt\\n@@ -1 +1 @@\\n-plain\\n+plain\\rBinary files are text here\\ndiff --git a/crlf.txt b/crlf.txt\\nindex c30dea8..57213eb 100644\\n--- a/crlf.txt\\n+++ b/crlf.txt\\n@@ -1,2 +1,2 @@\\n a\\r\\n-b\\r\\n+B\\r\\ndiff --git a/keep.txt b/kept.txt\\nsimilarity index 100%\\nrename from keep.txt\\nrename to kept.txt\\ndiff --git a/latin1.txt b/latin1.txt\\nindex 8558139..a5f55ce 100644\\n--- a/latin1.txt\\n+++ b/latin1.txt\\n@@ -1 +1,2 @@\\n-cafe\\t\\n\\\\ No newline at end of file\\n+caf�\\n+na�ve\\ndiff --git a/ls.txt b/ls.txt\\nindex b9bca01..1d2de51 100644\\n--- a/ls.txt\\n+++ b/ls.txt\\n@@ -1 +1 @@\\n-plain\\n+plain Binary files are text here\\ndiff --git a/mm.txt b/mm.txt\\nindex 1191247..01e79c3 100644\\n--- a/mm.txt\\n+++ b/mm.txt\\n@@ -1,2 +1,3 @@\\n 1\\n 2\\n+3\\ndiff --git a/nonl.txt b/nonl.txt\\nindex 20cbb4d..0f92a3f 100644\\n--- a/nonl.txt\\n+++ b/nonl.txt\\n@@ -1 +1 @@\\n-no newline\\n\\\\ No newline at end of file\\n+no newline, still\\n\\\\ No newline at end of file\\ndiff --git a/typechange.txt b/typechange.txt\\ndeleted file mode 100644\\nindex 718f4d2..0000000\\n--- a/typechange.txt\\n+++ /dev/null\\n@@ -1 +0,0 @@\\n-t\\ndiff --git a/typechange.txt b/typechange.txt\\nnew file mode 120000\\nindex 0000000..8d14cbf\\n--- /dev/null\\n+++ b/typechange.txt\\n@@ -0,0 +1 @@\\n+a.txt\\n\\\\ No newline at end of file\\n\",\"binary\":true}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "top magic",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=%3A(top)a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "exclude magic",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=%3A!a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/am.txt b/am.txt\\nindex d5f7fc3..dba9e9f 100644\\n--- a/am.txt\\n+++ b/am.txt\\n@@ -1 +1,2 @@\\n added\\n+then modified\\ndiff --git a/bin.dat b/bin.dat\\ndeleted file mode 100644\\nindex 93f6515..0000000\\nBinary files a/bin.dat and /dev/null differ\\ndiff --git a/cr.txt b/cr.txt\\nindex b9bca01..84aee4e 100644\\n--- a/cr.txt\\n+++ b/cr.txt\\n@@ -1 +1 @@\\n-plain\\n+plain\\rBinary files are text here\\ndiff --git a/crlf.txt b/crlf.txt\\nindex c30dea8..57213eb 100644\\n--- a/crlf.txt\\n+++ b/crlf.txt\\n@@ -1,2 +1,2 @@\\n a\\r\\n-b\\r\\n+B\\r\\ndiff --git a/keep.txt b/kept.txt\\nsimilarity index 100%\\nrename from keep.txt\\nrename to kept.txt\\ndiff --git a/latin1.txt b/latin1.txt\\nindex 8558139..a5f55ce 100644\\n--- a/latin1.txt\\n+++ b/latin1.txt\\n@@ -1 +1,2 @@\\n-cafe\\t\\n\\\\ No newline at end of file\\n+caf�\\n+na�ve\\ndiff --git a/ls.txt b/ls.txt\\nindex b9bca01..1d2de51 100644\\n--- a/ls.txt\\n+++ b/ls.txt\\n@@ -1 +1 @@\\n-plain\\n+plain Binary files are text here\\ndiff --git a/mm.txt b/mm.txt\\nindex 1191247..01e79c3 100644\\n--- a/mm.txt\\n+++ b/mm.txt\\n@@ -1,2 +1,3 @@\\n 1\\n 2\\n+3\\ndiff --git a/mode.sh b/mode.sh\\nold mode 100644\\nnew mode 100755\\ndiff --git a/nonl.txt b/nonl.txt\\nindex 20cbb4d..0f92a3f 100644\\n--- a/nonl.txt\\n+++ b/nonl.txt\\n@@ -1 +1 @@\\n-no newline\\n\\\\ No newline at end of file\\n+no newline, still\\n\\\\ No newline at end of file\\ndiff --git a/typechange.txt b/typechange.txt\\ndeleted file mode 100644\\nindex 718f4d2..0000000\\n--- a/typechange.txt\\n+++ /dev/null\\n@@ -1 +0,0 @@\\n-t\\ndiff --git a/typechange.txt b/typechange.txt\\nnew file mode 120000\\nindex 0000000..8d14cbf\\n--- /dev/null\\n+++ b/typechange.txt\\n@@ -0,0 +1 @@\\n+a.txt\\n\\\\ No newline at end of file\\n\",\"binary\":true}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dash path",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=-dash.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "double-dash path",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=--cached&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "outside the repo",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=..%2F..%2Fplain%2Ff.txt&mode=worktree",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git diff exited 128: fatal: ../../plain/f.txt: '../../plain/f.txt' is outside repository at '$ROOT/repos/basic'\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "absolute outside",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=$ROOT%2Fplain%2Ff.txt&mode=staged",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git diff exited 128: fatal: $ROOT/plain/f.txt: '$ROOT/plain/f.txt' is outside repository at '$ROOT/repos/basic'\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked spaced unicode",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=sp%20ace%20%C3%A9.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/sp ace \\\\303\\\\251.txt\\\" \\\"b/sp ace \\\\303\\\\251.txt\\\"\\nnew file mode 100644\\nindex 0000000..bd4269f\\n--- /dev/null\\n+++ \\\"b/sp ace \\\\303\\\\251.txt\\\"\\t\\n@@ -0,0 +1 @@\\n+spaced\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked deep",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=d%2Fe%2Ff&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/d/e/f b/d/e/f\\nnew file mode 100644\\nindex 0000000..4cdb226\\n--- /dev/null\\n+++ b/d/e/f\\n@@ -0,0 +1 @@\\n+deep\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked tab",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=tab%09here.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/tab\\\\there.txt\\\" \\\"b/tab\\\\there.txt\\\"\\nnew file mode 100644\\nindex 0000000..8cc35a3\\n--- /dev/null\\n+++ \\\"b/tab\\\\there.txt\\\"\\n@@ -0,0 +1 @@\\n+tab\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked newline",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=new%0Aline.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/new\\\\nline.txt\\\" \\\"b/new\\\\nline.txt\\\"\\nnew file mode 100644\\nindex 0000000..1a7f284\\n--- /dev/null\\n+++ \\\"b/new\\\\nline.txt\\\"\\n@@ -0,0 +1 @@\\n+newline\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked quote",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=quote%22.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/quote\\\\\\\".txt\\\" \\\"b/quote\\\\\\\".txt\\\"\\nnew file mode 100644\\nindex 0000000..b39eb90\\n--- /dev/null\\n+++ \\\"b/quote\\\\\\\".txt\\\"\\n@@ -0,0 +1 @@\\n+quote\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked backslash",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=back%5Cslash.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/back\\\\\\\\slash.txt\\\" \\\"b/back\\\\\\\\slash.txt\\\"\\nnew file mode 100644\\nindex 0000000..8f57a77\\n--- /dev/null\\n+++ \\\"b/back\\\\\\\\slash.txt\\\"\\n@@ -0,0 +1 @@\\n+backslash\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked CJK",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=%E6%97%A5%E6%9C%AC.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/\\\\346\\\\227\\\\245\\\\346\\\\234\\\\254.txt\\\" \\\"b/\\\\346\\\\227\\\\245\\\\346\\\\234\\\\254.txt\\\"\\nnew file mode 100644\\nindex 0000000..fbbe8b9\\n--- /dev/null\\n+++ \\\"b/\\\\346\\\\227\\\\245\\\\346\\\\234\\\\254.txt\\\"\\n@@ -0,0 +1 @@\\n+nihon\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked emoji",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=emoji%20%F0%9F%98%80.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/emoji \\\\360\\\\237\\\\230\\\\200.txt\\\" \\\"b/emoji \\\\360\\\\237\\\\230\\\\200.txt\\\"\\nnew file mode 100644\\nindex 0000000..3a917a9\\n--- /dev/null\\n+++ \\\"b/emoji \\\\360\\\\237\\\\230\\\\200.txt\\\"\\t\\n@@ -0,0 +1 @@\\n+emoji\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked dash",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=-dash.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/-dash.txt b/-dash.txt\\nnew file mode 100644\\nindex 0000000..a2544f7\\n--- /dev/null\\n+++ b/-dash.txt\\n@@ -0,0 +1 @@\\n+dash\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked raw bytes: binary",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=raw.bin&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/raw.bin b/raw.bin\\nnew file mode 100644\\nindex 0000000..4bfa176\\nBinary files /dev/null and b/raw.bin differ\\n\",\"binary\":true}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked missing: exit 1, empty",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=nope.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked dir: exit 1, empty",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=d&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked tracked file",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nnew file mode 100644\\nindex 0000000..9ad2ebb\\n--- /dev/null\\n+++ b/a.txt\\n@@ -0,0 +1,2 @@\\n+a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked ignored",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=ignored.log&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/ignored.log b/ignored.log\\nnew file mode 100644\\nindex 0000000..ea10ec8\\n--- /dev/null\\n+++ b/ignored.log\\n@@ -0,0 +1 @@\\n+ignored\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked outside (relative)",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=..%2F..%2Fplain%2Ff.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/../../plain/f.txt b/../../plain/f.txt\\nnew file mode 100644\\nindex 0000000..40070d9\\n--- /dev/null\\n+++ b/../../plain/f.txt\\n@@ -0,0 +1 @@\\n+outside the repos\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked outside (absolute)",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=$ROOT%2Fplain%2Ff.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a$ROOT/plain/f.txt b$ROOT/plain/f.txt\\nnew file mode 100644\\nindex 0000000..40070d9\\n--- /dev/null\\n+++ b$ROOT/plain/f.txt\\n@@ -0,0 +1 @@\\n+outside the repos\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked /dev/null",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=%2Fdev%2Fnull&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "write",
+   "path": "repos/basic/unread.txt",
+   "text": "secret\n"
+  },
+  {
+   "op": "chmod",
+   "path": "repos/basic/unread.txt",
+   "mode": "000"
+  },
+  {
+   "op": "req",
+   "label": "untracked unreadable: git's stderr",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=unread.txt&mode=untracked",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"error: open(\\\"unread.txt\\\"): Permission denied\\nfatal: cannot hash unread.txt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "chmod",
+   "path": "repos/basic/unread.txt",
+   "mode": "644"
+  },
+  {
+   "op": "rm",
+   "path": "repos/basic/unread.txt"
+  },
+  {
+   "op": "req",
+   "label": "worktree NUL",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a%00b&mode=worktree",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"The argument 'args[4]' must be a string without null bytes. Received 'a\\\\x00b'\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "staged NUL",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=it's%00&mode=staged",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"The argument 'args[5]' must be a string without null bytes. Received \\\"it's\\\\x00\\\"\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked NUL",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx%0A%00%0Ayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy&mode=untracked",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"The argument 'args[6]' must be a string without null bytes. Received 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\\\n' +\\n  '\\\\x00\\\\n' +\\n  'yyyyyyyyyyyyyyy...\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "nested workspace",
+   "route": "diff",
+   "id": "wks_nested",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "nested workspace, relative path",
+   "route": "diff",
+   "id": "wks_nested",
+   "query": "path=e%2Ff&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "through a symlink",
+   "route": "diff",
+   "id": "wks_link",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, staged",
+   "route": "diff",
+   "id": "wks_empty",
+   "query": "path=f.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "conflict worktree",
+   "route": "diff",
+   "id": "wks_conflict",
+   "query": "path=f.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --cc f.txt\\nindex ba2906d,e45c9c2..0000000\\n--- a/f.txt\\n+++ b/f.txt\\n@@@ -1,1 -1,1 +1,5 @@@\\n++<<<<<<< HEAD\\n +main\\n++=======\\n+ other\\n++>>>>>>> other\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "conflict staged",
+   "route": "diff",
+   "id": "wks_conflict",
+   "query": "path=f.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"* Unmerged path f.txt\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "conflict modify/delete",
+   "route": "diff",
+   "id": "wks_conflict",
+   "query": "path=dm.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"* Unmerged path dm.txt\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "linked worktree",
+   "route": "diff",
+   "id": "wks_wt",
+   "query": "path=w.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/w.txt b/w.txt\\nindex e556b83..d104764 100644\\n--- a/w.txt\\n+++ b/w.txt\\n@@ -1 +1 @@\\n-w\\n+w in the worktree\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "linked worktree untracked",
+   "route": "diff",
+   "id": "wks_wt",
+   "query": "path=only-wt.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/only-wt.txt b/only-wt.txt\\nnew file mode 100644\\nindex 0000000..31e6cf6\\n--- /dev/null\\n+++ b/only-wt.txt\\n@@ -0,0 +1 @@\\n+untracked in the worktree\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "submodule",
+   "route": "diff",
+   "id": "wks_sup",
+   "query": "path=sub&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/sub b/sub\\nindex abd2e65..40e979c 160000\\n--- a/sub\\n+++ b/sub\\n@@ -1 +1 @@\\n-Subproject commit abd2e65fb48a2076e077c96debd9c41c53944af6\\n+Subproject commit 40e979cc4c17cff0b050b5774c3c6af951431f3a\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "submodule staged",
+   "route": "diff",
+   "id": "wks_sup",
+   "query": "path=sub&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "inside the submodule",
+   "route": "diff",
+   "id": "wks_sub",
+   "query": "path=s.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "textconv ignored",
+   "route": "diff",
+   "id": "wks_textconv",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex efb7a34..0672ad0 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1 @@\\n-lower case\\n+lower case, changed\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "textconv ignored, untracked",
+   "route": "diff",
+   "id": "wks_textconv",
+   "query": "path=new.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/new.txt b/new.txt\\nnew file mode 100644\\nindex 0000000..28dd777\\n--- /dev/null\\n+++ b/new.txt\\n@@ -0,0 +1 @@\\n+new lower\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "diff.external runs",
+   "route": "diff",
+   "id": "wks_extdiff",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"EXTERNAL a.txt\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "quotepath false",
+   "route": "diff",
+   "id": "wks_quotepath",
+   "query": "path=%E6%97%A5%E6%9C%AC.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/日本.txt b/日本.txt\\nindex 587be6b..975fbec 100644\\n--- a/日本.txt\\n+++ b/日本.txt\\n@@ -1 +1 @@\\n-x\\n+y\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "quotepath false, untracked",
+   "route": "diff",
+   "id": "wks_quotepath",
+   "query": "path=%C3%A9.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/é.txt b/é.txt\\nnew file mode 100644\\nindex 0000000..b680253\\n--- /dev/null\\n+++ b/é.txt\\n@@ -0,0 +1 @@\\n+z\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "corrupt index",
+   "route": "diff",
+   "id": "wks_corrupt",
+   "query": "path=c.txt&mode=worktree",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git diff exited 128: error: bad signature 0x73696874\\nfatal: index file corrupt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "corrupt index, staged",
+   "route": "diff",
+   "id": "wks_corrupt",
+   "query": "path=c.txt&mode=staged",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git diff exited 128: error: bad signature 0x73696874\\nfatal: index file corrupt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "mid diff",
+   "route": "diff",
+   "id": "wks_large",
+   "query": "path=mid.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "len": 861922,
+    "fnv": "a505a72dcc5e3304",
+    "head": "{\"diff\":\"diff --git a/mid.txt b/mid.txt\\nindex 1adc857..6058aaf 100644\\n--- a/mid.txt\\n+++ b/mid.txt\\n@@ -1,6000 +1,6000 @@\\n-mmm 0 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\n-mmm 1 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\n-mmm 2 abcdefghijabcdefghijabcdefghij"
+   }
+  },
+  {
+   "op": "req",
+   "label": "mid untracked",
+   "route": "diff",
+   "id": "wks_large",
+   "query": "path=mid2.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "len": 215047,
+    "fnv": "a48b4b7cb0a2025e",
+    "head": "{\"diff\":\"diff --git a/mid2.txt b/mid2.txt\\nnew file mode 100644\\nindex 0000000..3b6e8f9\\n--- /dev/null\\n+++ b/mid2.txt\\n@@ -0,0 +1,3000 @@\\n+ooo 0 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\n+ooo 1 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\n+ooo 2 abcdefghijabcde"
+   }
+  },
+  {
+   "op": "req",
+   "label": "big diff: cut",
+   "route": "diff",
+   "id": "wks_large",
+   "query": "path=big.txt&mode=worktree",
+   "cut": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "head": "{\"error\":\"git diff killed by $SIGNAL: diff --git a/big.txt b/big.txt\\nindex 9f3df60..ad435f8 100644\\n--- a/big.txt\\n+++ b/big.txt\\n@@ -1 +1,250000 @@\\n aaa 0 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\n+aaa 1 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\n+aaa 2 abcd",
+    "cut": true
+   }
+  },
+  {
+   "op": "req",
+   "label": "big untracked: exited null",
+   "route": "diff",
+   "id": "wks_large",
+   "query": "path=big2.txt&mode=untracked",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git diff --no-index exited null\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "trailing-space root",
+   "route": "diff",
+   "id": "wks_trail",
+   "query": "path=x.txt&mode=untracked",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"spawn git ENOENT\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "trailing-space twin",
+   "route": "diff",
+   "id": "wks_twin",
+   "query": "path=in-twin.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/in-twin.txt b/in-twin.txt\\nnew file mode 100644\\nindex 0000000..472fa92\\n--- /dev/null\\n+++ b/in-twin.txt\\n@@ -0,0 +1 @@\\n+the trimmed twin\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "NEL root",
+   "route": "diff",
+   "id": "wks_nel",
+   "query": "path=n.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/n.txt b/n.txt\\nnew file mode 100644\\nindex 0000000..8ba3a16\\n--- /dev/null\\n+++ b/n.txt\\n@@ -0,0 +1 @@\\n+n\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "plain dir",
+   "route": "diff",
+   "id": "wks_plain",
+   "query": "path=f.txt&mode=worktree",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "missing dir",
+   "route": "diff",
+   "id": "wks_missing",
+   "query": "path=f.txt&mode=untracked",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": ".git dir",
+   "route": "diff",
+   "id": "wks_dotgit",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "bare",
+   "route": "diff",
+   "id": "wks_bare",
+   "query": "path=a.txt&mode=staged",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "route": "diff",
+   "id": "wks_nope",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "customization id",
+   "route": "diff",
+   "id": "cust_a",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no query",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"path required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no path",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "mode=worktree",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"path required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty path",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=&mode=worktree",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"path required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no mode",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"mode must be one of worktree, staged, untracked\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty mode",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&mode=",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"mode must be one of worktree, staged, untracked\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "upper-case mode",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&mode=WORKTREE",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"mode must be one of worktree, staged, untracked\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "mode with a space",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&mode=worktree+",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"mode must be one of worktree, staged, untracked\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "bad path and bad mode",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "mode=x",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"path required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "plus is a space",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=sp+ace+%C3%A9.txt&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git \\\"a/sp ace \\\\303\\\\251.txt\\\" \\\"b/sp ace \\\\303\\\\251.txt\\\"\\nnew file mode 100644\\nindex 0000000..bd4269f\\n--- /dev/null\\n+++ \\\"b/sp ace \\\\303\\\\251.txt\\\"\\t\\n@@ -0,0 +1 @@\\n+spaced\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "first path wins",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&path=c.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "first mode wins",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=c.txt&mode=staged&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/c.txt b/c.txt\\nnew file mode 100644\\nindex 0000000..6178079\\n--- /dev/null\\n+++ b/c.txt\\n@@ -0,0 +1 @@\\n+b\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "malformed percent",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=%ZZ&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "bad UTF-8 percent",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=%C3&mode=untracked",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "encoded key",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "%70ath=a.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty pairs",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "&&path=a.txt&&mode=worktree&",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/a.txt b/a.txt\\nindex 7898192..9ad2ebb 100644\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1,2 @@\\n a\\n+a2\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace, bad params",
+   "route": "diff",
+   "id": "wks_nope",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "HEAD",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"a\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "index",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"a\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "index, staged MM",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=mm.txt&ref=",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"1\\n2\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "on disk, not in HEAD",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=c.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "not in HEAD at all",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=nope.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "not in the index",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=nope.txt&ref=",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "untracked: on disk, not in the index",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=sp%20ace%20%C3%A9.txt&ref=",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "bad ref",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=nope",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: invalid object name 'nope'.\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no parent",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=HEAD~1",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: invalid object name 'HEAD~1'.\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "binary blob",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=bin.dat&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"x\\u0000y�\\u0000\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "latin1 blob",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=latin1.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"cafe\\t\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "crlf blob",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=crlf.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"a\\r\\nb\\r\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "tree",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=.&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "subtree",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=sub%20dir&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"tree HEAD:sub dir\\n\\nné.txt\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "tree peel",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=HEAD%5E%7Btree%7D",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"a\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "ref with a colon",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=x&ref=HEAD%3Aa.txt",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "message search",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=%3A%2Finit",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: ambiguous argument ':/init:a.txt': unknown revision or path not in the working tree.\\nUse '--' to separate paths from revisions, like this:\\n'git <command> [<revision>...] -- [<file>...]'\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "stage 1 of a non-conflict",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=%3A1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unicode path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=sub%20dir%2Fn%C3%A9.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"nested\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dotted path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=.%2Fa.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"a\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "inner dotdot",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=sub%20dir%2F..%2Fa.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "absolute path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=%2Fa.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dash ref: unknown option",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=-x",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: unrecognized argument: -x:a.txt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dash-dash ref: unknown option",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=--nope",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: unrecognized argument: --nope:a.txt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "--output ref writes a file (refused in Rust)",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=--output%3D$ROOT%2Fpwned",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "exists",
+   "path": "pwned:a.txt",
+   "got": true
+  },
+  {
+   "op": "req",
+   "label": "--format ref shows HEAD (refused in Rust)",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=--format%3D%25s",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"init:a.txt\\n\\ndiff --git a/.gitignore b/.gitignore\\nnew file mode 100644\\nindex 0000000..2378f14\\n--- /dev/null\\n+++ b/.gitignore\\n@@ -0,0 +1 @@\\n+ignored.log\\ndiff --git a/a.txt b/a.txt\\nnew file mode 100644\\nindex 0000000..7898192\\n--- /dev/null\\n+++ b/a.txt\\n@@ -0,0 +1 @@\\n+a\\ndiff --git a/b.txt b/b.txt\\nnew file mode 100644\\nindex 0000000..6178079\\n--- /dev/null\\n+++ b/b.txt\\n@@ -0,0 +1 @@\\n+b\\ndiff --git a/bin.dat b/bin.dat\\nnew file mode 100644\\nindex 0000000..93f6515\\nBinary files /dev/null and b/bin.dat differ\\ndiff --git a/copy-src.txt b/copy-src.txt\\nnew file mode 100644\\nindex 0000000..37cf4e7\\n--- /dev/null\\n+++ b/copy-src.txt\\n@@ -0,0 +1,10 @@\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\ndiff --git a/cr.txt b/cr.txt\\nnew file mode 100644\\nindex 0000000..b9bca01\\n--- /dev/null\\n+++ b/cr.txt\\n@@ -0,0 +1 @@\\n+plain\\ndiff --git a/crlf.txt b/crlf.txt\\nnew file mode 100644\\nindex 0000000..c30dea8\\n--- /dev/null\\n+++ b/crlf.txt\\n@@ -0,0 +1,2 @@\\n+a\\r\\n+b\\r\\ndiff --git a/del-staged.txt b/del-staged.txt\\nnew file mode 100644\\nindex 0000000..286c5f5\\n--- /dev/null\\n+++ b/del-staged.txt\\n@@ -0,0 +1 @@\\n+gone\\ndiff --git a/keep.txt b/keep.txt\\nnew file mode 100644\\nindex 0000000..3581838\\n--- /dev/null\\n+++ b/keep.txt\\n@@ -0,0 +1,8 @@\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\n+line of text that is long enough for copy detection to see it\\ndiff --git a/latin1.txt b/latin1.txt\\nnew file mode 100644\\nindex 0000000..8558139\\n--- /dev/null\\n+++ b/latin1.txt\\n@@ -0,0 +1 @@\\n+cafe\\t\\n\\\\ No newline at end of file\\ndiff --git a/ls.txt b/ls.txt\\nnew file mode 100644\\nindex 0000000..b9bca01\\n--- /dev/null\\n+++ b/ls.txt\\n@@ -0,0 +1 @@\\n+plain\\ndiff --git a/mm.txt b/mm.txt\\nnew file mode 100644\\nindex 0000000..d00491f\\n--- /dev/null\\n+++ b/mm.txt\\n@@ -0,0 +1 @@\\n+1\\ndiff --git a/mode.sh b/mode.sh\\nnew file mode 100644\\nindex 0000000..4163036\\n--- /dev/null\\n+++ b/mode.sh\\n@@ -0,0 +1,2 @@\\n+#!/bin/sh\\n+echo hi\\ndiff --git a/nonl.txt b/nonl.txt\\nnew file mode 100644\\nindex 0000000..20cbb4d\\n--- /dev/null\\n+++ b/nonl.txt\\n@@ -0,0 +1 @@\\n+no newline\\n\\\\ No newline at end of file\\ndiff --git \\\"a/sub dir/n\\\\303\\\\251.txt\\\" \\\"b/sub dir/n\\\\303\\\\251.txt\\\"\\nnew file mode 100644\\nindex 0000000..79c5395\\n--- /dev/null\\n+++ \\\"b/sub dir/n\\\\303\\\\251.txt\\\"\\t\\n@@ -0,0 +1 @@\\n+nested\\ndiff --git a/typechange.txt b/typechange.txt\\nnew file mode 100644\\nindex 0000000..718f4d2\\n--- /dev/null\\n+++ b/typechange.txt\\n@@ -0,0 +1 @@\\n+t\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "lone dash ref",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=-",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: unrecognized argument: -:a.txt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "NUL ref",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=a%00",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"The argument 'args[1]' must be a string without null bytes. Received 'a\\\\x00:a.txt'\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "NUL ref, long",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=q%22'%00rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"The argument 'args[1]' must be a string without null bytes. Received `q\\\"'\\\\x00rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr...\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dotdot path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=..%2Fx&ref=HEAD",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid path\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dotdot-prefixed name",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=..x&ref=HEAD",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid path\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "NUL path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a%00&ref=HEAD",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid path\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "nested workspace",
+   "route": "show",
+   "id": "wks_nested",
+   "query": "path=a.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"a\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo HEAD",
+   "route": "show",
+   "id": "wks_empty",
+   "query": "path=f.txt&ref=HEAD",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: invalid object name 'HEAD'.\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "conflict, index",
+   "route": "show",
+   "id": "wks_conflict",
+   "query": "path=f.txt&ref=",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "conflict, stage 1",
+   "route": "show",
+   "id": "wks_conflict",
+   "query": "path=f.txt&ref=%3A1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"base\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "conflict, stage 3",
+   "route": "show",
+   "id": "wks_conflict",
+   "query": "path=f.txt&ref=%3A3",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"other\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "conflict, HEAD",
+   "route": "show",
+   "id": "wks_conflict",
+   "query": "path=dm.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"dm2\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "linked worktree",
+   "route": "show",
+   "id": "wks_wt",
+   "query": "path=w.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"w\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "other branch from a worktree",
+   "route": "show",
+   "id": "wks_wt",
+   "query": "path=w.txt&ref=main",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"w\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "submodule gitlink",
+   "route": "show",
+   "id": "wks_sup",
+   "query": "path=sub&ref=HEAD",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: bad object HEAD:sub\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "submodule .gitmodules",
+   "route": "show",
+   "id": "wks_sup",
+   "query": "path=.gitmodules&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"[submodule \\\"sub\\\"]\\n\\tpath = sub\\n\\turl = ../sub\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "inside the submodule",
+   "route": "show",
+   "id": "wks_sub",
+   "query": "path=s.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"s changed\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "textconv not applied",
+   "route": "show",
+   "id": "wks_textconv",
+   "query": "path=a.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"lower case\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "corrupt index, HEAD",
+   "route": "show",
+   "id": "wks_corrupt",
+   "query": "path=c.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"c\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "corrupt index, index",
+   "route": "show",
+   "id": "wks_corrupt",
+   "query": "path=c.txt&ref=",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: error: bad signature 0x73696874\\nfatal: index file corrupt\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "quotepath false",
+   "route": "show",
+   "id": "wks_quotepath",
+   "query": "path=%E6%97%A5%E6%9C%AC.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"x\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "mid blob",
+   "route": "show",
+   "id": "wks_large",
+   "query": "path=mid.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "len": 424904,
+    "fnv": "cacb6b01baf08658",
+    "head": "{\"content\":\"mmm 0 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\nmmm 1 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\nmmm 2 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\nmmm 3 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\nmmm 4 abcdefghij"
+   }
+  },
+  {
+   "op": "req",
+   "label": "random bytes",
+   "route": "show",
+   "id": "wks_large",
+   "query": "path=rand.bin&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "len": 710846,
+    "fnv": "4762d775ad3eecdb",
+    "head": "{\"content\":\"cz�~���=�9m\\r�x\\u0016�\\u0005\\u0012:�Nޟx�pc\\u0000\\u000b��%!=�\\\"�p���!#c6\\u0017{�y�bl�fC�\\u001f�ac�|��g�ј���Ӑ4?\\u0014Ѫ�rH'5��4N�J\\u0010�Ճ~\\u0010�WM�19<&�ViH;\\r24�\\fy=\\u001a$7��\\u0016 τ|�ƺ��w?2�ɻ��\\u000b}\\u0014�\\u001e��<\\u000f�>�x�~#8\\u0004|\\u0001MKT8��:�c# �KK���B3u_� �@m�o�Cw��\\u001f\\u00"
+   }
+  },
+  {
+   "op": "req",
+   "label": "big blob: cut",
+   "route": "show",
+   "id": "wks_large",
+   "query": "path=big3.txt&ref=HEAD",
+   "cut": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "head": "{\"error\":\"git show killed by $SIGNAL: ddd 0 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\nddd 1 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\nddd 2 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\\nddd 3 abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijab",
+    "cut": true
+   }
+  },
+  {
+   "op": "req",
+   "label": "trailing-space root",
+   "route": "show",
+   "id": "wks_trail",
+   "query": "path=x.txt&ref=HEAD",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"spawn git ENOENT\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "plain dir",
+   "route": "show",
+   "id": "wks_plain",
+   "query": "path=f.txt&ref=HEAD",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "route": "show",
+   "id": "wks_nope",
+   "query": "path=a.txt&ref=HEAD",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no query",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"path required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "ref=HEAD",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"path required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=&ref=HEAD",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"path required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no ref",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"ref required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no ref, dotdot path",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=../x",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"ref required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dotdot path, no ref check first",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=..&ref=HEAD",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid path\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "plus in ref",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=HEAD+",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git show exited 128: fatal: invalid object name 'HEAD '.\",\"code\":\"git-failed\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "first ref wins",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"a\\n\"}"
+   }
+  },
+  {
+   "op": "write",
+   "path": "repos/empty/f.txt",
+   "text": "first\n"
+  },
+  {
+   "op": "req",
+   "label": "empty repo, untracked",
+   "route": "status",
+   "id": "wks_empty",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/empty\",\"branch\":\"main\",\"files\":[{\"path\":\"f.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/empty",
+   "args": [
+    "add",
+    "f.txt"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "empty repo, staged",
+   "route": "status",
+   "id": "wks_empty",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/empty\",\"branch\":\"main\",\"files\":[{\"path\":\"f.txt\",\"index\":\"A\",\"worktree\":\" \",\"untracked\":false}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, staged file",
+   "route": "diff",
+   "id": "wks_empty",
+   "query": "path=f.txt&mode=staged",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"diff --git a/f.txt b/f.txt\\nnew file mode 100644\\nindex 0000000..9c59e24\\n--- /dev/null\\n+++ b/f.txt\\n@@ -0,0 +1 @@\\n+first\\n\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, worktree file",
+   "route": "diff",
+   "id": "wks_empty",
+   "query": "path=f.txt&mode=worktree",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"diff\":\"\",\"binary\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, index",
+   "route": "show",
+   "id": "wks_empty",
+   "query": "path=f.txt&ref=",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"first\\n\"}"
+   }
+  },
+  {
+   "op": "git",
+   "cwd": "repos/empty",
+   "args": [
+    "commit",
+    "-qm",
+    "first"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "empty repo, first commit",
+   "route": "status",
+   "id": "wks_empty",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/repos/empty\",\"branch\":\"main\",\"files\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty repo, now HEAD",
+   "route": "show",
+   "id": "wks_empty",
+   "query": "path=f.txt&ref=HEAD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"content\":\"first\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git: status",
+   "route": "status",
+   "id": "wks_basic",
+   "query": "",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git is not installed or not on PATH\",\"code\":\"git-missing\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git: status, plain dir",
+   "route": "status",
+   "id": "wks_plain",
+   "query": "",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git is not installed or not on PATH\",\"code\":\"git-missing\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git: status, customization",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git is not installed or not on PATH\",\"code\":\"git-missing\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git: diff",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&mode=worktree",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git: untracked diff",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=d%2Fe%2Ff&mode=untracked",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git: show",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=HEAD",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git: bad params still 400",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt",
+   "nogit": true,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"mode must be one of worktree, staged, untracked\"}"
+   }
+  },
+  {
+   "op": "workspaces",
+   "list": [],
+   "text": "{ not json"
+  },
+  {
+   "op": "req",
+   "label": "broken store",
+   "route": "status",
+   "id": "wks_basic",
+   "query": "",
+   "got": {
+    "threw": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+   }
+  },
+  {
+   "op": "req",
+   "label": "broken store",
+   "route": "diff",
+   "id": "wks_basic",
+   "query": "path=a.txt&mode=worktree",
+   "got": {
+    "threw": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+   }
+  },
+  {
+   "op": "req",
+   "label": "broken store",
+   "route": "show",
+   "id": "wks_basic",
+   "query": "path=a.txt&ref=HEAD",
+   "got": {
+    "threw": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+   }
+  },
+  {
+   "op": "req",
+   "label": "broken store, customization",
+   "route": "status",
+   "id": "cust_a",
+   "query": "",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"isRepo\":true,\"repoRoot\":\"$ROOT/home/.claude/.claudius/customizations/cust_a/src\",\"branch\":\"main\",\"files\":[{\"path\":\"mirror.txt\",\"index\":\"?\",\"worktree\":\"?\",\"untracked\":true}]}"
+   }
+  },
+  {
+   "op": "workspaces",
+   "list": [],
+   "text": "{\"version\":2,\"workspaces\":\"nope\"}"
+  },
+  {
+   "op": "req",
+   "label": "store from another version",
+   "route": "status",
+   "id": "wks_basic",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}"
+   }
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/workspaces.json"
+  },
+  {
+   "op": "req",
+   "label": "no store",
+   "route": "status",
+   "id": "wks_basic",
+   "query": "",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}"
+   }
+  }
+ ]
+}

@@ -1,0 +1,4024 @@
+{
+ "node": "v22.23.3",
+ "defaults": {
+  "SCAN_SLACK_MS": 300000,
+  "SCAN_BYTE_BUDGET": 536870912,
+  "SCAN_TIME_BUDGET_MS": 5000,
+  "CACHE_MAX": 500,
+  "MISS_TTL_MS": 30000,
+  "MIN_SNIPPET": 16,
+  "PEER_SNIPPET_MAX": 200
+ },
+ "lines": [
+  {
+   "parts": [
+    ""
+   ],
+   "got": []
+  },
+  {
+   "parts": [
+    "\n"
+   ],
+   "got": [
+    []
+   ]
+  },
+  {
+   "parts": [
+    "a"
+   ],
+   "got": [
+    [
+     "a"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "a\n"
+   ],
+   "got": [
+    [
+     "a"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "a\r\n"
+   ],
+   "got": [
+    [
+     "a"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "a\rb\n"
+   ],
+   "got": [
+    [
+     "a\rb"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "a\r\r\n"
+   ],
+   "got": [
+    [
+     "a\r"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "\r"
+   ],
+   "got": [
+    []
+   ]
+  },
+  {
+   "parts": [
+    "\r\n\r\n"
+   ],
+   "got": [
+    [],
+    []
+   ]
+  },
+  {
+   "parts": [
+    "x\n\n\ny"
+   ],
+   "got": [
+    [
+     "x"
+    ],
+    [],
+    [],
+    [
+     "y"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "a b\nc "
+   ],
+   "got": [
+    [
+     "a b"
+    ],
+    [
+     "c "
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "é€😀\n"
+   ],
+   "got": [
+    [
+     "é€😀"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "hex": "efbbbf"
+    },
+    "{\"bom\":1}\n"
+   ],
+   "got": [
+    [
+     "﻿{\"bom\":1}"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "hex": "fffe"
+    },
+    "\n"
+   ],
+   "got": [
+    [
+     "��"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    "a",
+    {
+     "hex": "c3"
+    }
+   ],
+   "got": [
+    [
+     "a�"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "hex": "e282"
+    },
+    "\n",
+    {
+     "hex": "e282"
+    },
+    "A\n"
+   ],
+   "got": [
+    [
+     "�"
+    ],
+    [
+     "�A"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "hex": "eda080"
+    },
+    "\n"
+   ],
+   "got": [
+    [
+     "���"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "hex": "c080f5808080"
+    },
+    "\n"
+   ],
+   "got": [
+    [
+     "������"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65534
+    },
+    {
+     "hex": "f09f9880"
+    },
+    "\nz\n"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65534
+     },
+     "😀"
+    ],
+    [
+     "z"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65535
+    },
+    {
+     "hex": "e282ac"
+    },
+    "\n"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65535
+     },
+     "€"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65534
+    },
+    {
+     "hex": "f09f"
+    },
+    "A\n"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65534
+     },
+     "�A"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65535
+    },
+    {
+     "hex": "eda080"
+    },
+    "\n"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65535
+     },
+     "���"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65535
+    },
+    {
+     "hex": "c080"
+    },
+    "\n"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65535
+     },
+     "��"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65535
+    },
+    {
+     "hex": "f5808080"
+    },
+    "\n"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65535
+     },
+     "����"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65533
+    },
+    {
+     "hex": "f09f98"
+    }
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65533
+     },
+     "�"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65535
+    },
+    "\r\nb"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65535
+     }
+    ],
+    [
+     "b"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "a",
+     "n": 65536
+    },
+    "\r\n",
+    {
+     "rep": "b",
+     "n": 65535
+    },
+    "\r"
+   ],
+   "got": [
+    [
+     {
+      "rep": "a",
+      "n": 65536
+     }
+    ],
+    [
+     {
+      "rep": "b",
+      "n": 65535
+     }
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "q",
+     "n": 196625
+    },
+    "\nend"
+   ],
+   "got": [
+    [
+     {
+      "rep": "q",
+      "n": 196625
+     }
+    ],
+    [
+     "end"
+    ]
+   ]
+  },
+  {
+   "parts": [
+    {
+     "rep": "€",
+     "n": 50000
+    },
+    "\n",
+    {
+     "rep": "😀",
+     "n": 40000
+    }
+   ],
+   "got": [
+    [
+     {
+      "rep": "€",
+      "n": 50000
+     }
+    ],
+    [
+     {
+      "rep": "😀",
+      "n": 40000
+     }
+    ]
+   ]
+  }
+ ],
+ "core": [
+  {
+   "name": "miss TTL, kept transcript hits, uncached registry hits",
+   "limits": {},
+   "steps": [
+    {
+     "op": "dir",
+     "path": "claude/projects/p"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000001-1111-4111-8111-000000000001"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 2
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/s.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"ttl-sender\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000001-1111-4111-8111-000000000001\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000001-1111-4111-8111-000000000001"
+     },
+     "now": {
+      "set": 1029999
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000001-1111-4111-8111-000000000001"
+     },
+     "now": {
+      "set": 1030000
+     },
+     "got": "{\"sessionId\":\"ttl-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 4
+    },
+    {
+     "op": "rm",
+     "path": "claude/projects/p/s.jsonl"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000001-1111-4111-8111-000000000001"
+     },
+     "now": {
+      "set": 9000000000000
+     },
+     "got": "{\"sessionId\":\"ttl-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 0
+    },
+    {
+     "op": "file",
+     "path": "claude/sessions/@LIVE@.json",
+     "parts": [
+      "{\"pid\":@LIVE@,\"sessionId\":\"reg-live\"}"
+     ]
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "pid": "@LIVE@"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"reg-live\",\"cwd\":null,\"name\":null,\"live\":true,\"via\":\"registry\"}",
+     "nowCalls": 0
+    },
+    {
+     "op": "rm",
+     "path": "claude/sessions/@LIVE@.json"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "pid": "@LIVE@"
+     },
+     "now": {
+      "set": 1000001
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "file",
+     "path": "claude/sessions/@LIVE@.json",
+     "parts": [
+      "{\"pid\":@LIVE@,\"sessionId\":\"reg-live\"}"
+     ]
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "pid": "@LIVE@"
+     },
+     "now": {
+      "set": 1030000
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "pid": "@LIVE@"
+     },
+     "now": {
+      "set": 1030001
+     },
+     "got": "{\"sessionId\":\"reg-live\",\"cwd\":null,\"name\":null,\"live\":true,\"via\":\"registry\"}",
+     "nowCalls": 1
+    }
+   ]
+  },
+  {
+   "name": "eviction order (CACHE_MAX 3)",
+   "limits": {
+    "CACHE_MAX": "3"
+   },
+   "steps": [
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/a"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/b"
+     },
+     "now": {
+      "set": 1000010
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/c"
+     },
+     "now": {
+      "set": 1000020
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "file",
+     "path": "claude/sessions/99999100.json",
+     "parts": [
+      "{\"pid\":99999100,\"sessionId\":\"reg-d\",\"messagingSocketPath\":\"/s/d\"}"
+     ]
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/d"
+     },
+     "now": {
+      "set": 1000030
+     },
+     "got": "{\"sessionId\":\"reg-d\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"registry\"}",
+     "nowCalls": 0
+    },
+    {
+     "op": "file",
+     "path": "claude/sessions/99999097.json",
+     "parts": [
+      "{\"pid\":99999097,\"sessionId\":\"reg-a\",\"messagingSocketPath\":\"/s/a\"}"
+     ]
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/a"
+     },
+     "now": {
+      "set": 1000040
+     },
+     "got": "{\"sessionId\":\"reg-a\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"registry\"}",
+     "nowCalls": 0
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/b"
+     },
+     "now": {
+      "set": 1030010
+     },
+     "got": null,
+     "nowCalls": 2
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/e"
+     },
+     "now": {
+      "set": 1030011
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "file",
+     "path": "claude/sessions/99999098.json",
+     "parts": [
+      "{\"pid\":99999098,\"sessionId\":\"reg-b\",\"messagingSocketPath\":\"/s/b\"}"
+     ]
+    },
+    {
+     "op": "file",
+     "path": "claude/sessions/99999099.json",
+     "parts": [
+      "{\"pid\":99999099,\"sessionId\":\"reg-c\",\"messagingSocketPath\":\"/s/c\"}"
+     ]
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/f"
+     },
+     "now": {
+      "set": 1030012
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/b"
+     },
+     "now": {
+      "set": 1030013
+     },
+     "got": "{\"sessionId\":\"reg-b\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"registry\"}",
+     "nowCalls": 0
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/c"
+     },
+     "now": {
+      "set": 1030014
+     },
+     "got": "{\"sessionId\":\"reg-c\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"registry\"}",
+     "nowCalls": 0
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "from": "uds:/s/e"
+     },
+     "now": {
+      "set": 1030015
+     },
+     "got": null,
+     "nowCalls": 1
+    }
+   ]
+  },
+  {
+   "name": "time budget",
+   "limits": {},
+   "steps": [
+    {
+     "op": "dir",
+     "path": "profiles"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p1/a.jsonl",
+     "parts": [
+      "{\"sessionId\":\"a\",\"toolUseResult\":{\"msg_id\":\"none\"}}\n"
+     ],
+     "mtimeNs": "1800000001000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p1/b.jsonl",
+     "parts": [
+      "{\"sessionId\":\"b\"}\n"
+     ],
+     "mtimeNs": "1800000002000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p1/c.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"time-sender\",\"cwd\":\"/t\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000002-1111-4111-8111-000000000002\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000003000000000"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000002-1111-4111-8111-000000000002"
+     },
+     "now": {
+      "set": 0,
+      "tick": 2000
+     },
+     "got": null,
+     "nowCalls": 5
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000002-1111-4111-8111-000000000002",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 0,
+      "tick": 1000
+     },
+     "got": "{\"sessionId\":\"time-sender\",\"cwd\":\"/t\",\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 5
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000002-1111-4111-8111-000000000002",
+      "from": "x"
+     },
+     "now": {
+      "set": 0,
+      "tick": 2500
+     },
+     "got": null,
+     "nowCalls": 5
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000002-1111-4111-8111-000000000002",
+      "from": "y"
+     },
+     "now": {
+      "set": 0,
+      "tick": 2499
+     },
+     "got": null,
+     "nowCalls": 5
+    }
+   ]
+  },
+  {
+   "name": "byte budget 100",
+   "limits": {
+    "SCAN_BYTE_BUDGET": "100"
+   },
+   "steps": [
+    {
+     "op": "file",
+     "path": "claude/projects/p/a.jsonl",
+     "parts": [
+      {
+       "rep": "x",
+       "n": 59
+      },
+      "\n"
+     ],
+     "mtimeNs": "1800000001000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/b.jsonl",
+     "parts": [
+      {
+       "rep": "y",
+       "n": 40
+      },
+      "\n"
+     ],
+     "mtimeNs": "1800000002000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/c.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"bytes-sender\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000003-1111-4111-8111-000000000003\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000003000000000"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000003-1111-4111-8111-000000000003"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 5
+    }
+   ]
+  },
+  {
+   "name": "byte budget 101",
+   "limits": {
+    "SCAN_BYTE_BUDGET": "101"
+   },
+   "steps": [
+    {
+     "op": "file",
+     "path": "claude/projects/p/a.jsonl",
+     "parts": [
+      {
+       "rep": "x",
+       "n": 59
+      },
+      "\n"
+     ],
+     "mtimeNs": "1800000001000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/b.jsonl",
+     "parts": [
+      {
+       "rep": "y",
+       "n": 40
+      },
+      "\n"
+     ],
+     "mtimeNs": "1800000002000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/c.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"bytes-sender\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000003-1111-4111-8111-000000000003\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000003000000000"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000003-1111-4111-8111-000000000003"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"bytes-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 5
+    }
+   ]
+  },
+  {
+   "name": "mtime window and order",
+   "limits": {},
+   "steps": [
+    {
+     "op": "file",
+     "path": "claude/projects/p/exact.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"slack-exact\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000004-1111-4111-8111-000000000004\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1799999700000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/before.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"slack-before\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000005-1111-4111-8111-000000000005\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1799999699999000072"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/ancient.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"ancient\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000006-1111-4111-8111-000000000006\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "-1000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p1/z.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"tie-first-dir\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000007-1111-4111-8111-000000000007\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p2/a.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"tie-second-dir\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000007-1111-4111-8111-000000000007\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p3/new.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"newer\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000008-1111-4111-8111-000000000008\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000010000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p4/old.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"older\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000008-1111-4111-8111-000000000008\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000005000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/p/body.jsonl",
+     "parts": [
+      "{\"type\":\"assistant\",\"sessionId\":\"body-sender\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\"a message body long enough\"}}]}}\n"
+     ],
+     "mtimeNs": "1799999700000999927"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000004-1111-4111-8111-000000000004",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"slack-exact\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 3
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000005-1111-4111-8111-000000000005",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 8
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000005-1111-4111-8111-000000000005"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"slack-before\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 3
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000006-1111-4111-8111-000000000006"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 9
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000006-1111-4111-8111-000000000006",
+      "at": 100000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"ancient\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 3
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000007-1111-4111-8111-000000000007"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"tie-first-dir\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 6
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000008-1111-4111-8111-000000000008"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"older\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 8
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "snippet16": [
+       97,
+       32,
+       109,
+       101,
+       115,
+       115,
+       97,
+       103,
+       101,
+       32,
+       98,
+       111,
+       100,
+       121,
+       32,
+       108,
+       111,
+       110,
+       103
+      ]
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "at": 1800000000000,
+      "snippet16": [
+       97,
+       32,
+       109,
+       101,
+       115,
+       115,
+       97,
+       103,
+       101,
+       32,
+       98,
+       111,
+       100,
+       121,
+       32,
+       108,
+       111,
+       110,
+       103
+      ]
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"body-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 4
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "at": 1800000000000,
+      "snippet16": [
+       32,
+       32,
+       97,
+       32,
+       109,
+       101,
+       115,
+       115,
+       97,
+       103,
+       101,
+       32,
+       98,
+       111,
+       100,
+       121,
+       32,
+       108,
+       111,
+       110,
+       103,
+       55357
+      ]
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 8
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "at": 1800000000000,
+      "snippet16": [
+       12288,
+       97,
+       32,
+       109,
+       101,
+       115,
+       115,
+       97,
+       103,
+       101,
+       32,
+       98,
+       111,
+       100,
+       121,
+       32,
+       108,
+       111,
+       110,
+       103,
+       32,
+       101
+      ]
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"body-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 4
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "pid": 1.5,
+      "msgId": "00000004-1111-4111-8111-000000000004",
+      "at": 1800000000001
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 7
+    }
+   ]
+  },
+  {
+   "name": "gates and prefilters",
+   "limits": {},
+   "steps": [
+    {
+     "op": "file",
+     "path": "claude/sessions/0.json",
+     "parts": [
+      "{\"pid\":0,\"sessionId\":\"pid-zero\"}"
+     ]
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/g/a-jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"no-dot\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000060-1111-4111-8111-000000000060\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/g/b.JSONL",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"upper-ext\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000060-1111-4111-8111-000000000060\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/g/c.jsonl",
+     "parts": [
+      "{\"sessionId\":\"not-uuid\",\"toolUseResult\":{\"msg_id\":\"not-a-uuid\"}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/elsewhere/t.jsonl",
+     "parts": [
+      "{\"type\":\"user\",\"sessionId\":\"via-link\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000061-1111-4111-8111-000000000061\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+     ],
+     "mtimeNs": "4000000000000000000"
+    },
+    {
+     "op": "link",
+     "path": "claude/projects/g/link.jsonl",
+     "target": "../../elsewhere/t.jsonl"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/h/d.jsonl",
+     "parts": [
+      "{\"sessionId\":\"mention\",\"text\":\"see 00000062-1111-4111-8111-000000000062\",\"toolUseResult\":{\"msg_id\":\"other\"}}\n",
+      "{\"sessionId\":\"bash-tool\",\"note\":\"SendMessage\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"Bash\",\"input\":{\"message\":\"odd gate body long enough\"}}]}}\n",
+      "{\"sessionId\":\"escaped-name\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"Send\\u004dessage\",\"input\":{\"message\":\"escaped gate body long enough\"}}]}}\n",
+      "{\"sessionId\":\"escaped-id\",\"toolUseResult\":{\"msg_id\":\"00000063-\\u0031111-4111-8111-000000000063\"}}\n",
+      "{\"sessionId\":\"escaped-cwd\",\"c\\u0077d\":\"/esc\",\"toolUseResult\":{\"msg_id\":\"00000064-1111-4111-8111-000000000064\"}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "file",
+     "path": "claude/projects/h/e.jsonl",
+     "parts": [
+      "{\"type\":\"assistant\",\"sessionId\":\"body-fallback\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\"fallback gate body long enough\"}}]}}\n"
+     ],
+     "mtimeNs": "1800000000000000000"
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "pid": 0
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "at": 1800000000000,
+      "from": "x"
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "not-a-uuid",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 1
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000060-1111-4111-8111-000000000060",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 6
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000061-1111-4111-8111-000000000061",
+      "at": 4000000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"via-link\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 3
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000062-1111-4111-8111-000000000062",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 6
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "at": 1800000000000,
+      "snippet16": [
+       111,
+       100,
+       100,
+       32,
+       103,
+       97,
+       116,
+       101,
+       32,
+       98,
+       111,
+       100,
+       121,
+       32,
+       108,
+       111,
+       110,
+       103
+      ]
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 6
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "at": 1800000000000,
+      "snippet16": [
+       101,
+       115,
+       99,
+       97,
+       112,
+       101,
+       100,
+       32,
+       103,
+       97,
+       116,
+       101,
+       32,
+       98,
+       111,
+       100,
+       121,
+       32,
+       108,
+       111,
+       110,
+       103
+      ]
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 6
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000063-1111-4111-8111-000000000063",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": null,
+     "nowCalls": 6
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000064-1111-4111-8111-000000000064",
+      "at": 1800000000000
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"escaped-cwd\",\"cwd\":\"/esc\",\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 4
+    },
+    {
+     "op": "resolve",
+     "q": {
+      "msgId": "00000065-1111-4111-8111-000000000065",
+      "at": 1800000000000,
+      "snippet16": [
+       102,
+       97,
+       108,
+       108,
+       98,
+       97,
+       99,
+       107,
+       32,
+       103,
+       97,
+       116,
+       101,
+       32,
+       98,
+       111,
+       100,
+       121,
+       32,
+       108,
+       111,
+       110,
+       103
+      ]
+     },
+     "now": {
+      "set": 1000000
+     },
+     "got": "{\"sessionId\":\"body-fallback\",\"cwd\":null,\"name\":null,\"live\":false,\"via\":\"transcript\"}",
+     "nowCalls": 5
+    }
+   ]
+  }
+ ],
+ "route": {
+  "hosted": "00000000-0000-4000-8000-0000000000aa",
+  "steps": [
+   {
+    "op": "file",
+    "path": ".claude/sessions/@LIVE@.json",
+    "parts": [
+     "{\"pid\":@LIVE@,\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"messagingSocketPath\":\"/tmp/cc-socks/live.sock\",\"startedAt\":1799999940000}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/1.json",
+    "parts": [
+     "{\"pid\":1,\"sessionId\":\"init-record\",\"cwd\":\"/\",\"name\":\"launchd\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999001.json",
+    "parts": [
+     "{\"pid\":99999002,\"sessionId\":\"rec-mismatch\",\"messagingSocketPath\":\"/tmp/s/mismatch.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999003.json",
+    "parts": [
+     "{\"pid\":99999003,\"sessionId\":\"has space\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999004.json",
+    "parts": [
+     "{\"pid\":99999004,\"sessionId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999005.json",
+    "parts": [
+     "{\"pid\":99999005,\"sessionId\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cwd\":\"/work/dup/x\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999006.json",
+    "parts": [
+     "{\"pid\":\"99999006\",\"sessionId\":\"string-pid\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999007.json",
+    "parts": [
+     "{\"pid\":99999007.0,\"sessionId\":\"float-text-pid\",\"cwd\":\"/work/proj-b/x\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999008.json",
+    "parts": [
+     "{\"pid\":99999008,\"sessionId\":\"torn\""
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999009.json",
+    "parts": [
+     {
+      "hex": "efbbbf"
+     },
+     "{\"pid\":99999009,\"sessionId\":\"bom\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999010.json",
+    "parts": [
+     "null"
+    ]
+   },
+   {
+    "op": "dir",
+    "path": ".claude/sessions/99999011.json"
+   },
+   {
+    "op": "file",
+    "path": "records/r12.json",
+    "parts": [
+     "{\"pid\":99999012,\"sessionId\":\"via-symlink\",\"cwd\":\"/elsewhere\"}"
+    ]
+   },
+   {
+    "op": "link",
+    "path": ".claude/sessions/99999012.json",
+    "target": "../../records/r12.json"
+   },
+   {
+    "op": "link",
+    "path": ".claude/sessions/99999013.json",
+    "target": "../../records/missing.json"
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999014.json",
+    "parts": [
+     "{\"pid\":99999014,\"sessionId\":\"locked\"}"
+    ]
+   },
+   {
+    "op": "chmod",
+    "path": ".claude/sessions/99999014.json",
+    "mode": 0
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999015.json",
+    "parts": [
+     "{\"pid\":99999015,\"sessionId\":\"lone-cwd\",\"cwd\":\"/work/lone\\ud800/sub\",\"name\":\"caf\\u00e9 \\ud83d\\ude00 \\udc00 é\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999016.json",
+    "parts": [
+     "{\"pid\":99999016,\"sessionId\":\"inf-start\",\"startedAt\":1e400}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999017.json",
+    "parts": [
+     "{\"pid\":99999017,\"sessionId\":\"num-socket\",\"messagingSocketPath\":17}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999018.json",
+    "parts": [
+     "{\"pid\":99999018,\"sessionId\":\"first\",\"sessionId\":\"second\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999019.json",
+    "parts": [
+     "{\"pid\":99999019,\"sessionId\":\"odd-fields\",\"cwd\":19,\"name\":\"\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999020.json",
+    "parts": [
+     "{\"pid\":1.5,\"sessionId\":\"frac\",\"messagingSocketPath\":\"/tmp/s/frac.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999021.json",
+    "parts": [
+     "{\"pid\":99999021,\"sessionId\":\"frac-next\",\"messagingSocketPath\":\"/tmp/s/frac.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/10.json",
+    "parts": [
+     "{\"pid\":99999030,\"sessionId\":\"order-ten\",\"messagingSocketPath\":\"/tmp/s/order.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/9.json",
+    "parts": [
+     "{\"pid\":99999031,\"sessionId\":\"order-nine\",\"messagingSocketPath\":\"/tmp/s/order.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999040.json",
+    "parts": [
+     "{\"pid\":0,\"sessionId\":\"pid-zero\",\"messagingSocketPath\":\"/tmp/s/zero.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/2147483648.json",
+    "parts": [
+     "{\"pid\":2147483648,\"sessionId\":\"big-pid\",\"messagingSocketPath\":\"/tmp/s/int32.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999041.json",
+    "parts": [
+     "{\"pid\":-2147483648,\"sessionId\":\"int-min\",\"messagingSocketPath\":\"/tmp/s/intmin.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999042.json",
+    "parts": [
+     "{\"pid\":-99999042,\"sessionId\":\"neg-pid\",\"messagingSocketPath\":\"/tmp/s/neg.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999043.json",
+    "parts": [
+     "{\"pid\":9007199254740991,\"sessionId\":\"max-safe\",\"messagingSocketPath\":\"/tmp/s/maxsafe.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999044.json",
+    "parts": [
+     "{\"pid\":9007199254740992,\"sessionId\":\"unsafe\",\"messagingSocketPath\":\"/tmp/s/unsafe.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999050.json",
+    "parts": [
+     "{\"pid\":99999050,\"sessionId\":\"both-main\",\"messagingSocketPath\":\"/tmp/s/both.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999060.json",
+    "parts": [
+     "{\"pid\":99999060,\"sessionId\":\"lone-socket\",\"messagingSocketPath\":\"/tmp/s/\\ud800.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999061.json",
+    "parts": [
+     "{\"pid\":99999061,\"sessionId\":\"euro-socket\",\"messagingSocketPath\":\"/tmp/s/\\u20ac.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999062.json",
+    "parts": [
+     "{\"pid\":99999062,\"sessionId\":\"pct-socket\",\"messagingSocketPath\":\"/tmp/s/100%.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999063.json",
+    "parts": [
+     "{\"pid\":99999063,\"sessionId\":\"raw-pct\",\"messagingSocketPath\":\"%E2%82\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/abc.json",
+    "parts": [
+     "{\"pid\":99999070,\"sessionId\":\"abc-name\",\"messagingSocketPath\":\"/tmp/s/names.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/12.json.bak",
+    "parts": [
+     "{\"pid\":99999070,\"sessionId\":\"bak-name\",\"messagingSocketPath\":\"/tmp/s/names.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/٣.json",
+    "parts": [
+     "{\"pid\":99999070,\"sessionId\":\"arabic-name\",\"messagingSocketPath\":\"/tmp/s/names.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999071.JSON",
+    "parts": [
+     "{\"pid\":99999071,\"sessionId\":\"upper-ext\",\"messagingSocketPath\":\"/tmp/s/names.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/0099999072.json",
+    "parts": [
+     "{\"pid\":99999072,\"sessionId\":\"leading-zero-name\",\"messagingSocketPath\":\"/tmp/s/lz.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999073.json",
+    "parts": [
+     "[{\"pid\":99999073,\"sessionId\":\"arr\"}]"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999074.json",
+    "parts": [
+     "\"99999074\""
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999075.json",
+    "parts": [
+     ""
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999077.json",
+    "parts": [
+     "{\"pid\":99999077,\"sessionId\":\"str-start\",\"startedAt\":\"1\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999078.json",
+    "parts": [
+     "{\"pid\":99999078,\"sessionId\":\"late-start\",\"startedAt\":1800000005001}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999079.json",
+    "parts": [
+     "{\"pid\":99999079,\"sessionId\":\"bad-utf8\",\"cwd\":\"/work/",
+     {
+      "hex": "fffe"
+     },
+     "\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999400.json",
+    "parts": [
+     "{\"pid\":99999400,\"sessionId\":\"00000000-0000-4000-8000-0000000000aa\",\"cwd\":\"/work/proj-b\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/profiles/acc_a/sessions/@LIVE@.json",
+    "parts": [
+     "{\"pid\":@LIVE@,\"sessionId\":\"live-in-profile\",\"messagingSocketPath\":\"/tmp/cc-socks/other.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/profiles/acc_a/sessions/99999051.json",
+    "parts": [
+     "{\"pid\":99999051,\"sessionId\":\"both-profile\",\"messagingSocketPath\":\"/tmp/s/both.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/profiles/acc_a/sessions/99999100.json",
+    "parts": [
+     "{\"pid\":99999100,\"sessionId\":\"from-profile-a\",\"messagingSocketPath\":\"/tmp/s/prof.sock\"}"
+    ]
+   },
+   {
+    "op": "link",
+    "path": ".claude/.claudius/profiles/acc_b/sessions",
+    "target": "../../../sessions"
+   },
+   {
+    "op": "dir",
+    "path": ".claude/.claudius/profiles/acc_c"
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/profiles/acc_d/sessions",
+    "parts": [
+     "not a dir"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/profiles/acc_e/projects/-work-proj-e/e.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"profile-transcript\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000010-1111-4111-8111-000000000010\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000000099999904"
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/profiles/acc_f/sessions/99999101.json",
+    "parts": [
+     "{\"pid\":99999101,\"sessionId\":\"only-in-f\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": "linked-registry/99999102.json",
+    "parts": [
+     "{\"pid\":99999102,\"sessionId\":\"via-linked-registry\"}"
+    ]
+   },
+   {
+    "op": "link",
+    "path": ".claude/.claudius/profiles/acc_g/sessions",
+    "target": "../../../../linked-registry"
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/profiles/README",
+    "parts": [
+     "profiles"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[",
+     "{\"id\":\"wks_a\",\"name\":\"A\",\"rootPath\":\"/work/proj-a\"},",
+     "{\"id\":\"wks_a_pkgs\",\"rootPath\":\"/work/proj-a/packages/\"},",
+     "{\"id\":\"wks_b\",\"rootPath\":\"/work/proj-b\"},",
+     "{\"id\":\"wks_b_dup\",\"rootPath\":\"/work/proj-b\"},",
+     "{\"id\":7,\"rootPath\":\"/elsewhere\"},",
+     "{\"id\":{\"n\":1.0,\"k\":[1e2,\"\\u00e9\"]},\"rootPath\":\"/work/proj-c\"},",
+     "{\"rootPath\":\"/work/proj-d\"},",
+     "{\"id\":null,\"rootPath\":\"/c\"},",
+     "{\"id\":\"wks_root\",\"rootPath\":\"/\"},",
+     "{\"id\":\"wks_prefix\",\"rootPath\":\"/work/proj\"},",
+     "{\"id\":\"wks_lone_\\udc00\",\"rootPath\":\"/work/lone\\ud800\"},",
+     "{\"id\":\"wks_first\",\"rootPath\":\"/work/dup\",\"id\":\"wks_last\"}",
+     "]}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-a/receiver.jsonl",
+    "parts": [
+     "{\"type\":\"system\",\"subtype\":\"init\",\"cwd\":\"/work/receiver\",\"sessionId\":\"receiver-1\",\"tools\":[\"Bash\",\"SendMessage\"]}\n",
+     "{\"type\":\"user\",\"sessionId\":\"receiver-1\",\"origin\":{\"kind\":\"peer\",\"from\":\"uds:/tmp/cc-socks/live.sock\",\"msg_id\":\"00000001-1111-4111-8111-000000000001\"},\"message\":{\"role\":\"user\",\"content\":\"<cross-session-message>  Please review the PR #42 when you get a chance.\\n</cross-session-message>\"}}\n",
+     "{\"type\":\"assistant\",\"sessionId\":\"receiver-1\",\"toolUseResult\":\"msg_id 00000001-1111-4111-8111-000000000001 was received\"}\n",
+     "{\"type\":\"assistant\",\"sessionId\":\"receiver-1\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"SendMessage\"}]}}\n"
+    ],
+    "mtimeNs": "1800000000500000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-a/s1.jsonl",
+    "parts": [
+     "{\"type\":\"system\",\"subtype\":\"init\",\"cwd\":\"/work/proj-a\",\"sessionId\":\"sender-transcript-1\"}\n",
+     "{\"type\":\"assistant\",\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a/sub\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\"  Please review the PR #42 when you get a chance.\\n\"}}]}}\n",
+     "{\"type\":\"user\",\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a/sub\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000001-1111-4111-8111-000000000001\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000001000000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-a/old.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"old-sender\",\"cwd\":\"/work/proj-a\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000002-1111-4111-8111-000000000002\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1799999600000000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-a/.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"dot-jsonl-name\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000011-1111-4111-8111-000000000011\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000001099999904"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-a/x.JSONL",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"upper-jsonl\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000012-1111-4111-8111-000000000012\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000001200000047"
+   },
+   {
+    "op": "dir",
+    "path": ".claude/projects/-work-proj-a/dir.jsonl",
+    "mtimeNs": "1800000001250000000"
+   },
+   {
+    "op": "file",
+    "path": "outside/linked.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"linked-sender\",\"cwd\":\"/elsewhere/deep\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000007-1111-4111-8111-000000000007\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000001299999952"
+   },
+   {
+    "op": "link",
+    "path": ".claude/projects/-work-proj-a/link.jsonl",
+    "target": "../../../outside/linked.jsonl"
+   },
+   {
+    "op": "link",
+    "path": ".claude/projects/-work-proj-a/dangling.jsonl",
+    "target": "../../../outside/nope.jsonl"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-a/locked.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"locked-sender\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000008-1111-4111-8111-000000000008\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000001400000095"
+   },
+   {
+    "op": "chmod",
+    "path": ".claude/projects/-work-proj-a/locked.jsonl",
+    "mode": 0
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/crlf.jsonl",
+    "parts": [
+     "{\"type\":\"system\",\"cwd\": \"/spaced\",\"sessionId\":\"crlf-sender\"}\r\n",
+     "{\"type\":\"x\",\"cwd\":\"\"}\r\n",
+     "[{\"cwd\":\"/in-array\"}]\r\n",
+     "{\"cwd\":\"/torn\"\r\n",
+     "{\"type\":\"system\",\"cwd\":\"/work/proj-b/deeper\",\"sessionId\":\"crlf-sender\"}\r\n",
+     "{\"type\":\"user\",\"sessionId\":\"crlf-sender\",\"cwd\":\"/work/proj-b/other\",\"toolUseResult\":{\"msg_id\":\"00000003-1111-4111-8111-000000000003\"}}\r\n"
+    ],
+    "mtimeNs": "1800000002000000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/u2028.jsonl",
+    "parts": [
+     "{\"type\":\"assistant\",\"sessionId\":\"u2028-sender\",\"cwd\":\"/work/proj-b\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\"Line one line two  and more text\"}}]}}\n"
+    ],
+    "mtimeNs": "1800000002099999904"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/badsession.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"bad id!\",\"toolUseResult\":{\"msg_id\":\"00000005-1111-4111-8111-000000000005\"}}\n",
+     "{\"type\":\"user\",\"sessionId\":5,\"toolUseResult\":{\"msg_id\":\"00000005-1111-4111-8111-000000000005\"}}\n",
+     "{\"type\":\"user\",\"sessionId\":\"good-after-bad\",\"cwd\":\"/work/proj-b/g\",\"toolUseResult\":{\"msg_id\":\"00000005-1111-4111-8111-000000000005\"}}\n"
+    ],
+    "mtimeNs": "1800000002200000047"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/upper.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"lower-sender\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000006-aaaa-4aaa-8111-000000000006\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000002299999952"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/nocwd.jsonl",
+    "parts": [
+     "{\"sessionId\":\"no-cwd\",\"cwd\":5,\"toolUseResult\":{\"msg_id\":\"00000013-1111-4111-8111-000000000013\"}}\n"
+    ],
+    "mtimeNs": "1800000002400000095"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/torn.jsonl",
+    "parts": [
+     "{\"sessionId\":\"torn-1\",\"toolUseResult\":{\"msg_id\":\"00000014-1111-4111-8111-000000000014\"\n",
+     "{\"sessionId\":\"after-torn\",\"toolUseResult\":{\"msg_id\":\"00000014-1111-4111-8111-000000000014\"}}\n"
+    ],
+    "mtimeNs": "1800000002500000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/toolstr.jsonl",
+    "parts": [
+     "{\"sessionId\":\"tool-str\",\"toolUseResult\":\"00000015-1111-4111-8111-000000000015\"}\n"
+    ],
+    "mtimeNs": "1800000002599999904"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/hosted.jsonl",
+    "parts": [
+     "{\"sessionId\":\"00000000-0000-4000-8000-0000000000aa\",\"cwd\":\"/work/proj-b\",\"toolUseResult\":{\"msg_id\":\"00000030-1111-4111-8111-000000000030\"}}\n"
+    ],
+    "mtimeNs": "1800000002700000047"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-b/shapes.jsonl",
+    "parts": [
+     "{\"sessionId\":\"shape-1\",\"message\":{\"content\":\"SendMessage body text here\"}}\n",
+     "{\"sessionId\":\"shape-2\",\"message\":{\"content\":[null,\"x\",{\"type\":\"tool_use\",\"name\":\"SendMessage\",\"input\":null}]}}\n",
+     "{\"sessionId\":\"shape-3\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"SendMessage\",\"input\":{\"message\":5}}]}}\n",
+     "{\"sessionId\":\"shape-4\",\"message\":{\"content\":[{\"type\":\"text\",\"name\":\"SendMessage\",\"input\":{\"message\":\"Shapes body text here\"}}]}}\n",
+     "{\"sessionId\":\"shape-5\",\"message\":\"SendMessage\"}\n",
+     "{\"sessionId\":\"shape-6\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"SendMessage\",\"input\":{\"message\":\"Shapes body text here!\"}}]}}\n"
+    ],
+    "mtimeNs": "1800000002799999952"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-c/inv1.jsonl",
+    "parts": [
+     "{\"pad\":\"",
+     {
+      "rep": "x",
+      "n": 65514
+     },
+     "\",\"cwd\":\"/c/",
+     {
+      "hex": "f09f9880ff"
+     },
+     {
+      "hex": "e282"
+     },
+     "A\",\"sessionId\":\"inv1\"}\n",
+     "{\"type\":\"user\",\"sessionId\":\"inv1\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000040-1111-4111-8111-000000000040\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000003000000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-c/inv2.jsonl",
+    "parts": [
+     "{\"pad\":\"",
+     {
+      "rep": "x",
+      "n": 65515
+     },
+     "\",\"cwd\":\"/c/",
+     {
+      "hex": "e282ac"
+     },
+     "\",\"sessionId\":\"inv2\"}\n",
+     "{\"type\":\"user\",\"sessionId\":\"inv2\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000041-1111-4111-8111-000000000041\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000003000999927"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-c/inv3.jsonl",
+    "parts": [
+     "{\"pad\":\"",
+     {
+      "rep": "x",
+      "n": 65514
+     },
+     "\",\"cwd\":\"/c/",
+     {
+      "hex": "f09f41"
+     },
+     "\",\"sessionId\":\"inv3\"}\n",
+     "{\"type\":\"user\",\"sessionId\":\"inv3\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000042-1111-4111-8111-000000000042\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000003002000093"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-c/inv4.jsonl",
+    "parts": [
+     "{\"pad\":\"",
+     {
+      "rep": "x",
+      "n": 65515
+     },
+     "\",\"cwd\":\"/c/",
+     {
+      "hex": "eda080"
+     },
+     "\",\"sessionId\":\"inv4\"}\n",
+     "{\"type\":\"user\",\"sessionId\":\"inv4\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000043-1111-4111-8111-000000000043\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000003003000020"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-c/inv5.jsonl",
+    "parts": [
+     "{\"pad\":\"",
+     {
+      "rep": "x",
+      "n": 65515
+     },
+     "\",\"cwd\":\"/c/",
+     {
+      "hex": "c080"
+     },
+     "\",\"sessionId\":\"inv5\"}\n",
+     "{\"type\":\"user\",\"sessionId\":\"inv5\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000044-1111-4111-8111-000000000044\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000003003999948"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-c/inv6.jsonl",
+    "parts": [
+     "{\"pad\":\"",
+     {
+      "rep": "x",
+      "n": 65515
+     },
+     "\",\"cwd\":\"/c/",
+     {
+      "hex": "f5808080"
+     },
+     "\",\"sessionId\":\"inv6\"}\n",
+     "{\"type\":\"user\",\"sessionId\":\"inv6\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000045-1111-4111-8111-000000000045\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000003005000114"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-c/huge.jsonl",
+    "parts": [
+     "{\"type\":\"system\",\"cwd\":\"/work/proj-c\",\"sessionId\":\"huge-sender\"}\n",
+     "{\"type\":\"user\",\"blob\":\"",
+     {
+      "rep": "A",
+      "n": 3000000
+     },
+     "\"}\n",
+     "{\"type\":\"assistant\",\"sessionId\":\"huge-sender\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"SendMessage\",\"input\":{\"message\":\"Huge transcript message body here\",\"image\":\"",
+     {
+      "rep": "B",
+      "n": 1500000
+     },
+     "\"}}]}}\n",
+     "{\"type\":\"user\",\"sessionId\":\"huge-sender\",\"toolUseResult\":{\"msg_id\":\"00000009-1111-4111-8111-000000000009\",\"blob\":\"",
+     {
+      "rep": "C",
+      "n": 2000000
+     },
+     "\"}}"
+    ],
+    "mtimeNs": "1800000003500000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-d/decoy.jsonl",
+    "parts": [
+     "{\"type\":\"assistant\",\"sessionId\":\"astral-decoy\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😁 decoy\"}}]}}\n"
+    ],
+    "mtimeNs": "1800000004000000000"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-d/real.jsonl",
+    "parts": [
+     "{\"type\":\"assistant\",\"sessionId\":\"astral-real\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀 real\"}}]}}\n"
+    ],
+    "mtimeNs": "1800000004099999904"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-d/real2.jsonl",
+    "parts": [
+     "{\"type\":\"assistant\",\"sessionId\":\"astral-two\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀 two\"}}]}}\n"
+    ],
+    "mtimeNs": "1800000004200000047"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-d/trim.jsonl",
+    "parts": [
+     "{\"type\":\"assistant\",\"sessionId\":\"trim-sender\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"sending\"},{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"SendMessage\",\"input\":{\"to\":\"peer\",\"message\":\" 　 ﻿Hello from the other session, friend \"}}]}}\n"
+    ],
+    "mtimeNs": "1800000004299999952"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-d/lone.jsonl",
+    "parts": [
+     "{\"type\":\"assistant\",\"sessionId\":\"lone-body\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"SendMessage\",\"input\":{\"message\":\"",
+     "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+     "\\ud83d!\"}}]}}\n"
+    ],
+    "mtimeNs": "1800000004400000095"
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/not-a-dir.txt",
+    "parts": [
+     "x"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-locked-dir/l.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"locked-dir-sender\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000017-1111-4111-8111-000000000017\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000004500000000"
+   },
+   {
+    "op": "chmod",
+    "path": ".claude/projects/-locked-dir",
+    "mode": 0
+   },
+   {
+    "op": "get",
+    "query": null,
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=abc",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=12345678901",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=-5",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=1.0",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=%EF%BC%91",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=+1",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "at=123",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "PID=1",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=abc&pid=1",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "&&=&pid&at=1",
+    "got": {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"from, pid, msgId or snippet required\"}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=0",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=1",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"init-record\",\"cwd\":\"/\",\"name\":\"launchd\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_root\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=1&pid=abc",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"init-record\",\"cwd\":\"/\",\"name\":\"launchd\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_root\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "p%69d=1",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"init-record\",\"cwd\":\"/\",\"name\":\"launchd\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_root\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=tcp%3A127.0.0.1",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=%20%20",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=+++",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=not-a-uuid",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000099-1111-4111-8111-000000000099",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000001-1111-4111-8111-000000000001&at=12345678901234567",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000001-1111-4111-8111-000000000001&at=1234567890123456",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_a_pkgs\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=0@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_a_pkgs\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@&from=uds%3A%2Ftmp%2Fcc-socks%2Flive.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_a_pkgs\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@&from=uds%3A%2Ftmp%2Fcc-socks%2Fother.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"live-in-profile\",\"cwd\":null,\"name\":null,\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@&at=1799999930000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"live-in-profile\",\"cwd\":null,\"name\":null,\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@&at=1799999935000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_a_pkgs\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@&at=1799999934999",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"live-in-profile\",\"cwd\":null,\"name\":null,\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fcc-socks%2Fother.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"live-in-profile\",\"cwd\":null,\"name\":null,\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds:/tmp/cc-socks/live.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_a_pkgs\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999001",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fmismatch.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"rec-mismatch\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999002&from=uds%3A%2Ftmp%2Fs%2Fmismatch.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"rec-mismatch\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999003",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999004",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999005",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cwd\":\"/work/dup/x\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_last\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999006",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999007",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"float-text-pid\",\"cwd\":\"/work/proj-b/x\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_b\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999008",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999009",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999010",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999011",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999012",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"via-symlink\",\"cwd\":\"/elsewhere\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":7}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999013",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999015",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"lone-cwd\",\"cwd\":\"/work/lone\\ud800/sub\",\"name\":\"café 😀 \\udc00 é\",\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_lone_\\udc00\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999016&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999016",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"inf-start\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999017&from=uds%3A%2Fsome%2Fsock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"num-socket\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999018",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"second\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999019",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"odd-fields\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Ffrac.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"frac-next\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Forder.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"order-ten\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fzero.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"pid-zero\",\"cwd\":null,\"name\":null,\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fint32.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"big-pid\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=2147483648",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"big-pid\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fintmin.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"int-min\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fneg.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"neg-pid\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fmaxsafe.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"max-safe\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Funsafe.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fboth.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"both-main\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999051",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"both-profile\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999101",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"only-in-f\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999102",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fprof.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"from-profile-a\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2F%EF%BF%BD.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2F%E2%82%AC.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"euro-socket\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%252Ftmp%252Fs%252F%25E2%2582%25AC.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"euro-socket\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2F100%25.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"pct-socket\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2525E2%252582",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"raw-pct\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%25E2%2582",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"raw-pct\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Fnames.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Fs%2Flz.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"leading-zero-name\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999072",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999073",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999074",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999075",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999077&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"str-start\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999078&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999078&at=1800000000001",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"late-start\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999079",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"bad-utf8\",\"cwd\":\"/work/��\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_root\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999400",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"00000000-0000-4000-8000-0000000000aa\",\"cwd\":\"/work/proj-b\",\"name\":null,\"live\":false,\"hostedHere\":true,\"workspaceId\":\"wks_b\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=9999999999",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999014",
+    "needsPerms": true,
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000001-1111-4111-8111-000000000001",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000001-1111-4111-8111-000000000001",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Please%20review%20the%20PR%20%2342&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=%20%20Please%20review%20the%20PR%20%2342%20when%20you%20get%20a%20chance.%0A%0A%0A&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Please%20review%20the%20PR%20%2342%20when",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Please%20review&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000002-1111-4111-8111-000000000002&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000002-1111-4111-8111-000000000002",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"old-sender\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000003-1111-4111-8111-000000000003",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"crlf-sender\",\"cwd\":\"/work/proj-b/deeper\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_b\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Line%20one%E2%80%A8line%20two%E2%80%A9&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"u2028-sender\",\"cwd\":\"/work/proj-b\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_b\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000005-1111-4111-8111-000000000005",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"good-after-bad\",\"cwd\":\"/work/proj-b/g\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_b\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000006-AAAA-4AAA-8111-000000000006",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000006-aaaa-4aaa-8111-000000000006",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"lower-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000007-1111-4111-8111-000000000007",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"linked-sender\",\"cwd\":\"/elsewhere/deep\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":7}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000009-1111-4111-8111-000000000009",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"huge-sender\",\"cwd\":\"/work/proj-c\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":{\"n\":1,\"k\":[100,\"é\"]}}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Huge%20transcript%20message%20body&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"huge-sender\",\"cwd\":\"/work/proj-c\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":{\"n\":1,\"k\":[100,\"é\"]}}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000010-1111-4111-8111-000000000010",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000011-1111-4111-8111-000000000011",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"dot-jsonl-name\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000012-1111-4111-8111-000000000012",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000013-1111-4111-8111-000000000013",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"no-cwd\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000014-1111-4111-8111-000000000014",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"after-torn\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000015-1111-4111-8111-000000000015",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000030-1111-4111-8111-000000000030",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"00000000-0000-4000-8000-0000000000aa\",\"cwd\":\"/work/proj-b\",\"name\":null,\"live\":false,\"hostedHere\":true,\"workspaceId\":\"wks_b\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Shapes%20body%20text%20here&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"shape-6\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=SendMessage%20body%20text&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000040-1111-4111-8111-000000000040",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"inv1\",\"cwd\":\"/c/😀��A\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000041-1111-4111-8111-000000000041",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"inv2\",\"cwd\":\"/c/€\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000042-1111-4111-8111-000000000042",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"inv3\",\"cwd\":\"/c/�A\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000043-1111-4111-8111-000000000043",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"inv4\",\"cwd\":\"/c/���\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000044-1111-4111-8111-000000000044",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"inv5\",\"cwd\":\"/c/��\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000045-1111-4111-8111-000000000045",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"inv6\",\"cwd\":\"/c/����\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx%F0%9F%98%80%20real&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"astral-decoy\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx%F0%9F%98%80&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"astral-two\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx%F0%9F%98%80%20two%20and%20more&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"astral-two\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz%F0%9F%98%80&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"lone-body\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=%20%20Hello%20from%20the%20other%20session%20%20&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"trim-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Hello%20from&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=Hello%20from%20the%20o&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"trim-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=%20%20Hello%20from%20the%20%20&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "snippet=%E3%80%80Hello%20from%20the%20other%20session%2C%20friend%E2%80%A8%E2%80%A8&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"trim-sender\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000001-1111-4111-8111-000000000001&snippet=Line%20one%E2%80%A8line%20two%E2%80%A9&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=bad&snippet=Please%20review%20the%20PR%20%2342&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-transcript-1\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999001&msgId=00000003-1111-4111-8111-000000000003&from=uds%3A%2Fnone",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"crlf-sender\",\"cwd\":\"/work/proj-b/deeper\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_b\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000008-1111-4111-8111-000000000008",
+    "needsPerms": true,
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000017-1111-4111-8111-000000000017",
+    "needsPerms": true,
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000020-1111-4111-8111-000000000020",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/projects/-work-proj-late/late.jsonl",
+    "parts": [
+     "{\"type\":\"user\",\"sessionId\":\"late-sender\",\"cwd\":\"/work/proj-a\",\"toolUseResult\":{\"success\":true,\"msg_id\":\"00000020-1111-4111-8111-000000000020\"},\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"sent\"}]}}\n"
+    ],
+    "mtimeNs": "1800000005000000000"
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000020-1111-4111-8111-000000000020",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000020-1111-4111-8111-000000000020&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"late-sender\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "rm",
+    "path": ".claude/projects/-work-proj-late/late.jsonl"
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000020-1111-4111-8111-000000000020&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"late-sender\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000020-1111-4111-8111-000000000020&at=01800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"late-sender\",\"cwd\":\"/work/proj-a\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_a\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "msgId=00000020-1111-4111-8111-000000000020&at=1800000000000&from=x",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999300",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999300.json",
+    "parts": [
+     "{\"pid\":99999300,\"sessionId\":\"reg-late\"}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=099999300",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999300&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"reg-late\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999300&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"reg-late\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "rm",
+    "path": ".claude/sessions/99999300.json"
+   },
+   {
+    "op": "get",
+    "query": "pid=99999300&at=1800000000000",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk0.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk1.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk2.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999200.json",
+    "parts": [
+     "{\"pid\":99999200,\"sessionId\":\"fill-k0\",\"messagingSocketPath\":\"/tmp/fill/k0.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999201.json",
+    "parts": [
+     "{\"pid\":99999201,\"sessionId\":\"fill-k1\",\"messagingSocketPath\":\"/tmp/fill/k1.sock\"}"
+    ]
+   },
+   {
+    "op": "file",
+    "path": ".claude/sessions/99999202.json",
+    "parts": [
+     "{\"pid\":99999202,\"sessionId\":\"fill-k2\",\"messagingSocketPath\":\"/tmp/fill/k2.sock\"}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk0.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "fill",
+    "n": 498
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk1.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk0.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"fill-k0\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk1.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"fill-k1\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "from=uds%3A%2Ftmp%2Ffill%2Fk2.sock",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":null}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[",
+     "{\"id\":\"wks_a\",\"name\":\"A\",\"rootPath\":\"/work/proj-a\"},",
+     "{\"id\":\"wks_a_pkgs\",\"rootPath\":\"/work/proj-a/packages/\"},",
+     "{\"id\":\"wks_b\",\"rootPath\":\"/work/proj-b\"},",
+     "{\"id\":\"wks_b_dup\",\"rootPath\":\"/work/proj-b\"},",
+     "{\"id\":7,\"rootPath\":\"/elsewhere\"},",
+     "{\"id\":{\"n\":1.0,\"k\":[1e2,\"\\u00e9\"]},\"rootPath\":\"/work/proj-c\"},",
+     "{\"rootPath\":\"/work/proj-d\"},",
+     "{\"id\":null,\"rootPath\":\"/c\"},",
+     "{\"id\":\"wks_root\",\"rootPath\":\"/\"},",
+     "{\"id\":\"wks_prefix\",\"rootPath\":\"/work/proj\"},",
+     "{\"id\":\"wks_lone_\\udc00\",\"rootPath\":\"/work/lone\\ud800\"},",
+     "{\"id\":\"wks_first\",\"rootPath\":\"/work/dup\",\"id\":\"wks_last\"}",
+     "]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=99999015",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"lone-cwd\",\"cwd\":\"/work/lone\\ud800/sub\",\"name\":\"café 😀 \\udc00 é\",\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_lone_\\udc00\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=1",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"init-record\",\"cwd\":\"/\",\"name\":\"launchd\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"wks_root\"}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999012",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"via-symlink\",\"cwd\":\"/elsewhere\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":7}}"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999005",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cwd\":\"/work/dup/x\",\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":\"wks_last\"}}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[{\"id\":\"w\",\"rootPath\":\"/work\"},null]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "threw": "TypeError: Cannot read properties of null (reading 'rootPath')"
+    }
+   },
+   {
+    "op": "get",
+    "query": "pid=99999019",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"odd-fields\",\"cwd\":null,\"name\":null,\"live\":false,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[5]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "threw": "TypeError: Cannot read properties of undefined (reading 'endsWith')"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[\"/work\"]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "threw": "TypeError: Cannot read properties of undefined (reading 'endsWith')"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[{\"id\":\"w\"}]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "threw": "TypeError: Cannot read properties of undefined (reading 'endsWith')"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[{\"id\":\"w\",\"rootPath\":null}]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "threw": "TypeError: Cannot read properties of null (reading 'endsWith')"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[{\"id\":\"w\",\"rootPath\":7}]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "threw": "TypeError: w.rootPath.endsWith is not a function"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[{\"id\":\"w\",\"rootPath\":[\"/work\"]}]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "threw": "TypeError: w.rootPath.endsWith is not a function"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[{\"id\":\"w\",\"rootPath\":\"/work/proj-a/packages/web\"}]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"w\"}}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":[{\"id\":\"w\",\"rootPath\":\"\"}]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":\"w\"}}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":2,\"workspaces\":[{\"id\":\"w\",\"rootPath\":\"/\"}]}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{\"version\":1,\"workspaces\":{\"0\":{\"id\":\"w\",\"rootPath\":\"/\"}}}"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "null"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "file",
+    "path": ".claude/.claudius/workspaces.json",
+    "parts": [
+     "{oops"
+    ]
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "rm",
+    "path": ".claude/.claudius/workspaces.json"
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   },
+   {
+    "op": "dir",
+    "path": ".claude/.claudius/workspaces.json"
+   },
+   {
+    "op": "get",
+    "query": "pid=@LIVE@",
+    "got": {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"source\":{\"sessionId\":\"sender-live-1\",\"cwd\":\"/work/proj-a/packages/web\",\"name\":\"afrexim-99\",\"live\":true,\"hostedHere\":false,\"workspaceId\":null}}"
+    }
+   }
+  ]
+ }
+}

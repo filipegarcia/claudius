@@ -1,0 +1,3144 @@
+{
+ "wrap": [
+  {
+   "body": "",
+   "xml": "<system-reminder>\n\n</system-reminder>\n\n"
+  },
+  {
+   "body": "x",
+   "xml": "<system-reminder>\nx\n</system-reminder>\n\n"
+  },
+  {
+   "body": "a\nb",
+   "xml": "<system-reminder>\na\nb\n</system-reminder>\n\n"
+  },
+  {
+   "body": "<system-reminder>nested</system-reminder>",
+   "xml": "<system-reminder>\n<system-reminder>nested</system-reminder>\n</system-reminder>\n\n"
+  },
+  {
+   "body": "trailing\n",
+   "xml": "<system-reminder>\ntrailing\n\n</system-reminder>\n\n"
+  },
+  {
+   "body": "é   😀",
+   "xml": "<system-reminder>\né   😀\n</system-reminder>\n\n"
+  }
+ ],
+ "ultrathink": [
+  {
+   "text": "ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ULTRATHINK",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "UltraThink about it",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "Ultrathink.",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "please ultrathink this",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "(ultrathink)",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink-mode",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "say ultrathink\nthen stop",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathinking",
+   "body": null
+  },
+  {
+   "text": "preultrathink",
+   "body": null
+  },
+  {
+   "text": "ultra think",
+   "body": null
+  },
+  {
+   "text": "ultrathin",
+   "body": null
+  },
+  {
+   "text": "_ultrathink",
+   "body": null
+  },
+  {
+   "text": "ultrathink_",
+   "body": null
+  },
+  {
+   "text": "1ultrathink",
+   "body": null
+  },
+  {
+   "text": "ultrathink2",
+   "body": null
+  },
+  {
+   "text": "$ultrathink$",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "éultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathinké",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathinḱ",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "́ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink٣",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "λultrathinkλ",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathinK",
+   "body": null
+  },
+  {
+   "text": "ultrathınk",
+   "body": null
+  },
+  {
+   "text": "ultrathİnk",
+   "body": null
+  },
+  {
+   "text": "ｕltrathink",
+   "body": null
+  },
+  {
+   "text": "",
+   "body": null
+  }
+ ],
+ "dates": [
+  {
+   "date": [
+    2026,
+    10,
+    27
+   ],
+   "key": "2026-10-27",
+   "prev": "2026-10-27",
+   "body": null
+  },
+  {
+   "date": [
+    2026,
+    10,
+    27
+   ],
+   "key": "2026-10-27",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Tue Oct 27 2026. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2026,
+    10,
+    27
+   ],
+   "key": "2026-10-27",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Tue Oct 27 2026. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2026,
+    1,
+    1
+   ],
+   "key": "2026-01-01",
+   "prev": "2026-01-01",
+   "body": null
+  },
+  {
+   "date": [
+    2026,
+    1,
+    1
+   ],
+   "key": "2026-01-01",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Thu Jan 01 2026. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2026,
+    1,
+    1
+   ],
+   "key": "2026-01-01",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Thu Jan 01 2026. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2026,
+    12,
+    31
+   ],
+   "key": "2026-12-31",
+   "prev": "2026-12-31",
+   "body": null
+  },
+  {
+   "date": [
+    2026,
+    12,
+    31
+   ],
+   "key": "2026-12-31",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Thu Dec 31 2026. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2026,
+    12,
+    31
+   ],
+   "key": "2026-12-31",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Thu Dec 31 2026. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2024,
+    2,
+    29
+   ],
+   "key": "2024-02-29",
+   "prev": "2024-02-29",
+   "body": null
+  },
+  {
+   "date": [
+    2024,
+    2,
+    29
+   ],
+   "key": "2024-02-29",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Thu Feb 29 2024. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2024,
+    2,
+    29
+   ],
+   "key": "2024-02-29",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Thu Feb 29 2024. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2000,
+    3,
+    5
+   ],
+   "key": "2000-03-05",
+   "prev": "2000-03-05",
+   "body": null
+  },
+  {
+   "date": [
+    2000,
+    3,
+    5
+   ],
+   "key": "2000-03-05",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Sun Mar 05 2000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2000,
+    3,
+    5
+   ],
+   "key": "2000-03-05",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Sun Mar 05 2000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    1999,
+    12,
+    31
+   ],
+   "key": "1999-12-31",
+   "prev": "1999-12-31",
+   "body": null
+  },
+  {
+   "date": [
+    1999,
+    12,
+    31
+   ],
+   "key": "1999-12-31",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Fri Dec 31 1999. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    1999,
+    12,
+    31
+   ],
+   "key": "1999-12-31",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Fri Dec 31 1999. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    1970,
+    1,
+    1
+   ],
+   "key": "1970-01-01",
+   "prev": "1970-01-01",
+   "body": null
+  },
+  {
+   "date": [
+    1970,
+    1,
+    1
+   ],
+   "key": "1970-01-01",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Thu Jan 01 1970. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    1970,
+    1,
+    1
+   ],
+   "key": "1970-01-01",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Thu Jan 01 1970. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2100,
+    7,
+    4
+   ],
+   "key": "2100-07-04",
+   "prev": "2100-07-04",
+   "body": null
+  },
+  {
+   "date": [
+    2100,
+    7,
+    4
+   ],
+   "key": "2100-07-04",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Sun Jul 04 2100. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    2100,
+    7,
+    4
+   ],
+   "key": "2100-07-04",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Sun Jul 04 2100. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    999,
+    6,
+    15
+   ],
+   "key": "999-06-15",
+   "prev": "999-06-15",
+   "body": null
+  },
+  {
+   "date": [
+    999,
+    6,
+    15
+   ],
+   "key": "999-06-15",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Sat Jun 15 0999. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    999,
+    6,
+    15
+   ],
+   "key": "999-06-15",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Sat Jun 15 0999. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    1000,
+    1,
+    1
+   ],
+   "key": "1000-01-01",
+   "prev": "1000-01-01",
+   "body": null
+  },
+  {
+   "date": [
+    1000,
+    1,
+    1
+   ],
+   "key": "1000-01-01",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Wed Jan 01 1000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    1000,
+    1,
+    1
+   ],
+   "key": "1000-01-01",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Wed Jan 01 1000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    9999,
+    12,
+    31
+   ],
+   "key": "9999-12-31",
+   "prev": "9999-12-31",
+   "body": null
+  },
+  {
+   "date": [
+    9999,
+    12,
+    31
+   ],
+   "key": "9999-12-31",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Fri Dec 31 9999. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    9999,
+    12,
+    31
+   ],
+   "key": "9999-12-31",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Fri Dec 31 9999. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    10000,
+    1,
+    1
+   ],
+   "key": "10000-01-01",
+   "prev": "10000-01-01",
+   "body": null
+  },
+  {
+   "date": [
+    10000,
+    1,
+    1
+   ],
+   "key": "10000-01-01",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Sat Jan 01 10000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    10000,
+    1,
+    1
+   ],
+   "key": "10000-01-01",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Sat Jan 01 10000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    42,
+    4,
+    2
+   ],
+   "key": "42-04-02",
+   "prev": "42-04-02",
+   "body": null
+  },
+  {
+   "date": [
+    42,
+    4,
+    2
+   ],
+   "key": "42-04-02",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Wed Apr 02 0042. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    42,
+    4,
+    2
+   ],
+   "key": "42-04-02",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Wed Apr 02 0042. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    0,
+    3,
+    1
+   ],
+   "key": "0-03-01",
+   "prev": "0-03-01",
+   "body": null
+  },
+  {
+   "date": [
+    0,
+    3,
+    1
+   ],
+   "key": "0-03-01",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Wed Mar 01 0000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    0,
+    3,
+    1
+   ],
+   "key": "0-03-01",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Wed Mar 01 0000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    -1,
+    6,
+    15
+   ],
+   "key": "-1-06-15",
+   "prev": "-1-06-15",
+   "body": null
+  },
+  {
+   "date": [
+    -1,
+    6,
+    15
+   ],
+   "key": "-1-06-15",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Tue Jun 15 -0001. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    -1,
+    6,
+    15
+   ],
+   "key": "-1-06-15",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Tue Jun 15 -0001. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    -2000,
+    2,
+    29
+   ],
+   "key": "-2000-02-29",
+   "prev": "-2000-02-29",
+   "body": null
+  },
+  {
+   "date": [
+    -2000,
+    2,
+    29
+   ],
+   "key": "-2000-02-29",
+   "prev": "2026-10-26",
+   "body": "The date has changed. Today's date is now Tue Feb 29 -2000. DO NOT mention this to the user explicitly because they are already aware."
+  },
+  {
+   "date": [
+    -2000,
+    2,
+    29
+   ],
+   "key": "-2000-02-29",
+   "prev": "",
+   "body": "The date has changed. Today's date is now Tue Feb 29 -2000. DO NOT mention this to the user explicitly because they are already aware."
+  }
+ ],
+ "linter": [
+  {
+   "paths": [],
+   "body": null
+  },
+  {
+   "paths": [
+    "/a.txt"
+   ],
+   "body": "/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware."
+  },
+  {
+   "paths": [
+    "/a.txt",
+    "/b.txt"
+   ],
+   "body": "/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n/b.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware."
+  },
+  {
+   "paths": [
+    "/a.txt",
+    "/a.txt"
+   ],
+   "body": "/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware."
+  },
+  {
+   "paths": [
+    ""
+   ],
+   "body": " was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware."
+  },
+  {
+   "paths": [
+    "/p with space/été.txt",
+    "rel/x.ts",
+    "C:\\win\\path.ts"
+   ],
+   "body": "/p with space/été.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\nrel/x.ts was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\nC:\\win\\path.ts was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware."
+  },
+  {
+   "paths": [
+    "a\nb",
+    "tab\there"
+   ],
+   "body": "a\nb was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\ntab\there was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware."
+  }
+ ],
+ "constants": {
+  "midturnInject": "The user sent the message that follows while you were still working on the previous turn. After completing your current task, you MUST address that message. Do not ignore it. This is an automated reminder — the user has NOT acknowledged that the prior task is done.",
+  "autoModeExit": "## Exited Auto Mode\nYou have exited auto mode. The user may now want to interact more directly. You should ask clarifying questions when the approach is ambiguous rather than making assumptions.",
+  "verifyPlan": "You have completed implementing the plan. Verify that all plan items were completed correctly by checking the work directly in this session, NOT via the Task tool or a subagent — the parent context already holds the plan's state, tool history, and edited files that a fresh sub-agent would lose."
+ },
+ "plans": [
+  {
+   "prior": "1. Read\n2. Fix",
+   "body": "## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\n1. Read\n2. Fix"
+  },
+  {
+   "prior": "x",
+   "body": "## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\nx"
+  },
+  {
+   "prior": "",
+   "body": "## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\n"
+  },
+  {
+   "prior": "é 😀",
+   "body": "## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\né 😀"
+  },
+  {
+   "prior": "  padded  ",
+   "body": "## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\n  padded  "
+  }
+ ],
+ "queues": [
+  {
+   "op": [
+    "take",
+    "a"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "takeMid",
+    "a"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "count",
+    "a"
+   ],
+   "result": 0
+  },
+  {
+   "op": [
+    "countMid",
+    "a"
+   ],
+   "result": 0
+  },
+  {
+   "op": [
+    "q",
+    "a",
+    "date-change",
+    "one"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "q",
+    "a",
+    "date-change",
+    "one"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "m",
+    "a",
+    "todos-stale-midturn",
+    "mid one"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "q",
+    "b",
+    "verify-plan",
+    "b one"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "count",
+    "a"
+   ],
+   "result": 2
+  },
+  {
+   "op": [
+    "countMid",
+    "a"
+   ],
+   "result": 1
+  },
+  {
+   "op": [
+    "count",
+    "b"
+   ],
+   "result": 1
+  },
+  {
+   "op": [
+    "countMid",
+    "b"
+   ],
+   "result": 0
+  },
+  {
+   "op": [
+    "takeMid",
+    "b"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "take",
+    "a"
+   ],
+   "result": "<system-reminder>\none\n</system-reminder>\n\n<system-reminder>\none\n</system-reminder>\n\n"
+  },
+  {
+   "op": [
+    "take",
+    "a"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "count",
+    "a"
+   ],
+   "result": 0
+  },
+  {
+   "op": [
+    "takeMid",
+    "a"
+   ],
+   "result": "<system-reminder>\nmid one\n</system-reminder>\n\n"
+  },
+  {
+   "op": [
+    "takeMid",
+    "a"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "q",
+    "a",
+    "ultrathink-prose",
+    ""
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "q",
+    "a",
+    "mcp-delta",
+    "multi\nline"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "m",
+    "a",
+    "truncated-read",
+    "mid two"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "m",
+    "a",
+    "mcp-delta-midturn",
+    "mid three"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "q",
+    "a",
+    "linter-modified-file",
+    "é"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "take",
+    "b"
+   ],
+   "result": "<system-reminder>\nb one\n</system-reminder>\n\n"
+  },
+  {
+   "op": [
+    "take",
+    "b"
+   ],
+   "result": null
+  },
+  {
+   "op": [
+    "takeMid",
+    "a"
+   ],
+   "result": "<system-reminder>\nmid two\n</system-reminder>\n\n<system-reminder>\nmid three\n</system-reminder>\n\n"
+  },
+  {
+   "op": [
+    "take",
+    "a"
+   ],
+   "result": "<system-reminder>\n\n</system-reminder>\n\n<system-reminder>\nmulti\nline\n</system-reminder>\n\n<system-reminder>\né\n</system-reminder>\n\n"
+  },
+  {
+   "op": [
+    "countMid",
+    "a"
+   ],
+   "result": 0
+  }
+ ],
+ "scenarios": [
+  {
+   "name": "a rewritten file rides the next prompt, once",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "one\n"
+    ],
+    [
+     "send",
+     "[[1]] edit it"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "one (formatted)\n"
+    ],
+    [
+     "send",
+     "[[2]] next"
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "changed again\n"
+    ],
+    [
+     "send",
+     "[[3]] again"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] edit it",
+    "<system-reminder>\n$ROOT/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] next",
+    "[[3]] again"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "the same bytes are no change",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "same"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "content": "same"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "same"
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "[[2]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "a deleted file is skipped",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "b"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/b.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "rm",
+     "$ROOT/a.txt"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "b2"
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "<system-reminder>\n$ROOT/b.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "paths keep their first-write order and the last write's hash",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "b"
+    ],
+    [
+     "write",
+     "$ROOT/c.ipynb",
+     "{}"
+    ],
+    [
+     "write",
+     "$ROOT/d.txt",
+     "d1"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "MultiEdit",
+      "tool_input": {
+       "file_path": "$ROOT/b.txt",
+       "edits": []
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "NotebookEdit",
+      "tool_input": {
+       "notebook_path": "$ROOT/c.ipynb",
+       "new_source": "x"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/d.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a again"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "write",
+     "$ROOT/d.txt",
+     "d2"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/d.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/c.ipynb",
+     "{\"cells\": []}"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "b2"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a2"
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "<system-reminder>\n$ROOT/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/b.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/c.ipynb was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "a failed read keeps the earlier hash",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "v1"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "v1"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/b.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "rm",
+     "$ROOT/a.txt"
+    ],
+    [
+     "rm",
+     "$ROOT/b.txt"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/b.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "v1"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "v2"
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "<system-reminder>\n$ROOT/b.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "which hook inputs are snapshotted",
+   "ops": [
+    [
+     "write",
+     "$ROOT/f1.txt",
+     "x1"
+    ],
+    [
+     "write",
+     "$ROOT/f2.txt",
+     "x2"
+    ],
+    [
+     "write",
+     "$ROOT/f3.txt",
+     "x3"
+    ],
+    [
+     "write",
+     "$ROOT/f4.txt",
+     "x4"
+    ],
+    [
+     "write",
+     "$ROOT/f5.txt",
+     "x5"
+    ],
+    [
+     "write",
+     "$ROOT/f6.txt",
+     "x6"
+    ],
+    [
+     "write",
+     "$ROOT/f7.txt",
+     "x7"
+    ],
+    [
+     "write",
+     "$ROOT/f8.txt",
+     "x8"
+    ],
+    [
+     "write",
+     "$ROOT/f9.txt",
+     "x9"
+    ],
+    [
+     "write",
+     "$ROOT/f10.txt",
+     "x10"
+    ],
+    [
+     "write",
+     "$ROOT/f11.txt",
+     "x11"
+    ],
+    [
+     "write",
+     "$ROOT/f12.txt",
+     "x12"
+    ],
+    [
+     "mkdir",
+     "$ROOT/dir"
+    ],
+    [
+     "mkdir",
+     "$ROOT/sp ace"
+    ],
+    [
+     "write",
+     "$ROOT/sp ace/été “q”.txt",
+     "u"
+    ],
+    [
+     "write",
+     "$ROOT/empty.txt",
+     ""
+    ],
+    [
+     "write",
+     "$ROOT/bin.dat",
+     [
+      0,
+      255,
+      254,
+      10
+     ]
+    ],
+    [
+     "write",
+     "$ROOT/locked.txt",
+     "l"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Read",
+      "tool_input": {
+       "file_path": "$ROOT/f1.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "edit",
+      "tool_input": {
+       "file_path": "$ROOT/f2.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_input": {
+       "file_path": "$ROOT/f3.txt"
+      }
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": 5,
+      "tool_input": {
+       "file_path": "$ROOT/f3.txt"
+      }
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": 7,
+       "notebook_path": "$ROOT/f4.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "NotebookEdit",
+      "tool_input": {
+       "file_path": null,
+       "notebook_path": "$ROOT/f5.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "",
+       "notebook_path": "$ROOT/f6.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "MultiEdit",
+      "tool_input": {
+       "file_path": "$ROOT/f7.txt",
+       "notebook_path": "$ROOT/f8.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": null,
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": "$ROOT/f9.txt",
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/dir"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/missing.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "chmod",
+     "$ROOT/locked.txt",
+     0
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/locked.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "chmod",
+     "$ROOT/locked.txt",
+     420
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "notebook_path": "$ROOT/f10.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": [
+        "$ROOT/f11.txt"
+       ]
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/sp ace/été “q”.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/empty.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/bin.dat"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/f12.txt",
+       "replace_all": true
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/dir/../f1.txt"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/f1.txt",
+     "y1"
+    ],
+    [
+     "write",
+     "$ROOT/f2.txt",
+     "y2"
+    ],
+    [
+     "write",
+     "$ROOT/f3.txt",
+     "y3"
+    ],
+    [
+     "write",
+     "$ROOT/f4.txt",
+     "y4"
+    ],
+    [
+     "write",
+     "$ROOT/f5.txt",
+     "y5"
+    ],
+    [
+     "write",
+     "$ROOT/f6.txt",
+     "y6"
+    ],
+    [
+     "write",
+     "$ROOT/f7.txt",
+     "y7"
+    ],
+    [
+     "write",
+     "$ROOT/f8.txt",
+     "y8"
+    ],
+    [
+     "write",
+     "$ROOT/f9.txt",
+     "y9"
+    ],
+    [
+     "write",
+     "$ROOT/f10.txt",
+     "y10"
+    ],
+    [
+     "write",
+     "$ROOT/f11.txt",
+     "y11"
+    ],
+    [
+     "write",
+     "$ROOT/f12.txt",
+     "y12"
+    ],
+    [
+     "write",
+     "$ROOT/sp ace/été “q”.txt",
+     "u2"
+    ],
+    [
+     "write",
+     "$ROOT/empty.txt",
+     "now"
+    ],
+    [
+     "write",
+     "$ROOT/bin.dat",
+     [
+      1,
+      2,
+      3
+     ]
+    ],
+    [
+     "write",
+     "$ROOT/locked.txt",
+     "l2"
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "<system-reminder>\n$ROOT/f4.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/f5.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/f7.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/f10.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/sp ace/été “q”.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/empty.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/bin.dat was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/f12.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n\n$ROOT/dir/../f1.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "an unreadable file is skipped at the flush",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "b"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/b.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a2"
+    ],
+    [
+     "write",
+     "$ROOT/b.txt",
+     "b2"
+    ],
+    [
+     "chmod",
+     "$ROOT/a.txt",
+     0
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "chmod",
+     "$ROOT/a.txt",
+     420
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "<system-reminder>\n$ROOT/b.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "a slash command doesn't flush",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a2"
+    ],
+    [
+     "send",
+     "/compact [[2]]",
+     {
+      "slash": true
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[3]] go"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "/compact [[2]]",
+    "<system-reminder>\n$ROOT/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[3]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "mid-turn: after ultrathink and the mid-turn nudge",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a2"
+    ],
+    [
+     "send",
+     "[[2]] ultrathink please"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go",
+    "<system-reminder>\nThe user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants.\n</system-reminder>\n\n<system-reminder>\nThe user sent the message that follows while you were still working on the previous turn. After completing your current task, you MUST address that message. Do not ignore it. This is an automated reminder — the user has NOT acknowledged that the prior task is done.\n</system-reminder>\n\n<system-reminder>\n$ROOT/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] ultrathink please"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "queued earlier: plan re-entry and auto-mode exit, then the prompt's own",
+   "ops": [
+    [
+     "state",
+     {
+      "priorPlan": "﻿  1. Read the code\n2. Fix it "
+     }
+    ],
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "mode",
+     "default"
+    ],
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a"
+    ],
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a2"
+    ],
+    [
+     "mode",
+     "auto"
+    ],
+    [
+     "mode",
+     "acceptEdits"
+    ],
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "send",
+     "[[2]] ultrathink"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "<system-reminder>\n## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\n1. Read the code\n2. Fix it \n</system-reminder>\n\n<system-reminder>\n## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\n1. Read the code\n2. Fix it \n</system-reminder>\n\n[[1]] go",
+    "<system-reminder>\n## Exited Auto Mode\nYou have exited auto mode. The user may now want to interact more directly. You should ask clarifying questions when the approach is ambiguous rather than making assumptions.\n</system-reminder>\n\n<system-reminder>\n## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\n1. Read the code\n2. Fix it \n</system-reminder>\n\n<system-reminder>\nThe user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants.\n</system-reminder>\n\n<system-reminder>\n$ROOT/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n[[2]] ultrathink"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  },
+  {
+   "name": "an accepted plan: the verify nudge, then its text on re-entry",
+   "ops": [
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "send",
+     "[[1]] plan it"
+    ],
+    [
+     "plan",
+     {
+      "plan": " the draft "
+     },
+     {
+      "kind": "accept",
+      "editedPlan": "﻿ the edit "
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "send",
+     "[[3]] again"
+    ],
+    [
+     "plan",
+     {
+      "plan": "﻿second draft"
+     },
+     {
+      "kind": "accept",
+      "editedPlan": "   "
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "mode",
+     "default"
+    ],
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "send",
+     "[[4]] once more"
+    ],
+    [
+     "plan",
+     {
+      "plan": " rejected draft "
+     },
+     {
+      "kind": "reject"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "mode",
+     "default"
+    ],
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "send",
+     "[[5]] then"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[6]] same"
+    ],
+    [
+     "plan",
+     {
+      "plan": "﻿same"
+     },
+     {
+      "kind": "accept",
+      "editedPlan": "same"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "mode",
+     "plan"
+    ],
+    [
+     "send",
+     "[[7]] last"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] plan it",
+    "<system-reminder>\nYou have completed implementing the plan. Verify that all plan items were completed correctly by checking the work directly in this session, NOT via the Task tool or a subagent — the parent context already holds the plan's state, tool history, and edited files that a fresh sub-agent would lose.\n</system-reminder>\n\n[[2]] go",
+    "<system-reminder>\n## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\nthe edit \n</system-reminder>\n\n[[3]] again",
+    "<system-reminder>\nYou have completed implementing the plan. Verify that all plan items were completed correctly by checking the work directly in this session, NOT via the Task tool or a subagent — the parent context already holds the plan's state, tool history, and edited files that a fresh sub-agent would lose.\n</system-reminder>\n\n<system-reminder>\n## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\nsecond draft\n</system-reminder>\n\n[[4]] once more",
+    "<system-reminder>\n## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\nrejected draft\n</system-reminder>\n\n[[5]] then",
+    "[[6]] same",
+    "<system-reminder>\nYou have completed implementing the plan. Verify that all plan items were completed correctly by checking the work directly in this session, NOT via the Task tool or a subagent — the parent context already holds the plan's state, tool history, and edited files that a fresh sub-agent would lose.\n</system-reminder>\n\n<system-reminder>\n## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\nsame\n</system-reminder>\n\n[[7]] last"
+   ],
+   "hooks": [],
+   "cwds": [],
+   "planReplies": [
+    {
+     "behavior": "allow",
+     "updatedInput": {
+      "plan": "the edit "
+     },
+     "updatedPermissions": [
+      {
+       "type": "setMode",
+       "mode": "acceptEdits",
+       "destination": "session"
+      }
+     ]
+    },
+    {
+     "behavior": "allow",
+     "updatedInput": {
+      "plan": "﻿second draft"
+     },
+     "updatedPermissions": [
+      {
+       "type": "setMode",
+       "mode": "acceptEdits",
+       "destination": "session"
+      }
+     ]
+    },
+    {
+     "behavior": "deny",
+     "message": "User rejected the plan — keep iterating."
+    },
+    {
+     "behavior": "allow",
+     "updatedInput": {
+      "plan": "﻿same"
+     },
+     "updatedPermissions": [
+      {
+       "type": "setMode",
+       "mode": "acceptEdits",
+       "destination": "session"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "PreToolUse: worktree targets",
+   "ops": [
+    [
+     "send",
+     "[[1]] go"
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Read",
+      "tool_input": {
+       "file_path": "$ROOT/.claude/worktrees/w0/a.ts"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/.claude/worktrees/w1/src/a.ts"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/.claude/worktrees/w1/b.ts"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "NotebookEdit",
+      "tool_input": {
+       "file_path": null,
+       "notebook_path": "$ROOT/.claude/worktrees/w2/n.ipynb"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": 5,
+       "notebook_path": "$ROOT/.claude/worktrees/w3/x"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/a\rb/.claude/worktrees/w4/x"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/a b/.claude/worktrees/w5/x"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "MultiEdit",
+      "tool_input": {
+       "file_path": "$ROOT/.claude/worktrees/w6"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Write",
+      "tool_input": {
+       "file_path": "$ROOT/.claude/worktrees/w7\n/x"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "notebook_path": "$ROOT/.claude/worktrees/w8/y"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] go"
+   ],
+   "hooks": [
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [
+    "$ROOT/.claude/worktrees/w1",
+    "$ROOT/.claude/worktrees/w2",
+    "$ROOT/.claude/worktrees/w6",
+    "$ROOT/.claude/worktrees/w7\n",
+    "$ROOT/.claude/worktrees/w8"
+   ],
+   "planReplies": []
+  },
+  {
+   "name": "todos: the turn-end list, the mid-turn nudge and the stale-TodoWrite nudge, around the linter's",
+   "ops": [
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a1"
+    ],
+    [
+     "send",
+     "[[1]] plan"
+    ],
+    [
+     "emit",
+     {
+      "type": "assistant",
+      "message": {
+       "id": "msg_1",
+       "role": "assistant",
+       "model": "fake",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "toolu_w",
+         "name": "TodoWrite",
+         "input": {
+          "todos": [
+           {
+            "id": "1",
+            "content": "step 1",
+            "status": "pending",
+            "activeForm": "Stepping"
+           },
+           {
+            "id": "2",
+            "content": "step 2",
+            "status": "pending",
+            "activeForm": "Stepping"
+           },
+           {
+            "id": "3",
+            "content": "step 3",
+            "status": "pending",
+            "activeForm": "Stepping"
+           },
+           {
+            "id": "4",
+            "content": "step 4",
+            "status": "pending",
+            "activeForm": "Stepping"
+           },
+           {
+            "id": "5",
+            "content": "step 5",
+            "status": "pending",
+            "activeForm": "Stepping"
+           },
+           {
+            "id": "6",
+            "content": "step 6",
+            "status": "pending",
+            "activeForm": "Stepping"
+           },
+           {
+            "id": "7",
+            "content": "step 7",
+            "status": "pending",
+            "activeForm": "Stepping"
+           }
+          ]
+         }
+        }
+       ],
+       "stop_reason": "tool_use",
+       "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1
+       }
+      },
+      "parent_tool_use_id": null
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[2]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[3]] go"
+    ],
+    [
+     "emit",
+     {
+      "type": "assistant",
+      "message": {
+       "id": "msg_1",
+       "role": "assistant",
+       "model": "fake",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "toolu_b0",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b1",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b2",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b3",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b4",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b5",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b6",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b7",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b8",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b9",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b10",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "toolu_b11",
+         "name": "Bash",
+         "input": {
+          "command": "ls"
+         }
+        }
+       ],
+       "stop_reason": "tool_use",
+       "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1
+       }
+      },
+      "parent_tool_use_id": null
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Bash",
+      "tool_input": {
+       "command": "ls"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "pre",
+     {
+      "session_id": "s",
+      "hook_event_name": "PreToolUse",
+      "tool_name": "Bash",
+      "tool_input": {
+       "command": "ls"
+      },
+      "tool_use_id": "toolu_y"
+     }
+    ],
+    [
+     "emit",
+     {
+      "type": "assistant",
+      "message": {
+       "id": "msg_1",
+       "role": "assistant",
+       "model": "fake",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "toolu_u3",
+         "name": "TaskUpdate",
+         "input": {
+          "taskId": "1",
+          "status": "completed"
+         }
+        }
+       ],
+       "stop_reason": "tool_use",
+       "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1
+       }
+      },
+      "parent_tool_use_id": null
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[4]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[5]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[6]] go"
+    ],
+    [
+     "emit",
+     {
+      "type": "assistant",
+      "message": {
+       "id": "msg_1",
+       "role": "assistant",
+       "model": "fake",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "toolu_u6",
+         "name": "TaskUpdate",
+         "input": {
+          "taskId": "2",
+          "status": "completed"
+         }
+        }
+       ],
+       "stop_reason": "tool_use",
+       "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1
+       }
+      },
+      "parent_tool_use_id": null
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[7]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[8]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[9]] go"
+    ],
+    [
+     "emit",
+     {
+      "type": "assistant",
+      "message": {
+       "id": "msg_1",
+       "role": "assistant",
+       "model": "fake",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "toolu_u9",
+         "name": "TaskUpdate",
+         "input": {
+          "taskId": "3",
+          "status": "completed"
+         }
+        }
+       ],
+       "stop_reason": "tool_use",
+       "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1
+       }
+      },
+      "parent_tool_use_id": null
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[10]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[11]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[12]] go"
+    ],
+    [
+     "emit",
+     {
+      "type": "assistant",
+      "message": {
+       "id": "msg_1",
+       "role": "assistant",
+       "model": "fake",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "toolu_u12",
+         "name": "TaskUpdate",
+         "input": {
+          "taskId": "4",
+          "status": "completed"
+         }
+        }
+       ],
+       "stop_reason": "tool_use",
+       "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1
+       }
+      },
+      "parent_tool_use_id": null
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[13]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[14]] go"
+    ],
+    [
+     "end"
+    ],
+    [
+     "send",
+     "[[15]] go"
+    ],
+    [
+     "emit",
+     {
+      "type": "assistant",
+      "message": {
+       "id": "msg_1",
+       "role": "assistant",
+       "model": "fake",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "toolu_u15",
+         "name": "TaskUpdate",
+         "input": {
+          "taskId": "5",
+          "status": "completed"
+         }
+        }
+       ],
+       "stop_reason": "tool_use",
+       "usage": {
+        "input_tokens": 1,
+        "output_tokens": 1
+       }
+      },
+      "parent_tool_use_id": null
+     }
+    ],
+    [
+     "post",
+     {
+      "session_id": "s",
+      "hook_event_name": "PostToolUse",
+      "tool_name": "Edit",
+      "tool_input": {
+       "file_path": "$ROOT/a.txt",
+       "old_string": "x",
+       "new_string": "y"
+      },
+      "tool_response": {},
+      "tool_use_id": "toolu_x"
+     }
+    ],
+    [
+     "end"
+    ],
+    [
+     "write",
+     "$ROOT/a.txt",
+     "a2"
+    ],
+    [
+     "send",
+     "[[16]] ultrathink and go"
+    ],
+    [
+     "end"
+    ]
+   ],
+   "sent": [
+    "[[1]] plan",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[2]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[3]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[4]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[5]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[6]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[7]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[8]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[9]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[10]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[11]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[12]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[13]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[14]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[15]] go",
+    "<system-reminder>\nThe current to-do list for this session is shown below. As you work, keep it aligned with reality: mark items completed when finished (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"), and prune items that are no longer relevant (TaskUpdate with status=\"deleted\", or omit them from the next TodoWrite call). Add new items as they emerge via TaskCreate or by extending the next TodoWrite call. The list is visible to the user in real time — keeping it accurate is part of the turn's work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n<system-reminder>\nThe user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants.\n</system-reminder>\n\n<system-reminder>\n$ROOT/a.txt was modified, either by the user or by a linter. This change was intentional, so make sure to take it into account as you proceed (ie. don't revert it unless the user asks you to). Don't tell the user this, since they are already aware.\n</system-reminder>\n\n<system-reminder>\nThe TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"completed\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n[[16]] ultrathink and go"
+   ],
+   "hooks": [
+    {
+     "continue": true,
+     "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "additionalContext": "<system-reminder>\nYou've taken several actions without updating the to-do list below. If any tracked item is now finished, mark it completed (TodoWrite with status \"completed\", or TaskUpdate with status=\"completed\"); if one is no longer relevant, prune it (TaskUpdate with status=\"deleted\", or omit it from the next TodoWrite). The list is visible to the user in real time and is currently showing items as open — keep it honest as you work.\n\nCurrent todos:\n[\n  {\n    \"id\": \"1\",\n    \"content\": \"step 1\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"2\",\n    \"content\": \"step 2\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"3\",\n    \"content\": \"step 3\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"4\",\n    \"content\": \"step 4\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"5\",\n    \"content\": \"step 5\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"6\",\n    \"content\": \"step 6\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  },\n  {\n    \"id\": \"7\",\n    \"content\": \"step 7\",\n    \"status\": \"pending\",\n    \"activeForm\": \"Stepping\"\n  }\n]\n</system-reminder>\n\n"
+     }
+    },
+    {
+     "continue": true
+    },
+    {
+     "continue": true
+    }
+   ],
+   "cwds": [],
+   "planReplies": []
+  }
+ ]
+}

@@ -1,0 +1,1647 @@
+{
+ "sdkVersion": "0.3.299",
+ "controls": [
+  {
+   "name": "default",
+   "script": null,
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\"}}"
+     ]
+    },
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": false
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "args": [
+      "u1",
+      {}
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\"}}"
+     ]
+    },
+    {
+     "args": [
+      "",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "args": [
+      "sërvér 😀 中",
+      {
+       "dryRun": false
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"sërvér 😀 中\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "args": [
+      "a\nb\"c\\d",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"a\\nb\\\"c\\\\d\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "args": [
+      "msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [],
+       "insertions": 0,
+       "deletions": 0
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-\"}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "cannot rewind",
+   "script": {
+    "control": {
+     "rewind_files": {
+      "canRewind": false,
+      "error": "No file checkpoint found for this message."
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": false,
+       "error": "No file checkpoint found for this message."
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "files changed",
+   "script": {
+    "control": {
+     "rewind_files": {
+      "canRewind": true,
+      "filesChanged": [
+       "src/a.ts",
+       "b.md"
+      ],
+      "insertions": 3,
+      "deletions": 1,
+      "skippedLinks": 2
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [
+        "src/a.ts",
+        "b.md"
+       ],
+       "insertions": 3,
+       "deletions": 1,
+       "skippedLinks": 2
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\"}}"
+     ]
+    },
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "canRewind": true,
+       "filesChanged": [
+        "src/a.ts",
+        "b.md"
+       ],
+       "insertions": 3,
+       "deletions": 1,
+       "skippedLinks": 2
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "empty object",
+   "script": {
+    "control": {
+     "rewind_files": {}
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {}
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\"}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "null reply",
+   "script": {
+    "control": {
+     "rewind_files": null
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": true,
+      "data": null
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "string reply",
+   "script": {
+    "control": {
+     "rewind_files": "str"
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": "str"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\"}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "array reply",
+   "script": {
+    "control": {
+     "rewind_files": [
+      1,
+      "a",
+      null
+     ]
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": [
+       1,
+       "a",
+       null
+      ]
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\"}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "error",
+   "script": {
+    "control": {
+     "rewind_files": {
+      "$error": "checkpoint store corrupt"
+     }
+    }
+   },
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "checkpoint store corrupt"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "args": [
+      "u2"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "checkpoint store corrupt"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\"}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "number text",
+   "script": "{\"control\":{\"rewind_files\":{\"canRewind\":true,\"filesChanged\":[\"a\"],\"insertions\":1.0,\"deletions\":1e2,\"10\":\"x\",\"2\":-0.0,\"f\":0.1,\"big\":1e21}}}",
+   "query": "live",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": true,
+      "data": {
+       "2": 0,
+       "10": "x",
+       "canRewind": true,
+       "filesChanged": [
+        "a"
+       ],
+       "insertions": 1,
+       "deletions": 100,
+       "f": 0.1,
+       "big": 1e+21
+      }
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\"}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "no query",
+   "script": null,
+   "query": "none",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "no active query"
+     },
+     "wire": []
+    },
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "no active query"
+     },
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "ended",
+   "script": null,
+   "query": "ended",
+   "calls": [
+    {
+     "args": [
+      "u1"
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "Query closed before response received"
+     },
+     "wire": []
+    },
+    {
+     "args": [
+      "u1",
+      {
+       "dryRun": true
+      }
+     ],
+     "outcome": {
+      "ok": false,
+      "error": "Query closed before response received"
+     },
+     "wire": []
+    }
+   ]
+  }
+ ],
+ "route": [
+  {
+   "name": "validation",
+   "script": null,
+   "query": "live",
+   "cases": [
+    {
+     "id": "missing",
+     "request": "{\"userMessageId\":\"u1\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227531227d",
+     "status": 404,
+     "body": "{\"error\":\"session not found\"}",
+     "wire": []
+    },
+    {
+     "id": "missing",
+     "request": "{",
+     "requestHex": "7b",
+     "status": 404,
+     "body": "{\"error\":\"session not found\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": null,
+     "requestHex": null,
+     "status": 503,
+     "body": "{\"error\":\"Unexpected end of JSON input\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "",
+     "requestHex": "",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected end of JSON input\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": " \r\n",
+     "requestHex": "200d0a",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected end of JSON input\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{",
+     "requestHex": "7b",
+     "status": 503,
+     "body": "{\"error\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "not json",
+     "requestHex": "6e6f74206a736f6e",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected token 'o', \\\"not json\\\" is not valid JSON\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\"",
+     "requestHex": "7b22757365724d6573736167654964223a22753122",
+     "status": 503,
+     "body": "{\"error\":\"Expected ',' or '}' after property value in JSON at position 21 (line 1 column 22)\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\"} x",
+     "requestHex": "7b22757365724d6573736167654964223a227531227d2078",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected non-whitespace character after JSON at position 23 (line 1 column 24)\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{'userMessageId':'u1'}",
+     "requestHex": "7b27757365724d6573736167654964273a277531277d",
+     "status": 503,
+     "body": "{\"error\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":u1}",
+     "requestHex": "7b22757365724d6573736167654964223a75317d",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected token 'u', \\\"{\\\"userMessageId\\\":u1}\\\" is not valid JSON\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "[1,]",
+     "requestHex": "5b312c5d",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected token ']', \\\"[1,]\\\" is not valid JSON\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "﻿",
+     "requestHex": "efbbbf",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected end of JSON input\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "﻿﻿﻿{\"userMessageId\":\"u1\"}",
+     "requestHex": "efbbbfefbbbfefbbbf7b22757365724d6573736167654964223a227531227d",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected token '﻿', \\\"﻿{\\\"userMes\\\"... is not valid JSON\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": null,
+     "requestHex": "c080",
+     "status": 503,
+     "body": "{\"error\":\"Unexpected token '�', \\\"��\\\" is not valid JSON\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": null,
+     "requestHex": "7b22757365724d6573736167654964223a2275f0",
+     "status": 503,
+     "body": "{\"error\":\"Unterminated string in JSON at position 20 (line 1 column 21)\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "null",
+     "requestHex": "6e756c6c",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "[]",
+     "requestHex": "5b5d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "5",
+     "requestHex": "35",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "0",
+     "requestHex": "30",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "true",
+     "requestHex": "74727565",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "false",
+     "requestHex": "66616c7365",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "\"\"",
+     "requestHex": "2222",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "\"u1\"",
+     "requestHex": "22753122",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"dryRun\":true}",
+     "requestHex": "7b2264727952756e223a747275657d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\"}",
+     "requestHex": "7b22757365724d6573736167654964223a22227d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":null}",
+     "requestHex": "7b22757365724d6573736167654964223a6e756c6c7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":5}",
+     "requestHex": "7b22757365724d6573736167654964223a357d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":0}",
+     "requestHex": "7b22757365724d6573736167654964223a307d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a747275657d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":false}",
+     "requestHex": "7b22757365724d6573736167654964223a66616c73657d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":[]}",
+     "requestHex": "7b22757365724d6573736167654964223a5b5d7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":[\"u1\"]}",
+     "requestHex": "7b22757365724d6573736167654964223a5b227531225d7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":{}}",
+     "requestHex": "7b22757365724d6573736167654964223a7b7d7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"UserMessageId\":\"u1\"}",
+     "requestHex": "7b22557365724d6573736167654964223a227531227d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"user_message_id\":\"u1\"}",
+     "requestHex": "7b22757365725f6d6573736167655f6964223a227531227d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"__proto__\":{\"userMessageId\":\"u1\"}}",
+     "requestHex": "7b225f5f70726f746f5f5f223a7b22757365724d6573736167654964223a227531227d7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "[{\"userMessageId\":\"u1\"}]",
+     "requestHex": "5b7b22757365724d6573736167654964223a227531227d5d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"userMessageId\":\"\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c22757365724d6573736167654964223a22227d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227531227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":false}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a66616c73657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":null}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a6e756c6c7d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":\"true\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a2274727565227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":1}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a317d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":[]}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a5b5d7d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":{}}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a7b7d7d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true,\"dryRun\":false}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275652c2264727952756e223a66616c73657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":false,\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a66616c73652c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\",\"userMessageId\":\"u2\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a22222c22757365724d6573736167654964223a227532222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":1e400}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a31653430307d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"dryRun\":true,\"extra\":[1.0,1e2],\"userMessageId\":\"u1\"}",
+     "requestHex": "7b2264727952756e223a747275652c226578747261223a5b312e302c3165325d2c22757365724d6573736167654964223a227531227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\" \"}",
+     "requestHex": "7b22757365724d6573736167654964223a2220227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\" \",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"0\"}",
+     "requestHex": "7b22757365724d6573736167654964223a2230227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"0\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"false\"}",
+     "requestHex": "7b22757365724d6573736167654964223a2266616c7365227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"false\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"5b0e3a1c-2a52-4c3e-9b0e-2f7f1a1c0b11\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a2235623065336131632d326135322d346333652d396230652d326637663161316330623131222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"5b0e3a1c-2a52-4c3e-9b0e-2f7f1a1c0b11\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"s\\u00ebrv \\ud83d\\ude00\"}",
+     "requestHex": "7b22757365724d6573736167654964223a22735c75303065627276205c75643833645c7564653030227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"sërv 😀\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"sërvér 😀 中\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a2273c3ab7276c3a97220f09f988020e4b8ad222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"sërvér 😀 中\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"a\\u0001b\\u001fc\\u007fd\\u2028e\\n\\t\\\"\\\\/\"}",
+     "requestHex": "7b22757365724d6573736167654964223a22615c7530303031625c7530303166635c7530303766645c7532303238655c6e5c745c225c5c2f227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"a\\u0001b\\u001fcd e\\n\\t\\\"\\\\/\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-\"}",
+     "requestHex": "7b22757365724d6573736167654964223a226d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d6d73672d227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-msg-\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "﻿{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "efbbbf7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "﻿﻿{\"userMessageId\":\"u1\"}",
+     "requestHex": "efbbbfefbbbf7b22757365724d6573736167654964223a227531227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": " \t\n{\"userMessageId\":\"u1\"}\r\n",
+     "requestHex": "20090a7b22757365724d6573736167654964223a227531227d0d0a",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": null,
+     "requestHex": "7b22757365724d6573736167654964223a2275ff31227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u�1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"deep\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264656570223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d7d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "cannot rewind",
+   "script": {
+    "control": {
+     "rewind_files": {
+      "canRewind": false,
+      "error": "No file checkpoint found for this message."
+     }
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":false,\"error\":\"No file checkpoint found for this message.\"}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":false,\"error\":\"No file checkpoint found for this message.\"}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "files changed",
+   "script": {
+    "control": {
+     "rewind_files": {
+      "canRewind": true,
+      "filesChanged": [
+       "src/a.ts",
+       "b.md"
+      ],
+      "insertions": 3,
+      "deletions": 1,
+      "skippedLinks": 2
+     }
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[\"src/a.ts\",\"b.md\"],\"insertions\":3,\"deletions\":1,\"skippedLinks\":2}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[\"src/a.ts\",\"b.md\"],\"insertions\":3,\"deletions\":1,\"skippedLinks\":2}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "error",
+   "script": {
+    "control": {
+     "rewind_files": {
+      "$error": "checkpoint store corrupt"
+     }
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 503,
+     "body": "{\"error\":\"checkpoint store corrupt\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 503,
+     "body": "{\"error\":\"checkpoint store corrupt\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "empty object",
+   "script": {
+    "control": {
+     "rewind_files": {}
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":{}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "null reply",
+   "script": {
+    "control": {
+     "rewind_files": null
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":null}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":null}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "string reply",
+   "script": {
+    "control": {
+     "rewind_files": "str"
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":\"str\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":\"str\"}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "array reply",
+   "script": {
+    "control": {
+     "rewind_files": [
+      1,
+      "a",
+      null
+     ]
+    }
+   },
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":[1,\"a\",null]}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":[1,\"a\",null]}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "number text",
+   "script": "{\"control\":{\"rewind_files\":{\"canRewind\":true,\"filesChanged\":[\"a\"],\"insertions\":1.0,\"deletions\":1e2,\"10\":\"x\",\"2\":-0.0,\"f\":0.1,\"big\":1e21}}}",
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"2\":0,\"10\":\"x\",\"canRewind\":true,\"filesChanged\":[\"a\"],\"insertions\":1,\"deletions\":100,\"f\":0.1,\"big\":1e+21}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":{\"2\":0,\"10\":\"x\",\"canRewind\":true,\"filesChanged\":[\"a\"],\"insertions\":1,\"deletions\":100,\"f\":0.1,\"big\":1e+21}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "no query",
+   "script": null,
+   "query": "none",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 503,
+     "body": "{\"error\":\"session not active\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{",
+     "requestHex": "7b",
+     "status": 503,
+     "body": "{\"error\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "null",
+     "requestHex": "6e756c6c",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    }
+   ]
+  },
+  {
+   "name": "exited",
+   "script": {
+    "on_init": [
+     {
+      "$stderr": "boom"
+     },
+     {
+      "$exit": 3
+     }
+    ]
+   },
+   "query": "exited",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a747275657d",
+     "status": 503,
+     "body": "{\"error\":\"Query closed before response received\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227531227d",
+     "status": 503,
+     "body": "{\"error\":\"Query closed before response received\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{}",
+     "requestHex": "7b7d",
+     "status": 400,
+     "body": "{\"error\":\"userMessageId required\"}",
+     "wire": []
+    },
+    {
+     "id": "live",
+     "request": "{",
+     "requestHex": "7b",
+     "status": 503,
+     "body": "{\"error\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}",
+     "wire": []
+    }
+   ]
+  }
+ ],
+ "resumeId": "7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+ "transcript": [
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"user\",\"uuid\":\"u-1\",\"parentUuid\":null,\"timestamp\":\"2026-01-02T03:04:06.000Z\",\"message\":{\"role\":\"user\",\"content\":\"first question\"}}",
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"assistant\",\"uuid\":\"a-1\",\"parentUuid\":\"u-1\",\"timestamp\":\"2026-01-02T03:04:07.000Z\",\"message\":{\"role\":\"assistant\",\"id\":\"msg_a-1\",\"type\":\"message\",\"content\":[{\"type\":\"text\",\"text\":\"first answer\"}]}}",
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"user\",\"uuid\":\"u-2\",\"parentUuid\":\"a-1\",\"timestamp\":\"2026-01-02T03:04:08.000Z\",\"message\":{\"role\":\"user\",\"content\":\"second question\"}}",
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"assistant\",\"uuid\":\"a-2\",\"parentUuid\":\"u-2\",\"timestamp\":\"2026-01-02T03:04:09.000Z\",\"message\":{\"role\":\"assistant\",\"id\":\"msg_a-2\",\"type\":\"message\",\"content\":[{\"type\":\"text\",\"text\":\"second answer\"}]}}",
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"system\",\"subtype\":\"informational\",\"uuid\":\"s-1\",\"parentUuid\":\"a-2\",\"timestamp\":\"2026-01-02T03:04:10.000Z\",\"content\":\"a system note\",\"level\":\"info\"}",
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"user\",\"uuid\":\"u-3\",\"parentUuid\":\"s-1\",\"timestamp\":\"2026-01-02T03:04:11.000Z\",\"message\":{\"role\":\"user\",\"content\":\"third question\"}}",
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"assistant\",\"uuid\":\"a-3\",\"parentUuid\":\"u-3\",\"timestamp\":\"2026-01-02T03:04:12.000Z\",\"message\":{\"role\":\"assistant\",\"id\":\"msg_a-3\",\"type\":\"message\",\"content\":[{\"type\":\"text\",\"text\":\"third answer\"}]}}",
+  "{\"sessionId\":\"7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b\",\"type\":\"assistant\",\"uuid\":\"side-1\",\"parentUuid\":\"a-1\",\"isSidechain\":true,\"timestamp\":\"2026-01-02T03:04:13.000Z\",\"message\":{\"role\":\"assistant\",\"id\":\"msg_side\",\"type\":\"message\",\"content\":[{\"type\":\"text\",\"text\":\"aside\"}]}}"
+ ],
+ "resume": [
+  {
+   "name": "plain resume",
+   "resumeSessionAt": null,
+   "replayed": [
+    "u-1",
+    "a-1",
+    "u-2",
+    "a-2",
+    "s-1",
+    "u-3",
+    "a-3"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b"
+   ]
+  },
+  {
+   "name": "empty",
+   "resumeSessionAt": "",
+   "replayed": [
+    "u-1",
+    "a-1",
+    "u-2",
+    "a-2",
+    "s-1",
+    "u-3",
+    "a-3"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b"
+   ]
+  },
+  {
+   "name": "first",
+   "resumeSessionAt": "u-1",
+   "replayed": [
+    "u-1"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+    "--resume-session-at=u-1"
+   ]
+  },
+  {
+   "name": "an assistant",
+   "resumeSessionAt": "a-1",
+   "replayed": [
+    "u-1",
+    "a-1"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+    "--resume-session-at=a-1"
+   ]
+  },
+  {
+   "name": "a system message",
+   "resumeSessionAt": "s-1",
+   "replayed": [
+    "u-1",
+    "a-1",
+    "u-2",
+    "a-2",
+    "s-1"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+    "--resume-session-at=s-1"
+   ]
+  },
+  {
+   "name": "the last",
+   "resumeSessionAt": "a-3",
+   "replayed": [
+    "u-1",
+    "a-1",
+    "u-2",
+    "a-2",
+    "s-1",
+    "u-3",
+    "a-3"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+    "--resume-session-at=a-3"
+   ]
+  },
+  {
+   "name": "unknown",
+   "resumeSessionAt": "nope",
+   "replayed": [
+    "u-1",
+    "a-1",
+    "u-2",
+    "a-2",
+    "s-1",
+    "u-3",
+    "a-3"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+    "--resume-session-at=nope"
+   ]
+  },
+  {
+   "name": "case differs",
+   "resumeSessionAt": "A-1",
+   "replayed": [
+    "u-1",
+    "a-1",
+    "u-2",
+    "a-2",
+    "s-1",
+    "u-3",
+    "a-3"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+    "--resume-session-at=A-1"
+   ]
+  },
+  {
+   "name": "a sidechain",
+   "resumeSessionAt": "side-1",
+   "replayed": [
+    "u-1",
+    "a-1",
+    "u-2",
+    "a-2",
+    "s-1",
+    "u-3",
+    "a-3"
+   ],
+   "argv": [
+    "--resume=7d4c1f0e-3b2a-4e5f-8a9b-0c1d2e3f4a5b",
+    "--resume-session-at=side-1"
+   ]
+  }
+ ]
+}

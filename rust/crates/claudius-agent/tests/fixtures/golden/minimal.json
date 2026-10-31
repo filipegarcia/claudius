@@ -1,0 +1,58 @@
+{
+  "sdkVersion": "0.3.299",
+  "case": "minimal",
+  "spec": {},
+  "baseEnv": {
+    "PATH": "/usr/bin:/bin",
+    "HOME": "/golden/home",
+    "LANG": "en_US.UTF-8",
+    "NODE_OPTIONS": "--max-old-space-size=64",
+    "DEBUG": "1",
+    "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
+    "CLAUDE_CODE_QUESTION_EXTENDED": "1"
+  },
+  "argv": [
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--input-format",
+    "stream-json"
+  ],
+  "env": {
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
+    "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+    "CLAUDE_CODE_QUESTION_EXTENDED": "1",
+    "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+    "HOME": "/golden/home",
+    "LANG": "en_US.UTF-8",
+    "PATH": "/usr/bin:/bin"
+  },
+  "initialize": {
+    "subtype": "initialize",
+    "systemPrompt": [
+      ""
+    ]
+  },
+  "stdin": [
+    {
+      "request_id": "$ID0",
+      "type": "control_request",
+      "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+          ""
+        ]
+      }
+    },
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "hello"
+      },
+      "parent_tool_use_id": null,
+      "session_id": ""
+    }
+  ]
+}

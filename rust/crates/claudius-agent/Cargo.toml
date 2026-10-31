@@ -1,0 +1,31 @@
+[package]
+name = "claudius-agent"
+description = "Rust driver for the Claude Code CLI stream-json protocol (the role @anthropic-ai/claude-agent-sdk plays in the TS app)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+fancy-regex.workspace = true
+futures.workspace = true
+indexmap.workspace = true
+libc.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[[bin]]
+# Scripted stand-in for the `claude` CLI used by tests (see src/bin/fake_claude.rs).
+name = "claudius-fake-claude"
+path = "src/bin/fake_claude.rs"
+test = false
+doc = false
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -19,6 +19,7 @@
     "test:watch": "node scripts/native-abi.mjs ensure node && vitest",
     "test:related": "node scripts/native-abi.mjs ensure node && vitest related --run --passWithNoTests",
     "test:e2e": "node scripts/native-abi.mjs ensure node && playwright test --project=chromium",
+    "test:e2e:rust": "node scripts/native-abi.mjs ensure node && cargo build --manifest-path rust/Cargo.toml -p claudius-server && rust/scripts/keep-tree.sh rust/scripts/clean-env.sh playwright test --config=playwright.rust.config.ts --project=chromium",
     "test:e2e:electron": "bun run electron:rebuild-native-for-node && bun run electron:compile && playwright test --project=chromium-electron",
     "test:e2e:electron-packaged": "playwright test --config=playwright.electron-packaged.config.ts",
     "test:e2e:update-screenshots": "UPDATE_SCREENSHOTS=1 playwright test --project=chromium",

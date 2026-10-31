@@ -1,0 +1,2992 @@
+{
+ "maxBytes": 262144,
+ "defaultTips": "[{\"id\":\"mcp\",\"text\":\"Plug in tools from anywhere over the Model Context Protocol — they show up to Claude automatically.\",\"command\":\"mcp\"},{\"id\":\"skills\",\"text\":\"Skills are short, opinionated playbooks Claude calls up when the moment is right.\",\"command\":\"skills\"},{\"id\":\"cost\",\"text\":\"See exactly where your tokens go — spend broken down per session, per model, per day.\",\"command\":\"cost\"},{\"id\":\"schedule\",\"text\":\"Run the agent on a cron schedule — daily standups, deploy checks, log triage, without you there.\",\"command\":\"schedule\"},{\"id\":\"memory\",\"text\":\"Claude keeps notes that persist across sessions, so you don't re-explain the same context.\",\"command\":\"memory\"},{\"id\":\"context\",\"text\":\"Watch how full your context window is — and compact it before it overflows.\",\"command\":\"context\"},{\"id\":\"goal\",\"text\":\"Set a goal for this session and Claude tracks it until it's achieved.\",\"command\":\"goal\"},{\"id\":\"files\",\"text\":\"Browse the exact project tree the agent sees — with quick file previews.\",\"command\":\"files\"},{\"id\":\"hooks\",\"text\":\"Run shell commands at lifecycle events — guardrails, notifications, auto-formatting.\",\"command\":\"hooks\"},{\"id\":\"plugins\",\"text\":\"Install community plugins from any marketplace you trust — skills, agents, MCP servers, and hooks.\",\"command\":\"plugin\"},{\"id\":\"keybindings\",\"text\":\"Rebind any shortcut — including chords — to match the muscle memory you already have.\",\"command\":\"keybindings\"},{\"id\":\"help\",\"text\":\"Lost? Open the full list of slash commands and keyboard shortcuts.\",\"command\":\"help\"},{\"id\":\"focus\",\"text\":\"Cut the chrome and keep just the conversation in view — /focus cycles a distraction-free layout.\",\"command\":\"focus\"},{\"id\":\"desktop\",\"text\":\"Prefer a dedicated window? /desktop opens — or recommends — the Claudius desktop app.\",\"command\":\"desktop\"},{\"id\":\"multi-claude-color-rename\",\"text\":\"Running multiple Claude sessions? Use /color and /rename to tell them apart at a glance.\",\"minSessions\":2},{\"id\":\"default-permission-mode-config\",\"text\":\"Liked Plan Mode? Make it sticky in Workspace settings → Permission mode (it'll apply to every new session here).\",\"requiresPlanModeNudge\":true},{\"id\":\"powerup-onboarding\",\"text\":\"New to Claudius? Run /powerup for a quick interactive tutorial.\",\"requiresNewUser\":true}]",
+ "cases": [
+  {
+   "name": "no settings file",
+   "settings": null,
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "settings {}",
+   "settings": "{}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "settings invalid JSON",
+   "settings": "{\"spinnerTipsOverride\": {\"tips\": [\"a\"]",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "settings null",
+   "settings": "null",
+   "normalized": null,
+   "merged": null,
+   "config": "{\"throws\":\"Cannot read properties of null (reading 'spinnerTipsEnabled')\"}",
+   "tips": null
+  },
+  {
+   "name": "settings array",
+   "settings": "[{\"spinnerTipsOverride\":{\"tips\":[\"a\"]}}]",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "settings string",
+   "settings": "\"spinnerTipsOverride\"",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "settings number",
+   "settings": "7",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "settings invalid UTF-8",
+   "settingsHex": "7b227370696e6e6572546970734f76657272696465223a7b226578636c75646544656661756c74223a747275652c2274697073223a5b22636166ff206175206c616974225d7d7d",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"caf� au lait\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"caf� au lait\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"caf� au lait\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"caf� au lait\"}]"
+  },
+  {
+   "name": "settings 1e400 priority",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"huge\",\"priority\":1e400},\"small\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"huge\",\"priority\":null},\"small\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"huge\",\"priority\":null},\"small\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"huge\",\"priority\":null},\"small\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"huge\",\"priority\":null},{\"id\":\"custom:1\",\"text\":\"small\"}]"
+  },
+  {
+   "name": "settings duplicate keys",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\"first\"]},\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"second\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"second\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"second\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"second\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"second\"}]"
+  },
+  {
+   "name": "enabled false, no override",
+   "settings": "{\"spinnerTipsEnabled\":false}",
+   "normalized": null,
+   "merged": null,
+   "config": "{\"enabled\":false}",
+   "tips": "[]"
+  },
+  {
+   "name": "enabled false with override",
+   "settings": "{\"spinnerTipsEnabled\":false,\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "config": "{\"enabled\":false,\"override\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "tips": "[]"
+  },
+  {
+   "name": "enabled true with override",
+   "settings": "{\"spinnerTipsEnabled\":true,\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "config": "{\"enabled\":true,\"override\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"x\"}]"
+  },
+  {
+   "name": "enabled true, no override",
+   "settings": "{\"spinnerTipsEnabled\":true}",
+   "normalized": null,
+   "merged": null,
+   "config": "{\"enabled\":true}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "enabled \"false\"",
+   "settings": "{\"spinnerTipsEnabled\":\"false\",\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"x\"}]"
+  },
+  {
+   "name": "enabled 0",
+   "settings": "{\"spinnerTipsEnabled\":0,\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"x\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"x\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"x\"}]"
+  },
+  {
+   "name": "enabled null",
+   "settings": "{\"spinnerTipsEnabled\":null}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "enabled false with tipsFile",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tipsFile\":\"~/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":true,\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}]}}",
+   "tips": "[{\"id\":\"custom:f\",\"text\":\"File tip\",\"priority\":5},{\"id\":\"custom:0\",\"text\":\"from file\"},{\"id\":\"custom:2\",\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"custom:inline\",\"text\":\"collides with an inline id\"}]"
+  },
+  {
+   "name": "override null",
+   "settings": "{\"spinnerTipsOverride\":null}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "override []",
+   "settings": "{\"spinnerTipsOverride\":[]}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "override array of tips",
+   "settings": "{\"spinnerTipsOverride\":[{\"excludeDefault\":true,\"tips\":[\"a\"]}]}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "override string",
+   "settings": "{\"spinnerTipsOverride\":\"tips\"}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "override 0",
+   "settings": "{\"spinnerTipsOverride\":0}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "override 1",
+   "settings": "{\"spinnerTipsOverride\":1}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "override true",
+   "settings": "{\"spinnerTipsOverride\":true}",
+   "normalized": null,
+   "merged": null,
+   "config": "{}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "override {}",
+   "settings": "{\"spinnerTipsOverride\":{}}",
+   "normalized": "{\"excludeDefault\":false}",
+   "merged": "{\"excludeDefault\":false}",
+   "config": "{\"override\":{\"excludeDefault\":false}}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "excludeDefault true, no tips",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true}}",
+   "normalized": "{\"excludeDefault\":true}",
+   "merged": "{\"excludeDefault\":true}",
+   "config": "{\"override\":{\"excludeDefault\":true}}",
+   "tips": "[]"
+  },
+  {
+   "name": "excludeDefault true, tips []",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[]}}",
+   "tips": "[]"
+  },
+  {
+   "name": "excludeDefault \"true\"",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":\"true\",\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"x\"]}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:0\",\"text\":\"x\"}]"
+  },
+  {
+   "name": "excludeDefault 1",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":1,\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"x\"]}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:0\",\"text\":\"x\"}]"
+  },
+  {
+   "name": "excludeDefault false",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":false,\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"x\"]}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:0\",\"text\":\"x\"}]"
+  },
+  {
+   "name": "excludeDefault missing",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\"x\"]}}",
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"x\"]}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"x\"]}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:0\",\"text\":\"x\"}]"
+  },
+  {
+   "name": "tips a string",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":\"a\"}}",
+   "normalized": "{\"excludeDefault\":true}",
+   "merged": "{\"excludeDefault\":true}",
+   "config": "{\"override\":{\"excludeDefault\":true}}",
+   "tips": "[]"
+  },
+  {
+   "name": "tips an object",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":{\"0\":\"a\",\"length\":1}}}",
+   "normalized": "{\"excludeDefault\":true}",
+   "merged": "{\"excludeDefault\":true}",
+   "config": "{\"override\":{\"excludeDefault\":true}}",
+   "tips": "[]"
+  },
+  {
+   "name": "tips null",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":null}}",
+   "normalized": "{\"excludeDefault\":true}",
+   "merged": "{\"excludeDefault\":true}",
+   "config": "{\"override\":{\"excludeDefault\":true}}",
+   "tips": "[]"
+  },
+  {
+   "name": "tips a number",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":5}}",
+   "normalized": "{\"excludeDefault\":true}",
+   "merged": "{\"excludeDefault\":true}",
+   "config": "{\"override\":{\"excludeDefault\":true}}",
+   "tips": "[]"
+  },
+  {
+   "name": "string entries and JS whitespace",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\" one \",\" nbsp \",\"﻿bom﻿\",\" ls \",\"nel\",\"\\t tab\\n\",\"\\r\\ncrlf\\r\\n\",\"\\u000b\\fvt ff\",\"\",\"   \",\" ﻿ \",\"​zwsp​\",\"　ideo　\",\"᠎mvs᠎\",\"\",\"in  ner  spaces kept\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"one\",\"nbsp\",\"bom\",\"ls\",\"nel\",\"tab\",\"crlf\",\"vt ff\",\"​zwsp​\",\"ideo\",\"᠎mvs᠎\",\"\",\"in  ner  spaces kept\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"one\",\"nbsp\",\"bom\",\"ls\",\"nel\",\"tab\",\"crlf\",\"vt ff\",\"​zwsp​\",\"ideo\",\"᠎mvs᠎\",\"\",\"in  ner  spaces kept\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"one\",\"nbsp\",\"bom\",\"ls\",\"nel\",\"tab\",\"crlf\",\"vt ff\",\"​zwsp​\",\"ideo\",\"᠎mvs᠎\",\"\",\"in  ner  spaces kept\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"one\"},{\"id\":\"custom:1\",\"text\":\"nbsp\"},{\"id\":\"custom:2\",\"text\":\"bom\"},{\"id\":\"custom:3\",\"text\":\"ls\"},{\"id\":\"custom:4\",\"text\":\"nel\"},{\"id\":\"custom:5\",\"text\":\"tab\"},{\"id\":\"custom:6\",\"text\":\"crlf\"},{\"id\":\"custom:7\",\"text\":\"vt ff\"},{\"id\":\"custom:8\",\"text\":\"​zwsp​\"},{\"id\":\"custom:9\",\"text\":\"ideo\"},{\"id\":\"custom:10\",\"text\":\"᠎mvs᠎\"},{\"id\":\"custom:11\",\"text\":\"\"},{\"id\":\"custom:12\",\"text\":\"in  ner  spaces kept\"}]"
+  },
+  {
+   "name": "object entries",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"plain\"},{\"id\":\"a\",\"text\":\" spaced \"},{\"text\":\"\"},{\"text\":\"  \"},{\"text\":\" ﻿\"},{\"id\":\"x\"},{\"text\":5},{\"text\":null},{\"text\":[\"arr\"]},{\"text\":{\"nested\":\"x\"}},{\"id\":7,\"text\":\"num id\"},{\"id\":null,\"text\":\"null id\"},{\"id\":{\"a\":1},\"text\":\"obj id\"},{\"id\":true,\"text\":\"bool id\"},{\"id\":\"  \",\"text\":\"blank id\"},{\"id\":\" pad \",\"text\":\"padded id\"},{\"id\":\" \",\"text\":\"nbsp id\"},{\"id\":\"\",\"text\":\"nel id\"},{\"id\":\"\",\"text\":\"empty id\"},null,42,true,false,[],[\"nested\"],[[{\"text\":\"deep\"}]],{\"text\":\"extra fields\",\"command\":\"mcp\",\"minSessions\":3,\"label\":\"inner\",\"requiresNewUser\":true},{\"TEXT\":\"wrong case\"}]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"plain\"},{\"text\":\"spaced\",\"id\":\"a\"},{\"text\":\"num id\"},{\"text\":\"null id\"},{\"text\":\"obj id\"},{\"text\":\"bool id\"},{\"text\":\"blank id\",\"id\":\"  \"},{\"text\":\"padded id\",\"id\":\" pad \"},{\"text\":\"nbsp id\",\"id\":\" \"},{\"text\":\"nel id\",\"id\":\"\"},{\"text\":\"empty id\",\"id\":\"\"},{\"text\":\"extra fields\"}]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"plain\"},{\"text\":\"spaced\",\"id\":\"a\"},{\"text\":\"num id\"},{\"text\":\"null id\"},{\"text\":\"obj id\"},{\"text\":\"bool id\"},{\"text\":\"blank id\",\"id\":\"  \"},{\"text\":\"padded id\",\"id\":\" pad \"},{\"text\":\"nbsp id\",\"id\":\" \"},{\"text\":\"nel id\",\"id\":\"\"},{\"text\":\"empty id\",\"id\":\"\"},{\"text\":\"extra fields\"}]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"plain\"},{\"text\":\"spaced\",\"id\":\"a\"},{\"text\":\"num id\"},{\"text\":\"null id\"},{\"text\":\"obj id\"},{\"text\":\"bool id\"},{\"text\":\"blank id\",\"id\":\"  \"},{\"text\":\"padded id\",\"id\":\" pad \"},{\"text\":\"nbsp id\",\"id\":\" \"},{\"text\":\"nel id\",\"id\":\"\"},{\"text\":\"empty id\",\"id\":\"\"},{\"text\":\"extra fields\"}]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"plain\"},{\"id\":\"custom:a\",\"text\":\"spaced\"},{\"id\":\"custom:2\",\"text\":\"num id\"},{\"id\":\"custom:3\",\"text\":\"null id\"},{\"id\":\"custom:4\",\"text\":\"obj id\"},{\"id\":\"custom:5\",\"text\":\"bool id\"},{\"id\":\"custom:6\",\"text\":\"blank id\"},{\"id\":\"custom:pad\",\"text\":\"padded id\"},{\"id\":\"custom:8\",\"text\":\"nbsp id\"},{\"id\":\"custom:\",\"text\":\"nel id\"},{\"id\":\"custom:10\",\"text\":\"empty id\"},{\"id\":\"custom:11\",\"text\":\"extra fields\"}]"
+  },
+  {
+   "name": "index ids follow the normalized list",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"\",\"a\",{\"text\":\" \"},null,\"b\",{\"id\":\"2\",\"text\":\"claims custom:2\"},\"c\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"a\",\"b\",{\"text\":\"claims custom:2\",\"id\":\"2\"},\"c\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"a\",\"b\",{\"text\":\"claims custom:2\",\"id\":\"2\"},\"c\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"a\",\"b\",{\"text\":\"claims custom:2\",\"id\":\"2\"},\"c\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"a\"},{\"id\":\"custom:1\",\"text\":\"b\"},{\"id\":\"custom:2\",\"text\":\"claims custom:2\"},{\"id\":\"custom:3\",\"text\":\"c\"}]"
+  },
+  {
+   "name": "duplicate ids",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"id\":\"a\",\"text\":\"first a\"},{\"id\":\"a\",\"text\":\"second a\"},{\"id\":\" a \",\"text\":\"padded a\"},{\"id\":\"1\",\"text\":\"claims custom:1\"},\"index 4\",{\"id\":\"4\",\"text\":\"claims custom:4 too late\"},{\"id\":\"custom:a\",\"text\":\"double prefix\"}]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"first a\",\"id\":\"a\"},{\"text\":\"second a\",\"id\":\"a\"},{\"text\":\"padded a\",\"id\":\" a \"},{\"text\":\"claims custom:1\",\"id\":\"1\"},\"index 4\",{\"text\":\"claims custom:4 too late\",\"id\":\"4\"},{\"text\":\"double prefix\",\"id\":\"custom:a\"}]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"first a\",\"id\":\"a\"},{\"text\":\"second a\",\"id\":\"a\"},{\"text\":\"padded a\",\"id\":\" a \"},{\"text\":\"claims custom:1\",\"id\":\"1\"},\"index 4\",{\"text\":\"claims custom:4 too late\",\"id\":\"4\"},{\"text\":\"double prefix\",\"id\":\"custom:a\"}]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"first a\",\"id\":\"a\"},{\"text\":\"second a\",\"id\":\"a\"},{\"text\":\"padded a\",\"id\":\" a \"},{\"text\":\"claims custom:1\",\"id\":\"1\"},\"index 4\",{\"text\":\"claims custom:4 too late\",\"id\":\"4\"},{\"text\":\"double prefix\",\"id\":\"custom:a\"}]}}",
+   "tips": "[{\"id\":\"custom:a\",\"text\":\"first a\"},{\"id\":\"custom:1\",\"text\":\"claims custom:1\"},{\"id\":\"custom:4\",\"text\":\"index 4\"},{\"id\":\"custom:custom:a\",\"text\":\"double prefix\"}]"
+  },
+  {
+   "name": "priorities",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"p0\",\"priority\":0},{\"text\":\"pneg\",\"priority\":-1},{\"text\":\"pfrac\",\"priority\":1.5},{\"text\":\"pnone\"},{\"text\":\"pstr\",\"priority\":\"5\"},{\"text\":\"pnull\",\"priority\":null},{\"text\":\"pbig\",\"priority\":1e21},{\"text\":\"ptiny\",\"priority\":1e-7},{\"text\":\"pnegtiny\",\"priority\":-1e-7},{\"text\":\"p2\",\"priority\":2},{\"text\":\"p2b\",\"priority\":2.0},{\"text\":\"pnegzero\",\"priority\":-0},\"bare\",{\"text\":\"pbool\",\"priority\":true},{\"text\":\"pu64\",\"priority\":12345678901234567890},{\"text\":\"phuge\",\"priority\":123456789012345678901234567890},{\"text\":\"pexp\",\"priority\":1E2},{\"text\":\"pmax\",\"priority\":1.7976931348623157e308},{\"text\":\"pmin\",\"priority\":5e-324},{\"text\":\"pneghuge\",\"priority\":-1e300},{\"text\":\"parr\",\"priority\":[1]},{\"text\":\"pobj\",\"priority\":{\"v\":1}},{\"text\":\"p2c\",\"priority\":2}]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"p0\",\"priority\":0},{\"text\":\"pneg\",\"priority\":-1},{\"text\":\"pfrac\",\"priority\":1.5},{\"text\":\"pnone\"},{\"text\":\"pstr\"},{\"text\":\"pnull\"},{\"text\":\"pbig\",\"priority\":1e+21},{\"text\":\"ptiny\",\"priority\":1e-7},{\"text\":\"pnegtiny\",\"priority\":-1e-7},{\"text\":\"p2\",\"priority\":2},{\"text\":\"p2b\",\"priority\":2},{\"text\":\"pnegzero\",\"priority\":0},\"bare\",{\"text\":\"pbool\"},{\"text\":\"pu64\",\"priority\":12345678901234567000},{\"text\":\"phuge\",\"priority\":1.2345678901234568e+29},{\"text\":\"pexp\",\"priority\":100},{\"text\":\"pmax\",\"priority\":1.7976931348623157e+308},{\"text\":\"pmin\",\"priority\":5e-324},{\"text\":\"pneghuge\",\"priority\":-1e+300},{\"text\":\"parr\"},{\"text\":\"pobj\"},{\"text\":\"p2c\",\"priority\":2}]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"p0\",\"priority\":0},{\"text\":\"pneg\",\"priority\":-1},{\"text\":\"pfrac\",\"priority\":1.5},{\"text\":\"pnone\"},{\"text\":\"pstr\"},{\"text\":\"pnull\"},{\"text\":\"pbig\",\"priority\":1e+21},{\"text\":\"ptiny\",\"priority\":1e-7},{\"text\":\"pnegtiny\",\"priority\":-1e-7},{\"text\":\"p2\",\"priority\":2},{\"text\":\"p2b\",\"priority\":2},{\"text\":\"pnegzero\",\"priority\":0},\"bare\",{\"text\":\"pbool\"},{\"text\":\"pu64\",\"priority\":12345678901234567000},{\"text\":\"phuge\",\"priority\":1.2345678901234568e+29},{\"text\":\"pexp\",\"priority\":100},{\"text\":\"pmax\",\"priority\":1.7976931348623157e+308},{\"text\":\"pmin\",\"priority\":5e-324},{\"text\":\"pneghuge\",\"priority\":-1e+300},{\"text\":\"parr\"},{\"text\":\"pobj\"},{\"text\":\"p2c\",\"priority\":2}]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"p0\",\"priority\":0},{\"text\":\"pneg\",\"priority\":-1},{\"text\":\"pfrac\",\"priority\":1.5},{\"text\":\"pnone\"},{\"text\":\"pstr\"},{\"text\":\"pnull\"},{\"text\":\"pbig\",\"priority\":1e+21},{\"text\":\"ptiny\",\"priority\":1e-7},{\"text\":\"pnegtiny\",\"priority\":-1e-7},{\"text\":\"p2\",\"priority\":2},{\"text\":\"p2b\",\"priority\":2},{\"text\":\"pnegzero\",\"priority\":0},\"bare\",{\"text\":\"pbool\"},{\"text\":\"pu64\",\"priority\":12345678901234567000},{\"text\":\"phuge\",\"priority\":1.2345678901234568e+29},{\"text\":\"pexp\",\"priority\":100},{\"text\":\"pmax\",\"priority\":1.7976931348623157e+308},{\"text\":\"pmin\",\"priority\":5e-324},{\"text\":\"pneghuge\",\"priority\":-1e+300},{\"text\":\"parr\"},{\"text\":\"pobj\"},{\"text\":\"p2c\",\"priority\":2}]}}",
+   "tips": "[{\"id\":\"custom:17\",\"text\":\"pmax\",\"priority\":1.7976931348623157e+308},{\"id\":\"custom:15\",\"text\":\"phuge\",\"priority\":1.2345678901234568e+29},{\"id\":\"custom:6\",\"text\":\"pbig\",\"priority\":1e+21},{\"id\":\"custom:14\",\"text\":\"pu64\",\"priority\":12345678901234567000},{\"id\":\"custom:16\",\"text\":\"pexp\",\"priority\":100},{\"id\":\"custom:9\",\"text\":\"p2\",\"priority\":2},{\"id\":\"custom:10\",\"text\":\"p2b\",\"priority\":2},{\"id\":\"custom:22\",\"text\":\"p2c\",\"priority\":2},{\"id\":\"custom:2\",\"text\":\"pfrac\",\"priority\":1.5},{\"id\":\"custom:7\",\"text\":\"ptiny\",\"priority\":1e-7},{\"id\":\"custom:18\",\"text\":\"pmin\",\"priority\":5e-324},{\"id\":\"custom:0\",\"text\":\"p0\",\"priority\":0},{\"id\":\"custom:3\",\"text\":\"pnone\"},{\"id\":\"custom:4\",\"text\":\"pstr\"},{\"id\":\"custom:5\",\"text\":\"pnull\"},{\"id\":\"custom:11\",\"text\":\"pnegzero\",\"priority\":0},{\"id\":\"custom:12\",\"text\":\"bare\"},{\"id\":\"custom:13\",\"text\":\"pbool\"},{\"id\":\"custom:20\",\"text\":\"parr\"},{\"id\":\"custom:21\",\"text\":\"pobj\"},{\"id\":\"custom:8\",\"text\":\"pnegtiny\",\"priority\":-1e-7},{\"id\":\"custom:1\",\"text\":\"pneg\",\"priority\":-1},{\"id\":\"custom:19\",\"text\":\"pneghuge\",\"priority\":-1e+300}]"
+  },
+  {
+   "name": "cooldowns",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"c3\",\"cooldownSessions\":3},{\"text\":\"cneg\",\"cooldownSessions\":-2},{\"text\":\"cfrac\",\"cooldownSessions\":0.5},{\"text\":\"cstr\",\"cooldownSessions\":\"3\"},{\"text\":\"cnull\",\"cooldownSessions\":null},{\"text\":\"cexp\",\"cooldownSessions\":3e0},{\"text\":\"both\",\"priority\":1,\"cooldownSessions\":4,\"id\":\"b\"},{\"cooldownSessions\":1,\"priority\":9,\"id\":\"order\",\"text\":\"key order\"}]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"c3\",\"cooldownSessions\":3},{\"text\":\"cneg\",\"cooldownSessions\":-2},{\"text\":\"cfrac\",\"cooldownSessions\":0.5},{\"text\":\"cstr\"},{\"text\":\"cnull\"},{\"text\":\"cexp\",\"cooldownSessions\":3},{\"text\":\"both\",\"id\":\"b\",\"priority\":1,\"cooldownSessions\":4},{\"text\":\"key order\",\"id\":\"order\",\"priority\":9,\"cooldownSessions\":1}]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"c3\",\"cooldownSessions\":3},{\"text\":\"cneg\",\"cooldownSessions\":-2},{\"text\":\"cfrac\",\"cooldownSessions\":0.5},{\"text\":\"cstr\"},{\"text\":\"cnull\"},{\"text\":\"cexp\",\"cooldownSessions\":3},{\"text\":\"both\",\"id\":\"b\",\"priority\":1,\"cooldownSessions\":4},{\"text\":\"key order\",\"id\":\"order\",\"priority\":9,\"cooldownSessions\":1}]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"c3\",\"cooldownSessions\":3},{\"text\":\"cneg\",\"cooldownSessions\":-2},{\"text\":\"cfrac\",\"cooldownSessions\":0.5},{\"text\":\"cstr\"},{\"text\":\"cnull\"},{\"text\":\"cexp\",\"cooldownSessions\":3},{\"text\":\"both\",\"id\":\"b\",\"priority\":1,\"cooldownSessions\":4},{\"text\":\"key order\",\"id\":\"order\",\"priority\":9,\"cooldownSessions\":1}]}}",
+   "tips": "[{\"id\":\"custom:order\",\"text\":\"key order\",\"priority\":9,\"cooldownSessions\":1},{\"id\":\"custom:b\",\"text\":\"both\",\"priority\":1,\"cooldownSessions\":4},{\"id\":\"custom:0\",\"text\":\"c3\",\"cooldownSessions\":3},{\"id\":\"custom:1\",\"text\":\"cneg\",\"cooldownSessions\":-2},{\"id\":\"custom:2\",\"text\":\"cfrac\",\"cooldownSessions\":0.5},{\"id\":\"custom:3\",\"text\":\"cstr\"},{\"id\":\"custom:4\",\"text\":\"cnull\"},{\"id\":\"custom:5\",\"text\":\"cexp\",\"cooldownSessions\":3}]"
+  },
+  {
+   "name": "entry duplicate keys",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"dup\",\"text\":\" dup2 \",\"priority\":1,\"priority\":3,\"id\":\"x\",\"id\":\"y\"}]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"dup2\",\"id\":\"y\",\"priority\":3}]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"dup2\",\"id\":\"y\",\"priority\":3}]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"dup2\",\"id\":\"y\",\"priority\":3}]}}",
+   "tips": "[{\"id\":\"custom:y\",\"text\":\"dup2\",\"priority\":3}]"
+  },
+  {
+   "name": "entry __proto__ key",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"proto\",\"__proto__\":{\"priority\":9,\"id\":\"p\"}}]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"proto\"}]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"proto\"}]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"proto\"}]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"proto\"}]"
+  },
+  {
+   "name": "stable priority sort with defaults",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[{\"text\":\"a\",\"priority\":-1},\"b\",{\"text\":\"c\",\"priority\":3},{\"text\":\"d\",\"priority\":0},{\"text\":\"e\",\"priority\":3},\"f\",{\"text\":\"g\",\"priority\":-1}]}}",
+   "normalized": "{\"excludeDefault\":false,\"tips\":[{\"text\":\"a\",\"priority\":-1},\"b\",{\"text\":\"c\",\"priority\":3},{\"text\":\"d\",\"priority\":0},{\"text\":\"e\",\"priority\":3},\"f\",{\"text\":\"g\",\"priority\":-1}]}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[{\"text\":\"a\",\"priority\":-1},\"b\",{\"text\":\"c\",\"priority\":3},{\"text\":\"d\",\"priority\":0},{\"text\":\"e\",\"priority\":3},\"f\",{\"text\":\"g\",\"priority\":-1}]}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[{\"text\":\"a\",\"priority\":-1},\"b\",{\"text\":\"c\",\"priority\":3},{\"text\":\"d\",\"priority\":0},{\"text\":\"e\",\"priority\":3},\"f\",{\"text\":\"g\",\"priority\":-1}]}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:2\",\"text\":\"c\",\"priority\":3},{\"id\":\"custom:4\",\"text\":\"e\",\"priority\":3},{\"id\":\"custom:1\",\"text\":\"b\"},{\"id\":\"custom:3\",\"text\":\"d\",\"priority\":0},{\"id\":\"custom:5\",\"text\":\"f\"},{\"id\":\"custom:0\",\"text\":\"a\",\"priority\":-1},{\"id\":\"custom:6\",\"text\":\"g\",\"priority\":-1}]"
+  },
+  {
+   "name": "label missing",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\"}]"
+  },
+  {
+   "name": "label \"\"",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"\"}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\"}]"
+  },
+  {
+   "name": "label spaces",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"   \"}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\"}]"
+  },
+  {
+   "name": "label padded",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\",{\"text\":\"u\"}],\"label\":\" Team \"}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\",{\"text\":\"u\"}],\"label\":\"Team\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\",{\"text\":\"u\"}],\"label\":\"Team\"}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\",{\"text\":\"u\"}],\"label\":\"Team\"}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\",\"label\":\"Team\"},{\"id\":\"custom:1\",\"text\":\"u\",\"label\":\"Team\"}]"
+  },
+  {
+   "name": "label nbsp/bom",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\" Team﻿\"}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"Team\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"Team\"}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"Team\"}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\",\"label\":\"Team\"}]"
+  },
+  {
+   "name": "label line separators",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"  \"}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\"}]"
+  },
+  {
+   "name": "label NEL",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"\"}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"\"}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":\"\"}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\",\"label\":\"\"}]"
+  },
+  {
+   "name": "label number",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":42}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\"}]"
+  },
+  {
+   "name": "label null",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":null}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\"}]"
+  },
+  {
+   "name": "label array",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"t\"],\"label\":[\"Team\"]}}",
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"t\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"t\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"t\"}]"
+  },
+  {
+   "name": "label without tips",
+   "settings": "{\"spinnerTipsOverride\":{\"label\":\"Team\"}}",
+   "normalized": "{\"excludeDefault\":false,\"label\":\"Team\"}",
+   "merged": "{\"excludeDefault\":false,\"label\":\"Team\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"label\":\"Team\"}}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "tipsFile missing, file present",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile \"\"",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile spaces",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"   \"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile number",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":42}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile null",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":null}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile array",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":[\"~/tips.json\"]}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile relative",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ./relative",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"./tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"./tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~/",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile padded ~/",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\" ~/tips.json\\n\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile nbsp/bom padded",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\" ~/tips.json﻿\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile NEL padded",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~ alone",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    },
+    {
+     "path": "~",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~/ alone",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~user",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~user/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~user/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~\\",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~\\\\tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~\\\\tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~/ through a missing dir and ..",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/nosub/../tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/nosub/../tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile ~/./",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/./tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/./tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile ~//",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~//tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~//tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile ~/ trailing slash",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/tips.json/\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/tips.json/\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~/ trailing /.",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/tips.json/.\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/tips.json/.\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile ~/ climbing past root",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/../../../../../../../../../../../../tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/../../../../../../../../../../../../tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~/ nested",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/a/b/tips.json\"}}",
+   "files": [
+    {
+     "path": "a/b/tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/a/b/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile absolute",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"$HOME/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"$HOME/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile absolute through a missing dir and ..",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"$HOME/nosub/../tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"$HOME/nosub/../tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile absolute with //",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"$HOME//tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"$HOME//tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile absolute missing",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"$HOME/missing.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"$HOME/missing.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile with NUL",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"$HOME/tips.json\\u0000.bak\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"$HOME/tips.json\\u0000.bak\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile a directory",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"$HOME/dir\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    },
+    {
+     "path": "dir",
+     "dir": true
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"$HOME/dir\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile ~ a directory",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/dir\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    },
+    {
+     "path": "dir",
+     "dir": true
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/dir\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile symlink to a file",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"$HOME/link.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    },
+    {
+     "path": "link.json",
+     "symlink": "$HOME/tips.json"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"$HOME/link.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile ~ symlink to a file",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/link.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    },
+    {
+     "path": "link.json",
+     "symlink": "tips.json"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/link.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "tipsFile symlink to a dir",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/link\"}}",
+   "files": [
+    {
+     "path": "dir",
+     "dir": true
+    },
+    {
+     "path": "link",
+     "symlink": "dir"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/link\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile dangling symlink",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/link.json\"}}",
+   "files": [
+    {
+     "path": "link.json",
+     "symlink": "gone.json"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/link.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile is settings.json",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/.claude/settings.json\"}}",
+   "files": [],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/.claude/settings.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "tipsFile unreadable",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/locked.json\"}}",
+   "files": [
+    {
+     "path": "locked.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]",
+     "mode": 0
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/locked.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file size MAX-1",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/big.json\"}}",
+   "files": [
+    {
+     "path": "big.json",
+     "text": "[\"just under\"]",
+     "padTo": 262143
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/big.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"just under\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"just under\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"just under\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file size MAX",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/big.json\"}}",
+   "files": [
+    {
+     "path": "big.json",
+     "text": "[\"exactly max\"]",
+     "padTo": 262144
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/big.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"exactly max\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"exactly max\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"exactly max\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file size MAX+1",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/big.json\"}}",
+   "files": [
+    {
+     "path": "big.json",
+     "text": "[\"one over\"]",
+     "padTo": 262145
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/big.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file empty",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": ""
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file whitespace only",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": " \n\t "
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file invalid JSON",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[\"a\","
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file trailing comma",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[\"a\",]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file null",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "null"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file {}",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "{}"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file object with tips",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "{\"tips\":[\"a\"]}"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file string",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "\"a\""
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file number",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "42"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file true",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "true"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file BOM-prefixed array",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "﻿[\"bom\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file empty array",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file junk only",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[\"\", \" \", null, 1, {}, {\"text\":\"\"}, {\"text\":3}, [], [\"x\"], true, {\"id\":\"x\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file CRLF and padding",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "\r\n  [ \"crlf\" ,\r\n {\"text\":\"\\t obj \"} ]  \r\n"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"crlf\",{\"text\":\"obj\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"crlf\",{\"text\":\"obj\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"crlf\",\"label\":\"Org\"},{\"id\":\"custom:3\",\"text\":\"obj\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file escapes",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[\"\\u00a0esc\\u00a0\", \"\\ud83d\\ude00 pair\", \"\\u2028\", {\"text\":\"\\ufeff\"}, \"\\\"quoted\\\"\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"esc\",\"😀 pair\",\"\\\"quoted\\\"\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"esc\",\"😀 pair\",\"\\\"quoted\\\"\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"esc\",\"label\":\"Org\"},{\"id\":\"custom:3\",\"text\":\"😀 pair\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"\\\"quoted\\\"\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file invalid UTF-8",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "hex": "5b22636166ff222c20226f6b222c2022eda080222c20227472756e6320e282222c2022f09f98222c2022c0af222c2022f4908080225d"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"caf�\",\"ok\",\"���\",\"trunc �\",\"�\",\"��\",\"����\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"caf�\",\"ok\",\"���\",\"trunc �\",\"�\",\"��\",\"����\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"caf�\",\"label\":\"Org\"},{\"id\":\"custom:3\",\"text\":\"ok\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"���\",\"label\":\"Org\"},{\"id\":\"custom:5\",\"text\":\"trunc �\",\"label\":\"Org\"},{\"id\":\"custom:6\",\"text\":\"�\",\"label\":\"Org\"},{\"id\":\"custom:7\",\"text\":\"��\",\"label\":\"Org\"},{\"id\":\"custom:8\",\"text\":\"����\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file number forms",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[{\"text\":\"n\",\"priority\":1.0,\"cooldownSessions\":1E1},{\"text\":\"m\",\"priority\":-0.0},{\"text\":\"z\",\"priority\":0.1e1}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},{\"text\":\"n\",\"priority\":1,\"cooldownSessions\":10},{\"text\":\"m\",\"priority\":0},{\"text\":\"z\",\"priority\":1}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},{\"text\":\"n\",\"priority\":1,\"cooldownSessions\":10},{\"text\":\"m\",\"priority\":0},{\"text\":\"z\",\"priority\":1}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:2\",\"text\":\"n\",\"label\":\"Org\",\"priority\":1,\"cooldownSessions\":10},{\"id\":\"custom:4\",\"text\":\"z\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:3\",\"text\":\"m\",\"label\":\"Org\",\"priority\":0}]"
+  },
+  {
+   "name": "file lone surrogate",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[\"\\ud800 lone\", \"fine\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"\\ud800 lone\",\"fine\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"\\ud800 lone\",\"fine\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"\\ud800 lone\",\"label\":\"Org\"},{\"id\":\"custom:3\",\"text\":\"fine\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file 1e400 priority",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[{\"text\":\"inf\",\"priority\":1e400}, \"fine\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},{\"text\":\"inf\",\"priority\":null},\"fine\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},{\"text\":\"inf\",\"priority\":null},\"fine\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:2\",\"text\":\"inf\",\"label\":\"Org\",\"priority\":null},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:3\",\"text\":\"fine\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file nested 100 deep",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]], \"fine\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"fine\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"fine\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"fine\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file nested 200 deep",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]], \"fine\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"fine\"],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"fine\"],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"fine\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file duplicate keys",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[{\"text\":\"a\",\"text\":\"b\",\"id\":\"1\",\"id\":\"2\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},{\"text\":\"b\",\"id\":\"2\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},{\"text\":\"b\",\"id\":\"2\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"b\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file with no inline tips",
+   "settings": "{\"spinnerTipsOverride\":{\"label\":\"Org\",\"tipsFile\":\"~/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"label\":\"Org\",\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:0\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2},{\"id\":\"custom:inline\",\"text\":\"collides with an inline id\",\"label\":\"Org\"}]"
+  },
+  {
+   "name": "file empty array, no inline tips",
+   "settings": "{\"spinnerTipsOverride\":{\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"label\":\"Org\",\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false,\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"label\":\"Org\"}}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "file junk only, no inline tips",
+   "settings": "{\"spinnerTipsOverride\":{\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[\"\", {\"text\":\" \"}, null]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":false}",
+   "config": "{\"override\":{\"excludeDefault\":false}}",
+   "tips": "[\"$DEFAULT_TIPS\"]"
+  },
+  {
+   "name": "file missing, no inline tips",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tipsFile\":\"~/missing.json\"}}",
+   "files": [],
+   "normalized": "{\"excludeDefault\":true,\"tipsFile\":\"~/missing.json\"}",
+   "merged": "{\"excludeDefault\":true}",
+   "config": "{\"override\":{\"excludeDefault\":true}}",
+   "tips": "[]"
+  },
+  {
+   "name": "file with inline tips not an array",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":\"inline\",\"tipsFile\":\"~/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}]}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}]}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"priority\":5},{\"id\":\"custom:0\",\"text\":\"from file\"},{\"id\":\"custom:2\",\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"custom:inline\",\"text\":\"collides with an inline id\"}]"
+  },
+  {
+   "name": "file with excludeDefault",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\" inline \",{\"id\":\"inline\",\"text\":\"Inline obj\",\"priority\":1}],\"label\":\" Org \",\"excludeDefault\":true,\"tipsFile\":\"~/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1}],\"label\":\"Org\",\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"inline\",{\"text\":\"Inline obj\",\"id\":\"inline\",\"priority\":1},\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}],\"label\":\"Org\"}}",
+   "tips": "[{\"id\":\"custom:f\",\"text\":\"File tip\",\"label\":\"Org\",\"priority\":5},{\"id\":\"custom:inline\",\"text\":\"Inline obj\",\"label\":\"Org\",\"priority\":1},{\"id\":\"custom:0\",\"text\":\"inline\",\"label\":\"Org\"},{\"id\":\"custom:2\",\"text\":\"from file\",\"label\":\"Org\"},{\"id\":\"custom:4\",\"text\":\"num id\",\"label\":\"Org\",\"cooldownSessions\":2}]"
+  },
+  {
+   "name": "file with inline junk only",
+   "settings": "{\"spinnerTipsOverride\":{\"tips\":[\"\",null,{\"text\":\" \"}],\"tipsFile\":\"~/tips.json\"}}",
+   "files": [
+    {
+     "path": "tips.json",
+     "text": "[\"from file\",{\"id\":\"f\",\"text\":\" File tip \",\"priority\":5},\"\",{\"text\":\"\"},7,null,{\"id\":3,\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"inline\",\"text\":\"collides with an inline id\"}]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":false,\"tips\":[],\"tipsFile\":\"~/tips.json\"}",
+   "merged": "{\"excludeDefault\":false,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}]}",
+   "config": "{\"override\":{\"excludeDefault\":false,\"tips\":[\"from file\",{\"text\":\"File tip\",\"id\":\"f\",\"priority\":5},{\"text\":\"num id\",\"cooldownSessions\":2},{\"text\":\"collides with an inline id\",\"id\":\"inline\"}]}}",
+   "tips": "[\"$DEFAULT_TIPS\",{\"id\":\"custom:f\",\"text\":\"File tip\",\"priority\":5},{\"id\":\"custom:0\",\"text\":\"from file\"},{\"id\":\"custom:2\",\"text\":\"num id\",\"cooldownSessions\":2},{\"id\":\"custom:inline\",\"text\":\"collides with an inline id\"}]"
+  },
+  {
+   "name": "file ids continue after the inline ones",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[\"inline 0\",\"inline 1\"],\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[\"file 0\", {\"id\":\"0\",\"text\":\"claims custom:0\"}, \"file 2\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":true,\"tips\":[\"inline 0\",\"inline 1\"],\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[\"inline 0\",\"inline 1\",\"file 0\",{\"text\":\"claims custom:0\",\"id\":\"0\"},\"file 2\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[\"inline 0\",\"inline 1\",\"file 0\",{\"text\":\"claims custom:0\",\"id\":\"0\"},\"file 2\"]}}",
+   "tips": "[{\"id\":\"custom:0\",\"text\":\"inline 0\"},{\"id\":\"custom:1\",\"text\":\"inline 1\"},{\"id\":\"custom:2\",\"text\":\"file 0\"},{\"id\":\"custom:4\",\"text\":\"file 2\"}]"
+  },
+  {
+   "name": "file priorities sort among the inline ones",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"inline 5\",\"priority\":5},\"inline none\",{\"text\":\"inline -5\",\"priority\":-5}],\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[{\"text\":\"file hi\",\"priority\":10},{\"text\":\"file lo\",\"priority\":-10},\"file none\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"inline 5\",\"priority\":5},\"inline none\",{\"text\":\"inline -5\",\"priority\":-5}],\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"inline 5\",\"priority\":5},\"inline none\",{\"text\":\"inline -5\",\"priority\":-5},{\"text\":\"file hi\",\"priority\":10},{\"text\":\"file lo\",\"priority\":-10},\"file none\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"inline 5\",\"priority\":5},\"inline none\",{\"text\":\"inline -5\",\"priority\":-5},{\"text\":\"file hi\",\"priority\":10},{\"text\":\"file lo\",\"priority\":-10},\"file none\"]}}",
+   "tips": "[{\"id\":\"custom:3\",\"text\":\"file hi\",\"priority\":10},{\"id\":\"custom:0\",\"text\":\"inline 5\",\"priority\":5},{\"id\":\"custom:1\",\"text\":\"inline none\"},{\"id\":\"custom:5\",\"text\":\"file none\"},{\"id\":\"custom:2\",\"text\":\"inline -5\",\"priority\":-5},{\"id\":\"custom:4\",\"text\":\"file lo\",\"priority\":-10}]"
+  },
+  {
+   "name": "file many tips",
+   "settings": "{\"spinnerTipsOverride\":{\"excludeDefault\":true,\"tipsFile\":\"~/f.json\"}}",
+   "files": [
+    {
+     "path": "f.json",
+     "text": "[{\"id\":\"k0\",\"text\":\"obj 0\",\"priority\":0},\"tip 1\",\"tip 2\",{\"id\":\"k3\",\"text\":\"obj 3\",\"priority\":3},\"tip 4\",\"tip 5\",{\"id\":\"k6\",\"text\":\"obj 6\",\"priority\":1},\"tip 7\",\"tip 8\",{\"id\":\"k2\",\"text\":\"obj 9\",\"priority\":4},\"tip 10\",\"tip 11\",{\"id\":\"k5\",\"text\":\"obj 12\",\"priority\":2},\"tip 13\",\"tip 14\",{\"id\":\"k1\",\"text\":\"obj 15\",\"priority\":0},\"tip 16\",\"tip 17\",{\"id\":\"k4\",\"text\":\"obj 18\",\"priority\":3},\"tip 19\",\"tip 20\",{\"id\":\"k0\",\"text\":\"obj 21\",\"priority\":1},\"tip 22\",\"tip 23\",{\"id\":\"k3\",\"text\":\"obj 24\",\"priority\":4},\"tip 25\",\"tip 26\",{\"id\":\"k6\",\"text\":\"obj 27\",\"priority\":2},\"tip 28\",\"tip 29\",{\"id\":\"k2\",\"text\":\"obj 30\",\"priority\":0},\"tip 31\",\"tip 32\",{\"id\":\"k5\",\"text\":\"obj 33\",\"priority\":3},\"tip 34\",\"tip 35\",{\"id\":\"k1\",\"text\":\"obj 36\",\"priority\":1},\"tip 37\",\"tip 38\",{\"id\":\"k4\",\"text\":\"obj 39\",\"priority\":4},\"tip 40\",\"tip 41\",{\"id\":\"k0\",\"text\":\"obj 42\",\"priority\":2},\"tip 43\",\"tip 44\",{\"id\":\"k3\",\"text\":\"obj 45\",\"priority\":0},\"tip 46\",\"tip 47\",{\"id\":\"k6\",\"text\":\"obj 48\",\"priority\":3},\"tip 49\",\"tip 50\",{\"id\":\"k2\",\"text\":\"obj 51\",\"priority\":1},\"tip 52\",\"tip 53\",{\"id\":\"k5\",\"text\":\"obj 54\",\"priority\":4},\"tip 55\",\"tip 56\",{\"id\":\"k1\",\"text\":\"obj 57\",\"priority\":2},\"tip 58\",\"tip 59\"]"
+    }
+   ],
+   "normalized": "{\"excludeDefault\":true,\"tipsFile\":\"~/f.json\"}",
+   "merged": "{\"excludeDefault\":true,\"tips\":[{\"text\":\"obj 0\",\"id\":\"k0\",\"priority\":0},\"tip 1\",\"tip 2\",{\"text\":\"obj 3\",\"id\":\"k3\",\"priority\":3},\"tip 4\",\"tip 5\",{\"text\":\"obj 6\",\"id\":\"k6\",\"priority\":1},\"tip 7\",\"tip 8\",{\"text\":\"obj 9\",\"id\":\"k2\",\"priority\":4},\"tip 10\",\"tip 11\",{\"text\":\"obj 12\",\"id\":\"k5\",\"priority\":2},\"tip 13\",\"tip 14\",{\"text\":\"obj 15\",\"id\":\"k1\",\"priority\":0},\"tip 16\",\"tip 17\",{\"text\":\"obj 18\",\"id\":\"k4\",\"priority\":3},\"tip 19\",\"tip 20\",{\"text\":\"obj 21\",\"id\":\"k0\",\"priority\":1},\"tip 22\",\"tip 23\",{\"text\":\"obj 24\",\"id\":\"k3\",\"priority\":4},\"tip 25\",\"tip 26\",{\"text\":\"obj 27\",\"id\":\"k6\",\"priority\":2},\"tip 28\",\"tip 29\",{\"text\":\"obj 30\",\"id\":\"k2\",\"priority\":0},\"tip 31\",\"tip 32\",{\"text\":\"obj 33\",\"id\":\"k5\",\"priority\":3},\"tip 34\",\"tip 35\",{\"text\":\"obj 36\",\"id\":\"k1\",\"priority\":1},\"tip 37\",\"tip 38\",{\"text\":\"obj 39\",\"id\":\"k4\",\"priority\":4},\"tip 40\",\"tip 41\",{\"text\":\"obj 42\",\"id\":\"k0\",\"priority\":2},\"tip 43\",\"tip 44\",{\"text\":\"obj 45\",\"id\":\"k3\",\"priority\":0},\"tip 46\",\"tip 47\",{\"text\":\"obj 48\",\"id\":\"k6\",\"priority\":3},\"tip 49\",\"tip 50\",{\"text\":\"obj 51\",\"id\":\"k2\",\"priority\":1},\"tip 52\",\"tip 53\",{\"text\":\"obj 54\",\"id\":\"k5\",\"priority\":4},\"tip 55\",\"tip 56\",{\"text\":\"obj 57\",\"id\":\"k1\",\"priority\":2},\"tip 58\",\"tip 59\"]}",
+   "config": "{\"override\":{\"excludeDefault\":true,\"tips\":[{\"text\":\"obj 0\",\"id\":\"k0\",\"priority\":0},\"tip 1\",\"tip 2\",{\"text\":\"obj 3\",\"id\":\"k3\",\"priority\":3},\"tip 4\",\"tip 5\",{\"text\":\"obj 6\",\"id\":\"k6\",\"priority\":1},\"tip 7\",\"tip 8\",{\"text\":\"obj 9\",\"id\":\"k2\",\"priority\":4},\"tip 10\",\"tip 11\",{\"text\":\"obj 12\",\"id\":\"k5\",\"priority\":2},\"tip 13\",\"tip 14\",{\"text\":\"obj 15\",\"id\":\"k1\",\"priority\":0},\"tip 16\",\"tip 17\",{\"text\":\"obj 18\",\"id\":\"k4\",\"priority\":3},\"tip 19\",\"tip 20\",{\"text\":\"obj 21\",\"id\":\"k0\",\"priority\":1},\"tip 22\",\"tip 23\",{\"text\":\"obj 24\",\"id\":\"k3\",\"priority\":4},\"tip 25\",\"tip 26\",{\"text\":\"obj 27\",\"id\":\"k6\",\"priority\":2},\"tip 28\",\"tip 29\",{\"text\":\"obj 30\",\"id\":\"k2\",\"priority\":0},\"tip 31\",\"tip 32\",{\"text\":\"obj 33\",\"id\":\"k5\",\"priority\":3},\"tip 34\",\"tip 35\",{\"text\":\"obj 36\",\"id\":\"k1\",\"priority\":1},\"tip 37\",\"tip 38\",{\"text\":\"obj 39\",\"id\":\"k4\",\"priority\":4},\"tip 40\",\"tip 41\",{\"text\":\"obj 42\",\"id\":\"k0\",\"priority\":2},\"tip 43\",\"tip 44\",{\"text\":\"obj 45\",\"id\":\"k3\",\"priority\":0},\"tip 46\",\"tip 47\",{\"text\":\"obj 48\",\"id\":\"k6\",\"priority\":3},\"tip 49\",\"tip 50\",{\"text\":\"obj 51\",\"id\":\"k2\",\"priority\":1},\"tip 52\",\"tip 53\",{\"text\":\"obj 54\",\"id\":\"k5\",\"priority\":4},\"tip 55\",\"tip 56\",{\"text\":\"obj 57\",\"id\":\"k1\",\"priority\":2},\"tip 58\",\"tip 59\"]}}",
+   "tips": "[{\"id\":\"custom:k2\",\"text\":\"obj 9\",\"priority\":4},{\"id\":\"custom:k3\",\"text\":\"obj 3\",\"priority\":3},{\"id\":\"custom:k4\",\"text\":\"obj 18\",\"priority\":3},{\"id\":\"custom:k5\",\"text\":\"obj 12\",\"priority\":2},{\"id\":\"custom:k6\",\"text\":\"obj 6\",\"priority\":1},{\"id\":\"custom:k0\",\"text\":\"obj 0\",\"priority\":0},{\"id\":\"custom:1\",\"text\":\"tip 1\"},{\"id\":\"custom:2\",\"text\":\"tip 2\"},{\"id\":\"custom:4\",\"text\":\"tip 4\"},{\"id\":\"custom:5\",\"text\":\"tip 5\"},{\"id\":\"custom:7\",\"text\":\"tip 7\"},{\"id\":\"custom:8\",\"text\":\"tip 8\"},{\"id\":\"custom:10\",\"text\":\"tip 10\"},{\"id\":\"custom:11\",\"text\":\"tip 11\"},{\"id\":\"custom:13\",\"text\":\"tip 13\"},{\"id\":\"custom:14\",\"text\":\"tip 14\"},{\"id\":\"custom:k1\",\"text\":\"obj 15\",\"priority\":0},{\"id\":\"custom:16\",\"text\":\"tip 16\"},{\"id\":\"custom:17\",\"text\":\"tip 17\"},{\"id\":\"custom:19\",\"text\":\"tip 19\"},{\"id\":\"custom:20\",\"text\":\"tip 20\"},{\"id\":\"custom:22\",\"text\":\"tip 22\"},{\"id\":\"custom:23\",\"text\":\"tip 23\"},{\"id\":\"custom:25\",\"text\":\"tip 25\"},{\"id\":\"custom:26\",\"text\":\"tip 26\"},{\"id\":\"custom:28\",\"text\":\"tip 28\"},{\"id\":\"custom:29\",\"text\":\"tip 29\"},{\"id\":\"custom:31\",\"text\":\"tip 31\"},{\"id\":\"custom:32\",\"text\":\"tip 32\"},{\"id\":\"custom:34\",\"text\":\"tip 34\"},{\"id\":\"custom:35\",\"text\":\"tip 35\"},{\"id\":\"custom:37\",\"text\":\"tip 37\"},{\"id\":\"custom:38\",\"text\":\"tip 38\"},{\"id\":\"custom:40\",\"text\":\"tip 40\"},{\"id\":\"custom:41\",\"text\":\"tip 41\"},{\"id\":\"custom:43\",\"text\":\"tip 43\"},{\"id\":\"custom:44\",\"text\":\"tip 44\"},{\"id\":\"custom:46\",\"text\":\"tip 46\"},{\"id\":\"custom:47\",\"text\":\"tip 47\"},{\"id\":\"custom:49\",\"text\":\"tip 49\"},{\"id\":\"custom:50\",\"text\":\"tip 50\"},{\"id\":\"custom:52\",\"text\":\"tip 52\"},{\"id\":\"custom:53\",\"text\":\"tip 53\"},{\"id\":\"custom:55\",\"text\":\"tip 55\"},{\"id\":\"custom:56\",\"text\":\"tip 56\"},{\"id\":\"custom:58\",\"text\":\"tip 58\"},{\"id\":\"custom:59\",\"text\":\"tip 59\"}]"
+  }
+ ],
+ "joins": [
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/x",
+   "expanded": "/Users/me/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/",
+   "expanded": "/Users/me",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/x/",
+   "expanded": "/Users/me/x/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/../x",
+   "expanded": "/Users/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/../../../../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/./x",
+   "expanded": "/Users/me/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/a//b",
+   "expanded": "/Users/me/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "/Users/me/a/c",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/.",
+   "expanded": "/Users/me",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/..",
+   "expanded": "/Users",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/...",
+   "expanded": "/Users/me/...",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/.x",
+   "expanded": "/Users/me/.x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/x/..",
+   "expanded": "/Users/me",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/x/../",
+   "expanded": "/Users/me/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~//x",
+   "expanded": "/Users/me/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/x/./",
+   "expanded": "/Users/me/x/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "/Users/b/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "/Users/me",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/x",
+   "expanded": "/Users/me/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/",
+   "expanded": "/Users/me/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/x/",
+   "expanded": "/Users/me/x/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/../x",
+   "expanded": "/Users/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/../../../../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/./x",
+   "expanded": "/Users/me/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/a//b",
+   "expanded": "/Users/me/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "/Users/me/a/c",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/.",
+   "expanded": "/Users/me",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/..",
+   "expanded": "/Users",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/...",
+   "expanded": "/Users/me/...",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/.x",
+   "expanded": "/Users/me/.x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/x/..",
+   "expanded": "/Users/me",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/x/../",
+   "expanded": "/Users/me/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~//x",
+   "expanded": "/Users/me/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/x/./",
+   "expanded": "/Users/me/x/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "/Users/b/",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "/Users/me/",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/x/",
+   "expanded": "/x/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/../../../../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/./x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/a//b",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "/a/c",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/.",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/..",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/...",
+   "expanded": "/...",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/.x",
+   "expanded": "/.x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/x/..",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/x/../",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~//x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/x/./",
+   "expanded": "/x/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "/b/",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "/",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "/",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "/",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "/",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/x/",
+   "expanded": "/x/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/../../../../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/./x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/a//b",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "/a/c",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/.",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/..",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/...",
+   "expanded": "/...",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/.x",
+   "expanded": "/.x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/x/..",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/x/../",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~//x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/x/./",
+   "expanded": "/x/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "/b/",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "//",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "//",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "//",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "//",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/x",
+   "expanded": "/a/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/",
+   "expanded": "/a",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/x/",
+   "expanded": "/a/x/",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/../../../../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/./x",
+   "expanded": "/a/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/a//b",
+   "expanded": "/a/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "/a/a/c",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/.",
+   "expanded": "/a",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/..",
+   "expanded": "/",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/...",
+   "expanded": "/a/...",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/.x",
+   "expanded": "/a/.x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/x/..",
+   "expanded": "/a",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/x/../",
+   "expanded": "/a/",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~//x",
+   "expanded": "/a/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/x/./",
+   "expanded": "/a/x/",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "/b/",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "/a/b/..",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/x",
+   "expanded": "/a/b/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/x/",
+   "expanded": "/a/b/x/",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/../x",
+   "expanded": "/a/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/../../../../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/./x",
+   "expanded": "/a/b/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/a//b",
+   "expanded": "/a/b/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "/a/b/a/c",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/.",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/..",
+   "expanded": "/a",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/...",
+   "expanded": "/a/b/...",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/.x",
+   "expanded": "/a/b/.x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/x/..",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/x/../",
+   "expanded": "/a/b/",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~//x",
+   "expanded": "/a/b/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/x/./",
+   "expanded": "/a/b/x/",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "/a/b/",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "/a/./b",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/x",
+   "expanded": "/a/b/x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/x/",
+   "expanded": "/a/b/x/",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/../x",
+   "expanded": "/a/x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/../../../../x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/./x",
+   "expanded": "/a/b/x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/a//b",
+   "expanded": "/a/b/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "/a/b/a/c",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/.",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/..",
+   "expanded": "/a",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/...",
+   "expanded": "/a/b/...",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/.x",
+   "expanded": "/a/b/.x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/x/..",
+   "expanded": "/a/b",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/x/../",
+   "expanded": "/a/b/",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~//x",
+   "expanded": "/a/b/x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/x/./",
+   "expanded": "/a/b/x/",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "/a/b/",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "/a//b",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/x",
+   "expanded": "relative/x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/",
+   "expanded": "relative",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/x/",
+   "expanded": "relative/x/",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/../x",
+   "expanded": "x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/../../../../x",
+   "expanded": "../../../x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/./x",
+   "expanded": "relative/x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/a//b",
+   "expanded": "relative/a/b",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "relative/a/c",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/.",
+   "expanded": "relative",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/..",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/...",
+   "expanded": "relative/...",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/.x",
+   "expanded": "relative/.x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/x/..",
+   "expanded": "relative",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/x/../",
+   "expanded": "relative/",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~//x",
+   "expanded": "relative/x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/x/./",
+   "expanded": "relative/x/",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "b/",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "relative",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "relative",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "relative",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/",
+   "expanded": "rel/",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/x/",
+   "expanded": "rel/x/",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/../x",
+   "expanded": "x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/../../../../x",
+   "expanded": "../../../x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/./x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/a//b",
+   "expanded": "rel/a/b",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "rel/a/c",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/.",
+   "expanded": "rel",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/..",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/...",
+   "expanded": "rel/...",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/.x",
+   "expanded": "rel/.x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/x/..",
+   "expanded": "rel",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/x/../",
+   "expanded": "rel/",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~//x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/x/./",
+   "expanded": "rel/x/",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "b/",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "rel/",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/x",
+   "expanded": "x",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/x/",
+   "expanded": "x/",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/../x",
+   "expanded": "../x",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/../../../../x",
+   "expanded": "../../../../x",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/./x",
+   "expanded": "x",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/a//b",
+   "expanded": "a/b",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "a/c",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/.",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/..",
+   "expanded": "..",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/...",
+   "expanded": "...",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/.x",
+   "expanded": ".x",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/x/..",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/x/../",
+   "expanded": "./",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~//x",
+   "expanded": "/x",
+   "absolute": true
+  },
+  {
+   "home": "",
+   "tipsFile": "~/x/./",
+   "expanded": "x/",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "../b/",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": "",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": "",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": "",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/x",
+   "expanded": "x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/x/",
+   "expanded": "x/",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/../x",
+   "expanded": "../x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/../../../../x",
+   "expanded": "../../../../x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/./x",
+   "expanded": "x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/a//b",
+   "expanded": "a/b",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/a/./b/../c",
+   "expanded": "a/c",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/.",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/..",
+   "expanded": "..",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/...",
+   "expanded": "...",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/.x",
+   "expanded": ".x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/x/..",
+   "expanded": ".",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/x/../",
+   "expanded": "./",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~//x",
+   "expanded": "x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/x/./",
+   "expanded": "x/",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~/a/../../b/",
+   "expanded": "../b/",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~",
+   "expanded": "~",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "~x",
+   "expanded": "~x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "/abs/x",
+   "expanded": "/abs/x",
+   "absolute": true
+  },
+  {
+   "home": ".",
+   "tipsFile": "/abs/../x",
+   "expanded": "/abs/../x",
+   "absolute": true
+  },
+  {
+   "home": ".",
+   "tipsFile": "rel/x",
+   "expanded": "rel/x",
+   "absolute": false
+  },
+  {
+   "home": ".",
+   "tipsFile": "",
+   "expanded": "",
+   "absolute": false
+  }
+ ]
+}

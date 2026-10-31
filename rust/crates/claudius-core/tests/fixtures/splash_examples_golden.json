@@ -1,0 +1,4532 @@
+{
+ "last": 25,
+ "db": [
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/main",
+   "got": {
+    "dir": "dir",
+    "db": "missing"
+   }
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "null"
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/main",
+   "got": {
+    "dir": "dir",
+    "db": "missing"
+   }
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [],
+   "got": "[]"
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/main",
+   "got": {
+    "dir": "dir",
+    "db": "file"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B5D"
+    ]
+   ]
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "  Fix the build  ",
+    "",
+    "   ",
+    "\t\n",
+    "Add tests"
+   ],
+   "got": "[\"Fix the build\",\"Add tests\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"Fix the build\",\"Add tests\"],\"customized\":true}"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B2246697820746865206275696C64222C22416464207465737473225D"
+    ]
+   ]
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    1,
+    null,
+    true,
+    {},
+    [],
+    [
+     "x"
+    ],
+    "ok",
+    0,
+    false,
+    " ",
+    {
+     "toString": "y"
+    }
+   ],
+   "got": "[\"ok\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"ok\"],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6",
+    "s7",
+    "s8",
+    "s9",
+    "s10",
+    "s11",
+    "s12",
+    "s13",
+    "s14",
+    "s15"
+   ],
+   "got": "[\"s1\",\"s2\",\"s3\",\"s4\",\"s5\",\"s6\",\"s7\",\"s8\",\"s9\",\"s10\",\"s11\",\"s12\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"s1\",\"s2\",\"s3\",\"s4\",\"s5\",\"s6\",\"s7\",\"s8\",\"s9\",\"s10\",\"s11\",\"s12\"],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "  ",
+    "a",
+    "b",
+    "c"
+   ],
+   "got": "[\"a\",\"b\",\"c\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"a\",\"b\",\"c\"],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t6",
+    "t7",
+    "t8",
+    "t9",
+    "t10",
+    "t11",
+    "",
+    "u1",
+    "u2",
+    ""
+   ],
+   "got": "[\"t1\",\"t2\",\"t3\",\"t4\",\"t5\",\"t6\",\"t7\",\"t8\",\"t9\",\"t10\",\"t11\",\"u1\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"t1\",\"t2\",\"t3\",\"t4\",\"t5\",\"t6\",\"t7\",\"t8\",\"t9\",\"t10\",\"t11\",\"u1\"],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "x",
+    "x",
+    " x ",
+    "X",
+    "x"
+   ],
+   "got": "[\"x\",\"x\",\"x\",\"X\",\"x\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"x\",\"x\",\"x\",\"X\",\"x\"],\"customized\":true}"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B2278222C2278222C2278222C2258222C2278225D"
+    ]
+   ]
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    " cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc ",
+    "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd😀",
+    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee😀",
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff  g",
+    "ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg h",
+    "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "  hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh😀"
+   ],
+   "got": "[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\ud83d\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee😀\",\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg \",\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\",\"hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh\\ud83d\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\ud83d\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee😀\",\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg\",\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\",\"hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh\\ud83d\"],\"customized\":true}"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B22616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222C22626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222C22636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363222C2264646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464645C7564383364222C2265656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565F09F9880222C22666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666222C22676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676767676720222C22F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880222C2268686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868686868685C7564383364225D"
+    ]
+   ]
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    " x ",
+    " y ",
+    "﻿z﻿",
+    "n",
+    "　w　",
+    "᠎m᠎",
+    "​zw​",
+    " o",
+    "\u000bvt\f",
+    "\u001fus",
+    " ",
+    "  ﻿"
+   ],
+   "got": "[\"x\",\"y\",\"z\",\"n\",\"w\",\"᠎m᠎\",\"​zw​\",\"o\",\"vt\",\"\\u001fus\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"x\",\"y\",\"z\",\"n\",\"w\",\"᠎m᠎\",\"​zw​\",\"o\",\"vt\",\"\\u001fus\"],\"customized\":true}"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B2278222C2279222C227A222C22C2856EC285222C2277222C22E1A08E6DE1A08E222C22E2808B7A77E2808B222C226F222C227674222C225C75303031667573225D"
+    ]
+   ]
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "say \"hi\"",
+    "back\\slash",
+    "nul\u0000one\u0001del",
+    "</script><!--",
+    "line sep ",
+    "😀 smile",
+    "中文 é́",
+    "𝔘𝔫𝔦",
+    "שלום",
+    "tab\there\nnewline\rcr\bbs\fff"
+   ],
+   "got": "[\"say \\\"hi\\\"\",\"back\\\\slash\",\"nul\\u0000one\\u0001del\",\"</script><!--\",\"line sep\",\"😀 smile\",\"中文 é́\",\"𝔘𝔫𝔦\",\"שלום\",\"tab\\there\\nnewline\\rcr\\bbs\\fff\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"say \\\"hi\\\"\",\"back\\\\slash\",\"nul\\u0000one\\u0001del\",\"</script><!--\",\"line sep\",\"😀 smile\",\"中文 é́\",\"𝔘𝔫𝔦\",\"שלום\",\"tab\\there\\nnewline\\rcr\\bbs\\fff\"],\"customized\":true}"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B22736179205C2268695C22222C226261636B5C5C736C617368222C226E756C5C75303030306F6E655C753030303164656C7F222C223C2F7363726970743E3C212D2D222C226C696E65E280A8736570222C22F09F988020736D696C65222C22E4B8ADE6968720C3A9CC81222C22F09D9498F09D94ABF09D94A6222C22D7A9D79CD795D79D222C227461625C74686572655C6E6E65776C696E655C7263725C6262735C666666225D"
+    ]
+   ]
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "undefined"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": []
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "undefined"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": []
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "null"
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "Filipe",
+   "got": "\"Filipe\""
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_display_name",
+     "text",
+     "2246696C69706522"
+    ]
+   ]
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"Filipe\""
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "  Filipe Garcia  ",
+   "got": "\"Filipe Garcia\""
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"Filipe Garcia\""
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "",
+   "got": "null"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": []
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "null"
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "Ana",
+   "got": "\"Ana\""
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "   \t",
+   "got": "null"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": []
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "got": "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy😀z",
+   "got": "\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\\ud83d\""
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\\ud83d\""
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_display_name",
+     "text",
+     "2279797979797979797979797979797979797979797979797979797979797979797979797979797979797979797979797979797979797979797979795C756438336422"
+    ]
+   ]
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": " Ana ",
+   "got": "\"Ana\""
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"Ana\""
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "Nel",
+   "got": "\"Nel\""
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"Nel\""
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "Quote \" and \\ back",
+   "got": "\"Quote \\\" and \\\\ back\""
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"Quote \\\" and \\\\ back\""
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": null,
+   "got": "null"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": []
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "null"
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/main",
+   "name": "Kept",
+   "got": "\"Kept\""
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/main",
+   "examples": [
+    "chip"
+   ],
+   "got": "[\"chip\"]"
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "undefined"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/main",
+   "got": [
+    [
+     "splash_display_name",
+     "text",
+     "224B65707422"
+    ]
+   ]
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "\"Kept\""
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/main",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "ok"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": []
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '0');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', 'null');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '{}');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '\"a\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', 'true');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '1e400');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"a\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"a\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[ \"  a  \" , \"\" , 1 , null , [ \"b\" ] , { \"c\" : \"d\" } , true , \"\\t\" , \"e\" ]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"a\",\"e\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"\\ud83d\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"\\ud83d\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"\\udc00x\", \"\\ud83d\\ude00\", \"\\u00e9\\u0000\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"\\udc00x\",\"😀\",\"é\\u0000\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"r0\",\"r1\",\"r2\",\"r3\",\"r4\",\"r5\",\"r6\",\"r7\",\"r8\",\"r9\",\"r10\",\"r11\",\"r12\",\"r13\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"r0\",\"r1\",\"r2\",\"r3\",\"r4\",\"r5\",\"r6\",\"r7\",\"r8\",\"r9\",\"r10\",\"r11\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\" \",\"\",\"k0\",\"k1\",\"k2\",\"k3\",\"k4\",\"k5\",\"k6\",\"k7\",\"k8\",\"k9\",\"k10\",\"k11\",\"k12\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"k0\",\"k1\",\"k2\",\"k3\",\"k4\",\"k5\",\"k6\",\"k7\",\"k8\",\"k9\",\"k10\",\"k11\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"ok\", [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]], \"deep\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"ok\",\"deep\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"x\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"a\",]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '{\"a\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', ' \n\t\r [\"ws\"] \r\n');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"ws\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '﻿[\"bom\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"a\",\"a\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"a\",\"a\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[1e400, -0, 0.1, \"num\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"num\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"\\\"q\\\"\", \"\\\\\", \"\\/\", \"\\b\\f\\n\\r\\t\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"\\\"q\\\"\",\"\\\\\",\"/\",\"\\b\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"a\\nb\\rc\\td\\fe\\bf\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"a\\nb\\rc\\td\\fe\\bf\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"  x　\", \"\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"x\",\"\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"x\"] trailing');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '\"[\\\"a\\\"]\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', 5);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', 0.5);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', X'5b2261225d');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"a\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', X'');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', X'5b22ff225d');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"�\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', CAST(X'5b22c3225d' AS TEXT));",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"�\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', CAST(X'5b22eda0bd78225d' AS TEXT));",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"���x\"],\"customized\":true}"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', CAST(X'5b2261005d' AS TEXT));",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B2261005D"
+    ]
+   ]
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"Ana\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"Ana\""
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"  Ana  \"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"Ana\""
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"   \"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '5');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', 'null');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '[\"Ana\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', 'Ana');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"\\ud83d\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"\\ud83d\""
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\""
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\\ud83d\\ude00\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\\ud83d\""
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"x\\u0000y\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"x\\u0000y\""
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', X'22416e6122');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"Ana\""
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', X'');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/foreign",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_display_name', '\"﻿ Bom \"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": "\"Bom \""
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": [
+    [
+     "splash_display_name",
+     "text",
+     "22EFBBBF20426F6D20C28522"
+    ],
+    [
+     "splash_examples",
+     "text",
+     "5B2261005D"
+    ]
+   ]
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/foreign",
+   "examples": [
+    "mine"
+   ],
+   "got": "[\"mine\"]"
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/foreign",
+   "name": "Mine",
+   "got": "\"Mine\""
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/foreign",
+   "got": [
+    [
+     "splash_display_name",
+     "text",
+     "224D696E6522"
+    ],
+    [
+     "splash_examples",
+     "text",
+     "5B226D696E65225D"
+    ]
+   ]
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DROP TABLE ui_state; CREATE TABLE ui_state (key TEXT, value);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', 0), ('splash_display_name', 0);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', 1), ('splash_display_name', 1);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', NULL), ('splash_display_name', NULL);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', 0.0), ('splash_display_name', 0.0);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', 1.5), ('splash_display_name', 1.5);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', '[\"text\"]'), ('splash_display_name', '[\"text\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"text\"],\"customized\":true}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', X'5b22626c6f62225d'), ('splash_display_name', X'5b22626c6f62225d');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"blob\"],\"customized\":true}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "null"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "DELETE FROM ui_state; INSERT INTO ui_state VALUES ('splash_examples', '[\"first\"]'), ('splash_examples', '[\"second\"]'), ('splash_display_name', '\"One\"'), ('splash_display_name', '\"Two\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "{\"examples\":[\"first\"],\"customized\":true}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "\"One\""
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "name": "x",
+   "got": {
+    "threw": "ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "name": "   ",
+   "got": "null"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B226669727374225D"
+    ],
+    [
+     "splash_examples",
+     "text",
+     "5B227365636F6E64225D"
+    ]
+   ]
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "sql": "INSERT INTO ui_state VALUES ('splash_examples', '[\"again\"]'), ('splash_display_name', '\"Again\"');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": "undefined"
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "name": null,
+   "got": "null"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/loose-schema",
+   "got": []
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/no-key",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/no-key",
+   "sql": "DROP TABLE ui_state; CREATE TABLE ui_state (k TEXT PRIMARY KEY, value TEXT);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/no-key",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/no-key",
+   "got": "null"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/no-key",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "table ui_state has no column named key"
+   }
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/no-key",
+   "got": {
+    "threw": "no such column: key"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/no-key",
+   "name": "x",
+   "got": {
+    "threw": "table ui_state has no column named key"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/no-key",
+   "name": null,
+   "got": {
+    "threw": "no such column: key"
+   }
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/no-table",
+   "sql": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO schema_meta VALUES ('version', '9999');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/no-table",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/no-table",
+   "got": "null"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/no-table",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "no such table: ui_state"
+   }
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/no-table",
+   "got": {
+    "threw": "no such table: ui_state"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/no-table",
+   "name": null,
+   "got": {
+    "threw": "no such table: ui_state"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/no-table",
+   "name": "x",
+   "got": {
+    "threw": "no such table: ui_state"
+   }
+  },
+  {
+   "op": "meta",
+   "cwd": "/claudius-golden/splash/no-table",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ],
+    [
+     "version",
+     "text",
+     "'9999'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/not-a-db",
+   "spec": {
+    "text": "this is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\nthis is not a database, just text\n"
+   },
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/not-a-db",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/not-a-db",
+   "got": "null"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/not-a-db",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "file is not a database"
+   }
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/not-a-db",
+   "got": {
+    "threw": "file is not a database"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/not-a-db",
+   "name": "x",
+   "got": {
+    "threw": "file is not a database"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/not-a-db",
+   "name": null,
+   "got": {
+    "threw": "file is not a database"
+   }
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/db-is-a-dir",
+   "spec": {
+    "dir": true
+   },
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/db-is-a-dir",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/db-is-a-dir",
+   "got": "null"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/db-is-a-dir",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "unable to open database file"
+   }
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/db-is-a-dir",
+   "got": {
+    "threw": "unable to open database file"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/db-is-a-dir",
+   "name": null,
+   "got": {
+    "threw": "unable to open database file"
+   }
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/db-is-a-dir",
+   "got": {
+    "dir": "dir",
+    "db": "dir"
+   }
+  },
+  {
+   "op": "projectFile",
+   "cwd": "/claudius-golden/splash/project-is-a-file",
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/project-is-a-file",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/project-is-a-file",
+   "got": "null"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/project-is-a-file",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "EEXIST: file already exists, mkdir '$HOME/.claude/projects/-claudius-golden-splash-project-is-a-file'"
+   }
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/project-is-a-file",
+   "got": {
+    "threw": "EEXIST: file already exists, mkdir '$HOME/.claude/projects/-claudius-golden-splash-project-is-a-file'"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/project-is-a-file",
+   "name": "x",
+   "got": {
+    "threw": "EEXIST: file already exists, mkdir '$HOME/.claude/projects/-claudius-golden-splash-project-is-a-file'"
+   }
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/project-is-a-file",
+   "got": {
+    "dir": "file",
+    "db": "missing"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/rollback-journal",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/rollback-journal",
+   "sql": "PRAGMA journal_mode = DELETE; INSERT INTO ui_state VALUES ('splash_examples', '[\"journal\"]');",
+   "wal": false,
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/rollback-journal",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/rollback-journal",
+   "got": "null"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/rollback-journal",
+   "examples": [
+    "wal now"
+   ],
+   "got": "[\"wal now\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/rollback-journal",
+   "got": "{\"examples\":[\"wal now\"],\"customized\":true}"
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/splash/rollback-journal",
+   "got": [
+    [
+     "splash_examples",
+     "text",
+     "5B2277616C206E6F77225D"
+    ]
+   ]
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "sql": "INSERT OR REPLACE INTO ui_state(key, value) VALUES ('splash_examples', '[\"read-only\"]');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "got": "{\"examples\":[\"read-only\"],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "attempt to write a readonly database"
+   }
+  },
+  {
+   "op": "reset",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "got": {
+    "threw": "attempt to write a readonly database"
+   }
+  },
+  {
+   "op": "setName",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "name": null,
+   "got": {
+    "threw": "attempt to write a readonly database"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "got": "{\"examples\":[\"read-only\"],\"customized\":true}"
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/read-only-file",
+   "spec": {
+    "mode": 420
+   },
+   "got": "ok"
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/read-only-dir",
+   "spec": {
+    "mode": 365,
+    "target": "project"
+   },
+   "got": "ok"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/read-only-dir",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/read-only-dir",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "unable to open database file"
+   }
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/read-only-dir",
+   "got": {
+    "dir": "dir",
+    "db": "missing"
+   }
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/read-only-dir",
+   "spec": {
+    "mode": 493,
+    "target": "project"
+   },
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/read-only-dir",
+   "examples": [
+    "now"
+   ],
+   "got": "[\"now\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/read-only-dir",
+   "got": "{\"examples\":[\"now\"],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/moved",
+   "examples": [
+    "before"
+   ],
+   "got": "[\"before\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/moved",
+   "got": "{\"examples\":[\"before\"],\"customized\":true}"
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/moved",
+   "spec": {
+    "rm": true
+   },
+   "got": "ok"
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/moved",
+   "got": {
+    "dir": "dir",
+    "db": "missing"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/moved",
+   "got": "{\"examples\":[\"before\"],\"customized\":true}"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/moved",
+   "examples": [
+    "after"
+   ],
+   "got": "[\"after\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/moved",
+   "got": "{\"examples\":[\"after\"],\"customized\":true}"
+  },
+  {
+   "op": "getName",
+   "cwd": "/claudius-golden/splash/moved",
+   "got": "null"
+  },
+  {
+   "op": "files",
+   "cwd": "/claudius-golden/splash/moved",
+   "got": {
+    "dir": "dir",
+    "db": "missing"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-0",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-0",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-0",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-0",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-0",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-0",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-0",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-0",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-1",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-1",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', ' $LAST '), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-1",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-1",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-1",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-1",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-1",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-1",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-2",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-2",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST.0'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-2",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-2",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-2",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-2",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-2",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-2",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-3",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-3",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '0x$HEX'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-3",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-3",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-3",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-3",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-3",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-3",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-4",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-4",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LASTe0'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-4",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-4",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-4",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-4",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-4",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-4",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-5",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-5",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '99999999999'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-5",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-5",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-5",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-5",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-5",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-5",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-6",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-6",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', 'Infinity'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-6",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-6",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-6",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-6",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-6",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-6",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-7",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-7",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '1e999'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-7",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-7",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-7",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-7",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-7",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-7",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-8",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-8",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', 'abc'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-8",
+   "examples": [
+    "v"
+   ],
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-8",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-8",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-8",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-8",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-8",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-9",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-9",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', ''), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-9",
+   "examples": [
+    "v"
+   ],
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-9",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-9",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-9",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-9",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-9",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-10",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-10",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '-1'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-10",
+   "examples": [
+    "v"
+   ],
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-10",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-10",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-10",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-10",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-10",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-11",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-11",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '0'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-11",
+   "examples": [
+    "v"
+   ],
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-11",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-11",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-11",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-11",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-11",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-12",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-12",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST.5'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-12",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-12",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-12",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-12",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-12",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-12",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-13",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-13",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', $LAST), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-13",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-13",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-13",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-13",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-13",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-13",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-14",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-14",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', $LAST.0), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-14",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-14",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-14",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-14",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-14",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-14",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-15",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-15",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', X'$UTF8HEX'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-15",
+   "examples": [
+    "v"
+   ],
+   "got": "[\"v\"]"
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-15",
+   "got": "{\"examples\":[\"v\"],\"customized\":true}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-15",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-15",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-15",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-15",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-16",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-16",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', NULL), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-16",
+   "examples": [
+    "v"
+   ],
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-16",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-16",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-16",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-16",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-16",
+   "got": {
+    "threw": "duplicate column name: goal"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-17",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-17",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '10'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-17",
+   "examples": [
+    "v"
+   ],
+   "got": {
+    "threw": "duplicate column name: state"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-17",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-17",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-17",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-17",
+   "got": {
+    "threw": "duplicate column name: state"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-17",
+   "got": {
+    "threw": "duplicate column name: state"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-18",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/version-18",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '10.5'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/version-18",
+   "examples": [
+    "v"
+   ],
+   "got": {
+    "threw": "duplicate column name: state"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/version-18",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/version-18",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/version-18",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-18",
+   "got": {
+    "threw": "duplicate column name: state"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/version-18",
+   "got": {
+    "threw": "duplicate column name: state"
+   }
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-0",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/cleanup-0",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST'), ('notifications_abort_cleanup_v1', 1);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/cleanup-0",
+   "examples": [
+    "c"
+   ],
+   "got": "[\"c\"]"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/cleanup-0",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/cleanup-0",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-0",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-0",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-1",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/cleanup-1",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST'), ('notifications_abort_cleanup_v1', '1.0');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/cleanup-1",
+   "examples": [
+    "c"
+   ],
+   "got": "[\"c\"]"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/cleanup-1",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/cleanup-1",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-1",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-1",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-2",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/cleanup-2",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST'), ('notifications_abort_cleanup_v1', ' 1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/cleanup-2",
+   "examples": [
+    "c"
+   ],
+   "got": "[\"c\"]"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/cleanup-2",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/cleanup-2",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-2",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-2",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-3",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/cleanup-3",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST'), ('notifications_abort_cleanup_v1', '1');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/cleanup-3",
+   "examples": [
+    "c"
+   ],
+   "got": "[\"c\"]"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/cleanup-3",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/cleanup-3",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-3",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-3",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-4",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/cleanup-4",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value); INSERT INTO schema_meta VALUES ('version', '$LAST'), ('notifications_abort_cleanup_v1', X'31');",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/cleanup-4",
+   "examples": [
+    "c"
+   ],
+   "got": "[\"c\"]"
+  },
+  {
+   "op": "flag",
+   "cwd": "/claudius-golden/splash/cleanup-4",
+   "got": [
+    [
+     "notifications_abort_cleanup_v1",
+     "text",
+     "'1'"
+    ]
+   ]
+  },
+  {
+   "op": "file",
+   "cwd": "/claudius-golden/splash/cleanup-4",
+   "spec": {
+    "mode": 292
+   },
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-4",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/cleanup-4",
+   "got": "ok"
+  },
+  {
+   "op": "open",
+   "cwd": "/claudius-golden/splash/meta-no-value",
+   "got": "ok"
+  },
+  {
+   "op": "raw",
+   "cwd": "/claudius-golden/splash/meta-no-value",
+   "sql": "DROP TABLE schema_meta; CREATE TABLE schema_meta (key TEXT PRIMARY KEY);",
+   "wal": true,
+   "got": "ok"
+  },
+  {
+   "op": "set",
+   "cwd": "/claudius-golden/splash/meta-no-value",
+   "examples": [
+    "x"
+   ],
+   "got": {
+    "threw": "no such column: value"
+   }
+  },
+  {
+   "op": "get",
+   "cwd": "/claudius-golden/splash/meta-no-value",
+   "got": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false}"
+  }
+ ],
+ "fallback": [
+  {
+   "name": "nothing configured",
+   "calls": [
+    {
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "the global display name",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Filipe Garcia"
+       }
+      }
+     },
+     "got": "\"Filipe\""
+    }
+   ]
+  },
+  {
+   "name": "the first word only",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "  Ana  Maria  "
+       }
+      }
+     },
+     "got": "\"Ana\""
+    }
+   ]
+  },
+  {
+   "name": "an empty display name",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": ""
+       }
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "a blank display name",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "   "
+       }
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "a display name split by a tab",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Jo\tSmith"
+       }
+      }
+     },
+     "got": "\"Jo\""
+    }
+   ]
+  },
+  {
+   "name": "a display name split by a newline",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Jo\nSmith"
+       }
+      }
+     },
+     "got": "\"Jo\""
+    }
+   ]
+  },
+  {
+   "name": "a display name split by an NBSP",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Jo Smith"
+       }
+      }
+     },
+     "got": "\"Jo\""
+    }
+   ]
+  },
+  {
+   "name": "a display name split by a line separator",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Jo Smith"
+       }
+      }
+     },
+     "got": "\"Jo\""
+    }
+   ]
+  },
+  {
+   "name": "a display name split by an ideographic space",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Ｊｏ　Smith"
+       }
+      }
+     },
+     "got": "\"Ｊｏ\""
+    }
+   ]
+  },
+  {
+   "name": "a NEL is not a separator",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "JoSmith"
+       }
+      }
+     },
+     "got": "\"JoSmith\""
+    }
+   ]
+  },
+  {
+   "name": "a Mongolian vowel separator is not one",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Jo᠎Smith"
+       }
+      }
+     },
+     "got": "\"Jo᠎Smith\""
+    }
+   ]
+  },
+  {
+   "name": "a ZWSP is not one",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Jo​Smith"
+       }
+      }
+     },
+     "got": "\"Jo​Smith\""
+    }
+   ]
+  },
+  {
+   "name": "a BOM is trimmed",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "﻿Jo Smith"
+       }
+      }
+     },
+     "got": "\"Jo\""
+    }
+   ]
+  },
+  {
+   "name": "an astral first word",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "😀 Smile"
+       }
+      }
+     },
+     "got": "\"😀\""
+    }
+   ]
+  },
+  {
+   "name": "a non-string display name",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": 42
+       }
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "no oauthAccount",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "oauthAccount null",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": null
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "oauthAccount a string",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": "Filipe"
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "oauthAccount an array",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": [
+        "Filipe"
+       ]
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "global config malformed",
+   "calls": [
+    {
+     "global": {
+      "text": "{\"oauthAccount\": {\"displayName\": \"X\"}"
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "global config null",
+   "calls": [
+    {
+     "global": {
+      "text": "null"
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "global config a directory",
+   "calls": [
+    {
+     "global": {
+      "dir": true
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "global config unreadable",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Hidden"
+       }
+      },
+      "mode": 0
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "one account, no global",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000003",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-3",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000003",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"Work\""
+    }
+   ]
+  },
+  {
+   "name": "one account, the global name wins",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000004",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-4",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000004",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Filipe Garcia"
+       }
+      }
+     },
+     "got": "\"Filipe\""
+    }
+   ]
+  },
+  {
+   "name": "one account, a blank global name",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000005",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-5",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000005",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "   "
+       }
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "one account, an empty global name",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000006",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-6",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000006",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": ""
+       }
+      }
+     },
+     "got": "\"Work\""
+    }
+   ]
+  },
+  {
+   "name": "one account with a blank label",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000007",
+         "label": "   ",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-7",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000007",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "one account, not the active one",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000008",
+         "label": "Solo Label",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-8",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": null,
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"Solo\""
+    }
+   ]
+  },
+  {
+   "name": "two accounts: the active label",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000001",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-1",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000002",
+         "label": "Personal Pro",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-2",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000002",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Filipe Garcia"
+       }
+      }
+     },
+     "got": "\"Personal\""
+    }
+   ]
+  },
+  {
+   "name": "two accounts: the first active",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000001",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-1",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000002",
+         "label": "Personal Pro",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-2",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000001",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"Work\""
+    }
+   ]
+  },
+  {
+   "name": "two accounts, none active",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000001",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-1",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000002",
+         "label": "Personal Pro",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-2",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": null,
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Filipe Garcia"
+       }
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "two accounts, an unknown active id",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000001",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-1",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000002",
+         "label": "Personal Pro",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-2",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_missing",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Filipe Garcia"
+       }
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "two accounts, a blank active label",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000009",
+         "label": " \t ",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-9",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000010",
+         "label": "Other One",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-10",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000009",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Filipe"
+       }
+      }
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "two accounts, a padded active label",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000011",
+         "label": "  Padded  Label ",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-11",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000012",
+         "label": "Other",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-12",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000011",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"Padded\""
+    }
+   ]
+  },
+  {
+   "name": "two accounts sharing an id",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000001",
+         "label": "First Twin",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-1",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000001",
+         "label": "Second Twin",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-1",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000001"
+      }
+     },
+     "got": "\"First\""
+    }
+   ]
+  },
+  {
+   "name": "two entries, one invalid: counts as one",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000013",
+         "label": "Valid One",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-13",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "x",
+         "label": "No Secret",
+         "kind": "oauth-token",
+         "createdAt": "x"
+        }
+       ],
+       "activeProfileId": null
+      }
+     },
+     "got": "\"Valid\""
+    }
+   ]
+  },
+  {
+   "name": "two entries, one invalid, with a global name",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000014",
+         "label": "Valid One",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-14",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "x",
+         "label": "Bad Kind",
+         "kind": "nope",
+         "secret": "s",
+         "createdAt": "x"
+        }
+       ]
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Global Name"
+       }
+      }
+     },
+     "got": "\"Global\""
+    }
+   ]
+  },
+  {
+   "name": "a bedrock profile without its config is dropped",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000015",
+         "label": "Rock One",
+         "kind": "bedrock",
+         "secret": "sk-ant-oat01-15",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000016",
+         "label": "Plain Two",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-16",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": null
+      }
+     },
+     "got": "\"Plain\""
+    }
+   ]
+  },
+  {
+   "name": "three accounts",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000017",
+         "label": "A a",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-17",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000018",
+         "label": "B b",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-18",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000019",
+         "label": "C c",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-19",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000017",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"A\""
+    }
+   ]
+  },
+  {
+   "name": "accounts malformed, global name",
+   "calls": [
+    {
+     "accounts": {
+      "text": "{\"profiles\": ["
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Fallback Name"
+       }
+      }
+     },
+     "got": "\"Fallback\""
+    }
+   ]
+  },
+  {
+   "name": "accounts null, global name",
+   "calls": [
+    {
+     "accounts": {
+      "text": "null"
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Fallback Name"
+       }
+      }
+     },
+     "got": "\"Fallback\""
+    }
+   ]
+  },
+  {
+   "name": "accounts a directory",
+   "calls": [
+    {
+     "accounts": {
+      "dir": true
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Fallback Name"
+       }
+      }
+     },
+     "got": "\"Fallback\""
+    }
+   ]
+  },
+  {
+   "name": "accounts unreadable",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000020",
+         "label": "Hidden",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-20",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000020",
+       "autoRotateOnRateLimit": false
+      },
+      "mode": 0
+     },
+     "got": "null"
+    }
+   ]
+  },
+  {
+   "name": "accounts with profiles not an array",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": {
+        "a": 1
+       }
+      }
+     },
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "G g"
+       }
+      }
+     },
+     "got": "\"G\""
+    }
+   ]
+  },
+  {
+   "name": "an astral label",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000021",
+         "label": "😀😀 two",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-21",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000021",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"😀😀\""
+    }
+   ]
+  },
+  {
+   "name": "a label with a NEL",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000022",
+         "label": "OneWord",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-22",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000022",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"OneWord\""
+    }
+   ]
+  },
+  {
+   "name": "the global config is cached for 30 s, failures too",
+   "calls": [
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "First Name"
+       }
+      }
+     },
+     "got": "\"First\""
+    },
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Second Name"
+       }
+      }
+     },
+     "got": "\"First\""
+    },
+    {
+     "reset": true,
+     "got": "\"Second\""
+    },
+    {
+     "global": null,
+     "got": "\"Second\""
+    },
+    {
+     "reset": true,
+     "got": "null"
+    },
+    {
+     "global": {
+      "json": {
+       "numStartups": 3,
+       "oauthAccount": {
+        "accountUuid": "u-1",
+        "emailAddress": "a@example.com",
+        "displayName": "Third Name"
+       }
+      }
+     },
+     "got": "null"
+    },
+    {
+     "reset": true,
+     "got": "\"Third\""
+    }
+   ]
+  },
+  {
+   "name": "accounts are read every time",
+   "calls": [
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000023",
+         "label": "One Label",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-23",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000023",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"One\""
+    },
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000001",
+         "label": "Work Max",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-1",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        },
+        {
+         "id": "acc_0000000000000002",
+         "label": "Personal Pro",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-2",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000002",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"Personal\""
+    },
+    {
+     "accounts": null,
+     "got": "null"
+    },
+    {
+     "accounts": {
+      "json": {
+       "profiles": [
+        {
+         "id": "acc_0000000000000024",
+         "label": "Back Again",
+         "kind": "oauth-token",
+         "secret": "sk-ant-oat01-24",
+         "createdAt": "2026-01-01T00:00:00.000Z"
+        }
+       ],
+       "activeProfileId": "acc_0000000000000024",
+       "autoRotateOnRateLimit": false
+      }
+     },
+     "got": "\"Back\""
+    }
+   ]
+  }
+ ]
+}

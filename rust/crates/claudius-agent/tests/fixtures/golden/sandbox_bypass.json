@@ -1,0 +1,133 @@
+{
+  "sdkVersion": "0.3.299",
+  "case": "sandbox_bypass",
+  "spec": {
+    "continue": true,
+    "permissionMode": "bypassPermissions",
+    "allowDangerouslySkipPermissions": true,
+    "settings": {
+      "includeCoAuthoredBy": true,
+      "sandbox": {
+        "autoAllowBashIfSandboxed": true
+      }
+    },
+    "sandbox": {
+      "enabled": true
+    },
+    "managedSettings": {
+      "model": "claude-opus-4-8"
+    },
+    "systemPrompt": [
+      "part one",
+      "part two"
+    ],
+    "outputFormat": {
+      "type": "json_schema",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "thinking": {
+      "type": "disabled"
+    },
+    "plugins": [
+      {
+        "type": "local",
+        "path": "/golden/plugin"
+      }
+    ],
+    "toolConfig": {
+      "askUserQuestion": {
+        "extendedQuestions": true,
+        "optionalDescriptions": true
+      }
+    }
+  },
+  "baseEnv": {
+    "PATH": "/usr/bin:/bin",
+    "HOME": "/golden/home",
+    "LANG": "en_US.UTF-8",
+    "NODE_OPTIONS": "--max-old-space-size=64",
+    "DEBUG": "1",
+    "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
+    "CLAUDE_CODE_QUESTION_EXTENDED": "1"
+  },
+  "argv": [
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--input-format",
+    "stream-json",
+    "--thinking=disabled",
+    "--json-schema={\"type\":\"object\",\"properties\":{\"ok\":{\"type\":\"boolean\"}}}",
+    "--continue",
+    "--permission-mode=bypassPermissions",
+    "--allow-dangerously-skip-permissions",
+    "--plugin-dir=/golden/plugin",
+    "--managed-settings",
+    "{\"model\":\"claude-opus-4-8\"}",
+    "--settings",
+    "{\"includeCoAuthoredBy\":true,\"sandbox\":{\"autoAllowBashIfSandboxed\":true,\"enabled\":true,\"failIfUnavailable\":true}}"
+  ],
+  "env": {
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
+    "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+    "CLAUDE_CODE_QUESTION_EXTENDED": "1",
+    "CLAUDE_CODE_QUESTION_OPTIONAL_DESCRIPTIONS": "1",
+    "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+    "HOME": "/golden/home",
+    "LANG": "en_US.UTF-8",
+    "PATH": "/usr/bin:/bin"
+  },
+  "initialize": {
+    "subtype": "initialize",
+    "jsonSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "systemPrompt": [
+      "part one",
+      "part two"
+    ]
+  },
+  "stdin": [
+    {
+      "request_id": "$ID0",
+      "type": "control_request",
+      "request": {
+        "subtype": "initialize",
+        "jsonSchema": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean"
+            }
+          }
+        },
+        "systemPrompt": [
+          "part one",
+          "part two"
+        ]
+      }
+    },
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "hello"
+      },
+      "parent_tool_use_id": null,
+      "session_id": ""
+    }
+  ]
+}

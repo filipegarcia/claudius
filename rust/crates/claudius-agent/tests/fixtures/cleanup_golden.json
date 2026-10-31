@@ -1,0 +1,925 @@
+{
+  "sdkVersion": "0.3.299",
+  "settleMs": 5000,
+  "runs": 5,
+  "cases": [
+    {
+      "name": "after_clean_exit",
+      "mode": "stream",
+      "script": {
+        "on_init": [
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "steps": [
+        [
+          "drain"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ]
+      ],
+      "want": {
+        "stream": {
+          "ok": null
+        },
+        "r": {
+          "error": "Query closed before response received"
+        }
+      }
+    },
+    {
+      "name": "after_exit_3",
+      "mode": "stream",
+      "script": {
+        "on_init": [
+          {
+            "$stderr": "boom"
+          },
+          {
+            "$exit": 3
+          }
+        ]
+      },
+      "steps": [
+        [
+          "drain"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ]
+      ],
+      "want": {
+        "stream": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "r": {
+          "error": "Query closed before response received"
+        }
+      }
+    },
+    {
+      "name": "after_error_result_exit",
+      "mode": "stream",
+      "script": {
+        "on_init": [
+          {
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "errors": [
+              "  model fell over "
+            ],
+            "num_turns": 1,
+            "duration_ms": 1,
+            "duration_api_ms": 1,
+            "total_cost_usd": 0,
+            "usage": {
+              "input_tokens": 1,
+              "output_tokens": 1
+            }
+          },
+          {
+            "$exit": 1
+          }
+        ]
+      },
+      "steps": [
+        [
+          "drain"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ]
+      ],
+      "want": {
+        "stream": {
+          "error": "Claude Code returned an error result: model fell over"
+        },
+        "r": {
+          "error": "Query closed before response received"
+        }
+      }
+    },
+    {
+      "name": "after_signal",
+      "mode": "stream",
+      "script": {
+        "on_init": [
+          {
+            "$kill": "SIGTERM"
+          }
+        ]
+      },
+      "steps": [
+        [
+          "drain"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ]
+      ],
+      "want": {
+        "stream": {
+          "error": "Claude Code process terminated by signal SIGTERM"
+        },
+        "r": {
+          "error": "Query closed before response received"
+        }
+      }
+    },
+    {
+      "name": "inflight_exit_0",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "$exit": 0
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Query closed before response received"
+        },
+        "stream": {
+          "ok": null
+        }
+      }
+    },
+    {
+      "name": "inflight_exit_3",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "$stderr": "boom"
+              },
+              {
+                "$exit": 3
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "stream": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        }
+      }
+    },
+    {
+      "name": "inflight_error_result",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "type": "result",
+                "subtype": "error_during_execution",
+                "is_error": true,
+                "errors": [
+                  "  model fell over "
+                ],
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$exit": 1
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Claude Code returned an error result: model fell over"
+        },
+        "stream": {
+          "error": "Claude Code returned an error result: model fell over"
+        }
+      }
+    },
+    {
+      "name": "inflight_error_result_exit_0",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "type": "result",
+                "subtype": "error_during_execution",
+                "is_error": true,
+                "errors": [
+                  "  model fell over "
+                ],
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$exit": 0
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Query closed before response received"
+        },
+        "stream": {
+          "ok": null
+        }
+      }
+    },
+    {
+      "name": "inflight_signal",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "$kill": "SIGTERM"
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Claude Code process terminated by signal SIGTERM"
+        },
+        "stream": {
+          "error": "Claude Code process terminated by signal SIGTERM"
+        }
+      }
+    },
+    {
+      "name": "two_inflight_exit_3",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "$stderr": "boom"
+              },
+              {
+                "$exit": 3
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "a"
+        ],
+        [
+          "request",
+          "b"
+        ],
+        [
+          "settle",
+          "a"
+        ],
+        [
+          "settle",
+          "b"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "a": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "b": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "stream": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        }
+      }
+    },
+    {
+      "name": "inflight_abort",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": []
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "r"
+        ],
+        [
+          "sleep",
+          300
+        ],
+        [
+          "abort"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Operation aborted"
+        },
+        "stream": {
+          "error": "Operation aborted"
+        }
+      }
+    },
+    {
+      "name": "request_right_after_abort",
+      "mode": "stream",
+      "script": {},
+      "steps": [
+        [
+          "sleep",
+          300
+        ],
+        [
+          "abort"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Operation aborted"
+        },
+        "stream": {
+          "error": "Operation aborted"
+        }
+      }
+    },
+    {
+      "name": "request_after_abort_drained",
+      "mode": "stream",
+      "script": {},
+      "steps": [
+        [
+          "sleep",
+          300
+        ],
+        [
+          "abort"
+        ],
+        [
+          "drain"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ]
+      ],
+      "want": {
+        "stream": {
+          "error": "Operation aborted"
+        },
+        "r": {
+          "error": "Query closed before response received"
+        }
+      }
+    },
+    {
+      "name": "init_unanswered_exit_0",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "initialize": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "$exit": 0
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "init"
+        ],
+        [
+          "drain"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ]
+      ],
+      "want": {
+        "init": {
+          "error": "Query closed before response received"
+        },
+        "stream": {
+          "ok": null
+        },
+        "r": {
+          "error": "Query closed before response received"
+        }
+      }
+    },
+    {
+      "name": "init_unanswered_exit_3",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "initialize": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "$stderr": "boom"
+              },
+              {
+                "$exit": 3
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "init"
+        ],
+        [
+          "drain"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ]
+      ],
+      "want": {
+        "init": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "stream": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "r": {
+          "error": "Query closed before response received"
+        }
+      }
+    },
+    {
+      "name": "init_unanswered_abort",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "initialize": {
+            "$no_reply": true
+          }
+        }
+      },
+      "steps": [
+        [
+          "sleep",
+          300
+        ],
+        [
+          "abort"
+        ],
+        [
+          "init"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "init": {
+          "error": "Operation aborted"
+        },
+        "stream": {
+          "error": "Operation aborted"
+        }
+      }
+    },
+    {
+      "name": "after_run_end_exit_0",
+      "mode": "single",
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 600
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "steps": [
+        [
+          "until_result"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Query closed before response received"
+        },
+        "stream": {
+          "ok": null
+        }
+      }
+    },
+    {
+      "name": "after_run_end_exit_3",
+      "mode": "single",
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 600
+              },
+              {
+                "$stderr": "boom"
+              },
+              {
+                "$exit": 3
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "steps": [
+        [
+          "until_result"
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "stream": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        }
+      }
+    },
+    {
+      "name": "exited_reader_open",
+      "mode": "stream",
+      "script": {
+        "on_init": [
+          {
+            "$hold_stdout_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "steps": [
+        [
+          "sleep",
+          500
+        ],
+        [
+          "request",
+          "r"
+        ],
+        [
+          "settle",
+          "r"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "r": {
+          "error": "ProcessTransport is not ready for writing"
+        },
+        "stream": {
+          "ok": null
+        }
+      }
+    },
+    {
+      "name": "inflight_exit_3_reader_open",
+      "mode": "stream",
+      "script": {
+        "control": {
+          "background_tasks": {
+            "$no_reply": true,
+            "$emit": [
+              {
+                "$hold_stdout_ms": 1500
+              },
+              {
+                "$stderr": "boom"
+              },
+              {
+                "$exit": 3
+              }
+            ]
+          }
+        }
+      },
+      "steps": [
+        [
+          "request",
+          "a"
+        ],
+        [
+          "sleep",
+          500
+        ],
+        [
+          "request",
+          "b"
+        ],
+        [
+          "settle",
+          "b"
+        ],
+        [
+          "settle",
+          "a"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "want": {
+        "b": {
+          "error": "ProcessTransport is not ready for writing"
+        },
+        "a": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        },
+        "stream": {
+          "error": "Claude Code process exited with code 3. stderr: boom"
+        }
+      }
+    },
+    {
+      "name": "cli_closed_stdin",
+      "mode": "stream",
+      "script": {},
+      "steps": [
+        [
+          "next"
+        ],
+        [
+          "request",
+          "a"
+        ],
+        [
+          "sleep",
+          200
+        ],
+        [
+          "request",
+          "b"
+        ],
+        [
+          "settle",
+          "b"
+        ],
+        [
+          "settle",
+          "a"
+        ],
+        [
+          "init"
+        ],
+        [
+          "drain"
+        ]
+      ],
+      "exe": "#!/bin/sh\nread -r line\nexec 0<&-\nprintf '%s\\n' '{\"type\":\"system\",\"subtype\":\"stdin_closed\"}'\nsleep 1.5\nexit 3\n",
+      "want": {
+        "b": {
+          "error": "ProcessTransport is not ready for writing"
+        },
+        "a": {
+          "error": "Claude Code process exited with code 3"
+        },
+        "init": {
+          "error": "Claude Code process exited with code 3"
+        },
+        "stream": {
+          "error": "Claude Code process exited with code 3"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+//! `claudius` — the Rust backend's HTTP front door.
+//!
+//! Serves the ported API (`/api/sessions/**`, `/api/rust/health`) and
+//! reverse-proxies everything else — pages, assets, HMR websocket, and the
+//! not-yet-ported API routes — to the Next.js server, so the existing React
+//! UI runs unchanged on top of the Rust session engine.
+//!
+//! ```text
+//! claudius --port 3100 --next http://127.0.0.1:3000
+//! ```
+//!
+//! `--scheduler` (or `CLAUDIUS_SCHEDULER=1`) also runs Claudius's scheduled
+//! jobs (`claudius_core::scheduler`). Off by default: Next boots its own
+//! scheduler on the same `jobs.json`, so only turn it on where Next doesn't.
+
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use claudius_core::scheduler::{self, RunnerOptions};
+use claudius_core::session::RuntimeOptions;
+use claudius_core::session_manager::session_manager;
+use claudius_server::{AppState, app, proxy};
+
+struct Args {
+    host: String,
+    port: u16,
+    next: Option<String>,
+    claude_bin: Option<PathBuf>,
+    scheduler: bool,
+}
+
+fn parse_args() -> anyhow::Result<Args> {
+    let mut a = Args {
+        host: std::env::var("CLAUDIUS_RS_HOST").unwrap_or_else(|_| "127.0.0.1".into()),
+        port: std::env::var("CLAUDIUS_RS_PORT")
+            .ok()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(3100),
+        next: Some(
+            std::env::var("CLAUDIUS_NEXT_URL").unwrap_or_else(|_| "http://127.0.0.1:3000".into()),
+        ),
+        claude_bin: std::env::var_os(claudius_agent::binary::ENV_OVERRIDE).map(PathBuf::from),
+        scheduler: scheduler::enabled_by_env(std::env::var("CLAUDIUS_SCHEDULER").ok().as_deref()),
+    };
+    let mut it = std::env::args().skip(1);
+    while let Some(arg) = it.next() {
+        let mut val = |name: &str| {
+            it.next()
+                .ok_or_else(|| anyhow::anyhow!("{name} needs a value"))
+        };
+        match arg.as_str() {
+            "--host" => a.host = val("--host")?,
+            "--port" | "-p" => a.port = val("--port")?.parse()?,
+            "--next" => a.next = Some(val("--next")?),
+            "--no-next" => a.next = None,
+            "--claude-bin" => a.claude_bin = Some(PathBuf::from(val("--claude-bin")?)),
+            "--scheduler" => a.scheduler = true,
+            "-h" | "--help" => {
+                println!(
+                    "claudius [--host 127.0.0.1] [--port 3100] [--next http://127.0.0.1:3000 | --no-next] [--claude-bin PATH] [--scheduler]"
+                );
+                std::process::exit(0);
+            }
+            other => anyhow::bail!("unknown argument: {other}"),
+        }
+    }
+    Ok(a)
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    claudius_server::logging::init();
+    let args = parse_args()?;
+    // Pin Claudius's own state (~/.claude/.claudius, per-project DBs) to a
+    // different home while the spawned CLI keeps the real $HOME — e.g. an
+    // isolated test world that still uses the user's Claude login. The CLI's
+    // session JSONL then still lands in the real config dir, so read it there.
+    if let Some(state_home) = std::env::var_os("CLAUDIUS_STATE_HOME").filter(|v| !v.is_empty()) {
+        let real_config = claudius_core::paths::claude_config_dir();
+        claudius_core::paths::set_home_override(PathBuf::from(state_home));
+        claudius_core::paths::set_config_dir_override(real_config);
+    }
+    let mgr = session_manager().clone();
+    if args.claude_bin.is_some() {
+        *mgr.runtime.lock().unwrap() = RuntimeOptions {
+            claude_bin: args.claude_bin.clone(),
+            env_override: None,
+        };
+    }
+    // TS boots it from `instrumentation.ts`; here only when asked (see the
+    // module doc). Booted before the listener, so a health check implies it.
+    if args.scheduler {
+        let sched = scheduler::scheduler();
+        sched.set_runner(RunnerOptions {
+            claude_bin: args.claude_bin.clone(),
+            env: None,
+        });
+        scheduler::set_enabled(true);
+        match sched.boot() {
+            Ok(()) => tracing::info!("scheduler on: jobs in {}", sched.store().root().display()),
+            Err(e) => tracing::error!(
+                target: claudius_core::log::SCHEDULER,
+                "[scheduler] boot failed: {e}"
+            ),
+        }
+    }
+    let proxy = args
+        .next
+        .as_deref()
+        .map(proxy::Proxy::new)
+        .transpose()?
+        .map(Arc::new);
+    let addr: SocketAddr = format!("{}:{}", args.host, args.port).parse()?;
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    tracing::info!(
+        "claudius (rust) listening on http://{addr}{}",
+        proxy
+            .as_ref()
+            .map(|p| format!(" — proxying unported routes to {}", p.base()))
+            .unwrap_or_default()
+    );
+    let dev_routes = claudius_server::dev::dev_routes_from_env();
+    if dev_routes {
+        tracing::info!("dev-only test routes (dev-*) enabled");
+    }
+    let state = AppState::new(mgr.clone(), proxy, dev_routes);
+    let (stop_http, http_stopped) = tokio::sync::oneshot::channel::<()>();
+    let server = axum::serve(listener, app(state)).with_graceful_shutdown(async {
+        let _ = http_stopped.await;
+    });
+    let mut server = tokio::spawn(server.into_future());
+    tokio::select! {
+        res = &mut server => return res?.map_err(Into::into),
+        sig = shutdown_signal() => tracing::info!("{sig}: shutting down"),
+    }
+    if args.scheduler {
+        scheduler::scheduler().shutdown().await;
+    }
+    // End every session first, concurrently: each waits for its CLI to exit
+    // (SIGTERM → SIGKILL after the kill grace), so no child is orphaned.
+    let ids: Vec<String> = mgr.list().into_iter().map(|s| s.id.clone()).collect();
+    futures::future::join_all(ids.iter().map(|id| mgr.remove(id))).await;
+    // Then stop HTTP. Open SSE streams never finish on their own, so don't let
+    // graceful shutdown wait on them forever.
+    let _ = stop_http.send(());
+    if tokio::time::timeout(std::time::Duration::from_secs(3), &mut server)
+        .await
+        .is_err()
+    {
+        tracing::info!("open connections after 3s; exiting anyway");
+    }
+    Ok(())
+}
+
+/// SIGINT (Ctrl-C) or, on unix, SIGTERM — what the Electron shell and process
+/// managers send.
+async fn shutdown_signal() -> &'static str {
+    #[cfg(unix)]
+    {
+        let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => "SIGINT",
+            _ = term.recv() => "SIGTERM",
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+        "Ctrl-C"
+    }
+}

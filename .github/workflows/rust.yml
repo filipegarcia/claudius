@@ -1,0 +1,70 @@
+# Rust port (rust/): fmt, clippy, tests.
+#
+# Kept separate from ci.yml so TS-only changes don't pay for a Rust build. It
+# triggers on:
+#   - rust/**                        the crates themselves
+#   - lib/server/db-migrations/**    embedded into claudius-core by build.rs,
+#                                    so the shared schema is compiled in
+#   - app/api/**                     the `route_coverage` test checks
+#                                    rust/ROUTES.md against these routes; a new
+#                                    or removed Next route must be reflected
+#                                    there (run rust/scripts/route-coverage.sh)
+#
+# No system packages are needed: rusqlite is built with `bundled` SQLite, and
+# the tests only shell out to git, bash and python3, which both runner images
+# ship. The fake `claude` CLI the tests drive is built by cargo itself.
+name: rust
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rust/**"
+      - "lib/server/db-migrations/**"
+      - "app/api/**"
+      - ".github/workflows/rust.yml"
+  pull_request:
+    paths:
+      - "rust/**"
+      - "lib/server/db-migrations/**"
+      - "app/api/**"
+      - ".github/workflows/rust.yml"
+
+# Cancel stale runs when a new commit lands on the same ref.
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: rust (${{ matrix.os }})
+    strategy:
+      # Run both platforms to completion: a Linux-only failure says something
+      # different from a macOS-only one.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      # Whole-repo checkout: build.rs reads ../lib/server/db-migrations and the
+      # route-coverage test reads ../app/api.
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      # Caches ~/.cargo (registry, git deps) and rust/target, keyed on
+      # Cargo.lock + toolchain.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust -> target
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: test
+        run: cargo test --workspace

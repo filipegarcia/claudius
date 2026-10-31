@@ -1,0 +1,5836 @@
+{
+ "sdkVersion": "0.3.299",
+ "due": [
+  {
+   "now": 1000000,
+   "lastAt": 1000000,
+   "due": false
+  },
+  {
+   "now": 1000000,
+   "lastAt": 970001,
+   "due": false
+  },
+  {
+   "now": 1000000,
+   "lastAt": 970000,
+   "due": true
+  },
+  {
+   "now": 1000000,
+   "lastAt": 969999,
+   "due": true
+  },
+  {
+   "now": 1000000,
+   "lastAt": 880000,
+   "due": true
+  },
+  {
+   "now": 30000,
+   "lastAt": 0,
+   "due": true
+  },
+  {
+   "now": 29999,
+   "lastAt": 0,
+   "due": false
+  },
+  {
+   "now": 30001,
+   "lastAt": 0,
+   "due": true
+  },
+  {
+   "now": 0,
+   "lastAt": 0,
+   "due": false
+  },
+  {
+   "now": 1761500000000,
+   "lastAt": 0,
+   "due": true
+  },
+  {
+   "now": 1761500000000,
+   "lastAt": 1761499970001,
+   "due": false
+  },
+  {
+   "now": 1761500000000,
+   "lastAt": 1761499970000,
+   "due": true
+  },
+  {
+   "now": 1761500000000,
+   "lastAt": 1761500000000,
+   "due": false
+  },
+  {
+   "now": 1761500000000,
+   "lastAt": 1761500000001,
+   "due": false
+  },
+  {
+   "now": 1000,
+   "lastAt": 2000,
+   "due": false
+  },
+  {
+   "now": 5000,
+   "lastAt": 0,
+   "interval": 10000,
+   "due": false
+  },
+  {
+   "now": 10000,
+   "lastAt": 0,
+   "interval": 10000,
+   "due": true
+  },
+  {
+   "now": 10001,
+   "lastAt": 0,
+   "interval": 10000,
+   "due": true
+  },
+  {
+   "now": 5,
+   "lastAt": 5,
+   "interval": 0,
+   "due": true
+  },
+  {
+   "now": 4,
+   "lastAt": 5,
+   "interval": 0,
+   "due": false
+  },
+  {
+   "now": 1000,
+   "lastAt": 2000,
+   "interval": -1000,
+   "due": true
+  },
+  {
+   "now": 1000,
+   "lastAt": 2000,
+   "interval": -1001,
+   "due": true
+  },
+  {
+   "now": 30000.5,
+   "lastAt": 0.5,
+   "due": true
+  },
+  {
+   "now": 30000.4,
+   "lastAt": 0.5,
+   "due": false
+  },
+  {
+   "now": 30000.25,
+   "lastAt": 0,
+   "interval": 30000.25,
+   "due": true
+  },
+  {
+   "now": 0.30000000000000004,
+   "lastAt": 0,
+   "interval": 0.3,
+   "due": true
+  },
+  {
+   "now": 9007199254740991,
+   "lastAt": 0,
+   "due": true
+  },
+  {
+   "now": 9007199254740991,
+   "lastAt": 9007199254710991,
+   "due": true
+  },
+  {
+   "now": 1e+300,
+   "lastAt": -1e+300,
+   "due": true
+  },
+  {
+   "now": 1.7976931348623157e+308,
+   "lastAt": -1.7976931348623157e+308,
+   "due": true
+  },
+  {
+   "now": -30000,
+   "lastAt": -60000,
+   "due": true
+  },
+  {
+   "now": -30000,
+   "lastAt": -59999,
+   "due": false
+  },
+  {
+   "now": "NaN",
+   "lastAt": 0,
+   "due": false
+  },
+  {
+   "now": 1000,
+   "lastAt": "NaN",
+   "due": false
+  },
+  {
+   "now": 1000,
+   "lastAt": 0,
+   "interval": "NaN",
+   "due": false
+  },
+  {
+   "now": "Infinity",
+   "lastAt": 0,
+   "due": true
+  },
+  {
+   "now": "Infinity",
+   "lastAt": "Infinity",
+   "due": false
+  },
+  {
+   "now": "-Infinity",
+   "lastAt": 0,
+   "due": false
+  },
+  {
+   "now": 0,
+   "lastAt": "-Infinity",
+   "due": true
+  },
+  {
+   "now": 0,
+   "lastAt": "Infinity",
+   "due": false
+  },
+  {
+   "now": "Infinity",
+   "lastAt": 0,
+   "interval": "Infinity",
+   "due": true
+  },
+  {
+   "now": 0,
+   "lastAt": 0,
+   "interval": "-Infinity",
+   "due": true
+  },
+  {
+   "now": 0,
+   "lastAt": 0,
+   "interval": 0,
+   "due": true
+  }
+ ],
+ "db": [
+  {
+   "name": "once",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/once/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/once/p",
+     "servers": [
+      "github"
+     ],
+     "clock": 1000,
+     "announce": [
+      "github"
+     ],
+     "rows": {
+      "/golden-mcp/once/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/once/p",
+     "servers": [
+      "github"
+     ],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/once/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/once/p",
+     "servers": [
+      "github"
+     ],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/once/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "only the new one",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/new/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/new/p",
+     "servers": [
+      "github"
+     ],
+     "clock": 1000,
+     "announce": [
+      "github"
+     ],
+     "rows": {
+      "/golden-mcp/new/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/new/p",
+     "servers": [
+      "github",
+      "linear"
+     ],
+     "clock": 2000,
+     "announce": [
+      "linear"
+     ],
+     "rows": {
+      "/golden-mcp/new/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "6C696E656172",
+         2000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/new/p",
+     "servers": [
+      "linear",
+      "github"
+     ],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/new/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "6C696E656172",
+         2000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/new/p",
+     "servers": [
+      "slack",
+      "linear",
+      "github"
+     ],
+     "clock": 4000,
+     "announce": [
+      "slack"
+     ],
+     "rows": {
+      "/golden-mcp/new/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "6C696E656172",
+         2000,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "736C61636B",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "clear and re-announce",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/clear/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/clear/p",
+     "servers": [
+      "github"
+     ],
+     "clock": 1000,
+     "announce": [
+      "github"
+     ],
+     "rows": {
+      "/golden-mcp/clear/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/clear/p",
+     "servers": [],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/clear/p": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/clear/p",
+     "servers": [],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/clear/p": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/clear/p",
+     "servers": [
+      "github"
+     ],
+     "clock": 4000,
+     "announce": [
+      "github"
+     ],
+     "rows": {
+      "/golden-mcp/clear/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/clear/p",
+     "servers": [
+      "github"
+     ],
+     "clock": 5000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/clear/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "676974687562",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "partial clear",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/partial/p"
+   ],
+   "steps": [
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/partial/p",
+     "servers": [
+      "a",
+      "b",
+      "c"
+     ],
+     "clock": 1000,
+     "announce": [
+      "a",
+      "b",
+      "c"
+     ],
+     "rows": {
+      "/golden-mcp/partial/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         1,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "62",
+         1000,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "63",
+         1000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/partial/p",
+     "servers": [
+      "b"
+     ],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/partial/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         2,
+         "text",
+         "62",
+         1000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/partial/p",
+     "servers": [
+      "a",
+      "b",
+      "c"
+     ],
+     "clock": 3000,
+     "announce": [
+      "a",
+      "c"
+     ],
+     "rows": {
+      "/golden-mcp/partial/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         2,
+         "text",
+         "62",
+         1000,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "61",
+         3000,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "63",
+         3000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/partial/p",
+     "servers": [
+      "c",
+      "a"
+     ],
+     "clock": 4000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/partial/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         3,
+         "text",
+         "61",
+         3000,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "63",
+         3000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/partial/p",
+     "servers": [
+      "d"
+     ],
+     "clock": 5000,
+     "announce": [
+      "d"
+     ],
+     "rows": {
+      "/golden-mcp/partial/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         1,
+         "text",
+         "64",
+         5000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "duplicates",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/dup/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/dup/p",
+     "servers": [
+      "a",
+      "a"
+     ],
+     "clock": 1000,
+     "announce": [
+      "a",
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/dup/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/dup/p",
+     "servers": [
+      "a",
+      "a"
+     ],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/dup/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/dup/p",
+     "servers": [
+      "b",
+      "a",
+      "b",
+      "a"
+     ],
+     "clock": 3000,
+     "announce": [
+      "b",
+      "b"
+     ],
+     "rows": {
+      "/golden-mcp/dup/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "62",
+         3000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/dup/p",
+     "servers": [
+      "c",
+      "c",
+      "c"
+     ],
+     "clock": 4000,
+     "announce": [
+      "c",
+      "c",
+      "c"
+     ],
+     "rows": {
+      "/golden-mcp/dup/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "63",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/dup/p",
+     "servers": [],
+     "clock": 5000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/dup/p": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/dup/p",
+     "servers": [
+      "a",
+      "b",
+      "a"
+     ],
+     "clock": 6000,
+     "announce": [
+      "a",
+      "b",
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/dup/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         6000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "62",
+         6000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "per cwd",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/cwd/a",
+    "/golden-mcp/cwd/b",
+    "/golden-mcp/cwd/a/sub"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/cwd/a",
+     "servers": [
+      "x"
+     ],
+     "clock": 1000,
+     "announce": [
+      "x"
+     ],
+     "rows": {
+      "/golden-mcp/cwd/a": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/b": {
+       "needsAuth": [],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/a/sub": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/cwd/b",
+     "servers": [
+      "x"
+     ],
+     "clock": 2000,
+     "announce": [
+      "x"
+     ],
+     "rows": {
+      "/golden-mcp/cwd/a": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/b": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         2000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/a/sub": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/cwd/a",
+     "servers": [],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/cwd/a": {
+       "needsAuth": [],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/b": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         2000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/a/sub": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/cwd/b",
+     "servers": [
+      "x"
+     ],
+     "clock": 4000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/cwd/a": {
+       "needsAuth": [],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/b": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         2000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/a/sub": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/cwd/a",
+     "servers": [
+      "x"
+     ],
+     "clock": 5000,
+     "announce": [
+      "x"
+     ],
+     "rows": {
+      "/golden-mcp/cwd/a": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         5000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/b": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         2000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/a/sub": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/cwd/a/sub",
+     "servers": [
+      "x"
+     ],
+     "clock": 6000,
+     "announce": [
+      "x"
+     ],
+     "rows": {
+      "/golden-mcp/cwd/a": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         5000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/b": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         2000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/cwd/a/sub": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         6000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "colliding cwds share a database",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/collide/x y",
+    "/golden-mcp/collide/x-y",
+    "/golden-mcp/collide/x.y"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/collide/x y",
+     "servers": [
+      "x"
+     ],
+     "clock": 1000,
+     "announce": [
+      "x"
+     ],
+     "rows": {
+      "/golden-mcp/collide/x y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x-y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x.y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/collide/x-y",
+     "servers": [
+      "x"
+     ],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/collide/x y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x-y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x.y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/collide/x.y",
+     "servers": [],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/collide/x y": {
+       "needsAuth": [],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x-y": {
+       "needsAuth": [],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x.y": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/collide/x y",
+     "servers": [
+      "x"
+     ],
+     "clock": 4000,
+     "announce": [
+      "x"
+     ],
+     "rows": {
+      "/golden-mcp/collide/x y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x-y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      },
+      "/golden-mcp/collide/x.y": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "78",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "the tables are independent",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/tables/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/tables/p",
+     "servers": [
+      "a"
+     ],
+     "clock": 1000,
+     "announce": [
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/tables/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/tables/p",
+     "servers": [
+      "a"
+     ],
+     "clock": 2000,
+     "announce": [
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/tables/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": [
+        [
+         1,
+         "text",
+         "61",
+         2000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/tables/p",
+     "servers": [],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/tables/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         1,
+         "text",
+         "61",
+         2000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/tables/p",
+     "servers": [
+      "a"
+     ],
+     "clock": 4000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/tables/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         1,
+         "text",
+         "61",
+         2000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/tables/p",
+     "servers": [
+      "a"
+     ],
+     "clock": 5000,
+     "announce": [
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/tables/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         5000,
+         "integer"
+        ]
+       ],
+       "disconnected": [
+        [
+         1,
+         "text",
+         "61",
+         2000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/tables/p",
+     "servers": [],
+     "clock": 6000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/tables/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         5000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "odd names",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/odd/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/odd/p",
+     "servers": [
+      "",
+      "unknown",
+      " ",
+      "A",
+      "a",
+      "sërvér",
+      "😀",
+      "a\nb",
+      "\u0000nul",
+      " ﻿ ",
+      "it's",
+      "q\"d",
+      "back\\slash",
+      "%_",
+      "srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-"
+     ],
+     "clock": 1000,
+     "announce": [
+      "",
+      "unknown",
+      " ",
+      "A",
+      "a",
+      "sërvér",
+      "😀",
+      "a\nb",
+      "\u0000nul",
+      " ﻿ ",
+      "it's",
+      "q\"d",
+      "back\\slash",
+      "%_",
+      "srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-"
+     ],
+     "rows": {
+      "/golden-mcp/odd/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "756E6B6E6F776E",
+         1000,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "20",
+         1000,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "41",
+         1000,
+         "integer"
+        ],
+        [
+         5,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ],
+        [
+         6,
+         "text",
+         "73C3AB7276C3A972",
+         1000,
+         "integer"
+        ],
+        [
+         7,
+         "text",
+         "F09F9880",
+         1000,
+         "integer"
+        ],
+        [
+         8,
+         "text",
+         "610A62",
+         1000,
+         "integer"
+        ],
+        [
+         9,
+         "text",
+         "006E756C",
+         1000,
+         "integer"
+        ],
+        [
+         10,
+         "text",
+         "C2A0EFBBBFE280A8",
+         1000,
+         "integer"
+        ],
+        [
+         11,
+         "text",
+         "69742773",
+         1000,
+         "integer"
+        ],
+        [
+         12,
+         "text",
+         "712264",
+         1000,
+         "integer"
+        ],
+        [
+         13,
+         "text",
+         "6261636B5C736C617368",
+         1000,
+         "integer"
+        ],
+        [
+         14,
+         "text",
+         "255F",
+         1000,
+         "integer"
+        ],
+        [
+         15,
+         "text",
+         "7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/odd/p",
+     "servers": [
+      "srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-srv-",
+      "%_",
+      "back\\slash",
+      "q\"d",
+      "it's",
+      " ﻿ ",
+      "\u0000nul",
+      "a\nb",
+      "😀",
+      "sërvér",
+      "a",
+      "A",
+      " ",
+      "unknown",
+      ""
+     ],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/odd/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "756E6B6E6F776E",
+         1000,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "20",
+         1000,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "41",
+         1000,
+         "integer"
+        ],
+        [
+         5,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ],
+        [
+         6,
+         "text",
+         "73C3AB7276C3A972",
+         1000,
+         "integer"
+        ],
+        [
+         7,
+         "text",
+         "F09F9880",
+         1000,
+         "integer"
+        ],
+        [
+         8,
+         "text",
+         "610A62",
+         1000,
+         "integer"
+        ],
+        [
+         9,
+         "text",
+         "006E756C",
+         1000,
+         "integer"
+        ],
+        [
+         10,
+         "text",
+         "C2A0EFBBBFE280A8",
+         1000,
+         "integer"
+        ],
+        [
+         11,
+         "text",
+         "69742773",
+         1000,
+         "integer"
+        ],
+        [
+         12,
+         "text",
+         "712264",
+         1000,
+         "integer"
+        ],
+        [
+         13,
+         "text",
+         "6261636B5C736C617368",
+         1000,
+         "integer"
+        ],
+        [
+         14,
+         "text",
+         "255F",
+         1000,
+         "integer"
+        ],
+        [
+         15,
+         "text",
+         "7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D7372762D",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/odd/p",
+     "servers": [
+      "a",
+      "A",
+      "",
+      "😀"
+     ],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/odd/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "",
+         1000,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "41",
+         1000,
+         "integer"
+        ],
+        [
+         5,
+         "text",
+         "61",
+         1000,
+         "integer"
+        ],
+        [
+         7,
+         "text",
+         "F09F9880",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/odd/p",
+     "servers": [
+      "a ",
+      " a",
+      "é",
+      "é"
+     ],
+     "clock": 4000,
+     "announce": [
+      "a ",
+      " a",
+      "é",
+      "é"
+     ],
+     "rows": {
+      "/golden-mcp/odd/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "6120",
+         4000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "2061",
+         4000,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "C3A9",
+         4000,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "65CC81",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "many",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/many/p"
+   ],
+   "steps": [
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/many/p",
+     "servers": [
+      "server-0",
+      "server-1",
+      "server-2",
+      "server-3",
+      "server-4",
+      "server-5",
+      "server-6",
+      "server-7",
+      "server-8",
+      "server-9",
+      "server-10",
+      "server-11",
+      "server-12",
+      "server-13",
+      "server-14",
+      "server-15",
+      "server-16",
+      "server-17",
+      "server-18",
+      "server-19",
+      "server-20",
+      "server-21",
+      "server-22",
+      "server-23",
+      "server-24",
+      "server-25",
+      "server-26",
+      "server-27",
+      "server-28",
+      "server-29",
+      "server-30",
+      "server-31",
+      "server-32",
+      "server-33",
+      "server-34",
+      "server-35",
+      "server-36",
+      "server-37",
+      "server-38",
+      "server-39"
+     ],
+     "clock": 1000,
+     "announce": [
+      "server-0",
+      "server-1",
+      "server-2",
+      "server-3",
+      "server-4",
+      "server-5",
+      "server-6",
+      "server-7",
+      "server-8",
+      "server-9",
+      "server-10",
+      "server-11",
+      "server-12",
+      "server-13",
+      "server-14",
+      "server-15",
+      "server-16",
+      "server-17",
+      "server-18",
+      "server-19",
+      "server-20",
+      "server-21",
+      "server-22",
+      "server-23",
+      "server-24",
+      "server-25",
+      "server-26",
+      "server-27",
+      "server-28",
+      "server-29",
+      "server-30",
+      "server-31",
+      "server-32",
+      "server-33",
+      "server-34",
+      "server-35",
+      "server-36",
+      "server-37",
+      "server-38",
+      "server-39"
+     ],
+     "rows": {
+      "/golden-mcp/many/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         1,
+         "text",
+         "7365727665722D30",
+         1000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "7365727665722D31",
+         1000,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "7365727665722D32",
+         1000,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "7365727665722D33",
+         1000,
+         "integer"
+        ],
+        [
+         5,
+         "text",
+         "7365727665722D34",
+         1000,
+         "integer"
+        ],
+        [
+         6,
+         "text",
+         "7365727665722D35",
+         1000,
+         "integer"
+        ],
+        [
+         7,
+         "text",
+         "7365727665722D36",
+         1000,
+         "integer"
+        ],
+        [
+         8,
+         "text",
+         "7365727665722D37",
+         1000,
+         "integer"
+        ],
+        [
+         9,
+         "text",
+         "7365727665722D38",
+         1000,
+         "integer"
+        ],
+        [
+         10,
+         "text",
+         "7365727665722D39",
+         1000,
+         "integer"
+        ],
+        [
+         11,
+         "text",
+         "7365727665722D3130",
+         1000,
+         "integer"
+        ],
+        [
+         12,
+         "text",
+         "7365727665722D3131",
+         1000,
+         "integer"
+        ],
+        [
+         13,
+         "text",
+         "7365727665722D3132",
+         1000,
+         "integer"
+        ],
+        [
+         14,
+         "text",
+         "7365727665722D3133",
+         1000,
+         "integer"
+        ],
+        [
+         15,
+         "text",
+         "7365727665722D3134",
+         1000,
+         "integer"
+        ],
+        [
+         16,
+         "text",
+         "7365727665722D3135",
+         1000,
+         "integer"
+        ],
+        [
+         17,
+         "text",
+         "7365727665722D3136",
+         1000,
+         "integer"
+        ],
+        [
+         18,
+         "text",
+         "7365727665722D3137",
+         1000,
+         "integer"
+        ],
+        [
+         19,
+         "text",
+         "7365727665722D3138",
+         1000,
+         "integer"
+        ],
+        [
+         20,
+         "text",
+         "7365727665722D3139",
+         1000,
+         "integer"
+        ],
+        [
+         21,
+         "text",
+         "7365727665722D3230",
+         1000,
+         "integer"
+        ],
+        [
+         22,
+         "text",
+         "7365727665722D3231",
+         1000,
+         "integer"
+        ],
+        [
+         23,
+         "text",
+         "7365727665722D3232",
+         1000,
+         "integer"
+        ],
+        [
+         24,
+         "text",
+         "7365727665722D3233",
+         1000,
+         "integer"
+        ],
+        [
+         25,
+         "text",
+         "7365727665722D3234",
+         1000,
+         "integer"
+        ],
+        [
+         26,
+         "text",
+         "7365727665722D3235",
+         1000,
+         "integer"
+        ],
+        [
+         27,
+         "text",
+         "7365727665722D3236",
+         1000,
+         "integer"
+        ],
+        [
+         28,
+         "text",
+         "7365727665722D3237",
+         1000,
+         "integer"
+        ],
+        [
+         29,
+         "text",
+         "7365727665722D3238",
+         1000,
+         "integer"
+        ],
+        [
+         30,
+         "text",
+         "7365727665722D3239",
+         1000,
+         "integer"
+        ],
+        [
+         31,
+         "text",
+         "7365727665722D3330",
+         1000,
+         "integer"
+        ],
+        [
+         32,
+         "text",
+         "7365727665722D3331",
+         1000,
+         "integer"
+        ],
+        [
+         33,
+         "text",
+         "7365727665722D3332",
+         1000,
+         "integer"
+        ],
+        [
+         34,
+         "text",
+         "7365727665722D3333",
+         1000,
+         "integer"
+        ],
+        [
+         35,
+         "text",
+         "7365727665722D3334",
+         1000,
+         "integer"
+        ],
+        [
+         36,
+         "text",
+         "7365727665722D3335",
+         1000,
+         "integer"
+        ],
+        [
+         37,
+         "text",
+         "7365727665722D3336",
+         1000,
+         "integer"
+        ],
+        [
+         38,
+         "text",
+         "7365727665722D3337",
+         1000,
+         "integer"
+        ],
+        [
+         39,
+         "text",
+         "7365727665722D3338",
+         1000,
+         "integer"
+        ],
+        [
+         40,
+         "text",
+         "7365727665722D3339",
+         1000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/many/p",
+     "servers": [
+      "server-10",
+      "server-11",
+      "server-12",
+      "server-13",
+      "server-14",
+      "server-15",
+      "server-16",
+      "server-17",
+      "server-18",
+      "server-19",
+      "server-20",
+      "server-21",
+      "server-22",
+      "server-23",
+      "server-24",
+      "server-25",
+      "server-26",
+      "server-27",
+      "server-28",
+      "server-29"
+     ],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/many/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         11,
+         "text",
+         "7365727665722D3130",
+         1000,
+         "integer"
+        ],
+        [
+         12,
+         "text",
+         "7365727665722D3131",
+         1000,
+         "integer"
+        ],
+        [
+         13,
+         "text",
+         "7365727665722D3132",
+         1000,
+         "integer"
+        ],
+        [
+         14,
+         "text",
+         "7365727665722D3133",
+         1000,
+         "integer"
+        ],
+        [
+         15,
+         "text",
+         "7365727665722D3134",
+         1000,
+         "integer"
+        ],
+        [
+         16,
+         "text",
+         "7365727665722D3135",
+         1000,
+         "integer"
+        ],
+        [
+         17,
+         "text",
+         "7365727665722D3136",
+         1000,
+         "integer"
+        ],
+        [
+         18,
+         "text",
+         "7365727665722D3137",
+         1000,
+         "integer"
+        ],
+        [
+         19,
+         "text",
+         "7365727665722D3138",
+         1000,
+         "integer"
+        ],
+        [
+         20,
+         "text",
+         "7365727665722D3139",
+         1000,
+         "integer"
+        ],
+        [
+         21,
+         "text",
+         "7365727665722D3230",
+         1000,
+         "integer"
+        ],
+        [
+         22,
+         "text",
+         "7365727665722D3231",
+         1000,
+         "integer"
+        ],
+        [
+         23,
+         "text",
+         "7365727665722D3232",
+         1000,
+         "integer"
+        ],
+        [
+         24,
+         "text",
+         "7365727665722D3233",
+         1000,
+         "integer"
+        ],
+        [
+         25,
+         "text",
+         "7365727665722D3234",
+         1000,
+         "integer"
+        ],
+        [
+         26,
+         "text",
+         "7365727665722D3235",
+         1000,
+         "integer"
+        ],
+        [
+         27,
+         "text",
+         "7365727665722D3236",
+         1000,
+         "integer"
+        ],
+        [
+         28,
+         "text",
+         "7365727665722D3237",
+         1000,
+         "integer"
+        ],
+        [
+         29,
+         "text",
+         "7365727665722D3238",
+         1000,
+         "integer"
+        ],
+        [
+         30,
+         "text",
+         "7365727665722D3239",
+         1000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/many/p",
+     "servers": [
+      "server-39",
+      "server-38",
+      "server-37",
+      "server-36",
+      "server-35",
+      "server-34",
+      "server-33",
+      "server-32",
+      "server-31",
+      "server-30",
+      "server-29",
+      "server-28",
+      "server-27",
+      "server-26",
+      "server-25",
+      "server-24",
+      "server-23",
+      "server-22",
+      "server-21",
+      "server-20",
+      "server-19",
+      "server-18",
+      "server-17",
+      "server-16",
+      "server-15",
+      "server-14",
+      "server-13",
+      "server-12",
+      "server-11",
+      "server-10",
+      "server-9",
+      "server-8",
+      "server-7",
+      "server-6",
+      "server-5",
+      "server-4",
+      "server-3",
+      "server-2",
+      "server-1",
+      "server-0"
+     ],
+     "clock": 3000,
+     "announce": [
+      "server-39",
+      "server-38",
+      "server-37",
+      "server-36",
+      "server-35",
+      "server-34",
+      "server-33",
+      "server-32",
+      "server-31",
+      "server-30",
+      "server-9",
+      "server-8",
+      "server-7",
+      "server-6",
+      "server-5",
+      "server-4",
+      "server-3",
+      "server-2",
+      "server-1",
+      "server-0"
+     ],
+     "rows": {
+      "/golden-mcp/many/p": {
+       "needsAuth": [],
+       "disconnected": [
+        [
+         11,
+         "text",
+         "7365727665722D3130",
+         1000,
+         "integer"
+        ],
+        [
+         12,
+         "text",
+         "7365727665722D3131",
+         1000,
+         "integer"
+        ],
+        [
+         13,
+         "text",
+         "7365727665722D3132",
+         1000,
+         "integer"
+        ],
+        [
+         14,
+         "text",
+         "7365727665722D3133",
+         1000,
+         "integer"
+        ],
+        [
+         15,
+         "text",
+         "7365727665722D3134",
+         1000,
+         "integer"
+        ],
+        [
+         16,
+         "text",
+         "7365727665722D3135",
+         1000,
+         "integer"
+        ],
+        [
+         17,
+         "text",
+         "7365727665722D3136",
+         1000,
+         "integer"
+        ],
+        [
+         18,
+         "text",
+         "7365727665722D3137",
+         1000,
+         "integer"
+        ],
+        [
+         19,
+         "text",
+         "7365727665722D3138",
+         1000,
+         "integer"
+        ],
+        [
+         20,
+         "text",
+         "7365727665722D3139",
+         1000,
+         "integer"
+        ],
+        [
+         21,
+         "text",
+         "7365727665722D3230",
+         1000,
+         "integer"
+        ],
+        [
+         22,
+         "text",
+         "7365727665722D3231",
+         1000,
+         "integer"
+        ],
+        [
+         23,
+         "text",
+         "7365727665722D3232",
+         1000,
+         "integer"
+        ],
+        [
+         24,
+         "text",
+         "7365727665722D3233",
+         1000,
+         "integer"
+        ],
+        [
+         25,
+         "text",
+         "7365727665722D3234",
+         1000,
+         "integer"
+        ],
+        [
+         26,
+         "text",
+         "7365727665722D3235",
+         1000,
+         "integer"
+        ],
+        [
+         27,
+         "text",
+         "7365727665722D3236",
+         1000,
+         "integer"
+        ],
+        [
+         28,
+         "text",
+         "7365727665722D3237",
+         1000,
+         "integer"
+        ],
+        [
+         29,
+         "text",
+         "7365727665722D3238",
+         1000,
+         "integer"
+        ],
+        [
+         30,
+         "text",
+         "7365727665722D3239",
+         1000,
+         "integer"
+        ],
+        [
+         31,
+         "text",
+         "7365727665722D3339",
+         3000,
+         "integer"
+        ],
+        [
+         32,
+         "text",
+         "7365727665722D3338",
+         3000,
+         "integer"
+        ],
+        [
+         33,
+         "text",
+         "7365727665722D3337",
+         3000,
+         "integer"
+        ],
+        [
+         34,
+         "text",
+         "7365727665722D3336",
+         3000,
+         "integer"
+        ],
+        [
+         35,
+         "text",
+         "7365727665722D3335",
+         3000,
+         "integer"
+        ],
+        [
+         36,
+         "text",
+         "7365727665722D3334",
+         3000,
+         "integer"
+        ],
+        [
+         37,
+         "text",
+         "7365727665722D3333",
+         3000,
+         "integer"
+        ],
+        [
+         38,
+         "text",
+         "7365727665722D3332",
+         3000,
+         "integer"
+        ],
+        [
+         39,
+         "text",
+         "7365727665722D3331",
+         3000,
+         "integer"
+        ],
+        [
+         40,
+         "text",
+         "7365727665722D3330",
+         3000,
+         "integer"
+        ],
+        [
+         41,
+         "text",
+         "7365727665722D39",
+         3000,
+         "integer"
+        ],
+        [
+         42,
+         "text",
+         "7365727665722D38",
+         3000,
+         "integer"
+        ],
+        [
+         43,
+         "text",
+         "7365727665722D37",
+         3000,
+         "integer"
+        ],
+        [
+         44,
+         "text",
+         "7365727665722D36",
+         3000,
+         "integer"
+        ],
+        [
+         45,
+         "text",
+         "7365727665722D35",
+         3000,
+         "integer"
+        ],
+        [
+         46,
+         "text",
+         "7365727665722D34",
+         3000,
+         "integer"
+        ],
+        [
+         47,
+         "text",
+         "7365727665722D33",
+         3000,
+         "integer"
+        ],
+        [
+         48,
+         "text",
+         "7365727665722D32",
+         3000,
+         "integer"
+        ],
+        [
+         49,
+         "text",
+         "7365727665722D31",
+         3000,
+         "integer"
+        ],
+        [
+         50,
+         "text",
+         "7365727665722D30",
+         3000,
+         "integer"
+        ]
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "empty first",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/empty/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/empty/p",
+     "servers": [],
+     "clock": 1000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/empty/p": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/empty/p",
+     "servers": [],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/empty/p": {
+       "needsAuth": [],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "real clock",
+   "seed": [],
+   "cwds": [
+    "/golden-mcp/clock/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/clock/p",
+     "servers": [
+      "a"
+     ],
+     "clock": 1761500000000,
+     "announce": [
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/clock/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         1761500000000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/clock/p",
+     "servers": [
+      "a",
+      "b"
+     ],
+     "clock": 1761500000001,
+     "announce": [
+      "b"
+     ],
+     "rows": {
+      "/golden-mcp/clock/p": {
+       "needsAuth": [
+        [
+         1,
+         "text",
+         "61",
+         1761500000000,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "62",
+         1761500000001,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "fails open",
+   "seed": [
+    {
+     "cwd": "/golden-mcp/open/p",
+     "kind": "block"
+    }
+   ],
+   "cwds": [
+    "/golden-mcp/open/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/open/p",
+     "servers": [
+      "a",
+      "a"
+     ],
+     "clock": 1000,
+     "announce": [
+      "a",
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/open/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/open/p",
+     "servers": [
+      "a",
+      "a"
+     ],
+     "clock": 2000,
+     "announce": [
+      "a",
+      "a"
+     ],
+     "rows": {
+      "/golden-mcp/open/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/open/p",
+     "servers": [],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/open/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/open/p",
+     "servers": [
+      "b"
+     ],
+     "clock": 4000,
+     "announce": [
+      "b"
+     ],
+     "rows": {
+      "/golden-mcp/open/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/open/p",
+     "servers": [
+      "b"
+     ],
+     "clock": 5000,
+     "announce": [
+      "b"
+     ],
+     "rows": {
+      "/golden-mcp/open/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "a database without the tables throws",
+   "seed": [
+    {
+     "cwd": "/golden-mcp/v999/p",
+     "kind": "v999"
+    }
+   ],
+   "cwds": [
+    "/golden-mcp/v999/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/v999/p",
+     "servers": [
+      "a"
+     ],
+     "clock": 1000,
+     "threw": true,
+     "rows": {
+      "/golden-mcp/v999/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    },
+    {
+     "fn": "disconnected",
+     "cwd": "/golden-mcp/v999/p",
+     "servers": [
+      "a"
+     ],
+     "clock": 2000,
+     "threw": true,
+     "rows": {
+      "/golden-mcp/v999/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/v999/p",
+     "servers": [],
+     "clock": 3000,
+     "threw": true,
+     "rows": {
+      "/golden-mcp/v999/p": {
+       "needsAuth": null,
+       "disconnected": null
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "foreign rows",
+   "seed": [
+    {
+     "cwd": "/golden-mcp/foreign/p",
+     "kind": "sql",
+     "sql": "INSERT INTO mcp_needs_auth_notified(server_name, notified_at) VALUES (NULL, 1), (x'6162', 2), ('a', 3), (5, 4), ('gone', 5), (1.5, 6);"
+    }
+   ],
+   "cwds": [
+    "/golden-mcp/foreign/p"
+   ],
+   "steps": [
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/foreign/p",
+     "servers": [
+      "a",
+      "5",
+      "ab",
+      "1.5"
+     ],
+     "clock": 1000,
+     "announce": [
+      "ab"
+     ],
+     "rows": {
+      "/golden-mcp/foreign/p": {
+       "needsAuth": [
+        [
+         1,
+         "null",
+         "",
+         1,
+         "integer"
+        ],
+        [
+         3,
+         "text",
+         "61",
+         3,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "35",
+         4,
+         "integer"
+        ],
+        [
+         6,
+         "text",
+         "312E35",
+         6,
+         "integer"
+        ],
+        [
+         7,
+         "text",
+         "6162",
+         1000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/foreign/p",
+     "servers": [
+      "5"
+     ],
+     "clock": 2000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/foreign/p": {
+       "needsAuth": [
+        [
+         1,
+         "null",
+         "",
+         1,
+         "integer"
+        ],
+        [
+         4,
+         "text",
+         "35",
+         4,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/foreign/p",
+     "servers": [],
+     "clock": 3000,
+     "announce": [],
+     "rows": {
+      "/golden-mcp/foreign/p": {
+       "needsAuth": [
+        [
+         1,
+         "null",
+         "",
+         1,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    },
+    {
+     "fn": "needsAuth",
+     "cwd": "/golden-mcp/foreign/p",
+     "servers": [
+      "ab"
+     ],
+     "clock": 4000,
+     "announce": [
+      "ab"
+     ],
+     "rows": {
+      "/golden-mcp/foreign/p": {
+       "needsAuth": [
+        [
+         1,
+         "null",
+         "",
+         1,
+         "integer"
+        ],
+        [
+         2,
+         "text",
+         "6162",
+         4000,
+         "integer"
+        ]
+       ],
+       "disconnected": []
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "sessions": [
+  {
+   "name": "startup announces, the re-check is throttled and deduped",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "github"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "slack"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "two",
+       "clock": 1761500029999,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "three",
+       "clock": 1761500030000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "four",
+       "clock": 1761500030001,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "five",
+       "clock": 1761500059999,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "six",
+       "clock": 1761500060000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "once per server across sessions in a cwd",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "github"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "slack"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000001,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "again",
+       "clock": 1761500000002,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "cwd": "b",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000003,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "github"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "slack"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000003,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000003,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "connected"
+        },
+        {
+         "name": "slack",
+         "status": "connected"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000004,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": []
+       }
+      }
+     ]
+    },
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000005,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "github"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "slack"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000005,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000005,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a server that recovers and drops again re-announces",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "connected"
+        },
+        {
+         "name": "slack",
+         "status": "connected"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "connected"
+        },
+        {
+         "name": "slack",
+         "status": "connected"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "lin",
+         "status": "needs-auth"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "sl",
+         "status": "connected"
+        },
+        {
+         "name": "gh",
+         "status": "failed"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "failed"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "gh"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "sl"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": []
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "two",
+       "clock": 1761500030000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "gh"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "sl"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500030000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500030000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "three",
+       "clock": 1761500060000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "lin"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "gh"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500030000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "6C696E",
+          1761500060000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500060000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "four",
+       "clock": 1761500090000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500060000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a re-entrant init doesn't check again",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [
+      {
+       "match": "reinit",
+       "steps": [
+        {
+         "type": "system",
+         "subtype": "init",
+         "session_id": "$SESSION_ID",
+         "model": "$MODEL",
+         "tools": [],
+         "mcp_servers": [],
+         "slash_commands": [],
+         "apiKeySource": "none"
+        }
+       ]
+      }
+     ],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "github"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "slack"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "reinit one",
+       "clock": 1761500000001,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "reinit two",
+       "clock": 1761500000002,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "plain",
+       "clock": 1761500030001,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "replies without a list leave the tables alone",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      },
+      {},
+      {
+       "mcpServers": null
+      },
+      "x",
+      {
+       "mcpServers": {
+        "gh": {
+         "status": "needs-auth"
+        }
+       }
+      },
+      {
+       "$error": "status failed"
+      },
+      {
+       "mcpServers": "failed"
+      },
+      {
+       "mcpServers": 5
+      },
+      {
+       "mcpServers": false
+      },
+      null,
+      [],
+      {
+       "mcpServers": []
+      },
+      {
+       "mcpServers": []
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        }
+       ]
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "gh"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "sl"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "two",
+       "clock": 1761500030000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "three",
+       "clock": 1761500060000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "four",
+       "clock": 1761500090000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "five",
+       "clock": 1761500120000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "six",
+       "clock": 1761500150000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": []
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "seven",
+       "clock": 1761500180000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "gh"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "sl"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "6768",
+          1761500180000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C",
+          1761500180000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "odd entries",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        null,
+        5,
+        "needs-auth",
+        "failed",
+        [],
+        {},
+        {
+         "status": "needs-auth"
+        },
+        {
+         "name": 5,
+         "status": "needs-auth"
+        },
+        {
+         "name": null,
+         "status": "failed"
+        },
+        {
+         "name": "",
+         "status": "needs-auth"
+        },
+        {
+         "name": "",
+         "status": "failed"
+        },
+        {
+         "name": "A",
+         "status": "NEEDS-AUTH"
+        },
+        {
+         "name": "b",
+         "status": " needs-auth"
+        },
+        {
+         "name": "b2",
+         "status": "needs-auth "
+        },
+        {
+         "name": "c",
+         "status": "needs-auth",
+         "extra": {
+          "n": 1.5
+         }
+        },
+        {
+         "name": "c",
+         "status": "needs-auth"
+        },
+        {
+         "name": "d",
+         "status": [
+          "needs-auth"
+         ]
+        },
+        {
+         "name": [
+          "e"
+         ],
+         "status": "needs-auth"
+        },
+        {
+         "name": {
+          "x": 1
+         },
+         "status": "failed"
+        },
+        {
+         "name": "unknown",
+         "status": "failed"
+        },
+        {
+         "name": true,
+         "status": "failed"
+        },
+        {
+         "name": "sërvér 😀",
+         "status": "needs-auth"
+        },
+        {
+         "name": "tab\there",
+         "status": "failed"
+        },
+        {
+         "name": "f",
+         "status": "failed",
+         "tools": []
+        },
+        {
+         "status": "failed"
+        },
+        {
+         "name": "g",
+         "status": null
+        },
+        {
+         "name": "h"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "unknown",
+          "unknown",
+          "",
+          "c",
+          "c",
+          "unknown",
+          "sërvér 😀"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "unknown",
+          "",
+          "unknown",
+          "unknown",
+          "unknown",
+          "tab\there",
+          "f",
+          "unknown"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "756E6B6E6F776E",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "",
+          1761500000000,
+          "integer"
+         ],
+         [
+          3,
+          "text",
+          "63",
+          1761500000000,
+          "integer"
+         ],
+         [
+          4,
+          "text",
+          "73C3AB7276C3A97220F09F9880",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "756E6B6E6F776E",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "",
+          1761500000000,
+          "integer"
+         ],
+         [
+          3,
+          "text",
+          "7461620968657265",
+          1761500000000,
+          "integer"
+         ],
+         [
+          4,
+          "text",
+          "66",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "756E6B6E6F776E",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "",
+          1761500000000,
+          "integer"
+         ],
+         [
+          3,
+          "text",
+          "63",
+          1761500000000,
+          "integer"
+         ],
+         [
+          4,
+          "text",
+          "73C3AB7276C3A97220F09F9880",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "756E6B6E6F776E",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "",
+          1761500000000,
+          "integer"
+         ],
+         [
+          3,
+          "text",
+          "7461620968657265",
+          1761500000000,
+          "integer"
+         ],
+         [
+          4,
+          "text",
+          "66",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "two",
+       "clock": 1761500030000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "756E6B6E6F776E",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "",
+          1761500000000,
+          "integer"
+         ],
+         [
+          3,
+          "text",
+          "63",
+          1761500000000,
+          "integer"
+         ],
+         [
+          4,
+          "text",
+          "73C3AB7276C3A97220F09F9880",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "756E6B6E6F776E",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "",
+          1761500000000,
+          "integer"
+         ],
+         [
+          3,
+          "text",
+          "7461620968657265",
+          1761500000000,
+          "integer"
+         ],
+         [
+          4,
+          "text",
+          "66",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "duplicates in a reply",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "a",
+         "status": "needs-auth"
+        },
+        {
+         "name": "b",
+         "status": "needs-auth"
+        },
+        {
+         "name": "a",
+         "status": "needs-auth"
+        },
+        {
+         "name": "a",
+         "status": "failed"
+        },
+        {
+         "name": "a",
+         "status": "failed"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "a",
+          "b",
+          "a"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "a",
+          "a"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "61",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "62",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "61",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "61",
+          1761500000000,
+          "integer"
+         ],
+         [
+          2,
+          "text",
+          "62",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "61",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "fails open",
+   "seed": [
+    {
+     "cwd": "a",
+     "kind": "block"
+    }
+   ],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      },
+      {
+       "$response": {
+        "mcpServers": [
+         {
+          "name": "gh",
+          "status": "needs-auth"
+         },
+         {
+          "name": "gh",
+          "status": "needs-auth"
+         },
+         {
+          "name": "sl",
+          "status": "failed"
+         }
+        ]
+       },
+       "$delay_ms": 100
+      },
+      {
+       "mcpServers": [
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "gh",
+         "status": "needs-auth"
+        },
+        {
+         "name": "sl",
+         "status": "failed"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "gh",
+          "gh"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "sl"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": null,
+        "disconnected": null
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "gh",
+          "gh"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "sl"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": null,
+        "disconnected": null
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "two",
+       "clock": 1761500000001,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": null,
+        "disconnected": null
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "three",
+       "clock": 1761500030000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "gh",
+          "gh"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "sl"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": null,
+        "disconnected": null
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a database that throws announces nothing",
+   "seed": [
+    {
+     "cwd": "a",
+     "kind": "v999"
+    }
+   ],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": null,
+        "disconnected": null
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": null,
+        "disconnected": null
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the first re-check waits for 30 s of clock",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 10,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "github"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "slack"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 29999,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "two",
+       "clock": 30000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "three",
+       "clock": 30000,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "four",
+       "clock": 59999,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "five",
+       "clock": 60000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "six",
+       "clock": 1000,
+       "events": [],
+       "wire": [],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "seven",
+       "clock": 90000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          10,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          10,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "colliding cwds share a database",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "x y",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [
+        {
+         "type": "mcp_needs_auth_notice",
+         "servers": [
+          "github"
+         ]
+        },
+        {
+         "type": "mcp_disconnected_notice",
+         "servers": [
+          "slack"
+         ]
+        }
+       ],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "cwd": "x-y",
+     "replies": [
+      {
+       "mcpServers": [
+        {
+         "name": "github",
+         "status": "needs-auth"
+        },
+        {
+         "name": "slack",
+         "status": "failed"
+        },
+        {
+         "name": "linear",
+         "status": "connected"
+        },
+        {
+         "name": "jira",
+         "status": "pending"
+        },
+        {
+         "name": "notion",
+         "status": "disabled"
+        }
+       ]
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000001,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [
+         [
+          1,
+          "text",
+          "676974687562",
+          1761500000000,
+          "integer"
+         ]
+        ],
+        "disconnected": [
+         [
+          1,
+          "text",
+          "736C61636B",
+          1761500000000,
+          "integer"
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "no server in either state",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "mcpServers": []
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": []
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": []
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a failed status request",
+   "seed": [],
+   "sessions": [
+    {
+     "cwd": "a",
+     "replies": [
+      {
+       "$error": "boom"
+      }
+     ],
+     "script": [],
+     "steps": [
+      {
+       "step": "start",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": []
+       }
+      },
+      {
+       "step": "turn",
+       "prompt": "one",
+       "clock": 1761500000000,
+       "events": [],
+       "wire": [
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}",
+        "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"mcp_status\"}}"
+       ],
+       "rows": {
+        "needsAuth": [],
+        "disconnected": []
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1743 @@
+{
+  "fakeSudo": "#!/bin/sh\nprintf 'sudo[%s]' \"$*\"\nif [ \"$1\" = \"-S\" ]; then IFS= read -r pw; printf ' pw[%s]' \"$pw\"; fi\n",
+  "scenarios": [
+    {
+      "name": "basics",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "echo",
+          "echo hi"
+        ],
+        [
+          "exec",
+          "blank_lines",
+          "printf 'a\\n\\n'"
+        ],
+        [
+          "exec",
+          "no_newline",
+          "printf 'no newline'"
+        ],
+        [
+          "exec",
+          "only_newlines",
+          "printf '\\n\\n'"
+        ],
+        [
+          "exec",
+          "stderr",
+          "echo err >&2"
+        ],
+        [
+          "exec",
+          "both",
+          "echo out; echo err >&2; (exit 3)"
+        ],
+        [
+          "exec",
+          "false",
+          "false"
+        ],
+        [
+          "exec",
+          "cd",
+          "mkdir -p sub && cd sub && pwd"
+        ],
+        [
+          "exec",
+          "pwd",
+          "pwd"
+        ],
+        [
+          "exec",
+          "export",
+          "export FOO=bar"
+        ],
+        [
+          "exec",
+          "env",
+          "echo \"$FOO\""
+        ],
+        [
+          "exec",
+          "fn_def",
+          "f() { echo fn:$1; }"
+        ],
+        [
+          "exec",
+          "fn_call",
+          "f x"
+        ],
+        [
+          "exec",
+          "invalid_utf8",
+          "printf '\\xff\\xfeA'"
+        ],
+        [
+          "exec",
+          "cut_utf8",
+          "printf 'caf\\xc3'"
+        ],
+        [
+          "exec",
+          "unicode",
+          "printf 'é😀'"
+        ],
+        [
+          "exec",
+          "crlf",
+          "printf 'a\\r\\nb\\r\\n'"
+        ],
+        [
+          "exec",
+          "multiline",
+          "echo a\necho b"
+        ],
+        [
+          "exec",
+          "continuation",
+          "echo a \\"
+        ],
+        [
+          "exec",
+          "read_eats_wrapper",
+          "read x; echo got:$x"
+        ],
+        [
+          "exec",
+          "after_read",
+          "echo next"
+        ],
+        [
+          "exec",
+          "not_found",
+          "nosuchcommand_zz"
+        ],
+        [
+          "exec",
+          "dollar0",
+          "echo $0"
+        ]
+      ],
+      "results": [
+        {
+          "label": "echo",
+          "result": {
+            "stdout": "hi",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "blank_lines",
+          "result": {
+            "stdout": "a\n",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "no_newline",
+          "result": {
+            "stdout": "no newline",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "only_newlines",
+          "result": {
+            "stdout": "\n",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "stderr",
+          "result": {
+            "stdout": "",
+            "stderr": "err",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "both",
+          "result": {
+            "stdout": "out",
+            "stderr": "err",
+            "exitCode": 3,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "false",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": 1,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "cd",
+          "result": {
+            "stdout": "$TMP/sub",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "pwd",
+          "result": {
+            "stdout": "$TMP/sub",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "export",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "env",
+          "result": {
+            "stdout": "bar",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "fn_def",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "fn_call",
+          "result": {
+            "stdout": "fn:x",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "invalid_utf8",
+          "result": {
+            "stdout": "��A",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "cut_utf8",
+          "result": {
+            "stdout": "caf�",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "unicode",
+          "result": {
+            "stdout": "é😀",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "crlf",
+          "result": {
+            "stdout": "a\r\nb\r",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "multiline",
+          "result": {
+            "stdout": "a\nb",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "continuation",
+          "result": {
+            "stdout": "a __claudius_ec=0",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "read_eats_wrapper",
+          "result": {
+            "stdout": "got:__claudius_ec=$?",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "after_read",
+          "result": {
+            "stdout": "next",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "not_found",
+          "result": {
+            "stdout": "",
+            "stderr": "/bin/bash: line 85: nosuchcommand_zz: command not found",
+            "exitCode": 127,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "dollar0",
+          "result": {
+            "stdout": "/bin/bash",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "exit",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "cd",
+          "mkdir -p d && cd d && echo in"
+        ],
+        [
+          "exec",
+          "exit",
+          "echo bye; exit 3"
+        ],
+        [
+          "exec",
+          "fresh",
+          "pwd"
+        ]
+      ],
+      "results": [
+        {
+          "label": "cd",
+          "result": {
+            "stdout": "in",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "exit",
+          "result": {
+            "stdout": "bye\n",
+            "stderr": "",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "fresh",
+          "result": {
+            "stdout": "$TMP",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "killed",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "kill9",
+          "echo partial; echo err >&2; kill -9 $$"
+        ],
+        [
+          "exec",
+          "fresh",
+          "echo back"
+        ]
+      ],
+      "results": [
+        {
+          "label": "kill9",
+          "result": {
+            "stdout": "partial\n",
+            "stderr": "err\n",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "fresh",
+          "result": {
+            "stdout": "back",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "timeout",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "sleep",
+          "sleep 5",
+          300
+        ],
+        [
+          "exec",
+          "respawned",
+          "echo alive"
+        ],
+        [
+          "exec",
+          "open_quote",
+          "echo \"abc",
+          400
+        ],
+        [
+          "exec",
+          "after_quote",
+          "echo ok"
+        ]
+      ],
+      "results": [
+        {
+          "label": "sleep",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": true
+          }
+        },
+        {
+          "label": "respawned",
+          "result": {
+            "stdout": "alive",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "open_quote",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": true
+          }
+        },
+        {
+          "label": "after_quote",
+          "result": {
+            "stdout": "ok",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "queue",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "start",
+          "a",
+          "sleep 0.3; echo a"
+        ],
+        [
+          "start",
+          "b",
+          "echo b"
+        ],
+        [
+          "start",
+          "c",
+          "echo c >&2"
+        ],
+        [
+          "await",
+          "a",
+          5000
+        ],
+        [
+          "await",
+          "b",
+          5000
+        ],
+        [
+          "await",
+          "c",
+          5000
+        ]
+      ],
+      "results": [
+        {
+          "label": "a",
+          "result": {
+            "stdout": "a",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "b",
+          "result": {
+            "stdout": "b",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "c",
+          "result": {
+            "stdout": "",
+            "stderr": "c",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "stray",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "bg",
+          "(sleep 0.3; echo late; echo late2 >&2) &"
+        ],
+        [
+          "sleep",
+          800
+        ],
+        [
+          "exec",
+          "now",
+          "echo now"
+        ]
+      ],
+      "results": [
+        {
+          "label": "bg",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "now",
+          "result": {
+            "stdout": "now",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "exit_stalls_queue",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "start",
+          "a",
+          "exit 3"
+        ],
+        [
+          "start",
+          "b",
+          "echo queued"
+        ],
+        [
+          "await",
+          "a",
+          5000
+        ],
+        [
+          "await",
+          "b",
+          600
+        ],
+        [
+          "exec",
+          "c",
+          "echo trigger"
+        ],
+        [
+          "await",
+          "b",
+          5000
+        ]
+      ],
+      "results": [
+        {
+          "label": "a",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "b",
+          "result": "pending"
+        },
+        {
+          "label": "c",
+          "result": {
+            "stdout": "trigger",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "b",
+          "result": {
+            "stdout": "queued",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "dispose",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "start",
+          "a",
+          "sleep 2"
+        ],
+        [
+          "start",
+          "b",
+          "echo queued"
+        ],
+        [
+          "sleep",
+          300
+        ],
+        [
+          "dispose"
+        ],
+        [
+          "await",
+          "a",
+          1500
+        ],
+        [
+          "await",
+          "b",
+          800
+        ],
+        [
+          "exec",
+          "after",
+          "echo after"
+        ]
+      ],
+      "results": [
+        {
+          "label": "a",
+          "result": {
+            "stdout": "",
+            "stderr": "",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "b",
+          "result": "pending"
+        },
+        {
+          "label": "after",
+          "result": {
+            "stdout": "",
+            "stderr": "BashSession destroyed",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "missing_cwd",
+      "cwd": "missing",
+      "steps": [
+        [
+          "exec",
+          "first",
+          "echo hi"
+        ],
+        [
+          "exec",
+          "again",
+          "echo again"
+        ]
+      ],
+      "results": [
+        {
+          "label": "first",
+          "result": {
+            "stdout": "",
+            "stderr": "\nspawn /bin/bash ENOENT",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "again",
+          "result": {
+            "stdout": "",
+            "stderr": "\nspawn /bin/bash ENOENT",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "truncation",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "long",
+          "head -c 16777300 /dev/zero | tr '\\0' a",
+          4000
+        ],
+        [
+          "exec",
+          "after",
+          "echo after"
+        ]
+      ],
+      "results": [
+        {
+          "label": "long",
+          "result": {
+            "stdout": {
+              "len": 16777216,
+              "head": "aaaaaaaaaaaaaaaaaaaa",
+              "tail": "aaaaaaaaaaaaaaaaaaaa"
+            },
+            "stderr": "",
+            "exitCode": -1,
+            "truncated": true,
+            "timedOut": true
+          }
+        },
+        {
+          "label": "after",
+          "result": {
+            "stdout": "after",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    }
+  ],
+  "route": {
+    "sessionId": "golden-session",
+    "cases": [
+      {
+        "id": "missing",
+        "body": "{\"command\":\"echo hi\"}",
+        "got": {
+          "status": 404,
+          "body": {
+            "error": "session not found"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "invalid JSON body"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "invalid JSON body"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "null",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command required"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "[]",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command required"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "\"echo hi\"",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command required"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":5}",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command required"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"\"}",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command required"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\" \\t\\n\"}",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command required"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"\\u00a0\\ufeff\"}",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command required"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"a\\u0000b\"}",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command contains NUL"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\" \\u0000\"}",
+        "got": {
+          "status": 400,
+          "body": {
+            "error": "command contains NUL"
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"\\u0085\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "<uuid>",
+            "stdout": "",
+            "stderr": "/bin/bash: line 1: : command not found",
+            "exitCode": 127,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo hi\",\"uuid\":\"u-1\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-1",
+            "stdout": "hi",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"printf out; printf err >&2\",\"uuid\":\"u-2\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-2",
+            "stdout": "out",
+            "stderr": "err",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo hi\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "<uuid>",
+            "stdout": "hi",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo hi\",\"uuid\":null}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "<uuid>",
+            "stdout": "hi",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo hi\",\"uuid\":5}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": 5,
+            "stdout": "hi",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo hi\",\"uuid\":{\"a\":[1]}}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": {
+              "a": [
+                1
+              ]
+            },
+            "stdout": "hi",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo ls\",\"sudoPassword\":\"pw\",\"uuid\":\"u-3a-b\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-3a-b",
+            "stdout": "sudo[-S -p  ls] pw[pw]",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"  sudo ls\",\"sudoPassword\":\"pw\",\"uuid\":\"u-4\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-4",
+            "stdout": "sudo[-S -p  ls] pw[pw]",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"\\u00a0sudo ls\",\"sudoPassword\":\"pw\",\"uuid\":\"u-5\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-5",
+            "stdout": "",
+            "stderr": "/bin/bash: line 41:  sudo: command not found",
+            "exitCode": 127,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"\\u0085sudo ls\",\"sudoPassword\":\"pw\",\"uuid\":\"u-6\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-6",
+            "stdout": "",
+            "stderr": "/bin/bash: line 47: sudo: command not found",
+            "exitCode": 127,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudoers\",\"sudoPassword\":\"pw\",\"uuid\":\"u-7\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-7",
+            "stdout": "",
+            "stderr": "/bin/bash: line 53: sudoers: command not found",
+            "exitCode": 127,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo sudo\",\"sudoPassword\":\"pw\",\"uuid\":\"u-8\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-8",
+            "stdout": "sudo",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo a && sudo b\",\"sudoPassword\":\"pw\",\"uuid\":\"u-9\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-9",
+            "stdout": "",
+            "stderr": "claudius: compound sudo commands aren't supported in `!`-mode. Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo id\",\"sudoPassword\":\"pw\",\"uuid\":5}",
+        "got": {
+          "threw": "uuid.replace is not a function"
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo a; sudo b\",\"sudoPassword\":\"pw\",\"uuid\":5}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": 5,
+            "stdout": "",
+            "stderr": "claudius: compound sudo commands aren't supported in `!`-mode. Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo id\",\"sudoPassword\":\"\",\"uuid\":\"u-12\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-12",
+            "stdout": "sudo[id]",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo id\",\"sudoPassword\":5,\"uuid\":\"u-13\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-13",
+            "stdout": "sudo[id]",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo multi\\necho line\",\"uuid\":\"u-14\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-14",
+            "stdout": "multi\nline",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo -n true\",\"sudoPassword\":\"p'w\\\"$x\",\"uuid\":\"u-15\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-15",
+            "stdout": "sudo[-S -p  -n true] pw[p'w\"$x]",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"sudo cat\",\"sudoPassword\":\"line1\\nline2\",\"uuid\":\"u-16\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-16",
+            "stdout": "sudo[-S -p  cat] pw[line1]",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"SUDO ls\",\"sudoPassword\":\"pw\",\"uuid\":\"u-17\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-17",
+            "stdout": "sudo[ls]",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"cd /tmp && echo moved\",\"uuid\":\"u-18\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-18",
+            "stdout": "moved",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"pwd\",\"uuid\":\"u-19\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-19",
+            "stdout": "/tmp",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"export FOO=bar\",\"uuid\":\"u-20\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-20",
+            "stdout": "",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"echo $FOO\",\"uuid\":\"u-21\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-21",
+            "stdout": "bar",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      },
+      {
+        "id": "live",
+        "body": "{\"command\":\"(exit 7)\",\"uuid\":\"u-22\"}",
+        "got": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "uuid": "u-22",
+            "stdout": "",
+            "stderr": "",
+            "exitCode": 7,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      }
+    ],
+    "events": [
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input></bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 1: : command not found</bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "<uuid>"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-1"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>printf out; printf err >&2</bash-input>\n<bash-stdout>out</bash-stdout><bash-stderr>err</bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-2"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "<uuid>"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "<uuid>"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": 5
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": {
+            "a": [
+              1
+            ]
+          }
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo ls</bash-input>\n<bash-stdout>sudo[-S -p  ls] pw[pw]</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-3a-b"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>  sudo ls</bash-input>\n<bash-stdout>sudo[-S -p  ls] pw[pw]</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-4"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input> sudo ls</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 41:  sudo: command not found</bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-5"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo ls</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 47: sudo: command not found</bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-6"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudoers</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 53: sudoers: command not found</bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-7"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo sudo</bash-input>\n<bash-stdout>sudo</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-8"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo a && sudo b</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>claudius: compound sudo commands aren't supported in `!`-mode. Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.</bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-9"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo a; sudo b</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>claudius: compound sudo commands aren't supported in `!`-mode. Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.</bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": 5
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo id</bash-input>\n<bash-stdout>sudo[id]</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-12"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo id</bash-input>\n<bash-stdout>sudo[id]</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-13"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo multi\necho line</bash-input>\n<bash-stdout>multi\nline</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-14"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo -n true</bash-input>\n<bash-stdout>sudo[-S -p  -n true] pw[p'w\"$x]</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-15"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>sudo cat</bash-input>\n<bash-stdout>sudo[-S -p  cat] pw[line1]</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-16"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>SUDO ls</bash-input>\n<bash-stdout>sudo[ls]</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-17"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>cd /tmp && echo moved</bash-input>\n<bash-stdout>moved</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-18"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>pwd</bash-input>\n<bash-stdout>/tmp</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-19"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>export FOO=bar</bash-input>\n<bash-stdout></bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-20"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>echo $FOO</bash-input>\n<bash-stdout>bar</bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-21"
+        }
+      },
+      {
+        "type": "sdk",
+        "message": {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": "<bash-input>(exit 7)</bash-input>\n<bash-stdout></bash-stdout><bash-stderr></bash-stderr>"
+          },
+          "parent_tool_use_id": null,
+          "session_id": "golden-session",
+          "uuid": "u-22"
+        }
+      }
+    ],
+    "pending": "<bash-input></bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 1: : command not found</bash-stderr>\n<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>printf out; printf err >&2</bash-input>\n<bash-stdout>out</bash-stdout><bash-stderr>err</bash-stderr>\n<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>echo hi</bash-input>\n<bash-stdout>hi</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>sudo ls</bash-input>\n<bash-stdout>sudo[-S -p  ls] pw[pw]</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>  sudo ls</bash-input>\n<bash-stdout>sudo[-S -p  ls] pw[pw]</bash-stdout><bash-stderr></bash-stderr>\n<bash-input> sudo ls</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 41:  sudo: command not found</bash-stderr>\n<bash-input>sudo ls</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 47: sudo: command not found</bash-stderr>\n<bash-input>sudoers</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>/bin/bash: line 53: sudoers: command not found</bash-stderr>\n<bash-input>echo sudo</bash-input>\n<bash-stdout>sudo</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>sudo a && sudo b</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>claudius: compound sudo commands aren't supported in `!`-mode. Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.</bash-stderr>\n<bash-input>sudo a; sudo b</bash-input>\n<bash-stdout></bash-stdout><bash-stderr>claudius: compound sudo commands aren't supported in `!`-mode. Wrap them in a single `sudo bash -c \"…\"` so one password unlocks the whole run.</bash-stderr>\n<bash-input>sudo id</bash-input>\n<bash-stdout>sudo[id]</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>sudo id</bash-input>\n<bash-stdout>sudo[id]</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>echo multi\necho line</bash-input>\n<bash-stdout>multi\nline</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>sudo -n true</bash-input>\n<bash-stdout>sudo[-S -p  -n true] pw[p'w\"$x]</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>sudo cat</bash-input>\n<bash-stdout>sudo[-S -p  cat] pw[line1]</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>SUDO ls</bash-input>\n<bash-stdout>sudo[ls]</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>cd /tmp && echo moved</bash-input>\n<bash-stdout>moved</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>pwd</bash-input>\n<bash-stdout>/tmp</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>export FOO=bar</bash-input>\n<bash-stdout></bash-stdout><bash-stderr></bash-stderr>\n<bash-input>echo $FOO</bash-input>\n<bash-stdout>bar</bash-stdout><bash-stderr></bash-stderr>\n<bash-input>(exit 7)</bash-input>\n<bash-stdout></bash-stdout><bash-stderr></bash-stderr>\n"
+  }
+}

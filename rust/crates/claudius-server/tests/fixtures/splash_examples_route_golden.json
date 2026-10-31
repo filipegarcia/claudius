@@ -1,0 +1,4266 @@
+{
+ "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+ "allow": "DELETE, GET, HEAD, OPTIONS, PUT",
+ "phases": [
+  {
+   "name": "main",
+   "steps": [
+    {
+     "op": "file",
+     "path": ".claude.json",
+     "text": "{\"numStartups\":3,\"oauthAccount\":{\"accountUuid\":\"u-1\",\"emailAddress\":\"a@example.com\",\"displayName\":\"Filipe Garcia\"}}"
+    },
+    {
+     "op": "exists",
+     "cwd": "$PROC",
+     "got": {
+      "dir": false,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "$PROC",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": {
+      "nodb": true
+     }
+    },
+    {
+     "op": "req",
+     "method": "HEAD",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": ""
+     }
+    },
+    {
+     "op": "req",
+     "method": "OPTIONS",
+     "got": {
+      "status": 204,
+      "headers": [
+       [
+        "allow",
+        "DELETE, GET, HEAD, OPTIONS, PUT"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": ""
+     }
+    },
+    {
+     "op": "req",
+     "method": "POST",
+     "body": "{}",
+     "got": {
+      "status": 405,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": ""
+     }
+    },
+    {
+     "op": "req",
+     "method": "PATCH",
+     "body": "{\"examples\":[\"p\"]}",
+     "got": {
+      "status": 405,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": ""
+     }
+    },
+    {
+     "op": "req",
+     "method": "PROPFIND",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": ""
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "query": "?cwd=%2Fclaudius-golden%2Fsplash-a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "nul",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{} x",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":undefined}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"a\"],}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "'x'",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "hex": "efbbbfefbbbfefbbbf7b226578616d706c6573223a5b22626f6d33225d7d",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "[]",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "\"examples\"",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "7",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "true",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "false",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "1e400",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"other\":1}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "$PROC",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "null",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "Cannot read properties of null (reading 'examples')"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "$PROC",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":\"a\"}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":null}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":{}}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":{\"0\":\"a\",\"length\":1}}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":5}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":true}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":false}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":1e400}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":-1e400}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "$PROC",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "$PROC",
+     "got": {
+      "dir": true,
+      "db": true
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B5D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"  Fix the build  \",\"\",\"   \",1,null,true,{},[\"x\"],2.5,\"Add tests\",\"x\",\"x\",\" x \"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Fix the build\",\"Add tests\",\"x\",\"x\",\"x\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B2246697820746865206275696C64222C22416464207465737473222C2278222C2278222C2278225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Fix the build\",\"Add tests\",\"x\",\"x\",\"x\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"s1\",\"s2\",\"s3\",\"s4\",\"s5\",\"s6\",\"s7\",\"s8\",\"s9\",\"s10\",\"s11\",\"s12\",\"s13\",\"s14\",\"s15\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"s1\",\"s2\",\"s3\",\"s4\",\"s5\",\"s6\",\"s7\",\"s8\",\"s9\",\"s10\",\"s11\",\"s12\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B227331222C227332222C227333222C227334222C227335222C227336222C227337222C227338222C227339222C22733130222C22733131222C22733132225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"  \",\"  \",\"  \",\"  \",\"  \",\"  \",\"  \",\"  \",\"  \",\"  \",\"  \",\"  \",\"a\",\"b\",7,\"c\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"a\",\"b\",\"c\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B2261222C2262222C2263225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\" cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc \",\"ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd😀\",\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\ud83d\",\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B22616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222C22626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222C22636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363222C2264646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464645C7564383364222C22F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880F09F9880225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\ud83d\",\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"\\ud83d\", \"x\\udc00y\", \"\\ud83d\\ude00\", \" \\udbff \", \"\\u0041\\u00e9\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"\\ud83d\",\"x\\udc00y\",\"😀\",\"\\udbff\",\"Aé\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B225C7564383364222C22785C756463303079222C22F09F9880222C225C7564626666222C2241C3A9225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"\\ud83d\",\"x\\udc00y\",\"😀\",\"\\udbff\",\"Aé\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"😀\",\"é\",\"é\",\"会話\",\" \",\"\\u0000\",\"\\u001f\",\"q\\\"uote\",\"back\\\\slash\",\"/sl/ash\",\"<script>\",\"会話 😀\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"😀\",\"é\",\"é\",\"会話\",\"\\u0000\",\"\\u001f\",\"q\\\"uote\",\"back\\\\slash\",\"/sl/ash\",\"<script>\",\"会話 😀\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B22F09F9880222C22C3A9222C2265CC81222C22E4BC9AE8A9B1222C225C7530303030222C225C7530303166222C22715C22756F7465222C226261636B5C5C736C617368222C222F736C2F617368222C223C7363726970743E222C22E4BC9AE8A9B120F09F9880225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"😀\",\"é\",\"é\",\"会話\",\"\\u0000\",\"\\u001f\",\"q\\\"uote\",\"back\\\\slash\",\"/sl/ash\",\"<script>\",\"会話 😀\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\" x \",\"n\",\"﻿z﻿\",\"​w​\",\" l \",\"\\t\\n v \\r\\n\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":5}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":true}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":false}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":[]}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":[\"Bob\"]}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":{}}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":0}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":1e400}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":-1e400}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"  Bob  Smith \"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":\"Bob  Smith\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "22426F622020536D69746822"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bob  Smith\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":\"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "226E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E6E22"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":\"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm\\ud83d\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "226D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D6D5C756438336422"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm\\ud83d\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\" \\ud800x \"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":\"\\ud800x\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "225C75643830307822"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"\\ud800x\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Ann\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":\"Ann\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\" \\t \"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Ann\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":\"Ann\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":null}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B2278222C22C2856EC285222C227A222C22E2808B77E2808B222C226C222C2276225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":null}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Ann \"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"displayName\":{\"override\":\"Ann\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\",\"n\",\"z\",\"​w​\",\"l\",\"v\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Ann\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"both\"],\"displayName\":\"Both\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"both\"],\"customized\":true,\"displayName\":{\"override\":\"Both\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "22426F746822"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B22626F7468225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"first\"],\"displayName\":5}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "22426F746822"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B226669727374225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":\"bad\",\"displayName\":\"Never\"}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "22426F746822"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B226669727374225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Zed\",\"examples\":[\"order\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"order\"],\"customized\":true,\"displayName\":{\"override\":\"Zed\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "225A656422"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B226F72646572225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"order\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Zed\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"d1\"],\"examples\":[\"d2\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"d2\"],\"customized\":true,\"displayName\":{\"override\":\"Zed\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"__proto__\":{\"examples\":[\"proto\"]},\"displayName\":\"Proto\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"d2\"],\"customized\":true,\"displayName\":{\"override\":\"Proto\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"d2\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Proto\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "hex": "efbbbf7b226578616d706c6573223a5b22626f6d31225d7d",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"bom1\"],\"customized\":true,\"displayName\":{\"override\":\"Proto\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "hex": "efbbbfefbbbf7b226578616d706c6573223a5b22626f6d32225d7d",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"bom2\"],\"customized\":true,\"displayName\":{\"override\":\"Proto\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "hex": "7b226578616d706c6573223a5b2261ff62222c202263c3225d2c22646973706c61794e616d65223a2278c0af79227d",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"a�b\",\"c�\"],\"customized\":true,\"displayName\":{\"override\":\"x��y\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "2278EFBFBDEFBFBD7922"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B2261EFBFBD62222C2263EFBFBD225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": " \n {\"examples\" : [ \"ws\" ] , \"displayName\" : \"  W  \" } \n",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"ws\"],\"customized\":true,\"displayName\":{\"override\":\"W\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"\\u00e9\\u0041\", \"\\u2028x\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"éA\",\"x\"],\"customized\":true,\"displayName\":{\"override\":\"W\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "225722"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B22C3A941222C2278225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"deep\",[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"deep\"],\"customized\":true,\"displayName\":{\"override\":\"W\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "225722"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B2264656570225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"after\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"after\"],\"customized\":true,\"displayName\":{\"override\":\"W\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "225722"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B226166746572225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": []
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"again\"],\"displayName\":\"Kept\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"again\"],\"customized\":true,\"displayName\":{\"override\":\"Kept\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "body": "not json",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$PROC",
+     "got": []
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000003\",\n      \"label\": \"Solo Label\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-3\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_0000000000000003\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000001\",\n      \"label\": \"Work Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-1\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_0000000000000002\",\n      \"label\": \"Personal Pro\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-2\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_0000000000000002\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Personal\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Personal\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Personal\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000001\",\n      \"label\": \"Work Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-1\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_0000000000000002\",\n      \"label\": \"Personal Pro\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-2\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": null,\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":null}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000001\",\n      \"label\": \"Work Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-1\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_0000000000000002\",\n      \"label\": \"Personal Pro\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-2\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_missing\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":null}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\"profiles\": ["
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "rm": true
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"activeId\": \"wks_b\",\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"ws wks_a\",\n      \"rootPath\": \"/claudius-golden/splash-a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"ws wks_b\",\n      \"rootPath\": \"/claudius-golden/splash-b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "exists",
+     "cwd": "/claudius-golden/splash-b",
+     "got": {
+      "dir": false,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "/claudius-golden/splash-b",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"in B\"],\"displayName\":\"Bee\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "/claudius-golden/splash-b",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "2242656522"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B22696E2042225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"in A\"]}",
+     "cookie": "claudius.workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in A\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "/claudius-golden/splash-a",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B22696E2041225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in A\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "cookie": "claudius.workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "/claudius-golden/splash-a",
+     "got": []
+    },
+    {
+     "op": "rows",
+     "cwd": "/claudius-golden/splash-b",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "2242656522"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B22696E2042225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=nope",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=wks_b; claudius.workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=%77ks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=wks_a; claudius.workspace=%E0%A4%A",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "Claudius.Workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_f\",\n      \"name\": \"ws wks_f\",\n      \"rootPath\": \"/claudius-golden/splash-fresh\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "exists",
+     "cwd": "/claudius-golden/splash-fresh",
+     "got": {
+      "dir": false,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "null",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "Cannot read properties of null (reading 'examples')"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "/claudius-golden/splash-fresh",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_g\",\n      \"name\": \"ws wks_g\",\n      \"rootPath\": \"/claudius-golden/splash-fresh-2\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"invalid JSON\"}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "/claudius-golden/splash-fresh-2",
+     "got": {
+      "dir": false,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":\"x\"}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "/claudius-golden/splash-fresh-2",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":1}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "exists",
+     "cwd": "/claudius-golden/splash-fresh-2",
+     "got": {
+      "dir": true,
+      "db": false
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"ws wks_e\",\n      \"rootPath\": \"\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"empty root\"],\"displayName\":\"Empty\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"empty root\"],\"customized\":true,\"displayName\":{\"override\":\"Empty\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "22456D70747922"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B22656D70747920726F6F74225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"empty root\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Empty\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_n\",\n      \"name\": \"ws wks_n\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[]}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "absPath.replace is not a function"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":null}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "absPath.replace is not a function"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"n\"}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "absPath.replace is not a function"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":5}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"displayName must be a string or null\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":\"x\"}",
+     "got": {
+      "status": 400,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"error\":\"examples must be an array of strings\"}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "absPath.replace is not a function"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_m\",\n      \"name\": \"ws wks_m\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"m\"]}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "Cannot read properties of undefined (reading 'replace')"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "Cannot read properties of undefined (reading 'replace')"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_o\",\n      \"name\": \"ws wks_o\",\n      \"rootPath\": {\n        \"p\": \"/claudius-golden/splash-a\"\n      },\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "absPath.replace is not a function"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"activeId\": \"wks_b\",\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"ws wks_a\",\n      \"rootPath\": \"/claudius-golden/splash-a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"ws wks_b\",\n      \"rootPath\": \"/claudius-golden/splash-b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/customizations/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_1\",\"name\":\"C\"},{\"id\":\"../../esc\"}],\"publishes\":[]}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.customization=cust_1",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"cust\"],\"displayName\":\"Cust\"}",
+     "cookie": "claudius.customization=cust_1",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"cust\"],\"customized\":true,\"displayName\":{\"override\":\"Cust\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$HOME/.claude/.claudius/customizations/cust_1/src",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "224375737422"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B2263757374225D"
+      ]
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.customization=cust_1",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"cust\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Cust\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.customization=cust_1; claudius.workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"cust\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Cust\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.workspace=wks_a; claudius.customization=cust_1",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"cust\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Cust\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.customization=cust_9; claudius.workspace=wks_a",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.customization=cust_9",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "cookie": "claudius.customization=cust_1",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$HOME/.claude/.claudius/customizations/cust_1/src",
+     "got": []
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"esc\"]}",
+     "cookie": "claudius.customization=..%2F..%2Fesc",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"esc\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "$HOME/.claude/esc/src",
+     "got": [
+      [
+       "splash_examples",
+       "text",
+       "5B22657363225D"
+      ]
+     ]
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/customizations/index.json",
+     "rm": true
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "cookie": "claudius.customization=cust_1",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"in B\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Bee\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_x\",\n      \"name\": \"ws wks_x\",\n      \"rootPath\": \"/claudius-golden/splash-newer\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "sql",
+     "cwd": "/claudius-golden/splash-newer",
+     "sql": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO schema_meta VALUES ('version', '9999');",
+     "fresh": true
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"n\"]}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "no such table: ui_state"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":null}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "no such table: ui_state"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"n\"}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "no such table: ui_state"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "no such table: ui_state"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "/claudius-golden/splash-newer",
+     "got": {
+      "error": "no such table: ui_state"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_x\",\n      \"name\": \"ws wks_x\",\n      \"rootPath\": \"/claudius-golden/splash-garbage\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "dbfile",
+     "cwd": "/claudius-golden/splash-garbage",
+     "text": "this is not a sqlite database, just text that is long enough"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"g\"]}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "file is not a database"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "file is not a database"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_x\",\n      \"name\": \"ws wks_x\",\n      \"rootPath\": \"/claudius-golden/splash-dir\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "dbfile",
+     "cwd": "/claudius-golden/splash-dir",
+     "dir": true
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"d\"}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "unable to open database file"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_x\",\n      \"name\": \"ws wks_x\",\n      \"rootPath\": \"/claudius-golden/splash-rollback\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "sql",
+     "cwd": "/claudius-golden/splash-rollback",
+     "sql": "CREATE TABLE ui_state (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO ui_state VALUES ('splash_examples', '[\"r1\"]'), ('splash_display_name', '\"Rolly\"');",
+     "fresh": true,
+     "journal": "delete"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Wal\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":\"Wal\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"r1\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Wal\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "/claudius-golden/splash-rollback",
+     "got": [
+      [
+       "splash_display_name",
+       "text",
+       "2257616C22"
+      ],
+      [
+       "splash_examples",
+       "text",
+       "5B227231225D"
+      ]
+     ]
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_x\",\n      \"name\": \"ws wks_x\",\n      \"rootPath\": \"/claudius-golden/splash-nopk\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "sql",
+     "cwd": "/claudius-golden/splash-nopk",
+     "sql": "CREATE TABLE ui_state (key TEXT, value TEXT); INSERT INTO ui_state VALUES ('splash_examples', '[\"first\"]'), ('splash_examples', '[\"second\"]'), ('splash_display_name', '\"One\"');",
+     "fresh": true
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"first\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"One\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"k\"]}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"k\"}",
+     "got": {
+      "status": 500,
+      "headers": [
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "",
+      "threw": "ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":null}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"first\"],\"customized\":true,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"first\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "rows",
+     "cwd": "/claudius-golden/splash-nopk",
+     "got": []
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"ws wks_c\",\n      \"rootPath\": \"/claudius-golden/splash-conc\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Conc\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "concurrent",
+     "steps": [
+      {
+       "op": "req",
+       "method": "PUT",
+       "body": "{\"examples\":[\" c0 \",\"c\"]}"
+      },
+      {
+       "op": "req",
+       "method": "PUT",
+       "body": "{\"examples\":[\" c1 \",\"c\"]}"
+      },
+      {
+       "op": "req",
+       "method": "PUT",
+       "body": "{\"examples\":[\" c2 \",\"c\"]}"
+      },
+      {
+       "op": "req",
+       "method": "PUT",
+       "body": "{\"examples\":[\" c3 \",\"c\"]}"
+      },
+      {
+       "op": "req",
+       "method": "PUT",
+       "body": "{\"examples\":[\" c4 \",\"c\"]}"
+      },
+      {
+       "op": "req",
+       "method": "PUT",
+       "body": "{\"examples\":[\" c5 \",\"c\"]}"
+      }
+     ],
+     "got": [
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"c0\",\"c\"],\"customized\":true,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"c1\",\"c\"],\"customized\":true,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"c2\",\"c\"],\"customized\":true,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"c3\",\"c\"],\"customized\":true,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"c4\",\"c\"],\"customized\":true,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"c5\",\"c\"],\"customized\":true,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      }
+     ]
+    },
+    {
+     "op": "rowsOneOf",
+     "cwd": "/claudius-golden/splash-conc",
+     "keys": {
+      "splash_display_name": [
+       "22436F6E6322"
+      ],
+      "splash_examples": [
+       "5B226330222C2263225D",
+       "5B226331222C2263225D",
+       "5B226332222C2263225D",
+       "5B226333222C2263225D",
+       "5B226334222C2263225D",
+       "5B226335222C2263225D"
+      ]
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"examples\":[\"settled\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"settled\"],\"customized\":true,\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+     }
+    },
+    {
+     "op": "concurrent",
+     "steps": [
+      {
+       "op": "req",
+       "method": "GET"
+      },
+      {
+       "op": "req",
+       "method": "GET"
+      },
+      {
+       "op": "req",
+       "method": "HEAD"
+      },
+      {
+       "op": "req",
+       "method": "GET"
+      },
+      {
+       "op": "req",
+       "method": "OPTIONS"
+      }
+     ],
+     "got": [
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"settled\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"settled\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": ""
+      },
+      {
+       "status": 200,
+       "headers": [
+        [
+         "content-type",
+         "application/json"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": "{\"examples\":[\"settled\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+      },
+      {
+       "status": 204,
+       "headers": [
+        [
+         "allow",
+         "DELETE, GET, HEAD, OPTIONS, PUT"
+        ],
+        [
+         "vary",
+         "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"settled\"],\"customized\":true,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":\"Conc\",\"fallback\":\"Filipe\"}}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "no global config",
+   "steps": [
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":null}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000004\",\n      \"label\": \"Solo Label\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-4\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_0000000000000004\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"Solo\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000005\",\n      \"label\": \"   \",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-5\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_0000000000000005\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":null}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000006\",\n      \"label\": \"  😀😀 two\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-6\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_0000000000000006\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"😀😀\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000007\",\n      \"label\": \"First One\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-7\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_0000000000000008\",\n      \"label\": \"Second Two\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-8\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_0000000000000007\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":\"First\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Mine\",\"examples\":[\"x\"]}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"x\"],\"customized\":true,\"displayName\":{\"override\":\"Mine\",\"fallback\":\"First\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":\"First\"}}"
+     }
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "rm": true
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":null}}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "a blank global display name",
+   "steps": [
+    {
+     "op": "file",
+     "path": ".claude.json",
+     "text": "{\"numStartups\":3,\"oauthAccount\":{\"accountUuid\":\"u-1\",\"emailAddress\":\"a@example.com\",\"displayName\":\"   \"}}"
+    },
+    {
+     "op": "file",
+     "path": ".claude/.claudius/accounts.json",
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_0000000000000009\",\n      \"label\": \"Solo Label\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-9\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_0000000000000009\",\n  \"autoRotateOnRateLimit\": false\n}"
+    },
+    {
+     "op": "req",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"defaults\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"limits\":{\"maxLen\":240,\"maxCount\":12,\"nameMaxLen\":60},\"displayName\":{\"override\":null,\"fallback\":null}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "PUT",
+     "body": "{\"displayName\":\"Own\"}",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":\"Own\",\"fallback\":null}}"
+     }
+    },
+    {
+     "op": "req",
+     "method": "DELETE",
+     "got": {
+      "status": 200,
+      "headers": [
+       [
+        "content-type",
+        "application/json"
+       ],
+       [
+        "vary",
+        "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+       ]
+      ],
+      "body": "{\"examples\":[\"Check for security vulnerabilities in the latest git commit\",\"Improve test coverage\",\"Find TODO comments in the codebase\",\"Find performance bottlenecks and suggest fixes\"],\"customized\":false,\"displayName\":{\"override\":null,\"fallback\":null}}"
+     }
+    }
+   ]
+  }
+ ]
+}

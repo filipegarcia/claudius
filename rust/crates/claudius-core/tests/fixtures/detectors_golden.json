@@ -1,0 +1,5195 @@
+{
+ "constants": {
+  "OPUS_OVERLOAD_NUDGE_THRESHOLD": 2,
+  "TOKEN_EXPIRY_WARNING_WINDOW_MS": 259200000
+ },
+ "texts": [
+  {
+   "text": "",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Overloaded",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "overloaded",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "OVERLOADED",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "overload",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "over loaded",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "0verloaded",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Repeated 529 Overloaded errors",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API Error: 529",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "api error 529",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API ERROR: 529",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "529",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "status 529",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Status: 529",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "529 STATUS",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "HTTP 529",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "error 529",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "request 529e1b2c-api error",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "uuid 9f3a529c",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "52 9 status",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "5 2 9 api error",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "status\n529",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API\nError 529",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "apierror 529",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API Error: 500 Internal server error",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API Error: 429 rate_limit_error",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "５２９ status",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "APİ ERROR: 529",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxoverloaded",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Failed to authenticate",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "failed to authenticate.",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "FAILED TO AUTHENTICATE",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Failed  to authenticate",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "failed to authenticat",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Faİled to authenticate",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API Error: 401 authentication_error",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "401 Unauthorized",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "authentication failed",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "401 authentication",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "authenticat 401",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "403 authentication",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API Error: 403 Forbidden: authentication required",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "API Error: 403 {\"error\":{\"type\":\"permission_error\"}}",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "port 4013 authenticated",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "1403 AUTHENTICATED",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "402 authentication",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "authentİcation 401",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Failed to authenticate: OAuth token revoked",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": true
+  },
+  {
+   "text": "OAuth token revoked",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": true
+  },
+  {
+   "text": "oauth token revoked",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": true
+  },
+  {
+   "text": "OAUTH TOKEN REVOKED",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": true
+  },
+  {
+   "text": "OAUTH TOKEN REVOKED",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": true
+  },
+  {
+   "text": "OAuth  token revoked",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "OAuth token has been revoked",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "oauth_token_revoked",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "oauth token revokedİ",
+   "overload": false,
+   "authFailed": false,
+   "oauthRevoked": true
+  },
+  {
+   "text": "Σ overloaded Σ",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "😀 529 status 😀",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Claude Code process exited with code 1. stderr: API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}",
+   "overload": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Claude Code returned an error result: Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}",
+   "overload": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "text": "Claude Code returned an error result: Failed to authenticate: OAuth token revoked 529 status",
+   "overload": true,
+   "authFailed": true,
+   "oauthRevoked": true
+  }
+ ],
+ "models": [
+  {
+   "opus": false
+  },
+  {
+   "model": null,
+   "opus": false
+  },
+  {
+   "model": "",
+   "opus": false
+  },
+  {
+   "model": "opus",
+   "opus": true
+  },
+  {
+   "model": "Opus",
+   "opus": true
+  },
+  {
+   "model": "OPUS",
+   "opus": true
+  },
+  {
+   "model": "claude-opus-4-1",
+   "opus": true
+  },
+  {
+   "model": "claude-opus-4-1[1m]",
+   "opus": true
+  },
+  {
+   "model": "claude-3-opus-20240229",
+   "opus": true
+  },
+  {
+   "model": "us.anthropic.claude-opus-4-20250514-v1:0",
+   "opus": true
+  },
+  {
+   "model": "opusplan",
+   "opus": true
+  },
+  {
+   "model": "claude-sonnet-4-5",
+   "opus": false
+  },
+  {
+   "model": "claude-haiku-4-5",
+   "opus": false
+  },
+  {
+   "model": "sonnet",
+   "opus": false
+  },
+  {
+   "model": "default",
+   "opus": false
+  },
+  {
+   "model": "opu",
+   "opus": false
+  },
+  {
+   "model": "o pus",
+   "opus": false
+  },
+  {
+   "model": "opİus",
+   "opus": false
+  },
+  {
+   "model": "ⓄPUS",
+   "opus": false
+  }
+ ],
+ "messages": [
+  {
+   "message": null,
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": 0,
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": "",
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": "assistant",
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": 5,
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": true,
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": [],
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {},
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": [
+     {
+      "type": "text",
+      "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+     }
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+    }
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "message": {
+      "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+     }
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: "
+      },
+      {
+       "type": "text",
+       "text": "529 status"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      null,
+      3,
+      "Overloaded",
+      {
+       "type": "text"
+      },
+      {
+       "type": "text",
+       "text": 7
+      },
+      {
+       "type": "Text",
+       "text": "Overloaded"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "thinking",
+       "thinking": "Overloaded"
+      },
+      {
+       "type": "text",
+       "text": "fine"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "thinking",
+       "thinking": "x"
+      },
+      {
+       "type": "text",
+       "text": "Overloaded"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": {
+      "type": "text",
+      "text": "Overloaded"
+     }
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": 42
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": "all good"
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      }
+     ]
+    },
+    "parent_tool_use_id": "toolu_sub"
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "Assistant",
+    "message": {
+     "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "user",
+    "message": {
+     "content": [
+      {
+       "type": "tool_result",
+       "tool_use_id": "t",
+       "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      }
+     ]
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "system",
+    "subtype": "api_retry",
+    "error_status": 529,
+    "error": "overloaded"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "system",
+    "subtype": "init",
+    "model": "claude-opus-4-1"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": [
+     "Overloaded"
+    ]
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": [
+     "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+    ]
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": [
+     "fine",
+     "API Error: 529 status"
+    ]
+   },
+   "overload": true,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": []
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": "Overloaded"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": [
+     529,
+     null,
+     {
+      "message": "Overloaded"
+     },
+     [
+      "Overloaded"
+     ]
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": {
+     "0": "Overloaded",
+     "length": 1
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": [
+     "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+    ],
+    "error": "authentication_failed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": 1,
+    "api_error_status": 529,
+    "result": "Overloaded"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "num_turns": 1,
+    "errors": [
+     "Overloaded"
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_max_turns",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": [
+     "Overloaded"
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "Error_During_Execution",
+    "is_error": true,
+    "num_turns": 1,
+    "errors": [
+     "Overloaded"
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "errors": [
+     "Overloaded"
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "message": {
+     "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "billing_error"
+   },
+   "overload": false,
+   "billingError": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 400 credit balance is too low"
+      }
+     ]
+    },
+    "parent_tool_use_id": null,
+    "error": "billing_error"
+   },
+   "overload": false,
+   "billingError": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "Billing_Error"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "billing_error "
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": [
+     "billing_error"
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": {
+     "type": "billing_error"
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "billing_error"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "rate_limit"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "error": "billing_error"
+   },
+   "overload": false,
+   "billingError": true,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "error": "billing_error"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "user",
+    "error": "billing_error"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "authentication_failed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "cloud_credential_error"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "oauth_org_not_allowed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "Your organization does not have access"
+      }
+     ]
+    },
+    "parent_tool_use_id": null,
+    "error": "oauth_org_not_allowed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": "AUTHENTICATION_FAILED"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": []
+    },
+    "parent_tool_use_id": null,
+    "error": true
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+      }
+     ]
+    },
+    "parent_tool_use_id": null,
+    "error": "authentication_failed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "Failed to "
+      },
+      {
+       "type": "text",
+       "text": "authenticate"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "OAuth token revoked"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": true
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "Failed to authenticate: OAuth token revoked"
+      }
+     ]
+    },
+    "parent_tool_use_id": null
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": true
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "Failed to authenticate: OAuth token revoked"
+      }
+     ]
+    },
+    "parent_tool_use_id": null,
+    "error": "authentication_failed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": true
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "OAuth token"
+      },
+      {
+       "type": "text",
+       "text": " revoked"
+      }
+     ]
+    },
+    "parent_tool_use_id": null,
+    "error": "authentication_failed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": true
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 403 authentication required by the gateway"
+      }
+     ]
+    },
+    "parent_tool_use_id": null,
+    "error": "cloud_credential_error"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "error": "authentication_failed"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "error": "authentication_failed",
+    "message": "OAuth token revoked"
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": true,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "user",
+    "message": {
+     "content": "Failed to authenticate: OAuth token revoked"
+    }
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "error": "authentication_failed",
+    "errors": [
+     "Failed to authenticate: OAuth token revoked"
+    ]
+   },
+   "overload": false,
+   "billingError": false,
+   "authFailed": false,
+   "oauthRevoked": false
+  },
+  {
+   "message": {
+    "type": "assistant",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"} Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}} Failed to authenticate: OAuth token revoked"
+      }
+     ]
+    },
+    "parent_tool_use_id": null,
+    "error": "billing_error"
+   },
+   "overload": true,
+   "billingError": true,
+   "authFailed": true,
+   "oauthRevoked": true
+  }
+ ],
+ "expiry": [
+  {
+   "expiresAt": {
+    "$undefined": true
+   },
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": null,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 1761500000001,
+   "now": 1761500000000,
+   "warn": true
+  },
+  {
+   "expiresAt": 1761500000000.5,
+   "now": 1761500000000,
+   "warn": true
+  },
+  {
+   "expiresAt": 1761500000000,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 1761499999999,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 1761240800000,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 1761507200000,
+   "now": 1761500000000,
+   "warn": true
+  },
+  {
+   "expiresAt": 1761759199999,
+   "now": 1761500000000,
+   "warn": true
+  },
+  {
+   "expiresAt": 1761759199999.5,
+   "now": 1761500000000,
+   "warn": true
+  },
+  {
+   "expiresAt": 1761759200000,
+   "now": 1761500000000,
+   "warn": true
+  },
+  {
+   "expiresAt": 1761759200000.5,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 1761759200001,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 1761932000000,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 0,
+   "now": 0,
+   "warn": false
+  },
+  {
+   "expiresAt": 1,
+   "now": 0,
+   "warn": true
+  },
+  {
+   "expiresAt": 259200000,
+   "now": 0,
+   "warn": true
+  },
+  {
+   "expiresAt": 259200001,
+   "now": 0,
+   "warn": false
+  },
+  {
+   "expiresAt": 5e-324,
+   "now": 0,
+   "warn": true
+  },
+  {
+   "expiresAt": 0,
+   "now": 5e-324,
+   "warn": false
+  },
+  {
+   "expiresAt": {
+    "$num": "-0"
+   },
+   "now": -1,
+   "warn": true
+  },
+  {
+   "expiresAt": 0,
+   "now": {
+    "$num": "-0"
+   },
+   "warn": false
+  },
+  {
+   "expiresAt": {
+    "$num": "-0"
+   },
+   "now": 0,
+   "warn": false
+  },
+  {
+   "expiresAt": -1,
+   "now": -259200001,
+   "warn": true
+  },
+  {
+   "expiresAt": -1,
+   "now": -259200002,
+   "warn": false
+  },
+  {
+   "expiresAt": 10000000259200000,
+   "now": 10000000000000000,
+   "warn": true
+  },
+  {
+   "expiresAt": 10000000259200002,
+   "now": 10000000000000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 9007199254740991,
+   "now": 9007198995540991,
+   "warn": true
+  },
+  {
+   "expiresAt": 1.7976931348623157e+308,
+   "now": 1.7976931348623157e+308,
+   "warn": false
+  },
+  {
+   "expiresAt": 1.7976931348623157e+308,
+   "now": -1.7976931348623157e+308,
+   "warn": false
+  },
+  {
+   "expiresAt": -1.7976931348623157e+308,
+   "now": 1.7976931348623157e+308,
+   "warn": false
+  },
+  {
+   "expiresAt": {
+    "$num": "NaN"
+   },
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": {
+    "$num": "Infinity"
+   },
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": {
+    "$num": "-Infinity"
+   },
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": 1761500000001,
+   "now": {
+    "$num": "NaN"
+   },
+   "warn": false
+  },
+  {
+   "expiresAt": 1761500000001,
+   "now": {
+    "$num": "Infinity"
+   },
+   "warn": false
+  },
+  {
+   "expiresAt": 1761500000001,
+   "now": {
+    "$num": "-Infinity"
+   },
+   "warn": false
+  },
+  {
+   "expiresAt": {
+    "$num": "Infinity"
+   },
+   "now": {
+    "$num": "Infinity"
+   },
+   "warn": false
+  },
+  {
+   "expiresAt": "1761500000001",
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": "",
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": true,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": false,
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": {},
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": [
+    1761500000001
+   ],
+   "now": 1761500000000,
+   "warn": false
+  },
+  {
+   "expiresAt": {
+    "expiresAt": 1761500000001
+   },
+   "now": 1761500000000,
+   "warn": false
+  }
+ ],
+ "sessions": [
+  {
+   "name": "two overloaded turns in a row on Opus",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "result": "done"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a turn's assistant 529 and its error result count once",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 3,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "the result alone counts for its turn",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a success clears the streak",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "result": "done"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "any other result ends the turn but keeps the streak",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_max_turns",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "Overloaded"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "boom"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a fallback-rescued success is no signal",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "api_error_status": 529
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "api_error_status": 529
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "fires once, the streak keeps counting",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 3,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 3,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 4,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "result": "done"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "not on Sonnet; Opus picks the streak up",
+   "model": "claude-sonnet-4-5",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 3,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 3,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "model": "claude-opus-4-1",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 3,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":4}"
+     ],
+     "state": {
+      "opusOverloadStreak": 4,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 4,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "model": "claude-sonnet-4-5",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 4,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 5,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a model switch mid-turn",
+   "model": "claude-sonnet-4-5",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "model": "Claude-OPUS-4",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"Claude-OPUS-4\",\"count\":3}"
+     ],
+     "state": {
+      "opusOverloadStreak": 3,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "no model",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "authentication_failed"
+     },
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "an empty model",
+   "model": "",
+   "enable1mContext": true,
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [
+      "{\"type\":\"long_context_credits_required\",\"model\":\"\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "authentication_failed"
+     },
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "user, system and subagent messages",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      }
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "api_retry",
+      "error_status": 529,
+      "error": "overloaded"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "result": "done"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": "toolu_1"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": "toolu_1"
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a thrown 529 after an overloaded turn",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "Claude Code process exited with code 1. stderr: API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}",
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a thrown 529 in the overloaded turn counts once",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "Claude Code returned an error result: API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "Overloaded",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "thrown errors without a turn between",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "thrown": "API Error: 529 status",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "API Error: 529 status",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "Claude Code process exited with code 1",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a thrown non-overload",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "Claude Code process exited with code 1",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "billing on a 1M-context session",
+   "model": "claude-opus-4-1",
+   "enable1mContext": true,
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [
+      "{\"type\":\"long_context_credits_required\",\"model\":\"claude-opus-4-1\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "credit balance is too low"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "billing without 1M context",
+   "model": "claude-opus-4-1",
+   "enable1mContext": false,
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "billing, 1M context unset",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "billing only as the structured tag",
+   "model": "claude-sonnet-4-5",
+   "enable1mContext": true,
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "billing_error"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "error": "billing_error"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": []
+      },
+      "parent_tool_use_id": null,
+      "error": "Billing_Error"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": []
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [
+      "{\"type\":\"long_context_credits_required\",\"model\":\"claude-sonnet-4-5\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a thrown billing error",
+   "model": "claude-opus-4-1",
+   "enable1mContext": true,
+   "expiresAt": null,
+   "steps": [
+    {
+     "thrown": "Claude Code returned an error result: billing_error credit balance is too low",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: the structured tag",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "authentication_failed"
+     },
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"claude-opus-4-1\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "authentication_failed"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate: OAuth token revoked"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "authentication_failed"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: a gateway credential",
+   "model": "claude-sonnet-4-5",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": []
+      },
+      "parent_tool_use_id": null,
+      "error": "cloud_credential_error"
+     },
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"claude-sonnet-4-5\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: the text",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "result": "done"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: a revoked login",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate: OAuth token revoked"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "authentication_failed"
+     },
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"claude-opus-4-1\",\"reason\":\"oauth_revoked\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "authentication_failed"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: revoked text alone is no failure",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "OAuth token revoked"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "401 Unauthorized"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: org not allowed",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "Your organization does not have access"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "oauth_org_not_allowed"
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: a thrown 401",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "thrown": "Claude Code returned an error result: Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}",
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"claude-opus-4-1\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "Failed to authenticate. API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}",
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: a thrown revoked login",
+   "expiresAt": null,
+   "steps": [
+    {
+     "thrown": "Claude Code returned an error result: Failed to authenticate: OAuth token revoked",
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"\",\"reason\":\"oauth_revoked\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "auth: a thrown 403",
+   "model": "claude-sonnet-4-5",
+   "expiresAt": null,
+   "steps": [
+    {
+     "thrown": "API Error: 403 authentication required",
+     "events": [
+      "{\"type\":\"auth_failed_required\",\"model\":\"claude-sonnet-4-5\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "one message trips all three",
+   "model": "claude-opus-4-1",
+   "enable1mContext": true,
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"} Failed to authenticate: OAuth token revoked"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}",
+      "{\"type\":\"long_context_credits_required\",\"model\":\"claude-opus-4-1\"}",
+      "{\"type\":\"auth_failed_required\",\"model\":\"claude-opus-4-1\",\"reason\":\"oauth_revoked\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "a thrown message trips both",
+   "model": "claude-opus-4-1",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "thrown": "Claude Code returned an error result: API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"} Failed to authenticate: OAuth token revoked",
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}",
+      "{\"type\":\"auth_failed_required\",\"model\":\"claude-opus-4-1\",\"reason\":\"oauth_revoked\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": true,
+      "tokenExpiringNudgeFired": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: inside the window",
+   "model": "claude-opus-4-1",
+   "expiresAt": 1761507200000,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"token_expiring_required\",\"expiresAt\":1761507200000}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: a replayed init doesn't check",
+   "expiresAt": 1761500001000,
+   "steps": [
+    {
+     "replay": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"token_expiring_required\",\"expiresAt\":1761500001000}"
+     ],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "replay": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: no profile",
+   "expiresAt": null,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: the first check uses it up",
+   "expiresAt": 1761500001000,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761240800000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: expired",
+   "expiresAt": 1761499999999,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: expiring now",
+   "expiresAt": 1761500000000,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: exactly the window",
+   "expiresAt": 1761759200000,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"token_expiring_required\",\"expiresAt\":1761759200000}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: past the window",
+   "expiresAt": 1761759200001,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: a fractional expiry",
+   "expiresAt": 1761500000000.5,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"token_expiring_required\",\"expiresAt\":1761500000000.5}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: a huge expiry",
+   "expiresAt": 1e+21,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 999999999999999000000,
+     "events": [
+      "{\"type\":\"token_expiring_required\",\"expiresAt\":1e+21}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: a NaN expiry",
+   "expiresAt": {
+    "$num": "NaN"
+   },
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: an infinite expiry",
+   "expiresAt": {
+    "$num": "Infinity"
+   },
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: a string expiry",
+   "expiresAt": "1761500001000",
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: other system messages",
+   "expiresAt": 1761500001000,
+   "steps": [
+    {
+     "live": {
+      "type": "system",
+      "subtype": "status",
+      "status": "compacting"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "Init"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "subtype": "init",
+      "message": {
+       "content": "hi"
+      }
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "System",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"token_expiring_required\",\"expiresAt\":1761500001000}"
+     ],
+     "state": {
+      "opusOverloadStreak": 0,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "token: an init that is also a nudge turn",
+   "model": "claude-opus-4-1",
+   "enable1mContext": true,
+   "expiresAt": 1761500000001,
+   "steps": [
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": false
+     }
+    },
+    {
+     "live": {
+      "type": "system",
+      "subtype": "init",
+      "model": "claude-opus-4-1",
+      "session_id": "s"
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"token_expiring_required\",\"expiresAt\":1761500000001}"
+     ],
+     "state": {
+      "opusOverloadStreak": 1,
+      "opusOverloadNudgeFired": false,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+        }
+       ]
+      },
+      "parent_tool_use_id": null
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"opus_overload_nudge\",\"model\":\"claude-opus-4-1\",\"count\":2}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": true,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "live": {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 1,
+      "errors": [
+       "API Error: 529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"},\"request_id\":\"req_011\"}"
+      ]
+     },
+     "clock": 1761500000000,
+     "events": [],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": false,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    },
+    {
+     "live": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "text",
+         "text": "API Error: 400 credit balance is too low"
+        }
+       ]
+      },
+      "parent_tool_use_id": null,
+      "error": "billing_error"
+     },
+     "clock": 1761500000000,
+     "events": [
+      "{\"type\":\"long_context_credits_required\",\"model\":\"claude-opus-4-1\"}"
+     ],
+     "state": {
+      "opusOverloadStreak": 2,
+      "opusOverloadNudgeFired": true,
+      "opusOverloadCountedThisTurn": false,
+      "longContextCreditsNudgeFired": true,
+      "authFailedNudgeFired": false,
+      "tokenExpiringNudgeFired": true
+     }
+    }
+   ]
+  }
+ ]
+}

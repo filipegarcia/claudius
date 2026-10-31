@@ -1,0 +1,4174 @@
+{
+ "sdkVersion": "0.3.299",
+ "os": "macos",
+ "candidates": [
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "darwin",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-darwin-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude"
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "linux",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-musl/claude",
+    "@anthropic-ai/claude-agent-sdk-linux-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-win32-arm64/claude.exe"
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+  },
+  {
+   "platform": "win32",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-ia32/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "win32",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-win32-arm/claude.exe"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": "/nm/@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-x64-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-ia32-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "android",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-linux-arm-android/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "x64",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-x64/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "ia32",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-ia32/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": false,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-x64",
+    "linux-x64-musl"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "linux-arm64-android"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-x64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  },
+  {
+   "platform": "freebsd",
+   "arch": "arm",
+   "preferMusl": true,
+   "installed": [
+    "win32-arm64",
+    "darwin-arm64"
+   ],
+   "tried": [
+    "@anthropic-ai/claude-agent-sdk-freebsd-arm/claude"
+   ],
+   "picked": null
+  }
+ ],
+ "notFound": "Native CLI binary for ${process.platform}-${process.arch} not found. Reinstall @anthropic-ai/claude-agent-sdk without --omit=optional, or set options.pathToClaudeCodeExecutable.",
+ "launches": [
+  {
+   "name": "missing_native",
+   "path": "nope/claude",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": false,
+   "error": "Claude Code native binary not found at $TMP/nope/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable."
+  },
+  {
+   "name": "directory",
+   "path": "a-directory",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": false,
+   "error": "Claude Code native binary at $TMP/a-directory exists but failed to launch. This usually means the binary does not match this system's libc — e.g. spawning a musl-linked binary on a glibc Linux host fails because the musl dynamic loader (/lib/ld-musl-*) is missing. Specify a matching binary with options.pathToClaudeCodeExecutable."
+  },
+  {
+   "name": "not_executable",
+   "path": "not-executable",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": false,
+   "error": "Claude Code native binary at $TMP/not-executable exists but failed to launch. This usually means the binary does not match this system's libc — e.g. spawning a musl-linked binary on a glibc Linux host fails because the musl dynamic loader (/lib/ld-musl-*) is missing. Specify a matching binary with options.pathToClaudeCodeExecutable."
+  },
+  {
+   "name": "no_shebang",
+   "path": "no-shebang",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": true,
+   "error": "spawn ENOEXEC"
+  },
+  {
+   "name": "parent_is_a_file",
+   "path": "not-executable/claude",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": true,
+   "error": "spawn ENOTDIR"
+  },
+  {
+   "name": "name_too_long",
+   "path": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn/claude",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": true,
+   "error": "spawn ENAMETOOLONG"
+  },
+  {
+   "name": "symlink_loop",
+   "path": "loop-a",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": true,
+   "error": "spawn ELOOP"
+  },
+  {
+   "name": "missing_js_without_node",
+   "path": "nope.mjs",
+   "pathDirs": [
+    "$EMPTY"
+   ],
+   "threw": false,
+   "error": "Claude Code executable not found at $TMP/nope.mjs. Is options.pathToClaudeCodeExecutable set?"
+  },
+  {
+   "name": "js_without_node",
+   "path": "entry.js",
+   "pathDirs": [
+    "$EMPTY"
+   ],
+   "threw": false,
+   "error": "Claude Code executable at $TMP/entry.js exists but failed to launch."
+  },
+  {
+   "name": "secret_in_path",
+   "path": "sk-ant-api03-a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2/claude",
+   "pathDirs": [
+    "/usr/bin",
+    "/bin"
+   ],
+   "threw": false,
+   "error": "Claude Code native binary not found at $TMP/<token>/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable."
+  },
+  {
+   "name": "secret_js_without_node",
+   "path": "sk-ant-api03-a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2a1B2.js",
+   "pathDirs": [
+    "$EMPTY"
+   ],
+   "threw": false,
+   "error": "Claude Code executable not found at $TMP/<token>.js. Is options.pathToClaudeCodeExecutable set?"
+  }
+ ],
+ "jsEntries": [
+  {
+   "file": "entry.js",
+   "executableArgs": [
+    "--no-warnings",
+    "--max-old-space-size=64"
+   ],
+   "argv": [
+    "$TMP/entry.js",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--input-format",
+    "stream-json"
+   ],
+   "execArgv": [
+    "--no-warnings",
+    "--max-old-space-size=64"
+   ],
+   "error": null
+  },
+  {
+   "file": "entry.cjs.ts",
+   "executableArgs": [],
+   "argv": [
+    "$TMP/entry.cjs.ts",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--input-format",
+    "stream-json"
+   ],
+   "execArgv": [],
+   "error": null
+  }
+ ],
+ "errnoNames": [
+  "EPERM",
+  "ENOENT",
+  "ESRCH",
+  "EINTR",
+  "EIO",
+  "ENXIO",
+  "E2BIG",
+  "ENOEXEC",
+  "EBADF",
+  "Unknown system error -10",
+  "Unknown system error -11",
+  "ENOMEM",
+  "EACCES",
+  "EFAULT",
+  "Unknown system error -15",
+  "EBUSY",
+  "EEXIST",
+  "EXDEV",
+  "ENODEV",
+  "ENOTDIR",
+  "EISDIR",
+  "EINVAL",
+  "ENFILE",
+  "EMFILE",
+  "ENOTTY",
+  "ETXTBSY",
+  "EFBIG",
+  "ENOSPC",
+  "ESPIPE",
+  "EROFS",
+  "EMLINK",
+  "EPIPE",
+  "Unknown system error -33",
+  "ERANGE",
+  "EAGAIN",
+  "Unknown system error -36",
+  "EALREADY",
+  "ENOTSOCK",
+  "EDESTADDRREQ",
+  "EMSGSIZE",
+  "EPROTOTYPE",
+  "ENOPROTOOPT",
+  "EPROTONOSUPPORT",
+  "ESOCKTNOSUPPORT",
+  "ENOTSUP",
+  "Unknown system error -46",
+  "EAFNOSUPPORT",
+  "EADDRINUSE",
+  "EADDRNOTAVAIL",
+  "ENETDOWN",
+  "ENETUNREACH",
+  "Unknown system error -52",
+  "ECONNABORTED",
+  "ECONNRESET",
+  "ENOBUFS",
+  "EISCONN",
+  "ENOTCONN",
+  "ESHUTDOWN",
+  "Unknown system error -59",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+  "ELOOP",
+  "ENAMETOOLONG",
+  "EHOSTDOWN",
+  "EHOSTUNREACH",
+  "ENOTEMPTY",
+  "Unknown system error -67",
+  "Unknown system error -68",
+  "Unknown system error -69",
+  "Unknown system error -70",
+  "Unknown system error -71",
+  "Unknown system error -72",
+  "Unknown system error -73",
+  "Unknown system error -74",
+  "Unknown system error -75",
+  "Unknown system error -76",
+  "Unknown system error -77",
+  "ENOSYS",
+  "EFTYPE",
+  "Unknown system error -80",
+  "Unknown system error -81",
+  "Unknown system error -82",
+  "Unknown system error -83",
+  "EOVERFLOW",
+  "Unknown system error -85",
+  "Unknown system error -86",
+  "Unknown system error -87",
+  "Unknown system error -88",
+  "ECANCELED",
+  "Unknown system error -90",
+  "Unknown system error -91",
+  "EILSEQ",
+  "Unknown system error -93",
+  "Unknown system error -94",
+  "Unknown system error -95",
+  "ENODATA",
+  "Unknown system error -97",
+  "Unknown system error -98",
+  "Unknown system error -99",
+  "EPROTO",
+  "Unknown system error -101",
+  "Unknown system error -102",
+  "Unknown system error -103",
+  "Unknown system error -104",
+  "Unknown system error -105",
+  "Unknown system error -106",
+  "Unknown system error -107",
+  "Unknown system error -108",
+  "Unknown system error -109",
+  "Unknown system error -110",
+  "Unknown system error -111",
+  "Unknown system error -112",
+  "Unknown system error -113",
+  "Unknown system error -114",
+  "Unknown system error -115",
+  "Unknown system error -116",
+  "Unknown system error -117",
+  "Unknown system error -118",
+  "Unknown system error -119",
+  "Unknown system error -120"
+ ]
+}

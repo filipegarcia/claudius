@@ -1,0 +1,2438 @@
+{
+ "texts": [
+  {
+   "text": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response.",
+   "matches": true
+  },
+  {
+   "text": "messages.4.content.1: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified.",
+   "matches": true
+  },
+  {
+   "text": "API Error: The socket connection was closed unexpectedly.",
+   "matches": false
+  },
+  {
+   "text": "API Error: 400 messages: roles must alternate",
+   "matches": false
+  },
+  {
+   "text": "thinking budget exceeded the maximum",
+   "matches": false
+  },
+  {
+   "text": "",
+   "matches": false
+  },
+  {
+   "text": "thinking cannot be modified",
+   "matches": false
+  },
+  {
+   "text": "thinking cannot be modified: redacted_thinking",
+   "matches": true
+  },
+  {
+   "text": "redacted_thinking cannot be modified",
+   "matches": true
+  },
+  {
+   "text": "THINKING blocks in the LATEST ASSISTANT MESSAGE CANNOT BE MODIFIED",
+   "matches": true
+  },
+  {
+   "text": "Thinking blocks in the latest assistant message can not be modified",
+   "matches": false
+  },
+  {
+   "text": "thinking blocks in the latest  assistant message cannot be modified",
+   "matches": false
+  },
+  {
+   "text": "cannot be modified latest assistant message thinking",
+   "matches": true
+  },
+  {
+   "text": "thinkingcannot be modifiedlatest assistant message",
+   "matches": true
+  },
+  {
+   "text": "thinKing in the latest assistant message cannot be modified",
+   "matches": true
+  },
+  {
+   "text": "thİnking in the latest assistant message cannot be modified",
+   "matches": false
+  },
+  {
+   "text": "ΘINKING thinking À latest assistant message cannot be modified 😀",
+   "matches": true
+  },
+  {
+   "text": "thinking\ncannot be modified\nredacted_thinking",
+   "matches": true
+  }
+ ],
+ "messageTexts": [
+  {
+   "message": null,
+   "text": ""
+  },
+  {
+   "message": "content",
+   "text": ""
+  },
+  {
+   "message": 5,
+   "text": ""
+  },
+  {
+   "message": [],
+   "text": ""
+  },
+  {
+   "message": {},
+   "text": ""
+  },
+  {
+   "message": {
+    "content": "plain"
+   },
+   "text": "plain"
+  },
+  {
+   "message": {
+    "content": ""
+   },
+   "text": ""
+  },
+  {
+   "message": {
+    "content": [
+     {
+      "type": "text",
+      "text": "a"
+     },
+     {
+      "type": "text",
+      "text": "b"
+     }
+    ]
+   },
+   "text": "ab"
+  },
+  {
+   "message": {
+    "content": [
+     {
+      "type": "text",
+      "text": "a"
+     },
+     null,
+     3,
+     "x",
+     {
+      "type": "text"
+     },
+     {
+      "type": "text",
+      "text": 7
+     },
+     {
+      "type": "Text",
+      "text": "no"
+     },
+     {
+      "type": "text",
+      "text": "c"
+     }
+    ]
+   },
+   "text": "ac"
+  },
+  {
+   "message": {
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "t"
+     },
+     {
+      "type": "tool_use",
+      "name": "Bash",
+      "input": {}
+     }
+    ]
+   },
+   "text": ""
+  },
+  {
+   "message": {
+    "content": {
+     "type": "text",
+     "text": "obj"
+    }
+   },
+   "text": ""
+  },
+  {
+   "message": {
+    "content": 9
+   },
+   "text": ""
+  },
+  {
+   "message": {
+    "content": null
+   },
+   "text": ""
+  },
+  {
+   "message": {
+    "role": "assistant",
+    "text": "no content key"
+   },
+   "text": ""
+  }
+ ],
+ "errors": [
+  {
+   "record": {
+    "type": "assistant",
+    "uuid": "a",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+      }
+     ]
+    }
+   },
+   "error": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "uuid": "a",
+    "message": {
+     "role": "assistant",
+     "content": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+    }
+   },
+   "error": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "uuid": "a",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 400 "
+      },
+      {
+       "type": "text",
+       "text": "messages.1.content.0: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified."
+      }
+     ]
+    }
+   },
+   "error": "API Error: 400 messages.1.content.0: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified."
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "uuid": "a",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "all done"
+      }
+     ]
+    }
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "uuid": "a",
+    "message": {
+     "role": "assistant",
+     "content": []
+    }
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "uuid": "a",
+    "message": {
+     "role": "assistant",
+     "content": ""
+    }
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "user",
+    "message": {
+     "role": "user",
+     "content": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+    }
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "system",
+    "message": {
+     "content": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+    }
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "Assistant",
+    "message": {
+     "content": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+    }
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "assistant"
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "message": null
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "message": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+   },
+   "error": null
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "content": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+   },
+   "error": null
+  },
+  {
+   "record": null,
+   "error": null
+  },
+  {
+   "record": 0,
+   "error": null
+  },
+  {
+   "record": "assistant",
+   "error": null
+  },
+  {
+   "record": [],
+   "error": null
+  },
+  {
+   "record": {
+    "type": "assistant",
+    "uuid": "a",
+    "message": {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+      }
+     ]
+    },
+    "parent_tool_use_id": "toolu_sub"
+   },
+   "error": "API Error: 400 messages.25.content.23: `thinking` or `redacted_thinking` blocks in the latest assistant message cannot be modified. These blocks must remain as they were in the original response."
+  }
+ ],
+ "plans": [
+  {
+   "name": "rewinds to the assistant boundary before the last real prompt",
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "u0",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "first prompt"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "ok"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "all 14, in batches"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "tr1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "t1",
+        "content": "out"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"all 14, in batches\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "skips tool_result-only user records",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "ok"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "real prompt"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "tr1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "t1",
+        "content": "out"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"real prompt\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "rewinds past the poison after a fresh prompt",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "ok"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "all 14, in batches"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "tr1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "t1",
+        "content": "out"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "are you stuck?"
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"all 14, in batches\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "fresh prompt answered by a later non-thinking turn",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "ok"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "go"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "again"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "API Error: 400 ..."
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"go\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "the poisoned turn was the first",
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "first and only prompt"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "s"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "null"
+  },
+  {
+   "name": "no real user prompt",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "hi"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "tr1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "t1",
+        "content": "out"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "null"
+  },
+  {
+   "name": "no messages",
+   "messages": [],
+   "plan": "null"
+  },
+  {
+   "name": "only users",
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "a"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "b"
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "null"
+  },
+  {
+   "name": "no thinking anywhere: the latest assistant anchors",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "one"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p1"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "two"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p2"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "three"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a1\",\"replayPrompt\":\"p2\",\"replayPromptUuid\":\"u2\"}"
+  },
+  {
+   "name": "the latest thinking turn anchors",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p1"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p2"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u3",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p3"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a3",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "plain"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a1\",\"replayPrompt\":\"p2\",\"replayPromptUuid\":\"u2\"}"
+  },
+  {
+   "name": "redacted thinking counts",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p1"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "redacted_thinking",
+        "data": "zz"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p2"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p1\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "thinking in a user record doesn't anchor",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p1"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": ""
+       },
+       {
+        "type": "text",
+        "text": "p2"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "z"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a1\",\"replayPrompt\":\"p2\",\"replayPromptUuid\":\"u2\"}"
+  },
+  {
+   "name": "string-content assistants never have thinking",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": "x"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p1"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": "thinking"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p2"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": "y"
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a1\",\"replayPrompt\":\"p2\",\"replayPromptUuid\":\"u2\"}"
+  },
+  {
+   "name": "thinking type is exact",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p1"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "Thinking"
+       },
+       {
+        "type": "thinking_delta"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p2"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a1\",\"replayPrompt\":\"p2\",\"replayPromptUuid\":\"u2\"}"
+  },
+  {
+   "name": "odd blocks around a thinking block",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p1"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       null,
+       5,
+       "thinking",
+       {
+        "type": "thinking"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p2"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p1\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "text-block prompts",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "text",
+        "text": "part one, "
+       },
+       {
+        "type": "text",
+        "text": "part two"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"part one, part two\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "a task notification is not a prompt",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "real"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "<task-notification>\n<task-id>t</task-id>\n</task-notification>"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"real\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "a compact summary is not a prompt",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "real"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "This session is being continued from a previous conversation that ran out of context. The summary below covers it."
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"real\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "leading system reminders are stripped",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "<system-reminder>\nnote\n</system-reminder>\nthe ask"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"the ask\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "a reminder-only prompt is skipped",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "earlier"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "<system-reminder>\nonly\n</system-reminder>"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"earlier\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "an image-only prompt is skipped",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "earlier"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "image",
+        "source": {
+         "type": "base64",
+         "media_type": "image/png",
+         "data": "AA=="
+        }
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"earlier\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "an empty prompt is skipped",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "earlier"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "y"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": ""
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a2",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"earlier\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "an assistant without a uuid is passed over",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "message": {
+      "content": [
+       {
+        "type": "text",
+        "text": "no uuid"
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "an empty uuid is passed over",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "empty"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "a null uuid is passed over",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": null,
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "null"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "no boundary with a uuid",
+   "messages": [
+    {
+     "type": "assistant",
+     "message": {
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "null"
+  },
+  {
+   "name": "the prompt has no uuid",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "message": {
+      "content": "p"
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p\"}"
+  },
+  {
+   "name": "system and progress records between",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "system",
+     "uuid": "s1",
+     "subtype": "init"
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "progress",
+     "uuid": "pr1"
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "system",
+     "uuid": "s2",
+     "subtype": "compact_boundary"
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "a record without a message",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u0"
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1"
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "records with a null message",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "message": null
+    },
+    {
+     "type": "user",
+     "uuid": "u2",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "p"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "message": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"p\",\"replayPromptUuid\":\"u2\"}"
+  },
+  {
+   "name": "the prompt right after the boundary's tool results",
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "u0",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "start"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "tr0",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "t1",
+        "content": "out"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a0b",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "done"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "next"
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "tr1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "t1",
+        "content": "out"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0b\",\"replayPrompt\":\"next\",\"replayPromptUuid\":\"u1\"}"
+  },
+  {
+   "name": "unicode prompt",
+   "messages": [
+    {
+     "type": "assistant",
+     "uuid": "a0",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "x"
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "user",
+     "uuid": "u1",
+     "session_id": "s",
+     "message": {
+      "role": "user",
+      "content": "  café 😀 K  "
+     },
+     "parent_tool_use_id": null
+    },
+    {
+     "type": "assistant",
+     "uuid": "a1",
+     "session_id": "s",
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "sig"
+       },
+       {
+        "type": "tool_use",
+        "id": "t1",
+        "name": "Bash",
+        "input": {}
+       }
+      ]
+     },
+     "parent_tool_use_id": null
+    }
+   ],
+   "plan": "{\"resumeAt\":\"a0\",\"replayPrompt\":\"  café 😀 K  \",\"replayPromptUuid\":\"u1\"}"
+  }
+ ]
+}

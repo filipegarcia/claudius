@@ -1,0 +1,6769 @@
+{
+ "maxInnerMessages": 500,
+ "throttleMs": 2000,
+ "save": {
+  "entries": [
+   {
+    "taskId": "full",
+    "toolUseId": "toolu_full",
+    "subagentType": "general-purpose",
+    "description": "Survey the repo",
+    "taskType": "local_agent",
+    "workflowName": "wf",
+    "status": "running",
+    "totalTokens": 1234,
+    "toolUses": 5,
+    "durationMs": 6789.5,
+    "summary": "Reading files",
+    "error": "none yet",
+    "isBackgrounded": true,
+    "spawnDepth": 2,
+    "ambient": false,
+    "resourceLinks": [
+     {
+      "uri": "file:///tmp/a.txt",
+      "name": "a.txt"
+     }
+    ],
+    "reason": "worker_restart",
+    "outputFile": "/tmp/out.txt",
+    "innerMessages": [
+     {
+      "at": 1700000000000,
+      "message": {
+       "type": "assistant",
+       "parent_tool_use_id": "toolu_full",
+       "n": 1
+      }
+     },
+     {
+      "message": {
+       "type": "user",
+       "parent_tool_use_id": "toolu_full",
+       "text": "héllo   🎉"
+      }
+     }
+    ]
+   },
+   {
+    "taskId": "minimal",
+    "status": "completed",
+    "innerMessages": []
+   },
+   {
+    "taskId": "odd",
+    "status": "stopped",
+    "reason": "other",
+    "resourceLinks": [],
+    "isBackgrounded": false,
+    "ambient": true,
+    "spawnDepth": 0,
+    "totalTokens": 0,
+    "durationMs": 1.25,
+    "innerMessages": [
+     {
+      "at": 0,
+      "message": null
+     }
+    ]
+   },
+   {
+    "taskId": "full",
+    "status": "completed",
+    "summary": "Done",
+    "innerMessages": []
+   },
+   {
+    "taskId": "falsy",
+    "status": "",
+    "resourceLinks": "",
+    "innerMessages": []
+   }
+  ],
+  "after": [
+   {
+    "rows": [
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "full",
+      "task_id:type": "text",
+      "tool_use_id": "toolu_full",
+      "tool_use_id:type": "text",
+      "subagent_type": "general-purpose",
+      "subagent_type:type": "text",
+      "description": "Survey the repo",
+      "description:type": "text",
+      "task_type": "local_agent",
+      "task_type:type": "text",
+      "workflow_name": "wf",
+      "workflow_name:type": "text",
+      "status": "running",
+      "status:type": "text",
+      "total_tokens": 1234,
+      "total_tokens:type": "integer",
+      "tool_uses": 5,
+      "tool_uses:type": "integer",
+      "duration_ms": 6789.5,
+      "duration_ms:type": "real",
+      "summary": "Reading files",
+      "summary:type": "text",
+      "error": "none yet",
+      "error:type": "text",
+      "inner_messages": "[{\"at\":1700000000000,\"message\":{\"type\":\"assistant\",\"parent_tool_use_id\":\"toolu_full\",\"n\":1}},{\"message\":{\"type\":\"user\",\"parent_tool_use_id\":\"toolu_full\",\"text\":\"héllo   🎉\"}}]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": 1,
+      "is_backgrounded:type": "integer",
+      "spawn_depth": 2,
+      "spawn_depth:type": "integer",
+      "ambient": 0,
+      "ambient:type": "integer",
+      "resource_links": "[{\"uri\":\"file:///tmp/a.txt\",\"name\":\"a.txt\"}]",
+      "resource_links:type": "text",
+      "reason": "worker_restart",
+      "reason:type": "text",
+      "output_file": "/tmp/out.txt",
+      "output_file:type": "text"
+     }
+    ],
+    "list": [
+     {
+      "taskId": "full",
+      "toolUseId": "toolu_full",
+      "subagentType": "general-purpose",
+      "description": "Survey the repo",
+      "taskType": "local_agent",
+      "workflowName": "wf",
+      "status": "running",
+      "totalTokens": 1234,
+      "toolUses": 5,
+      "durationMs": 6789.5,
+      "summary": "Reading files",
+      "error": "none yet",
+      "isBackgrounded": true,
+      "spawnDepth": 2,
+      "ambient": false,
+      "resourceLinks": [
+       {
+        "uri": "file:///tmp/a.txt",
+        "name": "a.txt"
+       }
+      ],
+      "reason": "worker_restart",
+      "outputFile": "/tmp/out.txt",
+      "innerMessages": [
+       {
+        "at": 1700000000000,
+        "message": {
+         "type": "assistant",
+         "parent_tool_use_id": "toolu_full",
+         "n": 1
+        }
+       },
+       {
+        "message": {
+         "type": "user",
+         "parent_tool_use_id": "toolu_full",
+         "text": "héllo   🎉"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "rows": [
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "full",
+      "task_id:type": "text",
+      "tool_use_id": "toolu_full",
+      "tool_use_id:type": "text",
+      "subagent_type": "general-purpose",
+      "subagent_type:type": "text",
+      "description": "Survey the repo",
+      "description:type": "text",
+      "task_type": "local_agent",
+      "task_type:type": "text",
+      "workflow_name": "wf",
+      "workflow_name:type": "text",
+      "status": "running",
+      "status:type": "text",
+      "total_tokens": 1234,
+      "total_tokens:type": "integer",
+      "tool_uses": 5,
+      "tool_uses:type": "integer",
+      "duration_ms": 6789.5,
+      "duration_ms:type": "real",
+      "summary": "Reading files",
+      "summary:type": "text",
+      "error": "none yet",
+      "error:type": "text",
+      "inner_messages": "[{\"at\":1700000000000,\"message\":{\"type\":\"assistant\",\"parent_tool_use_id\":\"toolu_full\",\"n\":1}},{\"message\":{\"type\":\"user\",\"parent_tool_use_id\":\"toolu_full\",\"text\":\"héllo   🎉\"}}]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": 1,
+      "is_backgrounded:type": "integer",
+      "spawn_depth": 2,
+      "spawn_depth:type": "integer",
+      "ambient": 0,
+      "ambient:type": "integer",
+      "resource_links": "[{\"uri\":\"file:///tmp/a.txt\",\"name\":\"a.txt\"}]",
+      "resource_links:type": "text",
+      "reason": "worker_restart",
+      "reason:type": "text",
+      "output_file": "/tmp/out.txt",
+      "output_file:type": "text"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "minimal",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "completed",
+      "status:type": "text",
+      "total_tokens": null,
+      "total_tokens:type": "null",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": null,
+      "duration_ms:type": "null",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": null,
+      "is_backgrounded:type": "null",
+      "spawn_depth": null,
+      "spawn_depth:type": "null",
+      "ambient": null,
+      "ambient:type": "null",
+      "resource_links": null,
+      "resource_links:type": "null",
+      "reason": null,
+      "reason:type": "null",
+      "output_file": null,
+      "output_file:type": "null"
+     }
+    ],
+    "list": [
+     {
+      "taskId": "full",
+      "toolUseId": "toolu_full",
+      "subagentType": "general-purpose",
+      "description": "Survey the repo",
+      "taskType": "local_agent",
+      "workflowName": "wf",
+      "status": "running",
+      "totalTokens": 1234,
+      "toolUses": 5,
+      "durationMs": 6789.5,
+      "summary": "Reading files",
+      "error": "none yet",
+      "isBackgrounded": true,
+      "spawnDepth": 2,
+      "ambient": false,
+      "resourceLinks": [
+       {
+        "uri": "file:///tmp/a.txt",
+        "name": "a.txt"
+       }
+      ],
+      "reason": "worker_restart",
+      "outputFile": "/tmp/out.txt",
+      "innerMessages": [
+       {
+        "at": 1700000000000,
+        "message": {
+         "type": "assistant",
+         "parent_tool_use_id": "toolu_full",
+         "n": 1
+        }
+       },
+       {
+        "message": {
+         "type": "user",
+         "parent_tool_use_id": "toolu_full",
+         "text": "héllo   🎉"
+        }
+       }
+      ]
+     },
+     {
+      "taskId": "minimal",
+      "status": "completed",
+      "innerMessages": []
+     }
+    ]
+   },
+   {
+    "rows": [
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "full",
+      "task_id:type": "text",
+      "tool_use_id": "toolu_full",
+      "tool_use_id:type": "text",
+      "subagent_type": "general-purpose",
+      "subagent_type:type": "text",
+      "description": "Survey the repo",
+      "description:type": "text",
+      "task_type": "local_agent",
+      "task_type:type": "text",
+      "workflow_name": "wf",
+      "workflow_name:type": "text",
+      "status": "running",
+      "status:type": "text",
+      "total_tokens": 1234,
+      "total_tokens:type": "integer",
+      "tool_uses": 5,
+      "tool_uses:type": "integer",
+      "duration_ms": 6789.5,
+      "duration_ms:type": "real",
+      "summary": "Reading files",
+      "summary:type": "text",
+      "error": "none yet",
+      "error:type": "text",
+      "inner_messages": "[{\"at\":1700000000000,\"message\":{\"type\":\"assistant\",\"parent_tool_use_id\":\"toolu_full\",\"n\":1}},{\"message\":{\"type\":\"user\",\"parent_tool_use_id\":\"toolu_full\",\"text\":\"héllo   🎉\"}}]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": 1,
+      "is_backgrounded:type": "integer",
+      "spawn_depth": 2,
+      "spawn_depth:type": "integer",
+      "ambient": 0,
+      "ambient:type": "integer",
+      "resource_links": "[{\"uri\":\"file:///tmp/a.txt\",\"name\":\"a.txt\"}]",
+      "resource_links:type": "text",
+      "reason": "worker_restart",
+      "reason:type": "text",
+      "output_file": "/tmp/out.txt",
+      "output_file:type": "text"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "minimal",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "completed",
+      "status:type": "text",
+      "total_tokens": null,
+      "total_tokens:type": "null",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": null,
+      "duration_ms:type": "null",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": null,
+      "is_backgrounded:type": "null",
+      "spawn_depth": null,
+      "spawn_depth:type": "null",
+      "ambient": null,
+      "ambient:type": "null",
+      "resource_links": null,
+      "resource_links:type": "null",
+      "reason": null,
+      "reason:type": "null",
+      "output_file": null,
+      "output_file:type": "null"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "odd",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "stopped",
+      "status:type": "text",
+      "total_tokens": 0,
+      "total_tokens:type": "integer",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": 1.25,
+      "duration_ms:type": "real",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[{\"at\":0,\"message\":null}]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": 0,
+      "is_backgrounded:type": "integer",
+      "spawn_depth": 0,
+      "spawn_depth:type": "integer",
+      "ambient": 1,
+      "ambient:type": "integer",
+      "resource_links": "[]",
+      "resource_links:type": "text",
+      "reason": "other",
+      "reason:type": "text",
+      "output_file": null,
+      "output_file:type": "null"
+     }
+    ],
+    "list": [
+     {
+      "taskId": "full",
+      "toolUseId": "toolu_full",
+      "subagentType": "general-purpose",
+      "description": "Survey the repo",
+      "taskType": "local_agent",
+      "workflowName": "wf",
+      "status": "running",
+      "totalTokens": 1234,
+      "toolUses": 5,
+      "durationMs": 6789.5,
+      "summary": "Reading files",
+      "error": "none yet",
+      "isBackgrounded": true,
+      "spawnDepth": 2,
+      "ambient": false,
+      "resourceLinks": [
+       {
+        "uri": "file:///tmp/a.txt",
+        "name": "a.txt"
+       }
+      ],
+      "reason": "worker_restart",
+      "outputFile": "/tmp/out.txt",
+      "innerMessages": [
+       {
+        "at": 1700000000000,
+        "message": {
+         "type": "assistant",
+         "parent_tool_use_id": "toolu_full",
+         "n": 1
+        }
+       },
+       {
+        "message": {
+         "type": "user",
+         "parent_tool_use_id": "toolu_full",
+         "text": "héllo   🎉"
+        }
+       }
+      ]
+     },
+     {
+      "taskId": "minimal",
+      "status": "completed",
+      "innerMessages": []
+     },
+     {
+      "taskId": "odd",
+      "status": "stopped",
+      "totalTokens": 0,
+      "durationMs": 1.25,
+      "isBackgrounded": false,
+      "spawnDepth": 0,
+      "ambient": true,
+      "resourceLinks": [],
+      "innerMessages": [
+       {
+        "at": 0,
+        "message": null
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "rows": [
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "full",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "completed",
+      "status:type": "text",
+      "total_tokens": null,
+      "total_tokens:type": "null",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": null,
+      "duration_ms:type": "null",
+      "summary": "Done",
+      "summary:type": "text",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": null,
+      "is_backgrounded:type": "null",
+      "spawn_depth": null,
+      "spawn_depth:type": "null",
+      "ambient": null,
+      "ambient:type": "null",
+      "resource_links": null,
+      "resource_links:type": "null",
+      "reason": null,
+      "reason:type": "null",
+      "output_file": null,
+      "output_file:type": "null"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "minimal",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "completed",
+      "status:type": "text",
+      "total_tokens": null,
+      "total_tokens:type": "null",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": null,
+      "duration_ms:type": "null",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": null,
+      "is_backgrounded:type": "null",
+      "spawn_depth": null,
+      "spawn_depth:type": "null",
+      "ambient": null,
+      "ambient:type": "null",
+      "resource_links": null,
+      "resource_links:type": "null",
+      "reason": null,
+      "reason:type": "null",
+      "output_file": null,
+      "output_file:type": "null"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "odd",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "stopped",
+      "status:type": "text",
+      "total_tokens": 0,
+      "total_tokens:type": "integer",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": 1.25,
+      "duration_ms:type": "real",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[{\"at\":0,\"message\":null}]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": 0,
+      "is_backgrounded:type": "integer",
+      "spawn_depth": 0,
+      "spawn_depth:type": "integer",
+      "ambient": 1,
+      "ambient:type": "integer",
+      "resource_links": "[]",
+      "resource_links:type": "text",
+      "reason": "other",
+      "reason:type": "text",
+      "output_file": null,
+      "output_file:type": "null"
+     }
+    ],
+    "list": [
+     {
+      "taskId": "minimal",
+      "status": "completed",
+      "innerMessages": []
+     },
+     {
+      "taskId": "odd",
+      "status": "stopped",
+      "totalTokens": 0,
+      "durationMs": 1.25,
+      "isBackgrounded": false,
+      "spawnDepth": 0,
+      "ambient": true,
+      "resourceLinks": [],
+      "innerMessages": [
+       {
+        "at": 0,
+        "message": null
+       }
+      ]
+     },
+     {
+      "taskId": "full",
+      "status": "completed",
+      "summary": "Done",
+      "innerMessages": []
+     }
+    ]
+   },
+   {
+    "rows": [
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "full",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "completed",
+      "status:type": "text",
+      "total_tokens": null,
+      "total_tokens:type": "null",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": null,
+      "duration_ms:type": "null",
+      "summary": "Done",
+      "summary:type": "text",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": null,
+      "is_backgrounded:type": "null",
+      "spawn_depth": null,
+      "spawn_depth:type": "null",
+      "ambient": null,
+      "ambient:type": "null",
+      "resource_links": null,
+      "resource_links:type": "null",
+      "reason": null,
+      "reason:type": "null",
+      "output_file": null,
+      "output_file:type": "null"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "minimal",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "completed",
+      "status:type": "text",
+      "total_tokens": null,
+      "total_tokens:type": "null",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": null,
+      "duration_ms:type": "null",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": null,
+      "is_backgrounded:type": "null",
+      "spawn_depth": null,
+      "spawn_depth:type": "null",
+      "ambient": null,
+      "ambient:type": "null",
+      "resource_links": null,
+      "resource_links:type": "null",
+      "reason": null,
+      "reason:type": "null",
+      "output_file": null,
+      "output_file:type": "null"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "odd",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "stopped",
+      "status:type": "text",
+      "total_tokens": 0,
+      "total_tokens:type": "integer",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": 1.25,
+      "duration_ms:type": "real",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[{\"at\":0,\"message\":null}]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": 0,
+      "is_backgrounded:type": "integer",
+      "spawn_depth": 0,
+      "spawn_depth:type": "integer",
+      "ambient": 1,
+      "ambient:type": "integer",
+      "resource_links": "[]",
+      "resource_links:type": "text",
+      "reason": "other",
+      "reason:type": "text",
+      "output_file": null,
+      "output_file:type": "null"
+     },
+     {
+      "session_id": "golden-save",
+      "session_id:type": "text",
+      "task_id": "falsy",
+      "task_id:type": "text",
+      "tool_use_id": null,
+      "tool_use_id:type": "null",
+      "subagent_type": null,
+      "subagent_type:type": "null",
+      "description": null,
+      "description:type": "null",
+      "task_type": null,
+      "task_type:type": "null",
+      "workflow_name": null,
+      "workflow_name:type": "null",
+      "status": "",
+      "status:type": "text",
+      "total_tokens": null,
+      "total_tokens:type": "null",
+      "tool_uses": null,
+      "tool_uses:type": "null",
+      "duration_ms": null,
+      "duration_ms:type": "null",
+      "summary": null,
+      "summary:type": "null",
+      "error": null,
+      "error:type": "null",
+      "inner_messages": "[]",
+      "inner_messages:type": "text",
+      "updated_at:type": "integer",
+      "is_backgrounded": null,
+      "is_backgrounded:type": "null",
+      "spawn_depth": null,
+      "spawn_depth:type": "null",
+      "ambient": null,
+      "ambient:type": "null",
+      "resource_links": null,
+      "resource_links:type": "null",
+      "reason": null,
+      "reason:type": "null",
+      "output_file": null,
+      "output_file:type": "null"
+     }
+    ],
+    "list": [
+     {
+      "taskId": "minimal",
+      "status": "completed",
+      "innerMessages": []
+     },
+     {
+      "taskId": "odd",
+      "status": "stopped",
+      "totalTokens": 0,
+      "durationMs": 1.25,
+      "isBackgrounded": false,
+      "spawnDepth": 0,
+      "ambient": true,
+      "resourceLinks": [],
+      "innerMessages": [
+       {
+        "at": 0,
+        "message": null
+       }
+      ]
+     },
+     {
+      "taskId": "full",
+      "status": "completed",
+      "summary": "Done",
+      "innerMessages": []
+     },
+     {
+      "taskId": "falsy",
+      "status": "",
+      "innerMessages": []
+     }
+    ]
+   }
+  ]
+ },
+ "raw": {
+  "rows": [
+   {
+    "task_id": "r1",
+    "status": null,
+    "inner_messages": "not json",
+    "resource_links": "",
+    "reason": "worker_restart",
+    "is_backgrounded": 2,
+    "ambient": 0
+   },
+   {
+    "task_id": "r2",
+    "status": "running",
+    "inner_messages": "{\"message\":1}",
+    "resource_links": "{\"a\":1}",
+    "reason": "other"
+   },
+   {
+    "task_id": "r3",
+    "status": "failed",
+    "inner_messages": "[1,null,\"x\",{\"at\":1},{\"message\":null},[],{\"message\":{\"t\":1},\"extra\":true},{\"at\":2,\"message\":0}]",
+    "resource_links": "[1,2]",
+    "total_tokens": 1.5,
+    "tool_uses": 3,
+    "duration_ms": 40,
+    "spawn_depth": 1,
+    "error": "bad"
+   },
+   {
+    "task_id": "r4",
+    "status": "completed",
+    "inner_messages": "[]",
+    "resource_links": "not json",
+    "is_backgrounded": 0
+   },
+   {
+    "task_id": "r5",
+    "status": "pending",
+    "inner_messages": "7",
+    "resource_links": "null",
+    "ambient": 1
+   }
+  ],
+  "list": [
+   {
+    "taskId": "r1",
+    "status": "completed",
+    "isBackgrounded": true,
+    "ambient": false,
+    "reason": "worker_restart",
+    "innerMessages": []
+   },
+   {
+    "taskId": "r2",
+    "status": "running",
+    "innerMessages": []
+   },
+   {
+    "taskId": "r3",
+    "status": "failed",
+    "totalTokens": 1.5,
+    "toolUses": 3,
+    "durationMs": 40,
+    "error": "bad",
+    "spawnDepth": 1,
+    "resourceLinks": [
+     1,
+     2
+    ],
+    "innerMessages": [
+     {
+      "message": null
+     },
+     {
+      "message": {
+       "t": 1
+      },
+      "extra": true
+     },
+     {
+      "at": 2,
+      "message": 0
+     }
+    ]
+   },
+   {
+    "taskId": "r4",
+    "status": "completed",
+    "isBackgrounded": false,
+    "innerMessages": []
+   },
+   {
+    "taskId": "r5",
+    "status": "pending",
+    "ambient": true,
+    "innerMessages": []
+   }
+  ]
+ },
+ "capture": [
+  {
+   "name": "lifecycle",
+   "steps": [
+    {
+     "clock": 1000,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "t1",
+        "tool_use_id": "tu1",
+        "description": "Survey",
+        "task_type": "local_agent",
+        "workflow_name": "wf",
+        "is_backgrounded": false,
+        "spawn_depth": 1
+       },
+       "at": 10
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Survey",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "isBackgrounded": false,
+       "spawnDepth": 1,
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 1500,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tu1",
+        "n": 1
+       },
+       "at": 11
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Survey",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "isBackgrounded": false,
+       "spawnDepth": 1,
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 3000,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tu1",
+        "n": 2
+       },
+       "at": 12
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Survey",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "isBackgrounded": false,
+       "spawnDepth": 1,
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 3001,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tu1",
+        "n": 3
+       }
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Survey",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "isBackgrounded": false,
+       "spawnDepth": 1,
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 4999,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_progress",
+        "task_id": "t1",
+        "description": "Later",
+        "usage": {
+         "total_tokens": 9
+        }
+       },
+       "at": 13
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Survey",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "isBackgrounded": false,
+       "spawnDepth": 1,
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 5000,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_progress",
+        "task_id": "t1",
+        "description": "Surveying",
+        "summary": "Half way",
+        "usage": {
+         "total_tokens": 100,
+         "tool_uses": 2,
+         "duration_ms": 450.5
+        }
+       },
+       "at": 14
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Surveying",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "totalTokens": 100,
+       "toolUses": 2,
+       "durationMs": 450.5,
+       "summary": "Half way",
+       "isBackgrounded": false,
+       "spawnDepth": 1,
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 7000,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_progress",
+        "task_id": "t1",
+        "description": "",
+        "summary": "",
+        "usage": {
+         "total_tokens": null,
+         "tool_uses": 0
+        }
+       },
+       "at": 15
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Surveying",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "totalTokens": 100,
+       "toolUses": 0,
+       "durationMs": 450.5,
+       "summary": "Half way",
+       "isBackgrounded": false,
+       "spawnDepth": 1,
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 7001,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "t1",
+        "patch": {
+         "is_backgrounded": true
+        }
+       },
+       "at": 16
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Surveying",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "totalTokens": 100,
+       "toolUses": 0,
+       "durationMs": 450.5,
+       "summary": "Half way",
+       "isBackgrounded": true,
+       "spawnDepth": 1,
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": false,
+     "background": 1
+    },
+    {
+     "clock": 7002,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "t1",
+        "patch": {
+         "status": "",
+         "description": "Renamed",
+         "error": "boom"
+        }
+       },
+       "at": 17
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Renamed",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "running",
+       "totalTokens": 100,
+       "toolUses": 0,
+       "durationMs": 450.5,
+       "summary": "Half way",
+       "error": "boom",
+       "isBackgrounded": true,
+       "spawnDepth": 1,
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": false,
+     "background": 1
+    },
+    {
+     "clock": 7003,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "t1",
+        "status": "completed",
+        "summary": "All done",
+        "usage": {
+         "total_tokens": 321,
+         "tool_uses": 7,
+         "duration_ms": 9000
+        },
+        "ambient": false,
+        "resource_links": [
+         {
+          "uri": "file:///tmp/r.txt",
+          "name": "r.txt"
+         }
+        ],
+        "reason": "worker_restart",
+        "output_file": "/tmp/t1.out"
+       },
+       "at": 18
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t1",
+       "toolUseId": "tu1",
+       "description": "Renamed",
+       "taskType": "local_agent",
+       "workflowName": "wf",
+       "status": "completed",
+       "totalTokens": 321,
+       "toolUses": 7,
+       "durationMs": 9000,
+       "summary": "All done",
+       "error": "boom",
+       "isBackgrounded": true,
+       "spawnDepth": 1,
+       "ambient": false,
+       "resourceLinks": [
+        {
+         "uri": "file:///tmp/r.txt",
+         "name": "r.txt"
+        }
+       ],
+       "reason": "worker_restart",
+       "outputFile": "/tmp/t1.out",
+       "innerMessages": [
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 1
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 2
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu1",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": false,
+     "background": 0
+    }
+   ]
+  },
+  {
+   "name": "notification-only",
+   "steps": [
+    {
+     "clock": 100,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "n1",
+        "tool_use_id": "tuN"
+       },
+       "at": 1
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "n1",
+       "status": "completed",
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 101,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "n2",
+        "status": ""
+       },
+       "at": 2
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "n1",
+       "status": "completed",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n2",
+       "status": "",
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 102,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "n3",
+        "status": "stopped",
+        "reason": "other",
+        "resource_links": {}
+       },
+       "at": 3
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "n1",
+       "status": "completed",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n2",
+       "status": "",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n3",
+       "status": "stopped",
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 103,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "n4",
+        "status": "failed",
+        "resource_links": [],
+        "ambient": null
+       },
+       "at": 4
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "n1",
+       "status": "completed",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n2",
+       "status": "",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n3",
+       "status": "stopped",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n4",
+       "status": "failed",
+       "resourceLinks": [],
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 104,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "n4",
+        "status": null,
+        "summary": "late",
+        "ambient": true,
+        "resource_links": null
+       },
+       "at": 5
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "n1",
+       "status": "completed",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n2",
+       "status": "",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n3",
+       "status": "stopped",
+       "innerMessages": []
+      },
+      {
+       "taskId": "n4",
+       "status": "failed",
+       "summary": "late",
+       "ambient": true,
+       "resourceLinks": [],
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    }
+   ]
+  },
+  {
+   "name": "ambient",
+   "steps": [
+    {
+     "clock": 0,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "am1",
+        "tool_use_id": "tuA1",
+        "ambient": true
+       },
+       "at": 1
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "am1",
+       "toolUseId": "tuA1",
+       "status": "running",
+       "ambient": true,
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 1,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "am2",
+        "tool_use_id": "tuA2",
+        "ambient": true,
+        "is_backgrounded": true
+       },
+       "at": 2
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "am1",
+       "toolUseId": "tuA1",
+       "status": "running",
+       "ambient": true,
+       "innerMessages": []
+      },
+      {
+       "taskId": "am2",
+       "toolUseId": "tuA2",
+       "status": "running",
+       "isBackgrounded": true,
+       "ambient": true,
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 2,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "bg",
+        "tool_use_id": "tuB",
+        "is_backgrounded": true
+       },
+       "at": 3
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "am1",
+       "toolUseId": "tuA1",
+       "status": "running",
+       "ambient": true,
+       "innerMessages": []
+      },
+      {
+       "taskId": "am2",
+       "toolUseId": "tuA2",
+       "status": "running",
+       "isBackgrounded": true,
+       "ambient": true,
+       "innerMessages": []
+      },
+      {
+       "taskId": "bg",
+       "toolUseId": "tuB",
+       "status": "running",
+       "isBackgrounded": true,
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 1
+    },
+    {
+     "clock": 3,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "bg",
+        "status": "running",
+        "ambient": true
+       },
+       "at": 4
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "am1",
+       "toolUseId": "tuA1",
+       "status": "running",
+       "ambient": true,
+       "innerMessages": []
+      },
+      {
+       "taskId": "am2",
+       "toolUseId": "tuA2",
+       "status": "running",
+       "isBackgrounded": true,
+       "ambient": true,
+       "innerMessages": []
+      },
+      {
+       "taskId": "bg",
+       "toolUseId": "tuB",
+       "status": "running",
+       "isBackgrounded": true,
+       "ambient": true,
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 4,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "am1",
+        "patch": {
+         "status": "pending",
+         "ambient": false
+        }
+       },
+       "at": 5
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "am1",
+       "toolUseId": "tuA1",
+       "status": "pending",
+       "ambient": true,
+       "innerMessages": []
+      },
+      {
+       "taskId": "am2",
+       "toolUseId": "tuA2",
+       "status": "running",
+       "isBackgrounded": true,
+       "ambient": true,
+       "innerMessages": []
+      },
+      {
+       "taskId": "bg",
+       "toolUseId": "tuB",
+       "status": "running",
+       "isBackgrounded": true,
+       "ambient": true,
+       "innerMessages": []
+      }
+     ],
+     "active": false,
+     "background": 0
+    }
+   ]
+  },
+  {
+   "name": "ignored",
+   "steps": [
+    {
+     "clock": 10,
+     "events": [
+      {
+       "type": "turn_status",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "x1",
+        "tool_use_id": "tuX"
+       }
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "tool_use_id": "tuX"
+       },
+       "at": 1
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "",
+        "tool_use_id": "tuX"
+       },
+       "at": 2
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "subtype": "task_started",
+        "task_id": "x2"
+       },
+       "at": 3
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_progress",
+        "task_id": "ghost",
+        "summary": "s"
+       },
+       "at": 4
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "ghost",
+        "patch": {
+         "status": "failed"
+        }
+       },
+       "at": 5
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_unknown",
+        "task_id": "ghost"
+       },
+       "at": 6
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init"
+       },
+       "at": 7
+      }
+     ],
+     "tasks": [],
+     "active": false,
+     "background": 0
+    }
+   ]
+  },
+  {
+   "name": "inner-before-start",
+   "steps": [
+    {
+     "clock": 0,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tu2",
+        "n": 1
+       },
+       "at": 1
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tu2",
+        "n": 2
+       }
+      }
+     ],
+     "tasks": [],
+     "active": false,
+     "background": 0
+    },
+    {
+     "clock": 1,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "t2",
+        "tool_use_id": "tu2",
+        "is_backgrounded": null,
+        "ambient": 0
+       },
+       "at": 2
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t2",
+       "toolUseId": "tu2",
+       "status": "running",
+       "ambient": false,
+       "innerMessages": [
+        {
+         "at": 1,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 1
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 2
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 5000,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_progress",
+        "task_id": "t2",
+        "parent_tool_use_id": "tu2",
+        "summary": "nope"
+       },
+       "at": 3
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t2",
+       "toolUseId": "tu2",
+       "status": "running",
+       "ambient": false,
+       "innerMessages": [
+        {
+         "at": 1,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 1
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 2
+         }
+        },
+        {
+         "at": 3,
+         "message": {
+          "type": "system",
+          "subtype": "task_progress",
+          "task_id": "t2",
+          "parent_tool_use_id": "tu2",
+          "summary": "nope"
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 5001,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "t2",
+        "parent_tool_use_id": "",
+        "patch": {
+         "status": "pending"
+        }
+       },
+       "at": 4
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t2",
+       "toolUseId": "tu2",
+       "status": "pending",
+       "ambient": false,
+       "innerMessages": [
+        {
+         "at": 1,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 1
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 2
+         }
+        },
+        {
+         "at": 3,
+         "message": {
+          "type": "system",
+          "subtype": "task_progress",
+          "task_id": "t2",
+          "parent_tool_use_id": "tu2",
+          "summary": "nope"
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 5002,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "t2",
+        "parent_tool_use_id": null,
+        "patch": {
+         "status": "running"
+        }
+       },
+       "at": 5
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "t2",
+       "toolUseId": "tu2",
+       "status": "running",
+       "ambient": false,
+       "innerMessages": [
+        {
+         "at": 1,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 1
+         }
+        },
+        {
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu2",
+          "n": 2
+         }
+        },
+        {
+         "at": 3,
+         "message": {
+          "type": "system",
+          "subtype": "task_progress",
+          "task_id": "t2",
+          "parent_tool_use_id": "tu2",
+          "summary": "nope"
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    }
+   ]
+  },
+  {
+   "name": "shared-tool-use",
+   "steps": [
+    {
+     "clock": 0,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "a",
+        "tool_use_id": "tu5",
+        "description": "first"
+       },
+       "at": 1
+      },
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "b",
+        "tool_use_id": "tu5",
+        "description": "second",
+        "is_backgrounded": true
+       },
+       "at": 2
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "a",
+       "toolUseId": "tu5",
+       "description": "first",
+       "status": "running",
+       "innerMessages": []
+      },
+      {
+       "taskId": "b",
+       "toolUseId": "tu5",
+       "description": "second",
+       "status": "running",
+       "isBackgrounded": true,
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 1
+    },
+    {
+     "clock": 2500,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tu5",
+        "n": 1
+       },
+       "at": 3
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "a",
+       "toolUseId": "tu5",
+       "description": "first",
+       "status": "running",
+       "innerMessages": [
+        {
+         "at": 3,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu5",
+          "n": 1
+         }
+        }
+       ]
+      },
+      {
+       "taskId": "b",
+       "toolUseId": "tu5",
+       "description": "second",
+       "status": "running",
+       "isBackgrounded": true,
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 1
+    },
+    {
+     "clock": 2600,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_notification",
+        "task_id": "a",
+        "summary": "kept?"
+       },
+       "at": 4
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "a",
+       "toolUseId": "tu5",
+       "description": "first",
+       "status": "running",
+       "summary": "kept?",
+       "innerMessages": [
+        {
+         "at": 3,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu5",
+          "n": 1
+         }
+        }
+       ]
+      },
+      {
+       "taskId": "b",
+       "toolUseId": "tu5",
+       "description": "second",
+       "status": "running",
+       "isBackgrounded": true,
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 1
+    },
+    {
+     "clock": 2700,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "a",
+        "tool_use_id": "tu5"
+       },
+       "at": 5
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "a",
+       "toolUseId": "tu5",
+       "status": "running",
+       "innerMessages": [
+        {
+         "at": 3,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tu5",
+          "n": 1
+         }
+        }
+       ]
+      },
+      {
+       "taskId": "b",
+       "toolUseId": "tu5",
+       "description": "second",
+       "status": "running",
+       "isBackgrounded": true,
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 1
+    }
+   ]
+  },
+  {
+   "name": "throttle-window",
+   "steps": [
+    {
+     "clock": 0,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "w",
+        "tool_use_id": "tuW"
+       },
+       "at": 1
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "w",
+       "toolUseId": "tuW",
+       "status": "running",
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 1999,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tuW",
+        "n": 1
+       },
+       "at": 2
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "w",
+       "toolUseId": "tuW",
+       "status": "running",
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 1999,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "w",
+        "patch": {
+         "description": "moved"
+        }
+       },
+       "at": 3
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "w",
+       "toolUseId": "tuW",
+       "description": "moved",
+       "status": "running",
+       "innerMessages": [
+        {
+         "at": 2,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 1
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 3998,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tuW",
+        "n": 2
+       },
+       "at": 4
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "w",
+       "toolUseId": "tuW",
+       "description": "moved",
+       "status": "running",
+       "innerMessages": [
+        {
+         "at": 2,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 1
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 3999,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "parent_tool_use_id": "tuW",
+        "n": 3
+       },
+       "at": 5
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "w",
+       "toolUseId": "tuW",
+       "description": "moved",
+       "status": "running",
+       "innerMessages": [
+        {
+         "at": 2,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 1
+         }
+        },
+        {
+         "at": 4,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 2
+         }
+        },
+        {
+         "at": 5,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 5000,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_progress",
+        "task_id": "w",
+        "summary": "throttled"
+       },
+       "at": 6
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "w",
+       "toolUseId": "tuW",
+       "description": "moved",
+       "status": "running",
+       "innerMessages": [
+        {
+         "at": 2,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 1
+         }
+        },
+        {
+         "at": 4,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 2
+         }
+        },
+        {
+         "at": 5,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 5999,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_progress",
+        "task_id": "w",
+        "summary": "written"
+       },
+       "at": 7
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "w",
+       "toolUseId": "tuW",
+       "description": "moved",
+       "status": "running",
+       "summary": "written",
+       "innerMessages": [
+        {
+         "at": 2,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 1
+         }
+        },
+        {
+         "at": 4,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 2
+         }
+        },
+        {
+         "at": 5,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuW",
+          "n": 3
+         }
+        }
+       ]
+      }
+     ],
+     "active": true,
+     "background": 0
+    }
+   ]
+  },
+  {
+   "name": "cap",
+   "steps": [
+    {
+     "clock": 0,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_started",
+        "task_id": "c",
+        "tool_use_id": "tuC"
+       },
+       "at": 1
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "c",
+       "toolUseId": "tuC",
+       "status": "running",
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 1,
+     "burst": {
+      "parent": "tuC",
+      "count": 503
+     },
+     "tasks": [
+      {
+       "taskId": "c",
+       "toolUseId": "tuC",
+       "status": "running",
+       "innerMessages": []
+      }
+     ],
+     "active": true,
+     "background": 0
+    },
+    {
+     "clock": 2,
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "task_updated",
+        "task_id": "c",
+        "patch": {
+         "status": "completed"
+        }
+       },
+       "at": 2
+      }
+     ],
+     "tasks": [
+      {
+       "taskId": "c",
+       "toolUseId": "tuC",
+       "status": "completed",
+       "innerMessages": [
+        {
+         "at": 3,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 3
+         }
+        },
+        {
+         "at": 4,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 4
+         }
+        },
+        {
+         "at": 5,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 5
+         }
+        },
+        {
+         "at": 6,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 6
+         }
+        },
+        {
+         "at": 7,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 7
+         }
+        },
+        {
+         "at": 8,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 8
+         }
+        },
+        {
+         "at": 9,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 9
+         }
+        },
+        {
+         "at": 10,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 10
+         }
+        },
+        {
+         "at": 11,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 11
+         }
+        },
+        {
+         "at": 12,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 12
+         }
+        },
+        {
+         "at": 13,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 13
+         }
+        },
+        {
+         "at": 14,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 14
+         }
+        },
+        {
+         "at": 15,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 15
+         }
+        },
+        {
+         "at": 16,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 16
+         }
+        },
+        {
+         "at": 17,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 17
+         }
+        },
+        {
+         "at": 18,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 18
+         }
+        },
+        {
+         "at": 19,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 19
+         }
+        },
+        {
+         "at": 20,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 20
+         }
+        },
+        {
+         "at": 21,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 21
+         }
+        },
+        {
+         "at": 22,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 22
+         }
+        },
+        {
+         "at": 23,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 23
+         }
+        },
+        {
+         "at": 24,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 24
+         }
+        },
+        {
+         "at": 25,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 25
+         }
+        },
+        {
+         "at": 26,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 26
+         }
+        },
+        {
+         "at": 27,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 27
+         }
+        },
+        {
+         "at": 28,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 28
+         }
+        },
+        {
+         "at": 29,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 29
+         }
+        },
+        {
+         "at": 30,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 30
+         }
+        },
+        {
+         "at": 31,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 31
+         }
+        },
+        {
+         "at": 32,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 32
+         }
+        },
+        {
+         "at": 33,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 33
+         }
+        },
+        {
+         "at": 34,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 34
+         }
+        },
+        {
+         "at": 35,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 35
+         }
+        },
+        {
+         "at": 36,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 36
+         }
+        },
+        {
+         "at": 37,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 37
+         }
+        },
+        {
+         "at": 38,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 38
+         }
+        },
+        {
+         "at": 39,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 39
+         }
+        },
+        {
+         "at": 40,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 40
+         }
+        },
+        {
+         "at": 41,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 41
+         }
+        },
+        {
+         "at": 42,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 42
+         }
+        },
+        {
+         "at": 43,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 43
+         }
+        },
+        {
+         "at": 44,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 44
+         }
+        },
+        {
+         "at": 45,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 45
+         }
+        },
+        {
+         "at": 46,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 46
+         }
+        },
+        {
+         "at": 47,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 47
+         }
+        },
+        {
+         "at": 48,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 48
+         }
+        },
+        {
+         "at": 49,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 49
+         }
+        },
+        {
+         "at": 50,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 50
+         }
+        },
+        {
+         "at": 51,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 51
+         }
+        },
+        {
+         "at": 52,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 52
+         }
+        },
+        {
+         "at": 53,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 53
+         }
+        },
+        {
+         "at": 54,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 54
+         }
+        },
+        {
+         "at": 55,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 55
+         }
+        },
+        {
+         "at": 56,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 56
+         }
+        },
+        {
+         "at": 57,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 57
+         }
+        },
+        {
+         "at": 58,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 58
+         }
+        },
+        {
+         "at": 59,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 59
+         }
+        },
+        {
+         "at": 60,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 60
+         }
+        },
+        {
+         "at": 61,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 61
+         }
+        },
+        {
+         "at": 62,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 62
+         }
+        },
+        {
+         "at": 63,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 63
+         }
+        },
+        {
+         "at": 64,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 64
+         }
+        },
+        {
+         "at": 65,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 65
+         }
+        },
+        {
+         "at": 66,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 66
+         }
+        },
+        {
+         "at": 67,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 67
+         }
+        },
+        {
+         "at": 68,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 68
+         }
+        },
+        {
+         "at": 69,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 69
+         }
+        },
+        {
+         "at": 70,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 70
+         }
+        },
+        {
+         "at": 71,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 71
+         }
+        },
+        {
+         "at": 72,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 72
+         }
+        },
+        {
+         "at": 73,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 73
+         }
+        },
+        {
+         "at": 74,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 74
+         }
+        },
+        {
+         "at": 75,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 75
+         }
+        },
+        {
+         "at": 76,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 76
+         }
+        },
+        {
+         "at": 77,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 77
+         }
+        },
+        {
+         "at": 78,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 78
+         }
+        },
+        {
+         "at": 79,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 79
+         }
+        },
+        {
+         "at": 80,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 80
+         }
+        },
+        {
+         "at": 81,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 81
+         }
+        },
+        {
+         "at": 82,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 82
+         }
+        },
+        {
+         "at": 83,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 83
+         }
+        },
+        {
+         "at": 84,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 84
+         }
+        },
+        {
+         "at": 85,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 85
+         }
+        },
+        {
+         "at": 86,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 86
+         }
+        },
+        {
+         "at": 87,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 87
+         }
+        },
+        {
+         "at": 88,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 88
+         }
+        },
+        {
+         "at": 89,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 89
+         }
+        },
+        {
+         "at": 90,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 90
+         }
+        },
+        {
+         "at": 91,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 91
+         }
+        },
+        {
+         "at": 92,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 92
+         }
+        },
+        {
+         "at": 93,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 93
+         }
+        },
+        {
+         "at": 94,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 94
+         }
+        },
+        {
+         "at": 95,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 95
+         }
+        },
+        {
+         "at": 96,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 96
+         }
+        },
+        {
+         "at": 97,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 97
+         }
+        },
+        {
+         "at": 98,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 98
+         }
+        },
+        {
+         "at": 99,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 99
+         }
+        },
+        {
+         "at": 100,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 100
+         }
+        },
+        {
+         "at": 101,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 101
+         }
+        },
+        {
+         "at": 102,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 102
+         }
+        },
+        {
+         "at": 103,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 103
+         }
+        },
+        {
+         "at": 104,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 104
+         }
+        },
+        {
+         "at": 105,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 105
+         }
+        },
+        {
+         "at": 106,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 106
+         }
+        },
+        {
+         "at": 107,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 107
+         }
+        },
+        {
+         "at": 108,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 108
+         }
+        },
+        {
+         "at": 109,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 109
+         }
+        },
+        {
+         "at": 110,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 110
+         }
+        },
+        {
+         "at": 111,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 111
+         }
+        },
+        {
+         "at": 112,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 112
+         }
+        },
+        {
+         "at": 113,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 113
+         }
+        },
+        {
+         "at": 114,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 114
+         }
+        },
+        {
+         "at": 115,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 115
+         }
+        },
+        {
+         "at": 116,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 116
+         }
+        },
+        {
+         "at": 117,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 117
+         }
+        },
+        {
+         "at": 118,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 118
+         }
+        },
+        {
+         "at": 119,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 119
+         }
+        },
+        {
+         "at": 120,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 120
+         }
+        },
+        {
+         "at": 121,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 121
+         }
+        },
+        {
+         "at": 122,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 122
+         }
+        },
+        {
+         "at": 123,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 123
+         }
+        },
+        {
+         "at": 124,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 124
+         }
+        },
+        {
+         "at": 125,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 125
+         }
+        },
+        {
+         "at": 126,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 126
+         }
+        },
+        {
+         "at": 127,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 127
+         }
+        },
+        {
+         "at": 128,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 128
+         }
+        },
+        {
+         "at": 129,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 129
+         }
+        },
+        {
+         "at": 130,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 130
+         }
+        },
+        {
+         "at": 131,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 131
+         }
+        },
+        {
+         "at": 132,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 132
+         }
+        },
+        {
+         "at": 133,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 133
+         }
+        },
+        {
+         "at": 134,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 134
+         }
+        },
+        {
+         "at": 135,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 135
+         }
+        },
+        {
+         "at": 136,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 136
+         }
+        },
+        {
+         "at": 137,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 137
+         }
+        },
+        {
+         "at": 138,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 138
+         }
+        },
+        {
+         "at": 139,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 139
+         }
+        },
+        {
+         "at": 140,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 140
+         }
+        },
+        {
+         "at": 141,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 141
+         }
+        },
+        {
+         "at": 142,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 142
+         }
+        },
+        {
+         "at": 143,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 143
+         }
+        },
+        {
+         "at": 144,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 144
+         }
+        },
+        {
+         "at": 145,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 145
+         }
+        },
+        {
+         "at": 146,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 146
+         }
+        },
+        {
+         "at": 147,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 147
+         }
+        },
+        {
+         "at": 148,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 148
+         }
+        },
+        {
+         "at": 149,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 149
+         }
+        },
+        {
+         "at": 150,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 150
+         }
+        },
+        {
+         "at": 151,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 151
+         }
+        },
+        {
+         "at": 152,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 152
+         }
+        },
+        {
+         "at": 153,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 153
+         }
+        },
+        {
+         "at": 154,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 154
+         }
+        },
+        {
+         "at": 155,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 155
+         }
+        },
+        {
+         "at": 156,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 156
+         }
+        },
+        {
+         "at": 157,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 157
+         }
+        },
+        {
+         "at": 158,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 158
+         }
+        },
+        {
+         "at": 159,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 159
+         }
+        },
+        {
+         "at": 160,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 160
+         }
+        },
+        {
+         "at": 161,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 161
+         }
+        },
+        {
+         "at": 162,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 162
+         }
+        },
+        {
+         "at": 163,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 163
+         }
+        },
+        {
+         "at": 164,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 164
+         }
+        },
+        {
+         "at": 165,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 165
+         }
+        },
+        {
+         "at": 166,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 166
+         }
+        },
+        {
+         "at": 167,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 167
+         }
+        },
+        {
+         "at": 168,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 168
+         }
+        },
+        {
+         "at": 169,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 169
+         }
+        },
+        {
+         "at": 170,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 170
+         }
+        },
+        {
+         "at": 171,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 171
+         }
+        },
+        {
+         "at": 172,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 172
+         }
+        },
+        {
+         "at": 173,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 173
+         }
+        },
+        {
+         "at": 174,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 174
+         }
+        },
+        {
+         "at": 175,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 175
+         }
+        },
+        {
+         "at": 176,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 176
+         }
+        },
+        {
+         "at": 177,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 177
+         }
+        },
+        {
+         "at": 178,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 178
+         }
+        },
+        {
+         "at": 179,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 179
+         }
+        },
+        {
+         "at": 180,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 180
+         }
+        },
+        {
+         "at": 181,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 181
+         }
+        },
+        {
+         "at": 182,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 182
+         }
+        },
+        {
+         "at": 183,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 183
+         }
+        },
+        {
+         "at": 184,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 184
+         }
+        },
+        {
+         "at": 185,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 185
+         }
+        },
+        {
+         "at": 186,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 186
+         }
+        },
+        {
+         "at": 187,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 187
+         }
+        },
+        {
+         "at": 188,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 188
+         }
+        },
+        {
+         "at": 189,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 189
+         }
+        },
+        {
+         "at": 190,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 190
+         }
+        },
+        {
+         "at": 191,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 191
+         }
+        },
+        {
+         "at": 192,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 192
+         }
+        },
+        {
+         "at": 193,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 193
+         }
+        },
+        {
+         "at": 194,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 194
+         }
+        },
+        {
+         "at": 195,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 195
+         }
+        },
+        {
+         "at": 196,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 196
+         }
+        },
+        {
+         "at": 197,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 197
+         }
+        },
+        {
+         "at": 198,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 198
+         }
+        },
+        {
+         "at": 199,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 199
+         }
+        },
+        {
+         "at": 200,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 200
+         }
+        },
+        {
+         "at": 201,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 201
+         }
+        },
+        {
+         "at": 202,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 202
+         }
+        },
+        {
+         "at": 203,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 203
+         }
+        },
+        {
+         "at": 204,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 204
+         }
+        },
+        {
+         "at": 205,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 205
+         }
+        },
+        {
+         "at": 206,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 206
+         }
+        },
+        {
+         "at": 207,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 207
+         }
+        },
+        {
+         "at": 208,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 208
+         }
+        },
+        {
+         "at": 209,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 209
+         }
+        },
+        {
+         "at": 210,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 210
+         }
+        },
+        {
+         "at": 211,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 211
+         }
+        },
+        {
+         "at": 212,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 212
+         }
+        },
+        {
+         "at": 213,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 213
+         }
+        },
+        {
+         "at": 214,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 214
+         }
+        },
+        {
+         "at": 215,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 215
+         }
+        },
+        {
+         "at": 216,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 216
+         }
+        },
+        {
+         "at": 217,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 217
+         }
+        },
+        {
+         "at": 218,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 218
+         }
+        },
+        {
+         "at": 219,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 219
+         }
+        },
+        {
+         "at": 220,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 220
+         }
+        },
+        {
+         "at": 221,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 221
+         }
+        },
+        {
+         "at": 222,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 222
+         }
+        },
+        {
+         "at": 223,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 223
+         }
+        },
+        {
+         "at": 224,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 224
+         }
+        },
+        {
+         "at": 225,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 225
+         }
+        },
+        {
+         "at": 226,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 226
+         }
+        },
+        {
+         "at": 227,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 227
+         }
+        },
+        {
+         "at": 228,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 228
+         }
+        },
+        {
+         "at": 229,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 229
+         }
+        },
+        {
+         "at": 230,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 230
+         }
+        },
+        {
+         "at": 231,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 231
+         }
+        },
+        {
+         "at": 232,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 232
+         }
+        },
+        {
+         "at": 233,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 233
+         }
+        },
+        {
+         "at": 234,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 234
+         }
+        },
+        {
+         "at": 235,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 235
+         }
+        },
+        {
+         "at": 236,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 236
+         }
+        },
+        {
+         "at": 237,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 237
+         }
+        },
+        {
+         "at": 238,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 238
+         }
+        },
+        {
+         "at": 239,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 239
+         }
+        },
+        {
+         "at": 240,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 240
+         }
+        },
+        {
+         "at": 241,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 241
+         }
+        },
+        {
+         "at": 242,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 242
+         }
+        },
+        {
+         "at": 243,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 243
+         }
+        },
+        {
+         "at": 244,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 244
+         }
+        },
+        {
+         "at": 245,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 245
+         }
+        },
+        {
+         "at": 246,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 246
+         }
+        },
+        {
+         "at": 247,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 247
+         }
+        },
+        {
+         "at": 248,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 248
+         }
+        },
+        {
+         "at": 249,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 249
+         }
+        },
+        {
+         "at": 250,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 250
+         }
+        },
+        {
+         "at": 251,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 251
+         }
+        },
+        {
+         "at": 252,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 252
+         }
+        },
+        {
+         "at": 253,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 253
+         }
+        },
+        {
+         "at": 254,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 254
+         }
+        },
+        {
+         "at": 255,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 255
+         }
+        },
+        {
+         "at": 256,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 256
+         }
+        },
+        {
+         "at": 257,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 257
+         }
+        },
+        {
+         "at": 258,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 258
+         }
+        },
+        {
+         "at": 259,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 259
+         }
+        },
+        {
+         "at": 260,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 260
+         }
+        },
+        {
+         "at": 261,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 261
+         }
+        },
+        {
+         "at": 262,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 262
+         }
+        },
+        {
+         "at": 263,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 263
+         }
+        },
+        {
+         "at": 264,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 264
+         }
+        },
+        {
+         "at": 265,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 265
+         }
+        },
+        {
+         "at": 266,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 266
+         }
+        },
+        {
+         "at": 267,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 267
+         }
+        },
+        {
+         "at": 268,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 268
+         }
+        },
+        {
+         "at": 269,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 269
+         }
+        },
+        {
+         "at": 270,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 270
+         }
+        },
+        {
+         "at": 271,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 271
+         }
+        },
+        {
+         "at": 272,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 272
+         }
+        },
+        {
+         "at": 273,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 273
+         }
+        },
+        {
+         "at": 274,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 274
+         }
+        },
+        {
+         "at": 275,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 275
+         }
+        },
+        {
+         "at": 276,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 276
+         }
+        },
+        {
+         "at": 277,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 277
+         }
+        },
+        {
+         "at": 278,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 278
+         }
+        },
+        {
+         "at": 279,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 279
+         }
+        },
+        {
+         "at": 280,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 280
+         }
+        },
+        {
+         "at": 281,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 281
+         }
+        },
+        {
+         "at": 282,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 282
+         }
+        },
+        {
+         "at": 283,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 283
+         }
+        },
+        {
+         "at": 284,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 284
+         }
+        },
+        {
+         "at": 285,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 285
+         }
+        },
+        {
+         "at": 286,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 286
+         }
+        },
+        {
+         "at": 287,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 287
+         }
+        },
+        {
+         "at": 288,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 288
+         }
+        },
+        {
+         "at": 289,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 289
+         }
+        },
+        {
+         "at": 290,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 290
+         }
+        },
+        {
+         "at": 291,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 291
+         }
+        },
+        {
+         "at": 292,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 292
+         }
+        },
+        {
+         "at": 293,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 293
+         }
+        },
+        {
+         "at": 294,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 294
+         }
+        },
+        {
+         "at": 295,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 295
+         }
+        },
+        {
+         "at": 296,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 296
+         }
+        },
+        {
+         "at": 297,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 297
+         }
+        },
+        {
+         "at": 298,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 298
+         }
+        },
+        {
+         "at": 299,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 299
+         }
+        },
+        {
+         "at": 300,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 300
+         }
+        },
+        {
+         "at": 301,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 301
+         }
+        },
+        {
+         "at": 302,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 302
+         }
+        },
+        {
+         "at": 303,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 303
+         }
+        },
+        {
+         "at": 304,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 304
+         }
+        },
+        {
+         "at": 305,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 305
+         }
+        },
+        {
+         "at": 306,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 306
+         }
+        },
+        {
+         "at": 307,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 307
+         }
+        },
+        {
+         "at": 308,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 308
+         }
+        },
+        {
+         "at": 309,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 309
+         }
+        },
+        {
+         "at": 310,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 310
+         }
+        },
+        {
+         "at": 311,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 311
+         }
+        },
+        {
+         "at": 312,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 312
+         }
+        },
+        {
+         "at": 313,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 313
+         }
+        },
+        {
+         "at": 314,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 314
+         }
+        },
+        {
+         "at": 315,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 315
+         }
+        },
+        {
+         "at": 316,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 316
+         }
+        },
+        {
+         "at": 317,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 317
+         }
+        },
+        {
+         "at": 318,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 318
+         }
+        },
+        {
+         "at": 319,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 319
+         }
+        },
+        {
+         "at": 320,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 320
+         }
+        },
+        {
+         "at": 321,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 321
+         }
+        },
+        {
+         "at": 322,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 322
+         }
+        },
+        {
+         "at": 323,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 323
+         }
+        },
+        {
+         "at": 324,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 324
+         }
+        },
+        {
+         "at": 325,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 325
+         }
+        },
+        {
+         "at": 326,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 326
+         }
+        },
+        {
+         "at": 327,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 327
+         }
+        },
+        {
+         "at": 328,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 328
+         }
+        },
+        {
+         "at": 329,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 329
+         }
+        },
+        {
+         "at": 330,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 330
+         }
+        },
+        {
+         "at": 331,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 331
+         }
+        },
+        {
+         "at": 332,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 332
+         }
+        },
+        {
+         "at": 333,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 333
+         }
+        },
+        {
+         "at": 334,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 334
+         }
+        },
+        {
+         "at": 335,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 335
+         }
+        },
+        {
+         "at": 336,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 336
+         }
+        },
+        {
+         "at": 337,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 337
+         }
+        },
+        {
+         "at": 338,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 338
+         }
+        },
+        {
+         "at": 339,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 339
+         }
+        },
+        {
+         "at": 340,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 340
+         }
+        },
+        {
+         "at": 341,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 341
+         }
+        },
+        {
+         "at": 342,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 342
+         }
+        },
+        {
+         "at": 343,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 343
+         }
+        },
+        {
+         "at": 344,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 344
+         }
+        },
+        {
+         "at": 345,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 345
+         }
+        },
+        {
+         "at": 346,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 346
+         }
+        },
+        {
+         "at": 347,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 347
+         }
+        },
+        {
+         "at": 348,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 348
+         }
+        },
+        {
+         "at": 349,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 349
+         }
+        },
+        {
+         "at": 350,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 350
+         }
+        },
+        {
+         "at": 351,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 351
+         }
+        },
+        {
+         "at": 352,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 352
+         }
+        },
+        {
+         "at": 353,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 353
+         }
+        },
+        {
+         "at": 354,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 354
+         }
+        },
+        {
+         "at": 355,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 355
+         }
+        },
+        {
+         "at": 356,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 356
+         }
+        },
+        {
+         "at": 357,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 357
+         }
+        },
+        {
+         "at": 358,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 358
+         }
+        },
+        {
+         "at": 359,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 359
+         }
+        },
+        {
+         "at": 360,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 360
+         }
+        },
+        {
+         "at": 361,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 361
+         }
+        },
+        {
+         "at": 362,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 362
+         }
+        },
+        {
+         "at": 363,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 363
+         }
+        },
+        {
+         "at": 364,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 364
+         }
+        },
+        {
+         "at": 365,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 365
+         }
+        },
+        {
+         "at": 366,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 366
+         }
+        },
+        {
+         "at": 367,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 367
+         }
+        },
+        {
+         "at": 368,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 368
+         }
+        },
+        {
+         "at": 369,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 369
+         }
+        },
+        {
+         "at": 370,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 370
+         }
+        },
+        {
+         "at": 371,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 371
+         }
+        },
+        {
+         "at": 372,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 372
+         }
+        },
+        {
+         "at": 373,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 373
+         }
+        },
+        {
+         "at": 374,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 374
+         }
+        },
+        {
+         "at": 375,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 375
+         }
+        },
+        {
+         "at": 376,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 376
+         }
+        },
+        {
+         "at": 377,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 377
+         }
+        },
+        {
+         "at": 378,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 378
+         }
+        },
+        {
+         "at": 379,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 379
+         }
+        },
+        {
+         "at": 380,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 380
+         }
+        },
+        {
+         "at": 381,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 381
+         }
+        },
+        {
+         "at": 382,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 382
+         }
+        },
+        {
+         "at": 383,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 383
+         }
+        },
+        {
+         "at": 384,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 384
+         }
+        },
+        {
+         "at": 385,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 385
+         }
+        },
+        {
+         "at": 386,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 386
+         }
+        },
+        {
+         "at": 387,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 387
+         }
+        },
+        {
+         "at": 388,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 388
+         }
+        },
+        {
+         "at": 389,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 389
+         }
+        },
+        {
+         "at": 390,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 390
+         }
+        },
+        {
+         "at": 391,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 391
+         }
+        },
+        {
+         "at": 392,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 392
+         }
+        },
+        {
+         "at": 393,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 393
+         }
+        },
+        {
+         "at": 394,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 394
+         }
+        },
+        {
+         "at": 395,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 395
+         }
+        },
+        {
+         "at": 396,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 396
+         }
+        },
+        {
+         "at": 397,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 397
+         }
+        },
+        {
+         "at": 398,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 398
+         }
+        },
+        {
+         "at": 399,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 399
+         }
+        },
+        {
+         "at": 400,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 400
+         }
+        },
+        {
+         "at": 401,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 401
+         }
+        },
+        {
+         "at": 402,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 402
+         }
+        },
+        {
+         "at": 403,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 403
+         }
+        },
+        {
+         "at": 404,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 404
+         }
+        },
+        {
+         "at": 405,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 405
+         }
+        },
+        {
+         "at": 406,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 406
+         }
+        },
+        {
+         "at": 407,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 407
+         }
+        },
+        {
+         "at": 408,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 408
+         }
+        },
+        {
+         "at": 409,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 409
+         }
+        },
+        {
+         "at": 410,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 410
+         }
+        },
+        {
+         "at": 411,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 411
+         }
+        },
+        {
+         "at": 412,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 412
+         }
+        },
+        {
+         "at": 413,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 413
+         }
+        },
+        {
+         "at": 414,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 414
+         }
+        },
+        {
+         "at": 415,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 415
+         }
+        },
+        {
+         "at": 416,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 416
+         }
+        },
+        {
+         "at": 417,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 417
+         }
+        },
+        {
+         "at": 418,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 418
+         }
+        },
+        {
+         "at": 419,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 419
+         }
+        },
+        {
+         "at": 420,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 420
+         }
+        },
+        {
+         "at": 421,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 421
+         }
+        },
+        {
+         "at": 422,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 422
+         }
+        },
+        {
+         "at": 423,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 423
+         }
+        },
+        {
+         "at": 424,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 424
+         }
+        },
+        {
+         "at": 425,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 425
+         }
+        },
+        {
+         "at": 426,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 426
+         }
+        },
+        {
+         "at": 427,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 427
+         }
+        },
+        {
+         "at": 428,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 428
+         }
+        },
+        {
+         "at": 429,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 429
+         }
+        },
+        {
+         "at": 430,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 430
+         }
+        },
+        {
+         "at": 431,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 431
+         }
+        },
+        {
+         "at": 432,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 432
+         }
+        },
+        {
+         "at": 433,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 433
+         }
+        },
+        {
+         "at": 434,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 434
+         }
+        },
+        {
+         "at": 435,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 435
+         }
+        },
+        {
+         "at": 436,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 436
+         }
+        },
+        {
+         "at": 437,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 437
+         }
+        },
+        {
+         "at": 438,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 438
+         }
+        },
+        {
+         "at": 439,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 439
+         }
+        },
+        {
+         "at": 440,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 440
+         }
+        },
+        {
+         "at": 441,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 441
+         }
+        },
+        {
+         "at": 442,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 442
+         }
+        },
+        {
+         "at": 443,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 443
+         }
+        },
+        {
+         "at": 444,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 444
+         }
+        },
+        {
+         "at": 445,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 445
+         }
+        },
+        {
+         "at": 446,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 446
+         }
+        },
+        {
+         "at": 447,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 447
+         }
+        },
+        {
+         "at": 448,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 448
+         }
+        },
+        {
+         "at": 449,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 449
+         }
+        },
+        {
+         "at": 450,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 450
+         }
+        },
+        {
+         "at": 451,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 451
+         }
+        },
+        {
+         "at": 452,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 452
+         }
+        },
+        {
+         "at": 453,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 453
+         }
+        },
+        {
+         "at": 454,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 454
+         }
+        },
+        {
+         "at": 455,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 455
+         }
+        },
+        {
+         "at": 456,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 456
+         }
+        },
+        {
+         "at": 457,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 457
+         }
+        },
+        {
+         "at": 458,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 458
+         }
+        },
+        {
+         "at": 459,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 459
+         }
+        },
+        {
+         "at": 460,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 460
+         }
+        },
+        {
+         "at": 461,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 461
+         }
+        },
+        {
+         "at": 462,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 462
+         }
+        },
+        {
+         "at": 463,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 463
+         }
+        },
+        {
+         "at": 464,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 464
+         }
+        },
+        {
+         "at": 465,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 465
+         }
+        },
+        {
+         "at": 466,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 466
+         }
+        },
+        {
+         "at": 467,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 467
+         }
+        },
+        {
+         "at": 468,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 468
+         }
+        },
+        {
+         "at": 469,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 469
+         }
+        },
+        {
+         "at": 470,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 470
+         }
+        },
+        {
+         "at": 471,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 471
+         }
+        },
+        {
+         "at": 472,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 472
+         }
+        },
+        {
+         "at": 473,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 473
+         }
+        },
+        {
+         "at": 474,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 474
+         }
+        },
+        {
+         "at": 475,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 475
+         }
+        },
+        {
+         "at": 476,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 476
+         }
+        },
+        {
+         "at": 477,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 477
+         }
+        },
+        {
+         "at": 478,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 478
+         }
+        },
+        {
+         "at": 479,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 479
+         }
+        },
+        {
+         "at": 480,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 480
+         }
+        },
+        {
+         "at": 481,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 481
+         }
+        },
+        {
+         "at": 482,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 482
+         }
+        },
+        {
+         "at": 483,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 483
+         }
+        },
+        {
+         "at": 484,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 484
+         }
+        },
+        {
+         "at": 485,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 485
+         }
+        },
+        {
+         "at": 486,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 486
+         }
+        },
+        {
+         "at": 487,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 487
+         }
+        },
+        {
+         "at": 488,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 488
+         }
+        },
+        {
+         "at": 489,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 489
+         }
+        },
+        {
+         "at": 490,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 490
+         }
+        },
+        {
+         "at": 491,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 491
+         }
+        },
+        {
+         "at": 492,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 492
+         }
+        },
+        {
+         "at": 493,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 493
+         }
+        },
+        {
+         "at": 494,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 494
+         }
+        },
+        {
+         "at": 495,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 495
+         }
+        },
+        {
+         "at": 496,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 496
+         }
+        },
+        {
+         "at": 497,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 497
+         }
+        },
+        {
+         "at": 498,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 498
+         }
+        },
+        {
+         "at": 499,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 499
+         }
+        },
+        {
+         "at": 500,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 500
+         }
+        },
+        {
+         "at": 501,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 501
+         }
+        },
+        {
+         "at": 502,
+         "message": {
+          "type": "assistant",
+          "parent_tool_use_id": "tuC",
+          "n": 502
+         }
+        }
+       ]
+      }
+     ],
+     "active": false,
+     "background": 0
+    }
+   ]
+  }
+ ]
+}

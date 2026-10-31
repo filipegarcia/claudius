@@ -1,0 +1,1792 @@
+{
+  "sdkVersion": "0.3.299",
+  "cases": [
+    {
+      "name": "no_callbacks",
+      "spec": {},
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "eof",
+        "A"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "assistant",
+        "result/success"
+      ]
+    },
+    {
+      "name": "callbacks_no_state",
+      "spec": {
+        "canUseTool": true
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "eof",
+        "A"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "assistant",
+        "result/success"
+      ]
+    },
+    {
+      "name": "callbacks_running_then_idle",
+      "spec": {
+        "canUseTool": true
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "assistant",
+        "result/success",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "idle_before_result",
+      "spec": {
+        "canUseTool": true
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "eof",
+        "A"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "system/session_state_changed",
+        "assistant",
+        "result/success"
+      ]
+    },
+    {
+      "name": "idle_without_result_waits",
+      "spec": {
+        "canUseTool": true
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$text": "x"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "C"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "B",
+        "eof",
+        "C"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "assistant",
+        "result/success"
+      ]
+    },
+    {
+      "name": "no_callbacks_ignores_state",
+      "spec": {},
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "eof",
+        "A"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "assistant",
+        "result/success"
+      ]
+    },
+    {
+      "name": "ceiling",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "600"
+        }
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 300
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$delay_ms": 700
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success"
+      ]
+    },
+    {
+      "name": "ceiling_zero_disables",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0"
+        }
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 800
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "ceiling_grouped_digits",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0_600"
+        }
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 300
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$delay_ms": 700
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success"
+      ]
+    },
+    {
+      "name": "requires_action_clears_ceiling",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "600"
+        }
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 200
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "requires_action"
+              },
+              {
+                "$delay_ms": 900
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "$delay_ms": 300
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$delay_ms": 700
+              },
+              {
+                "$mark": "C"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "B",
+        "eof",
+        "C"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "system/session_state_changed",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "assistant_clears_ceiling",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "600"
+        }
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 200
+              },
+              {
+                "$text": "more"
+              },
+              {
+                "$delay_ms": 900
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "assistant",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "stream_event_clears_ceiling",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "600"
+        }
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 200
+              },
+              {
+                "type": "stream_event",
+                "event": {
+                  "type": "message_start"
+                },
+                "parent_tool_use_id": null
+              },
+              {
+                "$delay_ms": 900
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "stream_event",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "subagent_assistant_keeps_ceiling",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "600"
+        }
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 200
+              },
+              {
+                "type": "assistant",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "sub"
+                    }
+                  ]
+                },
+                "parent_tool_use_id": "toolu_1"
+              },
+              {
+                "$delay_ms": 900
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "eof",
+        "A"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "assistant"
+      ]
+    },
+    {
+      "name": "hooks_with_no_matchers",
+      "spec": {
+        "hooks": 0
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "hook_callback",
+      "spec": {
+        "hooks": 1
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "sdk_mcp_server",
+      "spec": {
+        "mcp": true
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "elicitation",
+      "spec": {
+        "onElicitation": true
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "eof",
+        "B"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "system/session_state_changed"
+      ]
+    },
+    {
+      "name": "verbatim_prompts",
+      "spec": {
+        "verbatimPrompts": true
+      },
+      "script": {
+        "turns": [
+          {
+            "steps": [
+              {
+                "$text": "hi"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "A"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "eof",
+        "A"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null,
+          "client_composed": true
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "assistant",
+        "result/success"
+      ]
+    },
+    {
+      "name": "follow_up_starts_a_new_run",
+      "spec": {
+        "canUseTool": true,
+        "env": {
+          "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "600"
+        },
+        "followUp": "second"
+      },
+      "script": {
+        "turns": [
+          {
+            "match": "go",
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "running"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 1200
+              },
+              {
+                "$mark": "A"
+              }
+            ],
+            "result": false
+          },
+          {
+            "match": "second",
+            "steps": [
+              {
+                "type": "system",
+                "subtype": "session_state_changed",
+                "state": "idle"
+              },
+              {
+                "$delay_ms": 300
+              },
+              {
+                "$mark": "B"
+              },
+              {
+                "type": "result",
+                "subtype": "success",
+                "is_error": false,
+                "result": "ok",
+                "num_turns": 1,
+                "duration_ms": 1,
+                "duration_api_ms": 1,
+                "total_cost_usd": 0,
+                "usage": {
+                  "input_tokens": 1,
+                  "output_tokens": 1
+                }
+              },
+              {
+                "$delay_ms": 400
+              },
+              {
+                "$mark": "C"
+              },
+              {
+                "$exit": 0
+              }
+            ],
+            "result": false
+          }
+        ]
+      },
+      "events": [
+        "A",
+        "B",
+        "eof",
+        "C"
+      ],
+      "userLines": [
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "go"
+              }
+            ]
+          },
+          "parent_tool_use_id": null
+        },
+        {
+          "type": "user",
+          "session_id": "",
+          "message": {
+            "role": "user",
+            "content": "second"
+          },
+          "parent_tool_use_id": null
+        }
+      ],
+      "yielded": [
+        "system/init",
+        "system/session_state_changed",
+        "result/success",
+        "system/session_state_changed",
+        "result/success"
+      ]
+    }
+  ],
+  "ceilingTable": [
+    {
+      "raw": null,
+      "ceiling": 600000
+    },
+    {
+      "raw": "",
+      "ceiling": 600000
+    },
+    {
+      "raw": " ",
+      "ceiling": 600000
+    },
+    {
+      "raw": "600",
+      "ceiling": 600
+    },
+    {
+      "raw": " 600 ",
+      "ceiling": 600
+    },
+    {
+      "raw": "0",
+      "ceiling": 0
+    },
+    {
+      "raw": "-0",
+      "ceiling": 0
+    },
+    {
+      "raw": "-5",
+      "ceiling": 600000
+    },
+    {
+      "raw": "+7",
+      "ceiling": 7
+    },
+    {
+      "raw": "12abc",
+      "ceiling": 12
+    },
+    {
+      "raw": "abc",
+      "ceiling": 600000
+    },
+    {
+      "raw": "0x10",
+      "ceiling": 0
+    },
+    {
+      "raw": "1.9",
+      "ceiling": 1
+    },
+    {
+      "raw": "1e3",
+      "ceiling": 1000
+    },
+    {
+      "raw": "1E3",
+      "ceiling": 1000
+    },
+    {
+      "raw": "+1e3",
+      "ceiling": 1000
+    },
+    {
+      "raw": "-1e3",
+      "ceiling": 600000
+    },
+    {
+      "raw": "1.5e3",
+      "ceiling": 1500
+    },
+    {
+      "raw": "1.2345e3",
+      "ceiling": 600000
+    },
+    {
+      "raw": ".5e1",
+      "ceiling": 5
+    },
+    {
+      "raw": "5.e1",
+      "ceiling": 50
+    },
+    {
+      "raw": "1e400",
+      "ceiling": 600000
+    },
+    {
+      "raw": "1e-3",
+      "ceiling": 600000
+    },
+    {
+      "raw": "1_000",
+      "ceiling": 1000
+    },
+    {
+      "raw": "1,000",
+      "ceiling": 1000
+    },
+    {
+      "raw": "1 000",
+      "ceiling": 1000
+    },
+    {
+      "raw": "1 000",
+      "ceiling": 1000
+    },
+    {
+      "raw": "1 000",
+      "ceiling": 1000
+    },
+    {
+      "raw": "1_000_000",
+      "ceiling": 1000000
+    },
+    {
+      "raw": "1_000,000",
+      "ceiling": 1
+    },
+    {
+      "raw": "1000_000",
+      "ceiling": 1000
+    },
+    {
+      "raw": "12_34",
+      "ceiling": 12
+    },
+    {
+      "raw": "+1_000",
+      "ceiling": 1000
+    },
+    {
+      "raw": "-1_000",
+      "ceiling": 600000
+    },
+    {
+      "raw": "99999999999999999999",
+      "ceiling": 100000000000000000000
+    },
+    {
+      "raw": "1111111111111111111111111111111111111111",
+      "ceiling": 1.1111111111111112e+39
+    },
+    {
+      "raw": "1_000_000_000_000_000_000_000_000_000",
+      "ceiling": 1
+    },
+    {
+      "raw": "1_000_000_000_000_000_000_000_000_0000",
+      "ceiling": 1
+    },
+    {
+      "raw": "\t42\n",
+      "ceiling": 42
+    },
+    {
+      "raw": " 42",
+      "ceiling": 42
+    },
+    {
+      "raw": "4 2",
+      "ceiling": 4
+    },
+    {
+      "raw": "1e",
+      "ceiling": 1
+    },
+    {
+      "raw": "1e+",
+      "ceiling": 1
+    },
+    {
+      "raw": "e5",
+      "ceiling": 600000
+    },
+    {
+      "raw": ".e1",
+      "ceiling": 600000
+    },
+    {
+      "raw": "1.e",
+      "ceiling": 1
+    },
+    {
+      "raw": "+.5e1",
+      "ceiling": 5
+    },
+    {
+      "raw": "-.5e-1",
+      "ceiling": 600000
+    },
+    {
+      "raw": "1e3x",
+      "ceiling": 1
+    },
+    {
+      "raw": "1_00",
+      "ceiling": 1
+    },
+    {
+      "raw": "1__000",
+      "ceiling": 1
+    },
+    {
+      "raw": "_1_000",
+      "ceiling": 600000
+    }
+  ]
+}

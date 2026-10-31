@@ -1,0 +1,87 @@
+[
+  {
+    "id": "mcp",
+    "text": "Plug in tools from anywhere over the Model Context Protocol — they show up to Claude automatically.",
+    "command": "mcp"
+  },
+  {
+    "id": "skills",
+    "text": "Skills are short, opinionated playbooks Claude calls up when the moment is right.",
+    "command": "skills"
+  },
+  {
+    "id": "cost",
+    "text": "See exactly where your tokens go — spend broken down per session, per model, per day.",
+    "command": "cost"
+  },
+  {
+    "id": "schedule",
+    "text": "Run the agent on a cron schedule — daily standups, deploy checks, log triage, without you there.",
+    "command": "schedule"
+  },
+  {
+    "id": "memory",
+    "text": "Claude keeps notes that persist across sessions, so you don't re-explain the same context.",
+    "command": "memory"
+  },
+  {
+    "id": "context",
+    "text": "Watch how full your context window is — and compact it before it overflows.",
+    "command": "context"
+  },
+  {
+    "id": "goal",
+    "text": "Set a goal for this session and Claude tracks it until it's achieved.",
+    "command": "goal"
+  },
+  {
+    "id": "files",
+    "text": "Browse the exact project tree the agent sees — with quick file previews.",
+    "command": "files"
+  },
+  {
+    "id": "hooks",
+    "text": "Run shell commands at lifecycle events — guardrails, notifications, auto-formatting.",
+    "command": "hooks"
+  },
+  {
+    "id": "plugins",
+    "text": "Install community plugins from any marketplace you trust — skills, agents, MCP servers, and hooks.",
+    "command": "plugin"
+  },
+  {
+    "id": "keybindings",
+    "text": "Rebind any shortcut — including chords — to match the muscle memory you already have.",
+    "command": "keybindings"
+  },
+  {
+    "id": "help",
+    "text": "Lost? Open the full list of slash commands and keyboard shortcuts.",
+    "command": "help"
+  },
+  {
+    "id": "focus",
+    "text": "Cut the chrome and keep just the conversation in view — /focus cycles a distraction-free layout.",
+    "command": "focus"
+  },
+  {
+    "id": "desktop",
+    "text": "Prefer a dedicated window? /desktop opens — or recommends — the Claudius desktop app.",
+    "command": "desktop"
+  },
+  {
+    "id": "multi-claude-color-rename",
+    "text": "Running multiple Claude sessions? Use /color and /rename to tell them apart at a glance.",
+    "minSessions": 2
+  },
+  {
+    "id": "default-permission-mode-config",
+    "text": "Liked Plan Mode? Make it sticky in Workspace settings → Permission mode (it'll apply to every new session here).",
+    "requiresPlanModeNudge": true
+  },
+  {
+    "id": "powerup-onboarding",
+    "text": "New to Claudius? Run /powerup for a quick interactive tutorial.",
+    "requiresNewUser": true
+  }
+]

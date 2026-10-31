@@ -1,0 +1,702 @@
+{
+  "sdkVersion": "0.3.299",
+  "cases": [
+    {
+      "name": "enabled_no_settings",
+      "args": {},
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "empty_option",
+      "args": {},
+      "sandbox": {},
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{}}"
+        }
+      }
+    },
+    {
+      "name": "falsy_null",
+      "args": {
+        "settings": "{\"a\":1}"
+      },
+      "sandbox": null,
+      "result": {
+        "args": {
+          "settings": "{\"a\":1}"
+        }
+      }
+    },
+    {
+      "name": "falsy_false",
+      "args": {},
+      "sandbox": false,
+      "result": {
+        "args": {}
+      }
+    },
+    {
+      "name": "falsy_zero",
+      "args": {},
+      "sandbox": 0,
+      "result": {
+        "args": {}
+      }
+    },
+    {
+      "name": "falsy_empty_string",
+      "args": {},
+      "sandbox": "",
+      "result": {
+        "args": {}
+      }
+    },
+    {
+      "name": "settings_path_conflict",
+      "args": {
+        "settings": "/etc/claude/settings.json"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "error": "Cannot use both a settings file path and the sandbox option. Include the sandbox configuration in your settings file instead."
+      }
+    },
+    {
+      "name": "settings_path_not_closed",
+      "args": {
+        "settings": "{ not closed"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "error": "Cannot use both a settings file path and the sandbox option. Include the sandbox configuration in your settings file instead."
+      }
+    },
+    {
+      "name": "settings_empty_string",
+      "args": {
+        "settings": ""
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "settings_unparseable",
+      "args": {
+        "settings": "  {bad json}  "
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "settings_nbsp_trimmed_but_invalid_json",
+      "args": {
+        "settings": " {\"a\":1}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "settings_json_whitespace",
+      "args": {
+        "settings": "\n {\"a\":1} \n"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"a\":1,\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "settings_null_extra_arg",
+      "args": {
+        "foo": "1",
+        "settings": null,
+        "bar": null
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "foo": "1",
+          "settings": "{\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}",
+          "bar": null
+        }
+      }
+    },
+    {
+      "name": "extra_args_keep_settings_position",
+      "args": {
+        "foo": "1",
+        "settings": "{\"a\":1}",
+        "bar": null
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "foo": "1",
+          "settings": "{\"a\":1,\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}",
+          "bar": null
+        }
+      }
+    },
+    {
+      "name": "golden_sandbox_bypass",
+      "args": {
+        "settings": "{\"includeCoAuthoredBy\":true,\"sandbox\":{\"autoAllowBashIfSandboxed\":true}}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"includeCoAuthoredBy\":true,\"sandbox\":{\"autoAllowBashIfSandboxed\":true,\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "claudius_session_no_settings",
+      "args": {},
+      "sandbox": {
+        "enabled": true,
+        "autoAllowBashIfSandboxed": true,
+        "failIfUnavailable": false,
+        "filesystem": {
+          "disabled": true
+        },
+        "network": {
+          "allowedDomains": [
+            "github.com"
+          ],
+          "strictAllowlist": true
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":true,\"autoAllowBashIfSandboxed\":true,\"failIfUnavailable\":false,\"filesystem\":{\"disabled\":true},\"network\":{\"allowedDomains\":[\"github.com\"],\"strictAllowlist\":true}}}"
+        }
+      }
+    },
+    {
+      "name": "claudius_session_over_user_sandbox",
+      "args": {
+        "settings": "{\"model\":\"x\",\"sandbox\":{\"filesystem\":{\"denyRead\":[\"/a\"],\"disabled\":false},\"network\":{\"httpProxyPort\":8080,\"socksProxyPort\":1080,\"deniedDomains\":[\"x.com\"]}},\"after\":true}"
+      },
+      "sandbox": {
+        "enabled": true,
+        "autoAllowBashIfSandboxed": true,
+        "failIfUnavailable": false,
+        "filesystem": {
+          "disabled": true
+        },
+        "network": {
+          "allowedDomains": [
+            "github.com"
+          ],
+          "strictAllowlist": true
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"model\":\"x\",\"sandbox\":{\"filesystem\":{\"denyRead\":[\"/a\"],\"disabled\":true},\"network\":{\"deniedDomains\":[\"x.com\"],\"allowedDomains\":[\"github.com\"],\"strictAllowlist\":true},\"enabled\":true,\"autoAllowBashIfSandboxed\":true,\"failIfUnavailable\":false},\"after\":true}"
+        }
+      }
+    },
+    {
+      "name": "union_paths",
+      "args": {
+        "settings": "{\"sandbox\":{\"filesystem\":{\"denyRead\":[\"/a\",\"/b\"],\"denyWrite\":[\"/w\"],\"allowWrite\":[\"/k\"]},\"network\":{\"deniedDomains\":[\"a.com\",1],\"allowedDomains\":[\"keep.com\"]},\"credentials\":{\"files\":[{\"path\":\"/p\",\"mode\":\"deny\"}],\"envVars\":[\"A\"]}}}"
+      },
+      "sandbox": {
+        "filesystem": {
+          "denyRead": [
+            "/b",
+            "/c"
+          ],
+          "allowWrite": [
+            "/z"
+          ]
+        },
+        "network": {
+          "deniedDomains": [
+            "a.com",
+            "b.com",
+            1
+          ]
+        },
+        "credentials": {
+          "files": [
+            {
+              "path": "/p",
+              "mode": "deny"
+            }
+          ],
+          "envVars": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"filesystem\":{\"denyRead\":[\"/a\",\"/b\",\"/c\"],\"denyWrite\":[\"/w\"],\"allowWrite\":[\"/z\"]},\"network\":{\"deniedDomains\":[\"a.com\",1,\"b.com\"],\"allowedDomains\":[\"keep.com\"]},\"credentials\":{\"files\":[{\"path\":\"/p\",\"mode\":\"deny\"},{\"path\":\"/p\",\"mode\":\"deny\"}],\"envVars\":[\"A\",\"B\"]}}}"
+        }
+      }
+    },
+    {
+      "name": "union_needs_both_arrays",
+      "args": {
+        "settings": "{\"sandbox\":{\"filesystem\":{\"denyRead\":\"/a\"}}}"
+      },
+      "sandbox": {
+        "filesystem": {
+          "denyRead": [
+            "/b"
+          ]
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"filesystem\":{\"denyRead\":[\"/b\"]}}}"
+        }
+      }
+    },
+    {
+      "name": "replace_paths",
+      "args": {
+        "settings": "{\"sandbox\":{\"ripgrep\":{\"command\":\"rg\",\"args\":[\"-x\"]},\"network\":{\"tlsTerminate\":{\"a\":1,\"b\":2},\"other\":{\"a\":1,\"b\":2}}}}"
+      },
+      "sandbox": {
+        "ripgrep": {
+          "command": "rg2"
+        },
+        "network": {
+          "tlsTerminate": {
+            "a": 9
+          },
+          "other": {
+            "a": 9
+          }
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"ripgrep\":{\"command\":\"rg2\"},\"network\":{\"tlsTerminate\":{\"a\":9},\"other\":{\"a\":9,\"b\":2}}}}"
+        }
+      }
+    },
+    {
+      "name": "fs_disabled_dropped_when_option_configures_fs",
+      "args": {
+        "settings": "{\"sandbox\":{\"filesystem\":{\"disabled\":true,\"denyRead\":[\"/a\"]}}}"
+      },
+      "sandbox": {
+        "filesystem": {
+          "denyRead": [
+            "/b"
+          ]
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"filesystem\":{\"denyRead\":[\"/a\",\"/b\"]}}}"
+        }
+      }
+    },
+    {
+      "name": "fs_disabled_kept_when_option_sets_null",
+      "args": {
+        "settings": "{\"sandbox\":{\"filesystem\":{\"disabled\":true}}}"
+      },
+      "sandbox": {
+        "filesystem": {
+          "disabled": null
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"filesystem\":{\"disabled\":null}}}"
+        }
+      }
+    },
+    {
+      "name": "fs_disabled_dropped_by_credential_deny",
+      "args": {
+        "settings": "{\"sandbox\":{\"filesystem\":{\"disabled\":true}}}"
+      },
+      "sandbox": {
+        "credentials": {
+          "files": [
+            {
+              "path": "/k",
+              "mode": "deny"
+            }
+          ]
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"filesystem\":{},\"credentials\":{\"files\":[{\"path\":\"/k\",\"mode\":\"deny\"}]}}}"
+        }
+      }
+    },
+    {
+      "name": "fs_disabled_kept_for_credential_allow",
+      "args": {
+        "settings": "{\"sandbox\":{\"filesystem\":{\"disabled\":true}}}"
+      },
+      "sandbox": {
+        "credentials": {
+          "files": [
+            {
+              "path": "/k",
+              "mode": "allow"
+            },
+            "deny"
+          ]
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"filesystem\":{\"disabled\":true},\"credentials\":{\"files\":[{\"path\":\"/k\",\"mode\":\"allow\"},\"deny\"]}}}"
+        }
+      }
+    },
+    {
+      "name": "fs_option_null_replaces",
+      "args": {
+        "settings": "{\"sandbox\":{\"filesystem\":{\"disabled\":true}}}"
+      },
+      "sandbox": {
+        "filesystem": null
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"filesystem\":null}}"
+        }
+      }
+    },
+    {
+      "name": "proxy_ports_dropped_by_allowed_domains_null",
+      "args": {
+        "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1,\"socksProxyPort\":2,\"x\":3}}}"
+      },
+      "sandbox": {
+        "network": {
+          "allowedDomains": null
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"network\":{\"x\":3,\"allowedDomains\":null}}}"
+        }
+      }
+    },
+    {
+      "name": "proxy_ports_kept_for_empty_denied",
+      "args": {
+        "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1,\"socksProxyPort\":2}}}"
+      },
+      "sandbox": {
+        "network": {
+          "deniedDomains": []
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1,\"socksProxyPort\":2,\"deniedDomains\":[]}}}"
+        }
+      }
+    },
+    {
+      "name": "proxy_ports_dropped_by_denied_string",
+      "args": {
+        "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1,\"socksProxyPort\":null}}}"
+      },
+      "sandbox": {
+        "network": {
+          "deniedDomains": "x.com"
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"network\":{\"deniedDomains\":\"x.com\"}}}"
+        }
+      }
+    },
+    {
+      "name": "proxy_ports_dropped_by_denied_length_object",
+      "args": {
+        "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1}}}"
+      },
+      "sandbox": {
+        "network": {
+          "deniedDomains": {
+            "length": 2
+          }
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"network\":{\"deniedDomains\":{\"length\":2}}}}"
+        }
+      }
+    },
+    {
+      "name": "proxy_port_set_by_option_survives",
+      "args": {
+        "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1,\"socksProxyPort\":2}}}"
+      },
+      "sandbox": {
+        "network": {
+          "strictAllowlist": true,
+          "httpProxyPort": 9
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":9,\"strictAllowlist\":true}}}"
+        }
+      }
+    },
+    {
+      "name": "strict_allowlist_must_be_true",
+      "args": {
+        "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1}}}"
+      },
+      "sandbox": {
+        "network": {
+          "strictAllowlist": "true"
+        }
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"network\":{\"httpProxyPort\":1,\"strictAllowlist\":\"true\"}}}"
+        }
+      }
+    },
+    {
+      "name": "fail_if_unavailable_user_false_kept",
+      "args": {
+        "settings": "{\"sandbox\":{\"failIfUnavailable\":false}}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"failIfUnavailable\":false,\"enabled\":true}}"
+        }
+      }
+    },
+    {
+      "name": "fail_if_unavailable_null_kept",
+      "args": {},
+      "sandbox": {
+        "enabled": true,
+        "failIfUnavailable": null
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":null}}"
+        }
+      }
+    },
+    {
+      "name": "enabled_must_be_true",
+      "args": {},
+      "sandbox": {
+        "enabled": "true"
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":\"true\"}}"
+        }
+      }
+    },
+    {
+      "name": "prototype_keys_skipped",
+      "args": {},
+      "sandbox": {
+        "__proto__": {
+          "x": 1
+        },
+        "constructor": 1,
+        "prototype": 2,
+        "ok": 1
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"ok\":1}}"
+        }
+      }
+    },
+    {
+      "name": "prototype_keys_in_settings_kept",
+      "args": {
+        "settings": "{\"sandbox\":{\"__proto__\":{\"y\":1}},\"__proto__\":{\"z\":2}}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"__proto__\":{\"y\":1},\"enabled\":true,\"failIfUnavailable\":true},\"__proto__\":{\"z\":2}}"
+        }
+      }
+    },
+    {
+      "name": "key_order_sandbox_in_middle",
+      "args": {
+        "settings": "{\"a\":1,\"sandbox\":{\"x\":1},\"b\":2}"
+      },
+      "sandbox": {
+        "y": 2
+      },
+      "result": {
+        "args": {
+          "settings": "{\"a\":1,\"sandbox\":{\"x\":1,\"y\":2},\"b\":2}"
+        }
+      }
+    },
+    {
+      "name": "numbers_normalized_like_js",
+      "args": {
+        "settings": "{\"n\":[1.0,1e2,-0,1E21,12345678901234567890,0.000001,1e-7]}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"n\":[1,100,0,1e+21,12345678901234567000,0.000001,1e-7],\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "integer_keys_first",
+      "args": {
+        "settings": "{\"b\":1,\"10\":2,\"2\":3,\"01\":4,\"-1\":5}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"2\":3,\"10\":2,\"b\":1,\"01\":4,\"-1\":5,\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "duplicate_keys_last_wins",
+      "args": {
+        "settings": "{\"a\":1,\"sandbox\":{\"q\":1},\"a\":2}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"a\":2,\"sandbox\":{\"q\":1,\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    },
+    {
+      "name": "user_sandbox_not_object",
+      "args": {
+        "settings": "{\"sandbox\":[\"x\"],\"k\":1}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true},\"k\":1}"
+        }
+      }
+    },
+    {
+      "name": "option_true",
+      "args": {},
+      "sandbox": true,
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{}}"
+        }
+      }
+    },
+    {
+      "name": "option_string",
+      "args": {},
+      "sandbox": "ab",
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"0\":\"a\",\"1\":\"b\"}}"
+        }
+      }
+    },
+    {
+      "name": "option_array",
+      "args": {},
+      "sandbox": [
+        {
+          "enabled": true
+        }
+      ],
+      "result": {
+        "args": {
+          "settings": "{\"sandbox\":{\"0\":{\"enabled\":true}}}"
+        }
+      }
+    },
+    {
+      "name": "unicode_and_escapes",
+      "args": {
+        "settings": "{\"s\":\"é\\n\\u001f\\\" \"}"
+      },
+      "sandbox": {
+        "enabled": true
+      },
+      "result": {
+        "args": {
+          "settings": "{\"s\":\"é\\n\\u001f\\\" \",\"sandbox\":{\"enabled\":true,\"failIfUnavailable\":true}}"
+        }
+      }
+    }
+  ]
+}

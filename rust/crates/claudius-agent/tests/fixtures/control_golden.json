@@ -1,0 +1,2101 @@
+{
+  "sdkVersion": "0.3.299",
+  "collectMs": 1500,
+  "script": {
+    "on_init": [
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "Bash",
+          "input": {
+            "command": "ls"
+          },
+          "tool_use_id": "toolu_1",
+          "permission_suggestions": [
+            {
+              "type": "addRules",
+              "rules": [
+                {
+                  "toolName": "Bash",
+                  "ruleContent": "ls:*"
+                }
+              ],
+              "behavior": "allow",
+              "destination": "session"
+            }
+          ],
+          "blocked_path": "/tmp/x",
+          "decision_reason": "rule says ask",
+          "title": "Run ls",
+          "display_name": "Bash",
+          "description": "List files",
+          "agent_id": "agent_1"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "mcp__srv__echo",
+          "input": {
+            "msg": "hi"
+          },
+          "tool_use_id": "toolu_2",
+          "mcp_server": {
+            "name": "srv",
+            "source": "sdk",
+            "extra": 1
+          },
+          "decision_reason_type": "rule",
+          "decision_reason_code": "ask_rule",
+          "default_to_no": true,
+          "suppress_always_allow_rule": true,
+          "plugin": "plug@market",
+          "requires_user_interaction": true,
+          "server_prompt": "why",
+          "computer_folder": {
+            "path": "/p",
+            "computer_name": "mac",
+            "extra": 1
+          },
+          "matched_ask_rule": {
+            "source": "userSettings",
+            "tool_name": "Bash",
+            "rule_content": "ls:*"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "Read",
+          "input": {},
+          "decision_reason_type": 5,
+          "decision_reason_code": null,
+          "plugin": 7,
+          "requires_user_interaction": "yes",
+          "server_prompt": false,
+          "computer_folder": {
+            "path": 1,
+            "computer_name": "mac"
+          },
+          "mcp_server": "named",
+          "matched_ask_rule": {
+            "source": "projectSettings"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "Read",
+          "input": {},
+          "computer_folder": {
+            "path": "/p",
+            "computer_name": 3
+          },
+          "mcp_server": {
+            "name": null,
+            "other": 1
+          },
+          "matched_ask_rule": "x",
+          "default_to_no": false
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "Read",
+          "input": {},
+          "computer_folder": [
+            "/p",
+            "mac"
+          ],
+          "mcp_server": [
+            "srv"
+          ],
+          "matched_ask_rule": {
+            "source": null,
+            "tool_name": "T",
+            "rule_content": null
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "Read",
+          "input": {
+            "file_path": "/a"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "deny",
+          "input": {},
+          "tool_use_id": "toolu_3"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "always",
+          "input": {
+            "a": 1
+          },
+          "tool_use_id": "toolu_4",
+          "permission_suggestions": [
+            {
+              "type": "addRules",
+              "rules": [
+                {
+                  "toolName": "Bash",
+                  "ruleContent": "ls:*"
+                }
+              ],
+              "behavior": "allow",
+              "destination": "session"
+            }
+          ]
+        }
+      },
+      {
+        "$send": {
+          "subtype": "can_use_tool",
+          "tool_name": "silent",
+          "input": {}
+        }
+      },
+      {
+        "$send": {
+          "subtype": "hook_callback",
+          "callback_id": "hook_0",
+          "input": {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {
+              "command": "ls"
+            }
+          },
+          "tool_use_id": "toolu_5"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "hook_callback",
+          "callback_id": "hook_0",
+          "input": {
+            "hook_event_name": "PreToolUse"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "hook_callback",
+          "callback_id": "hook_99",
+          "input": {}
+        }
+      },
+      {
+        "$send": {
+          "subtype": "hook_callback",
+          "callback_id": 0,
+          "input": {}
+        }
+      },
+      {
+        "$send": {
+          "subtype": "hook_callback",
+          "input": {}
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+              "protocolVersion": "2025-06-18",
+              "capabilities": {},
+              "clientInfo": {
+                "name": "claude-code",
+                "version": "2"
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+              "name": "echo",
+              "arguments": {
+                "msg": "hi"
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": "call-a",
+            "method": "tools/call",
+            "params": {
+              "name": "echo",
+              "arguments": {
+                "msg": "a"
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "resources/list"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "method": "notifications/initialized"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": null,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 9,
+            "result": {}
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": 5
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "id": 11,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 12,
+            "method": "tools/call",
+            "params": {
+              "name": "nope",
+              "arguments": {}
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 13,
+            "method": "initialize",
+            "params": {
+              "protocolVersion": "2024-11-05",
+              "capabilities": {},
+              "clientInfo": {
+                "name": "c",
+                "version": "1"
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 14,
+            "method": "initialize",
+            "params": {
+              "protocolVersion": "1999-01-01",
+              "capabilities": {},
+              "clientInfo": {
+                "name": "c",
+                "version": "1"
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 15,
+            "method": "initialize"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 16,
+            "method": "tools/call",
+            "params": {
+              "name": "echo",
+              "arguments": {
+                "msg": 5
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 17,
+            "method": "tools/call",
+            "params": {
+              "name": "echo"
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 18,
+            "method": "tools/call",
+            "params": {}
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 1.5,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": true,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 9007199254740992,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 9007199254740991,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": -4,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "ping",
+            "extra": 1
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 22,
+            "method": "ping",
+            "params": null
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 23,
+            "method": "ping",
+            "params": "x"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 24,
+            "method": "ping",
+            "params": {
+              "_meta": {
+                "progressToken": 1.5
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 25,
+            "method": "ping",
+            "params": {
+              "_meta": {
+                "io.modelcontextprotocol/related-task": {
+                  "taskId": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 26,
+            "method": "ping",
+            "params": {
+              "_meta": {
+                "progressToken": "t",
+                "other": 1
+              },
+              "extra": true
+            }
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": {
+            "jsonrpc": "1.0",
+            "id": 27,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": [
+            1
+          ]
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": 5
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": null
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": 5,
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 19,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 20,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "nope",
+          "message": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "ping"
+          }
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "mcp_message",
+          "server_name": "srv",
+          "message": "hello"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "elicitation",
+          "mcp_server_name": "srv",
+          "message": "Need input",
+          "mode": "form",
+          "requested_schema": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              }
+            }
+          },
+          "title": "T",
+          "display_name": "D",
+          "description": "Desc"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "elicitation",
+          "mcp_server_name": "srv",
+          "message": "Sign in",
+          "mode": "url",
+          "url": "https://example.com/auth",
+          "elicitation_id": "el_1"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "elicitation",
+          "message": "?"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "elicitation",
+          "mcp_server_name": "srv",
+          "message": "silent"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "request_user_dialog",
+          "dialog_kind": "confirm",
+          "payload": {
+            "a": 1
+          },
+          "tool_use_id": "toolu_6"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "oauth_token_refresh"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "host_auth_token_refresh"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "remote_control_work_secret",
+          "session_id": "session_abcd"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "ui_copy",
+          "text": "x"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "ui_prompt_read",
+          "text": "x"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "ui_prompt_fill",
+          "text": "x"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "ui_prompt_suggest",
+          "text": "x"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "ui_read_selection",
+          "text": "x"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "remote_tool_call"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "remote_plumbing_call"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "remote_tools_probe"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "remote_tools_reannounce"
+        }
+      },
+      {
+        "$send": {
+          "subtype": "zz_unknown",
+          "a": 1
+        }
+      },
+      {
+        "$send": {
+          "a": 1
+        }
+      },
+      {
+        "$send": {
+          "subtype": 7
+        }
+      },
+      {
+        "$send": {
+          "subtype": null
+        }
+      },
+      {
+        "$send": {
+          "subtype": [
+            "can_use_tool",
+            2
+          ]
+        }
+      },
+      {
+        "$send": {
+          "subtype": [
+            "a",
+            null,
+            [
+              1,
+              null
+            ],
+            {},
+            1.5
+          ]
+        }
+      },
+      {
+        "$send": {
+          "subtype": false
+        }
+      },
+      {
+        "$send": {
+          "subtype": {
+            "a": 1
+          }
+        }
+      },
+      {
+        "type": "control_request",
+        "request_id": "raw_missing"
+      },
+      {
+        "type": "control_request",
+        "request_id": "raw_null",
+        "request": null
+      },
+      {
+        "$collect_ms": 1500
+      },
+      {
+        "$exit": 0
+      }
+    ]
+  },
+  "ids": {
+    "can_use_tool": "cli_0_s0",
+    "can_use_tool_all_fields": "cli_0_s1",
+    "can_use_tool_odd_types": "cli_0_s2",
+    "can_use_tool_odd_shapes": "cli_0_s3",
+    "can_use_tool_null_rule_fields": "cli_0_s4",
+    "can_use_tool_minimal": "cli_0_s5",
+    "can_use_tool_deny": "cli_0_s6",
+    "can_use_tool_always": "cli_0_s7",
+    "can_use_tool_silent": "cli_0_s8",
+    "hook_callback": "cli_0_s9",
+    "hook_callback_no_tool_use_id": "cli_0_s10",
+    "hook_callback_unknown_id": "cli_0_s11",
+    "hook_callback_numeric_id": "cli_0_s12",
+    "hook_callback_missing_id": "cli_0_s13",
+    "mcp_initialize": "cli_0_s14",
+    "mcp_tools_list": "cli_0_s15",
+    "mcp_tools_call": "cli_0_s16",
+    "mcp_tools_call_string_id": "cli_0_s17",
+    "mcp_ping": "cli_0_s18",
+    "mcp_unknown_method": "cli_0_s19",
+    "mcp_notification": "cli_0_s20",
+    "mcp_null_id": "cli_0_s21",
+    "mcp_response_shaped": "cli_0_s22",
+    "mcp_numeric_method": "cli_0_s23",
+    "mcp_no_jsonrpc": "cli_0_s24",
+    "mcp_tools_call_unknown_tool": "cli_0_s25",
+    "mcp_initialize_old_version": "cli_0_s26",
+    "mcp_initialize_unsupported_version": "cli_0_s27",
+    "mcp_initialize_no_params": "cli_0_s28",
+    "mcp_tools_call_bad_args": "cli_0_s29",
+    "mcp_tools_call_no_args": "cli_0_s30",
+    "mcp_tools_call_no_name": "cli_0_s31",
+    "mcp_float_id": "cli_0_s32",
+    "mcp_bool_id": "cli_0_s33",
+    "mcp_unsafe_id": "cli_0_s34",
+    "mcp_max_safe_id": "cli_0_s35",
+    "mcp_negative_id": "cli_0_s36",
+    "mcp_extra_key": "cli_0_s37",
+    "mcp_null_params": "cli_0_s38",
+    "mcp_string_params": "cli_0_s39",
+    "mcp_bad_progress_token": "cli_0_s40",
+    "mcp_bad_related_task": "cli_0_s41",
+    "mcp_ping_with_meta": "cli_0_s42",
+    "mcp_wrong_jsonrpc": "cli_0_s43",
+    "mcp_array_message": "cli_0_s44",
+    "mcp_number_message": "cli_0_s45",
+    "mcp_null_message": "cli_0_s46",
+    "mcp_number_server_name": "cli_0_s47",
+    "mcp_missing_server_name": "cli_0_s48",
+    "mcp_unknown_server": "cli_0_s49",
+    "mcp_no_message": "cli_0_s50",
+    "mcp_string_message": "cli_0_s51",
+    "elicitation_form": "cli_0_s52",
+    "elicitation_url": "cli_0_s53",
+    "elicitation_minimal": "cli_0_s54",
+    "elicitation_silent": "cli_0_s55",
+    "request_user_dialog": "cli_0_s56",
+    "oauth_token_refresh": "cli_0_s57",
+    "host_auth_token_refresh": "cli_0_s58",
+    "remote_control_work_secret": "cli_0_s59",
+    "ui_copy": "cli_0_s60",
+    "ui_prompt_read": "cli_0_s61",
+    "ui_prompt_fill": "cli_0_s62",
+    "ui_prompt_suggest": "cli_0_s63",
+    "ui_read_selection": "cli_0_s64",
+    "remote_tool_call": "cli_0_s65",
+    "remote_plumbing_call": "cli_0_s66",
+    "remote_tools_probe": "cli_0_s67",
+    "remote_tools_reannounce": "cli_0_s68",
+    "unknown_subtype": "cli_0_s69",
+    "missing_subtype": "cli_0_s70",
+    "number_subtype": "cli_0_s71",
+    "null_subtype": "cli_0_s72",
+    "array_subtype": "cli_0_s73",
+    "nested_array_subtype": "cli_0_s74",
+    "bool_subtype": "cli_0_s75",
+    "object_subtype": "cli_0_s76",
+    "missing_request": "raw_missing",
+    "null_request": "raw_null"
+  },
+  "cases": {
+    "bare": {
+      "can_use_tool": {
+        "subtype": "error",
+        "request_id": "cli_0_s0",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_all_fields": {
+        "subtype": "error",
+        "request_id": "cli_0_s1",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_odd_types": {
+        "subtype": "error",
+        "request_id": "cli_0_s2",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_odd_shapes": {
+        "subtype": "error",
+        "request_id": "cli_0_s3",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_null_rule_fields": {
+        "subtype": "error",
+        "request_id": "cli_0_s4",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_minimal": {
+        "subtype": "error",
+        "request_id": "cli_0_s5",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_deny": {
+        "subtype": "error",
+        "request_id": "cli_0_s6",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_always": {
+        "subtype": "error",
+        "request_id": "cli_0_s7",
+        "error": "canUseTool callback is not provided."
+      },
+      "can_use_tool_silent": {
+        "subtype": "error",
+        "request_id": "cli_0_s8",
+        "error": "canUseTool callback is not provided."
+      },
+      "hook_callback": {
+        "subtype": "error",
+        "request_id": "cli_0_s9",
+        "error": "No hook callback found for ID: hook_0"
+      },
+      "hook_callback_no_tool_use_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s10",
+        "error": "No hook callback found for ID: hook_0"
+      },
+      "hook_callback_unknown_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s11",
+        "error": "No hook callback found for ID: hook_99"
+      },
+      "hook_callback_numeric_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s12",
+        "error": "No hook callback found for ID: 0"
+      },
+      "hook_callback_missing_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s13",
+        "error": "No hook callback found for ID: undefined"
+      },
+      "mcp_initialize": {
+        "subtype": "error",
+        "request_id": "cli_0_s14",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_tools_list": {
+        "subtype": "error",
+        "request_id": "cli_0_s15",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_tools_call": {
+        "subtype": "error",
+        "request_id": "cli_0_s16",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_tools_call_string_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s17",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_ping": {
+        "subtype": "error",
+        "request_id": "cli_0_s18",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_unknown_method": {
+        "subtype": "error",
+        "request_id": "cli_0_s19",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_notification": {
+        "subtype": "error",
+        "request_id": "cli_0_s20",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_null_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s21",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_response_shaped": {
+        "subtype": "error",
+        "request_id": "cli_0_s22",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_numeric_method": {
+        "subtype": "error",
+        "request_id": "cli_0_s23",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_no_jsonrpc": {
+        "subtype": "error",
+        "request_id": "cli_0_s24",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_tools_call_unknown_tool": {
+        "subtype": "error",
+        "request_id": "cli_0_s25",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_initialize_old_version": {
+        "subtype": "error",
+        "request_id": "cli_0_s26",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_initialize_unsupported_version": {
+        "subtype": "error",
+        "request_id": "cli_0_s27",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_initialize_no_params": {
+        "subtype": "error",
+        "request_id": "cli_0_s28",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_tools_call_bad_args": {
+        "subtype": "error",
+        "request_id": "cli_0_s29",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_tools_call_no_args": {
+        "subtype": "error",
+        "request_id": "cli_0_s30",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_tools_call_no_name": {
+        "subtype": "error",
+        "request_id": "cli_0_s31",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_float_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s32",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_bool_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s33",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_unsafe_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s34",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_max_safe_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s35",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_negative_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s36",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_extra_key": {
+        "subtype": "error",
+        "request_id": "cli_0_s37",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_null_params": {
+        "subtype": "error",
+        "request_id": "cli_0_s38",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_string_params": {
+        "subtype": "error",
+        "request_id": "cli_0_s39",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_bad_progress_token": {
+        "subtype": "error",
+        "request_id": "cli_0_s40",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_bad_related_task": {
+        "subtype": "error",
+        "request_id": "cli_0_s41",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_ping_with_meta": {
+        "subtype": "error",
+        "request_id": "cli_0_s42",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_wrong_jsonrpc": {
+        "subtype": "error",
+        "request_id": "cli_0_s43",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_array_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s44",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_number_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s45",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_null_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s46",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_number_server_name": {
+        "subtype": "error",
+        "request_id": "cli_0_s47",
+        "error": "SDK MCP server not found: 5"
+      },
+      "mcp_missing_server_name": {
+        "subtype": "error",
+        "request_id": "cli_0_s48",
+        "error": "SDK MCP server not found: undefined"
+      },
+      "mcp_unknown_server": {
+        "subtype": "error",
+        "request_id": "cli_0_s49",
+        "error": "SDK MCP server not found: nope"
+      },
+      "mcp_no_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s50",
+        "error": "SDK MCP server not found: srv"
+      },
+      "mcp_string_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s51",
+        "error": "SDK MCP server not found: srv"
+      },
+      "elicitation_form": {
+        "subtype": "success",
+        "request_id": "cli_0_s52",
+        "response": {
+          "action": "decline"
+        }
+      },
+      "elicitation_url": {
+        "subtype": "success",
+        "request_id": "cli_0_s53",
+        "response": {
+          "action": "decline"
+        }
+      },
+      "elicitation_minimal": {
+        "subtype": "success",
+        "request_id": "cli_0_s54",
+        "response": {
+          "action": "decline"
+        }
+      },
+      "elicitation_silent": {
+        "subtype": "success",
+        "request_id": "cli_0_s55",
+        "response": {
+          "action": "decline"
+        }
+      },
+      "request_user_dialog": null,
+      "oauth_token_refresh": {
+        "subtype": "error",
+        "request_id": "cli_0_s57",
+        "error": "getOAuthToken callback is not provided."
+      },
+      "host_auth_token_refresh": {
+        "subtype": "error",
+        "request_id": "cli_0_s58",
+        "error": "getHostAuthToken callback is not provided."
+      },
+      "remote_control_work_secret": {
+        "subtype": "error",
+        "request_id": "cli_0_s59",
+        "error": "refreshWorkSecret callback is not provided."
+      },
+      "ui_copy": {
+        "subtype": "error",
+        "request_id": "cli_0_s60",
+        "error": "Unsupported control request subtype: ui_copy"
+      },
+      "ui_prompt_read": {
+        "subtype": "error",
+        "request_id": "cli_0_s61",
+        "error": "Unsupported control request subtype: ui_prompt_read"
+      },
+      "ui_prompt_fill": {
+        "subtype": "error",
+        "request_id": "cli_0_s62",
+        "error": "Unsupported control request subtype: ui_prompt_fill"
+      },
+      "ui_prompt_suggest": {
+        "subtype": "error",
+        "request_id": "cli_0_s63",
+        "error": "Unsupported control request subtype: ui_prompt_suggest"
+      },
+      "ui_read_selection": {
+        "subtype": "error",
+        "request_id": "cli_0_s64",
+        "error": "Unsupported control request subtype: ui_read_selection"
+      },
+      "remote_tool_call": null,
+      "remote_plumbing_call": null,
+      "remote_tools_probe": null,
+      "remote_tools_reannounce": null,
+      "unknown_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s69",
+        "error": "Unsupported control request subtype: zz_unknown"
+      },
+      "missing_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s70",
+        "error": "Unsupported control request subtype: undefined"
+      },
+      "number_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s71",
+        "error": "Unsupported control request subtype: 7"
+      },
+      "null_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s72",
+        "error": "Unsupported control request subtype: null"
+      },
+      "array_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s73",
+        "error": "Unsupported control request subtype: can_use_tool,2"
+      },
+      "nested_array_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s74",
+        "error": "Unsupported control request subtype: a,,1,,[object Object],1.5"
+      },
+      "bool_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s75",
+        "error": "Unsupported control request subtype: false"
+      },
+      "object_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s76",
+        "error": "Unsupported control request subtype: [object Object]"
+      },
+      "missing_request": {
+        "subtype": "error",
+        "request_id": "raw_missing",
+        "error": "Cannot read properties of undefined (reading 'subtype')"
+      },
+      "null_request": {
+        "subtype": "error",
+        "request_id": "raw_null",
+        "error": "Cannot read properties of null (reading 'subtype')"
+      }
+    },
+    "wired": {
+      "can_use_tool": {
+        "subtype": "success",
+        "request_id": "cli_0_s0",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "input": {
+              "command": "ls"
+            },
+            "ctx": {
+              "suggestions": [
+                {
+                  "type": "addRules",
+                  "rules": [
+                    {
+                      "toolName": "Bash",
+                      "ruleContent": "ls:*"
+                    }
+                  ],
+                  "behavior": "allow",
+                  "destination": "session"
+                }
+              ],
+              "blockedPath": "/tmp/x",
+              "decisionReason": "rule says ask",
+              "title": "Run ls",
+              "displayName": "Bash",
+              "description": "List files",
+              "toolUseID": "toolu_1",
+              "agentID": "agent_1",
+              "requestId": "cli_0_s0"
+            },
+            "aborted": false
+          },
+          "toolUseID": "toolu_1"
+        }
+      },
+      "can_use_tool_all_fields": {
+        "subtype": "success",
+        "request_id": "cli_0_s1",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "input": {
+              "msg": "hi"
+            },
+            "ctx": {
+              "mcpServer": {
+                "name": "srv",
+                "source": "sdk"
+              },
+              "decisionReasonType": "rule",
+              "decisionReasonCode": "ask_rule",
+              "defaultToNo": true,
+              "suppressAlwaysAllowRule": true,
+              "toolUseID": "toolu_2",
+              "plugin": "plug@market",
+              "requestId": "cli_0_s1",
+              "requiresUserInteraction": true,
+              "serverPrompt": "why",
+              "computerFolder": {
+                "path": "/p",
+                "computer_name": "mac"
+              },
+              "matchedAskRule": {
+                "source": "userSettings",
+                "toolName": "Bash",
+                "ruleContent": "ls:*"
+              }
+            },
+            "aborted": false
+          },
+          "toolUseID": "toolu_2"
+        }
+      },
+      "can_use_tool_odd_types": {
+        "subtype": "success",
+        "request_id": "cli_0_s2",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "input": {},
+            "ctx": {
+              "mcpServer": {},
+              "requestId": "cli_0_s2",
+              "matchedAskRule": {
+                "source": "projectSettings"
+              }
+            },
+            "aborted": false
+          }
+        }
+      },
+      "can_use_tool_odd_shapes": {
+        "subtype": "success",
+        "request_id": "cli_0_s3",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "input": {},
+            "ctx": {
+              "mcpServer": {
+                "name": null
+              },
+              "defaultToNo": false,
+              "requestId": "cli_0_s3",
+              "matchedAskRule": {}
+            },
+            "aborted": false
+          }
+        }
+      },
+      "can_use_tool_null_rule_fields": {
+        "subtype": "success",
+        "request_id": "cli_0_s4",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "input": {},
+            "ctx": {
+              "mcpServer": {},
+              "requestId": "cli_0_s4",
+              "matchedAskRule": {
+                "source": null,
+                "toolName": "T",
+                "ruleContent": null
+              }
+            },
+            "aborted": false
+          }
+        }
+      },
+      "can_use_tool_minimal": {
+        "subtype": "success",
+        "request_id": "cli_0_s5",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "input": {
+              "file_path": "/a"
+            },
+            "ctx": {
+              "requestId": "cli_0_s5"
+            },
+            "aborted": false
+          }
+        }
+      },
+      "can_use_tool_deny": {
+        "subtype": "success",
+        "request_id": "cli_0_s6",
+        "response": {
+          "behavior": "deny",
+          "message": "no toolu_3",
+          "interrupt": true,
+          "toolUseID": "toolu_3"
+        }
+      },
+      "can_use_tool_always": {
+        "subtype": "success",
+        "request_id": "cli_0_s7",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "a": 1
+          },
+          "updatedPermissions": [
+            {
+              "type": "addRules",
+              "rules": [
+                {
+                  "toolName": "Bash",
+                  "ruleContent": "ls:*"
+                }
+              ],
+              "behavior": "allow",
+              "destination": "session"
+            }
+          ],
+          "toolUseID": "toolu_4"
+        }
+      },
+      "can_use_tool_silent": null,
+      "hook_callback": {
+        "subtype": "success",
+        "request_id": "cli_0_s9",
+        "response": {
+          "continue": true,
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "echo": {
+              "input": {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {
+                  "command": "ls"
+                }
+              },
+              "toolUseID": "toolu_5",
+              "aborted": false
+            }
+          }
+        }
+      },
+      "hook_callback_no_tool_use_id": {
+        "subtype": "success",
+        "request_id": "cli_0_s10",
+        "response": {
+          "continue": true,
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "echo": {
+              "input": {
+                "hook_event_name": "PreToolUse"
+              },
+              "toolUseID": null,
+              "aborted": false
+            }
+          }
+        }
+      },
+      "hook_callback_unknown_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s11",
+        "error": "No hook callback found for ID: hook_99"
+      },
+      "hook_callback_numeric_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s12",
+        "error": "No hook callback found for ID: 0"
+      },
+      "hook_callback_missing_id": {
+        "subtype": "error",
+        "request_id": "cli_0_s13",
+        "error": "No hook callback found for ID: undefined"
+      },
+      "mcp_initialize": {
+        "subtype": "success",
+        "request_id": "cli_0_s14",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "protocolVersion": "2025-06-18",
+              "capabilities": {
+                "tools": {
+                  "listChanged": true
+                }
+              },
+              "serverInfo": {
+                "name": "srv",
+                "version": "1.0.0"
+              }
+            },
+            "jsonrpc": "2.0",
+            "id": 1
+          }
+        }
+      },
+      "mcp_tools_list": {
+        "subtype": "success",
+        "request_id": "cli_0_s15",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "tools": [
+                {
+                  "name": "echo",
+                  "description": "Echo the message",
+                  "inputSchema": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "type": "object",
+                    "properties": {
+                      "msg": {
+                        "type": "string",
+                        "description": "text"
+                      }
+                    },
+                    "required": [
+                      "msg"
+                    ]
+                  },
+                  "execution": {
+                    "taskSupport": "forbidden"
+                  }
+                }
+              ]
+            },
+            "jsonrpc": "2.0",
+            "id": 2
+          }
+        }
+      },
+      "mcp_tools_call": {
+        "subtype": "success",
+        "request_id": "cli_0_s16",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "echo:hi"
+                }
+              ]
+            },
+            "jsonrpc": "2.0",
+            "id": 3
+          }
+        }
+      },
+      "mcp_tools_call_string_id": {
+        "subtype": "success",
+        "request_id": "cli_0_s17",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "echo:a"
+                }
+              ]
+            },
+            "jsonrpc": "2.0",
+            "id": "call-a"
+          }
+        }
+      },
+      "mcp_ping": {
+        "subtype": "success",
+        "request_id": "cli_0_s18",
+        "response": {
+          "mcp_response": {
+            "result": {},
+            "jsonrpc": "2.0",
+            "id": 5
+          }
+        }
+      },
+      "mcp_unknown_method": {
+        "subtype": "success",
+        "request_id": "cli_0_s19",
+        "response": {
+          "mcp_response": {
+            "jsonrpc": "2.0",
+            "id": 6,
+            "error": {
+              "code": -32601,
+              "message": "Method not found"
+            }
+          }
+        }
+      },
+      "mcp_notification": {
+        "subtype": "success",
+        "request_id": "cli_0_s20",
+        "response": {
+          "mcp_response": {
+            "jsonrpc": "2.0",
+            "result": {},
+            "id": 0
+          }
+        }
+      },
+      "mcp_null_id": {
+        "subtype": "success",
+        "request_id": "cli_0_s21",
+        "response": {
+          "mcp_response": {
+            "jsonrpc": "2.0",
+            "result": {},
+            "id": 0
+          }
+        }
+      },
+      "mcp_response_shaped": {
+        "subtype": "success",
+        "request_id": "cli_0_s22",
+        "response": {
+          "mcp_response": {
+            "jsonrpc": "2.0",
+            "result": {},
+            "id": 0
+          }
+        }
+      },
+      "mcp_numeric_method": null,
+      "mcp_no_jsonrpc": null,
+      "mcp_tools_call_unknown_tool": {
+        "subtype": "success",
+        "request_id": "cli_0_s25",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "MCP error -32602: Tool nope not found"
+                }
+              ],
+              "isError": true
+            },
+            "jsonrpc": "2.0",
+            "id": 12
+          }
+        }
+      },
+      "mcp_initialize_old_version": {
+        "subtype": "success",
+        "request_id": "cli_0_s26",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "protocolVersion": "2024-11-05",
+              "capabilities": {
+                "tools": {
+                  "listChanged": true
+                }
+              },
+              "serverInfo": {
+                "name": "srv",
+                "version": "1.0.0"
+              }
+            },
+            "jsonrpc": "2.0",
+            "id": 13
+          }
+        }
+      },
+      "mcp_initialize_unsupported_version": {
+        "subtype": "success",
+        "request_id": "cli_0_s27",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "protocolVersion": "2025-11-25",
+              "capabilities": {
+                "tools": {
+                  "listChanged": true
+                }
+              },
+              "serverInfo": {
+                "name": "srv",
+                "version": "1.0.0"
+              }
+            },
+            "jsonrpc": "2.0",
+            "id": 14
+          }
+        }
+      },
+      "mcp_initialize_no_params": {
+        "subtype": "success",
+        "request_id": "cli_0_s28",
+        "response": {
+          "mcp_response": {
+            "jsonrpc": "2.0",
+            "id": 15,
+            "error": {
+              "code": -32603,
+              "message": "[\n  {\n    \"expected\": \"object\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"params\"\n    ],\n    \"message\": \"Invalid input: expected object, received undefined\"\n  }\n]"
+            }
+          }
+        }
+      },
+      "mcp_tools_call_bad_args": {
+        "subtype": "success",
+        "request_id": "cli_0_s29",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "MCP error -32602: Input validation error: Invalid arguments for tool echo: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"msg\"\n    ],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"
+                }
+              ],
+              "isError": true
+            },
+            "jsonrpc": "2.0",
+            "id": 16
+          }
+        }
+      },
+      "mcp_tools_call_no_args": {
+        "subtype": "success",
+        "request_id": "cli_0_s30",
+        "response": {
+          "mcp_response": {
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "MCP error -32602: Input validation error: Invalid arguments for tool echo: [\n  {\n    \"expected\": \"object\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected object, received undefined\"\n  }\n]"
+                }
+              ],
+              "isError": true
+            },
+            "jsonrpc": "2.0",
+            "id": 17
+          }
+        }
+      },
+      "mcp_tools_call_no_name": {
+        "subtype": "success",
+        "request_id": "cli_0_s31",
+        "response": {
+          "mcp_response": {
+            "jsonrpc": "2.0",
+            "id": 18,
+            "error": {
+              "code": -32603,
+              "message": "[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"params\",\n      \"name\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]"
+            }
+          }
+        }
+      },
+      "mcp_float_id": null,
+      "mcp_bool_id": null,
+      "mcp_unsafe_id": null,
+      "mcp_max_safe_id": {
+        "subtype": "success",
+        "request_id": "cli_0_s35",
+        "response": {
+          "mcp_response": {
+            "result": {},
+            "jsonrpc": "2.0",
+            "id": 9007199254740991
+          }
+        }
+      },
+      "mcp_negative_id": {
+        "subtype": "success",
+        "request_id": "cli_0_s36",
+        "response": {
+          "mcp_response": {
+            "result": {},
+            "jsonrpc": "2.0",
+            "id": -4
+          }
+        }
+      },
+      "mcp_extra_key": null,
+      "mcp_null_params": null,
+      "mcp_string_params": null,
+      "mcp_bad_progress_token": null,
+      "mcp_bad_related_task": null,
+      "mcp_ping_with_meta": {
+        "subtype": "success",
+        "request_id": "cli_0_s42",
+        "response": {
+          "mcp_response": {
+            "result": {},
+            "jsonrpc": "2.0",
+            "id": 26
+          }
+        }
+      },
+      "mcp_wrong_jsonrpc": null,
+      "mcp_array_message": {
+        "subtype": "success",
+        "request_id": "cli_0_s44",
+        "response": {
+          "mcp_response": {
+            "jsonrpc": "2.0",
+            "result": {},
+            "id": 0
+          }
+        }
+      },
+      "mcp_number_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s45",
+        "error": "Cannot use 'in' operator to search for 'method' in 5"
+      },
+      "mcp_null_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s46",
+        "error": "Cannot use 'in' operator to search for 'method' in null"
+      },
+      "mcp_number_server_name": {
+        "subtype": "error",
+        "request_id": "cli_0_s47",
+        "error": "SDK MCP server not found: 5"
+      },
+      "mcp_missing_server_name": {
+        "subtype": "error",
+        "request_id": "cli_0_s48",
+        "error": "SDK MCP server not found: undefined"
+      },
+      "mcp_unknown_server": {
+        "subtype": "error",
+        "request_id": "cli_0_s49",
+        "error": "SDK MCP server not found: nope"
+      },
+      "mcp_no_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s50",
+        "error": "Cannot use 'in' operator to search for 'method' in undefined"
+      },
+      "mcp_string_message": {
+        "subtype": "error",
+        "request_id": "cli_0_s51",
+        "error": "Cannot use 'in' operator to search for 'method' in hello"
+      },
+      "elicitation_form": {
+        "subtype": "success",
+        "request_id": "cli_0_s52",
+        "response": {
+          "action": "accept",
+          "content": {
+            "req": {
+              "serverName": "srv",
+              "message": "Need input",
+              "mode": "form",
+              "requestedSchema": {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  }
+                }
+              },
+              "title": "T",
+              "displayName": "D",
+              "description": "Desc"
+            },
+            "requestId": "cli_0_s52",
+            "aborted": false
+          }
+        }
+      },
+      "elicitation_url": {
+        "subtype": "success",
+        "request_id": "cli_0_s53",
+        "response": {
+          "action": "accept",
+          "content": {
+            "req": {
+              "serverName": "srv",
+              "message": "Sign in",
+              "mode": "url",
+              "url": "https://example.com/auth",
+              "elicitationId": "el_1"
+            },
+            "requestId": "cli_0_s53",
+            "aborted": false
+          }
+        }
+      },
+      "elicitation_minimal": {
+        "subtype": "success",
+        "request_id": "cli_0_s54",
+        "response": {
+          "action": "accept",
+          "content": {
+            "req": {
+              "message": "?"
+            },
+            "requestId": "cli_0_s54",
+            "aborted": false
+          }
+        }
+      },
+      "elicitation_silent": null,
+      "request_user_dialog": null,
+      "oauth_token_refresh": {
+        "subtype": "error",
+        "request_id": "cli_0_s57",
+        "error": "getOAuthToken callback is not provided."
+      },
+      "host_auth_token_refresh": {
+        "subtype": "error",
+        "request_id": "cli_0_s58",
+        "error": "getHostAuthToken callback is not provided."
+      },
+      "remote_control_work_secret": {
+        "subtype": "error",
+        "request_id": "cli_0_s59",
+        "error": "refreshWorkSecret callback is not provided."
+      },
+      "ui_copy": {
+        "subtype": "error",
+        "request_id": "cli_0_s60",
+        "error": "Unsupported control request subtype: ui_copy"
+      },
+      "ui_prompt_read": {
+        "subtype": "error",
+        "request_id": "cli_0_s61",
+        "error": "Unsupported control request subtype: ui_prompt_read"
+      },
+      "ui_prompt_fill": {
+        "subtype": "error",
+        "request_id": "cli_0_s62",
+        "error": "Unsupported control request subtype: ui_prompt_fill"
+      },
+      "ui_prompt_suggest": {
+        "subtype": "error",
+        "request_id": "cli_0_s63",
+        "error": "Unsupported control request subtype: ui_prompt_suggest"
+      },
+      "ui_read_selection": {
+        "subtype": "error",
+        "request_id": "cli_0_s64",
+        "error": "Unsupported control request subtype: ui_read_selection"
+      },
+      "remote_tool_call": null,
+      "remote_plumbing_call": null,
+      "remote_tools_probe": null,
+      "remote_tools_reannounce": null,
+      "unknown_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s69",
+        "error": "Unsupported control request subtype: zz_unknown"
+      },
+      "missing_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s70",
+        "error": "Unsupported control request subtype: undefined"
+      },
+      "number_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s71",
+        "error": "Unsupported control request subtype: 7"
+      },
+      "null_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s72",
+        "error": "Unsupported control request subtype: null"
+      },
+      "array_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s73",
+        "error": "Unsupported control request subtype: can_use_tool,2"
+      },
+      "nested_array_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s74",
+        "error": "Unsupported control request subtype: a,,1,,[object Object],1.5"
+      },
+      "bool_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s75",
+        "error": "Unsupported control request subtype: false"
+      },
+      "object_subtype": {
+        "subtype": "error",
+        "request_id": "cli_0_s76",
+        "error": "Unsupported control request subtype: [object Object]"
+      },
+      "missing_request": {
+        "subtype": "error",
+        "request_id": "raw_missing",
+        "error": "Cannot read properties of undefined (reading 'subtype')"
+      },
+      "null_request": {
+        "subtype": "error",
+        "request_id": "raw_null",
+        "error": "Cannot read properties of null (reading 'subtype')"
+      }
+    }
+  }
+}

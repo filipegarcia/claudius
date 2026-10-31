@@ -1,0 +1,19 @@
+# gitleaks config for the pre-commit secret scan (.githooks/pre-commit).
+# Keeps every default rule; only adds the allowlist below.
+[extend]
+useDefault = true
+
+# The Rust port's redaction and transcript-reader golden corpora exist to feed
+# secret-shaped strings through the redactor, so they trip ~60 rules by design.
+# Every value is synthetic: hand-written placeholders built on the fixed
+# `a1B2c3D4e5F6g7H8i9J0` seed string, plus a mulberry32 fuzzer with a fixed
+# seed (see rust/scripts/redact-golden.mjs). Scoped to exactly these files so a
+# real credential anywhere else, including in any other golden fixture, still
+# blocks the commit.
+[[allowlists]]
+description = "Synthetic secrets in the Rust redaction/reader golden corpora"
+paths = [
+  '''^rust/crates/claudius-agent/tests/fixtures/redact_golden\.json$''',
+  '''^rust/crates/claudius-agent/tests/fixtures/reader_golden\.json$''',
+  '''^rust/scripts/reader-golden\.mjs$''',
+]

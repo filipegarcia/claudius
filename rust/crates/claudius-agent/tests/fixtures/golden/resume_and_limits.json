@@ -1,0 +1,150 @@
+{
+  "sdkVersion": "0.3.299",
+  "case": "resume_and_limits",
+  "spec": {
+    "resume": "11111111-1111-4111-8111-111111111111",
+    "resumeSessionAt": "22222222-2222-4222-8222-222222222222",
+    "resumeDropsTurn": "33333333-3333-4333-8333-333333333333",
+    "forkSession": true,
+    "model": "claude-sonnet-5",
+    "fallbackModel": "claude-haiku-4-5",
+    "agent": "reviewer",
+    "agents": {
+      "reviewer": {
+        "description": "Reviews code",
+        "prompt": "Review."
+      }
+    },
+    "effort": "high",
+    "maxTurns": 7,
+    "maxBudgetUsd": 2.5,
+    "taskBudget": {
+      "total": 50000
+    },
+    "betas": [
+      "context-1m-2025-08-07"
+    ],
+    "disallowedTools": [
+      "WebSearch"
+    ],
+    "tools": [
+      "Bash",
+      "Read"
+    ],
+    "skills": [
+      "pdf",
+      "docx"
+    ],
+    "persistSession": false,
+    "strictMcpConfig": true,
+    "permissionPromptToolName": "mcp__perm__ask",
+    "systemPrompt": "You are a custom prompt.",
+    "title": "Golden",
+    "extraArgs": {
+      "replay-user-messages": null,
+      "custom-flag": "-dash-value"
+    },
+    "thinking": {
+      "type": "enabled",
+      "budgetTokens": 4096,
+      "display": "summarized"
+    }
+  },
+  "baseEnv": {
+    "PATH": "/usr/bin:/bin",
+    "HOME": "/golden/home",
+    "LANG": "en_US.UTF-8",
+    "NODE_OPTIONS": "--max-old-space-size=64",
+    "DEBUG": "1",
+    "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
+    "CLAUDE_CODE_QUESTION_EXTENDED": "1"
+  },
+  "argv": [
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--input-format",
+    "stream-json",
+    "--max-thinking-tokens=4096",
+    "--thinking-display=summarized",
+    "--effort=high",
+    "--max-turns=7",
+    "--max-budget-usd=2.5",
+    "--task-budget=50000",
+    "--model=claude-sonnet-5",
+    "--agent=reviewer",
+    "--betas=context-1m-2025-08-07",
+    "--permission-prompt-tool=mcp__perm__ask",
+    "--resume=11111111-1111-4111-8111-111111111111",
+    "--allowedTools=Skill(pdf),Skill(docx)",
+    "--disallowedTools=WebSearch",
+    "--tools=Bash,Read",
+    "--strict-mcp-config",
+    "--fallback-model=claude-haiku-4-5",
+    "--fork-session",
+    "--resume-session-at=22222222-2222-4222-8222-222222222222",
+    "--resume-drops-turn=33333333-3333-4333-8333-333333333333",
+    "--no-session-persistence",
+    "--replay-user-messages",
+    "--custom-flag=-dash-value"
+  ],
+  "env": {
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
+    "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+    "CLAUDE_CODE_QUESTION_EXTENDED": "1",
+    "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+    "HOME": "/golden/home",
+    "LANG": "en_US.UTF-8",
+    "PATH": "/usr/bin:/bin"
+  },
+  "initialize": {
+    "subtype": "initialize",
+    "systemPrompt": [
+      "You are a custom prompt."
+    ],
+    "agents": {
+      "reviewer": {
+        "description": "Reviews code",
+        "prompt": "Review."
+      }
+    },
+    "title": "Golden",
+    "skills": [
+      "pdf",
+      "docx"
+    ]
+  },
+  "stdin": [
+    {
+      "request_id": "$ID0",
+      "type": "control_request",
+      "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+          "You are a custom prompt."
+        ],
+        "agents": {
+          "reviewer": {
+            "description": "Reviews code",
+            "prompt": "Review."
+          }
+        },
+        "title": "Golden",
+        "skills": [
+          "pdf",
+          "docx"
+        ]
+      }
+    },
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "hello"
+      },
+      "parent_tool_use_id": null,
+      "session_id": ""
+    }
+  ]
+}

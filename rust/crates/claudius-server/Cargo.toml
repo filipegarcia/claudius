@@ -1,0 +1,35 @@
+[package]
+name = "claudius-server"
+description = "Claudius HTTP/SSE server (axum) — the Rust front door; proxies unported routes to Next"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "claudius"
+path = "src/main.rs"
+
+[dependencies]
+claudius-agent.workspace = true
+claudius-core.workspace = true
+anyhow.workspace = true
+axum.workspace = true
+bytes.workspace = true
+futures.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+chrono.workspace = true
+rusqlite.workspace = true
+tempfile.workspace = true
