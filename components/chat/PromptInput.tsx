@@ -31,7 +31,11 @@ import {
   computeListContinuation,
   isListLine,
 } from "@/lib/shared/markdown-list";
-import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import {
+  invisibleStripNeedsReview,
+  rebaseRangesThroughStrip,
+  stripInvisibleUnicode,
+} from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
 import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
 import { flushPendingDraft, type PendingDraft } from "@/lib/client/pending-draft";
@@ -1035,13 +1039,18 @@ export function PromptInput({
     // remove zero-width space, word joiner or bidi controls, so a draft of
     // *only* invisible characters would otherwise read as non-empty.
     //
-    // Claude Code 2.1.277 parity: a prompt that needed cleaning is never
-    // forwarded silently-cleaned — the cleaned text is put back in the
-    // composer for review and the user presses Send again to confirm
-    // (steganographic prompt injection hides instructions the user never
-    // saw, so they get to see exactly what will be sent).
-    const { cleaned: strippedValue, removedCount } = stripInvisibleUnicode(value);
-    if (removedCount > 0) {
+    // Claude Code 2.1.277 parity: a prompt that needed cleaning was put back
+    // in the composer for review and the user pressed Send again to confirm.
+    //
+    // CC 2.1.316 parity — "Fixed prompts containing invisible characters
+    // needing a second Enter to send; plain prompts now send cleaned on the
+    // first Enter, and commands still wait for review". Only a prompt that is
+    // empty once cleaned, had a bidi control removed (it may have reordered
+    // what the user saw), or is a command (`/…`, `!…`, an exit word) is still
+    // held; any other prompt goes out cleaned right away with a footer
+    // notice saying how many characters were removed.
+    const { cleaned: strippedValue, removedCount, bidiCount } = stripInvisibleUnicode(value);
+    if (removedCount > 0 && invisibleStripNeedsReview(strippedValue, bidiCount)) {
       setValue(strippedValue);
       onNotice?.(
         `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"} from your prompt — review and press Send again.`,
@@ -1062,8 +1071,13 @@ export function PromptInput({
     // merged spans (CC 2.1.292: overlapping pastes stay one pasted block).
     // Spans get the same bullet conversion as the wire text when that's how
     // they appear in it.
+    // CC 2.1.316 — when characters were stripped, the paste ranges (recorded
+    // against the raw `value`) are carried over to the cleaned text that is
+    // actually sent, so spans and a failed-send restore line up with it.
+    const rawRanges = [...pasteRangesRef.current];
+    const sentRanges = removedCount > 0 ? rebaseRangesThroughStrip(rawRanges, value) : rawRanges;
     const inlinePastes = inlinePastesInText(
-      pastedSpans(pasteRangesRef.current, value).map((span) => {
+      pastedSpans(sentRanges, strippedValue).map((span) => {
         const md = bulletsToMarkdown(span);
         return wire.includes(md.trim()) ? md : span;
       }),
@@ -1072,7 +1086,7 @@ export function PromptInput({
     // Snapshot what's leaving, in the composer's own representation (`•`
     // bullets, `[Image #N]` tokens, paste ranges), so an undelivered send can
     // be put back exactly as typed — `inline_pastes` metadata included.
-    const sent = { sessionId, text: value, images, pasteRanges: [...pasteRangesRef.current] };
+    const sent = { sessionId, text: strippedValue, images, pasteRanges: sentRanges };
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
     setSendFailed(null);
@@ -1085,10 +1099,18 @@ export function PromptInput({
       });
     } else if (!outcome.ok) {
       // Synchronous refusal — nothing was cleared yet; put the paste ranges
-      // back and just say why.
-      pasteRangesRef.current = sent.pasteRanges;
+      // back and just say why. The composer still holds the raw text, so the
+      // raw (un-rebased) ranges go back.
+      pasteRangesRef.current = rawRanges;
       setSendFailed({ sessionId, text: sendFailedCopy(outcome.error, "restore") });
       return;
+    }
+    // CC 2.1.316 — the prompt left cleaned; say so (engine wording).
+    if (removedCount > 0) {
+      noteInvisibleStrip(
+        removedCount,
+        `Removed ${removedCount} invisible character${removedCount === 1 ? "" : "s"} from your prompt`,
+      );
     }
     // Clear right away rather than after the outcome: a fast follow-up
     // keystroke must not land in the message that just left.
@@ -1264,12 +1286,13 @@ export function PromptInput({
   /**
    * Surface the transient "removed N hidden character(s)" footer notice
    * (Claude Code 2.1.280 [VSCode] parity) and auto-dismiss it after a few
-   * seconds. No-op when nothing was actually stripped.
+   * seconds. No-op when nothing was actually stripped. `text` overrides the
+   * default copy (CC 2.1.316: the sent-cleaned prompt's "from your prompt").
    */
-  function noteInvisibleStrip(removedCount: number) {
+  function noteInvisibleStrip(removedCount: number, text?: string) {
     if (removedCount <= 0) return;
     if (invisibleNoticeTimerRef.current != null) clearTimeout(invisibleNoticeTimerRef.current);
-    setInvisibleNotice(`Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"}`);
+    setInvisibleNotice(text ?? `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"}`);
     invisibleNoticeTimerRef.current = setTimeout(() => setInvisibleNotice(null), 4000);
   }
 
