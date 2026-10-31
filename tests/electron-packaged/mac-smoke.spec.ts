@@ -11,7 +11,7 @@
  * Run by the release pipeline's `macos-arm64-smoke` + `macos-x64-smoke` jobs:
  * the zip is extracted under a temp dir, quarantine is stripped, and
  * `CLAUDIUS_PACKAGED_BINARY` points at `Claudius.app/Contents/MacOS/Claudius`.
- * The x64 job runs on the same arm64 macos-14 runner; macOS auto-uses Rosetta
+ * The x64 job runs on the same arm64 macos-15 runner; macOS auto-uses Rosetta
  * to translate the x64 Electron container, so the whole process — including
  * `ELECTRON_RUN_AS_NODE`'s embedded server and its better-sqlite3 dlopen —
  * runs as x64. That's a partial-fidelity check (Rosetta ≠ native Intel) but

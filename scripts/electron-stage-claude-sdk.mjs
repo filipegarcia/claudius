@@ -9,7 +9,7 @@
  * `@anthropic-ai/claude-agent-sdk` ships its `claude` executable in per-platform
  * optional deps (`@anthropic-ai/claude-agent-sdk-<os>-<arch>`). `bun install` on
  * an arm64 host only resolves the optional matching the HOST platform — so a
- * `macos-14` runner gets `claude-agent-sdk-darwin-arm64` and never the
+ * `macos-15` runner gets `claude-agent-sdk-darwin-arm64` and never the
  * `-darwin-x64` package. When the release CROSS-builds the x64 macOS app on that
  * arm64 runner, `scripts/electron-stage-standalone.mjs` finds no darwin-x64
  * package to copy, and its hard-fail guard only checks the HOST arch — so the
