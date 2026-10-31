@@ -21,3 +21,44 @@ const DOTTED_VERSION = /\b((?:claude-)?(?:opus|sonnet|haiku|fable|mythos)-\d+)\.
 export function normalizeDottedModelVersion(model: string): string {
   return model.replace(DOTTED_VERSION, "$1-$2");
 }
+
+/**
+ * CC 2.1.316 parity — "[VSCode] Fixed the missing Effort slider, Ultracode
+ * switch and model name when the model setting has the [1m] tag, such as
+ * opus[1m]".
+ *
+ * The engine's `supportedModels()` drops the `[1m]` tag from a row's `value`
+ * where it has no effect (Opus 5.5 is natively 1M), so a session on
+ * `opus[1m]` matched no row by exact `value` and the picker lost the Effort
+ * row, the Ultracode chip/toggle, the Fast toggle and the row's check mark.
+ *
+ * Lookup order: exact `value` first (so when both `opus` and `opus[1m]` are
+ * listed, each keeps its own row). Only when `current` carries the `[1m]`
+ * tag, fall back to a case-insensitive match with the tag stripped from both
+ * sides, then to the row whose `resolvedModel` equals `current` without the
+ * tag (`claude-opus-5-5[1m]` → the `opus` row resolving to
+ * `claude-opus-5-5`). Untagged ids keep today's exact-only behaviour. Only
+ * the lookup changes; what's persisted / sent to the engine is untouched.
+ */
+const ONE_M_TAG = /\[1m\]$/i;
+
+export function stripOneMTag(model: string): string {
+  return model.trim().replace(ONE_M_TAG, "");
+}
+
+export function findModelEntry<T extends { value: string; resolvedModel?: string }>(
+  models: readonly T[] | null | undefined,
+  current: string | null | undefined,
+): T | null {
+  if (!models || !current) return null;
+  const exact = models.find((m) => m.value === current);
+  if (exact) return exact;
+  if (!ONE_M_TAG.test(current.trim())) return null;
+  const bare = stripOneMTag(current).toLowerCase();
+  const byValue = models.find((m) => stripOneMTag(m.value).toLowerCase() === bare);
+  if (byValue) return byValue;
+  return (
+    models.find((m) => !!m.resolvedModel && stripOneMTag(m.resolvedModel).toLowerCase() === bare) ??
+    null
+  );
+}

@@ -27,6 +27,7 @@ import {
   isCustomAdvisor,
   prettyModelName,
 } from "@/lib/shared/advisor";
+import { findModelEntry } from "@/lib/shared/model-id";
 
 /**
  * Mirror of `ModelInfo` from `@anthropic-ai/claude-agent-sdk`. We don't
@@ -38,9 +39,9 @@ type ModelInfo = {
   value: string;
   /**
    * Canonical wire model id this row's `value` resolves to (e.g. 'sonnet' →
-   * 'claude-sonnet-5'). Added in SDK 0.3.197 (`sdk.d.ts`); type-only here —
-   * `isCurrent` highlighting below already does exact `value` matching, see
-   * run-notes for 0.3.197.
+   * 'claude-sonnet-5'). Added in SDK 0.3.197 (`sdk.d.ts`). `activeModel` /
+   * `isCurrent` match on `value` first; CC 2.1.316 falls back to this field
+   * for a `[1m]`-tagged current model (see `findModelEntry`).
    */
   resolvedModel?: string;
   displayName: string;
@@ -301,7 +302,14 @@ export function ModelPicker({
   // row stable: when the user picks a different model the optimistic update
   // in `setModel` (use-session) refreshes `currentModel` and the chips
   // re-render to that model's `supportedEffortLevels`.
-  const activeModel = models?.find((m) => m.value === currentModel) ?? null;
+  //
+  // CC 2.1.316 parity — "[VSCode] Fixed the missing Effort slider, Ultracode
+  // switch and model name when the model setting has the [1m] tag, such as
+  // opus[1m]". The engine lists Opus 5.5 as plain `opus`, so an exact match
+  // on `opus[1m]` found nothing and every row gated on `activeModel` (Effort,
+  // Ultracode, Fast, the effort header's model name) vanished.
+  // `findModelEntry` falls back to a `[1m]`-insensitive match.
+  const activeModel = findModelEntry(models, currentModel);
 
   // "More models" — collapsible section that live-probes full versioned
   // model IDs via /api/models/probe. State is lazily fetched the first time
@@ -408,7 +416,9 @@ export function ModelPicker({
             </li>
           )}
           {models.map((m) => {
-            const isCurrent = m.value === currentModel;
+            // CC 2.1.316 — the row `activeModel` resolved to (identity, so
+            // only one row is checked even if two would match loosely).
+            const isCurrent = activeModel !== null && m === activeModel;
             return (
               <li key={m.value}>
                 <button

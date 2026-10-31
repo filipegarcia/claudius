@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils/cn";
 import { fmtElapsedSec, fmtPath } from "./format";
 import { ModelPicker } from "./ModelPicker";
 import { type AdvisorChoice, badgeAdvisorLabel, prettyModelName } from "@/lib/shared/advisor";
+import { findModelEntry } from "@/lib/shared/model-id";
 import { useMaxEffortLevel } from "@/lib/client/useMaxEffortLevel";
 import { EFFORT_WAIT_NOTE } from "@/lib/shared/effort-wait-note";
 import {
@@ -183,7 +184,15 @@ export function SessionCard({
   // list has loaded for the bound session. Read by the bare-`/fast` listener
   // below, alongside the live model / toggle, through refs so the listener's
   // effect doesn't re-subscribe on every render.
-  const fastModelsRef = useRef<{ sessionId: string | null; values: Set<string> } | null>(null);
+  // CC 2.1.316 parity — "[VSCode] Fixed the missing Effort slider, Ultracode
+  // switch and model name when the model setting has the [1m] tag, such as
+  // opus[1m]". Keeps the catalog rows themselves (not a Set of fast-capable
+  // values) and resolves the live model the same way the picker does
+  // (`findModelEntry`), so `opus[1m]` against a listed `opus` still claims.
+  const fastModelsRef = useRef<{
+    sessionId: string | null;
+    models: { value: string; resolvedModel?: string; supportsFastMode?: boolean }[];
+  } | null>(null);
   const fastLiveRef = useRef({ sessionId, model, canToggleFast: !!onChangeFast });
   useEffect(() => {
     fastLiveRef.current = { sessionId, model, canToggleFast: !!onChangeFast };
@@ -207,7 +216,7 @@ export function SessionCard({
         const live = fastLiveRef.current;
         if (!live.canToggleFast) return;
         const known = fastModelsRef.current;
-        if (known && known.sessionId === live.sessionId && !(live.model && known.values.has(live.model))) {
+        if (known && known.sessionId === live.sessionId && !findModelEntry(known.models, live.model)?.supportsFastMode) {
           return;
         }
       }
@@ -321,7 +330,7 @@ export function SessionCard({
           onModelsLoaded={(models) => {
             fastModelsRef.current = {
               sessionId,
-              values: new Set(models.filter((m) => m.supportsFastMode).map((m) => m.value)),
+              models,
             };
           }}
           onToggleFast={
