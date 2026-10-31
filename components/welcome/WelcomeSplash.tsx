@@ -241,16 +241,14 @@ export function WelcomeSplash() {
         <WorkspaceForm
           onCancel={() => setShowForm(false)}
           onIconUpload={async (id, file) => uploadIcon(id, file)}
-          onSubmit={async (input) => {
-            const r = await create(input);
+          onSubmit={(input) => create(input)}
+          onCreated={(ws) => {
             // `create` already selects the new workspace (cookie + activeId).
             // Hard-navigate to its chat root so the server resolves the new
             // cwd for the SDK child process, same as the WorkspaceSwitcher's
-            // select flow.
-            if (r.ok && typeof window !== "undefined") {
-              window.location.href = `/${r.workspace.id}`;
-            }
-            return r;
+            // select flow. Runs after the form's icon upload, so the
+            // navigation can't abort it.
+            window.location.href = `/${ws.id}`;
           }}
         />
       )}

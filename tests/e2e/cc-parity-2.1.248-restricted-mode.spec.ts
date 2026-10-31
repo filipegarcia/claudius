@@ -93,6 +93,11 @@ test.describe("restricted mode (CC 2.1.248 parity)", () => {
       const list = (await listRes.json()) as { workspaces: { id: string; name: string }[] };
       expect(list.workspaces.map((w) => w.name)).toContain(wsName);
       createdId = list.workspaces.find((w) => w.name === wsName)?.id ?? null;
+      expect(createdId).toBeTruthy();
+
+      // Creating a workspace must land in it — staying on the previous
+      // workspace's URL kept its chat mounted with the old tab strip.
+      await expect(page).toHaveURL(new RegExp(`/${createdId}(?:[/?#]|$)`), { timeout: 15_000 });
 
       if (createdId) {
         await page.request.delete(`${baseURL}/api/workspaces/${createdId}`).catch(() => {});

@@ -626,10 +626,15 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
         <WorkspaceForm
           onCancel={() => setShowForm(null)}
           onIconUpload={async (id, file) => uploadIcon(id, file)}
-          onSubmit={async (input) => {
-            const r = await create(input);
-            if (r.ok) setShowForm(null);
-            return r;
+          onSubmit={(input) => create(input)}
+          onCreated={(ws) => {
+            // `create` already selected the new workspace (cookie +
+            // activeId), but the page is still mounted on the previous
+            // workspace's URL — its ChatSurface keeps the old tab strip and
+            // SDK cwd. Hard-navigate to the new workspace's chat root, same
+            // as `select` does, so everything re-resolves server-side.
+            setShowForm(null);
+            window.location.href = `/${ws.id}`;
           }}
         />
       )}

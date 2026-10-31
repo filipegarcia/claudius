@@ -28,12 +28,37 @@ type Props = {
     defaults?: WorkspaceDefaults;
   }) => Promise<{ ok: true; workspace: Workspace } | { ok: false; error: string }>;
   onIconUpload?: (id: string, file: File) => Promise<boolean>;
+  /**
+   * New-workspace only. Fires once the workspace exists AND any pending icon
+   * upload has finished — the place for callers to navigate into it. Doing
+   * the navigation inside `onSubmit` instead would race the icon upload
+   * (a hard navigation aborts the in-flight request). If the icon upload
+   * fails the form stays open with an error; closing it then still fires
+   * `onCreated`, because the workspace exists and is already selected.
+   */
+  onCreated?: (workspace: Workspace) => void;
   onDelete?: () => Promise<void>;
 };
 
 type PendingImage = { file: File; previewUrl: string };
 
-export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDelete }: Props) {
+export function WorkspaceForm({
+  initial,
+  onCancel,
+  onSubmit,
+  onIconUpload,
+  onCreated,
+  onDelete,
+}: Props) {
+  // Set once a new workspace has been created, so a retry after a failed icon
+  // upload doesn't create a duplicate, and closing the form still hands off
+  // to `onCreated`.
+  const createdRef = useRef<Workspace | null>(null);
+  const close = () => {
+    const created = createdRef.current;
+    if (created && onCreated) onCreated(created);
+    else onCancel();
+  };
   const [name, setName] = useState(initial?.name ?? "");
   const [rootPath, setRootPath] = useState(initial?.rootPath ?? "");
   const [iconKind, setIconKind] = useState<"letter" | "image">(initial?.icon.kind ?? "letter");
@@ -261,16 +286,19 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
         .filter(Boolean);
       if (dirs.length > 0) defaults.additionalDirectories = dirs;
       else delete defaults.additionalDirectories;
-      const r = await onSubmit({
-        name: name.trim(),
-        rootPath: rootPath.trim(),
-        icon,
-        defaults,
-      });
+      const r = createdRef.current
+        ? ({ ok: true, workspace: createdRef.current } as const)
+        : await onSubmit({
+            name: name.trim(),
+            rootPath: rootPath.trim(),
+            icon,
+            defaults,
+          });
       if (!r.ok) {
         setError(r.error);
         return;
       }
+      if (!initial) createdRef.current = r.workspace;
       if (pendingImage && onIconUpload) {
         const ok = await onIconUpload(r.workspace.id, pendingImage.file);
         if (!ok) {
@@ -278,6 +306,7 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
           return;
         }
       }
+      if (!initial) onCreated?.(r.workspace);
     } finally {
       setSubmitting(false);
     }
@@ -288,7 +317,7 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
       <Overlay
         title={initial ? `Edit ${initial.name}` : "New workspace"}
         subtitle="Workspace"
-        onClose={onCancel}
+        onClose={close}
         width={520}
       >
         <div className="space-y-3 px-4 py-4">
@@ -743,7 +772,7 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
             </button>
           )}
           <button
-            onClick={onCancel}
+            onClick={close}
             className="ml-auto rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1.5 text-xs hover:bg-[var(--panel)]"
           >
             Cancel
