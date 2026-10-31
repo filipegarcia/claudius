@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, GitMerge, Loader2, RefreshCw, ShieldAlert, Sparkles, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, GitMerge, Loader2, Maximize2, RefreshCw, ShieldAlert, Sparkles, TriangleAlert, X } from "lucide-react";
 import { useUpdater } from "@/lib/client/use-updater";
 import { useElectronUpdater } from "@/lib/client/useElectronUpdater";
 import { ResolveWithClaudeModal } from "@/components/updater/ResolveWithClaudeModal";
 import { UpdateModal } from "@/components/updater/UpdateModal";
+import type { ClaudiusUpdaterStatus } from "@/lib/shared/electron";
 
 // ── 24-hour conflict-banner dismissal ──────────────────────────────────────
 //
@@ -403,6 +404,77 @@ function WebUpdaterBanner() {
 }
 
 /**
+ * The update modal folded into a bottom-right pill. Keeps the download
+ * percentage in view while the user works, and one click brings the full
+ * dialog (changelog, steps, Restart) back.
+ */
+function MinimizedUpdatePill({
+  status,
+  version,
+  onRestore,
+  onClose,
+}: {
+  status: ClaudiusUpdaterStatus;
+  version: string | null;
+  onRestore: () => void;
+  onClose: () => void;
+}) {
+  const percent = status.kind === "downloading" ? status.percent : null;
+  const busy = status.kind === "downloading" || status.kind === "installing";
+  const ready = status.kind === "downloaded";
+  const label = ready
+    ? "Update ready"
+    : percent !== null
+      ? `Downloading ${percent}%`
+      : status.kind === "installing"
+        ? "Installing…"
+        : version
+          ? `Claudius ${version}`
+          : "Update available";
+  return (
+    <div
+      data-testid="updater-minimized-pill"
+      className="fixed bottom-4 right-4 z-50 flex w-60 flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel)] shadow-2xl"
+    >
+      <div className="flex items-center gap-1 py-1 pl-1 pr-1">
+        <button
+          onClick={onRestore}
+          title="Restore update window"
+          aria-label="Restore update window"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left text-xs hover:bg-[var(--panel-2)]"
+        >
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--accent)]" />
+          ) : ready ? (
+            <RefreshCw className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+          )}
+          <span className="truncate font-medium">{label}</span>
+          <Maximize2 className="ml-auto h-3 w-3 shrink-0 text-[var(--muted)]" />
+        </button>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          title="Close (the banner keeps the update one click away)"
+          className="rounded p-1 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {percent !== null && (
+        <div className="h-0.5 w-full bg-[var(--panel-2)]">
+          <div
+            className="h-full bg-[var(--accent)] transition-[width] duration-300"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Electron-only banner — drives off `electron-updater`'s status events
  * forwarded via the IPC bridge. The packaged app does not have a git
  * checkout to compare against; instead the updater downloads a signed
@@ -414,7 +486,9 @@ function ElectronUpdaterBanner({
   state: ReturnType<typeof useElectronUpdater> & object;
 }) {
   const { status, check, download, apply, openAppManagementSettings } = state;
-  const [modalOpen, setModalOpen] = useState(false);
+  // closed → the strip alone; open → the floating modal; minimized → the modal
+  // folded into a corner pill that keeps progress visible and restores on click.
+  const [modal, setModal] = useState<"closed" | "open" | "minimized">("closed");
   // `downloading` carries only a percent, so remember the version the
   // `available`/`installing`/`downloaded` events named to keep the modal
   // header stable across the whole flow.
@@ -480,7 +554,7 @@ function ElectronUpdaterBanner({
           )}
           <span className="font-medium">{label}</span>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => setModal("open")}
             data-testid="updater-open-modal"
             className={`ml-auto flex items-center gap-1 rounded border px-2 py-0.5 ${
               busy
@@ -492,13 +566,22 @@ function ElectronUpdaterBanner({
             {ready ? "Restart and install" : busy ? "View progress" : "View update"}
           </button>
         </div>
-        {modalOpen && (
+        {modal === "open" && (
           <UpdateModal
             status={status}
             version={version}
             onDownload={download}
             onApply={apply}
-            onClose={() => setModalOpen(false)}
+            onClose={() => setModal("closed")}
+            onMinimize={() => setModal("minimized")}
+          />
+        )}
+        {modal === "minimized" && (
+          <MinimizedUpdatePill
+            status={status}
+            version={version}
+            onRestore={() => setModal("open")}
+            onClose={() => setModal("closed")}
           />
         )}
       </>
