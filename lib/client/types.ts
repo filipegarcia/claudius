@@ -333,6 +333,14 @@ export type SystemEntry = {
    */
   priority?: "low" | "medium" | "high" | "immediate";
   /**
+   * CC 2.1.316 — only for `kind === "notification"`: the engine's `color`
+   * when it names a tone the pill maps (`warning` amber, `error` red), which
+   * then wins over the priority tone. The engine sends some `immediate`
+   * notices as warnings (the Opus 4.8 fast-mode deprecation), which the
+   * priority alone would paint red.
+   */
+  notificationColor?: "warning" | "error";
+  /**
    * CC 2.1.217 — only for `kind === "info"` carrying an SDK
    * `system/informational` message: its render level, used to tone the pill
    * (notice gray, suggestion sky, warning amber). `info`-level lines are
@@ -1012,10 +1020,16 @@ export type ChatState = {
    * A third variant, "model-switch" (CC 2.1.218 parity), fires when a model
    * switch changes fast-mode *capability* — see `FastModeNoticePanel`'s doc
    * and `Session.setModel`'s `fastModeNowSupported`.
+   *
+   * A fourth, "deprecation" (CC 2.1.316 parity — "Deprecated fast mode for
+   * Opus 4.8 as of October 30, 2026; it will be removed on November 30,
+   * 2026…"), carries the engine's notice text when fast mode is turned on
+   * from the picker on Opus 4.8.
    */
   fastModeNotice:
     | { uuid: string; kind: "cooldown" | "recovered"; reason?: string }
     | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    | { uuid: string; kind: "deprecation"; text: string }
     | null;
   /**
    * Transient toast for a rejected `/model` switch. Mirrors the Claude Code
@@ -1044,6 +1058,8 @@ export type ChatState = {
     /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
     model: string;
     reason: "chat_command" | "auto";
+    /** CC 2.1.316 — the engine's unknown-model warning (`/model <id>` only). */
+    unrecognizedModelWarning?: string;
   } | null;
   /**
    * CC 2.1.299 parity — transient notice shown when a model switch took the
@@ -1056,6 +1072,18 @@ export type ChatState = {
     uuid: string;
     /** Display name of the model that doesn't support auto mode. */
     model: string;
+  } | null;
+  /**
+   * CC 2.1.314 parity — transient notice shown when the session refused a
+   * permission-mode switch: the pill shows `mode` (still in use) and this
+   * says the switch to `requested` didn't happen, with the engine's reason.
+   * See `ModeChangeRefusedNoticePanel`.
+   */
+  modeChangeRefusedNotice: {
+    uuid: string;
+    requested: PermissionMode;
+    mode: PermissionMode;
+    reason: string;
   } | null;
   /**
    * Transient toast shown when the server automatically disabled the advisor
@@ -1089,6 +1117,13 @@ export type ChatState = {
   streamStatus: StreamStatus;
   /** True if older history exists above what's currently loaded. */
   hasMoreAbove: boolean;
+  /**
+   * CC 2.1.316 parity — "[Cloud sessions] Added a 'Catching up…' line that
+   * shows while a cloud or Remote Control session you switch back to is
+   * still bringing its messages up to date". True from a switch-back / boot
+   * resume until the session's history replay finishes (`replay_done`).
+   */
+  catchingUp: boolean;
   /** True while a loadOlder() request is in flight. */
   loadingOlder: boolean;
   /** Latest payload from a TodoWrite tool_use — the agent's current task list. */
@@ -1395,7 +1430,8 @@ export type ChatActions = {
    * Routed through `applyFlagSettings({ fastMode })` server-side. Orthogonal to
    * effort: unlike `setUltracode` it does NOT move the effort mirror.
    */
-  setFast(enabled: boolean): Promise<void>;
+  /** `model` (CC 2.1.316): the picker's resolved id, for the Opus 4.8 deprecation notice. */
+  setFast(enabled: boolean, model?: string): Promise<void>;
   /**
    * Set the per-session "Advisor" model — the SDK escalates to this model
    * for stronger judgment mid-turn. Routed through
@@ -1540,6 +1576,8 @@ export type ChatActions = {
   dismissChatCommandModelNotice(): void;
   /** Dismiss the auto-mode-off-on-model-switch notice. Client-side only. */
   dismissAutoModeOffNotice(): void;
+  /** Dismiss the refused-permission-mode-switch notice. Client-side only. */
+  dismissModeChangeRefusedNotice(): void;
   /** Dismiss the advisor-auto-disabled notice. Client-side only. */
   dismissAdvisorDisabledNotice(): void;
   /**

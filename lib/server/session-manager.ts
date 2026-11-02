@@ -350,7 +350,8 @@ export class SessionManager {
    * every message. This rebuilds it under the SAME id, resumed from its own
    * transcript (the `restartInPlace` path), then closes the old instance's
    * SSE streams so open tabs reconnect to the new one. The new session's
-   * `start()` drains anything left in the persisted queue.
+   * `start()` drains anything left in the persisted queue (CC 2.1.316 —
+   * except rows the user stopped behind, which stay queued).
    *
    * Returns the live session unchanged when it isn't dead, and `gone` when
    * the id isn't live. Concurrent callers share one rebuild. Capped at

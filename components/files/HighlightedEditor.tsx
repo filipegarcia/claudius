@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Editor from "react-simple-code-editor";
 import { ensureHighlighter, highlightSync, languageForPath } from "@/lib/client/shiki";
+import { isLetterKey } from "@/lib/client/key-match";
 
 type Props = {
   /** Workspace-relative path of the file — used to pick a grammar. */
@@ -123,8 +124,12 @@ function readOnlyKeyDown(
     onKeyDown?.(e);
     if (e.defaultPrevented) return;
     const mod = e.metaKey || e.ctrlKey;
-    const k = e.key.toLowerCase();
-    if (e.key === "Enter" || e.key === "Backspace" || e.key === "Delete" || (mod && (k === "z" || k === "y"))) {
+    if (
+      e.key === "Enter" ||
+      e.key === "Backspace" ||
+      e.key === "Delete" ||
+      (mod && (isLetterKey(e, "z") || isLetterKey(e, "y")))
+    ) {
       e.preventDefault();
       return;
     }

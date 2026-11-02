@@ -26,8 +26,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!body?.mode || !MODES.includes(body.mode as PermissionMode)) {
     return NextResponse.json({ error: "invalid mode" }, { status: 400 });
   }
-  await session.setPermissionMode(body.mode as PermissionMode);
-  return NextResponse.json({ ok: true, mode: body.mode });
+  // CC 2.1.314: answer with the mode actually in use (coercions included),
+  // and 409 + the engine's reason when it refused the switch.
+  const result = await session.setPermissionMode(body.mode as PermissionMode);
+  if (result.refused) {
+    return NextResponse.json({ ok: false, mode: result.mode, refused: result.refused }, { status: 409 });
+  }
+  return NextResponse.json({ ok: true, mode: result.mode });
 }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {

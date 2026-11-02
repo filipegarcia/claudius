@@ -117,6 +117,8 @@ import {
   removeByUuid as removeQueuedByUuid,
   updateByUuid as updateQueuedByUuid,
   moveByUuid as moveQueuedByUuid,
+  holdAll as holdAllQueued,
+  releaseHolds as releaseQueuedHolds,
   type QueuedMessageRow,
 } from "./queued-messages-db";
 import type { QueuedMessageMeta } from "@/lib/shared/events";
@@ -141,7 +143,12 @@ import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import { readCronNextFireAt, type SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
-import { findModelInfo, shouldLeaveAutoForModel } from "@/lib/shared/permission-modes";
+import {
+  findModelInfo,
+  shouldLeaveAutoForModel,
+  type SetPermissionModeResult,
+} from "@/lib/shared/permission-modes";
+import { unknownModelWarning } from "@/lib/shared/model-recognition";
 import {
   readSettings,
   writeSettings,
@@ -151,7 +158,7 @@ import {
 } from "./settings";
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
-import { hasUltrathinkKeyword } from "@/lib/shared/ultrathink-keyword";
+import { hasUltrathinkKeyword, resolveUltrathinkDisabled } from "@/lib/shared/ultrathink-keyword";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -1125,6 +1132,15 @@ type PendingPlan = {
  * Exported for unit testing — pure over one event, worth pinning down
  * separately from the Session lifecycle.
  */
+/**
+ * The SDK's own "can't reach the engine" rejections, as opposed to the
+ * engine answering a control request with an error (a refusal). CC 2.1.314:
+ * `setPermissionMode` only rolls back on a real refusal.
+ */
+export function isTransportClosedError(message: string): boolean {
+  return /query closed before response|transport is not ready|transport closed|process exited|aborted/i.test(message);
+}
+
 export function shouldBufferEvent(event: ServerEvent): boolean {
   if (event.type === "queue:updated" || event.type === "holder_changed") return false;
   // `usage_snapshot` is also a SNAPSHOT (cumulative totals, not a log entry) —
@@ -1897,6 +1913,14 @@ export class Session {
   title?: string;
   private permissionMode: PermissionMode;
   /**
+   * Bumped on every `permissionMode` write after construction, so a refused
+   * `setPermissionMode` only rolls back if nothing wrote the mode during its
+   * await (CC 2.1.314).
+   */
+  private permissionModeSeq = 0;
+  /** Serializes `setPermissionMode` calls (CC 2.1.314, see there). */
+  private permissionModeChain: Promise<unknown> = Promise.resolve();
+  /**
    * CC 2.1.309 — a title set via `rename()` whose SDK `renameSession` failed
    * (no JSONL yet). Re-sent at the next turn boundary so the CLI and other
    * sessions see the user's name instead of a generated one.
@@ -1972,6 +1996,21 @@ export class Session {
    * different account than the one the session is using).
    */
   private envOverride: { [envVar: string]: string | undefined } | null = null;
+
+  /**
+   * CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
+   * the ultrathink keyword off". Resolved once per `start()` (so a restart or
+   * resume re-reads it) from the env the engine is handed plus the settings
+   * `env` blocks (`resolveUltrathinkDisabled`); when set, `sendInput` skips
+   * the ultrathink reminder.
+   *
+   * Known limitation: the user layer is always Claudius's own user-scope
+   * settings (`readSettings("user")`). Under an account profile the engine
+   * runs with `CLAUDE_CONFIG_DIR` pointed at the profile's config dir, so it
+   * reads ITS user settings instead — a variable set only in one of the two
+   * user files can disagree with the engine until this follows that dir.
+   */
+  private ultrathinkDisabled = false;
 
   /**
    * Epoch ms of the last completed (or in-flight) recap firing. Backs the
@@ -2938,6 +2977,17 @@ export class Session {
     const envOverride = activeProfile ? await buildEnvForProfile(activeProfile) : null;
     // Freeze for off-band queries (recap) — see `envOverride` field doc.
     this.envOverride = envOverride;
+    // CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
+    // the ultrathink keyword off". Same env the engine ends up with: the
+    // query env plus each settings scope's `env` block (user < project <
+    // local); restricted sessions count the query env only. See
+    // `resolveUltrathinkDisabled`.
+    this.ultrathinkDisabled = await resolveUltrathinkDisabled({
+      queryEnv: buildQueryEnv(envOverride, this.restrictedMode),
+      restricted: Boolean(this.restrictedMode),
+      userSettings,
+      readScope: (scope) => readSettings(scope, this.cwd),
+    });
 
     // Cache the effective advisor on `this` so the client can prime its
     // optimistic mirror via GET /api/sessions/[id]/advisor — the SDK's
@@ -3523,7 +3573,21 @@ export class Session {
     // run. `flushQueueIfIdle` guards on `getStatus() === "idle"`, so if a
     // resumed turn is somehow already running we'll skip and the result-
     // handler drain picks it up later.
-    void this.flushQueueIfIdle().catch(() => {});
+    //
+    // CC 2.1.316 parity — "Self-hosted runner: Fixed a message sent while
+    // Claude was working being answered after a Stop, once the session's
+    // process had been replaced": rows the user stopped behind stay queued
+    // (`unlessHeld`), just as the replaced Session would have left them.
+    void this.drainQueueOnStart().catch(() => {});
+  }
+
+  /**
+   * The drain at the end of `start()` (see the comment there). CC 2.1.316
+   * parity — `unlessHeld`: a head the user stopped behind (`interrupt`)
+   * stays queued, so a replacement Session never answers it on its own.
+   */
+  private drainQueueOnStart(): Promise<void> {
+    return this.flushQueueIfIdle({ unlessHeld: true });
   }
 
   private startJsonlWatcher(): void {
@@ -4130,6 +4194,7 @@ export class Session {
     // the plan. Returning the setMode as part of the allow lets the SDK
     // perform the transition atomically and the tool returns success.
     this.permissionMode = "acceptEdits";
+    this.permissionModeSeq++;
     // `updatedInput` is REQUIRED on the allow branch even though sdk.d.ts
     // marks it optional — the SDK's runtime Zod validator rejects
     // `undefined` with "Invalid input: expected record, received undefined"
@@ -4323,7 +4388,13 @@ export class Session {
     // The block is appended by the existing `takePendingReminders` drain in
     // both branches, so it rides THIS turn (same call ordering as the goal
     // reminder).
-    const ultrathinkBody = ultrathinkReminderBody(text, opts?.inlinePastes);
+    //
+    // CC 2.1.316 parity — "Added CLAUDE_CODE_DISABLE_ULTRATHINK, which turns
+    // the ultrathink keyword off": with the variable set (see
+    // `ultrathinkDisabled`), the keyword is plain text and no reminder rides.
+    const ultrathinkBody = this.ultrathinkDisabled
+      ? null
+      : ultrathinkReminderBody(text, opts?.inlinePastes);
     if (ultrathinkBody) queueReminder(this, "ultrathink-prose", ultrathinkBody);
 
     // Mid-turn user inject nudge (Claude Code TUI parity, feature 37). When
@@ -5234,6 +5305,26 @@ export class Session {
    */
   async interrupt(): Promise<{ stillQueued: string[] }> {
     if (!this.query) return { stillQueued: [] };
+    // CC 2.1.316 parity — "Self-hosted runner: Fixed a message sent while
+    // Claude was working being answered after a Stop, once the session's
+    // process had been replaced". Stop leaves queued messages in place and
+    // this Session won't drain them (only a successful turn does), but a
+    // replacement Session — dead-process restart, account switch, idle-reaper
+    // revival, server restart — drains the persisted queue at the end of
+    // `start()`. Mark what's queued behind the stopped turn as held so that
+    // drain leaves it alone. The hold lasts until a turn here ends in success
+    // (a message sent after the Stop queues behind the held rows, it doesn't
+    // release them) or the user sends a held row explicitly (Send now /
+    // send-all). Status is read before any await; a DB failure must never
+    // stop the interrupt itself from going out.
+    if (this.getStatus() !== "idle") {
+      try {
+        await holdAllQueued(this.cwd, this.id);
+        this.queueCache = this.queueCache.map((r) => ({ ...r, heldByStop: true }));
+      } catch {
+        // best-effort — worst case is the pre-2.1.316 behaviour
+      }
+    }
     const receipt = await this.query.interrupt().catch(() => undefined);
     return { stillQueued: receipt?.still_queued ?? [] };
   }
@@ -5256,10 +5347,22 @@ export class Session {
    * which would misdescribe a capability kick-out; the engine already tells
    * the model on its side ("<model> doesn't support auto mode").
    */
-  async setPermissionMode(
+  setPermissionMode(
     mode: PermissionMode,
     opts: { skipAutoExitReminder?: boolean } = {},
-  ): Promise<void> {
+  ): Promise<SetPermissionModeResult> {
+    // CC 2.1.314: run switches one at a time, so each one's rollback target
+    // (`prev`) is a mode the engine already answered for. Two quick refused
+    // switches could otherwise roll back onto the first, also-refused pick.
+    const run = this.permissionModeChain.then(() => this.applyPermissionMode(mode, opts));
+    this.permissionModeChain = run.catch(() => undefined);
+    return run;
+  }
+
+  private async applyPermissionMode(
+    mode: PermissionMode,
+    opts: { skipAutoExitReminder?: boolean },
+  ): Promise<SetPermissionModeResult> {
     // Restricted mode refuses bypassPermissions — coerce before anything else
     // so the lockdown holds regardless of what the client requested.
     mode = this.coerceRestrictedMode(mode);
@@ -5308,7 +5411,37 @@ export class Session {
     // above — and gate on the *transition* so a redundant
     // `setPermissionMode("auto")` while already in auto can't re-fire.
     const wasAuto = this.permissionMode === "auto";
+    const prev = this.permissionMode;
+    const seq = ++this.permissionModeSeq;
     this.permissionMode = mode;
+    // CC 2.1.314 parity — "[Cloud sessions] Fixed the permission mode picker
+    // staying on Auto after a running … session refused the switch; it now
+    // shows the mode in use and tells you". The engine answers a refused
+    // `set_permission_mode` with an error control response, and
+    // `Query.setPermissionMode` rejects. That rejection used to be dropped,
+    // so `mode_changed` broadcast the requested mode to every tab while the
+    // engine kept the old one. Now roll back and report the refusal.
+    if (this.query) {
+      try {
+        await this.query.setPermissionMode(mode);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        // A dead or closing session can't answer at all ("Query closed
+        // before response received"). That isn't a refusal: keep the pick,
+        // as before, so the restart (`getRebuildOpts`) carries it.
+        if (!this.isDead() && !this.done && !isTransportClosedError(reason)) {
+          // Only undo our own write: plan acceptance may have written the
+          // mode during the await.
+          if (seq === this.permissionModeSeq) {
+            this.permissionMode = prev;
+            this.broadcast({ type: "mode_changed", mode: prev });
+          }
+          return { mode: this.permissionMode, refused: { requested: mode, reason } };
+        }
+      }
+    }
+    // Reminders only once the engine took the switch — a refused switch
+    // didn't leave plan or auto.
     if (!wasPlan && mode === "plan") {
       const state: Record<string, unknown> = await getSessionState(this.cwd, this.id).catch(
         () => ({}),
@@ -5321,7 +5454,6 @@ export class Session {
     if (wasAuto && mode !== "auto" && !opts.skipAutoExitReminder) {
       queueReminder(this, "auto-mode-exit", autoModeExitReminderBody());
     }
-    if (this.query) await this.query.setPermissionMode(mode).catch(() => {});
     this.broadcast({
       type: "mode_changed",
       mode,
@@ -5331,8 +5463,9 @@ export class Session {
     // against the `auto` just written — do it now (after our own
     // `mode_changed`, so the `default` one broadcasts last).
     if (mode === "auto" && (this.model ?? this.sdkModel) !== autoCheckedModel) {
-      await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel);
+      await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel, undefined, { insideModeSwitch: true });
     }
+    return { mode: this.permissionMode };
   }
 
   getPermissionMode(): PermissionMode {
@@ -5388,11 +5521,19 @@ export class Session {
   private async leaveAutoIfModelUnsupported(
     model: string | undefined,
     models?: readonly ModelInfo[],
+    opts: { insideModeSwitch?: boolean } = {},
   ): Promise<string | undefined> {
     if (this.permissionMode !== "auto" || !model) return undefined;
     const info = models ? findModelInfo(models, model) : await this.modelCatalogInfo(model);
     if (!shouldLeaveAutoForModel(this.permissionMode, info)) return undefined;
-    await this.setPermissionMode("default", { skipAutoExitReminder: true });
+    // From inside a running mode switch, apply directly: queueing behind the
+    // switch that's waiting on us would deadlock the serialized chain.
+    const switched = opts.insideModeSwitch
+      ? await this.applyPermissionMode("default", { skipAutoExitReminder: true })
+      : await this.setPermissionMode("default", { skipAutoExitReminder: true });
+    // The engine refused to leave auto: the session is still in auto, so
+    // there is no "auto mode is off" to announce.
+    if (switched.refused) return undefined;
     return info?.displayName || model;
   }
 
@@ -5757,7 +5898,10 @@ export class Session {
   async setModel(
     model?: string,
     source: "picker" | "chat_command" = "picker",
-  ): Promise<{ ok: true; model?: string } | { ok: false; error: string; model?: string }> {
+  ): Promise<
+    | { ok: true; model?: string; unrecognizedModelWarning?: string; unrecognizedModelWarningId?: string }
+    | { ok: false; error: string; model?: string }
+  > {
     // Forward the pick to the active SDK query and surface its rejection
     // instead of swallowing. Previously a `.catch(() => {})` discarded
     // failures, so the picker would close and the optimistic UI would claim
@@ -5843,12 +5987,27 @@ export class Session {
     const autoModeOffFor = models
       ? await this.leaveAutoIfModelUnsupported(model ?? this.sdkModel, models)
       : undefined;
+    // CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
+    // recognized by this version and auto-compact will assume a 200K context
+    // window". The engine only warns from its own terminal `/model`; Claudius
+    // runs `/model <id>` itself, so it warns here (same catalog fetch as
+    // above) for a chat-command switch to an id it can't recognize.
+    const unrecognizedModelWarning =
+      source === "chat_command" ? await this.unrecognizedModelWarningFor(model, models) : null;
+    // One id per warning, on both the broadcast and the POST result, so the
+    // client shows each warning at most once — an SSE blip replaying this
+    // event, or the response landing after it, can't resurrect a dismissed
+    // one.
+    const warning = unrecognizedModelWarning
+      ? { unrecognizedModelWarning, unrecognizedModelWarningId: randomUUID() }
+      : {};
     this.broadcast({
       type: "model_changed",
       model,
       source,
       ...(fastModeNowSupported !== undefined ? { fastModeNowSupported } : {}),
       ...(autoModeOffFor ? { autoModeOffFor } : {}),
+      ...warning,
     });
 
     // Auto-disable the advisor when the model changes. The advisor tool
@@ -5886,7 +6045,37 @@ export class Session {
       });
     }
 
-    return { ok: true, model };
+    return { ok: true, model, ...warning };
+  }
+
+  /**
+   * CC 2.1.316 — the engine's unknown-model warning for a `/model <id>`
+   * switch, or `null`. Gates read the env the engine sees (`process.env`
+   * under the settings files' `env` blocks) and the layered settings
+   * (user < project < local) for `autoCompactEnabled` / `autoCompactWindow` /
+   * `modelSettings`, and `modelOverrides` (whose keys / values count as
+   * recognized ids; shallow merge — the highest layer's whole map wins, as
+   * in the engine). Best-effort: a settings read failure just means fewer
+   * gates, never a failed switch.
+   */
+  private async unrecognizedModelWarningFor(
+    model: string | undefined,
+    models: ModelInfo[] | undefined,
+  ): Promise<string | null> {
+    if (!model) return null;
+    const layers = await Promise.all(
+      (["user", "project", "local"] as const).map((scope) =>
+        readSettings(scope, this.cwd).catch(() => ({}) as ClaudeSettings),
+      ),
+    );
+    const merged: Record<string, unknown> = {};
+    const env: Record<string, string | undefined> = { ...process.env };
+    for (const layer of layers) {
+      const { env: layerEnv, ...rest } = layer as Record<string, unknown>;
+      Object.assign(merged, rest);
+      if (layerEnv && typeof layerEnv === "object") Object.assign(env, layerEnv);
+    }
+    return unknownModelWarning({ model, models, env, settings: merged });
   }
 
   /**
@@ -8002,6 +8191,13 @@ export class Session {
     fromGoal?: boolean;
   }): Promise<string> {
     await this.loadQueueIfNeeded();
+    // CC 2.1.316 parity — a fresh message does NOT end a Stop's hold on the
+    // rows ahead of it (see `interrupt`). Releasing here would start no drain,
+    // so the held row would just be answered at the next process replacement
+    // — the original bug one hop later. The fresh row waits behind the held
+    // ones exactly as it does in a never-replaced Session; holds clear only on
+    // a successful turn (`drainQueueAfterSuccess`) or an explicit Send now /
+    // send-all.
     const uuid = input.uuid ?? randomUUID();
     const row = await enqueueTail(this.cwd, {
       sessionId: this.id,
@@ -8130,8 +8326,16 @@ export class Session {
    *
    * Guarded by `isDraining` to prevent two concurrent callers from popping
    * twice in one boundary (see the field comment).
+   *
+   * CC 2.1.316 parity — "Self-hosted runner: Fixed a message sent while
+   * Claude was working being answered after a Stop, once the session's
+   * process had been replaced". `opts.unlessHeld` (the `start()` call only)
+   * leaves the queue intact when its head is held by a Stop (`interrupt`);
+   * every other drain behaves as before. Holds clear only on the next
+   * successful turn (`drainQueueAfterSuccess`); Send now / send-all send a
+   * held row regardless. A fresh enqueue leaves them in place.
    */
-  private async flushQueueIfIdle(): Promise<void> {
+  private async flushQueueIfIdle(opts?: { unlessHeld?: boolean }): Promise<void> {
     if (this.done) return;
     if (this.isDraining) return;
     if (this.getStatus() !== "idle") return;
@@ -8143,7 +8347,7 @@ export class Session {
       // could have flipped us back to running between the guard above and
       // the popHead below.
       if (this.getStatus() !== "idle") return;
-      const head = await popQueueHead(this.cwd, this.id);
+      const head = await popQueueHead(this.cwd, this.id, opts?.unlessHeld ? { unlessHeld: true } : undefined);
       if (!head) return;
       this.queueCache = this.queueCache.filter((r) => r.uuid !== head.uuid);
       this.broadcastQueue();
@@ -8162,6 +8366,37 @@ export class Session {
     } finally {
       this.isDraining = false;
     }
+  }
+
+  /**
+   * CC 2.1.316 parity — clear any Stop hold on this session's queue (see
+   * `interrupt`). Called only from `drainQueueAfterSuccess`, right before
+   * the drain that the successful turn starts — never on its own, since a
+   * release with no drain behind it just leaves the held row to be answered
+   * by the next replacement Session. The cache mirrors the DB's flag (loaded
+   * from it, and updated by `interrupt`), so nothing is written when nothing
+   * is held.
+   */
+  private async releaseQueueHolds(): Promise<void> {
+    await this.loadQueueIfNeeded();
+    if (!this.queueCache.some((r) => r.heldByStop)) return;
+    try {
+      await releaseQueuedHolds(this.cwd, this.id);
+    } catch {
+      return; // keep the cache in step with the DB, which still holds them
+    }
+    this.queueCache = this.queueCache.map((r) => (r.heldByStop ? { ...r, heldByStop: false } : r));
+  }
+
+  /**
+   * The drain after a turn that ended in success. CC 2.1.316 parity — a
+   * successful turn ends any Stop hold first (`releaseQueueHolds`), so the
+   * queue then drains exactly as it does in a Session that was never
+   * replaced.
+   */
+  private async drainQueueAfterSuccess(): Promise<void> {
+    await this.releaseQueueHolds();
+    await this.flushQueueIfIdle();
   }
 
   /**
@@ -9585,7 +9820,7 @@ export class Session {
               () => {},
             );
             void todosSettled.then(() =>
-              this.flushQueueIfIdle().catch(() => {
+              this.drainQueueAfterSuccess().catch(() => {
                 // drain failures are non-fatal; the next idle transition
                 // will retry.
               }),

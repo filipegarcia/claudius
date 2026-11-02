@@ -35,7 +35,14 @@ const SYNTAX_HINTS = [
 ];
 
 export default function PermissionsPage() {
-  const { rules, loading, error, updateRules, updateBlockReadsOutsideWorkingDirectories } = usePermissions();
+  const {
+    rules,
+    loading,
+    error,
+    updateRules,
+    updateBlockReadsOutsideWorkingDirectories,
+    updateBlockWritesOutsideWorkingDirectories,
+  } = usePermissions();
   const [scope, setScope] = useState<Scope>("project");
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
   // CC 2.1.246 parity — the "Auto mode" tab only exists in account ("user")
@@ -196,6 +203,32 @@ export default function PermissionsPage() {
                         Refuse Read/Grep/Glob/LSP file access outside this session&apos;s working
                         directories, in every permission mode. Enabled in any scope applies
                         everywhere.
+                      </p>
+                    </span>
+                  </label>
+                  {/* SDK 0.3.314 — write-side twin
+                      (permissions.blockWritesOutsideWorkingDirectories):
+                      Write/Edit/NotebookEdit outside the working
+                      directories; no allow rule lifts it. */}
+                  <label className="mt-3 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      data-testid="block-writes-outside-working-dirs"
+                      checked={rules[scope].blockWritesOutsideWorkingDirectories}
+                      disabled={loading}
+                      onChange={(e) =>
+                        void updateBlockWritesOutsideWorkingDirectories(scope, e.target.checked)
+                      }
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-medium text-[var(--foreground)]">
+                        Block writes outside working directories
+                      </span>
+                      <p className="mt-0.5 text-[10px] text-[var(--muted)]">
+                        Refuse Write/Edit/NotebookEdit file access outside this session&apos;s
+                        working directories, in every permission mode. No allow rule lifts it.
+                        Enabled in any scope applies everywhere.
                       </p>
                     </span>
                   </label>

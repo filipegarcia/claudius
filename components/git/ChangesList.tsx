@@ -16,6 +16,7 @@ import {
 import type { GitFileChange } from "@/lib/server/git";
 import { cn } from "@/lib/utils/cn";
 import { FilePathContextMenu } from "@/components/files/FilePathContextMenu";
+import { isLetterKey } from "@/lib/client/key-match";
 
 export type DiffSelection = {
   path: string;
@@ -429,7 +430,7 @@ function Group({
                         (e.metaKey || e.ctrlKey) &&
                         !e.shiftKey &&
                         !e.altKey &&
-                        e.key.toLowerCase() === "c"
+                        isLetterKey(e, "c")
                       ) {
                         onCopyPath(f.path);
                       }

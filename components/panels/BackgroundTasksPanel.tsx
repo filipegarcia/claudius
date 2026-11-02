@@ -155,7 +155,7 @@ type Props = {
   /** Whether fast mode is on — shown as a SessionCard badge. */
   fastMode?: boolean;
   /** Toggle fast mode. Same plumbing rationale as `onChangeUltracode`. */
-  onChangeFast?: (enabled: boolean) => Promise<void> | void;
+  onChangeFast?: (enabled: boolean, model?: string) => Promise<void> | void;
   /** Per-session advisor model (the Claude Code "Advisor" picker). */
   advisorModel?: string | null;
   /** Pick the advisor model. Same plumbing rationale as `onChangeFast`. */

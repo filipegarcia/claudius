@@ -9,6 +9,8 @@
  * default).
  */
 
+import { normalizeDottedModelVersion } from "@/lib/shared/model-id";
+
 export type Pricing = {
   /** $/MT for fresh input. */
   input: number;
@@ -69,7 +71,9 @@ const FABLE_5_1: Pricing = { input: 10, output: 50, cacheRead: 0.25, cacheWrite5
 const FABLE_5: Pricing = { input: 10, output: 50, cacheRead: 1, cacheWrite5m: 12.5, cacheWrite1h: 20 };
 
 export function priceFor(model: string | undefined): Pricing {
-  const m = (model ?? "").toLowerCase();
+  // CC 2.1.314: a gateway's dotted id (`claude-opus-5.5`) must hit the same
+  // entry as the dashed one, not fall through to the older `opus-5`.
+  const m = normalizeDottedModelVersion((model ?? "").toLowerCase());
   // Specific current-gen ids before the generic family fallbacks (match the
   // more specific id first, e.g. opus-5-5 before opus-5 before opus).
   if (m.includes("opus-5-5")) return OPUS_5_5;
@@ -77,9 +81,9 @@ export function priceFor(model: string | undefined): Pricing {
   if (m.includes("opus")) return OPUS;
   if (m.includes("haiku-5")) return HAIKU_5_5; // CC 2.1.293
   if (m.includes("haiku")) return HAIKU;
-  if (m.includes("fable-5-1") || m.includes("fable-5.1")) return FABLE_5_1;
+  if (m.includes("fable-5-1")) return FABLE_5_1;
   if (m.includes("fable")) return FABLE_5;
-  if (m.includes("sonnet-5-5") || m.includes("sonnet-5.5")) return SONNET_5_5; // CC 2.1.296
+  if (m.includes("sonnet-5-5")) return SONNET_5_5; // CC 2.1.296
   if (m.includes("sonnet-5")) return SONNET_5;
   return SONNET; // sonnet covers most defaults including unknown
 }

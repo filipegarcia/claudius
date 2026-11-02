@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { Cpu, X } from "lucide-react";
+import { AlertTriangle, Cpu, X } from "lucide-react";
+import {
+  UNKNOWN_MODEL_WINDOW_DOCS_URL,
+  UNKNOWN_MODEL_WINDOW_LINK_TEXT,
+} from "@/lib/shared/model-recognition";
 
 /**
  * Transient toast shown for a model switch the user didn't drive from the
@@ -24,6 +28,17 @@ export type ModelChatCommandNotice = {
   /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
   model: string;
   reason: "chat_command" | "auto";
+  /**
+   * CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
+   * recognized by this version and auto-compact will assume a 200K context
+   * window". The engine's warning, set by the server for a `/model <id>`
+   * switch to an id it can't recognize — its wording except "Update
+   * Claudius" (Claudius bundles the engine) and the docs URL, which renders
+   * as the "set the window" link instead of wrapped raw text (see
+   * `unknownModelWarningText`). Shown as an amber second line; the notice
+   * then stays until dismissed instead of fading.
+   */
+  unrecognizedModelWarning?: string;
 };
 
 const AUTO_DISMISS_MS = 8_000;
@@ -41,7 +56,7 @@ export function ModelChatCommandNoticePanel({
   onDismiss: () => void;
 }) {
   useEffect(() => {
-    if (!notice) return;
+    if (!notice || notice.unrecognizedModelWarning) return;
     const t = setTimeout(onDismiss, AUTO_DISMISS_MS);
     return () => clearTimeout(t);
   }, [notice, onDismiss]);
@@ -72,6 +87,52 @@ export function ModelChatCommandNoticePanel({
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
+      {notice.unrecognizedModelWarning && (
+        <div
+          data-testid="model-unrecognized-warning"
+          className="mx-auto mt-1 flex max-w-[var(--chat-col)] items-start gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-200"
+        >
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <UnrecognizedModelWarningText text={notice.unrecognizedModelWarning} />
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * The warning with its trailing "set the window" turned into a link to the
+ * engine's docs anchor (a `target="_blank"` anchor like the other chat
+ * notice links — the desktop shell routes it per the link-target setting,
+ * like ChatSurface's `openExternalUrl`). Text
+ * without that phrase still gets the link, appended.
+ */
+function UnrecognizedModelWarningText({ text }: { text: string }) {
+  const at = text.lastIndexOf(UNKNOWN_MODEL_WINDOW_LINK_TEXT);
+  const link = (label: string) => (
+    <a
+      href={UNKNOWN_MODEL_WINDOW_DOCS_URL}
+      target="_blank"
+      rel="noreferrer"
+      data-testid="model-unrecognized-warning-docs"
+      className="underline underline-offset-2 hover:opacity-80"
+    >
+      {label}
+    </a>
+  );
+  return (
+    <span className="min-w-0 break-words">
+      {at >= 0 ? (
+        <>
+          {text.slice(0, at)}
+          {link(UNKNOWN_MODEL_WINDOW_LINK_TEXT)}
+          {text.slice(at + UNKNOWN_MODEL_WINDOW_LINK_TEXT.length)}
+        </>
+      ) : (
+        <>
+          {text} {link("Set the window")}
+        </>
+      )}
+    </span>
   );
 }

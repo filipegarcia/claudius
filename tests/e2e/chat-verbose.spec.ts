@@ -43,8 +43,13 @@ const STATUS_PILL = 'text=Status: requesting';
 type Level = "ultra-compact" | "compact" | "normal" | "verbose" | "ultra-verbose";
 
 async function setLevel(page: Page, level: Level) {
-  await page.getByTestId(`set-verbose-${level}`).click();
-  await expect(page.getByTestId("verbose-current")).toHaveText(level);
+  // The SSR'd button is visible before React hydrates and attaches its
+  // onClick, so under load a single click can be swallowed. Retry the
+  // click+assert pair until hydration lands (same assertion, no loosening).
+  await expect(async () => {
+    await page.getByTestId(`set-verbose-${level}`).click();
+    await expect(page.getByTestId("verbose-current")).toHaveText(level, { timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
   await expect(page.getByTestId("verbose-preview-chat")).toHaveAttribute(
     "data-verbose",
     level,

@@ -36,7 +36,12 @@ import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import { readCronNextFireAt } from "@/lib/shared/session-loops";
-import { isFastModeCreditsRejectedNotice } from "@/lib/shared/fast-mode";
+import {
+  OPUS48_FAST_DEPRECATION_KEY,
+  isFastModeCreditsRejectedNotice,
+  notificationColor,
+  opus48FastDeprecationText,
+} from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
@@ -295,6 +300,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
     "your organization requires its policy limits and managed settings, and they could not be loaded — retrying may succeed",
   org_config_refused:
     "your organization requires its policy limits and managed settings, and Anthropic refused them for this sign-in — sign in again",
+  // SDK 0.3.314 — a required sandbox (sandbox settings mark it mandatory) cannot run here.
+  sandbox_required_unavailable:
+    "a sandbox is required for this session but cannot run on this machine — install or enable the sandbox, or ask your administrator",
 };
 
 /**
@@ -1147,8 +1155,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     // switch (see `Session.setModel`'s `fastModeNowSupported`), not from the
     // SDK's bare `fast_mode_state` edge — that field carries no "why".
     | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    // CC 2.1.316 parity: raised by `setFast(true, model)` on Opus 4.8 — the
+    // engine's deprecation notice, which it never emits for the
+    // `applyFlagSettings` path the picker uses.
+    | { uuid: string; kind: "deprecation"; text: string }
     | null
   >(null);
+  // CC 2.1.316 — whether the panel is showing Claudius's own Opus 4.8
+  // deprecation notice right now. Read by the `system/notification` branch to
+  // skip the engine's keyed copy of the same text while ours is up.
+  const fastDeprecationShownRef = useRef(false);
+  useEffect(() => {
+    fastDeprecationShownRef.current = fastModeNotice?.kind === "deprecation";
+  }, [fastModeNotice]);
   // Transient toast for a rejected `/model` switch — the local analogue of the
   // TUI's "Remote session couldn't switch to <model>" notice. Fires when the
   // POST /api/sessions/<id>/model round-trip returns a non-ok result (SDK
@@ -1172,6 +1191,15 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     uuid: string;
     model: string;
     reason: "chat_command" | "auto";
+    /**
+     * CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
+     * recognized by this version and auto-compact will assume a 200K context
+     * window". Filled from `model_changed.unrecognizedModelWarning` (live
+     * only, never on replay) or the `/model` POST response — each
+     * server-minted warning id at most once (see
+     * `handledUnknownModelWarningIdsRef`).
+     */
+    unrecognizedModelWarning?: string;
   } | null>(null);
   /**
    * Transient toast shown when the server auto-disabled the advisor because
@@ -1192,6 +1220,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     uuid: string;
     model: string;
   } | null>(null);
+  /**
+   * CC 2.1.314 parity — the session refused a permission-mode switch. The
+   * pill shows the mode in use; this transient notice says the switch didn't
+   * happen. Set from `setPermissionMode`'s 409 response (only the tab that
+   * asked is told; every tab's pill reverts via `mode_changed`).
+   */
+  const [modeChangeRefusedNotice, setModeChangeRefusedNotice] = useState<{
+    uuid: string;
+    requested: PermissionMode;
+    mode: PermissionMode;
+    reason: string;
+  } | null>(null);
+  const permissionModeReqRef = useRef(0);
   // Prior fast_mode_state observed on a result event. Used to detect edges
   // without depending on the (stale-in-closure) `fastModeState` state value.
   const prevFastModeStateRef = useRef<"off" | "cooldown" | "on" | null>(null);
@@ -1228,6 +1269,16 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    */
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("live");
   const [hasMoreAbove, setHasMoreAbove] = useState(false);
+  /**
+   * CC 2.1.316 parity — "[Cloud sessions] Added a 'Catching up…' line that
+   * shows while a cloud or Remote Control session you switch back to is
+   * still bringing its messages up to date". True from the moment an
+   * existing session is switched to (or resumed at boot) until its history
+   * replay finishes (`replay_done`), so `MessageList` shows "Catching up…"
+   * instead of the brand-new-session splash over the cleared transcript.
+   * Brand-new sessions never set it — they keep the splash.
+   */
+  const [catchingUp, setCatchingUp] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [latestTodos, setLatestTodos] = useState<AgentTodo[]>([]);
   /**
@@ -1655,6 +1706,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // old notice would flip the toggle Off again after the user re-enabled
   // fast. Not cleared on reset — uuids are unique per notice.
   const handledFastCreditsNoticeUuidsRef = useRef<Set<string>>(new Set());
+  // CC 2.1.316 — server-minted ids (`unrecognizedModelWarningId`) of
+  // unknown-model warnings already shown. The warning sticks until
+  // dismissed, and both the `model_changed` broadcast and the `/model` POST
+  // response carry it; a merge-path SSE blip (no `resetState`, so
+  // `replayingRef` stays false) replays the buffer tail. Without this a
+  // dismissed warning would come back. Not cleared on reset — ids are unique.
+  const handledUnknownModelWarningIdsRef = useRef<Set<string>>(new Set());
   // True while a server-dispatched `/compact` slash command — sent while
   // idle — is awaiting its outcome. Set on the `slash_invoked` breadcrumb,
   // cleared either by a successful `compact_boundary` (compaction worked) or,
@@ -1801,7 +1859,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setFastModeState(null);
     setFastModeDisabledReason(null);
     setFastModeNotice(null);
+    // CC 2.1.316 — the unknown-model warning sticks until dismissed; it (and
+    // the switch notice it rides on) belongs to the session being left.
+    setChatCommandModelNotice(null);
     setAutoModeOffNotice(null);
+    setModeChangeRefusedNotice(null);
     prevFastModeStateRef.current = null;
     setPromptSuggestions([]);
     setReplaying(true);
@@ -2455,11 +2517,33 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // When the switch came from a `/model` chat command (not the picker),
         // surface the "Your pick becomes the default for new sessions" notice.
         if (ev.source === "chat_command" && ev.model) {
-          setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model, reason: "chat_command" });
+          // CC 2.1.316 — the unknown-model warning sticks until dismissed, so
+          // a reload replaying an old switch must not resurrect it, and each
+          // server-minted warning id shows at most once. An already-handled
+          // id means the POST response raised it first (keep that notice) or
+          // the user dismissed it (keep it gone) — leave the notice alone.
+          const warningId = ev.unrecognizedModelWarningId;
+          if (!warningId || !handledUnknownModelWarningIdsRef.current.has(warningId)) {
+            if (warningId) handledUnknownModelWarningIdsRef.current.add(warningId);
+            const warning = !replayingRef.current ? ev.unrecognizedModelWarning : undefined;
+            setChatCommandModelNotice({
+              uuid: crypto.randomUUID(),
+              model: ev.model,
+              reason: "chat_command",
+              ...(warning ? { unrecognizedModelWarning: warning } : {}),
+            });
+          }
         } else if (ev.source === "auto" && ev.model) {
           // Automatic fallback (SDK 0.3.251 PostModelSwitch hook) — this used
           // to swap the running model with no client-visible signal at all.
           setChatCommandModelNotice({ uuid: crypto.randomUUID(), model: ev.model, reason: "auto" });
+        } else {
+          // CC 2.1.316 — any other switch (picker, resume, sdk) to a
+          // different model makes the "Switched to X" notice — and its sticky
+          // unknown-model warning about X — stale. The same model (the
+          // subscribe-time `sdk` re-emit) leaves it up.
+          const next = ev.model ?? null;
+          setChatCommandModelNotice((prev) => (prev && prev.model !== next ? null : prev));
         }
         // `"resume"` / `"sdk"` sources update the model pill (setModelState
         // above) without a toast — resume happens before the user is looking
@@ -2725,6 +2809,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         setReplaying(false);
         replayingRef.current = false;
         setHasMoreAbove(ev.hasMoreAbove);
+        setCatchingUp(false);
         // The assistant-message handler marks every replayed message as
         // `streaming: true` and flips pending — that's correct for live
         // turns but wrong for historical ones. Reconcile here once the
@@ -4819,7 +4904,17 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             if (typeof nUuid === "string") handledFastCreditsNoticeUuidsRef.current.add(nUuid);
             if (firstSight && !replayingRef.current) setFastEnabled(false);
           }
-          if (text) {
+          // CC 2.1.316 — the engine's Opus 4.8 fast-mode deprecation notice
+          // duplicates the FastModeNoticePanel one Claudius raised for the
+          // same toggle; drop it while ours is showing. On the typed
+          // `/fast on` path no local notice exists, so it still renders.
+          const dupOfLocalDeprecation =
+            (sysAny as { key?: unknown }).key === OPUS48_FAST_DEPRECATION_KEY &&
+            fastDeprecationShownRef.current;
+          if (text && !dupOfLocalDeprecation) {
+            // CC 2.1.316 — the engine's `color` (e.g. `warning` on the
+            // `immediate` Opus 4.8 deprecation) tones the pill over priority.
+            const color = notificationColor(sysAny as { key?: unknown; color?: unknown });
             setSystemEntries((prev) => [
               ...prev,
               {
@@ -4827,6 +4922,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 kind: "notification",
                 label: text,
                 ...(n.priority ? { priority: n.priority } : {}),
+                ...(color ? { notificationColor: color } : {}),
               },
             ]);
           }
@@ -5201,6 +5297,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       sessionIdRef.current = null;
       setSessionId(null);
       resetState();
+      // CC 2.1.316 — the cleared pane is an existing session catching up,
+      // not a new one: "Catching up…" until its replay lands. A failed wake
+      // POST still binds (below), so the line stays until `replay_done`.
+      setCatchingUp(true);
       // AWAIT the wake POST before opening the SSE — this mirrors the
       // boot path exactly (`createSession` does `await fetch(...)` then
       // `bindToSession`). Earlier we used `void fetch(...)` for a tighter
@@ -5271,6 +5371,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       sessionIdRef.current = null;
       setSessionId(null);
       resetState();
+      // CC 2.1.316 — a boot `resume` (`?session=` / last-active tab) is an
+      // existing session catching up; a brand-new session keeps the splash.
+      setCatchingUp(Boolean(opts.resume));
       setCreateError(null);
       try {
         let res: Response;
@@ -5325,6 +5428,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // A newer create/switch superseded this one — its failure is moot.
         if (switchGenRef.current !== gen) return null;
         const msg = err instanceof Error ? err.message : String(err);
+        setCatchingUp(false);
         setErrors((e) => [...e, msg]);
         setCreateError(msg);
         return null;
@@ -5991,6 +6095,10 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setAutoModeOffNotice(null);
   }, []);
 
+  const dismissModeChangeRefusedNotice = useCallback(() => {
+    setModeChangeRefusedNotice(null);
+  }, []);
+
   /**
    * Re-enable the advisor after it was auto-disabled on a model change.
    * Calls the same advisor route the picker uses, so both settings.json and
@@ -6116,12 +6224,30 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   const setPermissionMode = useCallback(async (mode: PermissionMode) => {
     const id = sessionIdRef.current;
     if (!id) return;
+    const req = ++permissionModeReqRef.current;
     setPermissionModeState(mode);
-    await fetch(`/api/sessions/${id}/mode`, {
+    setModeChangeRefusedNotice(null);
+    const res = await fetch(`/api/sessions/${id}/mode`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode }),
-    }).catch(() => {});
+    }).catch(() => null);
+    // CC 2.1.314 — a refused switch (409) leaves the session in the mode it
+    // was in. Show that mode and say so, unless a newer pick superseded this
+    // request or the user moved to another session meanwhile.
+    if (!res || res.status !== 409) return;
+    const body = (await res.json().catch(() => null)) as {
+      mode?: PermissionMode;
+      refused?: { requested?: PermissionMode; reason?: string };
+    } | null;
+    if (!body?.mode || req !== permissionModeReqRef.current || sessionIdRef.current !== id) return;
+    setPermissionModeState(body.mode);
+    setModeChangeRefusedNotice({
+      uuid: crypto.randomUUID(),
+      requested: body.refused?.requested ?? mode,
+      mode: body.mode,
+      reason: body.refused?.reason ?? "",
+    });
   }, []);
 
   const resolvePlan = useCallback(async (decision: PlanDecision) => {
@@ -6351,6 +6477,29 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           attempted: m,
           error: body.error ?? `HTTP ${r.status}`,
         });
+      } else if (source === "chat_command" && m) {
+        // CC 2.1.316 — the unknown-model warning also rides the response, so
+        // this tab shows it whichever of the response / `model_changed`
+        // broadcast lands first. Merge into the switch notice if the
+        // broadcast already raised it, otherwise raise it. Skipped once the
+        // user has moved to another session (both awaits are race windows)
+        // or the broadcast already handled this warning id.
+        const body = (await r.json().catch(() => ({}))) as {
+          unrecognizedModelWarning?: string;
+          unrecognizedModelWarningId?: string;
+        };
+        if (sessionIdRef.current !== id) return;
+        const warning = body.unrecognizedModelWarning;
+        const warningId = body.unrecognizedModelWarningId;
+        const handled = !!warningId && handledUnknownModelWarningIdsRef.current.has(warningId);
+        if (typeof warning === "string" && warning && !handled) {
+          if (warningId) handledUnknownModelWarningIdsRef.current.add(warningId);
+          setChatCommandModelNotice((prev) =>
+            prev && prev.reason === "chat_command" && prev.model === m
+              ? { ...prev, unrecognizedModelWarning: warning }
+              : { uuid: crypto.randomUUID(), model: m, reason: "chat_command", unrecognizedModelWarning: warning },
+          );
+        }
       }
     } catch {
       // Network blip — leave the optimistic state and let the next event /
@@ -6448,11 +6597,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    * that calls `applyFlagSettings({ fastMode })` server-side. Unlike ultracode
    * there's NO effort side effect: fast mode is orthogonal to effort, so the
    * effort mirror is left wherever the user last set it.
+   *
+   * CC 2.1.316 parity — "Deprecated fast mode for Opus 4.8 as of October 30,
+   * 2026; it will be removed on November 30, 2026…Migrate to Opus 5.5 to
+   * keep the speedup". The engine only tells the user from its own `/fast`
+   * command; turning fast ON here (picker → `applyFlagSettings`) on Opus 4.8
+   * raises the same text in the FastModeNoticePanel. `model` is the picker's
+   * resolved id for the active row; without it the live model is used (an
+   * unresolved alias like `opus` never matches).
    */
-  const setFast = useCallback(async (enabled: boolean) => {
+  const setFast = useCallback(async (enabled: boolean, model?: string) => {
     const id = sessionIdRef.current;
     if (!id) return;
     setFastEnabled(enabled);
+    if (enabled) {
+      const text = opus48FastDeprecationText(model ?? modelRef.current);
+      if (text) setFastModeNotice({ uuid: crypto.randomUUID(), kind: "deprecation", text });
+    }
     await fetch(`/api/sessions/${id}/fast`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -6777,12 +6938,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     chatCommandModelNotice,
     advisorDisabledNotice,
     autoModeOffNotice,
+    modeChangeRefusedNotice,
     promptSuggestions,
     suggestedUuids,
     goalUuids,
     replaying,
     streamStatus,
     hasMoreAbove,
+    catchingUp,
     loadingOlder,
     latestTodos,
     todosStale,
@@ -6814,6 +6977,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     dismissChatCommandModelNotice,
     dismissAdvisorDisabledNotice,
     dismissAutoModeOffNotice,
+    dismissModeChangeRefusedNotice,
     reEnableAdvisor,
     requestRecap,
     dismissRecap,

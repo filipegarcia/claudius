@@ -62,6 +62,24 @@ export type GitError = {
   message: string;
 };
 
+/**
+ * CC 2.1.314 — "Fixed background diff refreshes briefly taking the
+ * repository's index lock, which could make a git command run at the same
+ * moment fail with `Unable to create '.git/index.lock': File exists`".
+ * The git panel polls `git status` every few seconds and the chat's diff
+ * overlay re-reads status + diff after every edit Claude makes — exactly
+ * when the agent is likely running its own `git add`/`git commit`. Plain
+ * `git status` opportunistically rewrites the index (stat-cache refresh)
+ * under `index.lock`; `GIT_OPTIONAL_LOCKS=0` turns only that optional write
+ * off. Commands that must lock (add, commit, checkout, …) still take their
+ * mandatory lock, so this is safe for every caller of `git()`.
+ */
+function gitEnv(): NodeJS.ProcessEnv {
+  // Built per call (not snapshotted at import) so later PATH / profile
+  // changes to process.env still reach git, as they did before.
+  return { ...process.env, GIT_OPTIONAL_LOCKS: "0" };
+}
+
 async function git(
   args: string[],
   cwd: string,
@@ -69,6 +87,7 @@ async function git(
 ): Promise<{ stdout: string; stderr: string }> {
   const child = execFile("git", args, {
     cwd,
+    env: gitEnv(),
     maxBuffer: MAX_BUFFER,
     timeout: opts.timeoutMs ?? TIMEOUT_MS,
     encoding: "utf8",
@@ -324,10 +343,17 @@ export async function getDiff(
     // (potentially untrusted — this is a user-opened repo, not one we wrote)
     // could otherwise hide or rewrite content in the diff pane. Mirrors
     // Claude Code 2.1.222's fix for the same class of surface.
+    //
+    // Worktree mode uses the plumbing `diff-files -p`, not porcelain `git
+    // diff`: porcelain refreshes the index for stat-dirty files and ignores
+    // `GIT_OPTIONAL_LOCKS` for that write (CC 2.1.314, see `gitEnv`).
+    // `diff-files -p` prints the same unified diff (including the "Binary
+    // files … differ" line), skips stat-only-dirty files the same way, and
+    // never writes the index. `diff --cached` never writes it either.
     const args =
       mode === "staged"
         ? ["diff", "--cached", "--no-color", "--no-textconv", "--", path]
-        : ["diff", "--no-color", "--no-textconv", "--", path];
+        : ["diff-files", "-p", "--no-color", "--no-textconv", "--", path];
     const { stdout } = await git(args, root);
     const binary = /^Binary files /m.test(stdout);
     return { diff: stdout, binary };
@@ -391,7 +417,7 @@ async function diffNoIndex(root: string, path: string): Promise<{ diff: string; 
     const child = execFile(
       "git",
       ["diff", "--no-index", "--no-color", "--no-textconv", "--", "/dev/null", path],
-      { cwd: root, maxBuffer: MAX_BUFFER, timeout: TIMEOUT_MS, encoding: "utf8" },
+      { cwd: root, env: gitEnv(), maxBuffer: MAX_BUFFER, timeout: TIMEOUT_MS, encoding: "utf8" },
     );
     child.stdout?.on("data", (c: string) => (stdout += c));
     child.stderr?.on("data", (c: string) => (stderr += c));
@@ -567,8 +593,10 @@ export async function getDiffForCommit(
     if (tracked.length > 0) {
       // `--no-textconv` — this diff is fed to a model to draft a commit
       // message; a textconv filter could hide the actual change from it.
+      // Plumbing `diff-index -p HEAD` = `git diff HEAD` without the index
+      // refresh under `index.lock` (CC 2.1.314, see `gitEnv`/`getDiff`).
       const { stdout } = await git(
-        ["diff", "HEAD", "--no-color", "--no-textconv", "--", ...tracked],
+        ["diff-index", "-p", "--no-color", "--no-textconv", "HEAD", "--", ...tracked],
         root,
       );
       if (stdout) parts.push(stdout);
@@ -1191,7 +1219,9 @@ export async function diffBranchAgainstWorktree(
   try {
     // `--no-textconv` — same raw-blob guarantee as `getDiff`/`diffNoIndex`;
     // this output is piped straight into the GitConsole for the user to read.
-    const r = await git(["diff", "--no-color", "--no-textconv", branch], root);
+    // Plumbing `diff-index -p` = `git diff <branch>` without the index
+    // refresh under `index.lock` (CC 2.1.314, see `gitEnv`/`getDiff`).
+    const r = await git(["diff-index", "-p", "--no-color", "--no-textconv", branch], root);
     const out = r.stdout.trim();
     return { ok: true, output: out || `(no differences between ${branch} and the working tree)` };
   } catch (err) {

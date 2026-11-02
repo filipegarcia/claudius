@@ -1100,14 +1100,15 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Auto-compact window size",
   },
   {
-    // SDK 0.3.290 — only `false` has an effect: true does not turn idle
-    // compaction on, so the toggle is documented as an opt-out. (0.3.292
-    // re-added it under "Model & behavior"; one row per key — the catalog
-    // keys must stay unique, see settings-catalog-keys.test.ts.)
+    // SDK 0.3.290 — opt-out toggle. SDK 0.3.314 reworded the JSDoc from
+    // "setting it to true does not turn idle compaction on" to "Defaults to
+    // true", so the copy now states the default. (0.3.292 re-added it under
+    // "Model & behavior"; one row per key — the catalog keys must stay
+    // unique, see settings-catalog-keys.test.ts.)
     key: "idleCompaction",
     type: "boolean",
     section: "Context & compaction",
-    desc: "Set to false to stop Claude Code from compacting a long conversation while the session is idle. Setting it to true does not turn idle compaction on.",
+    desc: "Set to false to stop Claude Code from compacting a long conversation while the session is idle. Defaults to true.",
   },
   {
     key: "promptCacheTtl",

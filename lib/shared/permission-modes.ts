@@ -86,3 +86,13 @@ export function shouldLeaveAutoForModel(
 export function autoModeOffNoticeText(modelDisplayName: string): string {
   return `Auto mode is off: ${modelDisplayName} doesn't support auto mode.`;
 }
+
+/**
+ * CC 2.1.314 parity — "[Cloud sessions] Fixed the permission mode picker
+ * staying on Auto after a running … session refused the switch; it now shows
+ * the mode in use and tells you". What `Session.setPermissionMode` and
+ * `POST /api/sessions/:id/mode` report: the mode actually in use, and — when
+ * the engine refused the switch — what was asked for and the engine's reason.
+ */
+export type PermissionModeRefusal = { requested: PermissionMode; reason: string };
+export type SetPermissionModeResult = { mode: PermissionMode; refused?: PermissionModeRefusal };

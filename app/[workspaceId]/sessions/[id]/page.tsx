@@ -80,10 +80,15 @@ export default function SessionDetailPage() {
 
   const onRename = async () => {
     if (!titleDraft.trim()) return;
-    const ok = await rename(id, titleDraft.trim(), dir);
-    if (ok) {
+    const r = await rename(id, titleDraft.trim(), dir);
+    if (r.ok) {
+      setError(null);
       setRenaming(false);
       load();
+    } else {
+      // CC 2.1.314: a rename that can't be saved says why instead of
+      // silently leaving the editor open.
+      setError(`Rename failed: ${r.error}`);
     }
   };
 
@@ -109,12 +114,16 @@ export default function SessionDetailPage() {
     const newId = await fork(id, { dir });
     if (newId) {
       router.push(`/sessions/${newId}${dir ? `?dir=${encodeURIComponent(dir)}` : ""}`);
+    } else {
+      setError("Fork failed");
     }
   };
 
   const onDelete = async () => {
     if (!confirm("Delete this session permanently?")) return;
-    if (await remove(id, dir)) router.push("/sessions");
+    const r = await remove(id, dir);
+    if (r.ok) router.push("/sessions");
+    else setError(`Delete failed: ${r.error}`);
   };
 
   return (
@@ -169,7 +178,11 @@ export default function SessionDetailPage() {
             </>
           )}
           <span className="font-mono text-[10px] text-[var(--muted)]">{id.slice(0, 8)}</span>
-          {error && <span className="text-red-400">{error}</span>}
+          {error && (
+            <span role="alert" data-testid="session-detail-error" className="text-red-400">
+              {error}
+            </span>
+          )}
           {loading && <span className="text-[var(--muted)]">loading…</span>}
           <div className="ml-auto flex items-center gap-1">
             <button

@@ -27,6 +27,7 @@
 
 import { resolveSettings } from "@anthropic-ai/claude-agent-sdk";
 import { MODEL_PRICING_MULTIPLIER_MAX } from "@/lib/shared/cost-pricing";
+import { normalizeDottedModelVersion } from "@/lib/shared/model-id";
 
 /** $/MT (per-million-token) rate overrides for one model. Any subset. */
 export type ModelPricingRate = {
@@ -121,9 +122,13 @@ export function matchModelPricingRate(
 ): ModelPricingRate | undefined {
   if (!rates) return undefined;
   if (rates[model]) return rates[model];
-  const lower = model.toLowerCase();
+  // CC 2.1.314: compare dotted and dashed version spellings as equal, on
+  // both sides, so a `claude-opus-4-8` rate covers a gateway's
+  // `claude-opus-4.8` (and a rate keyed `claude-opus-4.8` covers the
+  // dashed id). Substring order is unchanged.
+  const lower = normalizeDottedModelVersion(model.toLowerCase());
   for (const [key, rate] of Object.entries(rates)) {
-    if (lower.includes(key.toLowerCase())) return rate;
+    if (lower.includes(normalizeDottedModelVersion(key.toLowerCase()))) return rate;
   }
   return undefined;
 }
