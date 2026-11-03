@@ -43,6 +43,7 @@ import {
   opus48FastDeprecationText,
 } from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
+import { describeSessionWritesLost } from "@/lib/shared/session-writes-lost";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
@@ -303,6 +304,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.314 — a required sandbox (sandbox settings mark it mandatory) cannot run here.
   sandbox_required_unavailable:
     "a sandbox is required for this session but cannot run on this machine — install or enable the sandbox, or ask your administrator",
+  // SDK 0.3.317 — an `--await-initialize` launch whose first stdin line was not the initialize request.
+  initialize_not_first:
+    "the session process was launched in await-initialize mode but its first input was not the initialize request — restart the session",
 };
 
 /**
@@ -4790,6 +4794,19 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               },
             ]);
           }
+          return;
+        }
+        // SDK 0.3.317 — `session_writes_lost`: the CLI could not save part of the
+        // transcript and/or ~/.claude.json (ENOSPC / EDQUOT). Surface a warning
+        // pill so the user knows a later resume may be incomplete.
+        if (sysAny.subtype === "session_writes_lost") {
+          const { label, detail } = describeSessionWritesLost(
+            sysAny as { error_code?: string; lost?: unknown; transcript_session_ids?: unknown },
+          );
+          setSystemEntries((prev) => [
+            ...prev,
+            { ...baseEntry, kind: "info", label, detail, infoLevel: "warning" },
+          ]);
           return;
         }
         // SDKWorkerShuttingDownMessage (0.3.178): emitted by Remote Control

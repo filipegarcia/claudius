@@ -1783,6 +1783,12 @@ export class Session {
    */
   private pluginLoadErrors: PluginLoadError[] = [];
   /**
+   * SDK 0.3.312 — whether the latest `system:init` listed the
+   * `ask_user_question_unanswered_v1` capability, i.e. the CLI accepts
+   * `annotations[q].unanswered` on AskUserQuestion answers. Newest init wins.
+   */
+  private askUnansweredSupported = false;
+  /**
    * Main-thread agent name (SDK Options.agent). When set, the SDK applies the
    * agent's system prompt, tool restrictions, and model to the main
    * conversation. Set at construction from the session-create request /
@@ -4148,7 +4154,9 @@ export class Session {
 
     pending.resolve({
       behavior: "allow",
-      updatedInput: buildAskUpdatedInput(pending.questions, answers),
+      updatedInput: buildAskUpdatedInput(pending.questions, answers, {
+        reportUnanswered: this.askUnansweredSupported,
+      }),
     });
     this.broadcastTurnStatusIfChanged();
     void this.flushQueueIfIdle().catch(() => {});
@@ -8626,6 +8634,9 @@ export class Session {
           // overwrite unconditionally so a re-emitted init can clear a
           // stale error set (newest frame wins).
           this.pluginLoadErrors = init.pluginErrors;
+          const caps = (sdkMsg as { capabilities?: unknown }).capabilities;
+          this.askUnansweredSupported =
+            Array.isArray(caps) && caps.includes("ask_user_question_unanswered_v1");
         }
         // CC 2.1.300 — fast mode refused because usage credits ran out: the
         // engine retries that request without fast but leaves the flag on, so
