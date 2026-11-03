@@ -34,8 +34,14 @@ export function readPermissionModeRecord(
 /**
  * The mode a session last ran in or was switched to, given the transcript's
  * last stamp (`at` in epoch ms, null when undated) and the persisted switch.
- * The transcript wins a tie and anything undated: a prompt stamp is the mode
- * the engine actually ran a turn in.
+ *
+ * - Dated: the newer wins; the transcript wins a tie (a prompt stamp is the
+ *   mode the engine actually ran a turn in).
+ * - Undated transcript stamp (only the terminal CLI writes those, at an
+ *   unknown time — a session also used from `claude --resume`): which is
+ *   newer can't be told, so plan wins if either side says plan. The revive
+ *   only ever carries plan over (`resumePermissionMode`), so this can only
+ *   keep a session read-only, never widen what it may do.
  */
 export function pickRecordedPermissionMode(
   transcript: { mode: string; at: number | null } | null,
@@ -43,6 +49,8 @@ export function pickRecordedPermissionMode(
 ): string | null {
   if (!persisted) return transcript?.mode ?? null;
   if (!transcript) return persisted.mode;
-  if (transcript.at === null) return transcript.mode;
+  if (transcript.at === null) {
+    return transcript.mode === "plan" || persisted.mode === "plan" ? "plan" : transcript.mode;
+  }
   return persisted.at > transcript.at ? persisted.mode : transcript.mode;
 }

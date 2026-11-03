@@ -68,9 +68,14 @@ describe("pickRecordedPermissionMode", () => {
     expect(pickRecordedPermissionMode({ mode: "default", at: T0 + 1 }, { mode: "plan", at: T0 })).toBe("default");
   });
 
-  test("the transcript wins a tie and an undated stamp", () => {
+  test("the transcript wins a tie", () => {
     expect(pickRecordedPermissionMode({ mode: "default", at: T0 }, { mode: "plan", at: T0 })).toBe("default");
-    expect(pickRecordedPermissionMode({ mode: "default", at: null }, { mode: "plan", at: T0 })).toBe("default");
+  });
+
+  test("an undated transcript stamp (CLI-written) can't be ordered, so plan wins if either side says plan", () => {
+    expect(pickRecordedPermissionMode({ mode: "default", at: null }, { mode: "plan", at: T0 })).toBe("plan");
+    expect(pickRecordedPermissionMode({ mode: "plan", at: null }, { mode: "acceptEdits", at: T0 })).toBe("plan");
+    expect(pickRecordedPermissionMode({ mode: "acceptEdits", at: null }, { mode: "default", at: T0 })).toBe("acceptEdits");
   });
 
   test("either side alone is used; nothing recorded is null", () => {
@@ -96,12 +101,21 @@ describe("lastRecordedPermissionModeAt", () => {
     expect(await lastRecordedPermissionModeAt("s-dated", CWD)).toEqual({ mode: "default", at: T0 + 5 });
   });
 
-  test("an undated permission-mode line inherits the newest timestamp before it", async () => {
+  test("an undated permission-mode line reports at: null, not an earlier line's stamp", async () => {
     writeTranscript("s-undated", [
       prompt("default", T0 + 5),
+      { type: "assistant", timestamp: new Date(T0 + 50).toISOString() },
       { type: "permission-mode", permissionMode: "acceptEdits", sessionId: "s-undated" },
     ]);
-    expect(await lastRecordedPermissionModeAt("s-undated", CWD)).toEqual({ mode: "acceptEdits", at: T0 + 5 });
+    expect(await lastRecordedPermissionModeAt("s-undated", CWD)).toEqual({ mode: "acceptEdits", at: null });
+  });
+
+  test("a dated prompt after an undated line dates the record again", async () => {
+    writeTranscript("s-redated", [
+      { type: "permission-mode", permissionMode: "plan", sessionId: "s-redated" },
+      prompt("default", T0 + 9),
+    ]);
+    expect(await lastRecordedPermissionModeAt("s-redated", CWD)).toEqual({ mode: "default", at: T0 + 9 });
   });
 
   test("a transcript with no timestamps reports at: null", async () => {
@@ -139,6 +153,18 @@ describe("resumePermissionMode — a reaped or restarted session", () => {
     await mergeSessionState(CWD, "s-bypass", permissionModeRecord("bypassPermissions", T0 + 60_000));
     expect(await resumePermissionMode("s-bypass", CWD, "default")).toBe("default");
     expect(await resumePermissionMode("s-bypass", CWD, undefined)).toBeUndefined();
+  });
+
+  test("session also used from the terminal CLI: a CLI Shift+Tab into plan (undated) is not lost to an older-looking Claudius record", async () => {
+    // Claudius: prompt in default, switch to acceptEdits (recorded at T1).
+    // Terminal: `claude --resume`, Shift+Tab into plan, quit with no prompt —
+    // the CLI appends an undated permission-mode line.
+    writeTranscript("s-cli-plan", [
+      prompt("default", T0),
+      { type: "permission-mode", permissionMode: "plan", sessionId: "s-cli-plan" },
+    ]);
+    await mergeSessionState(CWD, "s-cli-plan", permissionModeRecord("acceptEdits", T0 + 60_000));
+    expect(await resumePermissionMode("s-cli-plan", CWD, "default")).toBe("plan");
   });
 
   test("a switch persisted before the session's first prompt (no transcript yet) still counts", async () => {
@@ -205,6 +231,37 @@ describe("Session records committed mode switches", () => {
     const state = await settledState("s-plan", "permissionMode");
     expect(readPermissionModeRecord(state)?.mode).toBe("acceptEdits");
     expect(state.priorPlan).toBe("1. do the thing");
+  });
+
+  test("a switch raced by plan acceptance records the mode in use (acceptEdits), not the requested one", async () => {
+    let release!: () => void;
+    const session = makeSession("s-race", "plan", () => new Promise<void>((r) => (release = r)));
+    session.pendingPlans.set("req-2", { requestId: "req-2", toolUseId: "tool-2", plan: "p", resolve: () => {} });
+    const switching = session.setPermissionMode("plan");
+    await new Promise((r) => setTimeout(r, 0));
+    await session.resolvePlan("req-2", { kind: "accept" });
+    release();
+    await switching;
+    await new Promise((r) => setTimeout(r, 50));
+    expect(session.getPermissionMode()).toBe("acceptEdits");
+    expect(readPermissionModeRecord(await getSessionState(CWD, "s-race"))?.mode).toBe("acceptEdits");
+  });
+
+  test("concurrent state merges keep each other's keys", async () => {
+    // Warm both cached handles so the merges interleave the way they do in a
+    // long-running server (the old read went through the read-only handle
+    // across awaits, so every merge read the bag before any wrote).
+    await mergeSessionState(CWD, "s-merge", {});
+    await getSessionState(CWD, "s-merge");
+    await Promise.all([
+      mergeSessionState(CWD, "s-merge", permissionModeRecord("plan", T0)),
+      mergeSessionState(CWD, "s-merge", { todosClearedAt: T0 }),
+      mergeSessionState(CWD, "s-merge", { priorPlan: "x" }),
+    ]);
+    const state = await getSessionState(CWD, "s-merge");
+    expect(readPermissionModeRecord(state)).toEqual({ mode: "plan", at: T0 });
+    expect(state.todosClearedAt).toBe(T0);
+    expect(state.priorPlan).toBe("x");
   });
 
   test("end to end: switch to plan with no prompt after it, then a revive keeps plan", async () => {

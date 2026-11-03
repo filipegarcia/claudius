@@ -273,6 +273,11 @@ export async function getSessionState(
  * INSERT … ON CONFLICT idiom as `setSessionTitle` so a feature that
  * writes state before the session's first turn (no SDK JSONL yet) still
  * lands a row.
+ *
+ * The read and the write run synchronously on the same handle, with no
+ * await between them, so two merges started together can't both read the
+ * old bag and drop each other's keys (CC 2.1.317: mode switches merge here
+ * fire-and-forget alongside todo overrides).
  */
 export async function mergeSessionState(
   cwd: string,
@@ -281,7 +286,22 @@ export async function mergeSessionState(
 ): Promise<void> {
   const db = await openDb(cwd);
   const now = Date.now();
-  const current = await getSessionState(cwd, id);
+  const row = db
+    .prepare<[string], { state: string | null } | undefined>(
+      "SELECT state FROM sessions WHERE id = ?",
+    )
+    .get(id);
+  let current: Record<string, unknown> = {};
+  if (row?.state) {
+    try {
+      const parsed = JSON.parse(row.state) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        current = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Malformed bag — start over, as `getSessionState` reads it as empty.
+    }
+  }
   const next = JSON.stringify({ ...current, ...patch });
   db.prepare(
     `INSERT INTO sessions(id, cwd, state, created_at, updated_at, last_seen_at)

@@ -29,10 +29,12 @@ export async function lastRecordedPermissionMode(id: string, cwd: string): Promi
 }
 
 /**
- * `lastRecordedPermissionMode` plus when it was recorded, in epoch ms: the
- * line's own `timestamp`, or — for an undated line such as the engine's
- * `permission-mode` re-stamp — the newest timestamp seen before it, since
- * it was appended after those. `at` is null when no line so far was dated.
+ * `lastRecordedPermissionMode` plus when it was recorded: the line's own
+ * `timestamp` in epoch ms, or null for an undated line. Only the terminal
+ * CLI writes undated `permission-mode` lines (in its metadata re-append,
+ * possibly long after the last dated line), so no timestamp in the file
+ * bounds when one was written — `pickRecordedPermissionMode` treats it as
+ * unknown rather than guessing.
  */
 export async function lastRecordedPermissionModeAt(
   id: string,
@@ -48,7 +50,6 @@ export async function lastRecordedPermissionModeAt(
     return null;
   }
   let last: { mode: string; at: number | null } | null = null;
-  let newestAt: number | null = null;
   try {
     // `jsonlLines`, not readline: readline splits a record at U+2028/U+2029
     // and the fragments fail to parse (CC 2.1.296).
@@ -67,10 +68,9 @@ export async function lastRecordedPermissionModeAt(
       }
       if (entry.isSidechain === true) continue;
       if (entry.type !== "user" && entry.type !== "permission-mode") continue;
-      const stamped = typeof entry.timestamp === "string" ? Date.parse(entry.timestamp) : NaN;
-      if (Number.isFinite(stamped)) newestAt = Math.max(newestAt ?? stamped, stamped);
       if (typeof entry.permissionMode === "string") {
-        last = { mode: entry.permissionMode, at: Number.isFinite(stamped) ? stamped : newestAt };
+        const stamped = typeof entry.timestamp === "string" ? Date.parse(entry.timestamp) : NaN;
+        last = { mode: entry.permissionMode, at: Number.isFinite(stamped) ? stamped : null };
       }
     }
   } catch {

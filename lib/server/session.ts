@@ -5473,8 +5473,12 @@ export class Session {
     });
     // CC 2.1.317 — record the switch so a reap or restart before the next
     // prompt still knows it (see `pickRecordedPermissionMode`). Only here,
-    // after the engine took it: a refused switch returned above.
-    void mergeSessionState(this.cwd, this.id, permissionModeRecord(mode)).catch(() => {});
+    // after the engine took it: a refused switch returned above. Skipped when
+    // plan acceptance wrote the mode during the await — `resolvePlan`
+    // recorded its own `acceptEdits`, which is the mode in use.
+    if (seq === this.permissionModeSeq) {
+      void mergeSessionState(this.cwd, this.id, permissionModeRecord(mode)).catch(() => {});
+    }
     // A `setModel` that landed during the awaits above ran its auto check
     // while the mode wasn't `auto` yet, so nothing re-checked the new model
     // against the `auto` just written — do it now (after our own
