@@ -672,14 +672,21 @@ export type AskAnswerSubmission = {
 export function buildAskUpdatedInput(
   questions: AskQuestion[],
   answers: AskAnswer[],
+  opts: { reportUnanswered?: boolean } = {},
 ): {
   questions: AskQuestion[];
   answers: Record<string, string>;
   response?: string;
-  annotations?: Record<string, { preview?: string; notes?: string }>;
+  annotations?: Record<
+    string,
+    { preview?: string; notes?: string; unanswered?: "skipped" | "replied_in_chat" | "dismissed" }
+  >;
 } {
   const answersMap: Record<string, string> = {};
-  const annotations: Record<string, { preview?: string; notes?: string }> = {};
+  const annotations: Record<
+    string,
+    { preview?: string; notes?: string; unanswered?: "skipped" | "replied_in_chat" | "dismissed" }
+  > = {};
 
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
@@ -698,6 +705,14 @@ export function buildAskUpdatedInput(
     const chosen = q.options.find((o) => o.label === a.label);
     if (chosen?.preview) {
       annotations[q.question] = { preview: chosen.preview };
+    }
+    // SDK 0.3.312 — `annotations[q].unanswered`: how a question went
+    // unanswered. Claudius's form submits a blank answer only when the user
+    // left that question empty, i.e. skipped it. Sent only when `system/init`
+    // advertised `ask_user_question_unanswered_v1` (the CLI otherwise ignores
+    // or rejects the key). The model never sees it; `answers[q]` stays "".
+    if (opts.reportUnanswered && value === "") {
+      annotations[q.question] = { ...(annotations[q.question] ?? {}), unanswered: "skipped" };
     }
   }
 

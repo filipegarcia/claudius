@@ -56,3 +56,36 @@ describe("buildAskUpdatedInput — response field (SDK 0.3.158)", () => {
     expect(result.answers["Q2"]).toBe("Option B");
   });
 });
+
+describe("buildAskUpdatedInput — annotations.unanswered (SDK 0.3.312)", () => {
+  const qs = [makeQ({ question: "First?" }), makeQ({ question: "Second?" })];
+  const answers = [{ label: "Option A" }, {}];
+
+  test("marks a blank answer as skipped when the capability is advertised", () => {
+    const out = buildAskUpdatedInput(qs, answers, { reportUnanswered: true });
+    expect(out.answers).toEqual({ "First?": "Option A", "Second?": "" });
+    expect(out.annotations).toEqual({ "Second?": { unanswered: "skipped" } });
+  });
+
+  test("keeps a preview annotation alongside unanswered on other questions", () => {
+    const withPreview = [
+      makeQ({ question: "First?", options: [{ label: "Option A", description: "", preview: "pv" }] }),
+      makeQ({ question: "Second?" }),
+    ];
+    const out = buildAskUpdatedInput(withPreview, answers, { reportUnanswered: true });
+    expect(out.annotations).toEqual({
+      "First?": { preview: "pv" },
+      "Second?": { unanswered: "skipped" },
+    });
+  });
+
+  test("sends no unanswered key without the capability (default)", () => {
+    const out = buildAskUpdatedInput(qs, answers);
+    expect(out.annotations).toBeUndefined();
+  });
+
+  test("a fully answered form carries no unanswered key even with the capability", () => {
+    const out = buildAskUpdatedInput(qs, [{ label: "Option A" }, { label: "Option B" }], { reportUnanswered: true });
+    expect(out.annotations).toBeUndefined();
+  });
+});

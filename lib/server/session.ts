@@ -159,6 +159,7 @@ import {
 import { readLimits, type Limits } from "./limits-store";
 import { checkToolBudget, resolveCap, toolBudgetKindFor } from "@/lib/shared/tool-budget";
 import { hasUltrathinkKeyword, resolveUltrathinkDisabled } from "@/lib/shared/ultrathink-keyword";
+import { permissionModeRecord } from "@/lib/shared/permission-mode-record";
 import {
   extractTranscriptTail,
   generateRecap,
@@ -1782,6 +1783,12 @@ export class Session {
    * it — the newest frame wins, matching the SDK's documented semantics.
    */
   private pluginLoadErrors: PluginLoadError[] = [];
+  /**
+   * SDK 0.3.312 — whether the latest `system:init` listed the
+   * `ask_user_question_unanswered_v1` capability, i.e. the CLI accepts
+   * `annotations[q].unanswered` on AskUserQuestion answers. Newest init wins.
+   */
+  private askUnansweredSupported = false;
   /**
    * Main-thread agent name (SDK Options.agent). When set, the SDK applies the
    * agent's system prompt, tool restrictions, and model to the main
@@ -4148,7 +4155,9 @@ export class Session {
 
     pending.resolve({
       behavior: "allow",
-      updatedInput: buildAskUpdatedInput(pending.questions, answers),
+      updatedInput: buildAskUpdatedInput(pending.questions, answers, {
+        reportUnanswered: this.askUnansweredSupported,
+      }),
     });
     this.broadcastTurnStatusIfChanged();
     void this.flushQueueIfIdle().catch(() => {});
@@ -4229,8 +4238,12 @@ export class Session {
     // (handled in `setPermissionMode`) reads this back and queues a
     // `plan-mode-reentry` reminder so the agent treats the new round as a
     // fresh planning session rather than assuming the prior plan still holds.
+    // CC 2.1.317 — the plan's `acceptEdits` is recorded in the same merge
+    // (two concurrent merges would race), so a reap before the next prompt
+    // doesn't revive the session in plan from the transcript's last stamp.
     void mergeSessionState(this.cwd, this.id, {
       priorPlan: editedPlan && editedPlan.length > 0 ? editedPlan : pending.plan,
+      ...permissionModeRecord("acceptEdits"),
     });
     // Feature 39 parity: arm the post-execution verify nudge. The flag is
     // drained at the next `result` boundary in `consume()` (NOT here, NOT
@@ -5458,6 +5471,14 @@ export class Session {
       type: "mode_changed",
       mode,
     });
+    // CC 2.1.317 — record the switch so a reap or restart before the next
+    // prompt still knows it (see `pickRecordedPermissionMode`). Only here,
+    // after the engine took it: a refused switch returned above. Skipped when
+    // plan acceptance wrote the mode during the await — `resolvePlan`
+    // recorded its own `acceptEdits`, which is the mode in use.
+    if (seq === this.permissionModeSeq) {
+      void mergeSessionState(this.cwd, this.id, permissionModeRecord(mode)).catch(() => {});
+    }
     // A `setModel` that landed during the awaits above ran its auto check
     // while the mode wasn't `auto` yet, so nothing re-checked the new model
     // against the `auto` just written — do it now (after our own
@@ -8626,6 +8647,9 @@ export class Session {
           // overwrite unconditionally so a re-emitted init can clear a
           // stale error set (newest frame wins).
           this.pluginLoadErrors = init.pluginErrors;
+          const caps = (sdkMsg as { capabilities?: unknown }).capabilities;
+          this.askUnansweredSupported =
+            Array.isArray(caps) && caps.includes("ask_user_question_unanswered_v1");
         }
         // CC 2.1.300 — fast mode refused because usage credits ran out: the
         // engine retries that request without fast but leaves the flag on, so
