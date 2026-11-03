@@ -141,12 +141,19 @@ async function mockChatBackend(page: Page): Promise<{ effortPosts: string[] }> {
   return { effortPosts };
 }
 
-async function pickEffortMidTurn(page: Page, level: string): Promise<void> {
+async function pickEffortMidTurn(page: Page, effortPosts: string[], level: string): Promise<void> {
+  const before = effortPosts.length;
   const composer = page.getByTestId("prompt-input");
   await composer.click();
+  // No Escape before Enter: with an argument typed, the token before the
+  // caret isn't `/…`, so the slash picker is already closed. An Escape here
+  // only arms PromptInput's double-Escape clear (two presses within 500 ms
+  // wipe the composer), which silently swallowed back-to-back picks on CI.
   await composer.fill(`/effort ${level}`);
-  await page.keyboard.press("Escape"); // close the slash picker so Enter sends
   await composer.press("Enter");
+  // Prove the command ran, and keep the real order: the server only reports
+  // `effort_applied` after this POST, so callers emit it afterwards.
+  await expect.poll(() => effortPosts.slice(before)).toEqual([level]);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -161,8 +168,7 @@ test("a mid-task effort change says it may wait, until the next request picks it
   await expect(pill).toHaveAttribute("data-effort", "high", { timeout: 15_000 });
   await expect(page.getByTestId("session-card-effort-wait-note")).toHaveCount(0);
 
-  await pickEffortMidTurn(page, "max");
-  await expect.poll(() => effortPosts).toEqual(["max"]);
+  await pickEffortMidTurn(page, effortPosts, "max");
   // The server reports the level the next request will use.
   await emit(page, { type: "effort_applied", effort: "max" });
 
@@ -193,22 +199,22 @@ test("a mid-task effort change says it may wait, until the next request picks it
 });
 
 test("switching back to the level in force, or the turn ending, clears the note", async ({ page }) => {
-  await mockChatBackend(page);
+  const { effortPosts } = await mockChatBackend(page);
   await page.goto("/");
   const pill = page.getByTestId("session-card-effort-pill");
   await expect(pill).toHaveAttribute("data-effort", "high", { timeout: 15_000 });
   const note = page.getByTestId("session-card-effort-wait-note");
 
-  await pickEffortMidTurn(page, "low");
+  await pickEffortMidTurn(page, effortPosts, "low");
   await emit(page, { type: "effort_applied", effort: "low" });
   await expect(note).toBeVisible();
 
   // Back to the level the running request already uses: nothing to wait for.
-  await pickEffortMidTurn(page, "high");
+  await pickEffortMidTurn(page, effortPosts, "high");
   await emit(page, { type: "effort_applied", effort: "high" });
   await expect(note).toHaveCount(0);
 
-  await pickEffortMidTurn(page, "medium");
+  await pickEffortMidTurn(page, effortPosts, "medium");
   await emit(page, { type: "effort_applied", effort: "medium" });
   await expect(note).toBeVisible();
 
@@ -229,13 +235,13 @@ test("switching back to the level in force, or the turn ending, clears the note"
 });
 
 test("an effort change while idle shows no note", async ({ page }) => {
-  await mockChatBackend(page);
+  const { effortPosts } = await mockChatBackend(page);
   await page.goto("/");
   const pill = page.getByTestId("session-card-effort-pill");
   await expect(pill).toHaveAttribute("data-effort", "high", { timeout: 15_000 });
   await emit(page, { type: "turn_status", status: "idle" });
 
-  await pickEffortMidTurn(page, "max");
+  await pickEffortMidTurn(page, effortPosts, "max");
   await emit(page, { type: "effort_applied", effort: "max" });
   await expect(pill).toHaveAttribute("data-effort", "max");
   await expect(page.getByTestId("session-card-effort-wait-note")).toHaveCount(0);
