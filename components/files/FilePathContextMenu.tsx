@@ -143,7 +143,7 @@ export function FilePathContextMenu({
  * else sniffs `navigator.platform` to keep the browser dev build honest.
  * The fallback is the macOS label since Claudius is mac-first.
  */
-function revealLabel(): string {
+export function revealLabel(): string {
   if (typeof window === "undefined") return "Reveal in Finder";
   const plat = window.claudius?.platform;
   if (plat === "win32") return "Show in Explorer";

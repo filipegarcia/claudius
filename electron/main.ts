@@ -12,7 +12,13 @@
  * Phases 2–8 will extend this with the IPC bridge, native menu, custom
  * title bar, OS notifications, auto-updater, and deep-link handling.
  */
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  shell,
+  type BrowserWindowConstructorOptions,
+} from "electron";
 import { spawn } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { promises as fs } from "node:fs";
@@ -437,6 +443,60 @@ async function prewarmRootRoute(serverUrl: string): Promise<void> {
   }
 }
 
+/**
+ * Window-open policy for the main window AND every in-app child window it
+ * spawns (e.g. the Git page's "open file in new window"). Child windows
+ * don't inherit `setWindowOpenHandler` or the context menu, so
+ * `did-create-window` re-applies both recursively.
+ */
+function installWindowOpenPolicy(
+  win: BrowserWindow,
+  chrome: BrowserWindowConstructorOptions,
+): void {
+  // Outbound-link routing. Three branches:
+  //   - localhost/127.0.0.1 → child window with Claudius preload attached
+  //     (trusted app content; this is how the embedded Next server gets to
+  //     keep using the IPC bridge). The preference is ignored here — the
+  //     loopback URL is part of the app, not an external destination.
+  //   - external + pref="in-app" → sandboxed BrowserWindow in
+  //     `electron/ipc/in-app-browser.ts`. NO preload, dedicated session
+  //     partition; verified by `window.claudius` being undefined inside.
+  //   - external + pref="external" (default) → `shell.openExternal`.
+  // See `electron/ipc/link-target.ts` for the pure decision function and
+  // its unit tests.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    const pref = getLinkTarget();
+    const action = resolveLinkAction(url, pref, appOrigin);
+    // One log per outbound click — low frequency, high value for diagnosing
+    // "I switched to Default browser but links still open in-app" reports.
+    // Shows the cached preference, the URL, and the action we took, so any
+    // mismatch between /settings UI state and main-process state is obvious.
+    console.log(
+      `[electron/link-target] click pref=${pref} action=${action} appOrigin=${appOrigin} url=${url}`,
+    );
+    switch (action) {
+      case "internal-allow":
+        // Same frameless chrome as the main window: the page renders
+        // the app layout (incl. <TitleBar /> + the 32px body inset), so a
+        // native frame on top would double the title bar.
+        return { action: "allow", overrideBrowserWindowOptions: chrome };
+      case "in-app":
+        openInAppBrowser(url);
+        return { action: "deny" };
+      case "external":
+        shell.openExternal(url).catch(() => {
+          // Best-effort; nothing actionable if it fails.
+        });
+        return { action: "deny" };
+    }
+  });
+
+  win.webContents.on("did-create-window", (child) => {
+    registerContextMenu(child);
+    installWindowOpenPolicy(child, chrome);
+  });
+}
+
 function createWindow(startUrl: string): BrowserWindow {
   // The module-level `appOrigin` was set by resolveStartUrl (which runs before
   // any createWindow call) to the origin the renderer loads — the https proxy
@@ -452,11 +512,7 @@ function createWindow(startUrl: string): BrowserWindow {
   const isMac = process.platform === "darwin";
   const isWindows = process.platform === "win32";
 
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+  const chrome: BrowserWindowConstructorOptions = {
     frame: !isMac && !isWindows, // mac + win = frameless; linux keeps native frame as a fallback
     titleBarStyle: isMac ? "hiddenInset" : isWindows ? "hidden" : "default",
     // Mac: traffic lights centered in the 32px title bar (matches
@@ -470,6 +526,14 @@ function createWindow(startUrl: string): BrowserWindow {
       ? { color: "#0a0a0a", symbolColor: "#cccccc", height: 32 }
       : undefined,
     backgroundColor: "#0a0a0a",
+  };
+
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    ...chrome,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -505,40 +569,7 @@ function createWindow(startUrl: string): BrowserWindow {
     }
   });
 
-  // Outbound-link routing. Three branches:
-  //   - localhost/127.0.0.1 → child window with Claudius preload attached
-  //     (trusted app content; this is how the embedded Next server gets to
-  //     keep using the IPC bridge). The preference is ignored here — the
-  //     loopback URL is part of the app, not an external destination.
-  //   - external + pref="in-app" → sandboxed BrowserWindow in
-  //     `electron/ipc/in-app-browser.ts`. NO preload, dedicated session
-  //     partition; verified by `window.claudius` being undefined inside.
-  //   - external + pref="external" (default) → `shell.openExternal`.
-  // See `electron/ipc/link-target.ts` for the pure decision function and
-  // its unit tests.
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    const pref = getLinkTarget();
-    const action = resolveLinkAction(url, pref, appOrigin);
-    // One log per outbound click — low frequency, high value for diagnosing
-    // "I switched to Default browser but links still open in-app" reports.
-    // Shows the cached preference, the URL, and the action we took, so any
-    // mismatch between /settings UI state and main-process state is obvious.
-    console.log(
-      `[electron/link-target] click pref=${pref} action=${action} appOrigin=${appOrigin} url=${url}`,
-    );
-    switch (action) {
-      case "internal-allow":
-        return { action: "allow" };
-      case "in-app":
-        openInAppBrowser(url);
-        return { action: "deny" };
-      case "external":
-        shell.openExternal(url).catch(() => {
-          // Best-effort; nothing actionable if it fails.
-        });
-        return { action: "deny" };
-    }
-  });
+  installWindowOpenPolicy(win, chrome);
 
   // Right-click context menu. Without this Chromium suppresses its built-in
   // context menu and Copy/Paste-via-mouse is dead in the packaged build —

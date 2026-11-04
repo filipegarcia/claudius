@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,16 +16,17 @@ import {
   CloudDownload,
   Sparkles,
   GitPullRequest,
+  ExternalLink,
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
+import { ChangesList, type DiffSelection, type GroupKey } from "@/components/git/ChangesList";
+import { GitFileView } from "@/components/git/GitFileView";
 import {
-  ChangesList,
-  isPartialStage,
-  type DiffSelection,
-  type GroupKey,
-} from "@/components/git/ChangesList";
-import { DiffViewer } from "@/components/git/DiffViewer";
-import { FileEditor } from "@/components/git/FileEditor";
+  ChangeContextMenu,
+  type ChangeMenuActions,
+  type ChangeMenuTarget,
+} from "@/components/git/ChangeContextMenu";
+import { openGitFileWindow } from "@/lib/client/git-file-window";
 import { CommitBox } from "@/components/git/CommitBox";
 import { BranchSwitcher, type BranchInfo } from "@/components/git/BranchSwitcher";
 import { GitConsole, type GitConsoleEntry } from "@/components/git/GitConsole";
@@ -34,8 +35,7 @@ import { useGitStatus } from "@/lib/client/useGitStatus";
 import { renderCommitPrefix } from "@/lib/shared/commit-prefix";
 import { prBadgeLabel, type PrBadge } from "@/lib/shared/pr-badge";
 import { cn } from "@/lib/utils/cn";
-
-type DiffPayload = { diff: string; binary: boolean };
+import type { GitFileChange } from "@/lib/server/git";
 
 /**
  * Git subcommands that can change the working tree, index, HEAD, or refs —
@@ -98,6 +98,14 @@ function summarizeGitError(input: string): string {
   return first.length > 200 ? `${first.slice(0, 200)}…` : first;
 }
 
+/**
+ * POSIX single-quote a value for the console's bash (`/shell` endpoint).
+ * Used for repo paths in menu-built commands like `git stash push -- <path>`.
+ */
+function shQuote(s: string): string {
+  return `'${s.replace(/'/g, `'\\''`)}'`;
+}
+
 export default function GitPage() {
   const { items, activeId } = useWorkspaces();
   const active = items.find((w) => w.id === activeId);
@@ -138,9 +146,6 @@ export default function GitPage() {
   // is the "what will get committed" set; ChangesList drives this.
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<DiffSelection | null>(null);
-  const [diff, setDiff] = useState<DiffPayload | null>(null);
-  const [diffLoading, setDiffLoading] = useState(false);
-  const [diffError, setDiffError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [opError, setOpError] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<GroupKey, boolean>>({
@@ -149,26 +154,22 @@ export default function GitPage() {
     untracked: false,
   });
   /**
-   * Right-pane layout: false = unified editor (IntelliJ "Current version"
-   * style — the editor IS the diff view), true = side-by-side (old left,
-   * current right). Defaults to split view because it matches the IntelliJ
-   * workflow the page is modeled after. Persisted to localStorage so the
-   * user's explicit preference (either direction) sticks across reloads.
+   * IntelliJ "Group By → Directory" for the changes list. Off by default
+   * (the flat full-path list); persisted so the choice sticks across reloads.
    */
-  const SPLIT_MODE_KEY = "claudius.git.splitMode";
-  const [splitMode, setSplitMode] = useState<boolean>(() => {
-    // SSR fall-through and first-time visitors get the new default (split).
-    // Existing entries are respected so users who explicitly toggled to
-    // unified ("0") aren't surprised by a flip on the next reload.
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(SPLIT_MODE_KEY);
-    if (stored == null) return true;
-    return stored === "1";
+  const GROUP_BY_DIR_KEY = "claudius.git.groupByDirectory";
+  const [groupByDirectory, setGroupByDirectory] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(GROUP_BY_DIR_KEY) === "1";
   });
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(SPLIT_MODE_KEY, splitMode ? "1" : "0");
-  }, [splitMode]);
+  const onGroupByDirectoryChange = useCallback((next: boolean) => {
+    setGroupByDirectory(next);
+    window.localStorage.setItem(GROUP_BY_DIR_KEY, next ? "1" : "0");
+  }, []);
+
+  const onOpenInWindow = (sel: DiffSelection) => {
+    if (wsId) openGitFileWindow(wsId, sel);
+  };
 
   // Drag-handle on the seam between the changes list and the diff pane.
   // Width persists in localStorage so the user's preferred size sticks
@@ -381,47 +382,6 @@ export default function GitPage() {
       setSelected((prev) => (prev && present.has(prev.path) ? prev : null));
     }
   }
-
-  // Pull diff text whenever the selection changes. The synchronous setup
-  // (reset the previous diff/error, flip loading on) runs render-phase via
-  // the "store previous props" pattern so we don't fire setState
-  // synchronously inside the effect body. The effect itself only kicks off
-  // the async fetch, and all of *its* setStates run inside `.then` /
-  // `.catch` / `.finally` callbacks. The `AbortController` cleanup is what
-  // guarantees race-safety when the user rapidly clicks between files.
-  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
-  const diffKey = wsId && selected ? `${wsId}|${selected.path}|${selected.mode}` : "";
-  const [lastDiffKey, setLastDiffKey] = useState(diffKey);
-  if (lastDiffKey !== diffKey) {
-    setLastDiffKey(diffKey);
-    setDiff(null);
-    setDiffError(null);
-    setDiffLoading(Boolean(diffKey));
-  }
-  useEffect(() => {
-    if (!wsId || !selected) return;
-    const ac = new AbortController();
-    fetch(
-      `/api/workspaces/${wsId}/git/diff?path=${encodeURIComponent(selected.path)}&mode=${selected.mode}`,
-      { signal: ac.signal },
-    )
-      .then(async (res) => {
-        if (!res.ok) {
-          const j = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? `HTTP ${res.status}`);
-        }
-        return (await res.json()) as DiffPayload;
-      })
-      .then((p) => setDiff(p))
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setDiffError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setDiffLoading(false);
-      });
-    return () => ac.abort();
-  }, [wsId, selected]);
 
   const onToggleCheck = useCallback((path: string, next: boolean) => {
     setChecked((prev) => {
@@ -794,6 +754,8 @@ export default function GitPage() {
         const tag = target.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
         if (target.isContentEditable) return;
+        // A focused context-menu item is not "the selected file".
+        if (target.closest('[role="menu"]')) return;
       }
       e.preventDefault();
       void runRemoveSingle(sel.path);
@@ -801,6 +763,124 @@ export default function GitPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [selected, runRemoveSingle]);
+
+  // ── Right-click menu (IntelliJ "Commit" tool window parity) ─────────────
+  const [rowMenu, setRowMenu] = useState<ChangeMenuTarget | null>(null);
+  const closeRowMenu = useCallback(() => setRowMenu(null), [setRowMenu]);
+
+  /** Per-file stage / unstage — the menu's "Add to VCS", "Git › Add / Unstage". */
+  async function runStageSingle(op: "stage" | "unstage", path: string) {
+    if (!wsId || busy) return;
+    setBusy(op);
+    setOpError(null);
+    try {
+      const res = await fetch(`/api/workspaces/${wsId}/git/stage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths: [path], op }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        const msg = j.error ?? `HTTP ${res.status}`;
+        pushConsoleEntry({ command: `git ${op} ${path}`, status: "error", output: msg });
+        throw new Error(msg);
+      }
+      await refresh();
+    } catch (err) {
+      setOpError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** "Rollback…" (menu + ⌥⌘Z): the row's revert, behind a confirm. */
+  function rollbackWithConfirm(path: string) {
+    const file = data?.files.find((f) => f.path === path);
+    if (!file || file.untracked) return; // no HEAD version — Delete is the tool
+    if (!confirm(`Rollback ${path}? Local changes are discarded and the HEAD version restored.`)) {
+      return;
+    }
+    void runRevertSingle(path);
+  }
+
+  /** "Jump to Source" (menu + F4): open the file in the Files editor. */
+  function jumpToSource(path: string) {
+    if (!wsId) return;
+    const file = data?.files.find((f) => f.path === path);
+    if (file?.worktree === "D") return; // nothing on disk to open
+    router.push(`/${wsId}/files?path=${encodeURIComponent(path)}`);
+  }
+
+  const rowMenuActions: ChangeMenuActions = {
+    commitFile: (path) => {
+      // IntelliJ "Commit File…": just this file, cursor in the message.
+      setChecked(new Set([path]));
+      requestAnimationFrame(() => {
+        document.querySelector<HTMLTextAreaElement>('[data-testid="commit-message"]')?.focus();
+      });
+    },
+    rollback: rollbackWithConfirm,
+    showDiff: setSelected,
+    openInWindow: onOpenInWindow,
+    jumpToSource,
+    remove: (path) => void runRemoveSingle(path),
+    stage: (path) => void runStageSingle("stage", path),
+    unstage: (path) => void runStageSingle("unstage", path),
+    shelve: (file: GitFileChange) => {
+      if (
+        !confirm(
+          `Shelve ${file.path}? Its changes move to a git stash (restore with \`git stash pop\`).`,
+        )
+      ) {
+        return;
+      }
+      // Untracked files need -u or stash ignores the pathspec entirely.
+      const flags = file.untracked ? "--include-untracked " : "";
+      void runConsoleCommand(
+        `git stash push ${flags}-m ${shQuote(`Shelved ${file.path}`)} -- ${shQuote(file.path)}`,
+      );
+    },
+    showHistory: (path) => {
+      setConsoleOpen(true);
+      void runConsoleCommand(
+        `git log --follow -n 200 --date=short --format='%h  %ad  %<(18,trunc)%an  %s' -- ${shQuote(path)}`,
+      );
+    },
+    refresh: () => void refresh(),
+    onError: (message) => setOpError(message),
+    onInfo: (command, output) => pushConsoleEntry({ command, status: "info", output }),
+  };
+
+  // F4 = Jump to Source, ⌥⌘Z (Ctrl+Alt+Z off-mac) = Rollback — the chords
+  // the context menu advertises. Same focus gating as the Delete shortcut.
+  // `useEffectEvent` keeps one stable listener while still reading the
+  // latest selection/data.
+  const onMenuShortcut = useEffectEvent((e: KeyboardEvent) => {
+    if (!selected || e.defaultPrevented) return;
+    const target = e.target as HTMLElement | null;
+    if (target) {
+      const tag = target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (target.isContentEditable || target.closest('[role="menu"]')) return;
+    }
+    if (e.key === "F4" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      jumpToSource(selected.path);
+      return;
+    }
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+    const mod = mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
+    // `code`, not `key`: Option turns Z into "Ω" on a mac layout.
+    if (e.code === "KeyZ" && e.altKey && mod && !e.shiftKey) {
+      e.preventDefault();
+      rollbackWithConfirm(selected.path);
+    }
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => onMenuShortcut(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   async function onGenerateMessage() {
     if (!wsId) return { ok: false as const, error: "no workspace" };
@@ -1510,35 +1590,7 @@ export default function GitPage() {
   const aheadCount = data?.isRepo ? data.ahead ?? 0 : 0;
   const behindCount = data?.isRepo ? data.behind ?? 0 : 0;
 
-  /**
-   * Does the *selected* file need a diff-mode toggle? True for partial-stage
-   * (`AM` / `MM` / `MD` / …) and for `AD` (the latter is hidden from the
-   * list but reachable if something else routes selection to it — defensive).
-   * Lifted out of the JSX so we don't run `data.files.find` on every render
-   * of the diff pane, and so the JSX stays scannable.
-   */
-  const selectedNeedsModeToggle = useMemo(() => {
-    if (!selected || selected.mode === "untracked" || !data) return false;
-    const f = data.files.find((x) => x.path === selected.path);
-    if (!f) return false;
-    const isAD = f.index === "A" && f.worktree === "D";
-    return isPartialStage(f) || isAD;
-  }, [selected, data]);
-
-  /**
-   * Is the selected file editable? False when the file no longer exists
-   * on disk — a `D` worktree status means there's nothing for the editor
-   * to load. (`AD` files are already filtered out by groupFiles, so we
-   * only have to gate on plain `D` here.) The right pane falls back to a
-   * read-only diff for these.
-   */
-  const selectedCanEdit = useMemo(() => {
-    if (!selected || !data) return false;
-    const f = data.files.find((x) => x.path === selected.path);
-    if (!f) return false;
-    if (f.worktree === "D") return false;
-    return true;
-  }, [selected, data]);
+  const selectedFile = selected ? data?.files.find((f) => f.path === selected.path) : undefined;
 
   return (
     <div className="flex h-full">
@@ -1773,6 +1825,10 @@ export default function GitPage() {
                   onToggleAll={onToggleAll}
                   collapsedGroups={collapsedGroups}
                   onToggleGroup={onToggleGroup}
+                  groupByDirectory={groupByDirectory}
+                  onGroupByDirectoryChange={onGroupByDirectoryChange}
+                  onOpenInWindow={onOpenInWindow}
+                  onRowContextMenu={setRowMenu}
                   onRefresh={() => void refresh()}
                   refreshing={statusLoading}
                   // Two distinct per-row actions:
@@ -1820,147 +1876,30 @@ export default function GitPage() {
               <div className="flex flex-1 items-center justify-center text-sm text-[var(--muted)]">
                 Pick a changed file to see the diff.
               </div>
-            ) : (
-              <>
-                <div className="flex h-9 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel-2)]/40 px-3 text-xs">
-                  <span className="truncate font-mono">{selected.path}</span>
-                  {/* Partial-stage toggle. Without it the user couldn't
-                      reach the unstaged side of an `AM` / `MM` file, since
-                      groupFiles routes each file to exactly one group. The
-                      toggle still applies in editor mode — switching it
-                      re-fetches the diff against a different base, which
-                      changes which lines are highlighted as additions. */}
-                  {selectedNeedsModeToggle ? (
-                    <div
-                      role="tablist"
-                      aria-label="Diff view"
-                      data-testid="diff-mode-toggle"
-                      className="flex overflow-hidden rounded border border-[var(--border)] bg-[var(--panel)] text-[10px]"
-                    >
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={selected.mode === "staged"}
-                        onClick={() => setSelected({ path: selected.path, mode: "staged" })}
-                        className={cn(
-                          "px-2 py-0.5",
-                          selected.mode === "staged"
-                            ? "bg-[var(--accent)]/20 text-[var(--foreground)]"
-                            : "text-[var(--muted)] hover:bg-[var(--panel-2)]",
-                        )}
-                      >
-                        Staged · HEAD → index
-                      </button>
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={selected.mode === "worktree"}
-                        onClick={() => setSelected({ path: selected.path, mode: "worktree" })}
-                        className={cn(
-                          "border-l border-[var(--border)] px-2 py-0.5",
-                          selected.mode === "worktree"
-                            ? "bg-[var(--accent)]/20 text-[var(--foreground)]"
-                            : "text-[var(--muted)] hover:bg-[var(--panel-2)]",
-                        )}
-                      >
-                        Unstaged · index → working
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="rounded bg-[var(--panel)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
-                      {selected.mode === "staged"
-                        ? "Staged · HEAD → index"
-                        : selected.mode === "untracked"
-                          ? "Untracked · /dev/null → working"
-                          : "Unstaged · index → working"}
-                    </span>
-                  )}
-                  {/*
-                    Unified / Side-by-side layout toggle. Mirrors IntelliJ's
-                    "viewer" picker. Disabled for untracked files (no old
-                    version to put on the left pane) and pushed to the
-                    right of the header so the file path and diff-mode
-                    label stay anchored to the left.
-                  */}
-                  <div
-                    role="tablist"
-                    aria-label="Right-pane layout"
-                    data-testid="diff-layout-toggle"
-                    className="ml-auto flex overflow-hidden rounded border border-[var(--border)] bg-[var(--panel)] text-[10px]"
+            ) : wsId ? (
+              <GitFileView
+                wsId={wsId}
+                selected={selected}
+                file={selectedFile}
+                onModeChange={(mode) => setSelected({ path: selected.path, mode })}
+                // After a save the worktree changed — refresh git status so
+                // the changes list mirrors the new state (the file may drop
+                // out of the list if the edit restored its HEAD content).
+                onSaved={() => void refresh()}
+                headerActions={
+                  <button
+                    type="button"
+                    onClick={() => onOpenInWindow(selected)}
+                    title="Open in new window"
+                    aria-label="Open in new window"
+                    data-testid="diff-open-window"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
                   >
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={!splitMode}
-                      onClick={() => setSplitMode(false)}
-                      title="Unified — single editable panel with diff highlights"
-                      className={cn(
-                        "px-2 py-0.5",
-                        !splitMode
-                          ? "bg-[var(--accent)]/20 text-[var(--foreground)]"
-                          : "text-[var(--muted)] hover:bg-[var(--panel-2)]",
-                      )}
-                    >
-                      Unified
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={splitMode}
-                      onClick={() => setSplitMode(true)}
-                      disabled={selected.mode === "untracked"}
-                      title={
-                        selected.mode === "untracked"
-                          ? "Untracked files have no old version to compare"
-                          : "Side-by-side — old left, current right"
-                      }
-                      className={cn(
-                        "border-l border-[var(--border)] px-2 py-0.5",
-                        splitMode
-                          ? "bg-[var(--accent)]/20 text-[var(--foreground)]"
-                          : "text-[var(--muted)] hover:bg-[var(--panel-2)]",
-                        "disabled:opacity-40 disabled:hover:bg-transparent",
-                      )}
-                    >
-                      Split
-                    </button>
-                  </div>
-                </div>
-                {/*
-                  IntelliJ-style merged view: the editor IS the diff.
-                  Added lines get a green stripe in the editable buffer;
-                  no separate "Diff" mode. Falls back to the read-only
-                  unified diff view only when the file isn't on disk
-                  (worktree=D) — there's nothing to load into an editor
-                  in that case.
-                */}
-                {selectedCanEdit && wsId ? (
-                  <FileEditor
-                    wsId={wsId}
-                    relPath={selected.path}
-                    diff={diff?.diff ?? ""}
-                    // Split is disabled for untracked files — they have no
-                    // "old" version to put on the left side. The toggle in
-                    // the header reflects this; passing `split={false}`
-                    // here keeps FileEditor itself unaware of the rule.
-                    split={splitMode && selected.mode !== "untracked"}
-                    mode={selected.mode}
-                    // After a save the worktree changed — refresh git
-                    // status so the changes list mirrors the new state
-                    // (file may have moved out of the list entirely if
-                    // the user's edits restored it to its HEAD content).
-                    onSaved={() => void refresh()}
-                  />
-                ) : (
-                  <DiffViewer
-                    diff={diff?.diff ?? ""}
-                    binary={diff?.binary ?? false}
-                    loading={diffLoading}
-                    error={diffError}
-                  />
-                )}
-              </>
-            )}
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
+                }
+              />
+            ) : null}
           </section>
         </div>
         <GitConsole
@@ -1980,6 +1919,14 @@ export default function GitPage() {
           // interleave with them.
           promptDisabled={busy != null}
         />
+        {rowMenu && wsId && (
+          <ChangeContextMenu
+            wsId={wsId}
+            target={rowMenu}
+            actions={rowMenuActions}
+            onClose={closeRowMenu}
+          />
+        )}
       </main>
     </div>
   );

@@ -373,6 +373,8 @@ export function CommitBox({
       </div>
       <textarea
         ref={taRef}
+        aria-label="Commit message"
+        data-testid="commit-message"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder={generating ? "Generating commit message…" : "Commit message"}
