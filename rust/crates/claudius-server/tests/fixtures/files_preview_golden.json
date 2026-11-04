@@ -1,0 +1,1928 @@
+{
+ "groups": [
+  {
+   "name": "serve",
+   "steps": [
+    {
+     "op": "fs",
+     "act": "mkdir",
+     "path": "ws"
+    },
+    {
+     "op": "fs",
+     "act": "mkdir",
+     "path": "outside/dir"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "outside/secret.txt",
+     "text": "outside the root\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "outside/dir/o.txt",
+     "text": "o"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/index.html",
+     "text": "<!doctype html><link rel=\"stylesheet\" href=\"style.css\"><p>hi</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/style.css",
+     "text": "style.css\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/app.js",
+     "text": "app.js\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/m.mjs",
+     "text": "m.mjs\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/c.cjs",
+     "text": "c.cjs\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/d.json",
+     "text": "d.json\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/d.jsonc",
+     "text": "d.jsonc\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.svg",
+     "text": "i.svg\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.jpg",
+     "text": "i.jpg\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.jpeg",
+     "text": "i.jpeg\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.gif",
+     "text": "i.gif\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.webp",
+     "text": "i.webp\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.avif",
+     "text": "i.avif\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.ico",
+     "text": "i.ico\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.bmp",
+     "text": "i.bmp\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/f.woff",
+     "text": "f.woff\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/f.woff2",
+     "text": "f.woff2\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/f.ttf",
+     "text": "f.ttf\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/f.otf",
+     "text": "f.otf\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/t.txt",
+     "text": "t.txt\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.xml",
+     "text": "x.xml\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/UP.HTML",
+     "text": "UP.HTML\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/Mixed.Css",
+     "text": "Mixed.Css\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/page.htm",
+     "text": "page.htm\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/noext",
+     "text": "noext\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/html",
+     "text": "html\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/css",
+     "text": "css\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.constructor",
+     "text": "x.constructor\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.__proto__",
+     "text": "x.__proto__\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/y.CONSTRUCTOR",
+     "text": "y.CONSTRUCTOR\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/y.__PROTO__",
+     "text": "y.__PROTO__\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.toString",
+     "text": "x.toString\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.hasownproperty",
+     "text": "x.hasownproperty\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.valueof",
+     "text": "x.valueof\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.unknown",
+     "text": "x.unknown\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/a.tar.gz",
+     "text": "a.tar.gz\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/.hidden",
+     "text": ".hidden\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/trailingdot.",
+     "text": "trailingdot.\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.JS",
+     "text": "x.JS\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/i.png",
+     "hex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
+    },
+    {
+     "op": "fs",
+     "act": "mkdir",
+     "path": "ws/dir.v2"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/dir.v2/file",
+     "text": "no extension under a dotted folder\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/dir.v2/page.html",
+     "text": "<p>v2</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/bytes.bin",
+     "hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/empty.txt",
+     "text": ""
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/café.html",
+     "text": "<p>café</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/😀.txt",
+     "text": "😀\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/é.É",
+     "text": "accented extension\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/a b.html",
+     "text": "space\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/a+b.txt",
+     "text": "plus\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/100%.html",
+     "text": "percent\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/a#b.txt",
+     "text": "hash\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/a?b.txt",
+     "text": "question\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/it's.txt",
+     "text": "quote\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/sub/inner.html",
+     "text": "<p>inner</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/sub/..foo",
+     "text": "dotdot inside sub\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/..foo",
+     "text": "dotdot at the top\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/.../x.txt",
+     "text": "three dots\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/x.txt",
+     "text": "x\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/_NEXTSEP_x.txt",
+     "text": "never reachable\n"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "ws/link-out.txt",
+     "target": "$ROOT/outside/secret.txt"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "ws/link-dir",
+     "target": "$ROOT/outside"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "ws/dangling",
+     "target": "$ROOT/nowhere"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "ws/loop",
+     "target": "loop"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "ws/link-to-dir",
+     "target": "$ROOT/outside/dir"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "ws/devnull",
+     "target": "/dev/null"
+    },
+    {
+     "op": "fs",
+     "act": "fifo",
+     "path": "ws/pipe.png"
+    },
+    {
+     "op": "fs",
+     "act": "mkdir",
+     "path": "ws/dir.png"
+    },
+    {
+     "op": "fs",
+     "act": "zero",
+     "path": "ws/big-exact.bin",
+     "size": 134217728
+    },
+    {
+     "op": "fs",
+     "act": "zero",
+     "path": "ws/big-over.bin",
+     "size": 134217729
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws�/lone.html",
+     "text": "<p>lone</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "wslink",
+     "target": "$ROOT/ws"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "project/rel/r.html",
+     "text": "<p>relative root</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/customizations/cust_aaaaaaaaaaaa/src/index.html",
+     "text": "<p>customization</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/evil/src/e.html",
+     "text": "<p>outside the customizations folder</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"wks_a\",\n      \"rootPath\": \"$ROOT/ws\"\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"wks_rel\",\n      \"rootPath\": \"rel\"\n    },\n    {\n      \"id\": \"wks_trail\",\n      \"name\": \"wks_trail\",\n      \"rootPath\": \"$ROOT/ws/\"\n    },\n    {\n      \"id\": \"wks_dots\",\n      \"name\": \"wks_dots\",\n      \"rootPath\": \"$ROOT/project/../ws\"\n    },\n    {\n      \"id\": \"wks_slash\",\n      \"name\": \"wks_slash\",\n      \"rootPath\": \"/\"\n    },\n    {\n      \"id\": \"wks_num\",\n      \"name\": \"wks_num\",\n      \"rootPath\": 5\n    },\n    {\n      \"id\": \"wks_badextra\",\n      \"name\": \"wks_badextra\",\n      \"rootPath\": \"$ROOT/ws\",\n      \"defaults\": {\n        \"additionalDirectories\": 5\n      }\n    },\n    {\n      \"id\": \"wks_lone\",\n      \"name\": \"wks_lone\",\n      \"rootPath\": \"$ROOT/ws\\ud800\"\n    },\n    {\n      \"id\": \"wks_link\",\n      \"name\": \"wks_link\",\n      \"rootPath\": \"$ROOT/wslink\"\n    },\n    {\n      \"id\": \"wks_missing\",\n      \"name\": \"wks_missing\",\n      \"rootPath\": \"$ROOT/nope\"\n    },\n    {\n      \"id\": \"wks_file\",\n      \"name\": \"wks_file\",\n      \"rootPath\": \"$ROOT/ws/index.html\"\n    },\n    {\n      \"id\": \"wks_extra\",\n      \"name\": \"wks_extra\",\n      \"rootPath\": \"$ROOT/outside\",\n      \"defaults\": {\n        \"additionalDirectories\": [\n          \"$ROOT/ws\"\n        ]\n      }\n    },\n    {\n      \"id\": \"wks_é\",\n      \"name\": \"wks_é\",\n      \"rootPath\": \"$ROOT/ws\"\n    }\n  ]\n}"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/customizations/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"A\"},{\"id\":\"cust_x/../../evil\",\"name\":\"E\"}],\"publishes\":[]}"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/style.css",
+     "got": {
+      "status": 200,
+      "type": "text/css; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "7374796c652e6373730a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/app.js",
+     "got": {
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6170702e6a730a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/m.mjs",
+     "got": {
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6d2e6d6a730a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/c.cjs",
+     "got": {
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "632e636a730a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/d.json",
+     "got": {
+      "status": 200,
+      "type": "application/json; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "642e6a736f6e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/d.jsonc",
+     "got": {
+      "status": 200,
+      "type": "application/json; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "642e6a736f6e630a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.svg",
+     "got": {
+      "status": 200,
+      "type": "image/svg+xml",
+      "cache": "private, no-store",
+      "hex": "692e7376670a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.jpg",
+     "got": {
+      "status": 200,
+      "type": "image/jpeg",
+      "cache": "private, no-store",
+      "hex": "692e6a70670a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.jpeg",
+     "got": {
+      "status": 200,
+      "type": "image/jpeg",
+      "cache": "private, no-store",
+      "hex": "692e6a7065670a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.gif",
+     "got": {
+      "status": 200,
+      "type": "image/gif",
+      "cache": "private, no-store",
+      "hex": "692e6769660a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.webp",
+     "got": {
+      "status": 200,
+      "type": "image/webp",
+      "cache": "private, no-store",
+      "hex": "692e776562700a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.avif",
+     "got": {
+      "status": 200,
+      "type": "image/avif",
+      "cache": "private, no-store",
+      "hex": "692e617669660a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.ico",
+     "got": {
+      "status": 200,
+      "type": "image/x-icon",
+      "cache": "private, no-store",
+      "hex": "692e69636f0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.bmp",
+     "got": {
+      "status": 200,
+      "type": "image/bmp",
+      "cache": "private, no-store",
+      "hex": "692e626d700a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/f.woff",
+     "got": {
+      "status": 200,
+      "type": "font/woff",
+      "cache": "private, no-store",
+      "hex": "662e776f66660a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/f.woff2",
+     "got": {
+      "status": 200,
+      "type": "font/woff2",
+      "cache": "private, no-store",
+      "hex": "662e776f6666320a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/f.ttf",
+     "got": {
+      "status": 200,
+      "type": "font/ttf",
+      "cache": "private, no-store",
+      "hex": "662e7474660a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/f.otf",
+     "got": {
+      "status": 200,
+      "type": "font/otf",
+      "cache": "private, no-store",
+      "hex": "662e6f74660a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/t.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "742e7478740a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.xml",
+     "got": {
+      "status": 200,
+      "type": "application/xml; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "782e786d6c0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/UP.HTML",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "55502e48544d4c0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/Mixed.Css",
+     "got": {
+      "status": 200,
+      "type": "text/css; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "4d697865642e4373730a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/page.htm",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "706167652e68746d0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/noext",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "6e6f6578740a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "68746d6c0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/css",
+     "got": {
+      "status": 200,
+      "type": "text/css; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6373730a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.constructor",
+     "got": {
+      "status": 200,
+      "type": "function Object() { [native code] }",
+      "cache": "private, no-store",
+      "hex": "782e636f6e7374727563746f720a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.__proto__",
+     "got": {
+      "status": 200,
+      "type": "[object Object]",
+      "cache": "private, no-store",
+      "hex": "782e5f5f70726f746f5f5f0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/y.CONSTRUCTOR",
+     "got": {
+      "status": 200,
+      "type": "function Object() { [native code] }",
+      "cache": "private, no-store",
+      "hex": "792e434f4e5354525543544f520a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/y.__PROTO__",
+     "got": {
+      "status": 200,
+      "type": "[object Object]",
+      "cache": "private, no-store",
+      "hex": "792e5f5f50524f544f5f5f0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.toString",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "782e746f537472696e670a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.hasownproperty",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "782e6861736f776e70726f70657274790a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.valueof",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "782e76616c75656f660a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.unknown",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "782e756e6b6e6f776e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/a.tar.gz",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "612e7461722e677a0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/.hidden",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "2e68696464656e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/trailingdot.",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "747261696c696e67646f742e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/x.JS",
+     "got": {
+      "status": 200,
+      "type": "text/javascript; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "782e4a530a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/i.png",
+     "got": {
+      "status": 200,
+      "type": "image/png",
+      "cache": "private, no-store",
+      "hex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/dir.v2/file",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "6e6f20657874656e73696f6e20756e646572206120646f7474656420666f6c6465720a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/dir.v2/page.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e76323c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/bytes.bin",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "sha": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880:256"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/empty.txt",
+     "emptyFile": true,
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "garbage": 65536
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/caf%C3%A9.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e636166c3a93c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%F0%9F%98%80.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "f09f98800a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%C3%A9.%C3%89",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "616363656e74656420657874656e73696f6e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/a%20b.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "73706163650a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/a+b.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "706c75730a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/100%25.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "70657263656e740a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/100%.html",
+     "got": {
+      "decode": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/a%23b.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "686173680a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/a%3Fb.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "7175657374696f6e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/it's.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "71756f74650a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/it%27s.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "71756f74650a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/sub/inner.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e696e6e65723c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/sub%2Finner.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e696e6e65723c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/sub/..foo",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "hex": "646f74646f7420696e73696465207375620a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/..foo",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/.../x.txt",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/_NEXTSEP_x.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "780a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%5FNEXTSEP%5Fx.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "780a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/_NEXTSEP__NEXTSEP_x.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6e6576657220726561636861626c650a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/_NEXTSEP_sub/_NEXTSEP_inner.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e696e6e65723c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html?x=1&y=%zz",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/nope.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/link-out.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6f7574736964652074686520726f6f740a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/link-dir/secret.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6f7574736964652074686520726f6f740a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/link-dir/dir/o.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6f"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/dangling",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/loop",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/link-to-dir",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not a file"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/devnull",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not a file"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/pipe.png",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not a file"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/dir.png",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not a file"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/sub",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not a file"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/big-exact.bin",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "sha": "254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917:134217728"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/big-over.bin",
+     "got": {
+      "status": 413,
+      "type": "text/plain;charset=UTF-8",
+      "text": "file too large to preview (>128 MB)"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/..%2Foutside%2Fsecret.txt",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%2E%2E%2Foutside%2Fsecret.txt",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/sub%2F..%2F..%2Foutside%2Fsecret.txt",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/sub%2F..%2Findex.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/sub%2F.%2Finner.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e696e6e65723c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/..%2F",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/.%2F",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%2Fetc%2Fhosts",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%2F%2Findex.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html%2F",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html%2F.",
+     "got": {
+      "status": 200,
+      "type": "application/octet-stream",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html%00",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%00",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%E9.html",
+     "got": {
+      "decode": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%ED%A0%80.html",
+     "got": {
+      "decode": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%C0%AF",
+     "got": {
+      "decode": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/%",
+     "got": {
+      "decode": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_rel/files/preview/r.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e72656c617469766520726f6f743c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_trail/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_dots/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_slash/files/preview/index.html",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_slash/files/preview/etc/hosts",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_num/files/preview/index.html",
+     "got": {
+      "threw": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_badextra/files/preview/index.html",
+     "got": {
+      "threw": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_lone/files/preview/lone.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e6c6f6e653c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_link/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_link/files/preview/link-out.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6f7574736964652074686520726f6f740a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_missing/files/preview/x.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_file/files/preview/x",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_extra/files/preview/secret.txt",
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "6f7574736964652074686520726f6f740a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_extra/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_%C3%A9/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_nope/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "workspace not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/WKS_A/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "workspace not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/_NEXTSEP_wks_a/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks%5Fa/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks%zz/files/preview/index.html",
+     "got": {
+      "decode": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a%2Fx/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "workspace not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/cust_aaaaaaaaaaaa/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e637573746f6d697a6174696f6e3c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/cust_aaaaaaaaaaaa/files/preview/..%2F..%2Fcustomizations%2Findex.json",
+     "got": {
+      "status": 403,
+      "type": "text/plain;charset=UTF-8",
+      "text": "path escapes workspace root"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/cust_bbbbbbbbbbbb/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "workspace not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/cust_x%2F..%2F..%2Fevil/files/preview/e.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e6f7574736964652074686520637573746f6d697a6174696f6e7320666f6c6465723c2f703e0a"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "text": "{"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "threw": true
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/cust_aaaaaaaaaaaa/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e637573746f6d697a6174696f6e3c2f703e0a"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "text": "null"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "threw": true
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "text": "{\"version\":1,\"workspaces\":[null,{\"id\":\"wks_a\",\"name\":\"wks_a\",\"rootPath\":\"$ROOT/ws\"}]}"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "threw": true
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "text": "{\"version\":2,\"workspaces\":[{\"id\":\"wks_a\",\"name\":\"wks_a\",\"rootPath\":\"$ROOT/ws\"}]}"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "workspace not found"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/customizations/index.json",
+     "text": "{"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/cust_aaaaaaaaaaaa/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "workspace not found"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/customizations/index.json",
+     "text": "{\"version\":1,\"customizations\":[null],\"publishes\":[]}"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/cust_aaaaaaaaaaaa/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "workspace not found"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "text": "{\"version\":1,\"workspaces\":[{\"id\":\"wks_a\",\"name\":\"wks_a\",\"rootPath\":\"$ROOT/ws\"}]}"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "sha": "3cf5e4c4a4c734d6fc5debb6bde2d7d69755309a4136a7f25cb141dc0c6a1458:65"
+     }
+    }
+   ]
+  },
+  {
+   "name": "perms",
+   "perms": true,
+   "steps": [
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/index.html",
+     "text": "<p>hi</p>\n"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/closed.txt",
+     "text": "mode 000\n"
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "ws/closed.txt",
+     "mode": 0
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/write-only.txt",
+     "text": "mode 200\n"
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "ws/write-only.txt",
+     "mode": 128
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/shut/in.txt",
+     "text": "inside a mode-000 folder\n"
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "ws/shut",
+     "mode": 0
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "ws/noexec/in.txt",
+     "text": "inside a mode-600 folder\n"
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "ws/noexec",
+     "mode": 384
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"wks_a\",\n      \"rootPath\": \"$ROOT/ws\"\n    }\n  ]\n}"
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e68693c2f703e0a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/closed.txt",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/write-only.txt",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/shut/in.txt",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/shut",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/noexec/in.txt",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/noexec",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not a file"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "ws",
+     "mode": 0
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "text": "not found"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "ws",
+     "mode": 493
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "mode": 0
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "threw": true
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "home/.claude/.claudius/workspaces.json",
+     "mode": 420
+    },
+    {
+     "op": "req",
+     "url": "/api/workspaces/wks_a/files/preview/index.html",
+     "got": {
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-store",
+      "hex": "3c703e68693c2f703e0a"
+     }
+    }
+   ]
+  }
+ ]
+}

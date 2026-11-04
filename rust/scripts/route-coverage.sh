@@ -7,7 +7,10 @@
 #                                            # a Rust route is missing methods
 #
 # Classification of each TS route (path + exported methods):
-#   rust       — a Rust handler owns the path (methods compared, see below)
+#   rust       — a Rust handler owns the path (methods compared, see below);
+#                a method routed to `crate::proxy::handler` (`get(list)
+#                .post(crate::proxy::handler)`) counts as handled and is
+#                noted "→ Next"
 #   proxied    — an explicit `any(crate::proxy::handler)` route forwards it
 #   501        — caught by the `/api/sessions/{id}/{*rest}` not-ported guard
 #   next-only  — no Rust route; reaches Next through the fallback proxy
@@ -83,14 +86,16 @@ for name in sorted(os.listdir(server_src)):
         src = f.read()
     for path, handler in ROUTE_RE.findall(src):
         handler = " ".join(handler.split())
-        if "proxy::handler" in handler:
+        calls = re.findall(r"\b(get|post|put|patch|delete)\(\s*([^()]*?)\s*\)", handler)
+        to_next = sorted({m.upper() for m, h in calls if "proxy::handler" in h}, key=METHODS.index)
+        if "proxy::handler" in handler and all("proxy::handler" in h for _, h in calls):
             kind, methods = "proxied", []
         elif "not_ported" in handler:
             kind, methods = "501", []
         else:
             kind = "rust"
             methods = sorted({m.upper() for m in re.findall(r"\b(get|post|put|patch|delete)\(", handler)}, key=METHODS.index)
-        rust_routes.append({"path": path, "segs": rust_segments(path), "kind": kind, "methods": methods, "file": name})
+        rust_routes.append({"path": path, "segs": rust_segments(path), "kind": kind, "methods": methods, "to_next": to_next, "file": name})
 
 def exact(ts, rs) -> bool:
     if len(ts) != len(rs):
@@ -130,11 +135,15 @@ for ts in ts_routes:
             note.append("PARTIAL — missing " + ",".join(missing) + " (axum answers 405)")
         if extra:
             note.append("extra " + ",".join(extra))
+        if match["to_next"]:
+            note.append(",".join(match["to_next"]) + " → Next")
         rows.append({**ts, "status": "rust", "note": "; ".join(note), "partial": bool(missing)})
     else:
         rows.append({**ts, "status": match["kind"], "note": f'via `{match["path"]}`' if match["path"] != ts["path"] else ""})
 
-RUST_ONLY_OK = {"/api/rust/health"}
+# The 501 guard stays mounted with no TS route left under it: a `/:id/*`
+# route TS adds later must not reach Next (which would resume a second CLI).
+RUST_ONLY_OK = {"/api/rust/health", "/api/sessions/{id}/{*rest}"}
 orphans = [r for r in rust_routes if r["path"] not in used and r["path"] not in RUST_ONLY_OK]
 
 # ── Report ───────────────────────────────────────────────────────────────────

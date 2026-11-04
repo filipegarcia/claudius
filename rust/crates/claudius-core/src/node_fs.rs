@@ -280,6 +280,27 @@ pub fn readdir(path: &str) -> io::Result<Vec<String>> {
         .collect())
 }
 
+/// `fs.promises.readdir(path, { withFileTypes: true })`: [`readdir`]'s
+/// names, each with the type of the entry itself (a symlink is a symlink,
+/// never what it points at), as libuv reads it from the directory.
+pub fn readdir_dirents(path: &str) -> io::Result<Vec<(String, std::fs::FileType)>> {
+    let mut raw = Vec::new();
+    for entry in std::fs::read_dir(path)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        #[cfg(unix)]
+        let bytes = std::os::unix::ffi::OsStrExt::as_bytes(name.as_os_str()).to_vec();
+        #[cfg(not(unix))]
+        let bytes = name.to_string_lossy().into_owned().into_bytes();
+        raw.push((bytes, entry.file_type()?));
+    }
+    raw.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(raw
+        .into_iter()
+        .map(|(name, kind)| (String::from_utf8_lossy(&name).into_owned(), kind))
+        .collect())
+}
+
 /// `stat.mtimeMs`: the double `sec * 1e3 + nsec / 1e6` (`tv_sec` rounds
 /// down and `tv_nsec` stays positive, before the epoch too), so two times
 /// a few nanoseconds apart can be the same number.
@@ -369,6 +390,42 @@ pub fn symlink(target: &str, path: &str) -> io::Result<()> {
     }
 }
 
+/// `fs.constants.F_OK`.
+pub const F_OK: i32 = 0;
+/// `fs.constants.W_OK`.
+pub const W_OK: i32 = 2;
+
+/// `fs.promises.access(path, mode)`: libuv's `access(2)` with the process's
+/// real ids, through symlinks (D22). Off unix, `W_OK` is the read-only bit.
+pub fn access(path: &str, mode: i32) -> Result<(), FsError> {
+    #[cfg(unix)]
+    {
+        let fail = |e: io::Error| FsError::new(&e, "access", Some(path), None);
+        let c = std::ffi::CString::new(path)
+            .map_err(|_| fail(io::Error::from(ErrorKind::InvalidInput)))?;
+        // SAFETY: `c` is a NUL-terminated path that outlives the call.
+        if unsafe { libc::access(c.as_ptr(), mode) } == 0 {
+            Ok(())
+        } else {
+            Err(fail(io::Error::last_os_error()))
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let md =
+            std::fs::metadata(path).map_err(|e| FsError::new(&e, "access", Some(path), None))?;
+        if mode & W_OK != 0 && md.permissions().readonly() {
+            return Err(FsError::new(
+                &io::Error::from(ErrorKind::PermissionDenied),
+                "access",
+                Some(path),
+                None,
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// `fs.promises.rm(path, { recursive: true, force: true })`: a directory
 /// with everything in it, or the file or symlink itself; a missing path is
 /// fine.
@@ -378,6 +435,112 @@ pub fn rm_recursive_force(path: &str) -> io::Result<()> {
         Ok(_) => std::fs::remove_file(path),
         Err(e) if e.kind() == ErrorKind::NotFound => Ok(()),
         Err(e) => Err(e),
+    }
+}
+
+/// `fs.promises.rm(path, { force: true })`: [`rm_recursive`] without
+/// `recursive`, so a directory is refused with Node's `ERR_FS_EISDIR`.
+pub fn rm_force(path: &str) -> Result<(), FsError> {
+    match std::fs::symlink_metadata(path) {
+        Ok(m) if m.is_dir() => Err(FsError {
+            code: Some("ERR_FS_EISDIR".into()),
+            message: format!("Path is a directory: rm returned EISDIR (is a directory) {path}"),
+        }),
+        Ok(_) => rm_recursive(path, true),
+        Err(e) if code(&e).as_deref() == Some("ENOENT") => Ok(()),
+        Err(e) => Err(FsError::new(&e, "lstat", Some(path), None)),
+    }
+}
+
+/// `fs.promises.rm(path, { recursive: true, force })`: `validateRmOptions`'
+/// `lstat` (its ENOENT is fine with `force`, else the error), then node
+/// 22's rimraf (no retries): an ENOENT anywhere below is success, and the
+/// children of a directory are all removed before the first failure among
+/// them is reported, as Node starts them all at once.
+pub fn rm_recursive(path: &str, force: bool) -> Result<(), FsError> {
+    match std::fs::symlink_metadata(path) {
+        Ok(_) => {}
+        Err(e) if force && code(&e).as_deref() == Some("ENOENT") => return Ok(()),
+        Err(e) => return Err(FsError::new(&e, "lstat", Some(path), None)),
+    }
+    rimraf::rimraf(std::path::Path::new(path))
+}
+
+mod rimraf {
+    use std::io;
+    use std::path::{Path, PathBuf};
+
+    use super::{FsError, code};
+
+    fn lossy(p: &Path) -> String {
+        p.to_string_lossy().into_owned()
+    }
+
+    fn is_enoent(e: &io::Error) -> bool {
+        code(e).as_deref() == Some("ENOENT")
+    }
+
+    /// `rimraf(path, options, cb)`: an `ENOENT` anywhere is success.
+    pub(super) fn rimraf(path: &Path) -> Result<(), FsError> {
+        match rimraf_inner(path) {
+            Err(e) if e.is_not_found() => Ok(()),
+            r => r,
+        }
+    }
+
+    fn rimraf_inner(path: &Path) -> Result<(), FsError> {
+        match std::fs::symlink_metadata(path) {
+            Err(e) if is_enoent(&e) => return Ok(()),
+            Ok(m) if m.is_dir() => return rmdir(path, None),
+            _ => {}
+        }
+        match std::fs::remove_file(path) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                let err = FsError::new(&e, "unlink", Some(&lossy(path)), None);
+                match code(&e).as_deref() {
+                    Some("ENOENT") => Ok(()),
+                    Some("EISDIR" | "EPERM") => rmdir(path, Some(err)),
+                    _ => Err(err),
+                }
+            }
+        }
+    }
+
+    /// `_rmdir`: an empty directory goes at once, a full one after its
+    /// children; `ENOTDIR` reports the error that led here, if any.
+    fn rmdir(path: &Path, original: Option<FsError>) -> Result<(), FsError> {
+        match std::fs::remove_dir(path) {
+            Ok(()) => Ok(()),
+            Err(e) => match code(&e).as_deref() {
+                Some("ENOTEMPTY" | "EEXIST" | "EPERM") => rmchildren(path),
+                Some("ENOTDIR") => original.map_or(Ok(()), Err),
+                _ => Err(FsError::new(&e, "rmdir", Some(&lossy(path)), None)),
+            },
+        }
+    }
+
+    fn rmchildren(path: &Path) -> Result<(), FsError> {
+        let mut names: Vec<std::ffi::OsString> = match std::fs::read_dir(path) {
+            Ok(rd) => rd
+                .map(|e| e.map(|e| e.file_name()))
+                .collect::<io::Result<_>>()
+                .map_err(|e| FsError::new(&e, "scandir", Some(&lossy(path)), None))?,
+            Err(e) => return Err(FsError::new(&e, "scandir", Some(&lossy(path)), None)),
+        };
+        // libuv's `scandir` order.
+        names.sort_by(|a, b| a.as_encoded_bytes().cmp(b.as_encoded_bytes()));
+        let mut first = None;
+        for name in names {
+            let child: PathBuf = path.join(name);
+            if let Err(e) = rimraf(&child) {
+                first.get_or_insert(e);
+            }
+        }
+        if let Some(e) = first {
+            return Err(e);
+        }
+        std::fs::remove_dir(path).map_err(|e| FsError::new(&e, "rmdir", Some(&lossy(path)), None))
     }
 }
 
@@ -511,6 +674,38 @@ mod tests {
         assert_eq!(
             err("dangling/x"),
             "ENOTDIR: not a directory, mkdir '$R/dangling'"
+        );
+    }
+
+    #[test]
+    fn dirents_sort_by_bytes_and_do_not_follow_links() {
+        let tmp = tempfile::tempdir().unwrap();
+        let d = tmp.path();
+        let mut names: Vec<String> = (0..40).map(|i| format!("{:x}", (i * 7919) % 997)).collect();
+        names.extend(["B".into(), "a".into(), "\u{e9}".into(), "\u{1f600}".into()]);
+        for n in &names {
+            std::fs::write(d.join(n), "").unwrap();
+        }
+        std::fs::create_dir(d.join("zdir")).unwrap();
+        symlink(
+            d.join("zdir").to_str().unwrap(),
+            d.join("zlink").to_str().unwrap(),
+        )
+        .unwrap();
+        let got = readdir_dirents(d.to_str().unwrap()).unwrap();
+        let mut want = names.clone();
+        want.extend(["zdir".into(), "zlink".into()]);
+        want.sort();
+        assert_eq!(got.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>(), want);
+        let kind = |n: &str| got.iter().find(|(x, _)| x == n).unwrap().1;
+        assert!(kind("zdir").is_dir());
+        assert!(kind("zlink").is_symlink() && !kind("zlink").is_dir());
+        assert!(kind("a").is_file());
+        assert_eq!(
+            readdir_dirents(d.join("a").to_str().unwrap())
+                .unwrap_err()
+                .raw_os_error(),
+            Some(libc::ENOTDIR)
         );
     }
 }

@@ -1,9 +1,9 @@
 //! The active context's cwd: port of `resolveActiveCwd`
 //! (`lib/server/active-customization.ts`), with the parts of
-//! `active-workspace.ts` (`resolveActiveWorkspace`), `workspaces-store.ts`
-//! (`ensureBootstrap`, `listWorkspaces`, `getActiveIdHint`) and
-//! `customizations-store.ts` (`getCustomization`, `customizationSrcDir`) it
-//! runs on. The cookie-scoped routes (`sessions/open-tabs`, D21) start here.
+//! `active-workspace.ts` (`resolveActiveWorkspace`) and `workspaces-store.ts`
+//! (`ensureBootstrap`, `listWorkspaces`, `getActiveIdHint`) it runs on; the
+//! customization side is [`crate::customizations`]. The cookie-scoped
+//! routes (`sessions/open-tabs`, D21) start here.
 //!
 //! Priority: the `claudius.customization` cookie's customization (its
 //! `src` mirror), else the active workspace (the `claudius.workspace`
@@ -25,7 +25,7 @@ use anyhow::anyhow;
 use claudius_agent::js;
 use serde_json::{Map, Value};
 
-use crate::{node_path, paths};
+use crate::{customizations, paths};
 
 /// What `resolveActiveCwd()` returns.
 #[derive(Clone, Debug, PartialEq)]
@@ -44,22 +44,6 @@ impl ActiveCwd {
     pub fn cwd_str(&self) -> Option<&str> {
         self.cwd.as_ref()?.as_str()
     }
-}
-
-/// `homedir()/.claude/.claudius/customizations`, as `path.join` builds it.
-fn customizations_root() -> String {
-    node_path::join(&[
-        &paths::home_dir().display().to_string(),
-        ".claude",
-        ".claudius",
-        "customizations",
-    ])
-}
-
-/// `customizationSrcDir(id)`: `path.join(root, id, "src")`, so the id is
-/// normalized in (`..` climbs out, a leading `/` doesn't reset the path).
-pub fn customization_src_dir(id: &str) -> String {
-    node_path::join(&[&customizations_root(), id, "src"])
 }
 
 /// `fs.readFile(path, "utf8")` then `JSON.parse`: `Ok(None)` for ENOENT,
@@ -171,28 +155,6 @@ pub fn resolve_active_workspace_raw(cookie_id: Option<&str>) -> anyhow::Result<O
     }
 }
 
-/// `getCustomization(id)`: the entry of `customizations/index.json` whose
-/// `id` is `id`, when the index is `{version: 1, customizations: [..],
-/// publishes: [..]}` (missing or any other value: no entries).
-pub fn get_customization_raw(id: &str) -> anyhow::Result<Option<Value>> {
-    let path = paths::claudius_root()
-        .join("customizations")
-        .join("index.json");
-    let list = match read_json(&path)? {
-        None => return Ok(None),
-        Some(Value::Null) => return Err(null_read("version")),
-        Some(Value::Object(m))
-            if is_version_1(&m)
-                && m.get("customizations").is_some_and(Value::is_array)
-                && m.get("publishes").is_some_and(Value::is_array) =>
-        {
-            m["customizations"].as_array().cloned().unwrap_or_default()
-        }
-        Some(_) => return Ok(None),
-    };
-    Ok(find_by_id(&list, &Value::from(id))?.cloned())
-}
-
 /// `resolveActiveCwd()`, given the values of the `claudius.customization`
 /// and `claudius.workspace` cookies (an empty value counts as none). Every
 /// store error falls through to the next source, as TS's `.catch(() =>
@@ -202,10 +164,10 @@ pub fn resolve_active_cwd(
     workspace_cookie: Option<&str>,
 ) -> ActiveCwd {
     if let Some(id) = customization_cookie.filter(|c| !c.is_empty())
-        && let Ok(Some(_)) = get_customization_raw(id)
+        && let Ok(Some(_)) = customizations::get_customization(id)
     {
         return ActiveCwd {
-            cwd: Some(Value::String(customization_src_dir(id))),
+            cwd: Some(Value::String(customizations::customization_src_dir(id))),
             customization_id: Some(id.to_owned()),
             workspace: None,
         };

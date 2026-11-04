@@ -601,23 +601,29 @@ pub struct ForkOptions {
 /// session into a new `<new id>.jsonl` next to it and return the new id. The
 /// copy is built by [`crate::fork`].
 pub fn fork(session_id: &str, opts: &ForkOptions) -> anyhow::Result<String> {
-    if !is_uuid(session_id) {
-        anyhow::bail!("Invalid sessionId: {session_id}");
-    }
-    // `QRe` skips empty transcripts and keeps looking.
-    let nonempty = |f: &Path| f.metadata().is_ok_and(|m| m.is_file() && m.len() > 0);
-    let Some((file, _)) = find_file_where(session_id, opts.dir.as_deref(), nonempty) else {
-        match &opts.dir {
-            Some(d) => anyhow::bail!("Session {session_id} not found in project directory for {d}"),
-            None => anyhow::bail!("Session {session_id} not found"),
-        }
-    };
+    let file = fork_source(session_id, opts.dir.as_deref())?;
     fork_file(
         &file,
         session_id,
         opts.up_to_message_id.as_deref(),
         opts.title.as_deref(),
     )
+}
+
+/// [`fork`]'s lookup: the session's transcript, or the SDK's error.
+pub fn fork_source(session_id: &str, dir: Option<&str>) -> anyhow::Result<PathBuf> {
+    if !is_uuid(session_id) {
+        anyhow::bail!("Invalid sessionId: {session_id}");
+    }
+    // `QRe` skips empty transcripts and keeps looking.
+    let nonempty = |f: &Path| f.metadata().is_ok_and(|m| m.is_file() && m.len() > 0);
+    let Some((file, _)) = find_file_where(session_id, dir, nonempty) else {
+        match dir {
+            Some(d) => anyhow::bail!("Session {session_id} not found in project directory for {d}"),
+            None => anyhow::bail!("Session {session_id} not found"),
+        }
+    };
+    Ok(file)
 }
 
 /// [`fork`] after the lookup: fork `file` (`<project dir>/<session_id>.jsonl`)
@@ -629,7 +635,18 @@ pub fn fork_file(
     up_to_message_id: Option<&str>,
     title: Option<&str>,
 ) -> anyhow::Result<String> {
-    use std::io::Write;
+    let (text, fork_id) = fork_text(file, session_id, up_to_message_id, title)?;
+    write_fork(file, &fork_id, &text)?;
+    Ok(fork_id)
+}
+
+/// [`fork_file`] short of the write: the fork's JSONL text and its new id.
+pub fn fork_text(
+    file: &Path,
+    session_id: &str,
+    up_to_message_id: Option<&str>,
+    title: Option<&str>,
+) -> anyhow::Result<(String, String)> {
     let buf = std::fs::read(file)?;
     let sidecar = sidecar_title(file, session_id);
     let loaded = crate::fork::load(&buf, session_id);
@@ -645,22 +662,34 @@ pub fn fork_file(
         crate::fork::build(&loaded, &req, || fork_title(&buf, sidecar), &mut || {
             uuid::Uuid::new_v4().to_string()
         })?;
+    // A title from a JS caller can hold a lone surrogate (a [`js_string`]
+    // stand-in), which `JSON.stringify` writes as its escape.
     let mut text = String::new();
     for e in &entries {
-        text.push_str(&claudius_agent::js::stringify(e));
+        text.push_str(&crate::js_string::stringify(e));
         text.push('\n');
     }
+    Ok((text, fork_id))
+}
+
+/// [`fork_file`]'s write: `text` as `<fork_id>.jsonl` next to `file`.
+pub fn write_fork(file: &Path, fork_id: &str, text: &str) -> anyhow::Result<()> {
+    use std::io::Write;
     let dir = file
         .parent()
         .ok_or_else(|| anyhow::anyhow!("transcript has no parent directory"))?;
+    // `fork_id` is a fresh v4 uuid ([`fork_text`]), so the name can't
+    // escape `dir`; anything else is refused.
+    if !is_uuid(fork_id) {
+        anyhow::bail!("Invalid fork id: {fork_id}");
+    }
     let mut opts = std::fs::OpenOptions::new();
     opts.write(true).create(true).truncate(true);
     #[cfg(unix)]
     std::os::unix::fs::OpenOptionsExt::mode(&mut opts, 0o600);
-    // `fork_id` is a fresh v4 uuid, so the name can't escape `dir`.
     let mut out = opts.open(dir.join(format!("{fork_id}.jsonl")))?;
     out.write_all(text.as_bytes())?;
-    Ok(fork_id)
+    Ok(())
 }
 
 /// The fork's title fallback (the closure `oTe` hands `WU`): the tail's
@@ -711,23 +740,48 @@ pub fn rename(session_id: &str, title: &str, dir: Option<&str>) -> anyhow::Resul
     Ok(())
 }
 
-/// `getSessionInfo(id, { dir })`
+/// `getSessionInfo(id, { dir })`: the transcript the SDK's lookup picks
+/// ([`crate::session_file::find`]), read as `xU` reads it (not through a
+/// symlink, so a linked or directory `<id>.jsonl` is `None`).
 pub fn info(session_id: &str, dir: Option<&str>) -> Option<SessionInfo> {
-    let (file, project_path) = find_file(session_id, dir)?;
-    info_for(session_id, &file, project_path.as_deref())
+    if !is_uuid(session_id) {
+        return None;
+    }
+    let found = crate::session_file::find(
+        session_id,
+        dir,
+        &crate::sessions_list::ListEnv::from_process(),
+    )?;
+    info_for(session_id, &found.file, found.project_path.as_deref())
 }
 
-/// `getSessionMessages(id, { dir, includeSystemMessages })` → `SessionMessage[]`.
+/// `getSessionMessages(id, { dir, includeSystemMessages })` → `SessionMessage[]`,
+/// from the transcript [`crate::session_file::find`] picks (read through a
+/// symlink; a directory reads as `[]`).
 pub fn messages(session_id: &str, dir: Option<&str>, include_system: bool) -> Vec<Value> {
-    let Some((file, _)) = find_file(session_id, dir) else {
+    if !is_uuid(session_id) {
+        return vec![];
+    }
+    let env = crate::sessions_list::ListEnv::from_process();
+    let Some(found) = crate::session_file::find(session_id, dir, &env) else {
         return vec![];
     };
     // The SDK decodes each line with `toString("utf-8")`: invalid bytes are
     // U+FFFD, not a failed read.
-    let Ok(bytes) = std::fs::read(&file) else {
+    let Ok(bytes) = std::fs::read(&found.file) else {
         return vec![];
     };
     crate::transcript::session_messages(&String::from_utf8_lossy(&bytes), include_system)
+}
+
+/// `remove(id, dir)` (`deleteSession`, [`crate::session_file::delete`]):
+/// `Err` is the thrown error's `message`.
+pub fn remove(session_id: &str, dir: Option<&str>) -> Result<(), String> {
+    crate::session_file::delete(
+        session_id,
+        dir,
+        &crate::sessions_list::ListEnv::from_process(),
+    )
 }
 
 /// `stringifyContent` (sessions-store.ts), with `""` where the TS throws
@@ -793,23 +847,28 @@ pub fn try_stringify_content(content: Option<&Value>) -> Option<String> {
     Some(out.join("\n\n"))
 }
 
-/// `exportPlainText`
-pub fn export_plain_text(session_id: &str, dir: Option<&str>) -> String {
-    messages(session_id, dir, false)
-        .iter()
-        .map(|m| match m.get("type").and_then(Value::as_str) {
-            Some("user") => format!(
-                "# User\n\n{}\n",
-                stringify_content(&m["message"]["content"])
-            ),
-            Some("assistant") => format!(
-                "# Claude\n\n{}\n",
-                stringify_content(&m["message"]["content"])
-            ),
-            _ => "---\n[system]\n".to_string(),
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
+/// `exportPlainText`: `None` where the TS throws, on a `user` / `assistant`
+/// message whose `message` is `null` or missing (`m.message.content`), or
+/// on content [`try_stringify_content`] rejects.
+pub fn export_plain_text(session_id: &str, dir: Option<&str>) -> Option<String> {
+    let mut out = Vec::new();
+    for m in messages(session_id, dir, false) {
+        let head = match m.get("type").and_then(Value::as_str) {
+            Some("user") => "# User\n\n",
+            Some("assistant") => "# Claude\n\n",
+            Some("system") => {
+                out.push("---\n[system]\n".to_owned());
+                continue;
+            }
+            _ => continue,
+        };
+        let message = m.get("message").filter(|v| !v.is_null())?;
+        out.push(format!(
+            "{head}{}\n",
+            try_stringify_content(message.get("content"))?
+        ));
+    }
+    Some(out.join("\n"))
 }
 
 #[cfg(test)]

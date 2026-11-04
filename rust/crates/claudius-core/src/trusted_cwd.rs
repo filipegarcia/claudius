@@ -1,6 +1,7 @@
 //! Which working directories a client may start a session in — port of
-//! `lib/server/trusted-cwd.ts`, plus the customization / fork-worktree
-//! lookups `POST /api/sessions` needs.
+//! `lib/server/trusted-cwd.ts`, plus the fork-worktree lookup and the
+//! `isCustomizationCwd` check `POST /api/sessions` needs (the customization
+//! store itself is [`crate::customizations`]).
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -8,57 +9,25 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use crate::{paths, sessions_store, workspaces};
+use crate::{customizations, paths, sessions_store, workspaces};
 
 const CACHE_TTL: Duration = Duration::from_secs(5);
 
-/// `~/.claude/.claudius/customizations`
-pub fn customizations_root() -> PathBuf {
-    paths::claudius_root().join("customizations")
-}
-
-pub fn customization_src_dir(id: &str) -> String {
-    customizations_root()
-        .join(id)
-        .join("src")
-        .display()
-        .to_string()
-}
-
-/// `isCustomizationCwd` — `<root>/<id>/src`.
+/// `isCustomizationCwd` (`app/api/sessions/route.ts`): `<root>/<id>/src`.
 pub fn is_customization_cwd(cwd: &str) -> bool {
-    let root = customizations_root().display().to_string();
+    let root = customizations::customizations_root();
     let sep = std::path::MAIN_SEPARATOR;
     (cwd == root || cwd.starts_with(&format!("{root}{sep}"))) && cwd.ends_with(&format!("{sep}src"))
 }
 
-fn customizations_index() -> Value {
-    std::fs::read_to_string(customizations_root().join("index.json"))
-        .ok()
-        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
-        .filter(|v| {
-            v["version"] == 1 && v["customizations"].is_array() && v["publishes"].is_array()
-        })
-        .unwrap_or(Value::Null)
-}
-
-pub fn list_customization_ids() -> Vec<String> {
-    customizations_index()["customizations"]
-        .as_array()
-        .map(|a| {
-            a.iter()
-                .filter_map(|c| c["id"].as_str().map(str::to_owned))
-                .collect()
-        })
+/// The `id`s of the stored customizations that are strings (an unreadable
+/// store has none, as `listCustomizations().catch(() => [])`).
+fn list_customization_ids() -> Vec<String> {
+    customizations::list_customizations()
         .unwrap_or_default()
-}
-
-pub fn get_customization(id: &str) -> Option<Value> {
-    customizations_index()["customizations"]
-        .as_array()?
         .iter()
-        .find(|c| c["id"] == id)
-        .cloned()
+        .filter_map(|c| c.get("id")?.as_str().map(str::to_owned))
+        .collect()
 }
 
 /// `forkWorktreeCwd(sessionId)` → `(cwd, sourceCwd)` when the fork's
@@ -120,7 +89,10 @@ fn compute_trusted_roots() -> Vec<String> {
         }
     }
     for id in list_customization_ids() {
-        add(&mut stored, resolve(&customization_src_dir(&id)));
+        add(
+            &mut stored,
+            resolve(&customizations::customization_src_dir(&id)),
+        );
     }
     let mut out = stored.clone();
     for d in &stored {

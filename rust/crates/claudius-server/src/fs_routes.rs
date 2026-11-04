@@ -14,7 +14,10 @@
 //! ([`claudius_core::tcc_protected`], relative to the root).
 //!
 //! `fs/list` only walks a trusted cwd ([`trusted_cwd::resolve_trusted_cwd`]).
-//! Its TS `catch → 500 {error}` can't be reached: the walk never fails.
+//! A cwd it can't read fails the search instead of answering an empty list
+//! (CC 2.1.301): 403 for `EACCES` / `EPERM`, else 500, both worded
+//! `Search failed: …` so the `@`-picker never shows it as "no matches"
+//! ([`search_failed`]). An unreadable folder deeper in is still skipped.
 //!
 //! Errors keep the TS wording and statuses. Where the TS handler throws (a
 //! non-string `parent` / `name`, a `null` body, a `readdir` error other than
@@ -31,7 +34,7 @@ use claudius_agent::js;
 use claudius_core::fs_list::{self, DirentKind, error_code};
 use claudius_core::node_path::{dirname, is_absolute, join, relative, resolve};
 use claudius_core::tcc_protected::{categorize_tcc_path, is_hidden_home_subpath, platform};
-use claudius_core::{log, paths, trusted_cwd};
+use claudius_core::{log, node_err, paths, trusted_cwd};
 use serde_json::{Value, json};
 
 use crate::AppState;
@@ -290,11 +293,34 @@ async fn list_get(RawQuery(query): RawQuery) -> Response {
         } else {
             limit
         };
-        let entries: Vec<Value> = fs_list::list_fs(&cwd, &q, limit)
-            .iter()
-            .map(fs_list::FsEntry::to_json)
-            .collect();
+        let entries: Vec<Value> = match fs_list::list_fs(&cwd, &q, limit) {
+            Ok(entries) => entries.iter().map(fs_list::FsEntry::to_json).collect(),
+            // The walk only fails on the root it was handed, so the path the
+            // error names is the resolved cwd.
+            Err(e) => return search_failed(&e, &resolve(&[&cwd])),
+        };
         json_text(StatusCode::OK, &json!({ "cwd": cwd, "entries": entries }))
     })
     .await
+}
+
+/// CC 2.1.301 — the folder the search starts from couldn't be read: 403
+/// `Search failed: permission denied — can't read this folder (<code>)`
+/// for `EACCES` / `EPERM`, else 500 with Node's `readdir` message. Shared
+/// with the files route's own `searchFailed` ([`crate::workspace_files`]).
+pub fn search_failed(e: &std::io::Error, path: &str) -> Response {
+    match error_code(e) {
+        Some(code @ ("EACCES" | "EPERM")) => error(
+            StatusCode::FORBIDDEN,
+            &format!("Search failed: permission denied — can't read this folder ({code})"),
+        ),
+        _ => error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!(
+                "Search failed: {}",
+                node_err::uv_exception(e, "scandir", Some(std::path::Path::new(path)), None)
+                    .message
+            ),
+        ),
+    }
 }

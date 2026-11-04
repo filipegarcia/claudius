@@ -26,6 +26,18 @@ import {
 
 const MAX_TIMEOUT_MS = 24 * 60 * 60 * 1000; // setTimeout clamps at ~24.85d; rearm every 24h max.
 
+/**
+ * `CLAUDIUS_RUST_SCHEDULER=1` (or `true` / `yes` / `on`): the Rust backend
+ * (`rust/`, the `claudius` binary in front of this server) runs the jobs in
+ * ~/.claude/claudius/schedule, so this process must not run them too. Two
+ * schedulers on one jobs.json would fire every job twice. When it is set,
+ * `boot()` neither recovers runs nor arms jobs, and `arm()` sets no timer.
+ */
+function rustOwnsScheduler(): boolean {
+  const v = process.env.CLAUDIUS_RUST_SCHEDULER?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
 /** True when a process with this pid exists (signal 0 only probes). */
 function pidAlive(pid: number): boolean {
   try {
@@ -95,6 +107,7 @@ class Scheduler {
    * the recovery's read-modify-write.
    */
   boot(): Promise<void> {
+    if (rustOwnsScheduler()) return Promise.resolve();
     this.bootPromise ??= (async () => {
       const jobs = await listJobs();
       await this.recoverInterruptedRuns(jobs);
@@ -194,7 +207,7 @@ class Scheduler {
 
   async arm(job: Job): Promise<void> {
     this.disarm(job.id);
-    if (!job.enabled) return;
+    if (!job.enabled || rustOwnsScheduler()) return;
     // CC 2.1.299 parity — "Fixed scheduled tasks and loops firing again after
     // every turn, or firing early, during the repeated hour when daylight
     // saving time ends". Every arm path (boot, edit, post-run re-arm, the 24h

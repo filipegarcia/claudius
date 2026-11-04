@@ -27,7 +27,7 @@ use axum::routing::get;
 use claudius_agent::js;
 use claudius_core::git::{self, DiffMode, GitError, GitErrorCode};
 use claudius_core::workspaces::{self, Workspace};
-use claudius_core::{log, trusted_cwd};
+use claudius_core::{customizations, log};
 use serde_json::{Value, json};
 
 use crate::AppState;
@@ -77,62 +77,14 @@ pub(crate) fn workspace(id: &str, route: &str) -> Result<Workspace, Box<Response
     }
 }
 
-/// `getCustomization(id).catch(() => null) != null`: the index read as
-/// `fs.readFile(…, "utf8")` + `JSON.parse` (a bad file is no index), then
-/// `customizations.find((c) => c.id === id)`, which throws (so: not found)
-/// on a `null` entry before the match.
-fn customization_exists(id: &str) -> bool {
-    let Ok(bytes) = std::fs::read(trusted_cwd::customizations_root().join("index.json")) else {
-        return false;
-    };
-    let Ok(Value::Object(index)) = js::json_parse(&String::from_utf8_lossy(&bytes)) else {
-        return false;
-    };
-    let (Some(Value::Array(list)), Some(Value::Array(_))) =
-        (index.get("customizations"), index.get("publishes"))
-    else {
-        return false;
-    };
-    if index.get("version").and_then(Value::as_f64) != Some(1.0) {
-        return false;
-    }
-    for c in list {
-        match c {
-            Value::Null => return false,
-            Value::Object(o) if o.get("id").and_then(Value::as_str) == Some(id) => return true,
-            _ => {}
-        }
-    }
-    false
-}
-
-/// `path.join(root, id, "src")` for an absolute `root`: `.` and `..`
-/// segments resolve and repeated slashes collapse, as `path.normalize` does.
-fn join_normalized(root: &str, id: &str) -> String {
-    let joined = format!("{root}/{id}/src");
-    let mut segs: Vec<&str> = vec![];
-    for s in joined.split('/') {
-        match s {
-            "" | "." => {}
-            ".." => {
-                segs.pop();
-            }
-            s => segs.push(s),
-        }
-    }
-    format!("/{}", segs.join("/"))
-}
-
 async fn status(Path(id): Path<String>) -> Response {
     // The Git pane passes a customization's `cust_<id>`: its mirror dir.
     let root_path = if id.starts_with("cust_") {
-        if !customization_exists(&id) {
+        // `getCustomization(id).catch(() => null)`.
+        if !matches!(customizations::get_customization(&id), Ok(Some(_))) {
             return error(StatusCode::NOT_FOUND, "customization not found");
         }
-        join_normalized(
-            &trusted_cwd::customizations_root().display().to_string(),
-            &id,
-        )
+        customizations::customization_src_dir(&id)
     } else {
         match workspace(&id, "status") {
             Ok(ws) => ws.root_path,
@@ -198,17 +150,17 @@ async fn show(Path(id): Path<String>, RawQuery(query): RawQuery) -> Response {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use claudius_core::node_path;
 
+    /// The mirror `status` runs on is `customizationSrcDir(id)`, a
+    /// `path.join`: the id is normalized in.
     #[test]
     fn src_dir_joins_like_path_join() {
-        assert_eq!(join_normalized("/h/c", "cust_a"), "/h/c/cust_a/src");
-        assert_eq!(join_normalized("/h/c", "cust_a/../b"), "/h/c/b/src");
-        assert_eq!(
-            join_normalized("/h/c", "cust_..//./x"),
-            "/h/c/cust_../x/src"
-        );
-        assert_eq!(join_normalized("/h/c", "cust_a/../../../../.."), "/src");
-        assert_eq!(join_normalized("/h//c/", "cust_"), "/h/c/cust_/src");
+        let src = |root: &str, id: &str| node_path::join(&[root, id, "src"]);
+        assert_eq!(src("/h/c", "cust_a"), "/h/c/cust_a/src");
+        assert_eq!(src("/h/c", "cust_a/../b"), "/h/c/b/src");
+        assert_eq!(src("/h/c", "cust_..//./x"), "/h/c/cust_../x/src");
+        assert_eq!(src("/h/c", "cust_a/../../../../.."), "/src");
+        assert_eq!(src("/h//c/", "cust_"), "/h/c/cust_/src");
     }
 }

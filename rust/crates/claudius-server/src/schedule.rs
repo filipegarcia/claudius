@@ -13,10 +13,8 @@
 //! Next's scheduler runs, a create would save a job no timer fires, an edit
 //! would leave Next's timer on the old cron (and an enabled-again job with
 //! none), a run-now would run beside Next's run of the same job instead of
-//! being `skipped`, its live stream (still Next's, G07c) would find no run,
-//! and every run would read `attached: false`.
-//! `/api/schedule/session-loops` (G07c) goes to Next too: `{id}` would take
-//! it.
+//! being `skipped`, and every run would read `attached: false`. The run's
+//! live stream follows the same switch ([`crate::schedule_live`], G07c).
 //!
 //! * `GET /api/schedule`: `{jobs}` as stored (a store that doesn't read is
 //!   Next's empty 500).
@@ -63,7 +61,7 @@ use axum::extract::{Path, RawQuery, Request, State};
 use axum::handler::Handler;
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{any, get, post};
+use axum::routing::{get, post};
 use claudius_agent::js;
 use claudius_core::scheduler::{self, Scheduler};
 use claudius_core::scheduler_store::{JobPatch, JsValue, StoreError};
@@ -77,8 +75,6 @@ use crate::session_transcript::search_param;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/schedule", get(owned(list)).post(owned(create)))
-        // G07c, still Next's: `{id}` below would take it.
-        .route("/api/schedule/session-loops", any(crate::proxy::handler))
         .route(
             "/api/schedule/{id}",
             get(owned(job_get))
@@ -93,7 +89,9 @@ type Answer = Pin<Box<dyn Future<Output = Response> + Send>>;
 
 /// `h` when this process runs the scheduler; otherwise the request goes to
 /// Next unchanged (see the module doc).
-fn owned<H, T>(h: H) -> impl Fn(State<AppState>, Request) -> Answer + Clone + Send + Sync + 'static
+pub(crate) fn owned<H, T>(
+    h: H,
+) -> impl Fn(State<AppState>, Request) -> Answer + Clone + Send + Sync + 'static
 where
     H: Handler<T, AppState>,
     T: 'static,
@@ -110,7 +108,7 @@ where
 }
 
 /// `NextResponse.json(body, {status})`.
-fn json_text(status: StatusCode, body: &Value) -> Response {
+pub(crate) fn json_text(status: StatusCode, body: &Value) -> Response {
     (
         status,
         [(header::CONTENT_TYPE, "application/json")],
@@ -128,7 +126,7 @@ fn not_found() -> Response {
 }
 
 /// Where the TS handler throws: Next's empty 500, with what it threw logged.
-fn threw(route: &str, what: &dyn std::fmt::Display) -> Response {
+pub(crate) fn threw(route: &str, what: &dyn std::fmt::Display) -> Response {
     tracing::error!(target: log::API, "[api/{route}] {what}");
     thrown()
 }
@@ -175,7 +173,7 @@ fn read_body(route: &str, bytes: &[u8]) -> Option<(Value, Value)> {
 
 /// `body?.key?.trim()`: `Ok(None)` for nullish (or no object), the trimmed
 /// text for a string, `Err` where `.trim` isn't a function (it throws).
-fn trimmed<'a>(body: &'a Value, key: &str) -> Result<Option<&'a str>, ()> {
+pub(crate) fn trimmed<'a>(body: &'a Value, key: &str) -> Result<Option<&'a str>, ()> {
     match &body[key] {
         Value::Null => Ok(None),
         Value::String(s) => Ok(Some(js::trim(s))),

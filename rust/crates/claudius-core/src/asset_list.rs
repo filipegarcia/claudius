@@ -91,6 +91,29 @@ impl Cell {
             _ => None,
         }
     }
+
+    /// JS truthiness: a `Buffer` is truthy even when empty.
+    pub fn truthy(&self) -> bool {
+        match self {
+            Cell::Null => false,
+            Cell::Num(f) => *f != 0.0 && !f.is_nan(),
+            Cell::Text(s) => !s.is_empty(),
+            Cell::Blob(_) => true,
+        }
+    }
+}
+
+/// Bound as better-sqlite3 binds the JS value: a number as a REAL, a
+/// `Buffer` as a BLOB.
+impl ToSql for Cell {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(match self {
+            Cell::Null => ToSqlOutput::Owned(Sql::Null),
+            Cell::Num(f) => ToSqlOutput::Owned(Sql::Real(*f)),
+            Cell::Text(s) => ToSqlOutput::Borrowed(ValueRef::Text(s.as_bytes())),
+            Cell::Blob(b) => ToSqlOutput::Borrowed(ValueRef::Blob(b)),
+        })
+    }
 }
 
 /// `AssetRow`.
@@ -286,7 +309,7 @@ fn list_account(kind: &str, q: &str, limit: f64, cursor: Option<f64>) -> Vec<Ass
 /// `Array.prototype.sort(cmp)` in V8 (`cmp`'s `NaN` reads as 0): one run
 /// made with `CountAndMakeRun` and finished with `BinaryInsertionSort`
 /// below 64 elements, a stable merge sort from there on.
-fn v8_sort<T: Clone>(items: &mut Vec<T>, cmp: impl Fn(&T, &T) -> f64) {
+pub fn v8_sort<T: Clone>(items: &mut Vec<T>, cmp: impl Fn(&T, &T) -> f64) {
     let n = items.len();
     if n < 2 {
         return;

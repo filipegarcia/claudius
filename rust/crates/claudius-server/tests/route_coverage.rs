@@ -91,3 +91,51 @@ fn classifier_handles_partial_orphan_catchall_and_501() {
         "{err}"
     );
 }
+
+#[test]
+fn a_method_routed_to_the_proxy_counts_as_handled() {
+    let root = tempfile::tempdir().unwrap();
+    let r = root.path();
+    let route = |rel: &str, body: &str| {
+        let dir = r.join("app/api").join(rel);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("route.ts"), body).unwrap();
+    };
+    route(
+        "items",
+        "export async function GET() {}\nexport async function POST() {}\n",
+    );
+    route("items/[id]", "export async function GET() {}\n");
+    route("both", "export async function GET() {}\n");
+    let src = r.join("rust/crates/claudius-server/src");
+    std::fs::create_dir_all(&src).unwrap();
+    std::fs::write(
+        src.join("lib.rs"),
+        r#"Router::new()
+        .route(
+            "/api/items",
+            get(list).post(crate::proxy::handler),
+        )
+        .route("/api/items/{id}", get(crate::proxy::handler))
+        .route("/api/both", any(crate::proxy::handler))"#,
+    )
+    .unwrap();
+
+    let (ok, stdout, _) = run(Some(r), &[]);
+    assert!(ok);
+    assert!(
+        stdout.contains("rust 1 · proxied 2 · 501 0 · next-only 0"),
+        "{stdout}"
+    );
+    let md = std::fs::read_to_string(r.join("rust/ROUTES.md")).unwrap();
+    assert!(
+        md.contains("| `/api/items` | GET,POST | POST → Next |"),
+        "{md}"
+    );
+    assert!(
+        md.contains("| `/api/items/[id]` | GET | via `/api/items/{id}` |"),
+        "only proxied methods: proxied\n{md}"
+    );
+    let (ok, _, err) = run(Some(r), &["--check"]);
+    assert!(ok, "{err}");
+}

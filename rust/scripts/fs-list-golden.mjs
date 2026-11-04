@@ -150,7 +150,7 @@ const unsub = (s) => s.split(ROOT).join(PH);
 
 const path = await import("node:path");
 const tcc = await import(join(repo, "lib/shared/tcc-protected.ts"));
-const { __resetTrustedCwdCache } = await import(join(repo, "lib/server/trusted-cwd.ts"));
+const { __resetTrustedCwdCache, resolveTrustedCwd } = await import(join(repo, "lib/server/trusted-cwd.ts"));
 const listRoute = await import(join(repo, "app/api/fs/list/route.ts"));
 const dirsUrl = pathToFileURL(join(repo, "app/api/fs/dirs/route.ts")).href;
 
@@ -686,6 +686,65 @@ const SCENARIOS = [
     ],
   },
   {
+    // CC 2.1.301 -- a cwd the walk can't read fails the search ("Search
+    // failed: ...", 403 or 500) instead of answering an empty list, while an
+    // unreadable folder deeper in is still skipped. Only registered
+    // directories are trusted, so each root here is a workspace.
+    name: "listfail",
+    needs: ["perm"],
+    env: `${PH}/w`,
+    cwd: "w",
+    snap: true,
+    ops: [
+      ...dirs("home/.claude", "home/.claude/.claudius"),
+      ...dirs("w/locked", "w/locked/inner", "w/noread", "w/noread/x", "w/open", "w/open/inner"),
+      ...dirs("w/open/locked"),
+      ["file", "w/open/f.txt", ""],
+      ["file", "w/open/inner/deep.txt", ""],
+      ["file", "w/open/locked/hidden.txt", ""],
+      ["file", "w/afile", "not a folder"],
+      ["chmod", "w/locked", 0o000],
+      ["chmod", "w/noread", 0o333],
+      ["chmod", "w/open/locked", 0o000],
+      [
+        "file",
+        "home/.claude/.claudius/workspaces.json",
+        JSON.stringify({
+          version: 1,
+          workspaces: [
+            ["wks_locked", `${PH}/w/locked`],
+            ["wks_noread", `${PH}/w/noread`],
+            ["wks_file", `${PH}/w/afile`],
+            ["wks_gone", `${PH}/w/gone`],
+            ["wks_open", `${PH}/w/open`],
+          ].map(([id, rootPath]) => ({
+            id,
+            name: id,
+            rootPath,
+            icon: { kind: "letter", letter: "W", color: "#d97757" },
+            createdAt: 1,
+            updatedAt: 1,
+            defaults: {},
+          })),
+        }),
+      ],
+    ],
+    steps: [
+      L("unreadable root", `cwd=${PH}/w/locked`),
+      L("unreadable root, query", `cwd=${PH}/w/locked&q=inner`),
+      L("unreadable root, limit", `cwd=${PH}/w/locked&limit=1`),
+      L("no read, has exec", `cwd=${PH}/w/noread`),
+      L("a file as the root", `cwd=${PH}/w/afile`),
+      L("a missing root", `cwd=${PH}/w/gone`),
+      L("an unreadable child is still skipped", `cwd=${PH}/w/open`),
+      L("unreadable child, query", `cwd=${PH}/w/open&q=deep`),
+      L("unreadable child, subsequence", `cwd=${PH}/w/open&q=hdn`),
+      L("untrusted child of an unreadable root", `cwd=${PH}/w/locked/inner`),
+      G("the picker still lists the root", null),
+      G("the picker on the unreadable folder", "path=locked"),
+    ],
+  },
+  {
     // `chflags uchg`: the folder lists, but mkdir in it fails with EPERM.
     name: "immutable",
     needs: ["uchg"],
@@ -994,10 +1053,15 @@ async function call(dirsRoute, step) {
     Object.assign(got, { len: Buffer.byteLength(text, "utf8"), fnv: fnv1a64(text), head: text.slice(0, 400) });
   } else got.body = text;
   const r = { got };
-  if (step.route === "list" && res.status === 200) {
+  // The `listFs` call the route made, so the walk can be replayed in
+  // process. A 200 carries the trusted cwd in its body; a failure (CC
+  // 2.1.301: the folder couldn't be read) doesn't, so ask the resolver for
+  // the same value it got.
+  if (step.route === "list" && [200, 403, 500].includes(res.status)) {
     const params = new URL(url).searchParams;
     const limit = Number(params.get("limit") ?? "200") || 200;
-    r.args = { cwd: JSON.parse(text).cwd, q: params.get("q") ?? "", limit: String(limit) };
+    const cwd = res.status === 200 ? JSON.parse(text).cwd : await resolveTrustedCwd(params.get("cwd"));
+    r.args = { cwd: unsub(cwd), q: params.get("q") ?? "", limit: String(limit) };
   }
   return r;
 }

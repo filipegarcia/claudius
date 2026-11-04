@@ -363,12 +363,26 @@ pub(crate) async fn spawn_run(
     timeout: Duration,
     max_buffer: usize,
 ) -> Result<Run, SpawnError> {
+    spawn_run_env(program, args, cwd, input, timeout, max_buffer, &[]).await
+}
+
+/// [`spawn_run`] with `env: {...process.env, ...env}` (D09: `gh`, `glab`).
+pub(crate) async fn spawn_run_env(
+    program: &str,
+    args: &[&str],
+    cwd: Option<&Path>,
+    input: Option<&str>,
+    timeout: Duration,
+    max_buffer: usize,
+    env: &[(&str, &str)],
+) -> Result<Run, SpawnError> {
     validate_spawn(args, cwd).map_err(|message| SpawnError {
         message,
         code: Some("ERR_INVALID_ARG_VALUE".into()),
     })?;
     let mut cmd = tokio::process::Command::new(program);
     cmd.args(args)
+        .envs(env.iter().copied())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -1331,6 +1345,281 @@ pub async fn diff_branch_against_worktree(cwd: &str, branch: &str) -> Result<Str
     } else {
         out.to_owned()
     })
+}
+
+// ------------------------- remote, pull, merge (D09) -------------------------
+
+/// `getOriginRemoteUrl`: `git config --get remote.origin.url` in `cwd` (an
+/// `execFileP` probe after `isGitInstalled`), JS-trimmed; `None` when git
+/// is missing, the probe fails, or the value is blank. The last of several
+/// values wins (git's `--get`).
+pub async fn get_origin_remote_url(cwd: &str) -> Option<String> {
+    if !is_git_installed().await {
+        return None;
+    }
+    let out = exec_file_ok(
+        &["config", "--get", "remote.origin.url"],
+        Some(Path::new(cwd)),
+        TIMEOUT_MS,
+    )
+    .await?;
+    let url = js::trim(&out);
+    (!url.is_empty()).then(|| url.to_owned())
+}
+
+/// `RemoteOp`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RemoteOp {
+    Fetch,
+    Pull,
+    Push,
+}
+
+impl RemoteOp {
+    /// `OPS`, in the route's order.
+    pub const ALL: [RemoteOp; 3] = [RemoteOp::Fetch, RemoteOp::Pull, RemoteOp::Push];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            RemoteOp::Fetch => "fetch",
+            RemoteOp::Pull => "pull",
+            RemoteOp::Push => "push",
+        }
+    }
+
+    /// `OPS.includes(op)`: exactly one of the three words.
+    pub fn parse(s: &str) -> Option<RemoteOp> {
+        RemoteOp::ALL.into_iter().find(|op| op.as_str() == s)
+    }
+}
+
+/// What a caught git error reads as in the remote / pull / merge / rebase
+/// `catch`es: a failure's output (stdout + stderr, trimmed; possibly
+/// empty), or a throw's message.
+fn caught_output(e: ExecError) -> String {
+    match e {
+        ExecError::Failure(f) => f.output(),
+        ExecError::Thrown(m) => m,
+    }
+}
+
+/// `/no upstream branch|--set-upstream/i`: no `u` flag, so only ASCII
+/// letters fold.
+fn says_no_upstream(msg: &str) -> bool {
+    let lower = msg.to_ascii_lowercase();
+    lower.contains("no upstream branch") || lower.contains("--set-upstream")
+}
+
+/// `gitRemote`: `fetch --all --prune`, `pull --ff-only` or `push`, each
+/// under the hook timeout, as the combined output. A failed fetch or pull
+/// is its `git <verb> …` message; a failed push is its output alone, unless
+/// that names a missing upstream: then the branch (`rev-parse --abbrev-ref
+/// HEAD`) is pushed with `-u` to `origin`, or to the only remote (`git
+/// remote`, JS-trimmed lines). The remote and the branch come from git, and
+/// as in TS no `--` keeps a `-`-named one from reading as an option.
+pub async fn git_remote(cwd: &str, op: RemoteOp) -> Result<String, GitError> {
+    let Some(root) = get_repo_root(cwd).await else {
+        return Err(not_a_repo());
+    };
+    let hook = GitOpts {
+        input: None,
+        timeout_ms: Some(HOOK_TIMEOUT_MS),
+    };
+    let run = |args: &'static [&'static str]| {
+        let root = root.clone();
+        async move {
+            git(args, Path::new(&root), hook)
+                .await
+                .map(|o| combined(&o))
+                .map_err(|e| GitError::failed(e.message()))
+        }
+    };
+    match op {
+        RemoteOp::Fetch => return run(&["fetch", "--all", "--prune"]).await,
+        RemoteOp::Pull => return run(&["pull", "--ff-only"]).await,
+        RemoteOp::Push => {}
+    }
+    let msg = match git(&["push"], Path::new(&root), hook).await {
+        Ok(o) => return Ok(combined(&o)),
+        Err(e) => caught_output(e),
+    };
+    if !says_no_upstream(&msg) {
+        return Err(GitError::failed(msg));
+    }
+    let thrown = |e: ExecError| GitError::failed(e.message());
+    let head = git(
+        &["rev-parse", "--abbrev-ref", "HEAD"],
+        Path::new(&root),
+        GitOpts::default(),
+    )
+    .await
+    .map_err(thrown)?;
+    let br = js::trim(&head.stdout);
+    if br.is_empty() || br == "HEAD" {
+        return Err(GitError::failed("no current branch (detached HEAD)"));
+    }
+    let listed = git(&["remote"], Path::new(&root), GitOpts::default())
+        .await
+        .map_err(thrown)?;
+    let remotes: Vec<&str> = listed
+        .stdout
+        .split('\n')
+        .map(js::trim)
+        .filter(|s| !s.is_empty())
+        .collect();
+    if remotes.is_empty() {
+        return Err(GitError::failed("no remotes configured"));
+    }
+    let remote = if remotes.contains(&"origin") {
+        "origin"
+    } else if remotes.len() == 1 {
+        remotes[0]
+    } else {
+        return Err(GitError::failed(msg));
+    };
+    git(&["push", "-u", remote, br], Path::new(&root), hook)
+        .await
+        .map(|o| combined(&o))
+        .map_err(thrown)
+}
+
+/// `PullMergeResult` / `RebaseResult`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MergeOutcome {
+    /// `{ ok: true, output }`.
+    Ok(String),
+    /// `{ ok: false, kind: "conflicts", conflicts, output }`: git failed and
+    /// the tree has unmerged paths (it is left mid-merge or mid-rebase).
+    Conflicts {
+        conflicts: Vec<String>,
+        output: String,
+    },
+    /// `{ ok: false, kind: "error", message }`.
+    Error(String),
+}
+
+impl MergeOutcome {
+    /// In TS key order.
+    pub fn to_json(&self) -> Value {
+        match self {
+            MergeOutcome::Ok(output) => json!({"ok": true, "output": output}),
+            MergeOutcome::Conflicts { conflicts, output } => json!({
+                "ok": false,
+                "kind": "conflicts",
+                "conflicts": conflicts,
+                "output": output,
+            }),
+            MergeOutcome::Error(message) => {
+                json!({"ok": false, "kind": "error", "message": message})
+            }
+        }
+    }
+}
+
+/// `listConflicts`: `git diff --name-only --diff-filter=U -z`, each path
+/// JS-trimmed and blank ones dropped; `[]` when that fails.
+pub async fn list_conflicts(root: &str) -> Vec<String> {
+    match git(
+        &["diff", "--name-only", "--diff-filter=U", "-z"],
+        Path::new(root),
+        GitOpts::default(),
+    )
+    .await
+    {
+        Ok(o) => o
+            .stdout
+            .split('\0')
+            .map(js::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .collect(),
+        Err(_) => vec![],
+    }
+}
+
+/// The shared run of `pullWithMerge`, `mergeBranchIntoCurrent` and
+/// `rebaseCurrentOnto` in `root`, under the hook timeout: the combined
+/// output, or on any failure the unmerged paths (whatever left them) with
+/// the output, or the output (`fallback` when blank) as the error.
+async fn merge_like(args: &[&str], root: &str, fallback: &str) -> MergeOutcome {
+    let opts = GitOpts {
+        input: None,
+        timeout_ms: Some(HOOK_TIMEOUT_MS),
+    };
+    let output = match git(args, Path::new(root), opts).await {
+        Ok(o) => return MergeOutcome::Ok(combined(&o)),
+        Err(e) => caught_output(e),
+    };
+    let conflicts = list_conflicts(root).await;
+    if !conflicts.is_empty() {
+        return MergeOutcome::Conflicts { conflicts, output };
+    }
+    let message = js::trim(&output);
+    MergeOutcome::Error(if message.is_empty() {
+        fallback.to_owned()
+    } else {
+        message.to_owned()
+    })
+}
+
+fn not_a_repo_outcome() -> MergeOutcome {
+    MergeOutcome::Error("not a git repository".into())
+}
+
+/// `pullWithMerge`: `git pull --no-rebase --no-edit` (never an editor, never
+/// a rebase).
+pub async fn pull_with_merge(cwd: &str) -> MergeOutcome {
+    let Some(root) = get_repo_root(cwd).await else {
+        return not_a_repo_outcome();
+    };
+    merge_like(
+        &["pull", "--no-rebase", "--no-edit"],
+        &root,
+        "git pull failed",
+    )
+    .await
+}
+
+/// `mergeBranchIntoCurrent`: `git merge --no-rebase --no-edit <name>` on
+/// the JS-trimmed name. `git merge` has no `--no-rebase`, so git always
+/// refuses with its usage (exit 129); with unmerged paths already in the
+/// tree that reads as conflicts.
+pub async fn merge_branch_into_current(cwd: &str, name: &str) -> MergeOutcome {
+    let Some(root) = get_repo_root(cwd).await else {
+        return not_a_repo_outcome();
+    };
+    let trimmed = js::trim(name);
+    if !is_valid_ref_name(trimmed) {
+        return MergeOutcome::Error("invalid branch name".into());
+    }
+    merge_like(
+        &["merge", "--no-rebase", "--no-edit", trimmed],
+        &root,
+        "git merge failed",
+    )
+    .await
+}
+
+/// `rebaseCurrentOnto`: `git rebase <onto>` on the JS-trimmed name.
+pub async fn rebase_current_onto(cwd: &str, onto: &str) -> MergeOutcome {
+    let Some(root) = get_repo_root(cwd).await else {
+        return not_a_repo_outcome();
+    };
+    let trimmed = js::trim(onto);
+    if !is_valid_ref_name(trimmed) {
+        return MergeOutcome::Error("invalid branch name".into());
+    }
+    merge_like(&["rebase", trimmed], &root, "git rebase failed").await
+}
+
+/// `checkoutAndRebaseOnto`: [`checkout_branch`] to `branch` (its error's
+/// message is the error), then [`rebase_current_onto`], which checks `onto`
+/// only after the switch.
+pub async fn checkout_and_rebase_onto(cwd: &str, branch: &str, onto: &str) -> MergeOutcome {
+    if let Err(e) = checkout_branch(cwd, branch, false, None).await {
+        return MergeOutcome::Error(e.message);
+    }
+    rebase_current_onto(cwd, onto).await
 }
 
 #[cfg(test)]

@@ -30,6 +30,10 @@ getrandom = "0.4"
 # `String.prototype.localeCompare`: ICU collation with the root (en) data, as
 # V8 compares with ICU4C (fs/dirs entry order).
 icu_collator = "2"
+# Unicode properties for the skill-name rules (`\p{L}`, `\p{sc=Latin}`,
+# Default_Ignorable_Code_Point, ...): ICU 78 data, as V8 builds its
+# `/u` property classes from ICU (lib/shared/skill-names.ts).
+icu_properties = "2"
 indexmap = "2"
 http-body-util = "0.1"
 hyper = { version = "1", features = ["client", "http1", "http2"] }
@@ -43,6 +47,9 @@ regex = "1"
 # fetch; rustls on ring with the OS trust store (rustls-platform-verifier);
 # no proxy, compression or charset features.
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+# `createHash("sha1")` for the customization file hashes (ring is already
+# rustls's crypto provider below).
+ring = { version = "0.17", default-features = false }
 rusqlite = { version = "0.37", features = ["bundled"] }
 # reqwest's TLS crypto provider (ring: no cmake, a small C build).
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }

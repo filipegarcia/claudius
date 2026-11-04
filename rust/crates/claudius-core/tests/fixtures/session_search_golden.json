@@ -17735,6 +17735,139 @@
    }
   },
   {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"zephyrine\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"plain\"}}\n",
+   "q": "zephyrine",
+   "got": null
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"persistent shell\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"ok\"}}\n",
+   "q": "persistent shell",
+   "got": null
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"x\"}]}}\n{\"type\":\"api-request\",\"sessionId\":\"s\",\"id\":\"r1\",\"shapeHash\":\"h1\",\"params\":{\"model\":\"claude-opus-4-7\",\"max_tokens\":32000}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"y\"}}\n",
+   "q": "max_tokens",
+   "got": null
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"marmalade free\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"marmaladeword here\"}}\n",
+   "q": "marmalade",
+   "got": {
+    "index": 194,
+    "snippet": "\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"marmaladeword here\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"type\":\"api-request-blob\",\"sessionId\":\"s\",\"hash\":\"b1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"wombatgrove setup\"}]}}\n{\"type\":\"api-request\",\"sessionId\":\"s\",\"id\":\"r1\",\"shapeHash\":\"h1\",\"params\":{\"model\":\"claude-opus-4-7\",\"max_tokens\":32000}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"tell me about the wombatgrove setup\"}}\n",
+   "q": "wombatgrove",
+   "got": {
+    "index": 328,
+    "snippet": "\"…user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tell me about the wombatgrove setup\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"\\\"type\\\":\\\"api-request and wombat\"}}\n",
+   "q": "wombat",
+   "got": {
+    "index": 78,
+    "snippet": "\"…ssage\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"\\\"type\\\":\\\"api-request and wombat\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"a\":1,\"type\":\"api-request\",\"b\":\"wombat\"}\n",
+   "q": "wombat",
+   "got": null
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"only here\"}]}}\n{\"type\":\"api-request-blob\",\"sessionId\":\"s\",\"hash\":\"b1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"only here\"}]}}\n",
+   "q": "only here",
+   "got": null
+  },
+  {
+   "text": "{\"type\":\"api-request\",\"b\":\"q\"}",
+   "q": "q",
+   "got": null
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"xyzzy\"}}\n{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\"}]}}\n",
+   "q": "xyzzy",
+   "got": {
+    "index": 260,
+    "snippet": "\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"xyzzy\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"s\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaMIDbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}}\n",
+   "q": "mid",
+   "got": {
+    "index": 261,
+    "snippet": "\"…aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaMIDbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb…\""
+   }
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppbigprompt\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"bigword after it\"}}\n",
+   "q": "bigword",
+   "got": {
+    "index": 3189,
+    "snippet": "\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"bigword after it\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppbigprompt\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"bigword after it\"}}\n",
+   "q": "bigprompt",
+   "got": null
+  },
+  {
+   "text": "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"one\"}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"two\"}}\n",
+   "q": "\"}}\n{\"",
+   "got": {
+    "index": 54,
+    "snippet": "\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"one\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"tail\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"head\"}}\n",
+   "q": "}}\n{\"type\":\"user\"",
+   "got": null
+  },
+  {
+   "text": "ab\ncd",
+   "q": "\nc",
+   "got": {
+    "index": 2,
+    "snippet": "\"\""
+   }
+  },
+  {
+   "text": "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"crlf\"}}\r\n{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"x\"}]}}\r\n",
+   "q": "crlf",
+   "got": {
+    "index": 51,
+    "snippet": "\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"type\":\"api-request\",\"sessionId\":\"s\",\"id\":\"r1\",\"shapeHash\":\"h1\",\"params\":{\"model\":\"claude-opus-4-7\",\"max_tokens\":32000}}\n{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"dup\"}]}}\n{\"type\":\"api-request-blob\",\"sessionId\":\"s\",\"hash\":\"b1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"dup\"}]}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"dup\"}}\n",
+   "q": "dup",
+   "got": {
+    "index": 428,
+    "snippet": "\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"dup\\\"}}\""
+   }
+  },
+  {
+   "text": "{\"TYPE\":\"API-REQUEST\",\"b\":\"wombat\"}\n",
+   "q": "wombat",
+   "got": {
+    "index": 27,
+    "snippet": "\"{\\\"TYPE\\\":\\\"API-REQUEST\\\",\\\"b\\\":\\\"wombat\\\"}\""
+   }
+  },
+  {
+   "text": "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"hit\"}]}}\n",
+   "q": "API-REQUEST",
+   "got": null
+  },
+  {
    "text": "Ა ΐΐ𐐀:ᲐᎠµI😀",
    "q": "Ა",
    "got": {
@@ -34792,6 +34925,93 @@
    "encoded": "-golden-edges"
   },
   {
+   "label": "api-request",
+   "dir": "/golden/api",
+   "base": "dir",
+   "entries": [
+    {
+     "name": "a0000000-0000-4000-8000-000000000020.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"timestamp\":\"2026-10-14T00:00:00.000Z\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"You are Claude Code. Be zephyrine about conventions.\"}],\"tools\":[{\"name\":\"Bash\",\"description\":\"Executes a bash command in a persistent shell.\",\"input_schema\":{\"type\":\"object\"}}]}}\n",
+      "{\"type\":\"api-request-blob\",\"sessionId\":\"s\",\"hash\":\"b1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"an earlier request mentioned nothing interesting\"}]}}\n",
+      "{\"type\":\"api-request\",\"sessionId\":\"s\",\"id\":\"r1\",\"version\":\"2.1.300\",\"shapeHash\":\"h1\",\"params\":{\"model\":\"claude-opus-4-7\",\"max_tokens\":32000,\"output_config\":{\"effort\":\"high\"}}}\n",
+      "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"please refactor the quokkaville module\"}}\n",
+      "{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":\"Sure, refactoring now.\"}}\n"
+     ],
+     "mtimeNs": "1700000029000000000"
+    },
+    {
+     "name": "a0000000-0000-4000-8000-000000000021.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"timestamp\":\"2026-10-14T00:00:00.000Z\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"Always prefer marmalade-free solutions when possible.\"}],\"tools\":[{\"name\":\"Bash\",\"description\":\"Executes a bash command in a persistent shell.\",\"input_schema\":{\"type\":\"object\"}}]}}\n",
+      "{\"type\":\"api-request\",\"sessionId\":\"s\",\"id\":\"r1\",\"version\":\"2.1.300\",\"shapeHash\":\"h1\",\"params\":{\"model\":\"claude-opus-4-7\",\"max_tokens\":32000,\"output_config\":{\"effort\":\"high\"}}}\n",
+      "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"}}\n",
+      "{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":\"The marmaladeword appears here in a real reply.\"}}\n"
+     ],
+     "mtimeNs": "1700000030000000000"
+    },
+    {
+     "name": "a0000000-0000-4000-8000-000000000022.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"api-request-blob\",\"sessionId\":\"s\",\"hash\":\"b1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"tell me about the wombatgrove setup\"}]}}\n",
+      "{\"type\":\"api-request\",\"sessionId\":\"s\",\"id\":\"r1\",\"version\":\"2.1.300\",\"shapeHash\":\"h1\",\"params\":{\"model\":\"claude-opus-4-7\",\"max_tokens\":32000,\"output_config\":{\"effort\":\"high\"}}}\n",
+      "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"tell me about the wombatgrove setup\"}}\n"
+     ],
+     "mtimeNs": "1700000031000000000"
+    },
+    {
+     "name": "a0000000-0000-4000-8000-000000000023.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"timestamp\":\"2026-10-14T00:00:00.000Z\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp bigprompt\"}],\"tools\":[{\"name\":\"Bash\",\"description\":\"Executes a bash command in a persistent shell.\",\"input_schema\":{\"type\":\"object\"}}]}}\n",
+      "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"bigword after the dump\"}}\n"
+     ],
+     "mtimeNs": "1700000032000000000"
+    },
+    {
+     "name": "a0000000-0000-4000-8000-000000000024.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"timestamp\":\"2026-10-14T00:00:00.000Z\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"onlyapi here\"}],\"tools\":[{\"name\":\"Bash\",\"description\":\"Executes a bash command in a persistent shell.\",\"input_schema\":{\"type\":\"object\"}}]}}\n",
+      "{\"type\":\"api-request-blob\",\"sessionId\":\"s\",\"hash\":\"b1\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"onlyapi again\"}]}}\n",
+      "{\"type\":\"api-request\",\"sessionId\":\"s\",\"id\":\"r1\",\"version\":\"2.1.300\",\"shapeHash\":\"h1\",\"params\":{\"model\":\"claude-opus-4-7\",\"max_tokens\":32000,\"output_config\":{\"effort\":\"high\"}}}\n"
+     ],
+     "mtimeNs": "1700000033000000000"
+    },
+    {
+     "name": "a0000000-0000-4000-8000-000000000025.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"before\"}}\n",
+      "{\"type\":\"api-request-blob\",\"hash\":\"b2\",\"message\":\"lastapi\"}"
+     ],
+     "mtimeNs": "1700000034000000000"
+    },
+    {
+     "name": "a0000000-0000-4000-8000-000000000026.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"escapedmarker \\\"type\\\":\\\"api-request inside a value\"}}\n"
+     ],
+     "mtimeNs": "1700000035000000000"
+    },
+    {
+     "name": "a0000000-0000-4000-8000-000000000027.jsonl",
+     "kind": "file",
+     "parts": [
+      "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"timestamp\":\"2026-10-14T00:00:00.000Z\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"s\"}],\"tools\":[{\"name\":\"Bash\",\"description\":\"Executes a bash command in a persistent shell.\",\"input_schema\":{\"type\":\"object\"}}]}}\n",
+      "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaCLAMPWORDbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}}\n",
+      "{\"type\":\"api-request-shape\",\"sessionId\":\"s\",\"shapeHash\":\"h1\",\"timestamp\":\"2026-10-14T00:00:00.000Z\",\"version\":\"2.1.300\",\"shape\":{\"system\":[{\"type\":\"text\",\"text\":\"t\"}],\"tools\":[{\"name\":\"Bash\",\"description\":\"Executes a bash command in a persistent shell.\",\"input_schema\":{\"type\":\"object\"}}]}}\n"
+     ],
+     "mtimeNs": "1700000036000000000"
+    }
+   ],
+   "encoded": "-golden-api"
+  },
+  {
    "label": "unicode-dir",
    "dir": "/tmp/😀 x",
    "base": "dir",
@@ -34802,7 +35022,7 @@
      "parts": [
       "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"unicode dir hello\"}}\n"
      ],
-     "mtimeNs": "1700000029000000000"
+     "mtimeNs": "1700000037000000000"
     }
    ],
    "encoded": "-tmp----x"
@@ -34818,7 +35038,7 @@
      "parts": [
       "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"escapee hello\"}}\n"
      ],
-     "mtimeNs": "1700000030000000000"
+     "mtimeNs": "1700000038000000000"
     }
    ],
    "encoded": "------etc"
@@ -34834,7 +35054,7 @@
      "parts": [
       "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"slash dir hello\"}}\n"
      ],
-     "mtimeNs": "1700000031000000000"
+     "mtimeNs": "1700000039000000000"
     }
    ],
    "encoded": "-"
@@ -34851,7 +35071,7 @@
      "parts": [
       "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello perm\"}}\n"
      ],
-     "mtimeNs": "1700000032000000000"
+     "mtimeNs": "1700000040000000000"
     }
    ],
    "encoded": "-golden-perm-none"
@@ -34868,7 +35088,7 @@
      "parts": [
       "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello perm\"}}\n"
      ],
-     "mtimeNs": "1700000033000000000"
+     "mtimeNs": "1700000041000000000"
     }
    ],
    "encoded": "-golden-perm-r"
@@ -34885,7 +35105,7 @@
      "parts": [
       "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello perm\"}}\n"
      ],
-     "mtimeNs": "1700000034000000000"
+     "mtimeNs": "1700000042000000000"
     }
    ],
    "encoded": "-golden-perm-x"
@@ -35086,7 +35306,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35099,7 +35319,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assi…\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"}]}"
    }
   },
   {
@@ -35125,7 +35345,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35203,7 +35423,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35216,7 +35436,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35229,7 +35449,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35294,7 +35514,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"…\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"…\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"…\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"…\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HEL…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"q…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id wi…\"},{\"sessionId\":\"meta\",\"snippet\":\"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"p…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"…\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ on…\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch…\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancie…\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"…\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"…\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"…\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"…\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HEL…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"q…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id wi…\"},{\"sessionId\":\"meta\",\"snippet\":\"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"p…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"…\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ on…\"},{\"sessionId\":\"bom\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch…\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancie…\"}]}"
    }
   },
   {
@@ -35307,7 +35527,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"}}\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"}}\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outsi…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"}}\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"}}\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"quote\\\\…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with un…\"},{\"sessionId\":\"meta\",\"snippet\":\"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"price…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ only la…\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hel…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 19…\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"}}\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"}}\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outsi…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"}}\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"}}\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"quote\\\\…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with un…\"},{\"sessionId\":\"meta\",\"snippet\":\"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"price…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ only la…\"},{\"sessionId\":\"bom\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hel…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 19…\"}]}"
    }
   },
   {
@@ -35320,7 +35540,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"}}\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"}}\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"}}\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"}}\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new li…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"quote\\\" and a…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscor…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ only latin-1 ß…\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello agai…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"}}\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"}}\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"}}\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"}}\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new li…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"quote\\\" and a…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscor…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ only latin-1 ß…\"},{\"sessionId\":\"bom\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello agai…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35398,7 +35618,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"…ype\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",…\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"…ype\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"}]}"
    }
   },
   {
@@ -35411,7 +35631,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\"…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35476,7 +35696,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"c…\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"}]}"
    }
   },
   {
@@ -35489,7 +35709,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"}]}"
    }
   },
   {
@@ -35502,7 +35722,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"bom\",\"snippet\":\"…m first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"bom\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"}]}"
    }
   },
   {
@@ -35606,7 +35826,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"}}\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"}}\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"}}\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"}}\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line an…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"quote\\\" and a\\\\back…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hell…\"},{\"sessionId\":\"meta\",\"snippet\":\"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"price $5.00…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ only latin-1 ß\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"far-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint a\\\"}}\"},{\"sessionId\":\"far-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"farpoint b\\\"}}\"},{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}…\"},{\"sessionId\":\"Tie-b\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint b\\\"}}\"},{\"sessionId\":\"tie-a\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint a\\\"}}\"},{\"sessionId\":\"tie-c\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tiepoint c\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line an…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000003\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"He said \\\"quote\\\" and a\\\\back…\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hell…\"},{\"sessionId\":\"meta\",\"snippet\":\"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"price $5.00…\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"latin1\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"café ÿ µ only latin-1 ß\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"crlf line\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35658,7 +35878,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"meta\",\"snippet\":\"…assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"price $5.00 (approx) [tag] a+b*c? ^start end$ {1} pipe|bar back\\\\d\\\"}}…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"…,\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"The needle is here.\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"meta\",\"snippet\":\"…assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"price $5.00 (approx) [tag] a+b*c? ^start end$ {1} pipe|bar back\\\\d\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"…,\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"The needle is here.\\\"}}\"}]}"
    }
   },
   {
@@ -35944,7 +36164,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35970,7 +36190,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35983,7 +36203,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -35996,7 +36216,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -36035,7 +36255,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first {\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}} {\\\"type\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\"…\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
+    "body": "{\"matches\":[{\"sessionId\":\"linked\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello from outside the base\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000002\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Another HELLO, a new line and a tab\\\"}}\"},{\"sessionId\":\"ok_id-1\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"plain id with underscore hello\\\"}}\"},{\"sessionId\":\"invalid-utf8\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"content\\\":\\\"bad � � bytes then hello\\\"}}\"},{\"sessionId\":\"bom\",\"snippet\":\"hello bom first\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000001\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello World, hello again\\\"}}\"},{\"sessionId\":\"epoch\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello epoch\\\"}}\"},{\"sessionId\":\"old\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello ancient 1960\\\"}}\"}]}"
    }
   },
   {
@@ -36621,6 +36841,266 @@
     "status": 200,
     "type": "application/json",
     "body": "{\"matches\":[{\"sessionId\":\"ctrl\",\"snippet\":\"CTRLWORD \\u0001\\b\\u001f raw controls\"}]}"
+   }
+  },
+  {
+   "query": "q=zephyrine&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "zephyrine",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=persistent%20shell&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "persistent shell",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=max_tokens&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "max_tokens",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=quokkaville&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "quokkaville",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000020\",\"snippet\":\"…er\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"please refactor the quokkaville module\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=marmalade&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "marmalade",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000021\",\"snippet\":\"…e\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"The marmaladeword appears here in a real reply.\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=marmaladeword&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "marmaladeword",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000021\",\"snippet\":\"…e\\\":\\\"assistant\\\",\\\"message\\\":{\\\"role\\\":\\\"assistant\\\",\\\"content\\\":\\\"The marmaladeword appears here in a real reply.\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=wombatgrove&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "wombatgrove",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000022\",\"snippet\":\"…user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tell me about the wombatgrove setup\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=bigprompt&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "bigprompt",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=bigword&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "bigword",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000023\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"bigword after the dump\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=onlyapi&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "onlyapi",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=lastapi&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "lastapi",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=escapedmarker&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "escapedmarker",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000026\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"escapedmarker \\\"type\\\":\\\"api-request inside a value\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=clampword&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "clampword",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000027\",\"snippet\":\"…aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaCLAMPWORDbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb…\"}]}"
+   }
+  },
+  {
+   "query": "q=api-request&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "api-request",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000026\",\"snippet\":\"…message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"escapedmarker \\\"type\\\":\\\"api-request inside a value\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=%22type%22%3A%22api-request&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "\"type\":\"api-request",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=%22type%22&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "\"type\"",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000027\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"aaaaaaaaaaaaaaaa…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000026\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"escapedmarker \\\"…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000025\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"before\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000023\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"bigword after th…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000022\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"tell me about th…\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000021\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello\\\"}}\"},{\"sessionId\":\"a0000000-0000-4000-8000-000000000020\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"please refactor…\"}]}"
+   }
+  },
+  {
+   "query": "q=shapeHash&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "shapeHash",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=2.1.300&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "2.1.300",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
+   }
+  },
+  {
+   "query": "q=hello&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "hello",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[{\"sessionId\":\"a0000000-0000-4000-8000-000000000021\",\"snippet\":\"{\\\"type\\\":\\\"user\\\",\\\"message\\\":{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"hello\\\"}}\"}]}"
+   }
+  },
+  {
+   "query": "q=Executes%20a%20bash%20command&dir=%2Fgolden%2Fapi",
+   "params": {
+    "q": "Executes a bash command",
+    "dir": "/golden/api",
+    "limit": null
+   },
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"matches\":[]}"
    }
   },
   {

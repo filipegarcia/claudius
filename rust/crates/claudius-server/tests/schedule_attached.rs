@@ -1,8 +1,9 @@
 //! `GET /api/schedule/:id/runs` marks a running run `attached` while a
 //! client has its live stream open, and `false` while nobody does (CC
-//! 2.1.221's attached / unattended job). The stream route is G07c's, still
-//! Next's, so this test subscribes in process, as that route will, against
-//! the router on a real socket and the scheduler running the fake CLI.
+//! 2.1.221's attached / unattended job). This test subscribes in process,
+//! as the stream route does (G07c; `schedule_stream.rs` replays it on the
+//! binary), against the router on a real socket and the scheduler running
+//! the fake CLI.
 
 mod common;
 

@@ -7,9 +7,9 @@
 //! S30). Switching the active account doesn't move it: `PATCH /api/accounts`
 //! asks every live session to recompute its drift, and each one whose answer
 //! changed tells its tabs (`account_changed`), so the StatusLine badge warns
-//! at once. Until S30 pins sessions at start, every pin is empty and a
-//! refresh does nothing, as in TS for a session started with no account
-//! configured.
+//! at once. A session started with no account configured has an empty pin,
+//! and a refresh does nothing for it, as in TS. The pin is decided at start
+//! by [`crate::account_pinning`] (S30).
 
 use serde_json::{Map, Value, json};
 
@@ -24,7 +24,7 @@ pub struct AccountRef {
 }
 
 impl AccountRef {
-    fn of(p: &AccountProfile) -> AccountRef {
+    pub(crate) fn of(p: &AccountProfile) -> AccountRef {
         AccountRef {
             id: p.id().to_owned(),
             label: p.label().to_owned(),
@@ -37,7 +37,7 @@ impl AccountRef {
 }
 
 /// A session's account fields. Empty (the default) when no profile was
-/// configured at start, or before S30 pins sessions.
+/// configured at start.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AccountPin {
     /// `accountProfileId`: the profile the session spawned under.
@@ -62,7 +62,7 @@ impl AccountPin {
     }
 
     /// `{ id, label, ...(drift ? { driftFromActive } : {}) }`, the `account`
-    /// the session reports (the `account_changed` event, S30's `ready`).
+    /// the session reports (`ready`, `account_changed`, `GET /:id/account`).
     /// `None` when [`is_set`](Self::is_set) isn't.
     pub fn account_json(&self) -> Option<Value> {
         let (id, label) = self.pinned()?;

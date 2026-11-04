@@ -116,16 +116,8 @@ pub fn router() -> Router<AppState> {
             "/api/sessions/{id}/dev-inject-denial",
             post(dev_inject_denial),
         )
-        // Disk-only collection routes: safe to keep serving from Next.
-        .route("/api/sessions/all", any(crate::proxy::handler))
-        .route("/api/sessions/fork", any(crate::proxy::handler))
-        .route("/api/sessions/export/{*rest}", any(crate::proxy::handler))
-        .route("/api/sessions/file/{*rest}", any(crate::proxy::handler))
-        .route("/api/sessions/info/{*rest}", any(crate::proxy::handler))
-        .route(
-            "/api/sessions/transcript/{*rest}",
-            any(crate::proxy::handler),
-        )
+        // The collection routes are `sessions_collection` (D19) and
+        // `worktrees` (`/api/sessions/fork`, D05).
         .route("/api/sessions/{id}/{*rest}", any(not_ported))
 }
 
@@ -180,7 +172,7 @@ fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
 async fn list(State(app): State<AppState>, Query(q): Query<HashMap<String, String>>) -> Response {
     let filter: Option<String> = if let Some(c) = q.get("customizationId").filter(|s| !s.is_empty())
     {
-        Some(trusted_cwd::customization_src_dir(c))
+        Some(claudius_core::customizations::customization_src_dir(c))
     } else if let Some(w) = q.get("workspaceId").filter(|s| !s.is_empty()) {
         workspaces::get(w).ok().flatten().map(|w| w.root_path)
     } else {
@@ -291,10 +283,14 @@ async fn create(State(app): State<AppState>, headers: HeaderMap, body: Bytes) ->
             .filter(|c| !c.is_empty());
     }
     if cwd.is_none() {
-        let cust = cookie(&headers, "claudius.customization")
-            .filter(|id| trusted_cwd::get_customization(id).is_some());
+        let cust = cookie(&headers, "claudius.customization").filter(|id| {
+            matches!(
+                claudius_core::customizations::get_customization(id),
+                Ok(Some(_))
+            )
+        });
         if let Some(c) = cust {
-            cwd = Some(trusted_cwd::customization_src_dir(&c));
+            cwd = Some(claudius_core::customizations::customization_src_dir(&c));
         } else if let Ok(Some(ws)) =
             workspaces::resolve_active(cookie(&headers, "claudius.workspace").as_deref())
         {

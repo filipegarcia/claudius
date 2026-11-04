@@ -423,7 +423,8 @@ async fn replay_submit(case: &Value) {
                 c["attachTranscript"].as_bool().unwrap_or(false),
             )
             .await;
-        assert_eq!(Value::Bool(forwarded), c["forwarded"], "{name} call {i}");
+        // `{forwarded, reason?}`, as `submitFeedback` resolves.
+        assert_eq!(forwarded.to_json(), c["forwarded"], "{name} call {i}");
         let want: Vec<String> = c["wire"]
             .as_array()
             .unwrap()

@@ -17,10 +17,12 @@
 //   of route.ts) run over a two-byte string holding all 65 536 units, and
 //   over a one-byte (Latin-1) string of 256: the units it matches, wherever
 //   that isn't just c itself.
-// * `pure`: the route's match + snippet block (sliced out of route.ts, from
-//   `re.lastIndex = 0;` to the `snippet` line) on text / query pairs:
-//   hand-written edges (case-folding classes, surrogate pairs at the window
-//   edges, the escape passes, whitespace) and seeded random strings over
+// * `pure`: the route's match walk + snippet block (sliced out of route.ts,
+//   from `re.lastIndex = 0;` to the `snippet` line, wrapped in a function
+//   and type-stripped) on text / query pairs: hand-written edges
+//   (case-folding classes, surrogate pairs at the window edges, the escape
+//   passes, whitespace, the CC 2.1.300 `api-request*` skip and the snippet
+//   clamped to the matched line) and seeded random strings over
 //   case-variant alphabets, two-byte and Latin-1-only. `got` is null or the
 //   match index and `JSON.stringify(snippet)`.
 // * `worlds` + `steps`: transcript folders under $HOME/.claude/projects/
@@ -50,7 +52,7 @@ import {
   utimesSync,
   writeFileSync,
 } from "node:fs";
-import { register } from "node:module";
+import { register, stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -153,18 +155,28 @@ function sliceOut(re, what) {
 const escLine = sliceOut(/^\s*const escaped = q\.replace\(.*\);$/m, "escape line");
 const reLine = sliceOut(/^\s*const re = new RegExp\(escaped, "gi"\);$/m, "RegExp line");
 const RADIUS = Number(sliceOut(/const SNIPPET_RADIUS = \d+;/, "SNIPPET_RADIUS").match(/\d+/)[0]);
+// CC 2.1.300: the constant marker, taken from the route so a change to it
+// fails here instead of going unrecorded.
+const markerLine = sliceOut(/^const API_REQUEST_LINE_MARKER = .*;$/m, "api-request marker");
+const MARKER = new Function(`${markerLine}\nreturn API_REQUEST_LINE_MARKER;`)();
 /** The route's `re` for a query. */
 const buildRe = new Function("q", `${escLine}\n${reLine}\nreturn re;`);
 const from = src.indexOf("re.lastIndex = 0;");
 const to = src.indexOf("matches.push(");
-if (from < 0 || to < from || !src.slice(from, to).includes("if (!m) continue;")) {
+if (from < 0 || to < from || !src.slice(from, to).includes("if (!hit) continue;")) {
   throw new Error("route.ts changed: no snippet block");
 }
-const block = src.slice(from, to).replace("if (!m) continue;", "if (!m) return null;");
-/** The route's match + snippet for one text. */
-const snippetOf = new Function("text", "re", "SNIPPET_RADIUS", `${block}\nreturn { index: m.index, snippet };`);
+// The block declares `let hit: RegExpExecArray | null`, so it is stripped
+// of its types; `continue` / the trailing push become the function's exits.
+const block = src.slice(from, to).replace("if (!hit) continue;", "if (!hit) return null;");
+/** The route's match walk + snippet for one text. */
+const snippetOf = new Function(
+  `return ${stripTypeScriptTypes(
+    `(function (text, re, SNIPPET_RADIUS, API_REQUEST_LINE_MARKER) {\n${block}\nreturn { index: hit.index, snippet };\n})`,
+  )}`,
+)();
 const pureCase = (text, q) => {
-  const r = snippetOf(text, buildRe(q), RADIUS);
+  const r = snippetOf(text, buildRe(q), RADIUS, MARKER);
   return { text, q, got: r && { index: r.index, snippet: JSON.stringify(r.snippet) } };
 };
 
@@ -291,6 +303,49 @@ const hand = [
   ["\u03c3\u03c3\u03c2\u03c3\u03a3\u03c3", "\u03a3\u03c2\u03c3\u03c3"],
 ];
 for (const [text, q] of hand) pure.push(pureCase(text, q));
+
+// CC 2.1.300: the `api-request*` skip and the snippet clamped to the line.
+// Shapes as the 2.1.300 engine writes them: `type` first, the prompt and
+// tools under `shape`, a blob carrying a copy of a request message.
+const SHAPE = (w) =>
+  `{"type":"api-request-shape","sessionId":"s","shapeHash":"h1","version":"2.1.300","shape":{"system":[{"type":"text","text":"${w}"}]}}`;
+const BLOB = (w) => `{"type":"api-request-blob","sessionId":"s","hash":"b1","message":{"role":"user","content":[{"type":"text","text":"${w}"}]}}`;
+const REQ = '{"type":"api-request","sessionId":"s","id":"r1","shapeHash":"h1","params":{"model":"claude-opus-4-7","max_tokens":32000}}';
+const USER = (w) => `{"type":"user","message":{"role":"user","content":"${w}"}}`;
+const api = [
+  // A word only in the system prompt, the tools JSON or the params.
+  [`${SHAPE("zephyrine")}\n${USER("plain")}\n`, "zephyrine"],
+  [`${SHAPE("persistent shell")}\n${USER("ok")}\n`, "persistent shell"],
+  [`${SHAPE("x")}\n${REQ}\n${USER("y")}\n`, "max_tokens"],
+  // A real later hit isn't masked; a blob before the real line isn't either.
+  [`${SHAPE("marmalade free")}\n${USER("marmaladeword here")}\n`, "marmalade"],
+  [`${BLOB("wombatgrove setup")}\n${REQ}\n${USER("tell me about the wombatgrove setup")}\n`, "wombatgrove"],
+  // The marker as escaped string content is not the key.
+  [`${USER('\\"type\\":\\"api-request and wombat')}\n`, "wombat"],
+  // The marker anywhere on the line counts, and only unescaped.
+  ['{"a":1,"type":"api-request","b":"wombat"}\n', "wombat"],
+  [`${SHAPE("only here")}\n${BLOB("only here")}\n`, "only here"],
+  // A skipped last line with no trailing newline ends the walk.
+  ['{"type":"api-request","b":"q"}', "q"],
+  // The window would reach into the neighbouring entries.
+  [`${SHAPE(R(80, "s"))}\n${USER("xyzzy")}\n${SHAPE(R(80, "t"))}\n`, "xyzzy"],
+  [`${SHAPE("s")}\n${USER(`${R(80, "a")}MID${R(80, "b")}`)}\n`, "mid"],
+  // A huge dump costs one skip.
+  [`${SHAPE(`${R(3000, "p")}bigprompt`)}\n${USER("bigword after it")}\n`, "bigword"],
+  [`${SHAPE(`${R(3000, "p")}bigprompt`)}\n${USER("bigword after it")}\n`, "bigprompt"],
+  // Matches that cross a newline, and one on the newline itself.
+  [`${USER("one")}\n${USER("two")}\n`, '"}}\n{"'],
+  [`${SHAPE("tail")}\n${USER("head")}\n`, '}}\n{"type":"user"'],
+  ["ab\ncd", "\nc"],
+  // CRLF: the \r belongs to the line.
+  [`${USER("crlf")}\r\n${SHAPE("x")}\r\n`, "crlf"],
+  // Every line is a key the marker's prefix covers, in turn.
+  [`${REQ}\n${SHAPE("dup")}\n${BLOB("dup")}\n${USER("dup")}\n`, "dup"],
+  // The marker is matched case-sensitively, the query isn't.
+  ['{"TYPE":"API-REQUEST","b":"wombat"}\n', "wombat"],
+  [`${SHAPE("hit")}\n`, "API-REQUEST"],
+];
+for (const [text, q] of api) pure.push(pureCase(text, q));
 
 function mulberry32(seed) {
   let a = seed;
@@ -478,6 +533,59 @@ world("edges", "/golden/edges", [
   file("fold.jsonl", [line("user", "\u03a3\u039f\u03a3 stra\u00dfe \u0130stanbul \u212a \u017f \ud801\udc00 \uab70 \u10d0 \u01c5")]),
   file("ctrl.jsonl", ["CTRLWORD \u0001\u0008\u001f\u007f raw controls"]),
 ]);
+
+// CC 2.1.300 -- the engine's request-capture entries, in the shapes a real
+// 2.1.300 transcript carries them in.
+const shapeLine = (system, extra = {}) =>
+  `${JSON.stringify({
+    type: "api-request-shape",
+    sessionId: "s",
+    shapeHash: "h1",
+    timestamp: "2026-10-14T00:00:00.000Z",
+    version: "2.1.300",
+    shape: {
+      system: [{ type: "text", text: system }],
+      tools: [{ name: "Bash", description: "Executes a bash command in a persistent shell.", input_schema: { type: "object" } }],
+      ...extra,
+    },
+  })}\n`;
+const blobLine = (text) =>
+  `${JSON.stringify({ type: "api-request-blob", sessionId: "s", hash: "b1", message: { role: "user", content: [{ type: "text", text }] } })}\n`;
+const reqLine = `${JSON.stringify({
+  type: "api-request",
+  sessionId: "s",
+  id: "r1",
+  version: "2.1.300",
+  shapeHash: "h1",
+  params: { model: "claude-opus-4-7", max_tokens: 32000, output_config: { effort: "high" } },
+})}\n`;
+world("api-request", "/golden/api", [
+  file(`${sid(20)}.jsonl`, [
+    shapeLine("You are Claude Code. Be zephyrine about conventions."),
+    blobLine("an earlier request mentioned nothing interesting"),
+    reqLine,
+    line("user", "please refactor the quokkaville module"),
+    line("assistant", "Sure, refactoring now."),
+  ]),
+  file(`${sid(21)}.jsonl`, [
+    shapeLine("Always prefer marmalade-free solutions when possible."),
+    reqLine,
+    line("user", "hello"),
+    line("assistant", "The marmaladeword appears here in a real reply."),
+  ]),
+  // A blob repeating the user's words sits before the real user line.
+  file(`${sid(22)}.jsonl`, [blobLine("tell me about the wombatgrove setup"), reqLine, line("user", "tell me about the wombatgrove setup")]),
+  // A 60 KiB dump: one skip, then the hit on the next line.
+  file(`${sid(23)}.jsonl`, [shapeLine(`${R(60000, "p")} bigprompt`), line("user", "bigword after the dump")]),
+  // Every match is inside a skipped line.
+  file(`${sid(24)}.jsonl`, [shapeLine("onlyapi here"), blobLine("onlyapi again"), reqLine]),
+  // A skipped line last, with no trailing newline.
+  file(`${sid(25)}.jsonl`, [line("user", "before"), '{"type":"api-request-blob","hash":"b2","message":"lastapi"}']),
+  // The marker as escaped string content, which is not the JSON key.
+  file(`${sid(26)}.jsonl`, [line("user", 'escapedmarker "type":"api-request inside a value')]),
+  // The hit's line is the longest: the snippet is clamped on both sides.
+  file(`${sid(27)}.jsonl`, [shapeLine("s"), line("user", `${R(80, "a")}CLAMPWORD${R(80, "b")}`), shapeLine("t")]),
+], );
 
 world("unicode-dir", `/tmp/${EMOJI} x`, [file(`${sid(10)}.jsonl`, [line("user", "unicode dir hello")])]);
 world("traversal", "../../etc", [file(`${sid(11)}.jsonl`, [line("user", "escapee hello")])]);
@@ -690,6 +798,31 @@ for (const q of [
   "\u0001",
 ]) {
   await search(q, "/golden/edges");
+}
+
+for (const q of [
+  "zephyrine",
+  "persistent shell",
+  "max_tokens",
+  "quokkaville",
+  "marmalade",
+  "marmaladeword",
+  "wombatgrove",
+  "bigprompt",
+  "bigword",
+  "onlyapi",
+  "lastapi",
+  "escapedmarker",
+  "clampword",
+  "api-request",
+  '"type":"api-request',
+  '"type"',
+  "shapeHash",
+  "2.1.300",
+  "hello",
+  "Executes a bash command",
+]) {
+  await search(q, "/golden/api");
 }
 
 for (const [q, dir] of [

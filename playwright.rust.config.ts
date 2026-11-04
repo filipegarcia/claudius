@@ -21,6 +21,8 @@ import base from "./playwright.config";
  *     --headed to watch)
  *   - CLAUDIUS_UPDATER_DISABLED=1 on the Next server, so its updater can never
  *     touch the working tree mid-run
+ *   - CLAUDIUS_RUST_SCHEDULER=1 on the Next server: the Rust binary runs the
+ *     scheduled jobs (it does by default), so Next must not run them too
  *   - CLAUDE_CONFIG_DIR pinned to the e2e HOME on both servers. A value
  *     inherited from a parent Claude session would otherwise send every
  *     transcript (and the SDK's session listing) to the real ~/.claude.
@@ -43,7 +45,10 @@ export default defineConfig({
       command: `next dev -p ${NEXT_PORT}`,
       url: `http://localhost:${NEXT_PORT}`,
       reuseExistingServer: false,
-      timeout: 120_000,
+      // A cold Turbopack compile of `/` can take minutes on a loaded machine
+      // (e.g. a parallel cargo build), and the 120 s default times the run out
+      // before the first spec runs.
+      timeout: 300_000,
       stdout: "pipe",
       stderr: "pipe",
       env: {
@@ -52,6 +57,7 @@ export default defineConfig({
         CLAUDE_CONFIG_DIR: E2E_CLAUDE_CONFIG_DIR,
         NEXT_TELEMETRY_DISABLED: "1",
         CLAUDIUS_UPDATER_DISABLED: "1",
+        CLAUDIUS_RUST_SCHEDULER: "1",
         NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL:
           process.env.NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL ?? "http://localhost:8787",
       },
@@ -74,6 +80,11 @@ export default defineConfig({
         // a release build, and an inherited NODE_ENV=production can't turn
         // them off.
         CLAUDIUS_DEV: "1",
+        // Rust serves /api/community/* (D24) and reads this at request time,
+        // where Next inlines it at build. Without it the Rust server would
+        // report the config default rather than the suite's chat server.
+        NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL:
+          process.env.NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL ?? "http://localhost:8787",
         RUST_LOG: process.env.RUST_LOG ?? "claudius=info,claudius_core=info",
       },
     },

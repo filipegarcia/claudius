@@ -36,12 +36,27 @@
 //! unit, so only exactly. That is not Unicode simple case folding (the `u`
 //! flag), which would fold `ſ`, `K`, `ẞ`.
 //!
+//! Which match ([`first_hit`], CC 2.1.300): not every match counts. The
+//! engine writes `api-request-shape` (the whole system prompt and the tools
+//! JSON), `api-request-blob` and `api-request` entries into every
+//! transcript, so a word from the system prompt used to match every
+//! session. A match on a raw JSONL line holding the constant
+//! [`API_REQUEST_LINE_MARKER`] is skipped and the walk jumps past that
+//! whole line (TS moves the `g` regex's `lastIndex` to `lineEnd + 1`, so a
+//! 2 MB dump costs one skip); the first match on any other line wins. The
+//! line runs from the `\n` before the match's start to the one at or after
+//! it; `lastIndexOf` is inclusive, so a match *on* a newline has its line
+//! start past its line end, which reads as an empty line and an empty
+//! snippet, as in TS.
+//!
 //! The snippet ([`snippet`]): [`SNIPPET_RADIUS`] UTF-16 units each side of
-//! the match, so the window can split a surrogate pair (the lone half is
-//! kept and `JSON.stringify` prints it as `\udxxx`); the raw JSONL escapes
+//! the match, clamped to the matched line so it never bleeds into a
+//! neighbouring JSONL entry, so the window can split a surrogate pair (the
+//! lone half is kept and `JSON.stringify` prints it as `\udxxx`); the raw
+//! JSONL escapes
 //! `\n` `\r` `\t` → space, `\"` → `"`, `\\` → `\` (three passes in that
 //! order: `\\n` becomes `\ `), JS-whitespace runs → one space, trimmed, and
-//! `…` on each side the window doesn't reach the end of.
+//! `…` on each side the window doesn't reach the end of the *line*.
 //!
 //! The order of the answer: TS reads [`CONCURRENCY`] files at a time and
 //! pushes matches as reads complete, then keeps the first `limit`. Here the
@@ -63,6 +78,12 @@ pub const SNIPPET_RADIUS: usize = 60;
 pub const MAX_FILES: usize = 600;
 /// Files read at once.
 pub const CONCURRENCY: usize = 8;
+/// The engine-internal entries skipped in content search (CC 2.1.300). In
+/// raw JSONL an UNESCAPED `"type":"api-request` is a real JSON key, not
+/// string content (a quote inside a string value is written `\"`), and the
+/// prefix covers `api-request-shape`, `api-request-blob` and `api-request`.
+/// A constant, never derived from the query.
+pub const API_REQUEST_LINE_MARKER: &str = "\"type\":\"api-request";
 /// Node's `kIoMaxLength`: `readFile` refuses a bigger regular file
 /// (`ERR_FS_FILE_TOO_LARGE`) before reading it.
 pub const IO_MAX_LENGTH: u64 = (1 << 31) - 1;
@@ -85,6 +106,7 @@ impl Limits {
 }
 
 const ELLIPSIS: u16 = 0x2026;
+const NEWLINE: u16 = b'\n' as u16;
 const BACKSLASH: u16 = b'\\' as u16;
 const SPACE: u16 = b' ' as u16;
 
@@ -119,7 +141,16 @@ fn table() -> &'static [u16] {
 /// index where every unit of `query` matches under [`canonicalize`] (a
 /// linear KMP scan, never a pattern). An empty query matches at 0.
 pub fn find(text: &[u16], query: &[u16]) -> Option<usize> {
-    find_units(text.iter().copied(), query)
+    find_from(text, query, 0)
+}
+
+/// [`find`] from `at` on (the `g` regex's `lastIndex`): `None` once `at` is
+/// past the text, as `exec` answers with `lastIndex > length`.
+pub fn find_from(text: &[u16], query: &[u16], at: usize) -> Option<usize> {
+    if at > text.len() {
+        return None;
+    }
+    find_units(text[at..].iter().copied(), query).map(|i| i + at)
 }
 
 fn find_units(text: impl Iterator<Item = u16>, query: &[u16]) -> Option<usize> {
@@ -155,19 +186,75 @@ fn find_units(text: impl Iterator<Item = u16>, query: &[u16]) -> Option<usize> {
     None
 }
 
-/// The snippet window `[start, end)` around a match of `len` units at
-/// `index` in a text of `total` units.
-fn window(index: usize, len: usize, total: usize) -> (usize, usize) {
-    (
-        index.saturating_sub(SNIPPET_RADIUS),
-        (index + len + SNIPPET_RADIUS).min(total),
-    )
+/// The match the route takes, and the raw JSONL line it sits on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Hit {
+    /// Its UTF-16 index in the text.
+    pub index: usize,
+    /// One past the `\n` before `index` (`lastIndexOf("\n", index) + 1`,
+    /// so a match *on* a newline starts its line one past itself).
+    pub line_start: usize,
+    /// The `\n` at or after `index` (`indexOf`), else the text's length.
+    pub line_end: usize,
 }
 
-/// The TS snippet for a match of `len` units at `index` in `text`.
-pub fn snippet(text: &[u16], index: usize, len: usize) -> Vec<u16> {
-    let (start, end) = window(index, len, text.len());
-    clean(&text[start..end], start > 0, end < text.len())
+/// The TS match walk (CC 2.1.300): the first match of `query` that isn't on
+/// an [`API_REQUEST_LINE_MARKER`] line; a match on one jumps the scan past
+/// that whole line.
+pub fn first_hit(text: &[u16], query: &[u16]) -> Option<Hit> {
+    let marker: Vec<u16> = API_REQUEST_LINE_MARKER.encode_utf16().collect();
+    let mut at = 0;
+    loop {
+        let index = find_from(text, query, at)?;
+        // `text.lastIndexOf("\n", index)` is inclusive of `index` (and an
+        // empty query can match at the very end, where there is no unit).
+        let line_start = text[..(index + 1).min(text.len())]
+            .iter()
+            .rposition(|&u| u == NEWLINE)
+            .map_or(0, |p| p + 1);
+        let line_end = text[index..]
+            .iter()
+            .position(|&u| u == NEWLINE)
+            .map_or(text.len(), |p| index + p);
+        // `text.slice(lineStart, lineEnd)`, which is empty when the start
+        // is past the end.
+        let line = text.get(line_start..line_end).unwrap_or_default();
+        if find_literal(line, &marker).is_none() {
+            return Some(Hit {
+                index,
+                line_start,
+                line_end,
+            });
+        }
+        at = line_end + 1;
+    }
+}
+
+/// `haystack.includes(needle)`: a plain, case-sensitive scan.
+fn find_literal(haystack: &[u16], needle: &[u16]) -> Option<usize> {
+    if needle.len() > haystack.len() {
+        return None;
+    }
+    (0..=haystack.len() - needle.len()).find(|&i| haystack[i..].starts_with(needle))
+}
+
+/// The snippet window `[start, end)` around a match of `len` units,
+/// clamped to the hit's line (CC 2.1.300): `Math.max(lineStart, index -
+/// RADIUS)` to `Math.max(start, Math.min(lineEnd, index + len + RADIUS))`.
+fn window(hit: &Hit, len: usize) -> (usize, usize) {
+    let start = hit.line_start.max(hit.index.saturating_sub(SNIPPET_RADIUS));
+    let end = start.max(hit.line_end.min(hit.index + len + SNIPPET_RADIUS));
+    (start, end)
+}
+
+/// The TS snippet for a match of `len` units at `hit` in `text`.
+pub fn snippet(text: &[u16], hit: &Hit, len: usize) -> Vec<u16> {
+    let (start, end) = window(hit, len);
+    clean(
+        &text[start..end],
+        start > hit.line_start,
+        end < hit.line_end,
+    )
 }
 
 /// `.replace(/\\X/g, to)`: each `\` + `x` pair, left to right without
@@ -319,12 +406,13 @@ fn scan_file(base: &str, name: &str, query: &[u16], limits: Limits) -> Option<Ma
     if total > limits.max_units {
         return None;
     }
-    let index = find_units(text.encode_utf16(), query)?;
-    let (start, end) = window(index, query.len(), total);
-    let units: Vec<u16> = text.encode_utf16().skip(start).take(end - start).collect();
+    // The walk needs the line around each match, so the text is held as the
+    // UTF-16 units V8 holds it as.
+    let text: Vec<u16> = text.encode_utf16().collect();
+    let hit = first_hit(&text, query)?;
     Some(Match {
         session_id: session_id.to_owned(),
-        snippet: clean(&units, start > 0, end < total),
+        snippet: snippet(&text, &hit, query.len()),
     })
 }
 
@@ -457,13 +545,81 @@ mod tests {
         assert_eq!(find(&u(&long), &u(&format!("{}b", "a".repeat(5000)))), None);
     }
 
+    /// The route's answer for one text: the snippet of its first hit.
+    fn snip(t: &str, q: &str) -> Option<String> {
+        let t = u(t);
+        let hit = first_hit(&t, &u(q))?;
+        Some(String::from_utf16_lossy(&snippet(
+            &t,
+            &hit,
+            q.encode_utf16().count(),
+        )))
+    }
+
+    #[test]
+    fn api_request_lines_are_skipped_and_snippets_stay_on_their_line() {
+        let shape = |w: &str| format!("{{\"type\":\"api-request-shape\",\"shape\":\"{w}\"}}");
+        let user = |w: &str| format!("{{\"type\":\"user\",\"message\":\"{w}\"}}");
+        // Only in a shape line: no match at all.
+        assert_eq!(
+            snip(
+                &format!("{}\n{}\n", shape("zephyrine"), user("hi")),
+                "zephyrine"
+            ),
+            None
+        );
+        // The later real line wins, and the snippet keeps to it.
+        let both = format!(
+            "{}\n{}\n",
+            shape("marmalade free"),
+            user("marmaladeword here")
+        );
+        assert_eq!(
+            snip(&both, "marmalade").as_deref(),
+            Some(&*user("marmaladeword here"))
+        );
+        // All three variants are skipped; so is a blob before the real line.
+        for t in ["api-request-shape", "api-request-blob", "api-request"] {
+            let line = format!("{{\"type\":\"{t}\",\"x\":\"wombat\"}}");
+            assert_eq!(snip(&format!("{line}\n"), "wombat"), None, "{t}");
+            assert_eq!(
+                snip(&format!("{line}\n{}\n", user("wombat")), "wombat").as_deref(),
+                Some(&*user("wombat")),
+            );
+        }
+        // An escaped marker inside a string value is not the key.
+        let escaped = r#"{"type":"user","message":"\"type\":\"api-request wombat"}"#;
+        assert!(snip(escaped, "wombat").is_some());
+        // The marker anywhere on the line counts, not just at its start.
+        assert_eq!(
+            snip(
+                "{\"a\":1,\"type\":\"api-request\",\"b\":\"wombat\"}\n",
+                "wombat"
+            ),
+            None
+        );
+        // The window never crosses into the neighbouring entry.
+        let noisy = format!(
+            "{}\n{}\n{}\n",
+            shape(&"s".repeat(80)),
+            user("xyzzy"),
+            shape(&"t".repeat(80))
+        );
+        assert_eq!(snip(&noisy, "xyzzy").as_deref(), Some(&*user("xyzzy")));
+        // A match on a newline: the line start sits past the line end.
+        assert_eq!(snip("ab\ncd", "\nc").as_deref(), Some(""));
+        // A skip past the last line ends the walk.
+        assert_eq!(snip("{\"type\":\"api-request\",\"b\":\"q\"}", "q"), None);
+        // An empty query can't reach the route (a blank `q` answers early),
+        // but the walk still terminates on one and never panics.
+        assert_eq!(snip("abc", "").as_deref(), Some("abc"));
+        assert_eq!(snip("", "").as_deref(), Some(""));
+        assert_eq!(snip("{\"type\":\"api-request\"}", ""), None);
+    }
+
     #[test]
     fn snippets_unescape_in_pass_order_and_mark_cuts() {
-        let s = |t: &str, q: &str| {
-            let t = u(t);
-            let i = find(&t, &u(q)).unwrap();
-            String::from_utf16_lossy(&snippet(&t, i, q.encode_utf16().count()))
-        };
+        let s = |t: &str, q: &str| snip(t, q).unwrap();
         assert_eq!(s(r#"a\nb\"c\\d\\ne"#, "c"), r#"a b"c\d\ e"#);
         assert_eq!(s(" \t x  y\u{85}z\u{feff} ", "x"), "x y\u{85}z");
         let long = format!("{}Mid{}", "a".repeat(70), "b".repeat(70));

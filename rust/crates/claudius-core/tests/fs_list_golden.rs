@@ -6,9 +6,10 @@
 //! * node's posix `path` functions, with the process cwd at `/` as it was
 //!   for the recorder (this binary's other tests use absolute paths only);
 //! * `categorizeTccPath` / `isHiddenHomeSubpath` for darwin, linux, win32;
-//! * every `GET /api/fs/list` step that answered 200, as the `listFs` call
-//!   the route made (the recorded `cwd`, `q` and `limit`), on a rebuilt
-//!   tree, for both recorded platforms. Steps after a scenario's first
+//! * every `GET /api/fs/list` step the recorder kept the `listFs` call of
+//!   (the recorded `cwd`, `q` and `limit`), on a rebuilt tree, for both
+//!   recorded platforms: a 200's entries, and that a walk the TS answered
+//!   `Search failed: …` for fails here too (CC 2.1.301). Steps after a scenario's first
 //!   successful POST are left to claudius-server's `tests/fs_routes.rs`,
 //!   which replays the creates too.
 #![cfg(unix)]
@@ -206,7 +207,7 @@ fn list_fs_matches_ts() {
                 if step["method"] == "POST" && want["status"] == 200 {
                     break;
                 }
-                if step["route"] != "list" || want["status"] != 200 {
+                if step["route"] != "list" || step["args"].is_null() {
                     continue;
                 }
                 // The trusted cwd the route resolved.
@@ -214,10 +215,20 @@ fn list_fs_matches_ts() {
                 let cwd = cwd.as_str();
                 let q = step["args"]["q"].as_str().unwrap();
                 let limit = js::to_number(step["args"]["limit"].as_str().unwrap());
-                let entries: Vec<Value> = list_fs_in(&home, platform, cwd, q, limit)
-                    .iter()
-                    .map(FsEntry::to_json)
-                    .collect();
+                let listed = list_fs_in(&home, platform, cwd, q, limit);
+                if want["status"] != 200 {
+                    // CC 2.1.301: a cwd the walk can't read fails it. The
+                    // route's wording is pinned in claudius-server's
+                    // `tests/fs_routes.rs`.
+                    if listed.is_ok() {
+                        failures.push(format!(
+                            "{} [{platform}] {}: want the walk to fail ({}), it didn't",
+                            s["name"], step["label"], want["body"]
+                        ));
+                    }
+                    continue;
+                }
+                let entries: Vec<Value> = listed.unwrap().iter().map(FsEntry::to_json).collect();
                 let text = tree.unsub(&js::stringify(&json!({ "cwd": cwd, "entries": entries })));
                 replayed += 1;
                 if let Err(e) = check(want, 200, Some("application/json"), &text) {

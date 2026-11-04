@@ -1,0 +1,3255 @@
+{
+ "recordedWith": {
+  "sdk": "0.3.312",
+  "git": "git version 2.54.0 (Apple Git-157)",
+  "node": "v22.23.3"
+ },
+ "env": {
+  "HOME": "$ROOT/home",
+  "XDG_CONFIG_HOME": "$ROOT/home/.config",
+  "CLAUDE_CONFIG_DIR": "$ROOT/config",
+  "GIT_CONFIG_NOSYSTEM": "1",
+  "GIT_CEILING_DIRECTORIES": "$ROOT",
+  "GIT_AUTHOR_NAME": "Golden",
+  "GIT_AUTHOR_EMAIL": "golden@example.com",
+  "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z",
+  "GIT_COMMITTER_NAME": "Golden",
+  "GIT_COMMITTER_EMAIL": "golden@example.com",
+  "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z",
+  "LANG": "C",
+  "LC_ALL": "C",
+  "TZ": "UTC"
+ },
+ "parse": {
+  "porcelain": [
+   {
+    "text": "",
+    "out": "[]"
+   },
+   {
+    "text": "\n\n",
+    "out": "[]"
+   },
+   {
+    "text": "worktree /a\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n",
+    "out": "[{\"path\":\"/a\",\"head\":\"1111111111111111111111111111111111111111\",\"branch\":\"main\"}]"
+   },
+   {
+    "text": "worktree /a\nHEAD abc\nbranch refs/heads/main",
+    "out": "[{\"path\":\"/a\",\"head\":\"abc\",\"branch\":\"main\"}]"
+   },
+   {
+    "text": "worktree /a\r\nHEAD abc\r\nbranch refs/heads/feat/x\r\n\r\nworktree /b\r\nbare\r\n",
+    "out": "[{\"path\":\"/a\",\"head\":\"abc\",\"branch\":\"feat/x\"},{\"path\":\"/b\",\"bare\":true}]"
+   },
+   {
+    "text": "worktree /a  \t\nHEAD abc \nbranch refs/heads/b \n \t \nworktree /b﻿\n",
+    "out": "[{\"path\":\"/a\",\"head\":\"abc\",\"branch\":\"b\"},{\"path\":\"/b\"}]"
+   },
+   {
+    "text": "worktree\nHEAD abc\nworktree \nHEAD def\n",
+    "out": "[]"
+   },
+   {
+    "text": "HEAD abc\nbranch refs/heads/x\nlocked\nworktree /a\n",
+    "out": "[{\"path\":\"/a\"}]"
+   },
+   {
+    "text": "worktree /a\nHEAD abc\nworktree /b\nHEAD def\n\n",
+    "out": "[{\"path\":\"/b\",\"head\":\"def\"}]"
+   },
+   {
+    "text": "worktree /a\nbranch refs/heads/one\nHEAD abc\nHEAD def\nbranch refs/heads/two\n",
+    "out": "[{\"path\":\"/a\",\"branch\":\"two\",\"head\":\"def\"}]"
+   },
+   {
+    "text": "worktree /a\nlocked reason here\nprunable gitdir file points to non-existent location\nbare x\ndetached y\n",
+    "out": "[{\"path\":\"/a\",\"locked\":true,\"prunable\":true,\"bare\":true,\"detached\":true}]"
+   },
+   {
+    "text": "worktree /a\nbranch refs/heads/refs/heads/x\n\nworktree /b\nbranch refs/remotes/o/x\n\nworktree /c\nbranch refs/headsX\n\nworktree /d\nbranch heads/refs/heads/x\n",
+    "out": "[{\"path\":\"/a\",\"branch\":\"refs/heads/x\"},{\"path\":\"/b\",\"branch\":\"refs/remotes/o/x\"},{\"path\":\"/c\",\"branch\":\"refs/headsX\"},{\"path\":\"/d\",\"branch\":\"heads/refs/heads/x\"}]"
+   },
+   {
+    "text": "worktree /a\nHEAD\nbranch\nfoo bar\nlocked\nlocked\n",
+    "out": "[{\"path\":\"/a\",\"locked\":true}]"
+   },
+   {
+    "text": " worktree /x\nworktree /y\n HEAD abc\n",
+    "out": "[{\"path\":\"/y\"}]"
+   },
+   {
+    "text": "worktree  /two spaces\nHEAD  lead\n",
+    "out": "[{\"path\":\" /two spaces\",\"head\":\" lead\"}]"
+   },
+   {
+    "text": "worktree /a\nHEAD x\n",
+    "out": "[{\"path\":\"/a\",\"head\":\"x\"}]"
+   },
+   {
+    "text": "worktree /café 😀\nbranch refs/heads/日本\n",
+    "out": "[{\"path\":\"/café 😀\",\"branch\":\"日本\"}]"
+   },
+   {
+    "text": "worktree /a\rb\nHEAD c\r\r\n",
+    "out": "[{\"path\":\"/a\\rb\",\"head\":\"c\"}]"
+   },
+   {
+    "text": "worktree /a\u0000b\nHEAD \u0000\n",
+    "out": "[{\"path\":\"/a\\u0000b\",\"head\":\"\\u0000\"}]"
+   },
+   {
+    "text": "worktree /a\ndetached\nbare\nlocked\nprunable\nHEAD h\nbranch refs/heads/z\n\n\n\nworktree /b\n",
+    "out": "[{\"path\":\"/a\",\"detached\":true,\"bare\":true,\"locked\":true,\"prunable\":true,\"head\":\"h\",\"branch\":\"z\"},{\"path\":\"/b\"}]"
+   }
+  ],
+  "reasons": [
+   {
+    "stderr": "",
+    "out": "\"git worktree add failed\""
+   },
+   {
+    "stderr": "Preparing worktree (new branch 'x')\nfatal: a branch named 'x' already exists\n",
+    "out": "\"a branch named 'x' already exists\""
+   },
+   {
+    "stderr": "error: something\nfatal: other",
+    "out": "\"something\""
+   },
+   {
+    "stderr": "FATAL:   spaced   out  ",
+    "out": "\"spaced out\""
+   },
+   {
+    "stderr": "warning: x\nhint: y\n",
+    "out": "\"warning: x\""
+   },
+   {
+    "stderr": "fatal:",
+    "out": "\"git worktree add failed\""
+   },
+   {
+    "stderr": "fatal:   \n",
+    "out": "\"git worktree add failed\""
+   },
+   {
+    "stderr": "   \n\t\n",
+    "out": "\"git worktree add failed\""
+   },
+   {
+    "stderr": "fatal: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "out": "\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…\""
+   },
+   {
+    "stderr": "fatal: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "out": "\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\""
+   },
+   {
+    "stderr": "fatal: ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "out": "\"ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc…\""
+   },
+   {
+    "stderr": "fatal: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd😀tail",
+    "out": "\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\ud83d…\""
+   },
+   {
+    "stderr": "fatal: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee😀",
+    "out": "\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee…\""
+   },
+   {
+    "stderr": "fatal: x y　z",
+    "out": "\"x y z\""
+   },
+   {
+    "stderr": "error:x",
+    "out": "\"x\""
+   },
+   {
+    "stderr": "fatalx: y\nnext",
+    "out": "\"fatalx: y\""
+   },
+   {
+    "stderr": "  fatal: indented\n",
+    "out": "\"indented\""
+   },
+   {
+    "stderr": "Fatal: X\r\nError: Y\r\n",
+    "out": "\"X\""
+   },
+   {
+    "stderr": "fatal: ab",
+    "out": "\"ab\""
+   },
+   {
+    "stderr": "Preparing worktree (checking out 'x')\nHEAD is now at abc msg\n",
+    "out": "\"Preparing worktree (checking out 'x')\""
+   },
+   {
+    "stderr": "ſatal: long s\nother",
+    "out": "\"ſatal: long s\""
+   }
+  ],
+  "slugs": [
+   {
+    "id": "11111111-2222-4333-8444-555555555555",
+    "slug": "11111111",
+    "ids": {
+     "branch": "claudius/fork-11111111",
+     "dirName": "fork-11111111"
+    }
+   },
+   {
+    "id": "ABCDEF12-3456-4789-8abc-def012345678",
+    "slug": "abcdef12",
+    "ids": {
+     "branch": "claudius/fork-abcdef12",
+     "dirName": "fork-abcdef12"
+    }
+   },
+   {
+    "id": "",
+    "slug": "session",
+    "ids": {
+     "branch": "claudius/fork-session",
+     "dirName": "fork-session"
+    }
+   },
+   {
+    "id": "---",
+    "slug": "session",
+    "ids": {
+     "branch": "claudius/fork-session",
+     "dirName": "fork-session"
+    }
+   },
+   {
+    "id": "a-b-c",
+    "slug": "abc",
+    "ids": {
+     "branch": "claudius/fork-abc",
+     "dirName": "fork-abc"
+    }
+   },
+   {
+    "id": "ÄÖÜ12345678",
+    "slug": "12345678",
+    "ids": {
+     "branch": "claudius/fork-12345678",
+     "dirName": "fork-12345678"
+    }
+   },
+   {
+    "id": "😀abc",
+    "slug": "abc",
+    "ids": {
+     "branch": "claudius/fork-abc",
+     "dirName": "fork-abc"
+    }
+   },
+   {
+    "id": "abcdefghijklmnop",
+    "slug": "abcdefgh",
+    "ids": {
+     "branch": "claudius/fork-abcdefgh",
+     "dirName": "fork-abcdefgh"
+    }
+   },
+   {
+    "id": "İx",
+    "slug": "x",
+    "ids": {
+     "branch": "claudius/fork-x",
+     "dirName": "fork-x"
+    }
+   },
+   {
+    "id": "Z_9.y",
+    "slug": "z9y",
+    "ids": {
+     "branch": "claudius/fork-z9y",
+     "dirName": "fork-z9y"
+    }
+   }
+  ]
+ },
+ "steps": [
+  {
+   "op": "write",
+   "path": "home/.gitconfig",
+   "text": "[init]\n\tdefaultBranch = main\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "servercwd"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/a"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/a.txt",
+   "text": "a\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "add",
+    "a.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "init"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "worktree",
+    "add",
+    "-q",
+    "-b",
+    "feat",
+    "../wt/feat"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "worktree",
+    "add",
+    "-q",
+    "--detach",
+    "../wt/detached",
+    "HEAD"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "worktree",
+    "add",
+    "-q",
+    "-b",
+    "locked",
+    "../wt/locked"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "worktree",
+    "lock",
+    "--reason",
+    "busy now",
+    "../wt/locked"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "worktree",
+    "add",
+    "-q",
+    "-b",
+    "gone",
+    "../wt/gone"
+   ]
+  },
+  {
+   "op": "rm",
+   "path": "repos/wt/gone"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "worktree",
+    "add",
+    "-q",
+    "-b",
+    "uni",
+    "../wt/café 😀"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/empty"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/empty",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/bare.git"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/bare.git",
+   "args": [
+    "init",
+    "-q",
+    "--bare"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/plain"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/dirty"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/dirty",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/dirty/a.txt",
+   "text": "a\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/dirty",
+   "args": [
+    "add",
+    "a.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/dirty",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "init"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/dirty/untracked.txt",
+   "text": "new\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/dfc"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/dfc",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/dfc/a.txt",
+   "text": "a\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/dfc",
+   "args": [
+    "add",
+    "a.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/dfc",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "init"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/dfc",
+   "args": [
+    "branch",
+    "claudius"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/sub"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sub",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/sub/a.txt",
+   "text": "a\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sub",
+   "args": [
+    "add",
+    "a.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/sub",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "init"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/sub/inner"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/extra"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/extra",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/extra/a.txt",
+   "text": "a\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/extra",
+   "args": [
+    "add",
+    "a.txt"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/extra",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "init"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "links"
+  },
+  {
+   "op": "symlink",
+   "path": "links/a",
+   "target": "$ROOT/repos/a"
+  },
+  {
+   "op": "write",
+   "path": "afile",
+   "text": "not a dir\n"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/workspaces.json",
+   "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"wks_a\",\n      \"rootPath\": \"$ROOT/repos/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000,\n      \"defaults\": {\n        \"additionalDirectories\": [\n          \"$ROOT/repos/extra\"\n        ]\n      }\n    },\n    {\n      \"id\": \"wks_empty\",\n      \"name\": \"wks_empty\",\n      \"rootPath\": \"$ROOT/repos/empty\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_bare\",\n      \"name\": \"wks_bare\",\n      \"rootPath\": \"$ROOT/repos/bare.git\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_plain\",\n      \"name\": \"wks_plain\",\n      \"rootPath\": \"$ROOT/repos/plain\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_dirty\",\n      \"name\": \"wks_dirty\",\n      \"rootPath\": \"$ROOT/repos/dirty\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_dfc\",\n      \"name\": \"wks_dfc\",\n      \"rootPath\": \"$ROOT/repos/dfc\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_inner\",\n      \"name\": \"wks_inner\",\n      \"rootPath\": \"$ROOT/repos/sub/inner\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_link\",\n      \"name\": \"wks_link\",\n      \"rootPath\": \"$ROOT/links/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_missing\",\n      \"name\": \"wks_missing\",\n      \"rootPath\": \"$ROOT/missing\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    },\n    {\n      \"id\": \"wks_file\",\n      \"name\": \"wks_file\",\n      \"rootPath\": \"$ROOT/afile\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1700000000000,\n      \"updatedAt\": 1700000000000\n    }\n  ]\n}"
+  },
+  {
+   "op": "transcript",
+   "cwd": "repos/a",
+   "id": "11111111-1111-4111-8111-111111111111",
+   "text": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-01-01T00:00:01.000Z\"}\n{\"parentUuid\":\"00000000-0000-4000-8000-000000000001\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"00000000-0000-4000-8000-000000000002\",\"timestamp\":\"2026-01-01T00:00:02.000Z\"}\n{\"parentUuid\":\"00000000-0000-4000-8000-000000000002\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"00000000-0000-4000-8000-000000000003\",\"timestamp\":\"2026-01-01T00:00:03.000Z\"}\n{\"parentUuid\":\"00000000-0000-4000-8000-000000000003\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"00000000-0000-4000-8000-000000000004\",\"timestamp\":\"2026-01-01T00:00:04.000Z\"}\n"
+  },
+  {
+   "op": "transcript",
+   "cwd": "repos/a",
+   "id": "22222222-2222-4222-8222-222222222222",
+   "text": "{\"parentUuid\":null,\"isSidechain\":true,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"22222222-2222-4222-8222-222222222222\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"side\"},\"uuid\":\"00000000-0000-4000-8000-000000000005\",\"timestamp\":\"2026-01-01T00:00:05.000Z\"}\n{\"parentUuid\":\"00000000-0000-4000-8000-000000000005\",\"isSidechain\":true,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"22222222-2222-4222-8222-222222222222\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_6\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"car\"}]},\"uuid\":\"00000000-0000-4000-8000-000000000006\",\"timestamp\":\"2026-01-01T00:00:06.000Z\"}\n"
+  },
+  {
+   "op": "transcript",
+   "cwd": "repos/a",
+   "id": "33333333-3333-4333-8333-333333333333",
+   "text": ""
+  },
+  {
+   "op": "req",
+   "label": "no cwd: the server's cwd",
+   "method": "GET",
+   "url": "/api/worktrees",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/servercwd\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty cwd",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/servercwd\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "blank cwd",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=%20%20",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/servercwd\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown cwd",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=%2Fnope",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"unknown cwd\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a repo with every worktree kind",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fa",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/a\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "trailing slash resolves to the root",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fa%2F",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/a\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dot segments resolve",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fa%2Fx%2F..",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/a\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a worktree of a root",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fwt%2Ffeat",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/wt/feat\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a unicode worktree",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fwt%2Fcaf%C3%A9%20%F0%9F%98%80",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/wt/café 😀\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a pruned worktree: listed, but no dir",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fwt%2Fgone",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/wt/gone\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no commits yet",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fempty",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/empty\",\"worktrees\":[{\"path\":\"$ROOT/repos/empty\",\"head\":\"0000000000000000000000000000000000000000\",\"branch\":\"main\"}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a bare repo",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fbare.git",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/bare.git\",\"worktrees\":[{\"path\":\"$ROOT/repos/bare.git\",\"bare\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "not a repo",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fplain",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/plain\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a symlinked root",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Flinks%2Fa",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/links/a\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a missing root",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Fmissing",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/missing\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a root that is a file",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Fafile",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/afile\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an additional directory",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fextra",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/extra\",\"worktrees\":[{\"path\":\"$ROOT/repos/extra\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "dot is the server's cwd",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=.",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/servercwd\",\"worktrees\":[]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "relative to the server's cwd",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=repos/a",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"unknown cwd\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "first cwd wins",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fa&cwd=%2Fnope",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/a\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "plus is a space",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT/repos/wt/caf%C3%A9+%F0%9F%98%80",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/wt/café 😀\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a subdir root inside a repo",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fsub%2Finner",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/sub/inner\",\"worktrees\":[{\"path\":\"$ROOT/repos/sub\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a subdir of a root is unknown",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fa%2Fsub",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"unknown cwd\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty body",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "",
+   "got": {
+    "threw": true
+   }
+  },
+  {
+   "op": "req",
+   "label": "malformed body",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{",
+   "got": {
+    "threw": true
+   }
+  },
+  {
+   "op": "req",
+   "label": "null body",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "null",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"sessionId required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty object",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"sessionId required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "array body",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "[]",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"sessionId required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "string body",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "\"x\"",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"sessionId required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty sessionId",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"sessionId required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "zero sessionId",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":0}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"sessionId required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "false sessionId",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":false}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"sessionId required\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "not a uuid",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"nope\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: nope\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a number",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":5}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: 5\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a big number",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":1.5e300}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: 1.5e+300\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "true",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":true}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: true\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an array",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":[1,[2,null],{}]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: 1,2,,[object Object]\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an object",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":{}}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: [object Object]\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an own toString",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":{\"toString\":1}}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Cannot convert object to primitive value\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a uuid in an array",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":[\"11111111-1111-4111-8111-111111111111\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: 11111111-1111-4111-8111-111111111111\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a uuid with a newline",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\\n\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: 11111111-1111-4111-8111-111111111111\\n\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an overflowing number",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":1e400}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: Infinity\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a negative overflow",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":-1e400}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: -Infinity\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "overflows in an array",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":[1e400,null,-1e999]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: Infinity,,-Infinity\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a lone surrogate",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"\\ud800x\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Invalid sessionId: \\ud800x\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no such session",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"44444444-4444-4444-8444-444444444444\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 44444444-4444-4444-8444-444444444444 not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "no such session in a dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"44444444-4444-4444-8444-444444444444\",\"dir\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 44444444-4444-4444-8444-444444444444 not found in project directory for $ROOT/repos/a\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an empty transcript",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"33333333-3333-4333-8333-333333333333\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 33333333-3333-4333-8333-333333333333 not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "only sidechain messages",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"22222222-2222-4222-8222-222222222222\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 22222222-2222-4222-8222-222222222222 has no messages to fork\"}"
+   }
+  },
+  {
+   "op": "state",
+   "repos": [],
+   "state": {
+    "index": null,
+    "forkRoot": null,
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {}
+   }
+  },
+  {
+   "op": "req",
+   "label": "a plain fork",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK1\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK1\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK1\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK1\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK1\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK1\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a title and a dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"title\":\"  My fork  \",\"dir\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK2\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK2\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK2\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK2\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK2\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK2\",\"customTitle\":\"My fork\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "up to a message",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":\"00000000-0000-4000-8000-000000000002\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK3\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK3\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK3\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK3\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U3\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "up to a missing message",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":\"00000000-0000-4000-8000-000000000099\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Message 00000000-0000-4000-8000-000000000099 not found in session 11111111-1111-4111-8111-111111111111\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "up to a number",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":5}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Message 5 not found in session 11111111-1111-4111-8111-111111111111\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "up to an array",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":[\"00000000-0000-4000-8000-000000000002\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Message 00000000-0000-4000-8000-000000000002 not found in session 11111111-1111-4111-8111-111111111111\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "up to an own toString",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":{\"toString\":1}}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Cannot convert object to primitive value\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "up to an overflow",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":1e400}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Message Infinity not found in session 11111111-1111-4111-8111-111111111111\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "up to a lone surrogate",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":\"\\udc00\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Message \\udc00 not found in session 11111111-1111-4111-8111-111111111111\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "falsy upTo and a null title",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":0,\"title\":null}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK4\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK4\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK4\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK4\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK4\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK4\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a number title",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"title\":5}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"n.title?.trim is not a function\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a false title",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"title\":false}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"n.title?.trim is not a function\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an object title",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"title\":{\"trim\":1}}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"n.title?.trim is not a function\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an overflowing title",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"title\":-1e400}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"n.title?.trim is not a function\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a lone surrogate title",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"title\":\" \\ud83d \"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK5\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK5\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK5\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK5\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK5\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK5\",\"customTitle\":\"\\ud83d\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a number title, no messages",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"22222222-2222-4222-8222-222222222222\",\"title\":5}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 22222222-2222-4222-8222-222222222222 has no messages to fork\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a number title, missing message",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"upToMessageId\":\"00000000-0000-4000-8000-000000000099\",\"title\":5}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Message 00000000-0000-4000-8000-000000000099 not found in session 11111111-1111-4111-8111-111111111111\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an empty title",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"title\":\"\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK6\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK6\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK6\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK6\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK6\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK6\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a number dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":5}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"e.normalize is not a function\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an array dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":[]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"e.normalize is not a function\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an overflowing dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":1e400}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"e.normalize is not a function\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "a lone surrogate dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":\"$ROOT/\\udfff\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 11111111-1111-4111-8111-111111111111 not found in project directory for $ROOT/\\udfff\"}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "an empty dir searches everywhere",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":\"\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK7\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK7\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK7\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK7\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK7\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK7\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a zero dir searches everywhere",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":0}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK8\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK8\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK8\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK8\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK8\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK8\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a symlinked dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":\"$ROOT/links/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK9\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK9\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK9\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK9\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK9\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK9\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a worktree dir finds the main checkout",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":\"$ROOT/repos/wt/feat\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK10\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK10\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK10\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK10\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK10\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK10\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "a dir with no project",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"dir\":\"$ROOT/repos/plain\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 11111111-1111-4111-8111-111111111111 not found in project directory for $ROOT/repos/plain\"}"
+   }
+  },
+  {
+   "op": "state",
+   "repos": [],
+   "state": {
+    "index": null,
+    "forkRoot": null,
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK2.jsonl",
+      "$FORK3.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {}
+   }
+  },
+  {
+   "op": "req",
+   "label": "worktree without a cwd",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK11\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK11\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK11\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK11\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK11\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK11\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree with a number cwd",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":5}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK12\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK12\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK12\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK12\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK12\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK12\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree with an unknown cwd",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"/nope\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK13\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK13\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK13\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK13\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK13\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK13\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree with an overflowing cwd",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":1e400}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK14\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK14\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK14\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK14\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK14\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK14\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree: 0 skips it",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":0,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK15\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK15\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK15\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK15\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK15\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK15\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a repo",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK16\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\"branch\":\"claudius/fork-$SLUG16\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK16\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK16\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK16\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK16\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK16\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK16\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\n      \"branch\": \"claudius/fork-$SLUG16\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG16/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK2.jsonl",
+      "$FORK3.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG16",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "the fork's worktree is listed",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fa",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/a\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"claudius/fork-$SLUG16\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "req",
+   "label": "the fork's worktree is a trusted cwd",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Fhome%2F.claude%2F.claudius%2Ffork-worktrees%2Ffork-$SLUG16",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"claudius/fork-$SLUG16\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/gone\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"gone\",\"prunable\":true},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "req",
+   "label": "worktree: a truthy string",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":\"yes\",\"cwd\":\"$ROOT/repos/a/\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK17\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG17\",\"branch\":\"claudius/fork-$SLUG17\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK17\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK17\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK17\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK17\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK17\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a dirty repo",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/dirty\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK18\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG18\",\"branch\":\"claudius/fork-$SLUG18\",\"dirty\":true}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK18\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK18\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK18\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK18\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK18\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/dirty"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a repo with no commits",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/empty\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK19\",\"worktree\":null,\"worktreeError\":\"the repository has no commits yet\"}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK19\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK19\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK19\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK19\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK19\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree: an overflow is truthy",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":1e400,\"cwd\":\"$ROOT/repos/empty\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK20\",\"worktree\":null,\"worktreeError\":\"the repository has no commits yet\"}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK20\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK20\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK20\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK20\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK20\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a bare repo",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/bare.git\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK21\",\"worktree\":null,\"worktreeError\":\"this is a bare repository's root, which has no working tree\"}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK21\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK21\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK21\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK21\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK21\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a plain dir",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/plain\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK22\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK22\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK22\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK22\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK22\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK22\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree off the server's cwd",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK23\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK23\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK23\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK23\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK23\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK23\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a missing root",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/missing\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK24\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK24\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK24\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK24\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK24\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK24\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "req",
+   "label": "worktree: the branch can't be made",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/dfc\"}",
+   "gitText": true,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK25\",\"worktree\":null,\"worktreeError\":\"cannot lock ref 'refs/heads/claudius/fork-$SLUG25': 'refs/heads/claudius' exists; cannot create 'refs/heads/claudius/f…\"}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK25\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK25\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK25\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK25\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK25\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/dfc"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK16\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\n      \"branch\": \"claudius/fork-$SLUG16\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    },\n    \"$FORK17\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG17\",\n      \"branch\": \"claudius/fork-$SLUG17\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    },\n    \"$FORK18\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG18\",\n      \"branch\": \"claudius/fork-$SLUG18\",\n      \"sourceCwd\": \"$ROOT/repos/dirty\"\n    }\n  }\n}",
+    "forkRoot": [
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK3.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/dfc": [
+      "refs/heads/claudius",
+      "refs/heads/main"
+     ]
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "worktree off a subdir root",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/sub/inner\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK26\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG26\",\"branch\":\"claudius/fork-$SLUG26\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK26\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK26\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK26\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK26\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK26\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/sub"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK16\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\n      \"branch\": \"claudius/fork-$SLUG16\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    },\n    \"$FORK17\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG17\",\n      \"branch\": \"claudius/fork-$SLUG17\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    },\n    \"$FORK18\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG18\",\n      \"branch\": \"claudius/fork-$SLUG18\",\n      \"sourceCwd\": \"$ROOT/repos/dirty\"\n    },\n    \"$FORK26\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG26\",\n      \"branch\": \"claudius/fork-$SLUG26\",\n      \"sourceCwd\": \"$ROOT/repos/sub\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG26/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK3.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/sub": [
+      "refs/heads/claudius/fork-$SLUG26",
+      "refs/heads/main"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/sub"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a worktree",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/wt/feat\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK27\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG27\",\"branch\":\"claudius/fork-$SLUG27\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK27\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK27\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK27\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK27\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK27\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK16\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG16\",\n      \"branch\": \"claudius/fork-$SLUG16\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    },\n    \"$FORK17\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG17\",\n      \"branch\": \"claudius/fork-$SLUG17\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    },\n    \"$FORK18\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG18\",\n      \"branch\": \"claudius/fork-$SLUG18\",\n      \"sourceCwd\": \"$ROOT/repos/dirty\"\n    },\n    \"$FORK26\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG26\",\n      \"branch\": \"claudius/fork-$SLUG26\",\n      \"sourceCwd\": \"$ROOT/repos/sub\"\n    },\n    \"$FORK27\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG27\",\n      \"branch\": \"claudius/fork-$SLUG27\",\n      \"sourceCwd\": \"$ROOT/repos/wt/feat\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG27/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK3.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG27",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "req",
+   "label": "worktree off a symlinked root",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/links/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK28\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG28\",\"branch\":\"claudius/fork-$SLUG28\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK28\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK28\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK28\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK28\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK28\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "req",
+   "label": "worktree, a failed fork",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"44444444-4444-4444-8444-444444444444\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Session 44444444-4444-4444-8444-444444444444 not found\"}"
+   }
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{"
+  },
+  {
+   "op": "req",
+   "label": "index: malformed",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK29\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG29\",\"branch\":\"claudius/fork-$SLUG29\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK29\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK29\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK29\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK29\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK29\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK29\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG29\",\n      \"branch\": \"claudius/fork-$SLUG29\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG29/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG29",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{\"version\":7,\"extra\":1,\"forks\":{\"x\":2,\"10\":{\"a\":1},\"2\":null}}"
+  },
+  {
+   "op": "req",
+   "label": "index: foreign keys and integer-like ids",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK30\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG30\",\"branch\":\"claudius/fork-$SLUG30\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK30\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK30\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK30\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK30\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK30\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"2\": null,\n    \"10\": {\n      \"a\": 1\n    },\n    \"x\": 2,\n    \"$FORK30\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG30\",\n      \"branch\": \"claudius/fork-$SLUG30\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG30/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG30",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{\"forks\":[1,2]}"
+  },
+  {
+   "op": "req",
+   "label": "index: forks is an array",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK31\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG31\",\"branch\":\"claudius/fork-$SLUG31\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK31\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK31\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK31\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK31\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK31\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": [\n    1,\n    2\n  ]\n}",
+    "forkRoot": [
+     "fork-$SLUG31/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG31",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{\"version\":1,\"forks\":\"str\"}"
+  },
+  {
+   "op": "req",
+   "label": "index: forks is a string",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK32\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK32\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK32\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK32\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK32\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK32\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\"version\":1,\"forks\":\"str\"}",
+    "forkRoot": [
+     "fork-$SLUG32/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG32",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{\"forks\":5}"
+  },
+  {
+   "op": "req",
+   "label": "index: forks is a number",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK33\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK33\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK33\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK33\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK33\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK33\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\"forks\":5}",
+    "forkRoot": [
+     "fork-$SLUG33/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG33",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{\"forks\":0}"
+  },
+  {
+   "op": "req",
+   "label": "index: forks is 0",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK34\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG34\",\"branch\":\"claudius/fork-$SLUG34\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK34\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK34\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK34\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK34\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK34\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK34\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG34\",\n      \"branch\": \"claudius/fork-$SLUG34\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG34/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG34",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{\"forks\":null}"
+  },
+  {
+   "op": "req",
+   "label": "index: forks is null",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK35\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG35\",\"branch\":\"claudius/fork-$SLUG35\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK35\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK35\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK35\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK35\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK35\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK35\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG35\",\n      \"branch\": \"claudius/fork-$SLUG35\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG35/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK35.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG35",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "[1]"
+  },
+  {
+   "op": "req",
+   "label": "index: a top-level array",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK36\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG36\",\"branch\":\"claudius/fork-$SLUG36\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK36\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK36\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK36\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK36\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK36\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK36\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG36\",\n      \"branch\": \"claudius/fork-$SLUG36\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG36/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK35.jsonl",
+      "$FORK36.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG36",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "null"
+  },
+  {
+   "op": "req",
+   "label": "index: a top-level null",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK37\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG37\",\"branch\":\"claudius/fork-$SLUG37\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK37\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK37\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK37\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK37\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK37\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK37\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG37\",\n      \"branch\": \"claudius/fork-$SLUG37\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG37/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK35.jsonl",
+      "$FORK36.jsonl",
+      "$FORK37.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG37",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "﻿{\"forks\":{\"x\":1}}"
+  },
+  {
+   "op": "req",
+   "label": "index: a BOM",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK38\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG38\",\"branch\":\"claudius/fork-$SLUG38\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK38\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK38\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK38\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK38\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK38\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"$FORK38\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG38\",\n      \"branch\": \"claudius/fork-$SLUG38\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG38/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK35.jsonl",
+      "$FORK36.jsonl",
+      "$FORK37.jsonl",
+      "$FORK38.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG38",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json",
+   "text": "{\"forks\":{\"a\":1,\"b\":2,\"a\":3}}"
+  },
+  {
+   "op": "req",
+   "label": "index: duplicate keys",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK39\",\"worktree\":{\"path\":\"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG39\",\"branch\":\"claudius/fork-$SLUG39\",\"dirty\":false}}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK39\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK39\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK39\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK39\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK39\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "{\n  \"version\": 1,\n  \"forks\": {\n    \"a\": 3,\n    \"b\": 2,\n    \"$FORK39\": {\n      \"cwd\": \"$ROOT/home/.claude/.claudius/fork-worktrees/fork-$SLUG39\",\n      \"branch\": \"claudius/fork-$SLUG39\",\n      \"sourceCwd\": \"$ROOT/repos/a\"\n    }\n  }\n}",
+    "forkRoot": [
+     "fork-$SLUG39/",
+     "index.json"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK35.jsonl",
+      "$FORK36.jsonl",
+      "$FORK37.jsonl",
+      "$FORK38.jsonl",
+      "$FORK39.jsonl",
+      "$FORK4.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG39",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "mkdir",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "req",
+   "label": "index: a directory",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK40\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK40\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK40\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK40\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK40\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK40\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": "<dir>",
+    "forkRoot": [
+     "fork-$SLUG40/",
+     "index.json/"
+    ],
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK35.jsonl",
+      "$FORK36.jsonl",
+      "$FORK37.jsonl",
+      "$FORK38.jsonl",
+      "$FORK39.jsonl",
+      "$FORK4.jsonl",
+      "$FORK40.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/claudius/fork-$SLUG40",
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "cleanForks",
+   "repo": "repos/a"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees/index.json"
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees"
+  },
+  {
+   "op": "write",
+   "path": "home/.claude/.claudius/fork-worktrees",
+   "text": "a file\n"
+  },
+  {
+   "op": "req",
+   "label": "the worktrees root is a file",
+   "method": "POST",
+   "url": "/api/sessions/fork",
+   "body": "{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"worktree\":true,\"cwd\":\"$ROOT/repos/a\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"sessionId\":\"$FORK41\",\"worktree\":null}"
+   },
+   "forked": "{\"parentUuid\":null,\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK41\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello there\"},\"uuid\":\"$U1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000001\"}}\n{\"parentUuid\":\"$U1\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK41\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_2\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]},\"uuid\":\"$U2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000002\"}}\n{\"parentUuid\":\"$U2\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK41\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"next\"},\"uuid\":\"$U3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000003\"}}\n{\"parentUuid\":\"$U3\",\"isSidechain\":false,\"userType\":\"external\",\"cwd\":\"$ROOT/repos/a\",\"sessionId\":\"$FORK41\",\"version\":\"2.1.300\",\"gitBranch\":\"main\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_4\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"uuid\":\"$U4\",\"timestamp\":\"$NOW\",\"forkedFrom\":{\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"messageUuid\":\"00000000-0000-4000-8000-000000000004\"}}\n{\"type\":\"custom-title\",\"sessionId\":\"$FORK41\",\"customTitle\":\"hello there (fork)\",\"uuid\":\"$U5\",\"timestamp\":\"$NOW\"}\n"
+  },
+  {
+   "op": "state",
+   "repos": [
+    "repos/a"
+   ],
+   "state": {
+    "index": null,
+    "forkRoot": null,
+    "projects": {
+     "$ENCROOT-repos-a": [
+      "$FORK1.jsonl",
+      "$FORK10.jsonl",
+      "$FORK11.jsonl",
+      "$FORK12.jsonl",
+      "$FORK13.jsonl",
+      "$FORK14.jsonl",
+      "$FORK15.jsonl",
+      "$FORK16.jsonl",
+      "$FORK17.jsonl",
+      "$FORK18.jsonl",
+      "$FORK19.jsonl",
+      "$FORK2.jsonl",
+      "$FORK20.jsonl",
+      "$FORK21.jsonl",
+      "$FORK22.jsonl",
+      "$FORK23.jsonl",
+      "$FORK24.jsonl",
+      "$FORK25.jsonl",
+      "$FORK26.jsonl",
+      "$FORK27.jsonl",
+      "$FORK28.jsonl",
+      "$FORK29.jsonl",
+      "$FORK3.jsonl",
+      "$FORK30.jsonl",
+      "$FORK31.jsonl",
+      "$FORK32.jsonl",
+      "$FORK33.jsonl",
+      "$FORK34.jsonl",
+      "$FORK35.jsonl",
+      "$FORK36.jsonl",
+      "$FORK37.jsonl",
+      "$FORK38.jsonl",
+      "$FORK39.jsonl",
+      "$FORK4.jsonl",
+      "$FORK40.jsonl",
+      "$FORK41.jsonl",
+      "$FORK5.jsonl",
+      "$FORK6.jsonl",
+      "$FORK7.jsonl",
+      "$FORK8.jsonl",
+      "$FORK9.jsonl",
+      "11111111-1111-4111-8111-111111111111.jsonl",
+      "22222222-2222-4222-8222-222222222222.jsonl",
+      "33333333-3333-4333-8333-333333333333.jsonl"
+     ]
+    },
+    "refs": {
+     "repos/a": [
+      "refs/heads/feat",
+      "refs/heads/gone",
+      "refs/heads/locked",
+      "refs/heads/main",
+      "refs/heads/uni"
+     ]
+    }
+   }
+  },
+  {
+   "op": "rm",
+   "path": "home/.claude/.claudius/fork-worktrees"
+  },
+  {
+   "op": "req",
+   "label": "after it all",
+   "method": "GET",
+   "url": "/api/worktrees?cwd=$ROOT%2Frepos%2Fa",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"cwd\":\"$ROOT/repos/a\",\"worktrees\":[{\"path\":\"$ROOT/repos/a\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"main\"},{\"path\":\"$ROOT/repos/wt/café 😀\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"uni\"},{\"path\":\"$ROOT/repos/wt/detached\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"detached\":true},{\"path\":\"$ROOT/repos/wt/feat\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"feat\"},{\"path\":\"$ROOT/repos/wt/locked\",\"head\":\"4724d8af0eab2084e738db93c789ef3fff42bb3b\",\"branch\":\"locked\",\"locked\":true}]}"
+   }
+  }
+ ]
+}

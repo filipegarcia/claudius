@@ -15,6 +15,7 @@
 //! - `statusText` is the reason phrase as sent (`""` when there is none);
 //! - redirects are followed (at most 20; a 301 / 302 / 303 POST turns into a
 //!   body-less GET) and send no `Referer`;
+//! - a POST or PUT without a body sends `content-length: 0`;
 //! - the defaults undici adds to a request that doesn't set them: `accept:
 //!   */*`, `accept-language: *`, `sec-fetch-mode: cors`, `user-agent: node`.
 //!   They go out after the request's own headers, as undici's. Differences:
@@ -208,13 +209,31 @@ impl HttpsClient {
         out
     }
 
+    /// `fetch(url, init)`, with the response's header fields as well
+    /// (`res.headers`): in order, names lower-cased, values as sent (undici
+    /// reads each byte as one latin1 character).
+    pub async fn fetch_with_headers(
+        &self,
+        req: &Request,
+    ) -> Result<(Response, ResponseHeaders), String> {
+        self.send_full(req).await
+    }
+
     async fn send(&self, req: &Request) -> Result<Response, String> {
+        self.send_full(req).await.map(|(res, _)| res)
+    }
+
+    async fn send_full(&self, req: &Request) -> Result<(Response, ResponseHeaders), String> {
         let failed = || FETCH_FAILED.to_owned();
         if url::Url::parse(&req.url).is_err() {
             return Err(format!("Failed to parse URL from {}", req.url));
         }
         let method = fetch_method(&req.method)?;
         let client = self.client().ok_or_else(failed)?;
+        // The fetch spec's network fetch: a POST or PUT without a body still
+        // says `content-length: 0` (hyper would send none).
+        let empty_upload = req.body.is_none()
+            && (method == reqwest::Method::POST || method == reqwest::Method::PUT);
         let mut rb = client.request(method, self.target(&req.url));
         for (k, v) in &req.headers {
             rb = rb.header(k.as_str(), v.as_str());
@@ -226,6 +245,8 @@ impl HttpsClient {
         }
         if let Some(body) = &req.body {
             rb = rb.body(body.clone());
+        } else if empty_upload {
+            rb = rb.header("content-length", "0");
         }
         let res = rb.send().await.map_err(|_| failed())?;
         let status = res.status();
@@ -233,15 +254,44 @@ impl HttpsClient {
             Some(reason) => String::from_utf8_lossy(reason.as_bytes()).into_owned(),
             None => status.canonical_reason().unwrap_or_default().to_owned(),
         };
+        let headers = ResponseHeaders(
+            res.headers()
+                .iter()
+                .map(|(k, v)| (k.as_str().to_owned(), v.as_bytes().to_vec()))
+                .collect(),
+        );
         let body = match res.bytes().await {
             Ok(b) => Ok(b.to_vec()),
             Err(_) => Err(TERMINATED.to_owned()),
         };
-        Ok(Response {
+        let res = Response {
             status: status.as_u16(),
             status_text,
             body,
-        })
+        };
+        Ok((res, headers))
+    }
+}
+
+/// A response's header fields: `(lower-cased name, value bytes)`, in order.
+#[derive(Clone, Debug, Default)]
+pub struct ResponseHeaders(pub Vec<(String, Vec<u8>)>);
+
+impl ResponseHeaders {
+    /// `headers.get(name)`: every value of the field joined with `", "`, or
+    /// `None` when there is none.
+    pub fn get(&self, name: &str) -> Option<Vec<u8>> {
+        let mut values = self
+            .0
+            .iter()
+            .filter(|(k, _)| k.eq_ignore_ascii_case(name))
+            .map(|(_, v)| v.as_slice());
+        let first = values.next()?;
+        Some(values.fold(first.to_vec(), |mut all, v| {
+            all.extend_from_slice(b", ");
+            all.extend_from_slice(v);
+            all
+        }))
     }
 }
 

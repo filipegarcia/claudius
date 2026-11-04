@@ -18,7 +18,7 @@
 // null for none), a session goal and `db_agents` rows seeded through the real
 // DB helpers, and records:
 // - `threw`: what `start()` rejected with, as the create route reports it
-//   (`{ name, message }` of the error), or null;
+//   (`{ name, message }` of the error, paths as `$ROOT`), or null;
 // - `events`: every buffered event that isn't an `sdk` message, once the CLI
 //   has read `initialize` (or, without a CLI, once start() returned or the
 //   stream's error landed);
@@ -33,7 +33,17 @@
 //   changes in or drops from the process env the session started with, and
 //   `initialize`: the `initialize` control request line as written (its
 //   request id as `$ID`), or null when no CLI ran;
-// - `settingsAfter`: the user settings.json text once the CLI is up.
+// - `settingsAfter`: the user settings.json text once the CLI is up;
+// - `stateAfter`: the session row's `state` text afterwards (null without a
+//   row or a database);
+// - `profiles` (account cases only, S30): the account store's `profiles/`
+//   tree afterwards (type, mode, text, link target), or null.
+// Account cases (S30) write `accounts` as `~/.claude/.claudius/accounts.json`
+// (`$DIR`: a directory there; null: no file), seed the session row's `state`
+// text, add `parentEnv` to the parent environment, put a file where the
+// `blockProfile` profile's config dir goes, and give `$EXPIRES` profiles an
+// `expiresAt` of now + `expiresIn` (recorded back as `"$EXPIRES"`). All
+// tokens are fake.
 // Every path under the temp root reads `$ROOT`. `TZ` is pinned for the
 // local-time `Date.parse` forms.
 //
@@ -43,9 +53,12 @@ import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
+  readlinkSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -321,6 +334,61 @@ const QUEUED_AT = 1767225600000;
 // A goal's `setAt`, pinned so the recordings agree.
 const GOAL_SET_AT = 1767225600000;
 
+// ------------------------------ accounts (S30) ------------------------------
+
+const STORE_DIR = join(HOME, ".claude", ".claudius");
+const ACCOUNTS_FILE = join(STORE_DIR, "accounts.json");
+const PROFILES_DIR = join(STORE_DIR, "profiles");
+const C0 = "2026-01-01T00:00:00.000Z";
+const PA = { id: "acc_alpha", label: "Alpha", kind: "api-key", secret: "sk-ant-api03-FAKE-s30-alpha", createdAt: C0 };
+const PB = {
+  id: "acc_bravo",
+  label: "Bravo",
+  kind: "oauth-token",
+  secret: "sk-ant-oat01-FAKE-s30-bravo",
+  createdAt: C0,
+  accountUuid: "11111111-2222-4333-8444-555555555555",
+  emailAddress: "bravo@example.com",
+  organizationUuid: "66666666-7777-4888-9999-000000000000",
+};
+const PC = { id: "acc_charlie", label: "Charlie", kind: "oauth-token", secret: "sk-ant-oat01-FAKE-s30-charlie", createdAt: C0 };
+const PBR = {
+  id: "acc_bedrock",
+  label: "Bedrock",
+  kind: "bedrock",
+  secret: "FAKE-aws-secret-s30",
+  createdAt: C0,
+  bedrock: { auth: "access-keys", region: "us-west-2", accessKeyId: "AKIAFAKES30", sessionToken: "FAKE-session-token", model: "anthropic.claude-fake-v1", regionPrefix: "us" },
+};
+const PAMB = { id: "acc_ambient", label: "Ambient", kind: "bedrock", secret: "", createdAt: C0, bedrock: { auth: "ambient" } };
+const STORE = (profiles, active, extra = {}) =>
+  JSON.stringify({ profiles, activeProfileId: active, autoRotateOnRateLimit: false, ...extra }, null, 2);
+
+/** The profiles tree: type, mode, text and link targets, links not followed. */
+function profilesTree() {
+  const res = {};
+  const walk = (rel) => {
+    const dir = rel ? join(PROFILES_DIR, rel) : PROFILES_DIR;
+    for (const name of readdirSync(dir).sort()) {
+      const r = rel ? `${rel}/${name}` : name;
+      const full = join(PROFILES_DIR, r);
+      const st = lstatSync(full);
+      const m = (st.mode & 0o777).toString(8);
+      if (st.isSymbolicLink()) res[r] = { t: "l", to: norm(readlinkSync(full)) };
+      else if (st.isDirectory()) {
+        res[r] = { t: "d", m };
+        walk(r);
+      } else res[r] = { t: "f", m, x: norm(readFileSync(full, "utf8")) };
+    }
+  };
+  try {
+    walk("");
+  } catch {
+    return null;
+  }
+  return res;
+}
+
 // -------------------------------- cases --------------------------------
 
 const S = (o) => JSON.stringify(o);
@@ -468,6 +536,94 @@ const CASES = [
   ["binary missing, auto mode", { permissionMode: "auto", model: "claude-haiku-4-5" }, { bin: "/nonexistent/claude" }],
   // S27c: the replay's `at` through `Date.parse`.
   ["resume dates", { resume: RESUME_ID }, { resume: "dates" }],
+  // Account pinning (S30).
+  ["account store missing", {}, { accounts: null }],
+  ["account active api-key", {}, { accounts: STORE([PA, PB], "acc_alpha") }],
+  ["account active oauth with identity", {}, { accounts: STORE([PA, PB], "acc_bravo") }],
+  ["account active oauth without identity", {}, { accounts: STORE([PC], "acc_charlie") }],
+  ["account pinned to another", {}, { accounts: STORE([PA, PB], "acc_alpha"), state: '{"accountProfileId":"acc_bravo"}' }],
+  ["account pinned to the active one", {}, { accounts: STORE([PA, PB], "acc_alpha"), state: '{"accountProfileId":"acc_alpha"}' }],
+  ["account pinned, none active", {}, { accounts: STORE([PA, PB], null), state: '{"accountProfileId":"acc_bravo"}' }],
+  [
+    "account dead pin falls back",
+    {},
+    { accounts: STORE([PA, PB], "acc_alpha"), state: '{"todosClearedAt":1.0,"accountProfileId":"acc_gone","x":[1.0,1e21,-0.0,0.1]}' },
+  ],
+  ["account dead pin, none active", {}, { accounts: STORE([PA], null), state: '{"accountProfileId":"acc_gone"}' }],
+  // `JSON.parse` reads a lone surrogate escape.
+  ["account pinned, state with a lone surrogate", {}, { accounts: STORE([PA, PB], "acc_alpha"), state: '{"accountProfileId":"acc_bravo","s":"\\ud800"}' }],
+  ["account pin not a string", {}, { accounts: STORE([PA, PB], "acc_bravo"), state: '{"accountProfileId":5,"10":"x","2":true}' }],
+  ["account pin an object", {}, { accounts: STORE([PA], "acc_alpha"), state: '{"accountProfileId":{"id":"acc_alpha"}}' }],
+  ["account pin empty", {}, { accounts: STORE([PA], "acc_alpha"), state: '{"accountProfileId":""}' }],
+  ["account state malformed", {}, { accounts: STORE([PA], "acc_alpha"), state: '{"accountProfileId":' }],
+  ["account state an array", {}, { accounts: STORE([PA], "acc_alpha"), state: '["acc_bravo"]' }],
+  ["account empty label", {}, { accounts: STORE([{ ...PA, id: "acc_nolabel", label: "" }], "acc_nolabel") }],
+  ["account unicode label", {}, { accounts: STORE([{ ...PA, id: "acc_uni", label: `Caf${cp(0xe9)} ${cp(0x1f600)} ${cp(0x4e2d)}` }], "acc_uni") }],
+  ["account empty active id", {}, { accounts: STORE([PA], "") }],
+  ["account unknown active id", {}, { accounts: STORE([PA], "acc_nope") }],
+  ["account store malformed", {}, { accounts: "{" }],
+  ["account store null", {}, { accounts: "null" }],
+  ["account store is a directory", {}, { accounts: "$DIR" }],
+  ["account duplicate ids", {}, { accounts: STORE([PA, { ...PA, label: "Alpha twin", secret: "sk-ant-api03-FAKE-twin" }], "acc_alpha") }],
+  ["account bedrock without settings", {}, { accounts: STORE([{ ...PBR, id: "acc_nobed", bedrock: undefined }, PA], "acc_nobed") }],
+  ["account expired", {}, { accounts: STORE([{ ...PA, expiresAt: 1000 }], "acc_alpha") }],
+  ["account expiring soon", {}, { accounts: STORE([{ ...PA, expiresAt: "$EXPIRES" }], "acc_alpha"), expiresIn: 86_400_000 }],
+  [
+    "account pinned profile expiring soon",
+    {},
+    {
+      accounts: STORE([PA, { ...PB, expiresAt: "$EXPIRES" }], "acc_alpha"),
+      state: '{"accountProfileId":"acc_bravo"}',
+      expiresIn: 3_600_000,
+    },
+  ],
+  ["account active expiring, pinned not", {}, { accounts: STORE([{ ...PA, expiresAt: "$EXPIRES" }, PB], "acc_alpha"), state: '{"accountProfileId":"acc_bravo"}', expiresIn: 3_600_000 }],
+  ["account expiry far", {}, { accounts: STORE([{ ...PA, expiresAt: 4102444800000 }], "acc_alpha") }],
+  ["account expiry a string", {}, { accounts: STORE([{ ...PA, expiresAt: "soon" }], "acc_alpha") }],
+  [
+    "account bedrock access keys",
+    {},
+    {
+      accounts: STORE([PBR], "acc_bedrock"),
+      env: { AWS_PROFILE: "parent", AWS_DEFAULT_REGION: "eu-west-1", ANTHROPIC_MODEL: "parent-model", CLAUDE_CODE_USE_MANTLE: "1", ANTHROPIC_BEDROCK_BASE_URL: "https://parent.example" },
+    },
+  ],
+  ["account bedrock ambient", {}, { accounts: STORE([PAMB], "acc_ambient"), env: { AWS_PROFILE: "parent", AWS_ACCESS_KEY_ID: "AKIAPARENT", AWS_REGION: "ap-south-1" } }],
+  [
+    "account scrubs the parent auth",
+    {},
+    {
+      accounts: STORE([PB], "acc_bravo"),
+      env: {
+        ANTHROPIC_API_KEY: "sk-parent",
+        CLAUDE_CODE_OAUTH_TOKEN: "oat-parent",
+        ANTHROPIC_AUTH_TOKEN: "auth-parent",
+        CLAUDE_CODE_USE_BEDROCK: "1",
+        CLAUDE_CODE_USE_VERTEX: "1",
+        CLAUDE_CODE_USE_FOUNDRY: "1",
+        CLAUDE_CODE_ACCOUNT_UUID: "parent-uuid",
+        CLAUDE_CODE_USER_EMAIL: "parent@example.com",
+        CLAUDE_CODE_ORGANIZATION_UUID: "parent-org",
+        AWS_PROFILE: "kept",
+      },
+    },
+  ],
+  ["account and restricted mode", { restrictedMode: true }, { accounts: STORE([PA], "acc_alpha") }],
+  [
+    "account with agent and fallback",
+    { agent: "reviewer", fallbackModel: "claude-haiku-4-5" },
+    { accounts: STORE([PA, PB], "acc_alpha"), state: '{"accountProfileId":"acc_bravo"}' },
+  ],
+  ["account profile dir blocked", {}, { accounts: STORE([{ ...PA, id: "acc_blocked" }], "acc_blocked"), blockProfile: "acc_blocked" }],
+  ["account resume pinned", { resume: RESUME_ID }, { resume: "readable", accounts: STORE([PA, PB], "acc_alpha"), state: '{"accountProfileId":"acc_bravo"}' }],
+  ["account auto-rotate on, start only", {}, { accounts: STORE([PA, PB], "acc_alpha", { autoRotateOnRateLimit: true }) }],
+  // Only a hand-edited store has a profile with the empty id; the empty pin
+  // still reads as never pinned.
+  [
+    "account pin empty, a profile with the empty id",
+    {},
+    { accounts: STORE([{ ...PA, id: "", label: "Nameless" }, PB], "acc_bravo"), state: '{"accountProfileId":""}' },
+  ],
 ];
 
 function cwdFor(i, kind) {
@@ -551,6 +707,26 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
     mkdirSync(dirname(watched), { recursive: true });
     symlinkSync(projects, watched);
   }
+  const accountCase = "accounts" in extras;
+  const expiresAt = extras.expiresIn === undefined ? null : Date.now() + extras.expiresIn;
+  const normExp = (t) => (expiresAt === null ? t : t.split(String(expiresAt)).join('"$EXPIRES"'));
+  if (accountCase) {
+    rmSync(ACCOUNTS_FILE, { recursive: true, force: true });
+    if (extras.accounts === "$DIR") mkdirSync(ACCOUNTS_FILE);
+    else if (extras.accounts !== null) writeFileSync(ACCOUNTS_FILE, extras.accounts.split('"$EXPIRES"').join(String(expiresAt)));
+  }
+  if (extras.state !== undefined) {
+    (await openDb(cwd))
+      .prepare(
+        "INSERT INTO sessions(id, cwd, state, created_at, updated_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET state = excluded.state",
+      )
+      .run(id, cwd, extras.state, GOAL_SET_AT, GOAL_SET_AT, GOAL_SET_AT);
+  }
+  if (extras.blockProfile) {
+    mkdirSync(PROFILES_DIR, { recursive: true });
+    writeFileSync(join(PROFILES_DIR, extras.blockProfile), "not a dir");
+  }
+  for (const [k, v] of Object.entries(extras.env ?? {})) process.env[k] = v;
   const transcript = extras.resume ? transcriptBytes(extras.resume) : null;
   if (transcript) {
     mkdirSync(projects, { recursive: true });
@@ -573,7 +749,7 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
     await s.start();
   } catch (e) {
     // The create route's catch: `{ error: message, name }`.
-    threw = e instanceof Error ? { name: e.name, message: e.message } : { name: "Error", message: String(e) };
+    threw = e instanceof Error ? { name: e.name, message: norm(e.message) } : { name: "Error", message: norm(String(e)) };
   }
   // startJsonlWatcher() sets it synchronously, or leaves it null when the
   // directory is missing.
@@ -626,8 +802,8 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
     threw,
     // The replayed transcript messages and their `at`.
     replayed: s.buffer.filter((e) => e.type === "sdk" && REPLAYED_UUIDS.has(e.message?.uuid)).map((e) => ({ at: e.at ?? null, message: e.message })),
-    events: JSON.parse(norm(JSON.stringify(events()))),
-    lateReady,
+    events: JSON.parse(normExp(norm(JSON.stringify(events())))),
+    lateReady: JSON.parse(normExp(norm(JSON.stringify(lateReady)))),
     argv: argv === null ? null : JSON.parse(norm(argv)),
     env: env === null ? null : JSON.parse(norm(JSON.stringify(envDelta(base, JSON.parse(env))))),
     initialize: (() => {
@@ -635,6 +811,17 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
       return l === null ? null : norm(l);
     })(),
     settingsAfter: readText(settingsFile),
+    stateAfter: await (async () => {
+      try {
+        const row = (await openDb(cwd, "readonly")).prepare("SELECT state FROM sessions WHERE id = ?").get(id);
+        return row ? row.state : null;
+      } catch {
+        return null;
+      }
+    })(),
+    ...(accountCase
+      ? { accounts: extras.accounts, state: extras.state ?? null, parentEnv: extras.env ?? null, blockProfile: extras.blockProfile ?? null, expiresIn: extras.expiresIn ?? null, profiles: profilesTree() }
+      : {}),
     ...(extras.queued
       ? {
           queueAfter: (await listQueue(cwd, id)).map((r) => ({ uuid: r.uuid, text: r.text, createdAtMs: r.createdAtMs })),
@@ -646,6 +833,9 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
     ...(extras.projects ? { watching } : {}),
     ...(extras.external ? { resynced: resyncedEvents().map((e) => ({ at: e.at ?? null, message: e.message })) } : {}),
   });
+  for (const k of Object.keys(extras.env ?? {})) delete process.env[k];
+  if (extras.blockProfile) rmSync(join(PROFILES_DIR, extras.blockProfile), { force: true });
+  if (accountCase) rmSync(ACCOUNTS_FILE, { recursive: true, force: true });
   await s.end();
 }
 rmSync(settingsFile, { force: true });

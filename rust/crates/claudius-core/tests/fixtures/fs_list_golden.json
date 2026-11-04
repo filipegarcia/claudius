@@ -23342,6 +23342,483 @@
    ]
   },
   {
+   "name": "listfail",
+   "needs": [
+    "perm"
+   ],
+   "env": "@@ROOT@@/w",
+   "cwd": "w",
+   "ops": [
+    {
+     "op": [
+      "dir",
+      "home/.claude"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "home/.claude/.claudius"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "w/locked"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "w/locked/inner"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "w/noread"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "w/noread/x"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "w/open"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "w/open/inner"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "dir",
+      "w/open/locked"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "file",
+      "w/open/f.txt",
+      ""
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "file",
+      "w/open/inner/deep.txt",
+      ""
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "file",
+      "w/open/locked/hidden.txt",
+      ""
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "file",
+      "w/afile",
+      "not a folder"
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "chmod",
+      "w/locked",
+      0
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "chmod",
+      "w/noread",
+      219
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "chmod",
+      "w/open/locked",
+      0
+     ],
+     "ok": true
+    },
+    {
+     "op": [
+      "file",
+      "home/.claude/.claudius/workspaces.json",
+      "{\"version\":1,\"workspaces\":[{\"id\":\"wks_locked\",\"name\":\"wks_locked\",\"rootPath\":\"@@ROOT@@/w/locked\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":1,\"defaults\":{}},{\"id\":\"wks_noread\",\"name\":\"wks_noread\",\"rootPath\":\"@@ROOT@@/w/noread\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":1,\"defaults\":{}},{\"id\":\"wks_file\",\"name\":\"wks_file\",\"rootPath\":\"@@ROOT@@/w/afile\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":1,\"defaults\":{}},{\"id\":\"wks_gone\",\"name\":\"wks_gone\",\"rootPath\":\"@@ROOT@@/w/gone\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":1,\"defaults\":{}},{\"id\":\"wks_open\",\"name\":\"wks_open\",\"rootPath\":\"@@ROOT@@/w/open\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":1,\"defaults\":{}}]}"
+     ],
+     "ok": true
+    }
+   ],
+   "steps": {
+    "darwin": [
+     {
+      "label": "unreadable root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/locked",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable root, query",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked&q=inner",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/locked",
+       "q": "inner",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable root, limit",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked&limit=1",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/locked",
+       "q": "",
+       "limit": "1"
+      }
+     },
+     {
+      "label": "no read, has exec",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/noread",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/noread",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "a file as the root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/afile",
+      "got": 1,
+      "args": {
+       "cwd": "@@ROOT@@/w/afile",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "a missing root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/gone",
+      "got": 2,
+      "args": {
+       "cwd": "@@ROOT@@/w/gone",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "an unreadable child is still skipped",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/open",
+      "got": 3,
+      "args": {
+       "cwd": "@@ROOT@@/w/open",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable child, query",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/open&q=deep",
+      "got": 4,
+      "args": {
+       "cwd": "@@ROOT@@/w/open",
+       "q": "deep",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable child, subsequence",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/open&q=hdn",
+      "got": 5,
+      "args": {
+       "cwd": "@@ROOT@@/w/open",
+       "q": "hdn",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "untrusted child of an unreadable root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked/inner",
+      "got": 6
+     },
+     {
+      "label": "the picker still lists the root",
+      "route": "dirs",
+      "method": "GET",
+      "query": null,
+      "got": 7
+     },
+     {
+      "label": "the picker on the unreadable folder",
+      "route": "dirs",
+      "method": "GET",
+      "query": "path=locked",
+      "got": 8
+     }
+    ],
+    "linux": [
+     {
+      "label": "unreadable root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/locked",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable root, query",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked&q=inner",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/locked",
+       "q": "inner",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable root, limit",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked&limit=1",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/locked",
+       "q": "",
+       "limit": "1"
+      }
+     },
+     {
+      "label": "no read, has exec",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/noread",
+      "got": 0,
+      "args": {
+       "cwd": "@@ROOT@@/w/noread",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "a file as the root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/afile",
+      "got": 1,
+      "args": {
+       "cwd": "@@ROOT@@/w/afile",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "a missing root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/gone",
+      "got": 2,
+      "args": {
+       "cwd": "@@ROOT@@/w/gone",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "an unreadable child is still skipped",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/open",
+      "got": 3,
+      "args": {
+       "cwd": "@@ROOT@@/w/open",
+       "q": "",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable child, query",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/open&q=deep",
+      "got": 4,
+      "args": {
+       "cwd": "@@ROOT@@/w/open",
+       "q": "deep",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "unreadable child, subsequence",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/open&q=hdn",
+      "got": 5,
+      "args": {
+       "cwd": "@@ROOT@@/w/open",
+       "q": "hdn",
+       "limit": "200"
+      }
+     },
+     {
+      "label": "untrusted child of an unreadable root",
+      "route": "list",
+      "method": "GET",
+      "query": "cwd=@@ROOT@@/w/locked/inner",
+      "got": 6
+     },
+     {
+      "label": "the picker still lists the root",
+      "route": "dirs",
+      "method": "GET",
+      "query": null,
+      "got": 7
+     },
+     {
+      "label": "the picker on the unreadable folder",
+      "route": "dirs",
+      "method": "GET",
+      "query": "path=locked",
+      "got": 8
+     }
+    ]
+   },
+   "snap": {
+    "darwin": [
+     "w/afile",
+     "w/locked/",
+     "w/locked !",
+     "w/noread/",
+     "w/noread !",
+     "w/open/",
+     "w/open/f.txt",
+     "w/open/inner/",
+     "w/open/inner/deep.txt",
+     "w/open/locked/",
+     "w/open/locked !"
+    ],
+    "linux": [
+     "w/afile",
+     "w/locked/",
+     "w/locked !",
+     "w/noread/",
+     "w/noread !",
+     "w/open/",
+     "w/open/f.txt",
+     "w/open/inner/",
+     "w/open/inner/deep.txt",
+     "w/open/locked/",
+     "w/open/locked !"
+    ]
+   },
+   "fsRoot": "@@ROOT@@/w",
+   "gots": [
+    {
+     "status": 403,
+     "type": "application/json",
+     "body": "{\"error\":\"Search failed: permission denied — can't read this folder (EACCES)\"}"
+    },
+    {
+     "status": 500,
+     "type": "application/json",
+     "body": "{\"error\":\"Search failed: ENOTDIR: not a directory, scandir '@@ROOT@@/w/afile'\"}"
+    },
+    {
+     "status": 500,
+     "type": "application/json",
+     "body": "{\"error\":\"Search failed: ENOENT: no such file or directory, scandir '@@ROOT@@/w/gone'\"}"
+    },
+    {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"cwd\":\"@@ROOT@@/w/open\",\"entries\":[{\"relPath\":\"f.txt\",\"absPath\":\"@@ROOT@@/w/open/f.txt\",\"type\":\"file\"},{\"relPath\":\"inner/\",\"absPath\":\"@@ROOT@@/w/open/inner\",\"type\":\"dir\"},{\"relPath\":\"locked/\",\"absPath\":\"@@ROOT@@/w/open/locked\",\"type\":\"dir\"},{\"relPath\":\"inner/deep.txt\",\"absPath\":\"@@ROOT@@/w/open/inner/deep.txt\",\"type\":\"file\"}]}"
+    },
+    {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"cwd\":\"@@ROOT@@/w/open\",\"entries\":[{\"relPath\":\"inner/deep.txt\",\"absPath\":\"@@ROOT@@/w/open/inner/deep.txt\",\"type\":\"file\"}]}"
+    },
+    {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"cwd\":\"@@ROOT@@/w/open\",\"entries\":[]}"
+    },
+    {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"unknown cwd\"}"
+    },
+    {
+     "status": 200,
+     "type": "application/json",
+     "body": "{\"path\":\"@@ROOT@@/w\",\"parent\":null,\"entries\":[{\"name\":\"locked\",\"path\":\"@@ROOT@@/w/locked\"},{\"name\":\"noread\",\"path\":\"@@ROOT@@/w/noread\"},{\"name\":\"open\",\"path\":\"@@ROOT@@/w/open\"}],\"home\":\"@@ROOT@@/w\"}"
+    },
+    {
+     "status": 403,
+     "type": "application/json",
+     "body": "{\"error\":\"permission denied\"}"
+    }
+   ]
+  },
+  {
    "name": "immutable",
    "needs": [
     "uchg"
@@ -24513,9 +24990,9 @@
      "body": "{\"error\":\"unknown cwd\"}"
     },
     {
-     "status": 200,
+     "status": 500,
      "type": "application/json",
-     "body": "{\"cwd\":\"@@ROOT@@/home/\",\"entries\":[]}"
+     "body": "{\"error\":\"Search failed: ENOENT: no such file or directory, scandir '@@ROOT@@/home/'\"}"
     },
     {
      "status": 200,
@@ -24523,9 +25000,9 @@
      "body": "{\"cwd\":\"@@ROOT@@/home/Projects/app\",\"entries\":[{\"relPath\":\"packages/config/index.ts\",\"absPath\":\"@@ROOT@@/home/Projects/app/packages/config/index.ts\",\"type\":\"file\"}]}"
     },
     {
-     "status": 200,
+     "status": 500,
      "type": "application/json",
-     "body": "{\"cwd\":\"@@ROOT@@/home/\",\"entries\":[]}"
+     "body": "{\"error\":\"Search failed: ENOENT: no such file or directory, scandir '@@ROOT@@/home/'\"}"
     },
     {
      "status": 200,

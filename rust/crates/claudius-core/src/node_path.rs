@@ -1,5 +1,5 @@
 //! Node's `path.posix` (`lib/path.js`, node 22) on JS strings: `resolve`,
-//! `normalize`, `join`, `relative`, `dirname` and `isAbsolute`, step for
+//! `normalize`, `join`, `relative`, `dirname`, `basename` and `isAbsolute`, step for
 //! step, so the routes that build and compare paths with them (`fs/dirs`,
 //! `fs-list.ts`) produce the same strings.
 //!
@@ -246,6 +246,52 @@ pub fn dirname(p: &str) -> String {
         None => if has_root { "/" } else { "." }.into(),
         Some(1) if has_root => "//".into(),
         Some(e) => p[..e].to_owned(),
+    }
+}
+
+/// `path.basename(p)` (no suffix): the last component, trailing slashes
+/// ignored; `""` for `""` or only slashes.
+pub fn basename(p: &str) -> String {
+    let b = p.as_bytes();
+    let (mut start, mut end) = (0, None);
+    for i in (0..b.len()).rev() {
+        if b[i] == b'/' {
+            if end.is_some() {
+                start = i + 1;
+                break;
+            }
+        } else if end.is_none() {
+            end = Some(i + 1);
+        }
+    }
+    end.map_or_else(String::new, |e| p[start..e].to_owned())
+}
+
+#[cfg(test)]
+mod basename_tests {
+    use super::basename;
+
+    #[test]
+    fn basename_matches_node() {
+        // node 22 `path.posix.basename`.
+        for (p, want) in [
+            ("", ""),
+            ("/", ""),
+            ("//", ""),
+            ("a", "a"),
+            ("/a", "a"),
+            ("/a/b", "b"),
+            ("/a/b/", "b"),
+            ("/a/b//", "b"),
+            ("a//b", "b"),
+            ("/a/.", "."),
+            ("/a/..", ".."),
+            ("/a/.claudius", ".claudius"),
+            (" /x y ", "x y "),
+            ("/caf\u{e9}/\u{1f600}", "\u{1f600}"),
+        ] {
+            assert_eq!(basename(p), want, "{p:?}");
+        }
     }
 }
 

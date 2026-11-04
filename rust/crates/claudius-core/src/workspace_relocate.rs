@@ -16,8 +16,8 @@
 //! * then `assets/`. A directory that exists on both sides (a sidecar or
 //!   `assets/`) is merged with Node's `fs.cp(…, {recursive, force: false,
 //!   errorOnExist: false})` (existing files win; its `SystemError` wording
-//!   included) and the source removed with `fs.rm(…, {recursive, force})`
-//!   (Node's rimraf), both ported here;
+//!   included, ported here) and the source removed with `fs.rm(…,
+//!   {recursive, force})` (Node's rimraf, [`node_fs::rm_recursive`]);
 //! * then the database: the source is migrated, attached to the destination
 //!   and copied in with `INSERT OR IGNORE` over the column intersection (a
 //!   lone `INTEGER` primary key left out), every `cwd` column re-keyed, in
@@ -36,7 +36,6 @@
 //! `claudius-server/tests/workspace_relocate.rs`.
 
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 use rusqlite::types::{ToSqlOutput, ValueRef};
@@ -345,7 +344,7 @@ fn move_dir_merging(src: &str, dst: &str) -> Result<(), Thrown> {
         return Ok(());
     }
     cp::cp(src, dst)?;
-    rimraf::rm(src)?;
+    node_fs::rm_recursive(src, true)?;
     Ok(())
 }
 
@@ -868,94 +867,6 @@ mod cp {
         }
         std::fs::remove_file(dest).map_err(|e| FsError::new(&e, "unlink", Some(dest), None))?;
         symlink(&resolved_src, dest)
-    }
-}
-
-/// `fs.promises.rm(path, {recursive: true, force: true})`: node 22's
-/// rimraf (no retries). Children of a directory are all removed before the
-/// first failure among them is reported, as Node starts them all at once.
-mod rimraf {
-    use super::*;
-
-    fn code(e: &io::Error) -> Option<String> {
-        node_fs::code(e)
-    }
-
-    fn lossy(p: &Path) -> String {
-        p.to_string_lossy().into_owned()
-    }
-
-    pub fn rm(path: &str) -> Result<(), FsError> {
-        // `validateRmOptions`: a missing path is fine (`force`).
-        match std::fs::symlink_metadata(path) {
-            Ok(_) => {}
-            Err(e) if is_enoent(&e) => return Ok(()),
-            Err(e) => return Err(FsError::new(&e, "lstat", Some(path), None)),
-        }
-        rimraf(Path::new(path))
-    }
-
-    /// `rimraf(path, options, cb)`: an `ENOENT` anywhere is success.
-    fn rimraf(path: &Path) -> Result<(), FsError> {
-        match rimraf_inner(path) {
-            Err(e) if e.is_not_found() => Ok(()),
-            r => r,
-        }
-    }
-
-    fn rimraf_inner(path: &Path) -> Result<(), FsError> {
-        match std::fs::symlink_metadata(path) {
-            Err(e) if is_enoent(&e) => return Ok(()),
-            Ok(m) if m.is_dir() => return rmdir(path, None),
-            _ => {}
-        }
-        match std::fs::remove_file(path) {
-            Ok(()) => Ok(()),
-            Err(e) => {
-                let err = FsError::new(&e, "unlink", Some(&lossy(path)), None);
-                match code(&e).as_deref() {
-                    Some("ENOENT") => Ok(()),
-                    Some("EISDIR" | "EPERM") => rmdir(path, Some(err)),
-                    _ => Err(err),
-                }
-            }
-        }
-    }
-
-    /// `_rmdir`: an empty directory goes at once, a full one after its
-    /// children; `ENOTDIR` reports the error that led here, if any.
-    fn rmdir(path: &Path, original: Option<FsError>) -> Result<(), FsError> {
-        match std::fs::remove_dir(path) {
-            Ok(()) => Ok(()),
-            Err(e) => match code(&e).as_deref() {
-                Some("ENOTEMPTY" | "EEXIST" | "EPERM") => rmchildren(path),
-                Some("ENOTDIR") => original.map_or(Ok(()), Err),
-                _ => Err(FsError::new(&e, "rmdir", Some(&lossy(path)), None)),
-            },
-        }
-    }
-
-    fn rmchildren(path: &Path) -> Result<(), FsError> {
-        let mut names: Vec<std::ffi::OsString> = match std::fs::read_dir(path) {
-            Ok(rd) => rd
-                .map(|e| e.map(|e| e.file_name()))
-                .collect::<io::Result<_>>()
-                .map_err(|e| FsError::new(&e, "scandir", Some(&lossy(path)), None))?,
-            Err(e) => return Err(FsError::new(&e, "scandir", Some(&lossy(path)), None)),
-        };
-        // libuv's `scandir` order.
-        names.sort_by(|a, b| a.as_encoded_bytes().cmp(b.as_encoded_bytes()));
-        let mut first = None;
-        for name in names {
-            let child: PathBuf = path.join(name);
-            if let Err(e) = rimraf(&child) {
-                first.get_or_insert(e);
-            }
-        }
-        if let Some(e) = first {
-            return Err(e);
-        }
-        std::fs::remove_dir(path).map_err(|e| FsError::new(&e, "rmdir", Some(&lossy(path)), None))
     }
 }
 

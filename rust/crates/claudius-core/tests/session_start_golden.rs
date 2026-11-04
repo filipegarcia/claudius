@@ -18,7 +18,11 @@
 //! - where the case sets them up (S27a): the queue rows afterwards and the
 //!   queued messages the session sent, whether the JSONL watcher is up, and
 //!   what its resync broadcast (with `at`) after an external writer
-//!   appended to the transcript.
+//!   appended to the transcript;
+//! - the session row's `state` text afterwards, and for the account cases
+//!   (S30) the account store's `profiles/` tree: which profile the session
+//!   pinned (a persisted pin, else the active profile), the CLI env built for
+//!   it, `ready.account` and the token-expiry nudge of the pinned profile.
 //!
 //! The replayed and resynced `at`s read the transcripts' timestamps through
 //! `Date.parse` (S27c), so `TZ` is pinned to the recorder's zone.
@@ -188,6 +192,63 @@ fn read_text(p: &Path) -> Option<String> {
     std::fs::read_to_string(p).ok()
 }
 
+/// The recorder's `profilesTree()`: every entry under `dir` (links not
+/// followed) with its type, mode, text or link target; `None` without `dir`.
+fn profiles_tree(dir: &Path) -> Value {
+    fn walk(root: &Path, rel: &str, out: &mut Map<String, Value>) -> std::io::Result<()> {
+        let dir = if rel.is_empty() {
+            root.to_path_buf()
+        } else {
+            root.join(rel)
+        };
+        let mut names: Vec<String> = std::fs::read_dir(&dir)?
+            .map(|e| e.map(|e| e.file_name().to_string_lossy().into_owned()))
+            .collect::<Result<_, _>>()?;
+        names.sort();
+        for name in names {
+            let r = if rel.is_empty() {
+                name
+            } else {
+                format!("{rel}/{name}")
+            };
+            let full = root.join(&r);
+            let md = std::fs::symlink_metadata(&full)?;
+            let m = format!("{:o}", md.permissions().mode() & 0o777);
+            if md.file_type().is_symlink() {
+                let to = std::fs::read_link(&full)?.display().to_string();
+                out.insert(r, json!({"t": "l", "to": norm(&to)}));
+            } else if md.is_dir() {
+                out.insert(r.clone(), json!({"t": "d", "m": m}));
+                walk(root, &r, out)?;
+            } else {
+                let x = std::fs::read_to_string(&full)?;
+                out.insert(r, json!({"t": "f", "m": m, "x": norm(&x)}));
+            }
+        }
+        Ok(())
+    }
+    let mut out = Map::new();
+    match walk(dir, "", &mut out) {
+        Ok(()) => Value::Object(out),
+        Err(_) => Value::Null,
+    }
+}
+
+/// The session row's `state` text (null without a row or a database).
+fn state_after(cwd: &str, id: &str) -> Value {
+    let Ok(db) = db::open_db(cwd, Mode::ReadOnly) else {
+        return Value::Null;
+    };
+    db.with(|c| {
+        c.query_row("SELECT state FROM sessions WHERE id = ?", [id], |r| {
+            r.get::<_, Option<String>>(0)
+        })
+    })
+    .ok()
+    .flatten()
+    .map_or(Value::Null, Value::String)
+}
+
 /// The `initialize` control request as written, its request id `$ID`.
 fn initialize_line(log: &Path) -> Option<String> {
     let text = read_text(log)?;
@@ -316,6 +377,55 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
         std::fs::create_dir_all(watched.parent().unwrap()).unwrap();
         std::os::unix::fs::symlink(&projects, watched).unwrap();
     }
+    // Account pinning (S30): the store, the session's state text, a file
+    // where a profile's config dir goes, and a relative expiry.
+    let store_dir = e.home.join(".claude/.claudius");
+    let accounts_file = store_dir.join("accounts.json");
+    let profiles_dir = store_dir.join("profiles");
+    let account_case = case.get("accounts").is_some();
+    let expires_at = case["expiresIn"]
+        .as_i64()
+        .map(|ms| claudius_core::now_ms() + ms);
+    let norm_exp = |v: Value| -> Value {
+        match expires_at {
+            Some(at) => {
+                serde_json::from_str(&v.to_string().replace(&at.to_string(), "\"$EXPIRES\""))
+                    .unwrap()
+            }
+            None => v,
+        }
+    };
+    if account_case {
+        let _ = std::fs::remove_dir_all(&accounts_file);
+        let _ = std::fs::remove_file(&accounts_file);
+        match &case["accounts"] {
+            Value::String(d) if d == "$DIR" => std::fs::create_dir(&accounts_file).unwrap(),
+            Value::String(text) => std::fs::write(
+                &accounts_file,
+                text.replace(
+                    "\"$EXPIRES\"",
+                    &expires_at.map(|a| a.to_string()).unwrap_or_default(),
+                ),
+            )
+            .unwrap(),
+            _ => {}
+        }
+    }
+    if let Some(state) = case["state"].as_str() {
+        db::open_db(&cwd, Mode::ReadWrite)
+            .unwrap()
+            .with(|c| {
+                c.execute(
+                    "INSERT INTO sessions(id, cwd, state, created_at, updated_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET state = excluded.state",
+                    rusqlite::params![id, cwd, state, 1_767_225_600_000_i64, 1_767_225_600_000_i64, 1_767_225_600_000_i64],
+                )
+            })
+            .unwrap();
+    }
+    if let Some(blocked) = case["blockProfile"].as_str() {
+        std::fs::create_dir_all(&profiles_dir).unwrap();
+        std::fs::write(profiles_dir.join(blocked), "not a dir").unwrap();
+    }
     if let Some(bytes) = case["transcriptHex"].as_str() {
         std::fs::create_dir_all(&projects).unwrap();
         let file = projects.join(format!("{id}.jsonl"));
@@ -324,7 +434,7 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
             std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o000)).unwrap();
         }
     }
-    let base: HashMap<String, String> = [
+    let mut base: HashMap<String, String> = [
         ("PATH", std::env::var("PATH").unwrap_or_default()),
         ("NODE_OPTIONS", "--no-warnings".into()),
         ("FAKE_CLAUDE_ARGV", argv.display().to_string()),
@@ -334,6 +444,11 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
     .collect();
+    if let Some(parent) = case["parentEnv"].as_object() {
+        for (k, v) in parent {
+            base.insert(k.clone(), v.as_str().unwrap().to_owned());
+        }
+    }
     let mut options = case["options"].as_object().unwrap().clone();
     options.insert("id".into(), json!(id));
     options.insert("cwd".into(), json!(cwd));
@@ -355,7 +470,7 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
     let (threw, events, replayed, late_ready) = match &created {
         // The create route's `{error, name}`.
         Err(err) => (
-            json!({"name": err.name(), "message": err.to_string()}),
+            json!({"name": err.name(), "message": norm(&err.to_string())}),
             vec![],
             vec![],
             vec![],
@@ -455,10 +570,10 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
     got.insert("threw".into(), threw);
     got.insert(
         "events".into(),
-        serde_json::from_str(&norm(&Value::Array(events).to_string())).unwrap(),
+        norm_exp(serde_json::from_str(&norm(&Value::Array(events).to_string())).unwrap()),
     );
     got.insert("replayed".into(), Value::Array(replayed));
-    got.insert("lateReady".into(), Value::Array(late_ready));
+    got.insert("lateReady".into(), norm_exp(Value::Array(late_ready)));
     got.insert(
         "argv".into(),
         read_text(&argv).map_or(Value::Null, |a| serde_json::from_str(&norm(&a)).unwrap()),
@@ -478,6 +593,15 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
         "settingsAfter".into(),
         read_text(&settings).map_or(Value::Null, Value::String),
     );
+    got.insert("stateAfter".into(), state_after(&cwd, id));
+    if account_case {
+        got.insert("profiles".into(), profiles_tree(&profiles_dir));
+        if let Some(blocked) = case["blockProfile"].as_str() {
+            std::fs::remove_file(profiles_dir.join(blocked)).unwrap();
+        }
+        let _ = std::fs::remove_dir_all(&accounts_file);
+        let _ = std::fs::remove_file(&accounts_file);
+    }
     if case["queued"].is_array() {
         let rows: Vec<Value> = queue_db::list_queue(&cwd, id)
             .into_iter()
@@ -492,7 +616,7 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
     got
 }
 
-const FIELDS: [&str; 8] = [
+const FIELDS: [&str; 10] = [
     "threw",
     "events",
     "replayed",
@@ -501,6 +625,9 @@ const FIELDS: [&str; 8] = [
     "env",
     "initialize",
     "settingsAfter",
+    "stateAfter",
+    // Account cases only.
+    "profiles",
 ];
 
 /// Recorded only for the cases that set them up (S27a).
@@ -523,13 +650,18 @@ async fn start_matches_ts() {
     let _home = HOME_LOCK.lock().await;
     env();
     let cases = fixture()["cases"].as_array().unwrap();
-    assert!(cases.len() >= 87, "{} cases", cases.len());
+    assert!(cases.len() >= 125, "{} cases", cases.len());
+    let accounts = cases.iter().filter(|c| c.get("accounts").is_some()).count();
+    assert!(accounts >= 38, "{accounts} account cases");
     let mut diffs: Vec<(String, String, String)> = Vec::new();
     for (i, case) in cases.iter().enumerate() {
         let name = case["name"].as_str().unwrap();
         let got = run(i, case).await;
         let present = CASE_FIELDS.into_iter().filter(|f| case.get(*f).is_some());
         for field in FIELDS.into_iter().chain(present) {
+            if case.get(field).is_none() && got.get(field).is_none() {
+                continue;
+            }
             // `JSON.stringify` text on both sides.
             let (want, have) = (js::stringify(&case[field]), js::stringify(&got[field]));
             if want != have {

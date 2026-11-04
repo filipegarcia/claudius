@@ -1,0 +1,7439 @@
+{
+ "platform": "darwin",
+ "release": "7",
+ "prefsStart": {
+  "home/.claude": {
+   "t": "d",
+   "m": "755"
+  }
+ },
+ "prefs": [
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"filipe\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"filipe\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"yes\",\n  \"communityNick\": \"filipe\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"filipe\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"no\",\"nick\":null}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"no\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":null}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":null,\"nick\":null}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"maybe\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"YES\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":1}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":true}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":[]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":{}}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\",\"nick\":5}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick must be a string or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick too long\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀z\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick too long\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":\"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"  \"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":\"  \"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"  \"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":null}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":false}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick must be a string or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":0}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick must be a string or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":[]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick must be a string or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":{}}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick must be a string or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":[\"a\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick must be a string or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\",\"consent\":\"no\",\"nick\":\"a\",\"nick\":\"b\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":\"b\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"no\",\n  \"communityNick\": \"b\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"__proto__\":{\"consent\":\"yes\"}}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":\"b\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\",\"nick\":\"n\",\"theme\":\"dark\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"n\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"yes\",\n  \"communityNick\": \"n\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":1e400}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"consent must be 'yes', 'no', or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":-1e400}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"nick must be a string or null\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"other\":1e400,\"nick\":\"inf\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"inf\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"yes\",\n  \"communityNick\": \"inf\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "null",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid body\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "[]",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"inf\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "[\"consent\"]",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"inf\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "\"consent\"",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid body\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "5",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid body\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "1e400",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid body\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "true",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid body\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid json\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid json\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"} x",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid json\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{'consent':'yes'}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid json\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "﻿{\"consent\":\"yes\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"inf\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "﻿﻿{\"consent\":\"no\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":\"inf\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"no\",\n  \"communityNick\": \"inf\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "﻿﻿﻿{\"consent\":\"no\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid json\"}"
+   }
+  },
+  {
+   "op": "put",
+   "bodyHex": "7b226e69636b223a22ff227d",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":\"�\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"no\",\n  \"communityNick\": \"�\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": " \t\n{\"nick\":\"ws\"}\n ",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":\"ws\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"no\",\n  \"communityNick\": \"ws\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "{\"theme\":\"dark\",\"communityNick\":\"old\",\"n\":1.50,\"big\":12345678901234567890,\"neg\":-0,\"e\":1E2,\"u\":\"\\u00e9\\ud83d\\ude00\",\"sep\":\"\\u2028\",\"nested\":{\"b\":1,\"a\":[]},\"10\":\"ten\",\"2\":\"two\",\"communityConsent\":\"bogus\"}"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\"theme\":\"dark\",\"communityNick\":\"old\",\"n\":1.50,\"big\":12345678901234567890,\"neg\":-0,\"e\":1E2,\"u\":\"\\u00e9\\ud83d\\ude00\",\"sep\":\"\\u2028\",\"nested\":{\"b\":1,\"a\":[]},\"10\":\"ten\",\"2\":\"two\",\"communityConsent\":\"bogus\"}"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":\"old\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"old\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"2\": \"two\",\n  \"10\": \"ten\",\n  \"theme\": \"dark\",\n  \"communityNick\": \"old\",\n  \"n\": 1.5,\n  \"big\": 12345678901234567000,\n  \"neg\": 0,\n  \"e\": 100,\n  \"u\": \"é😀\",\n  \"sep\": \" \",\n  \"nested\": {\n    \"b\": 1,\n    \"a\": []\n  },\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":null}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"2\": \"two\",\n  \"10\": \"ten\",\n  \"theme\": \"dark\",\n  \"n\": 1.5,\n  \"big\": 12345678901234567000,\n  \"neg\": 0,\n  \"e\": 100,\n  \"u\": \"é😀\",\n  \"sep\": \" \",\n  \"nested\": {\n    \"b\": 1,\n    \"a\": []\n  },\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"new\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"new\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"2\": \"two\",\n  \"10\": \"ten\",\n  \"theme\": \"dark\",\n  \"n\": 1.5,\n  \"big\": 12345678901234567000,\n  \"neg\": 0,\n  \"e\": 100,\n  \"u\": \"é😀\",\n  \"sep\": \" \",\n  \"nested\": {\n    \"b\": 1,\n    \"a\": []\n  },\n  \"communityConsent\": \"yes\",\n  \"communityNick\": \"new\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "{\"communityConsent\":\"no\",\"communityNick\":\"\"}"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\"communityConsent\":\"no\",\"communityNick\":\"\"}"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":null}"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "{\"communityConsent\":\"yes\",\"communityNick\":42}"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\"communityConsent\":\"yes\",\"communityNick\":42}"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":null}"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "  {\"communityConsent\" : \"yes\"}  \n\n"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "  {\"communityConsent\" : \"yes\"}  \n\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "hex": "7b226e223a22fffe227d"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "h": "7b226e223a22fffe227d"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"n\": \"��\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "[]"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "[]"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\",\"nick\":\"arr\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"arr\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "[]\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "[1,{\"a\":2}]"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "[1,{\"a\":2}]"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "[\n  1,\n  {\n    \"a\": 2\n  }\n]\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "\"abc\""
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "\"abc\""
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "threw": "Cannot create property 'communityConsent' on string 'abc'"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":null}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "\"abc\"\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "42"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "42"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"no\"}",
+   "got": {
+    "threw": "Cannot create property 'communityConsent' on number '42'"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "42\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "1.5e3"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "1.5e3"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"n\"}",
+   "got": {
+    "threw": "Cannot create property 'communityNick' on number '1500'"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "true"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "true"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"x\"}",
+   "got": {
+    "threw": "Cannot create property 'communityNick' on boolean 'true'"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "false"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "false"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "threw": "Cannot create property 'communityConsent' on boolean 'false'"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "1e400"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "1e400"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "threw": "Cannot create property 'communityConsent' on number 'Infinity'"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "null\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "null"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "null"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "Cannot read properties of null (reading 'communityConsent')"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "threw": "Cannot set properties of null (setting 'communityConsent')"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":null}",
+   "got": {
+    "threw": "Cannot convert undefined or null to object"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"\"}",
+   "got": {
+    "threw": "Cannot convert undefined or null to object"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"x\"}",
+   "got": {
+    "threw": "Cannot set properties of null (setting 'communityNick')"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "threw": "Cannot read properties of null (reading 'communityConsent')"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "null\n"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "5",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid body\"}"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": ""
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": ""
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "$W/home/.claude/settings.json doesn't load: Unexpected end of JSON input"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "threw": "$W/home/.claude/settings.json doesn't load: Unexpected end of JSON input"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid json\"}"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "{\"a\":"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\"a\":"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "$W/home/.claude/settings.json doesn't load: Unexpected end of JSON input"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "﻿{}"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "﻿{}"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "$W/home/.claude/settings.json doesn't load: Unexpected token ' '"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "threw": "$W/home/.claude/settings.json doesn't load: Unexpected token ' '"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "dir": true
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "d",
+     "m": "755"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "EISDIR: illegal operation on a directory, read"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "threw": "EISDIR: illegal operation on a directory, read"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "{\"communityConsent\":\"yes\"}",
+     "mode": "000"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "0"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "EACCES: permission denied, open '$W/home/.claude/settings.json'"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"n\"}",
+   "got": {
+    "threw": "EACCES: permission denied, open '$W/home/.claude/settings.json'"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "{\"communityConsent\":\"yes\"}",
+     "mode": "600"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "600",
+     "x": "{\"communityConsent\":\"yes\"}"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"private\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":\"private\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "600",
+     "x": "{\n  \"communityConsent\": \"yes\",\n  \"communityNick\": \"private\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "text": "{\"communityConsent\":\"no\"}",
+     "mode": "640"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "640",
+     "x": "{\"communityConsent\":\"no\"}"
+    }
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "640",
+     "x": "{\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude": {
+     "dir": true,
+     "mode": "555"
+    },
+    "home/.claude/settings.json": {
+     "text": "{\"communityNick\":\"ro\"}"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "555"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\"communityNick\":\"ro\"}"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":\"ro\"}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "threw": "EACCES: permission denied, open '$W/home/.claude/.settings.json.tmp-$PID-$N'"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude": {
+     "dir": true
+    },
+    "home/.claude/settings.json": {
+     "text": "{}\n"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/dotfiles/settings.json": {
+     "text": "{\"x\":1}"
+    },
+    "home/.claude/settings.json": {
+     "symlink": "../dotfiles/settings.json"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "l",
+     "to": "../dotfiles/settings.json"
+    },
+    "home/dotfiles": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/dotfiles/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\"x\":1}"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"yes\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"yes\",\"nick\":null}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "l",
+     "to": "../dotfiles/settings.json"
+    },
+    "home/dotfiles": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/dotfiles/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"x\": 1,\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "symlink": "../dotfiles/new.json"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "l",
+     "to": "../dotfiles/new.json"
+    },
+    "home/dotfiles": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/dotfiles/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"x\": 1,\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"through\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":\"through\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "l",
+     "to": "../dotfiles/new.json"
+    },
+    "home/dotfiles": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/dotfiles/new.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"through\"\n}\n"
+    },
+    "home/dotfiles/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"x\": 1,\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "symlink": "$W/home/nowhere/settings.json"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "l",
+     "to": "$W/home/nowhere/settings.json"
+    },
+    "home/dotfiles": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/dotfiles/new.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"through\"\n}\n"
+    },
+    "home/dotfiles/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"x\": 1,\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"nick\":\"lost\"}",
+   "got": {
+    "threw": "ENOENT: no such file or directory, open '$W/home/.claude/settings.json'"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "symlink": "settings.json"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "l",
+     "to": "settings.json"
+    },
+    "home/dotfiles": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/dotfiles/new.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"through\"\n}\n"
+    },
+    "home/dotfiles/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"x\": 1,\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "ELOOP: too many symbolic links encountered, open '$W/home/.claude/settings.json'"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{}",
+   "got": {
+    "threw": "ELOOP: too many symbolic links encountered, open '$W/home/.claude/settings.json'"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude/settings.json": {
+     "symlink": "../dotfiles"
+    }
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "l",
+     "to": "../dotfiles"
+    },
+    "home/dotfiles": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/dotfiles/new.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityNick\": \"through\"\n}\n"
+    },
+    "home/dotfiles/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"x\": 1,\n  \"communityConsent\": \"yes\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "threw": "EISDIR: illegal operation on a directory, read"
+   }
+  },
+  {
+   "op": "files",
+   "files": {
+    "home/.claude": {
+     "delete": true
+    },
+    "home/dotfiles": {
+     "delete": true
+    }
+   },
+   "tree": {}
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":null,\"nick\":null}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"consent\":\"no\",\"nick\":\"fresh\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":\"fresh\"}"
+   },
+   "tree": {
+    "home/.claude": {
+     "t": "d",
+     "m": "755"
+    },
+    "home/.claude/settings.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"communityConsent\": \"no\",\n  \"communityNick\": \"fresh\"\n}\n"
+    }
+   }
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"consent\":\"no\",\"nick\":\"fresh\"}"
+   }
+  }
+ ],
+ "admin": [
+  {
+   "name": "the default server",
+   "env": {
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "tok-default"
+   },
+   "inlined": "https://chat.claudius.network",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"bans\":[]}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"bans\":[]}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/chat.claudius.network/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "tok-default"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "bans",
+     "body": "{\"nick\":\"troll\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 201 Created\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 201,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/chat.claudius.network/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "tok-default"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "16"
+        ]
+       ],
+       "body": "{\"nick\":\"troll\"}"
+      }
+     ]
+    },
+    {
+     "method": "DELETE",
+     "path": "bans/troll",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans",
+      "troll"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "DELETE",
+       "path": "/chat.claudius.network/admin/bans/troll?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "tok-default"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "a%20b/caf%C3%A9",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "a b",
+      "café"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/chat.claudius.network/admin/a%20b/caf%C3%A9?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "tok-default"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a server URL",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "http://127.0.0.1:$PORT/",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: 23\r\nConnection: close\r\n\r\n{\"bans\":[{\"nick\":\"a\"}]}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json; charset=utf-8",
+      "body": "{\"bans\":[{\"nick\":\"a\"}]}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "bans",
+     "body": "{\"ignored\":true}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "compact?keep=5",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "compact"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/compact?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "messages/recent?limit=1&x=%20",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "messages",
+      "recent"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/messages/recent?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "{\"nick\":\"troll\",\"minutes\":10}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 201 Created\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 201,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/ban?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "29"
+        ]
+       ],
+       "body": "{\"nick\":\"troll\",\"minutes\":10}"
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: 20\r\nConnection: close\r\n\r\n{\"error\":\"bad json\"}"
+      }
+     ],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"bad json\"}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/ban?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "0"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/ban?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "0"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "﻿",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/ban?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "0"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "﻿{\"nick\":\"b\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/ban?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "12"
+        ]
+       ],
+       "body": "{\"nick\":\"b\"}"
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "﻿﻿﻿x",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/ban?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "4"
+        ]
+       ],
+       "body": "﻿x"
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "bodyHex": "7b226e69636b223a22ff227d",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/ban?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "14"
+        ]
+       ],
+       "body": "{\"nick\":\"�\"}"
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "note",
+     "body": "plain text, not json",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "note"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/note?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "20"
+        ]
+       ],
+       "body": "plain text, not json"
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "note",
+     "body": "é😀 ",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "note"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/note?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "9"
+        ]
+       ],
+       "body": "é😀 "
+      }
+     ]
+    },
+    {
+     "method": "DELETE",
+     "path": "ban/troll",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "ban",
+      "troll"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "DELETE",
+       "path": "/admin/ban/troll?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "DELETE",
+     "path": "messages/42",
+     "body": "{\"reason\":\"spam\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "messages",
+      "42"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "DELETE",
+       "path": "/admin/messages/42?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "17"
+        ]
+       ],
+       "body": "{\"reason\":\"spam\"}"
+      }
+     ]
+    },
+    {
+     "method": "DELETE",
+     "path": "messages/43",
+     "body": "",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "messages",
+      "43"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "DELETE",
+       "path": "/admin/messages/43?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "a%20b/caf%C3%A9/%c3%a9",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "a b",
+      "café",
+      "é"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/a%20b/caf%C3%A9/%C3%A9?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "a%2Fb/%25/%2B/+",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "a/b",
+      "%",
+      "+",
+      "+"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/a%2Fb/%25/%2B/%2B?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "!*'()~/@:$,;=&",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "!*'()~",
+      "@:$,;=&"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/!*'()~/%40%3A%24%2C%3B%3D%26?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "%41%7A/%F0%9F%98%80/%22%3C%3E%60%7B%7D",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "Az",
+      "😀",
+      "\"<>`{}"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/Az/%F0%9F%98%80/%22%3C%3E%60%7B%7D?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "_NEXTSEP_x/%5FNEXTSEP__NEXTSEP_y",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "x",
+      "_NEXTSEP_y"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/x/_NEXTSEP_y?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "_NEXTSEP_../up",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "..",
+      "up"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/up?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "deep/er/and/deeper",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "deep",
+      "er",
+      "and",
+      "deeper"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/deep/er/and/deeper?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/201",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 201 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":201}"
+      }
+     ],
+     "params": [
+      "status",
+      "201"
+     ],
+     "got": {
+      "status": 201,
+      "type": "application/json",
+      "body": "{\"status\":201}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/201?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/299",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 299 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":299}"
+      }
+     ],
+     "params": [
+      "status",
+      "299"
+     ],
+     "got": {
+      "status": 299,
+      "type": "application/json",
+      "body": "{\"status\":299}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/299?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/400",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":400}"
+      }
+     ],
+     "params": [
+      "status",
+      "400"
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"status\":400}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/400?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/401",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 401 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":401}"
+      }
+     ],
+     "params": [
+      "status",
+      "401"
+     ],
+     "got": {
+      "status": 401,
+      "type": "application/json",
+      "body": "{\"status\":401}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/401?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/403",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 403 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":403}"
+      }
+     ],
+     "params": [
+      "status",
+      "403"
+     ],
+     "got": {
+      "status": 403,
+      "type": "application/json",
+      "body": "{\"status\":403}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/403?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/404",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 404 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":404}"
+      }
+     ],
+     "params": [
+      "status",
+      "404"
+     ],
+     "got": {
+      "status": 404,
+      "type": "application/json",
+      "body": "{\"status\":404}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/404?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/409",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 409 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":409}"
+      }
+     ],
+     "params": [
+      "status",
+      "409"
+     ],
+     "got": {
+      "status": 409,
+      "type": "application/json",
+      "body": "{\"status\":409}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/409?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/429",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 429 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":429}"
+      }
+     ],
+     "params": [
+      "status",
+      "429"
+     ],
+     "got": {
+      "status": 429,
+      "type": "application/json",
+      "body": "{\"status\":429}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/429?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/500",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 500 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":500}"
+      }
+     ],
+     "params": [
+      "status",
+      "500"
+     ],
+     "got": {
+      "status": 500,
+      "type": "application/json",
+      "body": "{\"status\":500}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/500?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/502",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 502 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":502}"
+      }
+     ],
+     "params": [
+      "status",
+      "502"
+     ],
+     "got": {
+      "status": 502,
+      "type": "application/json",
+      "body": "{\"status\":502}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/502?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/503",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 503 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":503}"
+      }
+     ],
+     "params": [
+      "status",
+      "503"
+     ],
+     "got": {
+      "status": 503,
+      "type": "application/json",
+      "body": "{\"status\":503}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/503?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/599",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 599 Whatever\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"status\":599}"
+      }
+     ],
+     "params": [
+      "status",
+      "599"
+     ],
+     "got": {
+      "status": 599,
+      "type": "application/json",
+      "body": "{\"status\":599}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/599?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/204",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 204 Empty\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"
+      }
+     ],
+     "params": [
+      "status",
+      "204"
+     ],
+     "got": {
+      "threw": "TypeError: Response constructor: Invalid response status code 204"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/204?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/205",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 205 Empty\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"
+      }
+     ],
+     "params": [
+      "status",
+      "205"
+     ],
+     "got": {
+      "threw": "TypeError: Response constructor: Invalid response status code 205"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/205?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/304",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 304 Empty\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"
+      }
+     ],
+     "params": [
+      "status",
+      "304"
+     ],
+     "got": {
+      "threw": "TypeError: Response constructor: Invalid response status code 304"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/304?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/600",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 600 Odd\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+      }
+     ],
+     "params": [
+      "status",
+      "600"
+     ],
+     "got": {
+      "threw": "RangeError: init[\"status\"] must be in the range of 200 to 599, inclusive."
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/600?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "status/999",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 999 Odd\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+      }
+     ],
+     "params": [
+      "status",
+      "999"
+     ],
+     "got": {
+      "threw": "RangeError: init[\"status\"] must be in the range of 200 to 599, inclusive."
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/status/999?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "type/text",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nhi"
+      }
+     ],
+     "params": [
+      "type",
+      "text"
+     ],
+     "got": {
+      "status": 200,
+      "type": "text/plain",
+      "body": "hi"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/type/text?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "type/none",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Length: 7\r\nConnection: close\r\n\r\n{\"a\":1}"
+      }
+     ],
+     "params": [
+      "type",
+      "none"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"a\":1}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/type/none?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "type/two",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Type: text/html\r\nContent-Length: 1\r\nConnection: close\r\n\r\nx"
+      }
+     ],
+     "params": [
+      "type",
+      "two"
+     ],
+     "got": {
+      "status": 200,
+      "type": "text/plain, text/html",
+      "body": "x"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/type/two?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "type/empty",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: \r\nContent-Length: 1\r\nConnection: close\r\n\r\nx"
+      }
+     ],
+     "params": [
+      "type",
+      "empty"
+     ],
+     "got": {
+      "status": 200,
+      "type": "",
+      "body": "x"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/type/empty?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "type/latin1",
+     "responses": [
+      {
+       "wireHex": "485454502f312e3120323030204f4b0d0a436f6e74656e742d547970653a20746578742f706c61696e3b20636861727365743de90d0a436f6e74656e742d4c656e6774683a20310d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a78"
+      }
+     ],
+     "params": [
+      "type",
+      "latin1"
+     ],
+     "got": {
+      "status": 200,
+      "type": "text/plain; charset=é",
+      "body": "x"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/type/latin1?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "type/case",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nCONTENT-TYPE:   Text/HTML  \r\nContent-Length: 1\r\nConnection: close\r\n\r\nx"
+      }
+     ],
+     "params": [
+      "type",
+      "case"
+     ],
+     "got": {
+      "status": 200,
+      "type": "Text/HTML",
+      "body": "x"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/type/case?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "body/empty",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+      }
+     ],
+     "params": [
+      "body",
+      "empty"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": ""
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/body/empty?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "body/unicode",
+     "responses": [
+      {
+       "wireHex": "485454502f312e3120323030204f4b0d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e74656e742d4c656e6774683a20390d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0ac3a9f09f9880e280a8"
+      }
+     ],
+     "params": [
+      "body",
+      "unicode"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "é😀 "
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/body/unicode?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "body/invalid",
+     "responses": [
+      {
+       "wireHex": "485454502f312e3120323030204f4b0d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e74656e742d4c656e6774683a20340d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a61ff62c3"
+      }
+     ],
+     "params": [
+      "body",
+      "invalid"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "a�b�"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/body/invalid?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "body/bom",
+     "responses": [
+      {
+       "wireHex": "485454502f312e3120323030204f4b0d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e74656e742d4c656e6774683a2031300d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0aefbbbfefbbbfefbbbf78"
+      }
+     ],
+     "params": [
+      "body",
+      "bom"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "﻿x"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/body/bom?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "body/chunked",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n4\r\nchun\r\n3\r\nked\r\n0\r\n\r\n"
+      }
+     ],
+     "params": [
+      "body",
+      "chunked"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "chunked"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/body/chunked?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "body/http10",
+     "responses": [
+      {
+       "wire": "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\nuntil close"
+      }
+     ],
+     "params": [
+      "body",
+      "http10"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "until close"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/body/http10?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "body/cut",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 100\r\nConnection: close\r\n\r\n0123456789"
+      }
+     ],
+     "params": [
+      "body",
+      "cut"
+     ],
+     "got": {
+      "threw": "TypeError: terminated"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/body/cut?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "hangup",
+     "responses": [
+      {
+       "close": true
+      }
+     ],
+     "params": [
+      "hangup"
+     ],
+     "got": {
+      "threw": "TypeError: fetch failed"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/hangup?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "redirect/302",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 302 Found\r\nContent-Type: application/json\r\nLocation: /moved\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+      },
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 14\r\nConnection: close\r\n\r\n{\"moved\":true}"
+      }
+     ],
+     "params": [
+      "redirect",
+      "302"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"moved\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/redirect/302?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      },
+      {
+       "method": "GET",
+       "path": "/moved",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "redirect/303",
+     "body": "{\"a\":1}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 303 See Other\r\nContent-Type: application/json\r\nLocation: /seen\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+      },
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "redirect",
+      "303"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/redirect/303?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "7"
+        ]
+       ],
+       "body": "{\"a\":1}"
+      },
+      {
+       "method": "GET",
+       "path": "/seen",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "redirect/307",
+     "body": "{\"a\":1}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 307 Temporary Redirect\r\nContent-Type: application/json\r\nLocation: /again\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+      },
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "redirect",
+      "307"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/redirect/307?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "7"
+        ]
+       ],
+       "body": "{\"a\":1}"
+      },
+      {
+       "method": "POST",
+       "path": "/again",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "7"
+        ]
+       ],
+       "body": "{\"a\":1}"
+      }
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "redirect/302",
+     "body": "{\"a\":1}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 302 Found\r\nContent-Type: application/json\r\nLocation: /got\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+      },
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "redirect",
+      "302"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/admin/redirect/302?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "7"
+        ]
+       ],
+       "body": "{\"a\":1}"
+      },
+      {
+       "method": "GET",
+       "path": "/got",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    },
+    {
+     "method": "DELETE",
+     "path": "redirect/301",
+     "body": "{\"a\":1}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 301 Moved Permanently\r\nContent-Type: application/json\r\nLocation: /kept\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+      },
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "redirect",
+      "301"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "DELETE",
+       "path": "/admin/redirect/301?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "7"
+        ]
+       ],
+       "body": "{\"a\":1}"
+      },
+      {
+       "method": "DELETE",
+       "path": "/kept",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "7"
+        ]
+       ],
+       "body": "{\"a\":1}"
+      }
+     ]
+    },
+    {
+     "method": "DELETE",
+     "path": "redirect/303",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 303 See Other\r\nContent-Type: application/json\r\nLocation: /seen\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+      },
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "redirect",
+      "303"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "DELETE",
+       "path": "/admin/redirect/303?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      },
+      {
+       "method": "GET",
+       "path": "/seen",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a path prefix and trailing slashes",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/chat///",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "http://127.0.0.1:$PORT/chat///",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/chat/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a query in the server URL",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/q?x=1",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "http://127.0.0.1:$PORT/q?x=1",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/q?x=1/admin/bans&client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a fragment in the server URL",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/f#frag",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "http://127.0.0.1:$PORT/f#frag",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/f",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a space before the server URL",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": " http://127.0.0.1:$PORT",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": " http://127.0.0.1:$PORT",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a space after the server URL",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT ",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "http://127.0.0.1:$PORT ",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "threw": "TypeError: Failed to parse URL from http://127.0.0.1:$PORT /admin/bans?client=$CLIENT"
+     }
+    }
+   ]
+  },
+  {
+   "name": "spaces and a tab around the token",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "  a\tb  "
+   },
+   "inlined": "http://127.0.0.1:$PORT/",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "a\tb"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a token that isn't a header value",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "bad\ntoken"
+   },
+   "inlined": "http://127.0.0.1:$PORT/",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "threw": "TypeError: Headers.append: \"bad\ntoken\" is an invalid header value."
+     }
+    }
+   ]
+  },
+  {
+   "name": "electron",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+=",
+    "CLAUDIUS_ELECTRON": "1"
+   },
+   "inlined": "http://127.0.0.1:$PORT/",
+   "client": "claudius/electron-mac:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "CLAUDIUS_ELECTRON=true is the web",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+=",
+    "CLAUDIUS_ELECTRON": "true"
+   },
+   "inlined": "http://127.0.0.1:$PORT/",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}"
+      }
+     ],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "wire": [
+      {
+       "method": "GET",
+       "path": "/admin/bans?client=$CLIENT",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "X-Admin-Token",
+         "s3cret token/+="
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ]
+       ],
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the community turned off",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":false}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 503,
+      "type": "application/json",
+      "body": "{\"error\":\"NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is not set\"}"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "{\"nick\":\"x\"}",
+     "responses": [],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 503,
+      "type": "application/json",
+      "body": "{\"error\":\"NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is not set\"}"
+     }
+    },
+    {
+     "method": "DELETE",
+     "path": "ban/x",
+     "responses": [],
+     "params": [
+      "ban",
+      "x"
+     ],
+     "got": {
+      "status": 503,
+      "type": "application/json",
+      "body": "{\"error\":\"NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is not set\"}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "a server URL of slashes",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "/",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "/",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 503,
+      "type": "application/json",
+      "body": "{\"error\":\"NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is not set\"}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "no token",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/"
+   },
+   "inlined": "http://127.0.0.1:$PORT/",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":false}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 403,
+      "type": "application/json",
+      "body": "{\"error\":\"CLAUDIUS_CHAT_ADMIN_TOKEN is not set on this install\"}"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "{\"nick\":\"x\"}",
+     "responses": [],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "status": 403,
+      "type": "application/json",
+      "body": "{\"error\":\"CLAUDIUS_CHAT_ADMIN_TOKEN is not set on this install\"}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "an empty token",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$PORT/",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": ""
+   },
+   "inlined": "http://127.0.0.1:$PORT/",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":false}"
+   },
+   "steps": [
+    {
+     "method": "DELETE",
+     "path": "ban/x",
+     "responses": [],
+     "params": [
+      "ban",
+      "x"
+     ],
+     "got": {
+      "status": 403,
+      "type": "application/json",
+      "body": "{\"error\":\"CLAUDIUS_CHAT_ADMIN_TOKEN is not set on this install\"}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "neither",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": ""
+   },
+   "inlined": "",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":false}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "status": 503,
+      "type": "application/json",
+      "body": "{\"error\":\"NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL is not set\"}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "a server that refuses",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "http://127.0.0.1:$CLOSED",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "http://127.0.0.1:$CLOSED",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "threw": "TypeError: fetch failed"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "ban",
+     "body": "{\"nick\":\"x\"}",
+     "responses": [],
+     "params": [
+      "ban"
+     ],
+     "got": {
+      "threw": "TypeError: fetch failed"
+     }
+    }
+   ]
+  },
+  {
+   "name": "a server URL that doesn't parse",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "not a url",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "not a url",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "threw": "TypeError: Failed to parse URL from not a url/admin/bans?client=$CLIENT"
+     }
+    }
+   ]
+  },
+  {
+   "name": "a scheme fetch doesn't speak",
+   "env": {
+    "NEXT_PUBLIC_CLAUDIUS_CHAT_SERVER_URL": "ftp://127.0.0.1:$CLOSED",
+    "CLAUDIUS_CHAT_ADMIN_TOKEN": "s3cret token/+="
+   },
+   "inlined": "ftp://127.0.0.1:$CLOSED",
+   "client": "claudius/web:$VERSION",
+   "check": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"configured\":true}"
+   },
+   "steps": [
+    {
+     "method": "GET",
+     "path": "bans",
+     "responses": [],
+     "params": [
+      "bans"
+     ],
+     "got": {
+      "threw": "TypeError: fetch failed"
+     }
+    }
+   ]
+  }
+ ],
+ "clients": [
+  {
+   "electron": null,
+   "platform": "darwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "win32",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "linux",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "freebsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "openbsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "aix",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "sunos",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "android",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": null,
+   "platform": "cygwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "darwin",
+   "client": "claudius/electron-mac:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "win32",
+   "client": "claudius/electron-windows:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "linux",
+   "client": "claudius/electron-linux:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "freebsd",
+   "client": "claudius/electron-freebsd:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "openbsd",
+   "client": "claudius/electron-openbsd:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "aix",
+   "client": "claudius/electron-aix:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "sunos",
+   "client": "claudius/electron-sunos:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "android",
+   "client": "claudius/electron-android:$VERSION"
+  },
+  {
+   "electron": "1",
+   "platform": "cygwin",
+   "client": "claudius/electron-cygwin:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "darwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "win32",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "linux",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "freebsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "openbsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "aix",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "sunos",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "android",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "0",
+   "platform": "cygwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "darwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "win32",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "linux",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "freebsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "openbsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "aix",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "sunos",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "android",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "true",
+   "platform": "cygwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "darwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "win32",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "linux",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "freebsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "openbsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "aix",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "sunos",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "android",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "",
+   "platform": "cygwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "darwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "win32",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "linux",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "freebsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "openbsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "aix",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "sunos",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "android",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": " 1",
+   "platform": "cygwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "darwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "win32",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "linux",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "freebsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "openbsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "aix",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "sunos",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "android",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "1 ",
+   "platform": "cygwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "darwin",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "win32",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "linux",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "freebsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "openbsd",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "aix",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "sunos",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "android",
+   "client": "claudius/web:$VERSION"
+  },
+  {
+   "electron": "yes",
+   "platform": "cygwin",
+   "client": "claudius/web:$VERSION"
+  }
+ ],
+ "clientUrls": [
+  {
+   "url": "http://h/admin/x",
+   "out": "http://h/admin/x?client=claudius%2Fweb%3A$VERSION"
+  },
+  {
+   "url": "http://h/admin/x?y=1",
+   "out": "http://h/admin/x?y=1&client=claudius%2Fweb%3A$VERSION"
+  },
+  {
+   "url": "http://h/a#b?c",
+   "out": "http://h/a#b?c&client=claudius%2Fweb%3A$VERSION"
+  },
+  {
+   "url": "http://h/a?",
+   "out": "http://h/a?&client=claudius%2Fweb%3A$VERSION"
+  },
+  {
+   "url": "",
+   "out": "?client=claudius%2Fweb%3A$VERSION"
+  },
+  {
+   "url": "?",
+   "out": "?&client=claudius%2Fweb%3A$VERSION"
+  },
+  {
+   "url": "http://h/admin/caf%C3%A9",
+   "out": "http://h/admin/caf%C3%A9?client=claudius%2Fweb%3A$VERSION"
+  }
+ ],
+ "releases": [
+  {
+   "name": "not a git repo",
+   "version": "1.2.3",
+   "git": false,
+   "tags": [],
+   "release": "0"
+  },
+  {
+   "name": "no tags",
+   "version": "1.2.3",
+   "tags": [],
+   "release": "0"
+  },
+  {
+   "name": "the highest",
+   "version": "1.2.3",
+   "tags": [
+    "v1.2.3.0",
+    "v1.2.3.4",
+    "v1.2.3.12",
+    "v1.2.3.9",
+    "v1.2.4.99",
+    "v1.2.30.50"
+   ],
+   "release": "12"
+  },
+  {
+   "name": "only whole numbers count",
+   "version": "1.2.3",
+   "tags": [
+    "v1.2.3.x",
+    "v1.2.3.1.5",
+    "v1.2.3.007",
+    "v1.2.3.-1",
+    "v1.2.3",
+    "1.2.3.40",
+    "v1.2.3.5a",
+    "v1.2.3.1e3"
+   ],
+   "release": "7"
+  },
+  {
+   "name": "past 2^53",
+   "version": "1.2.3",
+   "tags": [
+    "v1.2.3.99999999999999999999",
+    "v1.2.3.3"
+   ],
+   "release": "100000000000000000000"
+  },
+  {
+   "name": "an exponent",
+   "version": "1.2.3",
+   "tags": [
+    "v1.2.3.999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+    "v1.2.3.2"
+   ],
+   "release": "1e+240"
+  },
+  {
+   "name": "a prerelease version",
+   "version": "1.0.0-beta.1",
+   "tags": [
+    "v1.0.0-beta.1.3",
+    "v1.0.0-beta.1.10",
+    "v1.0.0-beta.10.99"
+   ],
+   "release": "10"
+  },
+  {
+   "name": "an empty version",
+   "version": "",
+   "tags": [
+    "v.1",
+    "v.2.0"
+   ],
+   "release": "0"
+  }
+ ]
+}

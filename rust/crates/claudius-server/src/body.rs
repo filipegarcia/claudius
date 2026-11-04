@@ -148,6 +148,12 @@ impl JsonBody {
 /// ±Infinity replaced by `with`, or `None` when there is none. Anything that
 /// isn't valid JSON stays as it is, so the parse still fails.
 pub(crate) fn replace_overflowing_numbers(text: &str, with: &str) -> Option<String> {
+    replace_overflowing_signed(text, with, with)
+}
+
+/// [`replace_overflowing_numbers`] with `neg` for a literal that overflows
+/// to -Infinity (`-1e400`).
+pub(crate) fn replace_overflowing_signed(text: &str, with: &str, neg: &str) -> Option<String> {
     let b = text.as_bytes();
     let (mut out, mut copied, mut i) = (String::new(), 0, 0);
     let mut in_string = false;
@@ -171,7 +177,7 @@ pub(crate) fn replace_overflowing_numbers(text: &str, with: &str) -> Option<Stri
             let token = &text[start..i];
             if is_json_number(token) && token.parse::<f64>().is_ok_and(f64::is_infinite) {
                 out.push_str(&text[copied..start]);
-                out.push_str(with);
+                out.push_str(if token.starts_with('-') { neg } else { with });
                 copied = i;
             }
         } else {

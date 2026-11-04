@@ -145,6 +145,38 @@ pub fn is_schedule_wakeup_stop(input: Option<&Value>) -> bool {
     input.and_then(|i| i.get("stop")) == Some(&Value::Bool(true))
 }
 
+/// `WAKEUP_STALE_GRACE_MS`: how long past its fire moment a wake-up still
+/// shows.
+pub const WAKEUP_STALE_GRACE_MS: f64 = 60_000.0;
+
+/// `isStaleWakeup(loop, now)`: a wake-up (with a delay) whose fire moment,
+/// `startedAt + delaySeconds * 1000` in JS doubles, is more than
+/// [`WAKEUP_STALE_GRACE_MS`] before `now`. A cron never is.
+pub fn is_stale_wakeup(l: &SessionLoop, now: f64) -> bool {
+    if l.kind != LoopKind::Wakeup {
+        return false;
+    }
+    let Some(delay) = l.delay_seconds else {
+        return false;
+    };
+    let fire_at = l.started_at as f64 + delay * 1000.0;
+    now > fire_at + WAKEUP_STALE_GRACE_MS
+}
+
+/// `scheduledLoopCancelPrompt(loop)` (`lib/shared/stop-self-paced-loop.ts`):
+/// what the user side sends to have the agent cancel a loop. A cron is
+/// deleted by its id; a self-paced loop is stopped with `ScheduleWakeup`'s
+/// `stop: true`.
+pub fn cancel_prompt(l: &SessionLoop) -> String {
+    match l.kind {
+        LoopKind::Wakeup => "Please stop the self-paced loop by calling `ScheduleWakeup` with `stop: true`. Reply with one short line confirming it's stopped \u{2014} don't run any other tools.".to_owned(),
+        LoopKind::Cron => format!(
+            "Please cancel the scheduled loop with id `{}` by calling `CronDelete` on it. Reply with one short line confirming it's cancelled \u{2014} don't run any other tools.",
+            l.id
+        ),
+    }
+}
+
 /// `/job\s+([a-z0-9]+)\s*\(([^)]+)\)/i` as V8 runs it: `\s` is JS
 /// whitespace (U+FEFF yes, U+0085 no) and, without the `u` flag, case
 /// folding never maps a non-ASCII letter onto ASCII.

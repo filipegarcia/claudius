@@ -143,7 +143,7 @@ impl PermissionResult {
     }
 
     /// Wire form: `{ ...result, toolUseID }` (see `processControlRequest`).
-    pub fn to_wire(&self, tool_use_id: Option<&str>) -> Value {
+    pub fn to_wire(&self, tool_use_id: Option<&Value>) -> Value {
         let mut m = Map::new();
         match self {
             PermissionResult::Allow {
@@ -167,7 +167,7 @@ impl PermissionResult {
             }
         }
         if let Some(id) = tool_use_id {
-            m.insert("toolUseID".into(), json!(id));
+            m.insert("toolUseID".into(), id.clone());
         }
         Value::Object(m)
     }

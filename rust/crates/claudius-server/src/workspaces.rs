@@ -1,8 +1,8 @@
 //! The workspace store's routes: port of `app/api/workspaces/route.ts`
 //! (GET/POST), `reorder/route.ts` (POST), `[id]/route.ts`
-//! (GET/PATCH/DELETE), `[id]/select/route.ts` (POST), `[id]/icon/route.ts`
-//! (GET/POST) and `[id]/roots/route.ts` (GET), over
-//! [`claudius_core::workspaces`].
+//! (GET/PATCH/DELETE), `[id]/select/route.ts` (POST) and
+//! `[id]/icon/route.ts` (GET/POST), over [`claudius_core::workspaces`].
+//! `[id]/roots` is [`crate::workspace_roots`].
 //!
 //! Bodies are read like `await req.json()` (an empty or malformed body is
 //! Next's bare 500) into JS values ([`js_string::parse`], lone surrogates
@@ -42,16 +42,15 @@ pub fn router() -> Router<AppState> {
         )
         .route("/api/workspaces/{id}/select", post(select))
         .route("/api/workspaces/{id}/icon", get(icon_get).post(icon_post))
-        .route("/api/workspaces/{id}/roots", get(roots))
 }
 
-const COOKIE: &str = "claudius.workspace";
-const COOKIE_CUST: &str = "claudius.customization";
+pub(crate) const COOKIE: &str = "claudius.workspace";
+pub(crate) const COOKIE_CUST: &str = "claudius.customization";
 /// `60 * 60 * 24 * 365`.
-const MAX_AGE: i64 = 31_536_000;
+pub(crate) const MAX_AGE: i64 = 31_536_000;
 const MAX_ICON: usize = 2 * 1024 * 1024;
 
-fn json_text(status: StatusCode, body: &Value) -> Response {
+pub(crate) fn json_text(status: StatusCode, body: &Value) -> Response {
     (
         status,
         [(header::CONTENT_TYPE, "application/json")],
@@ -60,7 +59,7 @@ fn json_text(status: StatusCode, body: &Value) -> Response {
         .into_response()
 }
 
-fn with_cookies(mut res: Response, cookies: Vec<String>) -> Response {
+pub(crate) fn with_cookies(mut res: Response, cookies: Vec<String>) -> Response {
     for c in cookies {
         if let Ok(v) = HeaderValue::from_str(&c) {
             res.headers_mut().append(header::SET_COOKIE, v);
@@ -175,14 +174,14 @@ pub fn utc_string(ms: i64) -> String {
 }
 
 /// `cookies().delete(name)`.
-fn deleted_cookie(name: &str) -> String {
+pub(crate) fn deleted_cookie(name: &str) -> String {
     format!("{name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT")
 }
 
 /// The order Next sends modified cookies in: its response cookie jar starts
 /// as a copy of the request's, so a name the request carried keeps that
 /// place; the others follow in the order they were set.
-fn in_next_order(headers: &HeaderMap, modified: Vec<(&str, String)>) -> Vec<String> {
+pub(crate) fn in_next_order(headers: &HeaderMap, modified: Vec<(&str, String)>) -> Vec<String> {
     let names: Vec<String> = request_cookies(headers)
         .into_iter()
         .map(|(n, _)| n)
@@ -608,20 +607,6 @@ async fn icon_post(Path(id): Path<String>, body: Bytes) -> Response {
     match store::write_icon(&id, ext, &buf) {
         Ok(()) => json_text(StatusCode::OK, &json!({"ok": true, "ext": ext})),
         Err(e) => failed("/[id]/icon", e),
-    }
-}
-
-// ---- /api/workspaces/:id/roots ------------------------------------------------
-
-async fn roots(Path(id): Path<String>) -> Response {
-    let ws = match store::get_raw(&id) {
-        Ok(Some(ws)) => ws,
-        Ok(None) => return not_found("workspace not found"),
-        Err(e) => return failed("/[id]/roots", e),
-    };
-    match store::list_workspace_roots(&ws) {
-        Ok(roots) => json_text(StatusCode::OK, &json!({"roots": roots})),
-        Err(e) => failed("/[id]/roots", e),
     }
 }
 

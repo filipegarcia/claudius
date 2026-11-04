@@ -1,0 +1,2243 @@
+{
+ "groups": [
+  {
+   "name": "settings",
+   "steps": [
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\n  \"autoFixPrompt\": \"mine\"\n}",
+     "file": "{\n  \"autoFixPrompt\": \"mine\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20226d696e65220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"mine\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\n  \"autoFixPrompt\": \"\"\n}",
+     "file": "{\n  \"autoFixPrompt\": \"\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\n  \"autoFixPrompt\": \"   \"\n}",
+     "file": "{\n  \"autoFixPrompt\": \"   \"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022202020220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\n  \"autoFixPrompt\": \"\\t\\n 　﻿\"\n}",
+     "file": "{\n  \"autoFixPrompt\": \"\\t\\n 　﻿\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20225c745c6e20e38080efbbbf220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\n  \"autoFixPrompt\": \"\"\n}",
+     "file": "{\n  \"autoFixPrompt\": \"\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022c285220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\n  \"autoFixPrompt\": \"  kept  \"\n}",
+     "file": "{\n  \"autoFixPrompt\": \"  kept  \"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a202220206b6570742020220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"  kept  \",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "null",
+     "file": "null",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:6e756c6c"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "Cannot read properties of null (reading 'autoFixPrompt')"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "[]",
+     "file": "[]",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:5b5d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "\"str\"",
+     "file": "\"str\"",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:2273747222"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "1",
+     "file": "1",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:31"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "true",
+     "file": "true",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:74727565"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{}",
+     "file": "{}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": 5}",
+     "file": "{\"autoFixPrompt\": 5}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a20357d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": null}",
+     "file": "{\"autoFixPrompt\": null}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a206e756c6c7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": [\"a\"]}",
+     "file": "{\"autoFixPrompt\": [\"a\"]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a205b2261225d7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": \"a\", \"extra\": 1, \"__proto__\": {\"x\": 1}}",
+     "file": "{\"autoFixPrompt\": \"a\", \"extra\": 1, \"__proto__\": {\"x\": 1}}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a202261222c20226578747261223a20312c20225f5f70726f746f5f5f223a207b2278223a20317d7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"a\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": \"first\", \"autoFixPrompt\": \"second\"}",
+     "file": "{\"autoFixPrompt\": \"first\", \"autoFixPrompt\": \"second\"}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a20226669727374222c20226175746f46697850726f6d7074223a20227365636f6e64227d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"second\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": \"\\ud800 lone\"}",
+     "file": "{\"autoFixPrompt\": \"\\ud800 lone\"}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a20225c7564383030206c6f6e65227d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"\\ud800 lone\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": \"café 😀\"}",
+     "file": "{\"autoFixPrompt\": \"café 😀\"}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a2022636166c3a920f09f9880227d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"café 😀\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{",
+     "file": "{",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "",
+     "file": "",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "Unexpected end of JSON input"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "﻿{\"autoFixPrompt\": \"bom\"}",
+     "file": "﻿{\"autoFixPrompt\": \"bom\"}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:efbbbf7b226175746f46697850726f6d7074223a2022626f6d227d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "Unexpected token '﻿', \"﻿{\"autoFix\"... is not valid JSON"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "hex": "7b226175746f46697850726f6d7074223a2022ff227d",
+     "file": "{\"autoFixPrompt\": \"�\"}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a2022ff227d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"�\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\"autoFixPrompt\": \"x\", \"n\": 1e400}",
+     "file": "{\"autoFixPrompt\": \"x\", \"n\": 1e400}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b226175746f46697850726f6d7074223a202278222c20226e223a2031653430307d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"x\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$FILE",
+     "file": null,
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "mkdir",
+     "path": "$FILE",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": {
+        "": "755"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "EISDIR: illegal operation on a directory, read"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": \"x\"}",
+     "got": {
+      "threw": "EISDIR: illegal operation on a directory, read"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$FILE",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$CLAUDIUS",
+     "tree": {
+      "": "755"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CLAUDIUS",
+     "text": "not a folder\n",
+     "tree": {
+      "": "755",
+      ".claudius": "644:6e6f74206120666f6c6465720a"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "ENOTDIR: not a directory, open '$ROOT/home/.claude/.claudius/customize-settings.json'"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": \"x\"}",
+     "got": {
+      "threw": "ENOTDIR: not a directory, open '$ROOT/home/.claude/.claudius/customize-settings.json'"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$CLAUDIUS",
+     "tree": {
+      "": "755"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"saved\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"saved\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"saved\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20227361766564220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"saved\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"  \"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"  \"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"  \"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20222020220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"café 😀 \\ud800 lone\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"café 😀 \\ud800 lone\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"café 😀 \\ud800 lone\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022636166c3a920f09f9880205c7564383030206c6f6e65220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"café 😀 \\ud800 lone\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20227878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": \"x\", \"extra\": 1}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"x\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"x\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a202278220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"x\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": 5}",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": null}",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{}",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"other\": \"x\"}",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "null",
+     "got": {
+      "threw": "Cannot read properties of null (reading 'autoFixPrompt')"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "[]",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "[\"x\"]",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "\"str\"",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "1",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "true",
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"autoFixPrompt (string) required\"}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "",
+     "got": {
+      "threw": "Unexpected end of JSON input"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{",
+     "got": {
+      "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": \"x\"",
+     "got": {
+      "threw": "Expected ',' or '}' after property value in JSON at position 21 (line 1 column 22)"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "﻿{\"autoFixPrompt\": \"bom\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"bom\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"bom\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022626f6d220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"bom\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "﻿﻿{\"autoFixPrompt\": \"bom2\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"bom2\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"bom2\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022626f6d32220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"bom2\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "bodyHex": "7b226175746f46697850726f6d7074223a2022ff227d",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"�\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"�\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022efbfbd220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"�\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": \"\\ud800\\ud800\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"\\ud800\\ud800\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"\\ud800\\ud800\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20225c75643830305c7564383030220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"\\ud800\\ud800\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": \"\\ud83d\\ude00\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"😀\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"😀\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022f09f9880220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"😀\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\": \"x\", \"autoFixPrompt\": \"y\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"y\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"y\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a202279220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"y\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$FILE",
+     "mode": 384,
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "600:7b0a2020226175746f46697850726f6d7074223a202279220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"kept 600\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"kept 600\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"kept 600\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "600:7b0a2020226175746f46697850726f6d7074223a20226b65707420363030220a7d"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$FILE",
+     "file": null,
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$ROOT/elsewhere.json",
+     "text": "{\"autoFixPrompt\": \"through the link\"}"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "$FILE",
+     "target": "$ROOT/elsewhere.json",
+     "file": "{\"autoFixPrompt\": \"through the link\"}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "l>$ROOT/elsewhere.json"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"through the link\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"written through\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"written through\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"written through\"\n}"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"written through\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$FILE",
+     "file": null,
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$ROOT/elsewhere.json"
+    },
+    {
+     "op": "fs",
+     "act": "symlink",
+     "path": "$FILE",
+     "target": "$ROOT/nowhere.json",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "l>$ROOT/nowhere.json"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"dangling\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"dangling\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"dangling\"\n}"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"dangling\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$CLAUDE",
+     "file": null,
+     "tree": null
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"fresh\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"fresh\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"fresh\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20226672657368220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"fresh\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "perms",
+   "perms": true,
+   "steps": [
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$FILE",
+     "text": "{\n  \"autoFixPrompt\": \"mine\"\n}",
+     "file": "{\n  \"autoFixPrompt\": \"mine\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20226d696e65220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"mine\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$FILE",
+     "mode": 0,
+     "file": null,
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "f!"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customize-settings.json'"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"x\"}",
+     "got": {
+      "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customize-settings.json'"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$FILE",
+     "mode": 256,
+     "file": "{\n  \"autoFixPrompt\": \"mine\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "400:7b0a2020226175746f46697850726f6d7074223a20226d696e65220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"mine\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"read-only file\"}",
+     "got": {
+      "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customize-settings.json'"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$FILE",
+     "mode": 420,
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20226d696e65220a7d"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$CLAUDIUS",
+     "mode": 320,
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "500",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20226d696e65220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"mine\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"read-only folder\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"read-only folder\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"read-only folder\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "500",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022726561642d6f6e6c7920666f6c646572220a7d"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$CLAUDIUS",
+     "mode": 0,
+     "file": null,
+     "tree": {
+      "": "755",
+      ".claudius": "d!"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customize-settings.json'"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"shut folder\"}",
+     "got": {
+      "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customize-settings.json'"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$CLAUDIUS",
+     "mode": 493,
+     "file": "{\n  \"autoFixPrompt\": \"read-only folder\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a2022726561642d6f6e6c7920666f6c646572220a7d"
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$CLAUDIUS",
+     "file": null,
+     "tree": {
+      "": "755"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$CLAUDE",
+     "mode": 320,
+     "tree": {
+      "": "500"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"unwritable parent\"}",
+     "got": {
+      "threw": "EACCES: permission denied, mkdir '$ROOT/home/.claude/.claudius'"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "chmod",
+     "path": "$CLAUDE",
+     "mode": 493,
+     "tree": {
+      "": "755"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"$DEFAULT\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "PUT",
+     "body": "{\"autoFixPrompt\":\"open again\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"open again\"}"
+     },
+     "file": "{\n  \"autoFixPrompt\": \"open again\"\n}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customize-settings.json": "644:7b0a2020226175746f46697850726f6d7074223a20226f70656e20616761696e220a7d"
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize-settings",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"autoFixPrompt\":\"open again\",\"defaults\":{\"autoFixPrompt\":\"$DEFAULT\"}}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "runtime",
+   "steps": [
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"A\"}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161222c226e616d65223a2241227d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": ""
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": " \t\n　﻿"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": ""
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$ROOT/project"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\".claudius\",\"name\":null}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\".claudius\",\"name\":null}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/cust_aaaaaaaaaaaa"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"customizations\",\"name\":null}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/cust_aaaaaaaaaaaa/src"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":\"A\"}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/cust_aaaaaaaaaaaa/src/"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":\"A\"}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/cust_aaaaaaaaaaaa/src/deep/er"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"deep\",\"name\":null}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/../outside/src"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"outside\",\"name\":null}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/cust_é/src"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_é\",\"name\":null}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUSTx/cust_aaaaaaaaaaaa/src"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "customizations/cust_aaaaaaaaaaaa/src"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$ROOT/HOME/.claude/.claudius/customizations/cust_aaaaaaaaaaaa/src"
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":false}"
+     }
+    },
+    {
+     "op": "live",
+     "value": "$CUST/cust_aaaaaaaaaaaa/src"
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\"}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161227d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":null}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":null}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161222c226e616d65223a6e756c6c7d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":null}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":5}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161222c226e616d65223a357d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":5}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":{\"x\":1}}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161222c226e616d65223a7b2278223a317d7d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":{\"x\":1}}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"\"}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161222c226e616d65223a22227d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":\"\"}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\": 1, \"customizations\": [{\"id\": \"cust_aaaaaaaaaaaa\", \"name\": \"\\ud800\"}], \"publishes\": []}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a20312c2022637573746f6d697a6174696f6e73223a205b7b226964223a2022637573745f616161616161616161616161222c20226e616d65223a20225c7564383030227d5d2c20227075626c6973686573223a205b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":\"\\ud800\"}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"first\"},{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"second\"}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161222c226e616d65223a226669727374227d2c7b226964223a22637573745f616161616161616161616161222c226e616d65223a227365636f6e64227d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":\"first\"}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[null,{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"after a null\"}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b6e756c6c2c7b226964223a22637573745f616161616161616161616161222c226e616d65223a2261667465722061206e756c6c227d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":null}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\": 2, \"customizations\": [{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"A\"}], \"publishes\": []}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a20322c2022637573746f6d697a6174696f6e73223a205b7b226964223a22637573745f616161616161616161616161222c226e616d65223a2241227d5d2c20227075626c6973686573223a205b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":null}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":null}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$CUST/index.json",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":null}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "mkdir",
+     "path": "$CUST/index.json",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": {
+         "": "755"
+        }
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":null}"
+     }
+    },
+    {
+     "op": "fs",
+     "act": "rm",
+     "path": "$CUST/index.json",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755"
+       }
+      }
+     }
+    },
+    {
+     "op": "fs",
+     "act": "write",
+     "path": "$CUST/index.json",
+     "text": "{\"version\":1,\"customizations\":[{\"id\":\"cust_aaaaaaaaaaaa\",\"name\":\"A\"}],\"publishes\":[]}",
+     "tree": {
+      "": "755",
+      ".claudius": {
+       "": "755",
+       "customizations": {
+        "": "755",
+        "index.json": "644:7b2276657273696f6e223a312c22637573746f6d697a6174696f6e73223a5b7b226964223a22637573745f616161616161616161616161222c226e616d65223a2241227d5d2c227075626c6973686573223a5b5d7d"
+       }
+      }
+     }
+    },
+    {
+     "op": "req",
+     "url": "/api/customize/runtime",
+     "method": "GET",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"isPreview\":true,\"customizationId\":\"cust_aaaaaaaaaaaa\",\"name\":\"A\"}"
+     }
+    }
+   ]
+  }
+ ]
+}

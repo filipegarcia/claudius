@@ -1,7 +1,6 @@
 //! `~/.claude/.claudius/workspaces.json`: port of
-//! `lib/server/workspaces-store.ts`, plus the `listWorkspaceRoots` half of
-//! `lib/server/workspace-roots.ts` that `GET /api/workspaces/:id/roots`
-//! needs.
+//! `lib/server/workspaces-store.ts`. The roots a workspace shows
+//! (`workspace-roots.ts`) are [`crate::workspace_roots`].
 //!
 //! The store is kept as the JSON value TS works on, not a typed struct, so
 //! everything a file holds survives a read-modify-write exactly as
@@ -163,7 +162,7 @@ fn member_id(w: &Value) -> anyhow::Result<Option<&Value>> {
 
 /// `a === b` for JSON values (`a` may be `undefined`): objects and arrays
 /// are distinct references, never equal.
-fn strict_eq(a: Option<&Value>, b: &Value) -> bool {
+pub(crate) fn strict_eq(a: Option<&Value>, b: &Value) -> bool {
     match (a, b) {
         (Some(Value::Null), Value::Null) => true,
         (Some(Value::Bool(x)), Value::Bool(y)) => x == y,
@@ -622,89 +621,6 @@ pub fn write_icon(id: &str, ext: &str, bytes: &[u8]) -> anyhow::Result<()> {
     }
     std::fs::write(lossy(&target).as_ref(), bytes)
         .with_context(|| format!("open '{}'", lossy(&target)))
-}
-
-// ---- workspace roots ----------------------------------------------------------
-
-/// `listWorkspaceRoots(ws)`: `primary` (`resolve(ws.rootPath)`), then each
-/// non-blank string of `ws.defaults?.additionalDirectories` (an array, or a
-/// string's code points), then of the project `settings.json`'s
-/// `permissions.additionalDirectories` (an array), resolved against the
-/// process cwd and deduped, as `{id, absPath, source}` with ids `extra:<n>`.
-/// A non-string `rootPath` or a non-iterable workspace list throws; any
-/// failure reading the settings (no file is `{}`; a directory, bad JSON, a
-/// `null` file, a primary `"/"` or with a NUL that `assertWithin` rejects)
-/// just skips them.
-pub fn list_workspace_roots(ws: &Value) -> anyhow::Result<Vec<Value>> {
-    let Some(root_path) = ws.get("rootPath").and_then(Value::as_str) else {
-        bail!("The \"paths[0]\" argument must be of type string");
-    };
-    let primary = node_path::resolve(&[root_path]);
-    let mut out = vec![json!({"id": "primary", "absPath": primary, "source": "primary"})];
-    let mut seen = vec![primary.clone()];
-    let mut add = |raw: &Value, source: &str, out: &mut Vec<Value>| {
-        let Some(raw) = raw
-            .as_str()
-            .filter(|s| !claudius_agent::js::trim(s).is_empty())
-        else {
-            return;
-        };
-        let abs = node_path::resolve(&[raw]);
-        if seen.contains(&abs) {
-            return;
-        }
-        seen.push(abs.clone());
-        let id = format!("extra:{}", out.len() - 1);
-        out.push(json!({"id": id, "absPath": abs, "source": source}));
-    };
-    let from_workspace = match ws.get("defaults") {
-        Some(Value::Object(d)) => d.get("additionalDirectories").filter(|v| !v.is_null()),
-        _ => None,
-    };
-    match from_workspace {
-        None => {}
-        Some(Value::Array(items)) => {
-            for raw in items {
-                add(raw, "workspace", &mut out);
-            }
-        }
-        Some(Value::String(s)) => {
-            for raw in js_string::code_points(s) {
-                add(&Value::String(raw), "workspace", &mut out);
-            }
-        }
-        Some(_) => bail!("fromWorkspace is not iterable"),
-    }
-    for raw in &project_additional_dirs(&primary) {
-        add(raw, "settings", &mut out);
-    }
-    Ok(out)
-}
-
-/// `readSettings("project", primary).permissions?.additionalDirectories`
-/// when it is an array; none where it isn't or the TS `try` catches.
-fn project_additional_dirs(primary: &str) -> Vec<Value> {
-    // `pathFor` → `assertWithin(primary, ".claude/settings.json")`.
-    if primary.contains('\0') {
-        return Vec::new();
-    }
-    let target = node_path::resolve(&[primary, ".claude/settings.json"]);
-    if !target.starts_with(&format!("{primary}/")) {
-        return Vec::new();
-    }
-    let Ok(bytes) = std::fs::read(lossy(&target).as_ref()) else {
-        return Vec::new();
-    };
-    let Ok(settings) = js_string::parse(&String::from_utf8_lossy(&bytes)) else {
-        return Vec::new();
-    };
-    match settings
-        .get("permissions")
-        .and_then(|p| p.get("additionalDirectories"))
-    {
-        Some(Value::Array(a)) => a.clone(),
-        _ => Vec::new(),
-    }
 }
 
 // ---- typed API for the session code ---------------------------------------------

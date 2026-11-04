@@ -152,7 +152,10 @@ impl World {
 
 /// The `claudius` binary on a free port with the fake CLI (`--no-next`).
 /// `RUST_LOG`, `CLAUDIUS_DEBUG_SESSIONS`, `NODE_ENV`, `CLAUDIUS_DEV` and
-/// `CLAUDIUS_SCHEDULER` are removed unless given in `env`.
+/// `CLAUDIUS_SCHEDULER` are removed unless given in `env`, and so is a parent
+/// Claude session's environment (`CLAUDE_*`, `CLAUDECODE`, `__NEXT_PRIVATE_*`,
+/// `CLAUDIUS_PACKAGED`, `CLAUDIUS_ELECTRON`, as `rust/scripts/clean-env.sh`
+/// strips it), so the CLI env a test sees doesn't depend on where it runs.
 pub struct Server {
     pub child: Child,
     pub port: u16,
@@ -162,6 +165,17 @@ impl Server {
     pub fn spawn(world: &World, env: &[(&str, &str)]) -> Server {
         let port = free_port();
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+        for (k, _) in std::env::vars_os() {
+            let k = k.to_string_lossy();
+            if k.starts_with("CLAUDE_")
+                || k == "CLAUDECODE"
+                || k.starts_with("__NEXT_PRIVATE_")
+                || k == "CLAUDIUS_PACKAGED"
+                || k == "CLAUDIUS_ELECTRON"
+            {
+                cmd.env_remove(&*k);
+            }
+        }
         cmd.args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
             .arg(fake_bin())
             .current_dir(&world.project)

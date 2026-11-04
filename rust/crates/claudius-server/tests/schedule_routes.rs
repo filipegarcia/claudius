@@ -23,9 +23,10 @@
 //! Everything else is compared as text, and JSON text must be what
 //! `JSON.stringify` writes for it.
 //!
-//! The rest checks who answers: only a server that runs the scheduler, so a
-//! job is armed, re-armed and run by the one scheduler that's running; else
-//! Next does (or, without one, nobody).
+//! The rest checks who answers: only a server that runs the scheduler (G07c's
+//! run stream too), so a job is armed, re-armed and run by the one scheduler
+//! that's running; else Next does (or, without one, nobody). G07c's
+//! `session-loops` (+ `cancel`) are answered here either way.
 
 mod common;
 
@@ -954,15 +955,34 @@ const OWNED: [(&str, &str, &str); 6] = [
     ("GET", "/api/schedule/j/runs?limit=2", ""),
 ];
 const DELETE: (&str, &str, &str) = ("DELETE", "/api/schedule/j", "");
-/// G07c's, still Next's: `session-loops` would be `{id}` otherwise.
-const NEXTS: [(&str, &str, &str); 3] = [
-    ("GET", "/api/schedule/session-loops", ""),
+/// G07c's run stream: the scheduler's too (`schedule_stream.rs` replays it).
+const STREAM: (&str, &str, &str) = ("GET", "/api/schedule/j/runs/r1/stream", "");
+/// G07c's `session-loops` (+ `cancel`), with their answers: live sessions
+/// are this process's, so it answers them either way (`schedule_stream.rs`
+/// replays them).
+const LIVE: [((&str, &str, &str), u16, &str); 2] = [
     (
-        "POST",
-        "/api/schedule/session-loops/cancel",
-        r#"{"loopId":"l"}"#,
+        ("GET", "/api/schedule/session-loops", ""),
+        200,
+        r#"{"loops":[]}"#,
     ),
-    ("GET", "/api/schedule/j/runs/r1/stream", ""),
+    (
+        (
+            "POST",
+            "/api/schedule/session-loops/cancel",
+            r#"{"loopId":"l"}"#,
+        ),
+        400,
+        r#"{"ok":false,"error":"sessionId and loopId required"}"#,
+    ),
+];
+/// Methods those two don't export: axum's empty 405 here, as Next's, never
+/// forwarded (nor taken by `{id}`).
+const UNEXPORTED: [(&str, &str, &str); 4] = [
+    ("POST", "/api/schedule/session-loops", "{}"),
+    ("DELETE", "/api/schedule/session-loops", ""),
+    ("GET", "/api/schedule/session-loops/cancel", ""),
+    ("PATCH", "/api/schedule/session-loops/cancel", "{}"),
 ];
 
 fn seeded(fx: &Value) -> (World, PathBuf) {
@@ -979,6 +999,25 @@ fn call(port: u16, (method, url, body): (&str, &str, &str)) -> Got {
         url,
         (!body.is_empty()).then_some(body.as_bytes()),
     )
+}
+
+fn answers_live(port: u16) {
+    for (req, status, body) in LIVE {
+        let got = call(port, req);
+        assert_eq!(
+            (got.status, got.ctype.as_deref(), got.body.as_str()),
+            (status, Some("application/json"), body),
+            "{req:?}"
+        );
+    }
+    for req in UNEXPORTED {
+        let got = call(port, req);
+        assert_eq!(
+            (got.status, got.ctype.as_deref(), got.body.as_str()),
+            (405, None, ""),
+            "{req:?}"
+        );
+    }
 }
 
 fn forwarded(up: &Upstream, port: u16, req: (&str, &str, &str)) {
@@ -1000,10 +1039,11 @@ fn next_answers_them_while_it_runs_the_scheduler() {
     let before = std::fs::read(&file).unwrap();
     let up = upstream();
     let server = world.spawn(&fake(), false, Some(up.port));
-    for req in OWNED.into_iter().chain([DELETE]).chain(NEXTS) {
+    for req in OWNED.into_iter().chain([DELETE, STREAM]) {
         forwarded(&up, server.port, req);
     }
-    assert_eq!(up.seen.lock().unwrap().len(), 10);
+    answers_live(server.port);
+    assert_eq!(up.seen.lock().unwrap().len(), 8);
     // Nothing armed, saved or run here.
     assert_eq!(std::fs::read(&file).unwrap(), before);
     assert!(!world.sched().join("jobs").exists());
@@ -1037,11 +1077,23 @@ fn with_the_scheduler_it_answers_them() {
     assert_eq!(stored["jobs"][0]["lastStatus"], "success");
     assert_eq!(stored["jobs"].as_array().unwrap().len(), 2);
     assert_eq!(call(port, DELETE).body, r#"{"ok":true}"#);
+    answers_live(port);
+    // The stream: an unknown run, then the marker at the first check.
+    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    send(&mut s, STREAM.0, STREAM.1, None);
+    let mut raw = String::new();
+    s.read_to_string(&mut raw).unwrap();
+    assert!(raw.starts_with("HTTP/1.1 200 OK\r\n"), "{raw}");
+    assert!(
+        raw.contains("\r\ncontent-type: text/event-stream\r\n"),
+        "{raw}"
+    );
+    assert!(
+        raw.contains(r#"data: {"type":"error","message":"run_not_live"}"#)
+            && raw.contains(r#"data: {"type":"ready","sessionId":"r1:done"}"#),
+        "{raw}"
+    );
     assert!(up.seen.lock().unwrap().is_empty());
-    for req in NEXTS {
-        forwarded(&up, port, req);
-    }
-    assert_eq!(up.seen.lock().unwrap().len(), 3);
     drop(server);
 }
 
@@ -1051,7 +1103,7 @@ fn without_next_or_the_scheduler_nobody_does() {
     let (world, file) = seeded(&fx);
     let before = std::fs::read(&file).unwrap();
     let server = world.spawn(&fake(), false, None);
-    for req in OWNED.into_iter().chain([DELETE]).chain(NEXTS) {
+    for req in OWNED.into_iter().chain([DELETE, STREAM]) {
         let got = call(server.port, req);
         assert_eq!(
             (got.status, got.body.as_str()),
@@ -1059,6 +1111,7 @@ fn without_next_or_the_scheduler_nobody_does() {
             "{req:?}"
         );
     }
+    answers_live(server.port);
     assert_eq!(std::fs::read(&file).unwrap(), before);
     assert!(!world.sched().join("jobs").exists());
     drop(server);

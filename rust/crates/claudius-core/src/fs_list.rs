@@ -9,8 +9,10 @@
 //! folder (`~/Desktop`, `~/Documents`, …; the folder itself is still listed)
 //! and drops `~/Library/Containers` and `~/Library/Group Containers`
 //! ([`crate::tcc_protected`]). Symlinks are neither files nor directories to
-//! it, so they're never listed or followed. An unreadable directory is
-//! skipped silently.
+//! it, so they're never listed or followed. An unreadable sub-directory is
+//! skipped silently, but an unreadable *root* fails the walk (CC 2.1.301: a
+//! failed search, not an empty folder — the route words it `Search failed:`
+//! and answers 403 / 500).
 //!
 //! Order is node's: `readdir` comes back sorted by raw bytes (libuv's
 //! `scandir` sorts with `strcmp`), the queue is FIFO, and the scored list is
@@ -68,26 +70,50 @@ pub struct Dirent {
 /// symlink (an unknown type is `lstat`ed, and a failure there fails the
 /// whole read, as in node).
 pub fn read_dir(path: &str) -> std::io::Result<Vec<Dirent>> {
-    let mut raw: Vec<(Vec<u8>, DirentKind)> = Vec::new();
+    Ok(read_dir_typed(path)?
+        .into_iter()
+        .map(|(name, t)| Dirent {
+            name,
+            kind: match t {
+                EntryType::Dir => DirentKind::Dir,
+                EntryType::File => DirentKind::File,
+                EntryType::Symlink | EntryType::Other => DirentKind::Other,
+            },
+        })
+        .collect())
+}
+
+/// What a `Dirent` says an entry is, a symlink told apart from the other
+/// kinds (`isSymbolicLink()`), whatever it points at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryType {
+    Dir,
+    File,
+    Symlink,
+    Other,
+}
+
+/// [`read_dir`] with [`EntryType`]s: `(name, type)` in libuv's order.
+pub fn read_dir_typed(path: &str) -> std::io::Result<Vec<(String, EntryType)>> {
+    let mut raw: Vec<(Vec<u8>, EntryType)> = Vec::new();
     for entry in std::fs::read_dir(path)? {
         let entry = entry?;
         let t = entry.file_type()?;
         let kind = if t.is_dir() {
-            DirentKind::Dir
+            EntryType::Dir
         } else if t.is_file() {
-            DirentKind::File
+            EntryType::File
+        } else if t.is_symlink() {
+            EntryType::Symlink
         } else {
-            DirentKind::Other
+            EntryType::Other
         };
         raw.push((name_bytes(&entry.file_name()), kind));
     }
     raw.sort_by(|a, b| a.0.cmp(&b.0));
     Ok(raw
         .into_iter()
-        .map(|(name, kind)| Dirent {
-            name: String::from_utf8_lossy(&name).into_owned(),
-            kind,
-        })
+        .map(|(name, kind)| (String::from_utf8_lossy(&name).into_owned(), kind))
         .collect())
 }
 
@@ -148,8 +174,15 @@ pub fn home() -> &'static str {
 }
 
 /// `walk(root, { max, maxDepth })` with fs-list.ts's `HOME` and
-/// `process.platform` passed in.
-fn walk(root: &str, home: &str, platform: &str, max: usize, max_depth: usize) -> Vec<FsEntry> {
+/// `process.platform` passed in. `Err` is the `readdir` error of `root`
+/// itself; a sub-directory's is swallowed.
+fn walk(
+    root: &str,
+    home: &str,
+    platform: &str,
+    max: usize,
+    max_depth: usize,
+) -> std::io::Result<Vec<FsEntry>> {
     let mut out: Vec<FsEntry> = Vec::new();
     let mut queue: VecDeque<(String, usize)> = VecDeque::from([(root.to_owned(), 0)]);
     while out.len() < max {
@@ -159,8 +192,10 @@ fn walk(root: &str, home: &str, platform: &str, max: usize, max_depth: usize) ->
         // Whether this node is already inside a TCC category: a child is
         // only refused when it would *cross* into one.
         let parent_category = categorize_tcc_path(&abs, home, platform);
-        let Ok(entries) = read_dir(&abs) else {
-            continue;
+        let entries = match read_dir(&abs) {
+            Ok(entries) => entries,
+            Err(e) if abs == root => return Err(e),
+            Err(_) => continue,
         };
         for ent in entries {
             if out.len() >= max {
@@ -204,7 +239,7 @@ fn walk(root: &str, home: &str, platform: &str, max: usize, max_depth: usize) ->
             }
         }
     }
-    out
+    Ok(out)
 }
 
 /// `Array.prototype.slice(0, end)`'s end for a JS number `end`
@@ -261,19 +296,25 @@ fn score(hay: &[u16], q: &[u16]) -> Option<f64> {
 }
 
 /// `listFs({ cwd, query, limit })` with this process's `HOME` and platform.
-pub fn list_fs(cwd: &str, query: &str, limit: f64) -> Vec<FsEntry> {
+pub fn list_fs(cwd: &str, query: &str, limit: f64) -> std::io::Result<Vec<FsEntry>> {
     list_fs_in(home(), crate::tcc_protected::platform(), cwd, query, limit)
 }
 
 /// [`list_fs`] with fs-list.ts's `HOME` and `process.platform` given.
-pub fn list_fs_in(home: &str, platform: &str, cwd: &str, query: &str, limit: f64) -> Vec<FsEntry> {
+pub fn list_fs_in(
+    home: &str,
+    platform: &str,
+    cwd: &str,
+    query: &str,
+    limit: f64,
+) -> std::io::Result<Vec<FsEntry>> {
     let root = resolve(&[cwd]);
     // Always walk broadly; `limit` only applies after scoring.
-    let mut all = walk(&root, home, platform, MAX_ENTRIES, MAX_DEPTH);
+    let mut all = walk(&root, home, platform, MAX_ENTRIES, MAX_DEPTH)?;
     let q = js::trim(query).to_lowercase();
     if q.is_empty() {
         all.truncate(js_slice_end(all.len(), limit));
-        return all;
+        return Ok(all);
     }
     let q: Vec<u16> = q.encode_utf16().collect();
     let mut scored: Vec<(FsEntry, f64)> = all
@@ -286,7 +327,7 @@ pub fn list_fs_in(home: &str, platform: &str, cwd: &str, query: &str, limit: f64
     // `(a, b) => b.score - a.score`, stable.
     scored.sort_by(|a, b| b.1.total_cmp(&a.1));
     let end = js_slice_end(scored.len(), limit);
-    scored.into_iter().take(end).map(|(e, _)| e).collect()
+    Ok(scored.into_iter().take(end).map(|(e, _)| e).collect())
 }
 
 #[cfg(test)]

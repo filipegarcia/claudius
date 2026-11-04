@@ -13,6 +13,7 @@ use rusqlite::{OptionalExtension, params};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
+use crate::asset_list::Cell;
 use crate::db::{Mode, open_db};
 use crate::{js_num, now_ms, paths};
 
@@ -26,15 +27,17 @@ pub struct SessionGoal {
     pub achieved_at: Option<i64>,
 }
 
+/// A `sessions` row as `listIndexedSessions` hands it to JS: each column as
+/// stored ([`Cell`]; a foreign writer's BLOB id is a `Buffer`, a NULL `null`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionRow {
-    pub id: String,
-    pub cwd: String,
-    pub title: Option<String>,
-    pub model: Option<String>,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub last_seen_at: i64,
+    pub id: Cell,
+    pub cwd: Cell,
+    pub title: Cell,
+    pub model: Cell,
+    pub created_at: Cell,
+    pub updated_at: Cell,
+    pub last_seen_at: Cell,
 }
 
 /// `upsertSession` — title is only written on INSERT; model is COALESCEd.
@@ -77,26 +80,26 @@ pub fn touch_session(cwd: &str, id: &str) -> anyhow::Result<()> {
 /// `session-titles.json` entry ([`read_legacy_title`]), copied into the row
 /// (best effort: only `title` on an existing row, a new row stamped now) and
 /// returned untrimmed. Fails when the database can't be opened or read, and
-/// on a BLOB title (TS hands back a `Buffer`).
+/// on a BLOB title (TS hands back a `Buffer`; see [`get_session_title_cell`]).
 pub fn get_session_title(cwd: &str, id: &str) -> anyhow::Result<Option<String>> {
+    match get_session_title_cell(cwd, id)? {
+        None => Ok(None),
+        Some(Cell::Text(t)) => Ok(Some(t)),
+        Some(_) => anyhow::bail!("the title is not a string"),
+    }
+}
+
+/// [`get_session_title`] as JS gets it: a truthy title as stored (a BLOB is
+/// a `Buffer`), else the legacy entry as a string.
+pub fn get_session_title_cell(cwd: &str, id: &str) -> anyhow::Result<Option<Cell>> {
     let db = open_db(cwd, Mode::ReadWrite)?;
-    let t: Option<Option<String>> = db.with(|c| {
-        c.query_row(
-            "SELECT title FROM sessions WHERE id = ?",
-            [id],
-            |r| match r.get_ref(0)? {
-                ValueRef::Null => Ok(None),
-                ValueRef::Text(b) => Ok(Some(String::from_utf8_lossy(b).into_owned())),
-                v => Err(rusqlite::Error::InvalidColumnType(
-                    0,
-                    "title".into(),
-                    v.data_type(),
-                )),
-            },
-        )
+    let t: Option<Cell> = db.with(|c| {
+        c.query_row("SELECT title FROM sessions WHERE id = ?", [id], |r| {
+            Ok(Cell::read(r.get_ref(0)?))
+        })
         .optional()
     })?;
-    if let Some(t) = t.flatten().filter(|s| !s.is_empty()) {
+    if let Some(t) = t.filter(Cell::truthy) {
         return Ok(Some(t));
     }
     let Some(legacy) = read_legacy_title(id) else {
@@ -111,7 +114,7 @@ pub fn get_session_title(cwd: &str, id: &str) -> anyhow::Result<Option<String>> 
             params![id, cwd, legacy, now, now, now],
         )
     });
-    Ok(Some(legacy))
+    Ok(Some(Cell::Text(legacy)))
 }
 
 /// `~/.claude/.claudius/session-titles.json`: the cross-cwd title store that
@@ -171,10 +174,29 @@ fn legacy_member(titles: &Value, id: &str) -> Option<String> {
 pub fn get_session_titles_by_cwd(
     pairs: &[(Option<&str>, &str)],
 ) -> anyhow::Result<indexmap::IndexMap<String, String>> {
-    let mut by_cwd: indexmap::IndexMap<&str, Vec<&str>> = indexmap::IndexMap::new();
-    let mut no_cwd: Vec<&str> = Vec::new();
+    let ids: Vec<Cell> = pairs
+        .iter()
+        .map(|&(_, id)| Cell::Text(id.to_owned()))
+        .collect();
+    let pairs: Vec<(Option<&str>, &Cell)> = pairs
+        .iter()
+        .zip(&ids)
+        .map(|(&(cwd, _), id)| (cwd, id))
+        .collect();
+    get_session_titles_by_cwd_cells(&pairs)
+}
+
+/// [`get_session_titles_by_cwd`] for ids as JS holds them (`/api/sessions/all`
+/// passes the ids of DB-only rows, which can be `null` or a `Buffer`): a
+/// falsy id is skipped, the others are bound as they are (a `Buffer` as a
+/// BLOB) and keyed by their `String()`.
+pub fn get_session_titles_by_cwd_cells(
+    pairs: &[(Option<&str>, &Cell)],
+) -> anyhow::Result<indexmap::IndexMap<String, String>> {
+    let mut by_cwd: indexmap::IndexMap<&str, Vec<&Cell>> = indexmap::IndexMap::new();
+    let mut no_cwd: Vec<&Cell> = Vec::new();
     for &(cwd, id) in pairs {
-        if id.is_empty() {
+        if !id.truthy() {
             continue;
         }
         match cwd.filter(|c| !c.is_empty()) {
@@ -195,9 +217,9 @@ pub fn get_session_titles_by_cwd(
                 _ => None,
             };
             let Some(root) = root else { continue };
-            let still_missing: Vec<&str> = no_cwd
+            let still_missing: Vec<&Cell> = no_cwd
                 .iter()
-                .filter(|id| !out.contains_key(&format!("*:{id}")))
+                .filter(|id| !out.contains_key(&format!("*:{}", id.to_js_string())))
                 .copied()
                 .collect();
             if still_missing.is_empty() {
@@ -213,9 +235,10 @@ pub fn get_session_titles_by_cwd(
         return Ok(out);
     };
     for &(cwd, id) in pairs {
-        if id.is_empty() {
+        if !id.truthy() {
             continue;
         }
+        let id = id.to_js_string();
         let key = match cwd.filter(|c| !c.is_empty()) {
             Some(cwd) => format!("{cwd}:{id}"),
             None => format!("*:{id}"),
@@ -223,7 +246,7 @@ pub fn get_session_titles_by_cwd(
         if out.contains_key(&key) {
             continue;
         }
-        match legacy_property(&legacy, id) {
+        match legacy_property(&legacy, &id) {
             LegacyProperty::Own(Value::String(t)) => {
                 if !js::trim(t).is_empty() {
                     out.insert(key, t.clone());
@@ -244,7 +267,7 @@ pub fn get_session_titles_by_cwd(
 /// read-only handle (no handle: nothing). The first title per key wins.
 fn probe_titles(
     cwd: &str,
-    ids: &[&str],
+    ids: &[&Cell],
     out: &mut indexmap::IndexMap<String, String>,
     unkeyed: bool,
 ) -> anyhow::Result<()> {
@@ -467,6 +490,8 @@ pub fn set_goal_achieved(cwd: &str, id: &str, summary: &str) -> anyhow::Result<S
     })?)
 }
 
+/// `getSessionState`: the session's JSON state bag as `JSON.parse` reads
+/// it; empty without a row, a state, or when it isn't an object.
 pub fn get_session_state(cwd: &str, id: &str) -> Map<String, Value> {
     let Ok(db) = open_db(cwd, Mode::ReadWrite) else {
         return Map::new();
@@ -479,21 +504,21 @@ pub fn get_session_state(cwd: &str, id: &str) -> Map<String, Value> {
             .optional()
         })
         .unwrap_or(None);
-    match raw
-        .flatten()
-        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
-    {
+    match raw.flatten().and_then(|s| js::json_parse(&s).ok()) {
         Some(Value::Object(m)) => m,
         _ => Map::new(),
     }
 }
 
+/// `mergeSessionState`: shallow-merge `patch` into the state bag, written as
+/// `JSON.stringify` writes it (array-index keys first, JS number text).
 pub fn merge_session_state(cwd: &str, id: &str, patch: Map<String, Value>) -> anyhow::Result<()> {
     let mut current = get_session_state(cwd, id);
     for (k, v) in patch {
         current.insert(k, v);
     }
-    let next = serde_json::to_string(&Value::Object(current))?;
+    // `JSON.stringify({ ...current, ...patch })`.
+    let next = js::stringify(&Value::Object(current));
     let db = open_db(cwd, Mode::ReadWrite)?;
     let now = now_ms();
     db.with(|c| {
@@ -509,25 +534,58 @@ pub fn merge_session_state(cwd: &str, id: &str, patch: Map<String, Value>) -> an
     Ok(())
 }
 
+/// `listIndexedSessions(cwd)`: the rows recorded for `cwd`, newest
+/// `updated_at` first, from the read-only handle (one that won't open:
+/// none). A failed query (a database without the `sessions` table) is an
+/// error, with SQLite's message.
 pub fn list_indexed_sessions(cwd: &str) -> anyhow::Result<Vec<SessionRow>> {
-    let db = open_db(cwd, Mode::ReadWrite)?;
-    Ok(db.with(|c| {
+    let Ok(db) = open_db(cwd, Mode::ReadOnly) else {
+        return Ok(vec![]);
+    };
+    db.with(|c| {
         let mut st = c.prepare(
-            "SELECT id, cwd, title, model, created_at, updated_at, last_seen_at FROM sessions ORDER BY updated_at DESC",
+            "SELECT id, cwd, title, model, created_at, updated_at, last_seen_at
+             FROM sessions WHERE cwd = ? ORDER BY updated_at DESC",
         )?;
-        let rows = st.query_map([], |r| {
+        let rows = st.query_map([cwd], |r| {
+            let cell = |i| r.get_ref(i).map(Cell::read);
             Ok(SessionRow {
-                id: r.get(0)?,
-                cwd: r.get(1)?,
-                title: r.get(2)?,
-                model: r.get(3)?,
-                created_at: r.get(4)?,
-                updated_at: r.get(5)?,
-                last_seen_at: r.get(6)?,
+                id: cell(0)?,
+                cwd: cell(1)?,
+                title: cell(2)?,
+                model: cell(3)?,
+                created_at: cell(4)?,
+                updated_at: cell(5)?,
+                last_seen_at: cell(6)?,
             })
         })?;
         rows.collect()
-    })?)
+    })
+    .map_err(|e| anyhow::anyhow!(crate::db::sqlite_message(&e)))
+}
+
+/// `listAllIndexedSessions(dir)`: [`list_indexed_sessions`] of `dir` (its
+/// error thrown), or without one of every workspace's truthy string
+/// `rootPath` in store order (their errors read as no rows). A `null`
+/// workspace entry throws, as `ws.rootPath` does.
+pub fn list_all_indexed_sessions(dir: Option<&str>) -> anyhow::Result<Vec<SessionRow>> {
+    if let Some(dir) = dir.filter(|d| !d.is_empty()) {
+        return list_indexed_sessions(dir);
+    }
+    let workspaces = crate::active_cwd::list_workspaces_raw().unwrap_or_default();
+    let mut all = Vec::new();
+    for ws in &workspaces {
+        let root = match ws {
+            Value::Null => anyhow::bail!("Cannot read properties of null (reading 'rootPath')"),
+            Value::Object(m) => m.get("rootPath").filter(|v| js::truthy(v)),
+            _ => None,
+        };
+        // `openDb` rejects a non-string root.
+        if let Some(root) = root.and_then(Value::as_str) {
+            all.extend(list_indexed_sessions(root).unwrap_or_default());
+        }
+    }
+    Ok(all)
 }
 
 /// `recordSuggestedMessage` / `recordGoalMessage`.

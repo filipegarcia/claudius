@@ -1102,8 +1102,16 @@ impl QueryHandle {
                 let _ = waiter.send(reply);
             }
             Some("control_request") => {
+                // The SDK calls `handleControlRequest` without awaiting it,
+                // so each callback runs up to its first `await` in arrival
+                // order (two `can_use_tool`s prompt in the CLI's order).
+                // Poll once here for the same; a task finishes the rest.
                 let this = self.clone();
-                tokio::spawn(async move { this.handle_control_request(v).await });
+                let mut fut = Box::pin(async move { this.handle_control_request(v).await });
+                let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+                if fut.as_mut().poll(&mut cx).is_pending() {
+                    tokio::spawn(fut);
+                }
             }
             Some("control_cancel_request") => {
                 if let Some(id) = v.get("request_id").and_then(Value::as_str)
@@ -1329,11 +1337,12 @@ impl QueryHandle {
                     .to_owned();
                 let input = get("input").cloned().unwrap_or_else(|| json!({}));
                 let ctx = ToolPermissionContext::from_request(request_id, req, token);
-                let tool_use_id = ctx.tool_use_id.clone();
+                // `toolUseID: request.tool_use_id`, whatever its type.
+                let tool_use_id = get("tool_use_id").cloned();
                 Ok(can_use
                     .can_use_tool(&tool, input, ctx)
                     .await
-                    .map(|r| r.to_wire(tool_use_id.as_deref())))
+                    .map(|r| r.to_wire(tool_use_id.as_ref())))
             }
             Some("hook_callback") => {
                 // `hookCallbacks` is keyed by `hook_<n>` strings.

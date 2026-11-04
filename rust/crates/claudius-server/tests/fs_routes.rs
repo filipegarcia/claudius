@@ -9,8 +9,10 @@
 //!   scenario's `CLAUDIUS_FS_ROOT`, HOME and cwd, for this platform's
 //!   recording (darwin on macOS, linux on Linux).
 //! * `replays_in_process`: both recordings through `dirs_get_in` /
-//!   `dirs_post_in` with the platform given, and fs/list's 200s through
-//!   `list_fs_in` (its trusted-cwd refusals need the binary's cwd).
+//!   `dirs_post_in` with the platform given, and every fs/list step the
+//!   recorder kept the `listFs` call of through `list_fs_in` — its 200s and
+//!   the CC 2.1.301 `Search failed: …` refusals of a cwd the walk can't
+//!   read (its trusted-cwd refusals need the binary's cwd).
 //!
 //! Scenarios that need a case-folding disk, enforced permissions or BSD
 //! immutable flags run only where the disk agrees with the recorder's
@@ -29,8 +31,9 @@ use std::time::Duration;
 use axum::response::Response;
 use claudius_agent::js;
 use claudius_core::fs_list::{FsEntry, list_fs_in};
+use claudius_core::node_path::resolve;
 use claudius_core::tcc_protected::platform;
-use claudius_server::fs_routes::{dirs_get_in, dirs_post_in};
+use claudius_server::fs_routes::{dirs_get_in, dirs_post_in, search_failed};
 use common::{Server, free_port, http, wait_until};
 use common_fs::{Tree, can_replay, check, fixture, got, probe_disk};
 use serde_json::{Value, json};
@@ -254,17 +257,22 @@ fn replays_in_process() {
                 ) {
                     ("dirs", "GET") => parts(dirs_get_in(&root, platform, query.as_deref())),
                     ("dirs", "POST") => parts(dirs_post_in(&root, &body_bytes(&tree, step))),
-                    ("list", "GET") if want["status"] == 200 => {
+                    ("list", "GET") if !step["args"].is_null() => {
                         let a = &step["args"];
                         let cwd = tree.sub(a["cwd"].as_str().unwrap());
                         let limit = js::to_number(a["limit"].as_str().unwrap());
-                        let entries: Vec<Value> =
-                            list_fs_in(&home, platform, &cwd, a["q"].as_str().unwrap(), limit)
-                                .iter()
-                                .map(FsEntry::to_json)
-                                .collect();
-                        let body = js::stringify(&json!({ "cwd": cwd, "entries": entries }));
-                        (200, Some("application/json".to_owned()), body)
+                        match list_fs_in(&home, platform, &cwd, a["q"].as_str().unwrap(), limit) {
+                            Ok(listed) => {
+                                let entries: Vec<Value> =
+                                    listed.iter().map(FsEntry::to_json).collect();
+                                let body =
+                                    js::stringify(&json!({ "cwd": cwd, "entries": entries }));
+                                (200, Some("application/json".to_owned()), body)
+                            }
+                            // CC 2.1.301: the walk's own root couldn't be
+                            // read, so the search failed (403 / 500).
+                            Err(e) => parts(search_failed(&e, &resolve(&[&cwd]))),
+                        }
                     }
                     _ => continue,
                 };

@@ -597,7 +597,7 @@ fn write_lock() -> MutexGuard<'static, ()> {
     WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-fn os_random(buf: &mut [u8]) {
+pub(crate) fn os_random(buf: &mut [u8]) {
     if getrandom::fill(buf).is_err() {
         // Never seen in practice; ids and temp names stay unique enough.
         for chunk in buf.chunks_mut(16) {

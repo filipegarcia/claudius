@@ -83,11 +83,21 @@ pub async fn exec_file(
     args: &[&str],
     opts: ExecFileOptions<'_>,
 ) -> Result<ExecFileOutput, ExecFileError> {
+    exec_file_env(program, args, opts, &[]).await
+}
+
+/// [`exec_file`] with `env: { ...process.env, ...env }` (D09).
+pub async fn exec_file_env(
+    program: &str,
+    args: &[&str],
+    opts: ExecFileOptions<'_>,
+    env: &[(&str, &str)],
+) -> Result<ExecFileOutput, ExecFileError> {
     let timeout = match opts.timeout_ms {
         0 => Duration::MAX,
         ms => Duration::from_millis(ms),
     };
-    let run = git::spawn_run(program, args, opts.cwd, None, timeout, opts.max_buffer)
+    let run = git::spawn_run_env(program, args, opts.cwd, None, timeout, opts.max_buffer, env)
         .await
         .map_err(|e| ExecFileError {
             message: e.message,

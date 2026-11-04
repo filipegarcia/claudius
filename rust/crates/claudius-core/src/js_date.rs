@@ -846,9 +846,75 @@ fn zone_offset_ms(tz: &jiff::tz::TimeZone, local_ms: i64) -> i64 {
     zoned.map_or(0, |z| (secs - z.timestamp().as_second()) * 1000)
 }
 
+/// `new Date(t).toISOString()` for a number `t`: `TimeClip` (NaN past
+/// ±8.64e15 ms, else truncated toward zero), then `YYYY-MM-DDTHH:mm:ss.sssZ`
+/// with a signed six-digit year outside 0000–9999. `None` where it throws
+/// (`RangeError: Invalid time value`).
+pub fn to_iso_string(t: f64) -> Option<String> {
+    if !t.is_finite() || t.abs() > MAX_TIME as f64 {
+        return None;
+    }
+    let t = t.trunc() as i64;
+    let (days, ms) = (t.div_euclid(MS_PER_DAY), t.rem_euclid(MS_PER_DAY));
+    // Days → civil date (the inverse of `days_from_civil`).
+    let z = days + 719_468;
+    let (era, doe) = (z.div_euclid(146_097), z.rem_euclid(146_097));
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    let year = match year {
+        0..=9999 => format!("{year:04}"),
+        y if y < 0 => format!("-{:06}", -y),
+        y => format!("+{y:06}"),
+    };
+    Some(format!(
+        "{year}-{month:02}-{day:02}T{:02}:{:02}:{:02}.{:03}Z",
+        ms / 3_600_000,
+        ms / 60_000 % 60,
+        ms / 1000 % 60,
+        ms % 1000
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::date_parse;
+
+    #[test]
+    fn to_iso_string_is_date_to_iso_string() {
+        use super::to_iso_string as iso;
+        assert_eq!(iso(0.0).as_deref(), Some("1970-01-01T00:00:00.000Z"));
+        assert_eq!(iso(-0.0).as_deref(), Some("1970-01-01T00:00:00.000Z"));
+        assert_eq!(iso(-1.0).as_deref(), Some("1969-12-31T23:59:59.999Z"));
+        assert_eq!(iso(-0.5).as_deref(), Some("1970-01-01T00:00:00.000Z"));
+        assert_eq!(
+            iso(1_700_000_000_123.9).as_deref(),
+            Some("2023-11-14T22:13:20.123Z")
+        );
+        assert_eq!(
+            iso(951_782_400_000.0).as_deref(),
+            Some("2000-02-29T00:00:00.000Z")
+        );
+        assert_eq!(
+            iso(253_402_300_800_000.0).as_deref(),
+            Some("+010000-01-01T00:00:00.000Z")
+        );
+        assert_eq!(
+            iso(-62_198_755_200_000.0).as_deref(),
+            Some("-000001-01-01T00:00:00.000Z")
+        );
+        assert_eq!(iso(8.64e15).as_deref(), Some("+275760-09-13T00:00:00.000Z"));
+        assert_eq!(
+            iso(-8.64e15).as_deref(),
+            Some("-271821-04-20T00:00:00.000Z")
+        );
+        assert_eq!(iso(8.64e15 + 1.0), None);
+        assert_eq!(iso(f64::NAN), None);
+        assert_eq!(iso(f64::INFINITY), None);
+    }
 
     #[test]
     fn es_forms() {

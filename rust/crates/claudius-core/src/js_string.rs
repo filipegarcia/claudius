@@ -73,6 +73,20 @@ pub fn len16(s: &str) -> usize {
         .sum()
 }
 
+/// `hay.includes(needle)` as JS compares it: over UTF-16 code units, so a
+/// lone-surrogate stand-in matches its half of an astral character's pair
+/// (`"\u{10000}".includes("\u{d800}")` is true in JS).
+pub fn contains16(hay: &str, needle: &str) -> bool {
+    // The fast path covers every string without a stand-in on either side,
+    // where UTF-8 and UTF-16 substring searches agree.
+    let lone_free = |s: &str| !s.chars().any(|c| lone_unit(c).is_some());
+    if lone_free(hay) && lone_free(needle) {
+        return hay.contains(needle);
+    }
+    let (hay, needle) = (units(hay), units(needle));
+    needle.is_empty() || hay.windows(needle.len()).any(|w| w == needle.as_slice())
+}
+
 /// The string as UTF-8 bytes carry it (`Buffer.from(s)`, a file path, a
 /// header): each lone surrogate becomes U+FFFD.
 pub fn lossy(s: &str) -> Cow<'_, str> {
@@ -119,6 +133,13 @@ pub fn to_upper(s: &str) -> String {
         }
     }
     out
+}
+
+/// `String.prototype.toLowerCase`: full case mapping (`İ` → `i̇`) with
+/// Final_Sigma (`ΑΣ` → `ας`). A lone surrogate's stand-in is private use,
+/// which, like the surrogate in V8, has no case and isn't case-ignorable.
+pub fn to_lower(s: &str) -> String {
+    s.to_lowercase()
 }
 
 /// `s.match(/\S/)?.[0]`: the first code unit that isn't JS whitespace. The
@@ -376,6 +397,24 @@ pub fn decode_uri_component(s: &str) -> Option<String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn contains16_is_string_includes() {
+        use super::{contains16, lone};
+        let pair = "x\u{10000}y";
+        let high = format!("{}", lone(0xD800));
+        let low = format!("{}", lone(0xDC00));
+        assert!(contains16(pair, &high));
+        assert!(contains16(pair, &low));
+        assert!(contains16(pair, &format!("{high}{low}")));
+        assert!(!contains16(pair, &format!("{low}{high}")));
+        assert!(contains16(&high, &high));
+        assert!(!contains16(&high, &low));
+        assert!(contains16("abc", "b"));
+        assert!(!contains16("abc", "d"));
+        assert!(contains16("abc", ""));
+        assert!(contains16(&high, ""));
+    }
 
     #[test]
     fn lone_surrogates_round_trip_through_json() {

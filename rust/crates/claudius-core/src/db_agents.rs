@@ -34,9 +34,19 @@ pub fn json_parse(text: &str) -> Result<Value, String> {
     js::json_parse(&with_infinities(text))
 }
 
+/// [`json_parse`] with lone-surrogate escapes kept as their
+/// [`crate::js_string`] stand-ins, so [`crate::js_string::stringify`] writes
+/// them back as `JSON.stringify` does.
+pub fn json_parse_js(text: &str) -> Result<Value, String> {
+    if let Some(message) = js::json_parse_error(text) {
+        return Err(message);
+    }
+    crate::js_string::parse(&with_infinities(text))
+}
+
 /// `text` (valid JSON) with each infinite number literal replaced by its
 /// sentinel string.
-fn with_infinities(text: &str) -> String {
+pub(crate) fn with_infinities(text: &str) -> String {
     let b = text.as_bytes();
     let mut out = String::with_capacity(text.len());
     let (mut copied, mut i, mut in_string) = (0, 0, false);

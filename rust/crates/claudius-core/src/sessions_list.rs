@@ -220,7 +220,7 @@ struct Candidate {
 /// A directory's entries the way `fs.readdir` returns them: sorted by name
 /// bytes (libuv's `scandir` sort), names decoded lossily. `None` when the
 /// directory can't be read.
-fn read_dir_sorted(dir: &Path) -> Option<Vec<(String, std::fs::DirEntry)>> {
+pub(crate) fn read_dir_sorted(dir: &Path) -> Option<Vec<(String, std::fs::DirEntry)>> {
     let mut entries: Vec<std::fs::DirEntry> = std::fs::read_dir(dir)
         .ok()?
         .filter_map(Result::ok)
@@ -313,7 +313,7 @@ fn lower_on_windows(s: &str) -> String {
 }
 
 /// `Hn`: the existing project dirs for `path`.
-fn project_dirs(path: &str, env: &ListEnv) -> Vec<PathBuf> {
+pub(crate) fn project_dirs(path: &str, env: &ListEnv) -> Vec<PathBuf> {
     let exact = env.dir_for(path);
     let mut out = Vec::new();
     if is_listable_dir(&exact) {
@@ -464,7 +464,7 @@ fn scan_dir(dir: &str, include_worktrees: bool, want_mtime: bool, env: &ListEnv)
 }
 
 /// `bo`: the realpath (NFC on macOS), or the path itself.
-fn resolved(p: &str) -> String {
+pub(crate) fn resolved(p: &str) -> String {
     match std::fs::canonicalize(p) {
         Ok(r) => ke(&r.to_string_lossy()),
         Err(_) => ke(p),
@@ -474,7 +474,7 @@ fn resolved(p: &str) -> String {
 /// `So`: `git worktree list --porcelain` paths from `cwd` (NFC on macOS),
 /// with the hooks and fsmonitor off and a 5 s timeout; empty on any
 /// failure, empty output, or past `execFile`'s 1 MiB stdout cap.
-fn git_worktrees(cwd: &str) -> Vec<String> {
+pub(crate) fn git_worktrees(cwd: &str) -> Vec<String> {
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant};
     let child = Command::new("git")

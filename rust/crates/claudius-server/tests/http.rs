@@ -153,7 +153,7 @@ async fn front_door_end_to_end() {
                 get(|| async { ([("x-from", "next")], "from-next") }),
             )
             .route(
-                "/api/sessions/all",
+                "/api/not-ported-yet",
                 get(|| async { axum::Json(json!({"proxied": true})) }),
             ),
     )
@@ -179,11 +179,22 @@ async fn front_door_end_to_end() {
     // ── proxy fallback + not-ported guard
     let (st, body) = call(&c, "GET", &format!("{base}/hello"), None).await;
     assert_eq!((st, body), (200, json!("from-next")));
-    let (st, body) = call(&c, "GET", &format!("{base}/api/sessions/all"), None).await;
+    // An `/api` route nothing in Rust claims falls through to Next.
+    let (st, body) = call(&c, "GET", &format!("{base}/api/not-ported-yet"), None).await;
     assert_eq!((st, body), (200, json!({"proxied": true})));
-    let (st, body) = call(&c, "GET", &format!("{base}/api/sessions/abc/account"), None).await;
+    // Every `/:id/*` route TS has is ported (S30); the guard still keeps an
+    // unknown one from reaching Next.
+    let (st, body) = call(
+        &c,
+        "GET",
+        &format!("{base}/api/sessions/abc/no-such-route"),
+        None,
+    )
+    .await;
     assert_eq!(st, 501);
     assert_eq!(body["notPorted"], true);
+    let (st, body) = call(&c, "GET", &format!("{base}/api/sessions/abc/account"), None).await;
+    assert_eq!((st, body), (404, json!({"error": "session not found"})));
     let (st, body) = call(&c, "GET", &format!("{base}/api/rust/health"), None).await;
     assert_eq!((st, body["backend"].clone()), (200, json!("rust")));
 

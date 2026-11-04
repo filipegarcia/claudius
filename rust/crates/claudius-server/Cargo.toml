@@ -31,5 +31,10 @@ uuid.workspace = true
 
 [dev-dependencies]
 chrono.workspace = true
+# The files replay: pinned nanosecond mtimes (`utimensat`), the umask, root.
+libc.workspace = true
 rusqlite.workspace = true
+# The files replay's snapshot hashes (the recorder's `sha256`).
+sha2.workspace = true
 tempfile.workspace = true
+tokio = { workspace = true, features = ["test-util"] }

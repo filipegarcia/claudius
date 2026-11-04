@@ -38,6 +38,7 @@ use crate::events::{
     select_replay_window, should_buffer_event,
 };
 use crate::jsonl_watch::{self, Fired, JsonlWatch};
+use crate::prompt_events;
 use crate::queue_db::{self, ImageInput, NewQueued, QueuedRow};
 use crate::session_recap;
 use crate::session_tasks_db::{self, TaskEntry};
@@ -158,12 +159,12 @@ struct PendingPermission {
 }
 struct PendingAsk {
     tx: oneshot::Sender<PermissionResult>,
-    tool_use_id: String,
+    tool_use_id: Option<Value>,
     questions: Vec<Value>,
 }
 struct PendingPlan {
     tx: oneshot::Sender<PermissionResult>,
-    tool_use_id: String,
+    tool_use_id: Option<Value>,
     plan: String,
     raw: Value,
 }
@@ -320,12 +321,18 @@ struct State {
     thinking_replay_recovery_scheduled: bool,
     /// The overload / long-context / auth / token-expiry nudges.
     nudges: crate::detectors::Nudges,
-    /// `activeProfileExpiresAt`: the active account profile's token expiry.
-    /// Always `None` until account profiles are ported (G02a / S30).
+    /// `activeProfileExpiresAt`: the token expiry of the profile the session
+    /// runs under (set at start, [`crate::account_pinning`]).
     active_profile_expires_at: Option<f64>,
     /// `accountProfileId` / `accountProfileLabel` / `accountDriftFromActive`
-    /// (S30 pins it at start; [`Session::refresh_account_drift`]).
+    /// (pinned at start; [`Session::refresh_account_drift`]).
     account_pin: crate::account_drift::AccountPin,
+    /// `envOverride`: the CLI's environment under that profile, frozen at
+    /// start (the recap runs under it too); `None` without a profile.
+    account_env: Option<HashMap<String, String>>,
+    /// `accountAutoRotated`: this session already rotated the active profile
+    /// on a rate-limit wall.
+    account_auto_rotated: bool,
     /// What `start()` threw (the JS error's `name` and `message`), for
     /// `SessionManager::create` to fail with ([`Session::take_start_error`]).
     start_error: Option<(&'static str, String)>,
@@ -1116,7 +1123,11 @@ impl State {
     fn pending_prompt_events(&self) -> Vec<Value> {
         let mut out = Vec::new();
         for (id, p) in &self.pending_asks {
-            out.push(json!({"type": "ask_user_question", "requestId": id, "toolUseId": p.tool_use_id, "questions": p.questions}));
+            out.push(prompt_events::ask_event(
+                id,
+                p.tool_use_id.as_ref(),
+                &p.questions,
+            ));
         }
         for p in self.pending_permissions.values() {
             out.push(p.meta.clone());
@@ -1125,11 +1136,13 @@ impl State {
             out.push(p.meta.clone());
         }
         for (id, p) in &self.pending_plans {
-            let mut ev = json!({"type": "plan_approval_request", "requestId": id, "toolUseId": p.tool_use_id, "plan": p.plan});
-            if p.raw.is_object() {
-                ev["raw"] = p.raw.clone();
-            }
-            out.push(ev);
+            let raw = Some(&p.raw).filter(|r| js::truthy(r));
+            out.push(prompt_events::plan_event(
+                id,
+                p.tool_use_id.as_ref(),
+                &p.plan,
+                raw,
+            ));
         }
         out
     }
@@ -1301,35 +1314,19 @@ pub fn build_query_env(
     env
 }
 
-fn tool_budget_kind(tool: &str) -> Option<usize> {
-    match tool {
-        "WebSearch" => Some(0),
-        "Task" | "Agent" => Some(1),
-        _ => None,
-    }
-}
-
-/// `readLimits(cwd).limits` → `(maxWebSearches, maxSubagents)`.
+/// `readLimits(cwd).limits` → `(maxWebSearches, maxSubagents)`: the file
+/// read as `readFile(…, "utf8")` + `JSON.parse` read it (S27b).
 fn read_tool_budget_limits(cwd: &str) -> [Option<f64>; 2] {
     let file = paths::claudius_root()
         .join("limits")
         .join(format!("{}.json", paths::encode_project_dir(cwd)));
-    let v: Value = std::fs::read_to_string(file)
+    let v: Value = std::fs::read(file)
         .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
+        .and_then(|b| js::json_parse(&String::from_utf8_lossy(&b)).ok())
         .unwrap_or(Value::Null);
     let l = v.get("limits");
     let g = |k: &str| l.and_then(|l| l.get(k)).and_then(Value::as_f64);
     [g("maxWebSearches"), g("maxSubagents")]
-}
-
-fn resolve_cap(configured: Option<f64>, env_key: &str) -> Option<u64> {
-    if let Some(c) = configured.filter(|c| *c > 0.0) {
-        return Some(c as u64);
-    }
-    let raw = std::env::var(env_key).ok()?;
-    let n: f64 = raw.trim().parse().ok()?;
-    (n.fract() == 0.0 && n > 0.0).then_some(n as u64)
 }
 
 pub struct Session {
@@ -1552,14 +1549,14 @@ impl Session {
         self.handle()
     }
 
-    // ── Account pin (crate::account_drift; S30 sets it at start) ──
+    // ── Account pin (crate::account_drift, crate::account_pinning) ──
 
     /// The account this session runs under, and its drift from the active one.
     pub fn account_pin(&self) -> crate::account_drift::AccountPin {
         self.with(|st| st.account_pin.clone())
     }
 
-    /// Pin the session to an account (S30's `resolveAccountProfile`).
+    /// Replace the session's account fields (start sets them).
     pub fn set_account_pin(&self, pin: crate::account_drift::AccountPin) {
         self.with(|st| st.account_pin = pin);
     }
@@ -1578,6 +1575,24 @@ impl Session {
                 st.broadcast(ev);
             }
         });
+    }
+
+    /// `noteAccountAutoRotateObservation` for a rate-limit wall: once per
+    /// session, rotate the active profile when the user turned auto-rotate
+    /// on ([`crate::account_pinning::auto_rotate`]) and tell every tab. The
+    /// live query keeps its credential; the next session spawns on the new
+    /// profile.
+    fn note_account_auto_rotate_observation(&self) {
+        if self.with(|st| st.account_auto_rotated) {
+            return;
+        }
+        let store = crate::accounts::AccountsStore::from_env();
+        if let Some(ev) = crate::account_pinning::auto_rotate(&store) {
+            self.with(|st| {
+                st.account_auto_rotated = true;
+                st.broadcast(ev);
+            });
+        }
     }
 
     /// Set by [`SessionManager::create`](crate::session_manager::SessionManager::create).
@@ -1730,6 +1745,26 @@ impl Session {
             self.with(|st| st.start_error = Some(("TypeError", msg)));
             return;
         };
+        // The account this session runs under (its pin, else the active
+        // profile) and the CLI's environment for it; a profile whose config
+        // dir can't be provisioned fails the start (S30).
+        let account = crate::account_pinning::start_account(
+            &crate::accounts::AccountsStore::from_env(),
+            &self.cwd,
+            &self.id,
+            self.opts.runtime.env_override.as_ref(),
+        );
+        match account {
+            Ok(a) => self.with(|st| {
+                st.account_pin = a.pin;
+                st.active_profile_expires_at = a.expires_at;
+                st.account_env = a.env;
+            }),
+            Err(e) => {
+                self.with(|st| st.start_error = Some(("Error", e.0)));
+                return;
+            }
+        }
         // Fable-class request models reject any advisor tool (API 400), so an
         // advisor re-armed from settings.json against a fable model is dropped
         // before `build_options` forwards it to the flag layer.
@@ -1787,6 +1822,9 @@ impl Session {
             }
             if let Some(f) = self.opts.fallback_model.as_ref().filter(|f| !f.is_empty()) {
                 ready["fallbackModel"] = json!(f);
+            }
+            if let Some(account) = st.account_pin.account_json() {
+                ready["account"] = account;
             }
             st.broadcast(ready);
             if let Some(t) = st.title.clone() {
@@ -2053,7 +2091,12 @@ impl Session {
         let mut opts = Options {
             cwd: Some(PathBuf::from(&self.cwd)),
             model: self.model(),
-            env: Some(build_query_env(o.runtime.env_override.as_ref(), restricted)),
+            env: Some(build_query_env(
+                self.with(|st| st.account_env.clone())
+                    .as_ref()
+                    .or(o.runtime.env_override.as_ref()),
+                restricted,
+            )),
             path_to_claude_code_executable: o.runtime.claude_bin.clone(),
             agent: self.with(|st| st.truthy_agent().map(str::to_owned)),
             fallback_model: o.fallback_model.clone(),
@@ -2479,16 +2522,18 @@ impl Session {
     /// false)`: forward feedback to Anthropic through the CLI's undocumented
     /// `submit_feedback` control request, with `surface` and
     /// `attach_transcript` (the CLI then packages the transcript). Whether
-    /// the CLI accepted it: `false` without a query or when the request
-    /// fails. The caller (`/api/feedback`, G10) keeps its own copy either way.
+    /// the CLI accepted it, and why not when it refused (its reply read by
+    /// `interpretFeedbackResponse`); not forwarded, with no reason, without a
+    /// query or when the request fails. The caller (`/api/feedback`, G10)
+    /// keeps its own copy either way.
     pub async fn submit_feedback(
         &self,
         description: &str,
         surface: Option<&str>,
         attach_transcript: bool,
-    ) -> bool {
+    ) -> crate::feedback_refusal::FeedbackForward {
         let Some(h) = self.handle() else {
-            return false;
+            return Default::default();
         };
         let opts = claudius_agent::FeedbackOptions {
             surface: Some(
@@ -2499,7 +2544,10 @@ impl Session {
             attach_transcript: Some(attach_transcript),
             ..Default::default()
         };
-        h.submit_feedback(description, &opts).await.is_ok()
+        match h.submit_feedback(description, &opts).await {
+            Ok(res) => crate::feedback_refusal::interpret_feedback_response(&res),
+            Err(_) => Default::default(),
+        }
     }
 
     /// `maybeOfferFeedbackSurvey(message)` after every `result`: now and then,
@@ -2667,6 +2715,7 @@ impl Session {
         let thinking_replay_error =
             crate::thinking_replay::thinking_replay_error_from(&msg).is_some();
         let nudge_signals = crate::detectors::Observed::of(&msg);
+        let rate_limit_hit = crate::account_pinning::is_rate_limit_hit_sdk_message(&msg);
         self.with(|st| {
             st.track_scheduled_loops(&msg, None);
             st.recent_read_paths.extend(read_paths);
@@ -2693,6 +2742,9 @@ impl Session {
                 st.broadcast(ev);
             }
         });
+        if rate_limit_hit {
+            self.note_account_auto_rotate_observation();
+        }
         // B2.3: compaction strips the CLI's readFileState cache. Re-seed it
         // off the consume loop, which must keep draining.
         if mtype == "system" && subtype == "compact_boundary" {
@@ -3337,32 +3389,27 @@ impl Session {
         if tool_name.starts_with("mcp__claudius_goal__") {
             return PermissionResult::allow(input);
         }
-        if let Some(kind) = tool_budget_kind(tool_name) {
+        if let Some(kind) = prompt_events::budget_kind(tool_name) {
             let limits = *self.tool_budget_limits.lock().unwrap();
-            let env_key = if kind == 0 {
-                "CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION"
-            } else {
-                "CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION"
-            };
-            let cap = resolve_cap(limits[kind], env_key);
+            let env = std::env::var_os(prompt_events::BUDGET_ENV[kind]);
+            let cap = prompt_events::resolve_cap(
+                limits[kind],
+                env.as_deref().map(|e| e.to_string_lossy()).as_deref(),
+            );
             let denied = self.with(|st| {
-                if let Some(c) = cap
-                    && st.tool_budget_used[kind] >= c
-                {
-                    let label = if kind == 0 { "web search" } else { "subagent spawn" };
-                    return Some(format!(
-                        "Session {label} cap reached ({c}). Raise or disable it in Settings → Limits, or run /clear to start a fresh session with a reset count."
-                    ));
+                let denied = prompt_events::budget_denial(kind, cap, st.tool_budget_used[kind]);
+                if denied.is_none() {
+                    st.tool_budget_used[kind] += 1;
                 }
-                st.tool_budget_used[kind] += 1;
-                None
+                denied
             });
             if let Some(msg) = denied {
                 return PermissionResult::deny(msg);
             }
         }
 
-        let tool_use_id = ctx.tool_use_id.clone().unwrap_or_default();
+        // The request's own `tool_use_id`, any type; `None` drops the key.
+        let tool_use_id = prompt_events::tool_use_id(&ctx.raw);
         let (tx, rx) = oneshot::channel::<PermissionResult>();
         #[derive(Clone, Copy, PartialEq)]
         enum Kind {
@@ -3385,56 +3432,44 @@ impl Session {
         self.with(|st| {
             match kind {
                 Kind::Plan => {
-                    let plan = match input.get("plan").and_then(Value::as_str) {
-                        Some(p) => p.to_owned(),
-                        None => serde_json::to_string_pretty(&input).unwrap_or_default(),
-                    };
+                    let plan = prompt_events::plan_text(&input);
+                    let ev = prompt_events::plan_event(
+                        &request_id,
+                        tool_use_id.as_ref(),
+                        &plan,
+                        Some(&input),
+                    );
                     st.pending_plans.insert(
                         request_id.clone(),
-                        PendingPlan { tx, tool_use_id: tool_use_id.clone(), plan: plan.clone(), raw: input.clone() },
+                        PendingPlan {
+                            tx,
+                            tool_use_id,
+                            plan,
+                            raw: input,
+                        },
                     );
-                    st.broadcast(json!({"type": "plan_approval_request", "requestId": request_id, "toolUseId": tool_use_id, "plan": plan, "raw": input}));
+                    st.broadcast(ev);
                 }
                 Kind::Ask => {
+                    let ev =
+                        prompt_events::ask_event(&request_id, tool_use_id.as_ref(), &questions);
                     st.pending_asks.insert(
                         request_id.clone(),
-                        PendingAsk { tx, tool_use_id: tool_use_id.clone(), questions: questions.clone() },
+                        PendingAsk {
+                            tx,
+                            tool_use_id,
+                            questions,
+                        },
                     );
-                    st.broadcast(json!({"type": "ask_user_question", "requestId": request_id, "toolUseId": tool_use_id, "questions": questions}));
+                    st.broadcast(ev);
                 }
                 Kind::Perm => {
-                    let suggested: Vec<Value> = allow_rule_suggestions(ctx.suggestions.as_ref())
-                        .iter()
-                        .flat_map(|u| u["rules"].as_array().cloned().unwrap_or_default())
-                        .map(|r| {
-                            let mut o = Map::new();
-                            o.insert("toolName".into(), r.get("toolName").cloned().unwrap_or(Value::Null));
-                            if let Some(c) = r.get("ruleContent").filter(|c| c.as_str().is_some_and(|s| !s.is_empty())) {
-                                o.insert("ruleContent".into(), c.clone());
-                            }
-                            Value::Object(o)
-                        })
-                        .collect();
-                    let mut meta = Map::new();
-                    meta.insert("type".into(), json!("permission_request"));
-                    meta.insert("requestId".into(), json!(request_id));
-                    meta.insert("toolName".into(), json!(tool_name));
-                    meta.insert("toolUseId".into(), json!(tool_use_id));
-                    meta.insert("input".into(), input.clone());
-                    let mut opt = |k: &str, v: Option<Value>| {
-                        if let Some(v) = v {
-                            meta.insert(k.into(), v);
-                        }
-                    };
-                    opt("title", ctx.title.clone().map(Value::from));
-                    opt("description", ctx.description.clone().map(Value::from));
-                    opt("displayName", ctx.display_name.clone().map(Value::from));
-                    opt("agentId", ctx.agent_id.clone().map(Value::from));
-                    opt("defaultToNo", ctx.default_to_no.map(Value::from));
-                    opt("suppressAlwaysAllowRule", ctx.suppress_always_allow_rule.map(Value::from));
-                    opt("mcpServer", ctx.mcp_server.clone());
-                    meta.insert("suggestedRules".into(), Value::Array(suggested));
-                    let meta = Value::Object(meta);
+                    let meta = prompt_events::permission_event(
+                        &request_id,
+                        tool_name,
+                        &ctx.raw,
+                        ctx.mcp_server.clone(),
+                    );
                     st.pending_permissions.insert(
                         request_id.clone(),
                         PendingPermission {
@@ -3537,14 +3572,18 @@ impl Session {
         };
         match decision {
             PlanDecision::Reject { message } => {
-                let _ =
-                    p.tx.send(PermissionResult::deny(message.unwrap_or_else(|| {
-                        "User rejected the plan — keep iterating.".into()
-                    })));
+                let deny = PermissionResult::deny(
+                    message.unwrap_or_else(|| "User rejected the plan — keep iterating.".into()),
+                );
+                // TS broadcasts the status before the SDK writes the reply:
+                // keep them together so the turn can't end in between.
+                self.with(|st| {
+                    let _ = p.tx.send(deny);
+                    st.broadcast_turn_status_if_changed();
+                });
                 let mut patch = Map::new();
                 patch.insert("priorPlan".into(), json!(p.plan));
                 let _ = sessions_db::merge_session_state(&self.cwd, &self.id, patch);
-                self.with(|st| st.broadcast_turn_status_if_changed());
             }
             PlanDecision::Accept { edited_plan } => {
                 let raw = if p.raw.is_object() {
@@ -3587,34 +3626,7 @@ impl Session {
     async fn on_elicitation(&self, req: ElicitationRequest) -> Value {
         let request_id = uuid::Uuid::new_v4().to_string();
         let (tx, rx) = oneshot::channel::<Value>();
-        let mut meta = Map::new();
-        meta.insert("type".into(), json!("mcp_elicitation_request"));
-        meta.insert("requestId".into(), json!(request_id));
-        meta.insert("serverName".into(), json!(req.server_name));
-        meta.insert("message".into(), json!(req.message));
-        meta.insert(
-            "mode".into(),
-            json!(if req.mode.as_deref() == Some("url") {
-                "url"
-            } else {
-                "form"
-            }),
-        );
-        for (k, v) in [
-            ("url", req.url.clone()),
-            ("elicitationId", req.elicitation_id.clone()),
-            ("title", req.title.clone()),
-            ("displayName", req.display_name.clone()),
-            ("description", req.description.clone()),
-        ] {
-            if let Some(v) = v.filter(|s| !s.is_empty()) {
-                meta.insert(k.into(), json!(v));
-            }
-        }
-        if let Some(s) = req.requested_schema.clone().filter(|s| !s.is_null()) {
-            meta.insert("requestedSchema".into(), s);
-        }
-        let meta = Value::Object(meta);
+        let meta = prompt_events::elicitation_event(&request_id, &req.raw);
         self.with(|st| {
             st.pending_elicitations.insert(
                 request_id.clone(),
@@ -3971,10 +3983,18 @@ impl Session {
             let asks = st
                 .pending_asks
                 .iter()
-                .map(|(id, p)| json!({"type": "ask_user_question", "requestId": id, "toolUseId": p.tool_use_id, "questions": p.questions}))
+                .map(|(id, p)| prompt_events::ask_event(id, p.tool_use_id.as_ref(), &p.questions))
                 .collect();
-            let perms = st.pending_permissions.values().map(|p| p.meta.clone()).collect();
-            let elic = st.pending_elicitations.values().map(|p| p.meta.clone()).collect();
+            let perms = st
+                .pending_permissions
+                .values()
+                .map(|p| p.meta.clone())
+                .collect();
+            let elic = st
+                .pending_elicitations
+                .values()
+                .map(|p| p.meta.clone())
+                .collect();
             (asks, perms, elic)
         })
     }
@@ -4303,7 +4323,9 @@ impl Session {
             cwd: self.cwd.clone(),
             transcript_tail: tail,
             model: self.model(),
-            env: self.opts.runtime.env_override.clone(),
+            env: self
+                .with(|st| st.account_env.clone())
+                .or_else(|| self.opts.runtime.env_override.clone()),
             claude_bin: self.opts.runtime.claude_bin.clone(),
         };
         let outcome = session_recap::generate_recap(input, token.clone()).await;

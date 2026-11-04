@@ -21,6 +21,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use claudius_agent::js;
 use serde_json::{Map, Value};
 
+use crate::db_agents;
 use crate::node_err::{self, NodeError};
 use crate::paths;
 use crate::settings_load_error::sanitize_json_parse_reason_utf16;
@@ -113,6 +114,16 @@ pub fn null_property_error(key: &str) -> String {
 /// `null` (a number past f64 also parses to `Value::Null`, but it's a
 /// number in JS).
 fn read_parsed(scope: Scope, project_cwd: &str) -> Result<(Value, bool), SettingsError> {
+    read_parsed_with(scope, project_cwd, js::json_parse)
+}
+
+/// [`read_parsed`] with the text (which `JSON.parse` accepts) turned into a
+/// value by `parse`.
+fn read_parsed_with(
+    scope: Scope,
+    project_cwd: &str,
+    parse: fn(&str) -> Result<Value, String>,
+) -> Result<(Value, bool), SettingsError> {
     let path = settings_path(scope, project_cwd)?;
     let bytes = match node_err::fs::read_file(&path) {
         Ok(b) => b,
@@ -128,7 +139,7 @@ fn read_parsed(scope: Scope, project_cwd: &str) -> Result<(Value, bool), Setting
     if let Some(message) = js::json_parse_error_utf16(&units) {
         return Err(parse_error(sanitize_json_parse_reason_utf16(&message)));
     }
-    match js::json_parse(&text) {
+    match parse(&text) {
         Ok(v) => {
             let null = v.is_null()
                 && text
@@ -214,10 +225,20 @@ pub fn write_settings(
     project_cwd: &str,
     next: &Map<String, Value>,
 ) -> Result<(), SettingsError> {
+    write_settings_value(scope, project_cwd, &Value::Object(next.clone()))
+}
+
+/// [`write_settings`] of any JSON value (`PUT /api/settings/full` writes
+/// whatever object or array it is given).
+pub fn write_settings_value(
+    scope: Scope,
+    project_cwd: &str,
+    next: &Value,
+) -> Result<(), SettingsError> {
     let path = settings_path(scope, project_cwd)?;
     let dir = path.parent().unwrap_or(Path::new("/")).to_path_buf();
     node_err::fs::mkdir_recursive(&dir)?;
-    let mut body = js::stringify_pretty(&Value::Object(next.clone()));
+    let mut body = js::stringify_pretty(next);
     body.push('\n');
     let meta = node_err::fs::lstat(&path).ok();
     if meta.as_ref().is_some_and(|m| m.file_type().is_symlink()) {
@@ -328,6 +349,166 @@ pub fn clear_user_advisor_model(cwd: &str) -> Result<(), String> {
     write_settings(Scope::User, cwd, &current).map_err(|e| e.to_string())
 }
 
+// ─── The settings routes' helpers (D10) ──────────────────────────────────
+//
+// Values here are "twins": `JSON.parse`'s value with ±Infinity kept as
+// [`db_agents`]'s sentinel strings, so `x ?? {}`, `x == null` and `Set`
+// membership tell Infinity apart from `null` as JS does. [`plain`] is what
+// `JSON.stringify` writes for one (each sentinel as `null`).
+
+/// `readSettings(scope, cwd)` as a twin: `{}` when the file is missing, a
+/// literal `null` as `Value::Null`, ±Infinity as sentinels.
+pub fn read_settings_twin(scope: Scope, project_cwd: &str) -> Result<Value, SettingsError> {
+    read_parsed_with(scope, project_cwd, db_agents::json_parse).map(|(v, _)| v)
+}
+
+/// A twin as `JSON.stringify` sees it: every ±Infinity sentinel is `null`.
+pub fn plain(v: &Value) -> Value {
+    match v {
+        Value::Array(items) => Value::Array(items.iter().map(plain).collect()),
+        Value::Object(m) => Value::Object(m.iter().map(|(k, v)| (k.clone(), plain(v))).collect()),
+        v if db_agents::infinity(v).is_some() => Value::Null,
+        v => v.clone(),
+    }
+}
+
+/// `{ ...v }` of a twin ([`spread`]; ±Infinity is a number, so nothing).
+pub fn spread_twin(v: &Value) -> Map<String, Value> {
+    if db_agents::infinity(v).is_some() {
+        return Map::new();
+    }
+    spread(v)
+}
+
+/// `{ ...(v ?? {}) }` of a property read (`None` is `undefined`).
+pub fn spread_or_empty(v: Option<&Value>) -> Map<String, Value> {
+    v.map_or_else(Map::new, spread_twin)
+}
+
+/// `v.key` on a `readSettings` value: `None` (`undefined`) unless it is an
+/// object with that own key; a `null` file throws V8's `TypeError`. (The
+/// keys read here are on no prototype.)
+pub fn get_twin<'a>(v: &'a Value, key: &str) -> Result<Option<&'a Value>, UpdateError> {
+    match v {
+        Value::Null => Err(UpdateError::Type(null_property_error(key))),
+        Value::Object(m) => Ok(m.get(key)),
+        _ => Ok(None),
+    }
+}
+
+/// `v ?? {}` (`None` is `undefined`).
+pub fn or_empty(v: Option<&Value>) -> Value {
+    match v {
+        None | Some(Value::Null) => Value::Object(Map::new()),
+        Some(v) => v.clone(),
+    }
+}
+
+/// What the settings helpers throw: [`SettingsError`] from the read or
+/// write, or a `TypeError` (V8's message) reading a key off a `null` file.
+#[derive(Debug, thiserror::Error)]
+pub enum UpdateError {
+    #[error(transparent)]
+    Settings(#[from] SettingsError),
+    #[error("{0}")]
+    Type(String),
+}
+
+impl UpdateError {
+    /// The thrown error's `name`.
+    pub fn name(&self) -> &'static str {
+        match self {
+            UpdateError::Settings(e) => e.name(),
+            UpdateError::Type(_) => "TypeError",
+        }
+    }
+}
+
+/// `{ ...current, [key]: { ...(current[key] ?? {}), ...patch } }`, written
+/// to `scope` and returned (a twin).
+fn patch_key(
+    scope: Scope,
+    project_cwd: &str,
+    key: &str,
+    patch: &Value,
+) -> Result<Value, UpdateError> {
+    let current = read_settings_twin(scope, project_cwd)?;
+    let mut inner = spread_or_empty(get_twin(&current, key)?);
+    // `{...a, ...b}`: a key already there keeps its place.
+    inner.extend(spread_twin(patch));
+    let mut next = spread_twin(&current);
+    next.insert(key.to_owned(), Value::Object(inner));
+    let next = Value::Object(next);
+    write_settings_value(scope, project_cwd, &plain(&next))?;
+    Ok(next)
+}
+
+/// `updatePermissions(scope, cwd, patch)`: `patch` (an object or array)
+/// spread over the scope's `permissions`.
+pub fn update_permissions(
+    scope: Scope,
+    project_cwd: &str,
+    patch: &Value,
+) -> Result<Value, UpdateError> {
+    patch_key(scope, project_cwd, "permissions", patch)
+}
+
+/// `updateAutoMode(cwd, patch)`: `patch` spread over the user scope's
+/// `autoMode` (upstream reads it from `~/.claude/settings.json` only).
+pub fn update_auto_mode(project_cwd: &str, patch: &Value) -> Result<Value, UpdateError> {
+    patch_key(Scope::User, project_cwd, "autoMode", patch)
+}
+
+/// `resetAutoMode(cwd)`: drop the user scope's `autoMode` key, writing only
+/// when `current.autoMode !== undefined`.
+pub fn reset_auto_mode(project_cwd: &str) -> Result<Value, UpdateError> {
+    let current = read_settings_twin(Scope::User, project_cwd)?;
+    if get_twin(&current, "autoMode")?.is_none() {
+        return Ok(current);
+    }
+    let mut next = spread_twin(&current);
+    next.shift_remove("autoMode");
+    let next = Value::Object(next);
+    write_settings_value(Scope::User, project_cwd, &plain(&next))?;
+    Ok(next)
+}
+
+/// The SDK's four `skillOverrides[name]` literals.
+pub const SKILL_OVERRIDE_VALUES: [&str; 4] = ["on", "name-only", "user-invocable-only", "off"];
+
+/// `isSkillOverrideValue(v)`.
+pub fn is_skill_override_value(v: Option<&Value>) -> bool {
+    v.and_then(Value::as_str)
+        .is_some_and(|s| SKILL_OVERRIDE_VALUES.contains(&s))
+}
+
+/// `updateSkillOverride(cwd, name, value)` in the project scope: `"on"`
+/// deletes the name's entry, anything else sets it (`overrides[name] =
+/// value`, where a `__proto__` that isn't an own key runs the prototype
+/// setter and adds nothing); an emptied `skillOverrides` is dropped.
+pub fn update_skill_override(
+    project_cwd: &str,
+    name: &str,
+    value: &str,
+) -> Result<Value, UpdateError> {
+    let current = read_settings_twin(Scope::Project, project_cwd)?;
+    let mut overrides = spread_or_empty(get_twin(&current, "skillOverrides")?);
+    if value == "on" {
+        overrides.shift_remove(name);
+    } else if name != "__proto__" || overrides.contains_key(name) {
+        overrides.insert(name.to_owned(), Value::String(value.to_owned()));
+    }
+    let mut next = spread_twin(&current);
+    if overrides.is_empty() {
+        next.shift_remove("skillOverrides");
+    } else {
+        next.insert("skillOverrides".into(), Value::Object(overrides));
+    }
+    let next = Value::Object(next);
+    write_settings_value(Scope::Project, project_cwd, &plain(&next))?;
+    Ok(next)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -345,6 +526,43 @@ mod tests {
         for v in [json!(null), json!(5), json!(true), json!(""), json!([])] {
             assert_eq!(s(v), json!({}));
         }
+    }
+
+    #[test]
+    fn twins_read_like_js() {
+        let twin = |t: &str| db_agents::json_parse(t).unwrap();
+        let inf = twin("1e400");
+        assert_eq!(
+            plain(&twin(r#"{"a":[1e400,-1e400,null,"x"],"b":{"c":1e400}}"#)),
+            json!({"a": [null, null, null, "x"], "b": {"c": null}})
+        );
+        assert_eq!(spread_twin(&inf), Map::new());
+        assert_eq!(
+            Value::Object(spread_twin(&json!("ab"))),
+            json!({"0": "a", "1": "b"})
+        );
+        assert_eq!(spread_or_empty(None), Map::new());
+        assert_eq!(spread_or_empty(Some(&json!(null))), Map::new());
+        assert_eq!(or_empty(Some(&inf)), inf);
+        assert_eq!(or_empty(Some(&json!(null))), json!({}));
+        assert_eq!(or_empty(None), json!({}));
+        assert_eq!(or_empty(Some(&json!(false))), json!(false));
+        assert!(matches!(
+            get_twin(&json!(null), "k"),
+            Err(UpdateError::Type(m)) if m == "Cannot read properties of null (reading 'k')"
+        ));
+        assert_eq!(get_twin(&json!({"k": 1}), "k").unwrap(), Some(&json!(1)));
+        for v in [json!("k"), json!(["k"]), json!(1), inf] {
+            assert_eq!(get_twin(&v, "k").unwrap(), None);
+        }
+        assert_eq!(UpdateError::Type(String::new()).name(), "TypeError");
+        for v in SKILL_OVERRIDE_VALUES {
+            assert!(is_skill_override_value(Some(&json!(v))));
+        }
+        for v in [json!("ON"), json!(""), json!(null), json!(["on"])] {
+            assert!(!is_skill_override_value(Some(&v)));
+        }
+        assert!(!is_skill_override_value(None));
     }
 
     #[test]

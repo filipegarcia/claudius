@@ -35,13 +35,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [javascript-typescript]
+        # `none` for both. Rust (the `rust/` workspace, see rust/PORT_PLAN.md
+        # "Security rules") is extracted from source: rust-analyzer runs the
+        # build scripts and expands macros, with no full cargo build.
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: rust
+            build-mode: none
     steps:
       - uses: actions/checkout@v5
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
       - name: Perform analysis
         uses: github/codeql-action/analyze@v3
         with:

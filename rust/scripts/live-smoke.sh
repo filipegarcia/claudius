@@ -153,9 +153,10 @@ next_flag=(--no-next)
 if [[ $api_only == 0 ]]; then
   echo "starting next dev on :$next_port (.next-e2e)…"
   # exec: $! must be `next dev` itself (not a subshell) so cleanup's `pkill -P`
-  # reaches its next-server child.
+  # reaches its next-server child. CLAUDIUS_RUST_SCHEDULER=1: the Rust binary runs
+  # the scheduled jobs (its default), so Next must not run them too.
   (cd "$repo" && exec env "${env_args[@]}" HOME="$state" CLAUDE_CONFIG_DIR="$config_dir" \
-    NEXT_DIST_DIR=.next-e2e NEXT_TELEMETRY_DISABLED=1 ./node_modules/.bin/next dev -p "$next_port" > "$world/next.log" 2>&1) &
+    NEXT_DIST_DIR=.next-e2e NEXT_TELEMETRY_DISABLED=1 CLAUDIUS_RUST_SCHEDULER=1 ./node_modules/.bin/next dev -p "$next_port" > "$world/next.log" 2>&1) &
   next_pid=$!
   wait_for "http://127.0.0.1:$next_port/api/workspaces" 180 "next dev" "$next_pid"
   next_flag=(--next "http://127.0.0.1:$next_port")

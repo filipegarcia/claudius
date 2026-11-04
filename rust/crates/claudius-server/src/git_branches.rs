@@ -74,7 +74,7 @@ fn output(result: Result<String, GitError>) -> Response {
 /// U+FFFD), `{}` for an empty or malformed body. A number past f64
 /// (`1e400`, Infinity in JS) reads as the stand-in `0`: like Infinity a
 /// number, neither `null` nor a string nor `true`, all these handlers ask.
-fn read_body(bytes: &[u8]) -> Value {
+pub(crate) fn read_body(bytes: &[u8]) -> Value {
     let Ok(parsed) = JsonBody::parse_or_message(bytes) else {
         return json!({});
     };
@@ -83,7 +83,7 @@ fn read_body(bytes: &[u8]) -> Value {
 }
 
 /// `typeof v !== "string" || !v.trim()` is `None`.
-fn required(v: Option<&Value>) -> Option<&str> {
+pub(crate) fn required(v: Option<&Value>) -> Option<&str> {
     match v {
         Some(Value::String(s)) if !js::trim(s).is_empty() => Some(s),
         _ => None,

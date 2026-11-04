@@ -3507,13 +3507,17 @@ fn feedback_requests(f: &Fixture) -> Vec<String> {
 /// S26: `submit_feedback` sends the CLI's `submit_feedback` control request
 /// (`surface` defaults to "claudius"; `attach_transcript` is always sent)
 /// and reports whether the CLI took it. A refusal, a session that never
-/// started and an ended one are `false`.
+/// started and an ended one are not forwarded.
 #[tokio::test]
 async fn submit_feedback_forwards_through_the_cli() {
     let f = fixture();
     let s = f.create(SessionOptions::default()).await;
-    assert!(s.submit_feedback("[+1] nice", None, true).await);
-    assert!(s.submit_feedback("[-1] meh", Some("survey"), false).await);
+    assert!(s.submit_feedback("[+1] nice", None, true).await.forwarded);
+    assert!(
+        s.submit_feedback("[-1] meh", Some("survey"), false)
+            .await
+            .forwarded
+    );
     assert_eq!(
         feedback_requests(&f),
         [
@@ -3522,13 +3526,13 @@ async fn submit_feedback_forwards_through_the_cli() {
         ]
     );
     s.end().await;
-    assert!(!s.submit_feedback("late", None, false).await);
+    assert!(!s.submit_feedback("late", None, false).await.forwarded);
     assert_eq!(feedback_requests(&f).len(), 2, "written after the end");
 
     let script = json!({"control": {"submit_feedback": {"$error": "feedback disabled"}}});
     let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
     let s = f.create(SessionOptions::default()).await;
-    assert!(!s.submit_feedback("x", None, false).await);
+    assert!(!s.submit_feedback("x", None, false).await.forwarded);
     assert_eq!(
         feedback_requests(&f),
         [
@@ -3542,7 +3546,7 @@ async fn submit_feedback_forwards_through_the_cli() {
         ..Default::default()
     })
     .unwrap();
-    assert!(!idle.submit_feedback("x", None, false).await);
+    assert!(!idle.submit_feedback("x", None, false).await.forwarded);
 }
 
 // ───────────────────────── nudges (S20) ─────────────────────────

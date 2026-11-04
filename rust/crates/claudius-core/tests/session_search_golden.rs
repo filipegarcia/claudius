@@ -5,8 +5,10 @@
 //!   regex matches in a two-byte string of all 65 536 units and in a
 //!   one-byte string of the 256 Latin-1 units, against the classes
 //!   [`canonicalize`] makes;
-//! * `pure`: the route's match + snippet block on 1 940 text / query pairs
-//!   (index and `JSON.stringify(snippet)`) through [`find`] and [`snippet`];
+//! * `pure`: the route's match + snippet block on the recorded text / query
+//!   pairs (the index and `JSON.stringify(snippet)` of the first match that
+//!   isn't on an `api-request*` line) through [`first_hit`] and
+//!   [`snippet`], including the CC 2.1.300 skip and the line clamp;
 //! * `steps`: every recorded request through [`respond`] on the rebuilt
 //!   folders (status and body byte for byte).
 #![cfg(unix)]
@@ -17,7 +19,7 @@ mod common_search;
 use std::collections::HashMap;
 
 use claudius_agent::js;
-use claudius_core::session_search::{SNIPPET_RADIUS, canonicalize, find, respond, snippet};
+use claudius_core::session_search::{SNIPPET_RADIUS, canonicalize, first_hit, respond, snippet};
 use common_search::{build, fixture, needs_perms, perms_enforced};
 use serde_json::Value;
 
@@ -86,10 +88,10 @@ fn matches_and_snippets_follow_the_route() {
     let mut failures = Vec::new();
     for c in cases {
         let (text, q) = (units(&c["text"]), units(&c["q"]));
-        let got = find(&text, &q).map(|i| {
+        let got = first_hit(&text, &q).map(|hit| {
             let mut s = String::new();
-            js::stringify_utf16(&snippet(&text, i, q.len()), &mut s);
-            serde_json::json!({"index": i, "snippet": s})
+            js::stringify_utf16(&snippet(&text, &hit, q.len()), &mut s);
+            serde_json::json!({"index": hit.index, "snippet": s})
         });
         let got = got.unwrap_or(Value::Null);
         if got != c["got"] {
