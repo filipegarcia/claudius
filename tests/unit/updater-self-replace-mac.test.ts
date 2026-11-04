@@ -11,8 +11,11 @@ import { describe, expect, test } from "vitest";
 import {
   appBundleFromExecPath,
   buildSwapScript,
+  isMissingAssetError,
+  latestTagFromReleasesJson,
   pickMacZip,
   releaseAssetUrl,
+  sameReleaseTag,
   sha512Base64,
   type ReleaseFile,
 } from "@/electron/ipc/self-replace-mac";
@@ -127,5 +130,66 @@ describe("buildSwapScript", () => {
       logPath: "/tmp/log",
     });
     expect(s).toContain("NEW='/tmp/it'\\''s here/Claudius.app'");
+  });
+});
+
+describe("sameReleaseTag", () => {
+  test("ignores a leading v on either side", () => {
+    expect(sameReleaseTag("v0.3.318.1", "0.3.318.1")).toBe(true);
+    expect(sameReleaseTag("0.3.318.1", "v0.3.318.1")).toBe(true);
+    expect(sameReleaseTag("v0.3.318.1", "v0.3.318.1")).toBe(true);
+  });
+
+  test("the three-part fallback differs from the real four-part tag", () => {
+    // The exact pair that 404s: we guess `v0.3.318` when `GithubUpdateInfo.tag`
+    // is missing, but this repo's auto-tag published `v0.3.318.1`.
+    expect(sameReleaseTag("v0.3.318", "v0.3.318.1")).toBe(false);
+  });
+
+  test("distinguishes re-releases of the same version", () => {
+    expect(sameReleaseTag("v0.3.318.0", "v0.3.318.1")).toBe(false);
+  });
+
+  test("a missing tag is never 'the same' as anything", () => {
+    expect(sameReleaseTag(undefined, "v1.0.0")).toBe(false);
+    expect(sameReleaseTag("v1.0.0", null)).toBe(false);
+    expect(sameReleaseTag(null, undefined)).toBe(false);
+  });
+});
+
+describe("isMissingAssetError", () => {
+  test("matches the 404/403 shapes downloadFile throws", () => {
+    expect(isMissingAssetError("download HTTP 404")).toBe(true);
+    expect(isMissingAssetError("download HTTP 403")).toBe(true);
+  });
+
+  test("ignores transport failures a different tag can't fix", () => {
+    expect(isMissingAssetError("download HTTP 500")).toBe(false);
+    expect(isMissingAssetError("download HTTP 503")).toBe(false);
+    expect(isMissingAssetError("net::ERR_CONNECTION_RESET")).toBe(false);
+    expect(isMissingAssetError("downloaded update failed checksum verification")).toBe(false);
+  });
+
+  test("does not match a 404 from an unrelated message", () => {
+    expect(isMissingAssetError("HTTP 404")).toBe(false);
+  });
+});
+
+describe("latestTagFromReleasesJson", () => {
+  test("reads tag_name from GitHub's /releases/latest payload", () => {
+    const raw = JSON.stringify({ id: 432432755, tag_name: "v0.3.318.1" });
+    expect(latestTagFromReleasesJson(raw)).toBe("v0.3.318.1");
+  });
+
+  test("trims surrounding whitespace", () => {
+    expect(latestTagFromReleasesJson('{"tag_name":"  v1.2.3.4  "}')).toBe("v1.2.3.4");
+  });
+
+  test("returns null rather than throwing on unusable payloads", () => {
+    expect(latestTagFromReleasesJson("<!DOCTYPE html>")).toBeNull();
+    expect(latestTagFromReleasesJson("{}")).toBeNull();
+    expect(latestTagFromReleasesJson('{"tag_name":""}')).toBeNull();
+    expect(latestTagFromReleasesJson('{"tag_name":123}')).toBeNull();
+    expect(latestTagFromReleasesJson("null")).toBeNull();
   });
 });

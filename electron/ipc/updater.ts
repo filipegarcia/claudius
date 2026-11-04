@@ -40,8 +40,11 @@ import path from "node:path";
 import {
   appBundleFromExecPath,
   buildSwapScript,
+  isMissingAssetError,
+  latestTagFromReleasesJson,
   pickMacZip,
   releaseAssetUrl,
+  sameReleaseTag,
   sha512Base64,
   type ReleaseFile,
 } from "./self-replace-mac";
@@ -608,6 +611,49 @@ let started = false;
 // permission.
 let postQuitSwapChecked = false;
 
+/**
+ * How often an already-running app re-checks for updates.
+ *
+ * The renderer only checks on mount (`useElectronUpdater`), so without this a
+ * session left open for days never looks again — and, worse, a single
+ * transient failure (a check that lands mid-release and 404s on a
+ * half-uploaded asset) latches the degraded `manual-download` banner for the
+ * rest of that session. A periodic re-check is what lets that heal itself.
+ *
+ * Six hours is a deliberate compromise: frequent enough that a bad check
+ * recovers the same day, rare enough that it's invisible in GitHub's rate
+ * limit and never competes with the user's own work.
+ */
+const PERIODIC_CHECK_MS = 6 * 60 * 60 * 1000;
+let periodicTimer: NodeJS.Timeout | null = null;
+
+/**
+ * How many self-replace attempts are in flight. The periodic re-check must not
+ * fire during that window: `checkForUpdates()` re-broadcasts `checking` →
+ * `available`, which would stomp the live progress bar and make a running
+ * download look like it had been cancelled.
+ *
+ * A counter rather than a boolean because the stale-tag recovery path starts a
+ * *second* attempt from inside the first one's `try`. The outer attempt then
+ * returns and runs its `finally` while the inner download is still going — a
+ * boolean would clear the guard right at the point it's most needed.
+ */
+let selfReplaceInFlight = 0;
+
+/**
+ * Latched once we've retried a download against a re-resolved release tag, so
+ * a feed that is genuinely broken can't put us in a check→404→check loop. Reset
+ * on a successful download so a later update gets its own retry budget.
+ */
+let staleTagRetryUsed = false;
+
+/**
+ * Set while a re-check is running purely to recover from a stale-tag 404. The
+ * user already consented to the download, so when the fresh check re-announces
+ * the update we resume it automatically instead of asking again.
+ */
+let resumeDownloadAfterRecheck = false;
+
 function broadcast(status: Status): void {
   const wins = BrowserWindow.getAllWindows();
   for (const win of wins) {
@@ -626,7 +672,7 @@ export function registerUpdaterHandlers(): void {
     hasConfig: hasUpdateConfig(),
   }).arm;
 
-  ipcMain.on(TOPIC_CHECK, () => {
+  const runCheck = (): void => {
     if (!canUpdate) {
       // Dev / unpackaged electron has no signed binary or feed to update from.
       // Previously we also bailed here for packaged `--dir` builds (no
@@ -681,7 +727,27 @@ export function registerUpdaterHandlers(): void {
         }
         broadcast(classifyUpdaterError(msg));
       });
-  });
+  };
+
+  ipcMain.on(TOPIC_CHECK, runCheck);
+
+  // Re-check on a timer so a long-lived session notices new releases, and so a
+  // check that failed transiently (the `manual-download` dead-end) recovers
+  // without the user having to restart the app. Skipped whenever acting on the
+  // result would destroy state the user can see: a download in flight, a build
+  // already staged for restart, or an announced update awaiting consent.
+  if (canUpdate && !periodicTimer) {
+    periodicTimer = setInterval(() => {
+      if (selfReplaceInFlight > 0 || customStaged || pendingMacUpdate) return;
+      runCheck();
+    }, PERIODIC_CHECK_MS);
+    // Never let the update timer be the reason the process stays alive.
+    periodicTimer.unref?.();
+    app.once("before-quit", () => {
+      if (periodicTimer) clearInterval(periodicTimer);
+      periodicTimer = null;
+    });
+  }
 
   // User consented to the download from the update modal. Two paths:
   //   - darwin ad-hoc: we own the fetch (parked in `pendingMacUpdate`).
@@ -818,7 +884,7 @@ function bootstrap(): void {
         // Park it — the renderer's update modal drives the actual fetch via
         // TOPIC_DOWNLOAD once the user says go.
         const parsed = parseReleaseTag(tag);
-        pendingMacUpdate = {
+        offerMacUpdate({
           label,
           // electron-updater's GitHub provider resolves the REAL tag and
           // exposes it as `GithubUpdateInfo.tag`; it is not always `v<version>`
@@ -827,8 +893,7 @@ function bootstrap(): void {
           targetVersion: info.version,
           targetRelease: parsed && parsed.version === info.version ? parsed.release : null,
           files: info.files as ReleaseFile[],
-        };
-        broadcast({ kind: "available", version: label });
+        });
         return;
       }
       broadcast({ kind: "manual-download", version: label, url: RELEASES_URL });
@@ -895,17 +960,122 @@ function bootstrap(): void {
  */
 function offerRerelease(r: Rerelease, files: ReleaseFile[]): void {
   if (process.platform === "darwin") {
-    pendingMacUpdate = {
+    offerMacUpdate({
       label: r.label,
       tag: r.tag,
       targetVersion: r.version,
       targetRelease: r.release,
       files,
-    };
-    broadcast({ kind: "available", version: r.label });
+    });
     return;
   }
   broadcast({ kind: "manual-download", version: r.label, url: RELEASES_URL });
+}
+
+/**
+ * Park a macOS update for the renderer's consent prompt and announce it.
+ *
+ * The one wrinkle is `resumeDownloadAfterRecheck`: when this announcement is
+ * the result of a re-check we ran *ourselves* to recover from a stale-tag 404,
+ * the user already pressed Download once. Asking a second time would be a
+ * confusing regression, so we consume the parked update and resume the fetch
+ * immediately — now against the freshly resolved tag, with the sha512/size from
+ * that release's manifest rather than the superseded one's.
+ */
+function offerMacUpdate(target: MacUpdateTarget & { files?: ReleaseFile[] }): void {
+  pendingMacUpdate = target;
+  broadcast({ kind: "available", version: target.label });
+  if (!resumeDownloadAfterRecheck) return;
+  resumeDownloadAfterRecheck = false;
+  pendingMacUpdate = null;
+  void startMacSelfReplace(target);
+}
+
+/**
+ * Recover from "the asset isn't at that tag."
+ *
+ * The feed's manifest and the tag its assets live under are resolved
+ * separately, so they can disagree — most easily when a check lands between
+ * two releases of the same version (our auto-tag mints `v0.3.318.0` then
+ * `v0.3.318.1` for one `0.3.318`), or when `GithubUpdateInfo.tag` is missing
+ * and we fall back to `v<version>`, a tag that never exists in this repo.
+ * Either way the download 404s and the old code dead-ended at the
+ * "drag it into Applications" banner until the app was restarted.
+ *
+ * Rather than retry the same manifest against a different tag — whose zip may
+ * differ byte-for-byte and would then fail the checksum — re-run the whole
+ * check so the correct manifest is fetched for the correct tag.
+ *
+ * Returns true when a recovery check has taken ownership of the flow; false
+ * when the caller should fail through to the manual-download banner.
+ */
+async function recheckAfterMissingAsset(message: string, attemptedTag: string): Promise<boolean> {
+  if (!isMissingAssetError(message)) return false;
+  if (staleTagRetryUsed) return false;
+  const latest = await resolveLatestReleaseTag();
+  if (!latest || sameReleaseTag(latest, attemptedTag)) return false;
+  staleTagRetryUsed = true;
+  resumeDownloadAfterRecheck = true;
+  console.warn(
+    `[updater] ${message} for tag ${attemptedTag}; re-checking against ${latest}`,
+  );
+  broadcast({ kind: "checking" });
+  try {
+    await loadAutoUpdater().checkForUpdates();
+  } catch (err) {
+    resumeDownloadAfterRecheck = false;
+    console.warn("[updater] recovery re-check failed:", errorMessage(err));
+    return false;
+  }
+  // `update-available` / `update-not-available` fire synchronously inside the
+  // check, so a flag still set here means nothing picked the update back up
+  // (feed now says we're current). Hand back to the manual-download fallback.
+  if (resumeDownloadAfterRecheck) {
+    resumeDownloadAfterRecheck = false;
+    return false;
+  }
+  return true;
+}
+
+/**
+ * The real tag of the newest published release, via the same endpoint
+ * electron-updater's GitHubProvider uses (`/releases/latest` with a JSON
+ * Accept header). Null on any failure — callers treat that as "can't recover".
+ */
+async function resolveLatestReleaseTag(): Promise<string | null> {
+  try {
+    const body = await fetchText(
+      `https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/latest`,
+      { Accept: "application/json" },
+    );
+    return latestTagFromReleasesJson(body);
+  } catch (err) {
+    console.warn("[updater] could not resolve latest release tag:", errorMessage(err));
+    return null;
+  }
+}
+
+/** GET `url` as UTF-8 text through Electron's `net` (system proxy + redirects). */
+function fetchText(url: string, headers: Record<string, string> = {}): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = net.request(url);
+    for (const [key, value] of Object.entries(headers)) req.setHeader(key, value);
+    req.on("response", (res) => {
+      const status = res.statusCode ?? 0;
+      if (status !== 200) {
+        reject(new Error(`HTTP ${status}`));
+        return;
+      }
+      let body = "";
+      res.on("data", (chunk: Buffer) => {
+        body += chunk.toString("utf8");
+      });
+      res.on("end", () => resolve(body));
+      res.on("error", (e: Error) => reject(e));
+    });
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 /**
@@ -922,15 +1092,25 @@ async function startMacSelfReplace(info: MacUpdateTarget & { files?: ReleaseFile
     broadcast({ kind: "manual-download", version: info.label, url: RELEASES_URL });
     return;
   }
-  const url = releaseAssetUrl(RELEASE_OWNER, RELEASE_REPO, info.tag ?? info.targetVersion, asset.url);
+  const attemptedTag = info.tag ?? info.targetVersion;
+  const url = releaseAssetUrl(RELEASE_OWNER, RELEASE_REPO, attemptedTag, asset.url);
   const tmp = app.getPath("temp");
   const zipPath = path.join(tmp, `claudius-update-${info.label}.zip`);
   const extractDir = path.join(tmp, `claudius-update-${info.label}`);
+  selfReplaceInFlight += 1;
   try {
     broadcast({ kind: "downloading", percent: 0 });
-    await downloadFile(url, zipPath, asset.size, (pct) =>
-      broadcast({ kind: "downloading", percent: pct }),
-    );
+    try {
+      await downloadFile(url, zipPath, asset.size, (pct) =>
+        broadcast({ kind: "downloading", percent: pct }),
+      );
+    } catch (err) {
+      // The asset isn't at the tag we asked for — usually a check that raced a
+      // re-release, or a tag we had to guess from the version. Re-resolve and
+      // run the whole check again rather than dead-ending on the manual banner.
+      if (await recheckAfterMissingAsset(errorMessage(err), attemptedTag)) return;
+      throw err;
+    }
 
     // Integrity check (TLS already covers transport; this catches truncation /
     // a mismatched feed). Skip only if the feed didn't record a digest.
@@ -965,10 +1145,14 @@ async function startMacSelfReplace(info: MacUpdateTarget & { files?: ReleaseFile
       newAppPath,
     };
     broadcast({ kind: "downloaded", version: info.label });
+    // This update is staged; give the next one a fresh retry budget.
+    staleTagRetryUsed = false;
   } catch (err) {
     customStaged = null;
     console.warn("[updater] mac self-replace download failed:", errorMessage(err));
     broadcast({ kind: "manual-download", version: info.label, url: RELEASES_URL });
+  } finally {
+    selfReplaceInFlight -= 1;
   }
 }
 

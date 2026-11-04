@@ -52,6 +52,48 @@ export function releaseAssetUrl(
 }
 
 /**
+ * Compare two release tags ignoring a leading `v`, so `v0.3.318.1` and
+ * `0.3.318.1` count as the same release. Used to decide whether a re-resolved
+ * tag is actually *different* from the one whose asset just 404'd — retrying
+ * the identical URL would only burn another round trip.
+ */
+export function sameReleaseTag(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const strip = (s: string) => s.trim().replace(/^v/, "");
+  return strip(a) === strip(b);
+}
+
+/**
+ * True when a download failure means "that asset isn't at that tag" rather than
+ * a transport problem. Only these are worth retrying against a re-resolved tag:
+ * a 404 (tag doesn't exist / asset not uploaded yet) or a 403 (GitHub serves
+ * this for an asset whose upload is still in flight). A 5xx or a socket error
+ * is the CDN having a bad day — retrying with a different tag won't help.
+ *
+ * Matches the message shape thrown by `downloadFile` in `updater.ts`
+ * (`download HTTP 404`).
+ */
+export function isMissingAssetError(message: string): boolean {
+  return /\bdownload HTTP (?:403|404)\b/.test(message);
+}
+
+/**
+ * Pull `tag_name` out of GitHub's `/releases/latest` JSON response — the same
+ * endpoint electron-updater's GitHubProvider uses to resolve the real tag
+ * (`getLatestTagName`). Returns null for anything unparseable so callers can
+ * fall back rather than throw.
+ */
+export function latestTagFromReleasesJson(raw: string): string | null {
+  try {
+    const parsed = JSON.parse(raw) as { tag_name?: unknown };
+    const tag = parsed?.tag_name;
+    return typeof tag === "string" && tag.trim() !== "" ? tag.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Derive the `.app` bundle root from an executable path like
  * `/Applications/Claudius.app/Contents/MacOS/Claudius`. Returns null when the
  * path isn't inside a `.app` bundle (e.g. dev / unpackaged).
