@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pencil, ScrollText, Target } from "lucide-react";
+import { formatBinding, useBindingPlatform, useShortcut } from "@/lib/client/shortcuts";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -33,7 +34,7 @@ type Props = {
   onShowGoal?: () => void;
   /**
    * Parent-driven "open the rename editor" signal — bumped by the
-   * `session.focusTitle` keybinding (F2 by default). Each new value opens the
+   * `session.focusTitle` keybinding (⌘⌥T by default). Each new value opens the
    * inline title input and focuses it; mirrors GoalBanner's `openEditNonce`.
    */
   openEditNonce?: number;
@@ -71,6 +72,18 @@ export function RecapBanner({
   const [draft, setDraft] = useState("");
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The live `session.focusTitle` chord (⌘⌥T by default, rebindable in
+  // Settings → Shortcuts), formatted for display so hovering the title, its
+  // icon, or the pencil reminds the user how to rename without the mouse.
+  // `null` when the user disabled the binding — then no hint is advertised.
+  // `useBindingPlatform` keeps the glyphs SSR-safe (no hydration mismatch).
+  const renameBinding = useShortcut("session.focusTitle");
+  const bindingPlatform = useBindingPlatform();
+  const renameShortcut = renameBinding
+    ? formatBinding(renameBinding, { platform: bindingPlatform })
+    : null;
+  const shortcutSuffix = renameShortcut ? ` (${renameShortcut})` : "";
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -162,10 +175,15 @@ export function RecapBanner({
           embedded ? (goalRowBelow ? "pt-2 pb-0.5" : "py-2") : "py-1.5",
         )}
       >
-        <ScrollText
-          className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]"
-          aria-hidden
-        />
+        {/* Wrapped in a span because an SVG ignores the `title` attribute —
+            hovering the icon shows the same rename hint as the title. */}
+        <span
+          className="flex shrink-0"
+          title={canRename ? `Rename session${shortcutSuffix}` : undefined}
+          data-testid="recap-banner-icon"
+        >
+          <ScrollText className="h-3.5 w-3.5 text-[var(--muted)]" aria-hidden />
+        </span>
         {editing ? (
           <>
             <input
@@ -215,9 +233,7 @@ export function RecapBanner({
               onClick={canRename ? startEdit : undefined}
               title={
                 canRename
-                  ? hasTitle
-                    ? "Click to rename"
-                    : "Click to name this session"
+                  ? `${hasTitle ? "Click to rename" : "Click to name this session"}${shortcutSuffix}`
                   : undefined
               }
               data-testid="recap-banner-button"
@@ -235,6 +251,7 @@ export function RecapBanner({
               <button
                 type="button"
                 aria-label={hasTitle ? "Rename session" : "Name this session"}
+                title={`${hasTitle ? "Rename session" : "Name this session"}${shortcutSuffix}`}
                 onClick={startEdit}
                 className={cn(
                   "rounded p-0.5 text-[var(--muted)] transition hover:bg-[var(--panel)] hover:text-[var(--foreground)] focus:opacity-100",
@@ -246,6 +263,19 @@ export function RecapBanner({
               >
                 <Pencil className="h-3 w-3" />
               </button>
+            )}
+            {canRename && renameShortcut && (
+              // Immediate, visible reminder of the rename chord. The native
+              // `title` tooltips above only appear after the OS hover delay
+              // (~1s) and are easy to miss, so the chip fades in alongside the
+              // pencil whenever the row is hovered — same reveal as the pencil.
+              <kbd
+                aria-hidden
+                data-testid="recap-rename-shortcut"
+                className="shrink-0 rounded border border-[var(--border)] bg-[var(--panel-2)] px-1 py-0.5 font-mono text-[10px] leading-none text-[var(--muted)] opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100"
+              >
+                {renameShortcut}
+              </kbd>
             )}
             {onShowGoal && (
               <button
