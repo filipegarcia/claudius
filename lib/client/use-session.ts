@@ -307,6 +307,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.317 — an `--await-initialize` launch whose first stdin line was not the initialize request.
   initialize_not_first:
     "the session process was launched in await-initialize mode but its first input was not the initialize request — restart the session",
+  // SDK 0.3.318 — a configuration file read at startup is not valid JSON.
+  config_file_invalid:
+    "a configuration file read at startup is not valid JSON — fix or remove the file and restart the session",
 };
 
 /**
