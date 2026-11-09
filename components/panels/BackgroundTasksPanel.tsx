@@ -161,6 +161,9 @@ type Props = {
   onChangeUltracode?: (enabled: boolean) => Promise<void> | void;
   /** Whether fast mode is on — shown as a SessionCard badge. */
   fastMode?: boolean;
+  /** SDK-reported fast-mode state; drives the picker's per-row credits note
+   *  when fast is on but the local toggle reset (e.g. after a reload). */
+  fastModeState?: "off" | "cooldown" | "on" | null;
   /** Toggle fast mode. Same plumbing rationale as `onChangeUltracode`. */
   onChangeFast?: (enabled: boolean, model?: string) => Promise<void> | void;
   /** Per-session advisor model (the Claude Code "Advisor" picker). */
@@ -299,6 +302,7 @@ export function BackgroundTasksPanel({
   ultracode = false,
   onChangeUltracode,
   fastMode = false,
+  fastModeState = null,
   onChangeFast,
   advisorModel = null,
   onChangeAdvisorModel,
@@ -609,6 +613,7 @@ export function BackgroundTasksPanel({
           ultracode={ultracode}
           onChangeUltracode={onChangeUltracode}
           fastMode={fastMode}
+          fastModeState={fastModeState}
           onChangeFast={onChangeFast}
           advisorModel={advisorModel}
           onChangeAdvisorModel={onChangeAdvisorModel}

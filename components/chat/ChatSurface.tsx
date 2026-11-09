@@ -1287,6 +1287,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                   worktree: d.worktree ?? null,
                   worktreeError: d.worktreeError,
                 }),
+                // A caveat (couldn't check for uncommitted changes, couldn't
+                // make a worktree) is a warning: give it time to be read.
+                d.worktree?.dirty === null || d.worktreeError ? WARNING_TOAST_MS : undefined,
               );
             })
             .catch(() => showToast("Fork failed"));
@@ -2886,6 +2889,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         ultracode={session.ultracode}
         onChangeUltracode={session.setUltracode}
         fastMode={session.fastMode}
+        fastModeState={session.fastModeState}
         onChangeFast={session.setFast}
         advisorModel={session.advisorModel}
         onChangeAdvisorModel={session.setAdvisorModel}

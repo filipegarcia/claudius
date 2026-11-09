@@ -18,7 +18,11 @@ export function forkWorktreeIds(sessionId: string): { branch: string; dirName: s
   return { branch: `claudius/fork-${slug}`, dirName: `fork-${slug}` };
 }
 
-export type ForkWorktreeInfo = { path: string; branch: string; dirty: boolean };
+/**
+ * `dirty` is `null` when `git status` failed, so the source tree's state is
+ * unknown (CC 2.1.321 parity: a failed status reads as unavailable, not clean).
+ */
+export type ForkWorktreeInfo = { path: string; branch: string; dirty: boolean | null };
 
 const MAX_REASON_CHARS = 120;
 
@@ -67,7 +71,12 @@ export function forkConfirmation(opts: {
     }
     return `Forked as ${name} (${id8}) — shares your checkout.`;
   }
-  const dirtyNote = worktree.dirty ? " — uncommitted changes not included" : "";
+  const dirtyNote =
+    worktree.dirty === null
+      ? " — couldn't check for uncommitted changes, so any aren't included"
+      : worktree.dirty
+        ? " — uncommitted changes not included"
+        : "";
   // Plain text (no markdown) — this renders in a toast, which shows it verbatim.
   return `Forked as ${name} (${id8}) — in its own worktree ${worktree.branch}${dirtyNote}.`;
 }

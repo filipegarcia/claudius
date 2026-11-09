@@ -487,7 +487,12 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                   onChange={(e) => setDefaultMode(e.target.value as typeof defaultMode)}
                   className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
                 >
-                  <option value="">(inherit)</option>
+                  {/* CC 2.1.321 parity — "Fixed /config showing Manual as the
+                      default permission mode when new sessions start in auto
+                      mode". Leaving this unset doesn't inherit anything:
+                      createWorkspace stamps DEFAULT_WORKSPACE_DEFAULTS
+                      (permissionMode "auto"), so say so. */}
+                  <option value="">(auto — Claudius default)</option>
                   <option value="default">default</option>
                   <option value="acceptEdits">acceptEdits</option>
                   <option value="plan">plan</option>

@@ -66,7 +66,10 @@ const HAIKU_5_5: Pricing = { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrit
 // Sonnet 5.5 cache reads to $0.10/MT (was $0.20); Sonnet 5 keeps $0.20.
 const SONNET_5: Pricing = { input: 2, output: 10, cacheRead: 0.2, cacheWrite5m: 2.5, cacheWrite1h: 4 };
 const SONNET_5_5: Pricing = { ...SONNET_5, cacheRead: 0.1 };
-// Fable 5.1 (current). Fable 5 differs only in cache-read ($1.00); prior gen.
+// Fable 5.2 (current default Fable, CC 2.1.321): $8/$40, $0.20 cache reads,
+// writes at 1.25x (5m) / 2x (1h) — the engine catalog's `tier_8_40_cache_read_0_20`.
+const FABLE_5_2: Pricing = { input: 8, output: 40, cacheRead: 0.2, cacheWrite5m: 10, cacheWrite1h: 16 };
+// Fable 5.1 (prior gen). Fable 5 differs only in cache-read ($1.00).
 const FABLE_5_1: Pricing = { input: 10, output: 50, cacheRead: 0.25, cacheWrite5m: 12.5, cacheWrite1h: 20 };
 const FABLE_5: Pricing = { input: 10, output: 50, cacheRead: 1, cacheWrite5m: 12.5, cacheWrite1h: 20 };
 
@@ -81,8 +84,14 @@ export function priceFor(model: string | undefined): Pricing {
   if (m.includes("opus")) return OPUS;
   if (m.includes("haiku-5")) return HAIKU_5_5; // CC 2.1.293
   if (m.includes("haiku")) return HAIKU;
+  // CC 2.1.321. Digit boundary: a dated Fable 5 id (`claude-fable-5-20260101`)
+  // must not read as Fable 5.2.
+  if (/fable-5-2(?!\d)/.test(m)) return FABLE_5_2;
   if (m.includes("fable-5-1")) return FABLE_5_1;
-  if (m.includes("fable")) return FABLE_5;
+  if (m.includes("fable-5")) return FABLE_5;
+  // The bare `fable` alias (or an unrecognised Fable id) is the current
+  // default Fable, which is Fable 5.2 since CC 2.1.321 — not Fable 5.
+  if (m.includes("fable")) return FABLE_5_2;
   if (m.includes("sonnet-5-5")) return SONNET_5_5; // CC 2.1.296
   if (m.includes("sonnet-5")) return SONNET_5;
   return SONNET; // sonnet covers most defaults including unknown
