@@ -28,7 +28,7 @@ import {
   prettyModelName,
 } from "@/lib/shared/advisor";
 import { findModelEntry } from "@/lib/shared/model-id";
-import { OPUS48_FAST_MIGRATE_HINT, opus48FastDeprecationText } from "@/lib/shared/fast-mode";
+import { OPUS48_FAST_MIGRATE_HINT, fastModeLabel, opus48FastDeprecationText } from "@/lib/shared/fast-mode";
 
 /**
  * Mirror of `ModelInfo` from `@anthropic-ai/claude-agent-sdk`. We don't
@@ -475,9 +475,20 @@ export function ModelPicker({
                     {/* Mirror the TUI's `Draws from usage credits` suffix on
                         per-model rows whose accelerated decoding is billed
                         from the usage-credit bucket rather than the standard
-                        pool. Subdued amber to match the `fast` chip above. */}
-                    {m.supportsFastMode && (
-                      <div className="mt-0.5 truncate text-[9px] text-amber-200/80">
+                        pool. Subdued amber to match the `fast` chip above.
+                        CC 2.1.321 parity — "Fixed the 'Draws from usage
+                        credits' note showing after a switch to Fable on
+                        Enterprise seats whose plan includes Fable": the
+                        engine adds it for fast mode only while fast mode is
+                        ON. Fable 5.2 is the first fast-capable Fable, so an
+                        always-on note would now sit on every Fable row,
+                        plan-included seats too. The `fast` chip still shows
+                        the capability. */}
+                    {fastMode && m.supportsFastMode && (
+                      <div
+                        data-testid="model-picker-row-credits"
+                        className="mt-0.5 truncate text-[9px] text-amber-200/80"
+                      >
                         Draws from usage credits
                       </div>
                     )}
@@ -913,8 +924,11 @@ export function ModelPicker({
                 )}
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-medium text-[var(--foreground)]">
-                  Fast mode
+                <span
+                  data-testid="model-picker-fast-label"
+                  className="block text-[11px] font-medium text-[var(--foreground)]"
+                >
+                  {fastModeLabel(activeId)}
                 </span>
                 <span className="block text-[9px] leading-tight text-[var(--muted)]">
                   Accelerated responses on supported models.
