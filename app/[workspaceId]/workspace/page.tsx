@@ -662,8 +662,12 @@ export default function WorkspacePage() {
                         value=""
                         currentValue={mode}
                         onSelect={() => setMode("")}
-                        label="Inherit (default)"
-                        description="Use the machine-level setting."
+                        // CC 2.1.321 parity — the shown default must be the
+                        // mode new chats actually get. Unset, Claudius passes
+                        // its own "default" (session.ts) and never reads
+                        // permissions.defaultMode, so "machine-level" was wrong.
+                        label="Default (built-in)"
+                        description="Not set: new chats start in Default (prompt for risky tools). permissions.defaultMode in settings.json isn't applied."
                       />
                       {PERMISSION_MODE_ORDER.map((m) => {
                         const meta = PERMISSION_MODE_META[m];
