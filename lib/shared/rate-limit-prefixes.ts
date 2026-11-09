@@ -63,5 +63,21 @@ export const USAGE_LIMIT_ERROR_PREFIXES = [
  */
 export function matchesUsageLimitPrefix(text: string): boolean {
   const normalized = text.trim().replace(/[‘’]/g, "'").toLowerCase();
-  return USAGE_LIMIT_ERROR_PREFIXES.some((prefix) => normalized.startsWith(prefix.toLowerCase()));
+  return (
+    USAGE_LIMIT_ERROR_PREFIXES.some((prefix) => normalized.startsWith(prefix.toLowerCase())) ||
+    MODEL_REQUIRES_CREDITS_RE.test(normalized)
+  );
 }
+
+/**
+ * CC 2.1.321 — the engine's "<model> requires usage credits." limit text now
+ * names the model (`${displayName} requires usage credits.`), so the fixed
+ * "Fable 5 requires usage credits" prefix above misses "Fable 5.2 requires
+ * usage credits." The engine detects it with this companion pattern (copied
+ * from the bundled CLI, lowercased to match `normalized`): a family name at
+ * the very start, an optional short version, then the sentence with its
+ * period. Anchored on both ends of the clause so ordinary prose that only
+ * mentions "requires usage credits" mid-sentence doesn't read as a limit hit
+ * (this also feeds the server's account auto-rotate).
+ */
+const MODEL_REQUIRES_CREDITS_RE = /^(?:fable|haiku|mythos|opus|sonnet)(?: [^\u00b7\n]{1,40})? requires usage credits\./;
