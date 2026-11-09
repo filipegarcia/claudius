@@ -40,6 +40,7 @@ import { BackgroundBashes } from "./widgets/BackgroundBashes";
 import { ScheduledLoops } from "./widgets/ScheduledLoops";
 import { RecentEdits } from "./widgets/RecentEdits";
 import { cn } from "@/lib/utils/cn";
+import { openTaskInTranscript } from "@/lib/client/open-task";
 
 type Props = {
   progress: Record<string, ToolProgressInfo>;
@@ -102,6 +103,12 @@ type Props = {
   toolHistory: ToolHistoryEntry[];
   /** Open the live-tail viewer for this bash. */
   onOpenBash?: (b: BackgroundBash) => void;
+  /**
+   * CC 2.1.319 — "Earlier in this session" → Message: put a SendMessage
+   * prompt for this finished subagent in the composer (not sent — the user
+   * types the message). Omitting hides the Message button.
+   */
+  onMessageTask?: (task: TaskInfo) => void;
   /**
    * Open the full context-usage overlay. When provided, the compact
    * `ContextBar` summary becomes a clickable affordance. Optional — read-only
@@ -173,6 +180,15 @@ const PROCESS_TASK_TYPES = new Set(["local_bash", "local_monitor"]);
 
 /** Terminal statuses — used to drop a shell whose process has ended. */
 const TERMINAL_STATUSES = new Set(["completed", "failed", "stopped", "killed"]);
+
+/**
+ * A subagent (`local_agent`) that has finished — the rows of "Earlier in this
+ * session" (CC 2.1.319). Only subagents: they can be messaged (SendMessage
+ * resumes one from its saved transcript); shells and workflows can't.
+ */
+function isFinishedSubagent(t: TaskInfo): boolean {
+  return t.taskType === "local_agent" && TERMINAL_STATUSES.has(t.status);
+}
 
 const TASK_TONES: Record<string, string> = {
   pending: "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)]",
@@ -272,6 +288,7 @@ export function BackgroundTasksPanel({
   scheduledLoops,
   toolHistory,
   onOpenBash,
+  onMessageTask,
   onOpenContext,
   onCancelScheduledLoop,
   onAddTodos,
@@ -357,8 +374,18 @@ export function BackgroundTasksPanel({
       body: JSON.stringify({ taskId }),
     }).catch(() => {});
   };
+  // CC 2.1.319 parity — "Added an 'Earlier in this session' row to /tasks
+  // that lists finished subagents, so you can reopen one and message it even
+  // after it leaves the list or you restart". Every finished subagent of this
+  // session, uncapped (the task snapshot already survives a reload or server
+  // restart via session-tasks-db), newest first; system tasks stay folded.
+  const earlierSubagents = Object.values(tasks)
+    .filter((t) => isFinishedSubagent(t) && !isSystemTask(t))
+    .reverse();
   const recent = Object.values(tasks)
     .filter((t) => t.status !== "running" && t.status !== "pending" && t.status !== "paused")
+    // Finished subagents live in "Earlier in this session" now.
+    .filter((t) => !(isFinishedSubagent(t) && !isSystemTask(t)))
     .slice(-3)
     .reverse();
   // Live background shells. Beyond the explicit `killed` flag (set when the
@@ -964,8 +991,63 @@ export function BackgroundTasksPanel({
         )}
 
         {/* History group */}
-        {(recentEdits.length > 0 || recent.length > 0) && (
+        {(recentEdits.length > 0 || recent.length > 0 || earlierSubagents.length > 0) && (
           <div className="mb-3 border-t border-[var(--border)]/40" />
+        )}
+
+        {earlierSubagents.length > 0 && (
+          <div data-pane-name="earlier-subagents" data-testid="earlier-subagents">
+          <CollapsibleSection
+            storageKey="earlier"
+            label="Earlier in this session"
+            badge={earlierSubagents.length}
+          >
+            <ul className="space-y-1">
+              {earlierSubagents.map((t) => (
+                <li
+                  key={t.taskId}
+                  data-testid="earlier-subagent-row"
+                  data-task-id={t.taskId}
+                  className={cn("rounded-md border px-2 py-1 text-[10px]", TASK_TONES[t.status])}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Bot className="h-3 w-3 shrink-0" />
+                    <span className="min-w-0 truncate font-mono" title={t.description}>
+                      {t.description}
+                    </span>
+                    <span data-testid="task-status" className="ml-auto shrink-0" title={taskStatusTitle(t)}>
+                      {taskStatusLabel(t)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1">
+                    {t.toolUseId && (
+                      <button
+                        type="button"
+                        data-testid="earlier-subagent-open"
+                        onClick={() => openTaskInTranscript(t.toolUseId as string)}
+                        className="rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] hover:text-[var(--foreground)]"
+                        title="Show this subagent's run in the conversation"
+                      >
+                        Open
+                      </button>
+                    )}
+                    {onMessageTask && (
+                      <button
+                        type="button"
+                        data-testid="earlier-subagent-message"
+                        onClick={() => onMessageTask(t)}
+                        className="rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] hover:text-[var(--foreground)]"
+                        title="Ask Claude to send this subagent a message — it continues from where it stopped"
+                      >
+                        Message
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CollapsibleSection>
+          </div>
         )}
 
         {recentEdits.length > 0 && (

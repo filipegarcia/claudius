@@ -124,6 +124,7 @@ import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand, isSlashCommandHead, resolveFastCommandArgs, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
 import { renameToastText } from "@/lib/shared/rename-warning";
+import { messageSubagentDraft } from "@/lib/client/open-task";
 
 /** Long enough to read the CC 2.1.319 "may not last" rename warning. */
 const WARNING_TOAST_MS = 6000;
@@ -1563,7 +1564,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           return true;
         }
         case "tasks":
-          showToast("Background tasks panel is on the right rail");
+          showToast(
+            "Background tasks panel is on the right rail — finished subagents are under “Earlier in this session”",
+          );
           return true;
         case "skills":
           setOverlay("skills");
@@ -2862,6 +2865,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         scheduledLoops={session.scheduledLoops}
         toolHistory={session.toolHistory}
         onOpenBash={setOpenBash}
+        onMessageTask={(t) => {
+          // CC 2.1.319 — "Earlier in this session" → Message: prefill, don't
+          // send; the model's SendMessage resumes the finished subagent.
+          draftTokenRef.current += 1;
+          setDraftInjection({ token: draftTokenRef.current, text: messageSubagentDraft(t.taskId) });
+        }}
         onCancelScheduledLoop={onCancelScheduledLoop}
         onAddTodos={onAddTodos}
         onClearTodos={session.clearTodos}

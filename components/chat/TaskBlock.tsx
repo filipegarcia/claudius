@@ -1,13 +1,14 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import { OPEN_TASK_EVENT, type OpenTaskDetail } from "@/lib/client/open-task";
 import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { findSubagentRetry } from "@/lib/client/task-status";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { prettyModelName } from "@/lib/shared/advisor";
-import { stripSubagentHandBackFrame } from "@/lib/shared/subagent-handback";
+import { parseSubagentHandBack } from "@/lib/shared/subagent-handback";
 import { Markdown } from "./Markdown";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
@@ -77,6 +78,22 @@ export function TaskBlock({
     setPrevDefaultOpen(defaultOpen);
     setOpen(defaultOpen);
   }
+  // CC 2.1.280 / 2.1.319 — the report as the user should read it: no frame,
+  // no agentId/usage trailer, canned provenance notes split out.
+  const handBack = result ? parseSubagentHandBack(result.content) : null;
+  // CC 2.1.319 — the rail's "Earlier in this session" → Open expands this
+  // block and scrolls it into view.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    function onOpen(e: Event) {
+      const detail = (e as CustomEvent<OpenTaskDetail>).detail;
+      if (!detail || detail.toolUseId !== toolUseId) return;
+      setOpen(true);
+      rootRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    window.addEventListener(OPEN_TASK_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_TASK_EVENT, onOpen);
+  }, [toolUseId]);
   const subagentName = (input as { subagent_type?: string; agent?: string }).subagent_type ?? (input as { agent?: string }).agent ?? "Task";
   // Title is the spawn *intent* (the Task tool's static `description` — the
   // "why"), with live progress shown as a trailing detail only when it diverges.
@@ -117,7 +134,9 @@ export function TaskBlock({
 
   return (
     <div
+      ref={rootRef}
       data-testid="task-block"
+      data-tool-use-id={toolUseId}
       data-task-status={status}
       data-stream-disconnected={disconnected ? "1" : undefined}
       data-open={open ? "1" : "0"}
@@ -222,8 +241,8 @@ export function TaskBlock({
               ))}
             </div>
           )}
-          {result && (
-            <details className="mt-2">
+          {result && handBack && (
+            <details className="mt-2" data-testid="task-returned-to-parent">
               <summary className="cursor-pointer text-[10px] uppercase tracking-wide text-[var(--muted)]">
                 Returned to parent
               </summary>
@@ -233,8 +252,19 @@ export function TaskBlock({
                   result.isError && "text-red-300",
                 )}
               >
-                {stripSubagentHandBackFrame(result.content)}
+                {handBack.text}
               </pre>
+              {/* CC 2.1.319 — the harness's canned provenance notes, shown
+                  muted instead of as raw `<…/>` marker tags in the report. */}
+              {handBack.provenance.map((note) => (
+                <p
+                  key={note}
+                  data-testid="task-handback-provenance"
+                  className="mt-1 text-[10px] italic text-[var(--muted)]"
+                >
+                  {note}
+                </p>
+              ))}
             </details>
           )}
           {process.env.NODE_ENV === "development" && (

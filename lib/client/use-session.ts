@@ -115,6 +115,7 @@ import {
   shouldRebuildTranscript,
   streamRecoveryDelayMs,
 } from "./stream-recovery";
+import { stripSubagentHandBackFrame } from "@/lib/shared/subagent-handback";
 
 type SDKContentBlock =
   | { type: "text"; text: string }
@@ -649,6 +650,7 @@ export function extractPeerOrigin(
         from?: unknown;
         name?: unknown;
         body?: unknown;
+        handback?: unknown;
         verifiedPeerPid?: unknown;
         msg_id?: unknown;
       };
@@ -657,7 +659,11 @@ export function extractPeerOrigin(
   if (!origin || origin.kind !== "peer") return undefined;
   if (typeof origin.from !== "string" || !origin.from) return undefined;
   const name = typeof origin.name === "string" && origin.name ? origin.name : undefined;
-  const body = typeof origin.body === "string" && origin.body ? origin.body : undefined;
+  const rawBody = typeof origin.body === "string" && origin.body ? origin.body : undefined;
+  // CC 2.1.319 — a background agent's hand-back arrives as a peer message
+  // whose body is the framed report (frame line, provenance notes); show the
+  // report the way the TaskBlock does.
+  const body = rawBody && origin.handback === true ? stripSubagentHandBackFrame(rawBody) || rawBody : rawBody;
   const pid =
     typeof origin.verifiedPeerPid === "number" && Number.isSafeInteger(origin.verifiedPeerPid) && origin.verifiedPeerPid > 0
       ? origin.verifiedPeerPid
