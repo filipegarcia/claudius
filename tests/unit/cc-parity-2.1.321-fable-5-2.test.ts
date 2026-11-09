@@ -17,6 +17,13 @@ describe("Fable 5.2 pricing", () => {
     }
   });
 
+  test("the bare fable alias prices as the current default (5.2); Fable 5 keeps its own", () => {
+    expect(priceFor("fable").input).toBe(8);
+    expect(priceFor("fable[1m]").cacheRead).toBe(0.2);
+    const f5 = priceFor("claude-fable-5");
+    expect([f5.input, f5.cacheRead]).toEqual([10, 1]);
+  });
+
   test("Fable 5.1 keeps its own price", () => {
     const p = priceFor("claude-fable-5-1");
     expect([p.input, p.output, p.cacheRead]).toEqual([10, 50, 0.25]);

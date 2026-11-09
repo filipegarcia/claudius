@@ -86,7 +86,10 @@ export function priceFor(model: string | undefined): Pricing {
   if (m.includes("haiku")) return HAIKU;
   if (m.includes("fable-5-2")) return FABLE_5_2; // CC 2.1.321
   if (m.includes("fable-5-1")) return FABLE_5_1;
-  if (m.includes("fable")) return FABLE_5;
+  if (m.includes("fable-5")) return FABLE_5;
+  // The bare `fable` alias (or an unrecognised Fable id) is the current
+  // default Fable, which is Fable 5.2 since CC 2.1.321 — not Fable 5.
+  if (m.includes("fable")) return FABLE_5_2;
   if (m.includes("sonnet-5-5")) return SONNET_5_5; // CC 2.1.296
   if (m.includes("sonnet-5")) return SONNET_5;
   return SONNET; // sonnet covers most defaults including unknown
