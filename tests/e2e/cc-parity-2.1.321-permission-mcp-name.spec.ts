@@ -97,6 +97,15 @@ test.describe("Claude Code 2.1.321 — hidden characters in a plugin MCP server'
     await expect(modal).not.toBeVisible({ timeout: 5_000 });
   });
 
+  test("a look-alike name (Hangul filler, LRM) is caught by the name rule too", async ({ page }) => {
+    await mockChatBackend(page, [...PRELUDE, mcpPermission("tracker\u3164\u200E")]);
+    await page.goto("/");
+    const badge = page.getByTestId("permission-mcp-source-badge");
+    await expect(badge).toBeVisible({ timeout: 15_000 });
+    await expect(badge).toHaveText("MCP · tracker\u2039U+3164\u203A\u2039U+200E\u203A (plugin)");
+    await expect(page.getByTestId("permission-hidden-chars")).toContainText("Contains 2 hidden/bidi characters");
+  });
+
   test("a clean server name shows as-is with no banner", async ({ page }) => {
     await mockChatBackend(page, [...PRELUDE, mcpPermission("tracker")]);
     await page.goto("/");

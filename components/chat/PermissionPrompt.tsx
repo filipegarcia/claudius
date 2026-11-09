@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Link2, Shield, Webhook } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
-import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import { visualizeHiddenNameUnicode, visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
 import { isTypingInField } from "@/lib/client/typing-focus";
 import { isBeforePromptArmed } from "@/lib/client/prompt-arm";
@@ -69,8 +69,11 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // showing a name with hidden characters". The source badge's server name is
   // untrusted (sdk.d.ts: a non-`sdk` server's name, including one a plugin
   // ships, is "untrusted text, escape it before display"), so it gets the
-  // same treatment as every other name on this card.
-  const mcpNameVis = request.mcpServer ? visualizeInvisibleUnicode(request.mcpServer.name) : null;
+  // same treatment as every other name on this card — the engine's wider
+  // *name* set (`visualizeHiddenNameUnicode`: LRM/RLM, ZWJ, Hangul fillers,
+  // NBSP, U+16910, …), since a name that merely looks like another one is the
+  // risk here, not just bidi overrides.
+  const mcpNameVis = request.mcpServer ? visualizeHiddenNameUnicode(request.mcpServer.name) : null;
   // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
   // would write grants more than this ask's own action, so hide all three
   // standing-grant buttons. The auto-mode tip button is itself a one-click
