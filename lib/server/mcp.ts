@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import { readSettings, writeSettings } from "./settings";
+import { basename, dirname, join } from "node:path";
+import { pathFor, readSettings, writeSettings } from "./settings";
 import { assertWithin } from "./safe-path";
 
 export type McpStdioConfig = {
@@ -122,8 +122,32 @@ async function writeJson(p: string, value: unknown): Promise<void> {
   const dir = dirname(p);
   const target = assertWithin(dir, p);
   await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(target, JSON.stringify(value, null, 2) + "\n", "utf8");
+  const body = JSON.stringify(value, null, 2) + "\n";
+  // CC 2.1.319 parity — "Fixed ~/.claude.json, settings and edited files
+  // ending up empty or cut off when the disk fills during a save". A plain
+  // `fs.writeFile` truncates the target before writing, so ENOSPC (or a kill)
+  // mid-write left `.mcp.json` empty or cut off — and the engine then loads
+  // no MCP servers. Same tmp + rename shape as `writeSettings`, including the
+  // write-through for a symlinked file (rename would sever a dotfiles link).
+  const st = await fs.lstat(target).catch(() => null);
+  if (st?.isSymbolicLink()) {
+    await fs.writeFile(target, body, "utf8");
+    return;
+  }
+  const tmpPath = assertWithin(dir, `.${basename(target)}.tmp-${process.pid}-${writeSeq++}`);
+  const mode = st ? st.mode & 0o777 : undefined;
+  try {
+    await fs.writeFile(tmpPath, body, "utf8");
+    if (mode !== undefined) await fs.chmod(tmpPath, mode);
+    await fs.rename(tmpPath, target);
+  } catch (err) {
+    await fs.rm(tmpPath, { force: true }).catch(() => {});
+    throw err;
+  }
 }
+
+/** Per-process counter so concurrent `writeJson` calls never share a temp name. */
+let writeSeq = 0;
 
 type McpJsonShape = { mcpServers?: Record<string, McpServerConfig> };
 
@@ -162,12 +186,51 @@ export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
 }
 
 /**
+ * CC 2.1.318 parity — "Fixed `claude mcp add` and `remove` writing the config
+ * without its lock". Claudius's add / remove are read-modify-write on one
+ * file with no serialization, so two overlapping requests (a double-submit,
+ * two tabs) could each read the old file and the second write would drop the
+ * first one's server. Serialize them per target file. This is an in-process
+ * lock — it can't stop the engine (another process) from writing between our
+ * read and write, the same limit the engine states for its own fix.
+ */
+const fileChains = new Map<string, Promise<unknown>>();
+
+function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
+  const prev = fileChains.get(file) ?? Promise.resolve();
+  const run = prev.then(fn, fn);
+  const tail = run.then(
+    () => {},
+    () => {},
+  );
+  fileChains.set(file, tail);
+  void tail.then(() => {
+    if (fileChains.get(file) === tail) fileChains.delete(file);
+  });
+  return run;
+}
+
+function mcpTargetFile(scope: McpScope, cwd: string): string {
+  if (scope === "project") return projectMcpJsonPath(cwd);
+  return pathFor(scope === "user" ? "user" : "local", cwd);
+}
+
+/**
  * Upsert a server in the chosen scope.
  *  - project → .mcp.json
  *  - user    → settings.json mcpServers
  *  - local   → settings.local.json mcpServers
  */
 export async function upsertServer(
+  scope: McpScope,
+  cwd: string,
+  name: string,
+  config: McpServerConfig,
+): Promise<void> {
+  return withFileLock(mcpTargetFile(scope, cwd), () => upsertServerUnlocked(scope, cwd, name, config));
+}
+
+async function upsertServerUnlocked(
   scope: McpScope,
   cwd: string,
   name: string,
@@ -190,6 +253,10 @@ export async function upsertServer(
 }
 
 export async function removeServer(scope: McpScope, cwd: string, name: string): Promise<boolean> {
+  return withFileLock(mcpTargetFile(scope, cwd), () => removeServerUnlocked(scope, cwd, name));
+}
+
+async function removeServerUnlocked(scope: McpScope, cwd: string, name: string): Promise<boolean> {
   if (scope === "project") {
     const path = projectMcpJsonPath(cwd);
     const current = await readJson<McpJsonShape>(path);
