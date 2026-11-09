@@ -9,7 +9,8 @@
  *   - the workspace settings page's "Inherit (default) · Use the machine-level
  *     setting" actually gives Default, because Claudius always passes an
  *     explicit mode and never reads `permissions.defaultMode`.
- * Both now say what happens.
+ * Both now say what happens ("auto (Claudius default)" / "Not set · New chats
+ * start in Default …").
  *
  * Drives the real create form, the real `/api/workspaces` (a scratch
  * workspace in a temp folder) and the real workspace settings page.
@@ -39,7 +40,7 @@ test.describe("default permission mode labels (CC 2.1.321 parity)", () => {
     await expect(select.locator("option", { hasText: "(inherit)" })).toHaveCount(0);
   });
 
-  test("an unset workspace mode is labelled as the built-in Default it gives", async ({ page, baseURL }) => {
+  test("an unset workspace mode says new chats start in Default", async ({ page, baseURL }) => {
     const root = await fs.mkdtemp(join(tmpdir(), "claudius-e2e-defaultmode-"));
     // Created without a permissionMode, exactly as the form's unset option does.
     const created = await page.request.post(`${baseURL}/api/workspaces`, {
@@ -53,9 +54,9 @@ test.describe("default permission mode labels (CC 2.1.321 parity)", () => {
       await page.request.post(`${baseURL}/api/workspaces/${ws.id}/select`);
 
       await page.goto(`/${ws.id}/workspace`);
-      const unset = page.getByRole("radio", { name: /Default \(built-in\)/ });
+      const unset = page.getByRole("radio", { name: /^Not set/ });
       await expect(unset).toBeVisible({ timeout: 30_000 });
-      await expect(unset).toContainText("new chats start in Default");
+      await expect(unset).toContainText("New chats start in Default");
       await expect(unset).toContainText("permissions.defaultMode in settings.json isn't applied");
       await expect(page.getByRole("radio", { name: /Inherit \(default\)/ })).toHaveCount(0);
       await expect(page.getByText("Use the machine-level setting.")).toHaveCount(0);
@@ -63,7 +64,8 @@ test.describe("default permission mode labels (CC 2.1.321 parity)", () => {
       await expect(page.getByRole("radio", { name: /^Auto/ })).toHaveAttribute("aria-checked", "true");
       await expect(unset).toHaveAttribute("aria-checked", "false");
 
-      await unset.scrollIntoViewIfNeeded();
+      // Centre it: the page's sticky save bar covers the bottom of the fold.
+      await unset.evaluate((el) => el.scrollIntoView({ block: "center" }));
       await page.waitForTimeout(200);
       await page.screenshot({ path: resolve(SHOTS_DIR, "default-permission-mode.png"), fullPage: false });
     } finally {

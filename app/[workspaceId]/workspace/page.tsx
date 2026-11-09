@@ -666,8 +666,8 @@ export default function WorkspacePage() {
                         // mode new chats actually get. Unset, Claudius passes
                         // its own "default" (session.ts) and never reads
                         // permissions.defaultMode, so "machine-level" was wrong.
-                        label="Default (built-in)"
-                        description="Not set: new chats start in Default (prompt for risky tools). permissions.defaultMode in settings.json isn't applied."
+                        label="Not set"
+                        description="New chats start in Default (prompt for risky tools). permissions.defaultMode in settings.json isn't applied."
                       />
                       {PERMISSION_MODE_ORDER.map((m) => {
                         const meta = PERMISSION_MODE_META[m];
