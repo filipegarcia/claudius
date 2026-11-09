@@ -449,6 +449,16 @@ export class SessionManager {
         this.scheduleReap(id);
         return;
       }
+      // CC 2.1.319 parity — "Fixed /clear killing running commands of
+      // background agents, teammates and workflows that keep running".
+      // `/clear` leaves the old session subscriber-less; reaping it would
+      // end its SDK process and every background agent still working in
+      // it. Re-checked each window; shells don't count, and a hung agent
+      // stops counting after a long silence (`background-agent-keepalive.ts`).
+      if (s.hasLiveBackgroundAgents()) {
+        this.scheduleReap(id);
+        return;
+      }
       void this.remove(id).catch(() => {});
     }, reapMs());
     // Don't keep the event loop alive solely for this timer.

@@ -443,6 +443,13 @@ export type TokenExpiringNudgeEvent = {
   type: "token_expiring_required";
   /** Unix-ms instant the active credential's access token expires. */
   expiresAt: number;
+  /**
+   * CC 2.1.318 — `"sign_in"`: `expiresAt` is when the stored claude.ai
+   * sign-in itself ends (the result's `credential_expires_at`; renewing the
+   * access token doesn't move it), so the fix is signing in again rather than
+   * re-authenticating a profile. Absent = the access-token nudge (CC 2.1.203).
+   */
+  kind?: "sign_in";
 };
 
 /**

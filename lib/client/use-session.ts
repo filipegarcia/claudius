@@ -6710,7 +6710,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   }, []);
 
   const renameTitle = useCallback(
-    async (title: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    async (title: string): Promise<{ ok: true; warning?: string } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
       if (!id) return { ok: false, error: "no active session" };
       const trimmed = title.trim();
@@ -6735,7 +6735,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // active tab already reflects the rename through `sessionTitle` /
         // the SSE `session_title` event.
         void refreshSessions();
-        return { ok: true };
+        // CC 2.1.319 — the rename took, but the transcript couldn't be updated.
+        const body = (await res.json().catch(() => ({}))) as { warning?: unknown };
+        return typeof body.warning === "string" && body.warning ? { ok: true, warning: body.warning } : { ok: true };
       } catch (err) {
         setSessionTitle(prev);
         return { ok: false, error: err instanceof Error ? err.message : String(err) };

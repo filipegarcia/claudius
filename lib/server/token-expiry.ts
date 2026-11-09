@@ -52,3 +52,29 @@ export function shouldWarnTokenExpiring(
   const remaining = expiresAt - now;
   return remaining > 0 && remaining <= TOKEN_EXPIRY_WARNING_WINDOW_MS;
 }
+
+/**
+ * CC 2.1.318 parity — "Added the date a stored claude.ai sign-in ends to …
+ * `claude -p` JSON results (`credential_expires_at`)" and "Added a one-line
+ * stderr warning to `claude -p` text output, starting 10 days before a stored
+ * claude.ai sign-in ends". Claudius's sessions are stream-json, so that
+ * stderr line never reaches the chat, and the access-token nudge above only
+ * knows about account-switcher profiles — a plain `claude /login` keychain
+ * sign-in had no warning at all. The SDK now stamps the sign-in's end on every
+ * `result`; this is the engine's 10-day window for it.
+ */
+export const SIGN_IN_END_WARNING_WINDOW_MS = 10 * 24 * 60 * 60 * 1000;
+
+/**
+ * The sign-in end (Unix ms) to warn about, or null. `credentialExpiresAt` is
+ * the result's ISO `credential_expires_at`. Null when absent / unparseable,
+ * already past (that's the reactive auth-failed path — the SDK says a past
+ * date means "probably ended", not that it has), or more than 10 days out.
+ */
+export function signInEndToWarn(credentialExpiresAt: unknown, now: number): number | null {
+  if (typeof credentialExpiresAt !== "string" || !credentialExpiresAt) return null;
+  const at = Date.parse(credentialExpiresAt);
+  if (!Number.isFinite(at)) return null;
+  const remaining = at - now;
+  return remaining > 0 && remaining <= SIGN_IN_END_WARNING_WINDOW_MS ? at : null;
+}

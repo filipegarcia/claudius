@@ -29,6 +29,7 @@ type StubSession = {
   subscribers: number;
   pendingPrompts: boolean;
   armedLoops: boolean;
+  liveBackgroundAgents: boolean;
   subscriberListeners: Set<(count: number) => void>;
 };
 
@@ -39,6 +40,7 @@ function makeStub(id: string): StubSession {
     subscribers: 0,
     pendingPrompts: false,
     armedLoops: false,
+    liveBackgroundAgents: false,
     subscriberListeners: new Set(),
   };
 }
@@ -55,6 +57,7 @@ function asSession(stub: StubSession): Session {
     subscriberCount: () => stub.subscribers,
     hasPendingUserPrompts: () => stub.pendingPrompts,
     hasArmedLoops: () => stub.armedLoops,
+    hasLiveBackgroundAgents: () => stub.liveBackgroundAgents,
     end: vi.fn(async () => {
       stub.endCalls += 1;
     }),
@@ -127,6 +130,24 @@ describe("SessionManager idle-reap policy", () => {
 
     // Loop ended (last wake-up fired, none re-armed): reaped next window.
     stub.armedLoops = false;
+    await vi.advanceTimersByTimeAsync(5_001);
+    expect(stub.endCalls).toBe(1);
+  });
+
+  test("session with a live background agent is NOT reaped until it settles (CC 2.1.319)", async () => {
+    const manager = new SessionManager();
+    const stub = makeStub("bg-agent-after-clear");
+    stub.liveBackgroundAgents = true;
+    inject(manager, stub);
+
+    // `/clear` left this session subscriber-less while a background agent
+    // keeps working in its SDK process — reaping would kill it.
+    for (let i = 0; i < 3; i++) {
+      await vi.advanceTimersByTimeAsync(5_001);
+      expect(stub.endCalls).toBe(0);
+    }
+
+    stub.liveBackgroundAgents = false;
     await vi.advanceTimersByTimeAsync(5_001);
     expect(stub.endCalls).toBe(1);
   });

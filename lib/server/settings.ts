@@ -39,6 +39,16 @@ export type PermissionRules = {
    * `blockReadsOutsideWorkingDirectories`; same per-scope plain toggle.
    */
   blockWritesOutsideWorkingDirectories?: boolean;
+  /**
+   * CC 2.1.319 — `permissions.denyInsteadOfPrompting`: a tool call that would
+   * wait on a permission prompt is denied and the turn continues. The engine
+   * applies it before an SDK host's `canUseTool` (so Claudius's permission
+   * cards, AskUserQuestion forms and plan approval stop appearing, and MCP
+   * elicitations are cancelled) and reads it only from user, `--settings` and
+   * managed sources — never project or local settings. Claudius therefore
+   * offers it on the account (user) scope only.
+   */
+  denyInsteadOfPrompting?: boolean;
 };
 
 /**
