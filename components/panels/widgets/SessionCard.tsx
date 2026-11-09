@@ -78,6 +78,8 @@ type Props = {
    * ultracode badge when enabled.
    */
   fastMode?: boolean;
+  /** SDK-reported fast-mode state, forwarded to the picker (CC 2.1.321). */
+  fastModeState?: "off" | "cooldown" | "on" | null;
   /** Toggle fast mode. Surfaced in the picker on fast-capable models. */
   /** `model` — see ModelPicker's `onToggleFast` (CC 2.1.316). */
   onChangeFast?: (enabled: boolean, model?: string) => Promise<void> | void;
@@ -116,6 +118,7 @@ export function SessionCard({
   ultracode = false,
   onChangeUltracode,
   fastMode = false,
+  fastModeState = null,
   onChangeFast,
   advisorModel = null,
   onChangeAdvisorModel,
@@ -328,6 +331,7 @@ export function SessionCard({
               : undefined
           }
           fastMode={fastMode}
+          fastModeActive={fastModeState === "on"}
           onModelsLoaded={(models) => {
             fastModelsRef.current = {
               sessionId,

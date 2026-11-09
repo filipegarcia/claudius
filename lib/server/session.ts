@@ -142,7 +142,7 @@ import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
 import { extractUsageBehaviors, type UsageBehaviors } from "@/lib/shared/usage-behaviors";
 import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
-import { readCronNextFireAt, type SessionLoop } from "@/lib/shared/session-loops";
+import { readCronNextFireAt, readEndedLoopWakeup, type SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -2099,6 +2099,8 @@ export class Session {
   private pendingScheduledLoops = new Map<string, SessionLoop>();
   /** `ScheduleWakeup { stop: true }` tool_use ids already applied (replay dedup). */
   private appliedWakeupStops = new Set<string>();
+  /** `CronDelete` tool_use ids awaiting their result (SDK 0.3.321 `endedLoopWakeup`). */
+  private pendingCronDeletes = new Set<string>();
   /**
    * `tool_use_id`s of `ScheduleWakeup` ticks recorded into the `loop_ticks`
    * table this turn, awaiting the turn's `result` message so their token
@@ -5804,6 +5806,9 @@ export class Session {
           if (!id) continue;
           const entry = this.scheduledLoops.get(id);
           if (entry) entry.cancelled = true;
+          // The id may be the self-paced wake-up (keyed by tool_use id here);
+          // the result's `endedLoopWakeup` says so — see the user branch.
+          this.pendingCronDeletes.add(tu.id);
           continue;
         }
 
@@ -5892,6 +5897,22 @@ export class Session {
         const b = raw as { type?: string };
         if (b.type !== "tool_result") continue;
         const tr = raw as ToolResultBlock;
+        if (this.pendingCronDeletes.delete(tr.tool_use_id)) {
+          // SDK 0.3.321 — `CronDelete` ended the self-paced wake-up. Mirrors
+          // the client reducer: only wake-ups armed at or before this
+          // message, applied once per tool_use id.
+          if (
+            !tr.is_error &&
+            readEndedLoopWakeup((message as { tool_use_result?: unknown }).tool_use_result) &&
+            !this.appliedWakeupStops.has(tr.tool_use_id)
+          ) {
+            this.appliedWakeupStops.add(tr.tool_use_id);
+            for (const v of this.scheduledLoops.values()) {
+              if (v.kind === "wakeup" && !v.cancelled && v.startedAt <= observedAt) v.cancelled = true;
+            }
+          }
+          continue;
+        }
         const pending = this.pendingScheduledLoops.get(tr.tool_use_id);
         if (!pending) continue;
         this.pendingScheduledLoops.delete(tr.tool_use_id);
@@ -7658,6 +7679,7 @@ export class Session {
     // loops or pending entries that will never resolve.
     this.scheduledLoops.clear();
     this.pendingScheduledLoops.clear();
+    this.pendingCronDeletes.clear();
     this.appliedWakeupStops.clear();
     this.pendingLoopTickAttribution = [];
     // `!` bash-mode: kill the persistent shell + group so a long-running

@@ -253,6 +253,7 @@ describe("Session dead-process predicates", () => {
       drainPendingDecisions: () => {},
       scheduledLoops: new Map(),
       pendingScheduledLoops: new Map(),
+      pendingCronDeletes: new Set(),
       appliedWakeupStops: new Set(),
       pendingLoopTickAttribution: [],
       id: "dead-then-ended",

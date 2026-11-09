@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Link2, Shield, Webhook } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
-import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import { visualizeHiddenNameUnicode, visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
 import { isTypingInField } from "@/lib/client/typing-focus";
 import { isBeforePromptArmed } from "@/lib/client/prompt-arm";
@@ -65,6 +65,15 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // treatment too.
   const symlink = request.symlink;
   const symlinkTargetVis = symlink ? visualizeInvisibleUnicode(symlink.target) : null;
+  // CC 2.1.321 parity — "[VSCode] Fixed a plugin's permission request
+  // showing a name with hidden characters". The source badge's server name is
+  // untrusted (sdk.d.ts: a non-`sdk` server's name, including one a plugin
+  // ships, is "untrusted text, escape it before display"), so it gets the
+  // same treatment as every other name on this card — the engine's wider
+  // *name* set (`visualizeHiddenNameUnicode`: LRM/RLM, ZWJ, Hangul fillers,
+  // NBSP, U+16910, …), since a name that merely looks like another one is the
+  // risk here, not just bidi overrides.
+  const mcpNameVis = request.mcpServer ? visualizeHiddenNameUnicode(request.mcpServer.name) : null;
   // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
   // would write grants more than this ask's own action, so hide all three
   // standing-grant buttons. The auto-mode tip button is itself a one-click
@@ -88,7 +97,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // title, the description, the tool input, or a hook's reason (CC 2.1.301).
   const hiddenCharCount =
     summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount + (hookReasonVis?.count ?? 0) +
-    (symlinkTargetVis?.count ?? 0);
+    (symlinkTargetVis?.count ?? 0) + (mcpNameVis?.count ?? 0);
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -176,7 +185,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
                       : "border-amber-500/30 bg-amber-500/10 text-amber-300",
                   )}
                 >
-                  MCP · {request.mcpServer.name} ({request.mcpServer.source})
+                  MCP · {mcpNameVis?.visualized ?? request.mcpServer.name} ({request.mcpServer.source})
                 </span>
               )}
             </div>

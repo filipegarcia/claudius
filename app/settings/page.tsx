@@ -1415,7 +1415,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     // flow, paired with forceLoginGatewayUrl below). sdk.d.ts: the type is
     // 'claudeai' | 'console' | 'gateway'.
     options: ["claudeai", "console", "gateway"],
-    desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing, "gateway" for the Cloud gateway OIDC device flow (paired with forceLoginGatewayUrl).',
+    desc: 'Force a specific login method: "claudeai" for a Claude subscription (individual, Team, or Enterprise plans), "console" for Console billing, "gateway" for the Cloud gateway OIDC device flow (paired with forceLoginGatewayUrl).',
   },
   {
     key: "forceLoginGatewayUrl",

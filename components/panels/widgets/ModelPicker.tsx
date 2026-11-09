@@ -28,7 +28,7 @@ import {
   prettyModelName,
 } from "@/lib/shared/advisor";
 import { findModelEntry } from "@/lib/shared/model-id";
-import { OPUS48_FAST_MIGRATE_HINT, opus48FastDeprecationText } from "@/lib/shared/fast-mode";
+import { OPUS48_FAST_MIGRATE_HINT, fastModeLabel, opus48FastDeprecationText } from "@/lib/shared/fast-mode";
 
 /**
  * Mirror of `ModelInfo` from `@anthropic-ai/claude-agent-sdk`. We don't
@@ -125,6 +125,14 @@ type Props = {
    */
   fastMode?: boolean;
   /**
+   * CC 2.1.321 — the SDK-reported fast-mode state (`fast_mode_state === "on"`).
+   * `fastMode` above is only the optimistic record of the last picker toggle
+   * and resets on reload / resume, so fast mode turned on elsewhere (the
+   * `fastMode` setting, a reloaded tab) would otherwise hide the per-row
+   * "Draws from usage credits" note exactly while it applies.
+   */
+  fastModeActive?: boolean;
+  /**
    * `model` is the active row's canonical id (`resolvedModel ?? value`), so
    * the host can raise the CC 2.1.316 Opus 4.8 fast-mode deprecation notice
    * without re-resolving an alias.
@@ -170,6 +178,7 @@ export function ModelPicker({
   ultracode = false,
   onToggleUltracode,
   fastMode = false,
+  fastModeActive = false,
   onToggleFast,
   onModelsLoaded,
   advisorModel = null,
@@ -475,9 +484,20 @@ export function ModelPicker({
                     {/* Mirror the TUI's `Draws from usage credits` suffix on
                         per-model rows whose accelerated decoding is billed
                         from the usage-credit bucket rather than the standard
-                        pool. Subdued amber to match the `fast` chip above. */}
-                    {m.supportsFastMode && (
-                      <div className="mt-0.5 truncate text-[9px] text-amber-200/80">
+                        pool. Subdued amber to match the `fast` chip above.
+                        CC 2.1.321 parity — "Fixed the 'Draws from usage
+                        credits' note showing after a switch to Fable on
+                        Enterprise seats whose plan includes Fable": the
+                        engine adds it for fast mode only while fast mode is
+                        ON. Fable 5.2 is the first fast-capable Fable, so an
+                        always-on note would now sit on every Fable row,
+                        plan-included seats too. The `fast` chip still shows
+                        the capability. */}
+                    {(fastMode || fastModeActive) && m.supportsFastMode && (
+                      <div
+                        data-testid="model-picker-row-credits"
+                        className="mt-0.5 truncate text-[9px] text-amber-200/80"
+                      >
                         Draws from usage credits
                       </div>
                     )}
@@ -913,15 +933,20 @@ export function ModelPicker({
                 )}
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-medium text-[var(--foreground)]">
-                  Fast mode
+                <span
+                  data-testid="model-picker-fast-label"
+                  className="block text-[11px] font-medium text-[var(--foreground)]"
+                >
+                  {fastModeLabel(activeId)}
                 </span>
                 <span className="block text-[9px] leading-tight text-[var(--muted)]">
-                  Accelerated responses on supported models.
+                  Accelerated responses from the same model.
                 </span>
                 {/* Mirror the TUI's `Draws from usage credits` confirmation
                     line under the Fast-mode toggle. Subdued amber so it reads
-                    as a cost cue rather than a warning. */}
+                    as a cost cue rather than a warning. Kept while the toggle
+                    is off on purpose: it's the heads-up before you turn fast
+                    on (the per-row note above only shows once it's on). */}
                 <span className="mt-0.5 block text-[9px] leading-tight text-amber-200/80">
                   Draws from usage credits.
                 </span>

@@ -16,7 +16,7 @@
  * this mirrors.
  */
 
-import { canonicalModelId } from "./advisor";
+import { canonicalModelId, prettyModelName } from "./advisor";
 
 /** Verbatim from `FastModeDisabledReason` in sdk.d.ts, kept here as a type-only mirror. */
 export type FastModeDisabledReason =
@@ -142,4 +142,19 @@ export function opus48FastDeprecationText(
     timeZone: "UTC",
   });
   return `Opus 4.8 fast mode is deprecated and will be removed on ${date}`;
+}
+
+/**
+ * CC 2.1.321 parity — "Changed the fast mode labels in /fast, /config and
+ * /model to name your current model when it supports fast mode". The engine
+ * labels the row `Fast mode (<marketing name>)`, e.g. "Fast mode (Opus 5.5)"
+ * or "Fast mode (Fable 5.2)". Claudius only shows its toggle on a model that
+ * supports fast mode, so this names that model. An id that doesn't resolve to
+ * a known Claude model (a bare alias with no `resolvedModel`, a custom id)
+ * keeps the plain "Fast mode" rather than guessing — the SDK's `displayName`
+ * for alias rows is picker copy ("Default (recommended)"), not a model name.
+ */
+export function fastModeLabel(modelId: string | null | undefined): string {
+  if (!canonicalModelId(modelId)) return "Fast mode";
+  return `Fast mode (${prettyModelName(modelId)})`;
 }

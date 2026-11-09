@@ -35,7 +35,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
-import { readCronNextFireAt } from "@/lib/shared/session-loops";
+import { readCronNextFireAt, readEndedLoopWakeup } from "@/lib/shared/session-loops";
 import {
   OPUS48_FAST_DEPRECATION_KEY,
   isFastModeCreditsRejectedNotice,
@@ -48,7 +48,7 @@ import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { clearPendingMessages } from "./clear-pending";
-import { ADVISOR_ACTIVE_SENTINEL } from "@/lib/shared/advisor";
+import { ADVISOR_ACTIVE_SENTINEL, prettyModelName } from "@/lib/shared/advisor";
 import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
   isCompactSummaryContent,
@@ -335,11 +335,23 @@ export function isOpusHighDemandText(blocks: DisplayBlock[]): boolean {
 /**
  * Copy shown in place of the SDK's `model_not_found` prose when the selected
  * model can't be used (doesn't exist, or isn't enabled for this account /
- * region — e.g. Claude Fable 5.1 outside its rollout). The bare URL is
+ * region — e.g. Claude Fable 5.2 outside its rollout). The bare URL is
  * auto-linked by `remark-gfm` when the bubble renders through `<Markdown>`.
  */
 export const MODEL_UNAVAILABLE_MESSAGE =
-  "Claude Fable 5.1 is currently unavailable. Please use Opus 5.5 or another available model. Learn more: https://www.anthropic.com/news/fable-mythos-access";
+  "Claude Fable 5.2 is currently unavailable. Please use Opus 5.5 or another available model. Learn more: https://www.anthropic.com/news/fable-mythos-access";
+
+/**
+ * CC 2.1.321 — the model-unavailable copy names the Fable the prose names
+ * (`(claude-fable-5-1)` → "Claude Fable 5.1"), so a pinned older Fable isn't
+ * reported as the new default. A bare `fable` alias (or no id) falls back to
+ * `MODEL_UNAVAILABLE_MESSAGE`, which names the current default, Fable 5.2.
+ */
+export function modelUnavailableMessage(prose: string): string {
+  const id = /claude-fable-\d+(?:-\d)?(?!\d)/i.exec(prose)?.[0];
+  if (!id) return MODEL_UNAVAILABLE_MESSAGE;
+  return MODEL_UNAVAILABLE_MESSAGE.replace("Claude Fable 5.2", `Claude ${prettyModelName(id.toLowerCase())}`);
+}
 
 /**
  * Detect the Claude Code CLI's "selected model can't be used" prose. The
@@ -380,7 +392,7 @@ export function rewriteModelUnavailableBlocks(
   // we can tell Fable apart from any other unavailable model right here.
   const first = blocks.find((b) => b.kind === "text");
   if (!first || !/\bfable\b/i.test(first.text)) return blocks;
-  return [{ kind: "text", text: MODEL_UNAVAILABLE_MESSAGE }];
+  return [{ kind: "text", text: modelUnavailableMessage(first.text) }];
 }
 
 /**
@@ -3704,6 +3716,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 provisional: true,
               }),
             );
+          }
+          // SDK 0.3.321 — a `CronDelete` whose id was the self-paced loop's
+          // wake-up reports `endedLoopWakeup: true`. Wake-ups are keyed by
+          // tool_use id in the rail, so the CronDelete branch on the tool_use
+          // never matched; cancel the pending wake-up here. Applied once per
+          // tool_use id (SSE tail replays) and only to wake-ups armed at or
+          // before the delete.
+          if (
+            taskToolBlock?.name === "CronDelete" &&
+            !result.isError &&
+            readEndedLoopWakeup((msg as { tool_use_result?: unknown }).tool_use_result) &&
+            !appliedWakeupStopsRef.current.has(result.tool_use_id)
+          ) {
+            appliedWakeupStopsRef.current.add(result.tool_use_id);
+            const endedAt = ev.at ?? Date.now();
+            setScheduledLoops((prev) => markWakeupsStopped(prev, endedAt));
           }
           // If this tool_result is the launch acknowledgement for a background
           // bash, extract the SDK-side `bash_id` so the viewer can stitch

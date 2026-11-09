@@ -64,6 +64,19 @@ export type SessionLoop = {
 };
 
 /**
+ * Read `endedLoopWakeup` (SDK 0.3.321 `CronDeleteOutput.endedLoopWakeup`) off
+ * the `tool_use_result` of a `CronDelete` tool_result. `true` means the id the
+ * agent deleted was the session's self-paced (`ScheduleWakeup`) wake-up rather
+ * than a cron job — so the pending wake-up chip must flip to "cancelled" even
+ * though its rail key is a tool_use id that never matches `CronDelete`'s `id`.
+ * Tolerant: the payload arrives as `unknown`; only a literal `true` counts.
+ */
+export function readEndedLoopWakeup(toolUseResult: unknown): boolean {
+  if (!toolUseResult || typeof toolUseResult !== "object") return false;
+  return (toolUseResult as { endedLoopWakeup?: unknown }).endedLoopWakeup === true;
+}
+
+/**
  * Read `nextFireAt` (SDK 0.3.299) off the `tool_use_result` that rides on the
  * user message carrying a `CronCreate` tool_result. Tolerant: the payload
  * arrives as `unknown`, older SDKs omit the field, and only a finite
