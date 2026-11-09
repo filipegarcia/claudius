@@ -35,7 +35,7 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
-import { readCronNextFireAt } from "@/lib/shared/session-loops";
+import { readCronNextFireAt, readEndedLoopWakeup } from "@/lib/shared/session-loops";
 import {
   OPUS48_FAST_DEPRECATION_KEY,
   isFastModeCreditsRejectedNotice,
@@ -3704,6 +3704,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 provisional: true,
               }),
             );
+          }
+          // SDK 0.3.321 — a `CronDelete` whose id was the self-paced loop's
+          // wake-up reports `endedLoopWakeup: true`. Wake-ups are keyed by
+          // tool_use id in the rail, so the CronDelete branch on the tool_use
+          // never matched; cancel the pending wake-up here. Applied once per
+          // tool_use id (SSE tail replays) and only to wake-ups armed at or
+          // before the delete.
+          if (
+            taskToolBlock?.name === "CronDelete" &&
+            !result.isError &&
+            readEndedLoopWakeup((msg as { tool_use_result?: unknown }).tool_use_result) &&
+            !appliedWakeupStopsRef.current.has(result.tool_use_id)
+          ) {
+            appliedWakeupStopsRef.current.add(result.tool_use_id);
+            const endedAt = ev.at ?? Date.now();
+            setScheduledLoops((prev) => markWakeupsStopped(prev, endedAt));
           }
           // If this tool_result is the launch acknowledgement for a background
           // bash, extract the SDK-side `bash_id` so the viewer can stitch
