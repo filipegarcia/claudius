@@ -161,12 +161,13 @@ export function visualizeInvisibleUnicode(text: string): { visualized: string; c
  * U+2028/U+2029, anything Default_Ignorable (Hangul fillers, the combining
  * grapheme joiner, variation selectors, …), the blank Braille pattern, every
  * space separator other than the plain space, and the object replacement
- * character and its format-like kin. Kept separate from
+ * character and its format-like kin (plus the blank-drawn Bamum letter
+ * U+16910, CC 2.1.321). Kept separate from
  * `INVISIBLE_UNICODE_RE` so the composer and permission prompt keep their
  * narrower, emoji-safe set.
  */
 const HIDDEN_NAME_CHAR_RE =
-  /[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Cn}\u{2028}\u{2029}\p{Default_Ignorable_Code_Point}\u{2800}\u{FFFC}\u{1D159}\u{13441}\u{13442}\u{16FE4}]|(?! )\p{Zs}/gu;
+  /[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Cn}\u{2028}\u{2029}\p{Default_Ignorable_Code_Point}\u{2800}\u{FFFC}\u{1D159}\u{13441}\u{13442}\u{16910}\u{16FE4}]|(?! )\p{Zs}/gu;
 
 /**
  * CC 2.1.299 — render a skill / command name with every character the engine
