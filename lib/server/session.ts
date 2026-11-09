@@ -8438,6 +8438,14 @@ export class Session {
    */
   private async flushQueueIfIdle(opts?: { unlessHeld?: boolean }): Promise<void> {
     if (this.done) return;
+    // CC 2.1.318 parity — "Fixed a restarted session re-sending a message that
+    // failed with an API error, ahead of the newer message waiting behind it".
+    // A session scheduled for thinking-replay recovery is about to be torn
+    // down and rebuilt with the failed prompt re-sent; draining the next
+    // queued message into it now sent that message into the poisoned process
+    // and lost it, and put the re-sent prompt ahead of it. Leave the queue
+    // for the rebuilt session.
+    if (this.thinkingReplayRecoveryScheduled) return;
     if (this.isDraining) return;
     if (this.getStatus() !== "idle") return;
     this.isDraining = true;
@@ -9754,9 +9762,15 @@ export class Session {
           // loop (no success between) still trips the cap. Dynamic import keeps
           // the session ⇄ session-manager cycle out of the static graph.
           if ((message as { subtype?: string }).subtype === "success") {
-            void import("./session-manager").then(({ sessionManager }) =>
-              sessionManager.noteThinkingRecoverySuccess(this.id),
-            );
+            // CC 2.1.318 parity — an API-error turn ALSO ends with
+            // `subtype: "success"` (with `is_error: true`), including the
+            // thinking-replay 400 itself; counting that as a clean turn reset
+            // the 3-attempt recovery cap on every poisoned turn.
+            if ((message as { is_error?: boolean }).is_error !== true) {
+              void import("./session-manager").then(({ sessionManager }) =>
+                sessionManager.noteThinkingRecoverySuccess(this.id),
+              );
+            }
             // A clean turn clears the consecutive-overload streak so a later,
             // unrelated 529 doesn't ride a stale count into the nudge. The
             // nudge itself is fire-once per session lifetime regardless.
