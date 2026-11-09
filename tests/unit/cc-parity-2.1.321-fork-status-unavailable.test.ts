@@ -65,7 +65,7 @@ describe("forkConfirmation with an unknown dirty state", () => {
       worktree: { path: "/wt", branch: "claudius/fork-8ded11a6", dirty: null },
     });
     expect(text).toBe(
-      `Forked as "Spike" (8ded11a6) — in its own worktree claudius/fork-8ded11a6 — couldn't check for uncommitted changes (git status failed); any aren't included.`,
+      `Forked as "Spike" (8ded11a6) — in its own worktree claudius/fork-8ded11a6 — couldn't check for uncommitted changes, so any aren't included.`,
     );
   });
 

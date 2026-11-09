@@ -108,7 +108,7 @@ test("/fork whose git status failed says the check was unavailable, not clean", 
   expect(forks[0]).toMatchObject({ sessionId: FAKE_SESSION_ID, title: "spike", worktree: true });
   const toast = page.getByTestId("chat-toast");
   await expect(toast).toHaveText(
-    `Forked as "spike" (f0c4a321) — in its own worktree claudius/fork-f0c4a321 — couldn't check for uncommitted changes (git status failed); any aren't included.`,
+    `Forked as "spike" (f0c4a321) — in its own worktree claudius/fork-f0c4a321 — couldn't check for uncommitted changes, so any aren't included.`,
   );
   await page.waitForTimeout(150);
   await page.screenshot({ path: resolve(SHOTS_DIR, "fork-status-unavailable.png"), fullPage: false });

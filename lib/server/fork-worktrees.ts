@@ -130,8 +130,12 @@ export async function createForkWorktree(
       timeout: 5_000,
     });
     dirty = stdout.trim().length > 0;
-  } catch {
-    // Non-fatal — the toast says the check was unavailable.
+  } catch (err) {
+    // Output past execFile's 1 MiB buffer means tens of thousands of changed
+    // or untracked paths — that's proof of a dirty tree, not a failed check.
+    if ((err as NodeJS.ErrnoException).code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") dirty = true;
+    // Anything else (corrupt index, the 5 s timeout) is non-fatal — the toast
+    // says the check was unavailable.
   }
 
   await fs.mkdir(root, { recursive: true });

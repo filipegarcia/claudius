@@ -73,7 +73,7 @@ export function forkConfirmation(opts: {
   }
   const dirtyNote =
     worktree.dirty === null
-      ? " — couldn't check for uncommitted changes (git status failed); any aren't included"
+      ? " — couldn't check for uncommitted changes, so any aren't included"
       : worktree.dirty
         ? " — uncommitted changes not included"
         : "";
