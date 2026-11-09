@@ -32,17 +32,38 @@ export function TokenExpiringPanel({
   const [mountedAt] = useState(() => Date.now());
   if (!nudge) return null;
   const hoursLeft = Math.max(1, Math.round((nudge.expiresAt - mountedAt) / 3_600_000));
-  const etaLabel = hoursLeft <= 1 ? "within the hour" : `in about ${hoursLeft}h`;
+  // CC 2.1.318 — a sign-in end can be 10 days out; hours read badly past two days.
+  const etaLabel =
+    hoursLeft <= 1
+      ? "within the hour"
+      : hoursLeft >= 48
+        ? `in about ${Math.round(hoursLeft / 24)} days`
+        : `in about ${hoursLeft}h`;
+  const isSignIn = nudge.kind === "sign_in";
+  // The SDK's date is an estimate that "can be up to 3 days earlier", so the
+  // calendar date is shown as "around".
+  const endDate = new Date(nudge.expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   return (
     <div
       data-pane-name="token-expiring"
+      data-testid="token-expiring-panel"
+      data-kind={isSignIn ? "sign_in" : "access_token"}
       className="border-y border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100"
     >
       <div className="mx-auto flex max-w-[var(--chat-col)] items-center gap-2">
         <Clock className="h-3.5 w-3.5 shrink-0 text-amber-400" />
         <span className="min-w-0 flex-1">
-          Your login expires {etaLabel} — re-authenticate now so a background
-          session doesn&rsquo;t get interrupted.
+          {isSignIn ? (
+            <>
+              Your claude.ai sign-in ends {etaLabel} (around {endDate}) — sign in again
+              before then so a background session doesn&rsquo;t get interrupted.
+            </>
+          ) : (
+            <>
+              Your login expires {etaLabel} — re-authenticate now so a background
+              session doesn&rsquo;t get interrupted.
+            </>
+          )}
         </span>
         <Link
           href={ACCOUNTS_URL}

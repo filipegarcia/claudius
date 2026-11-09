@@ -1221,7 +1221,11 @@ export async function diffBranchAgainstWorktree(
     // this output is piped straight into the GitConsole for the user to read.
     // Plumbing `diff-index -p` = `git diff <branch>` without the index
     // refresh under `index.lock` (CC 2.1.314, see `gitEnv`/`getDiff`).
-    const r = await git(["diff-index", "-p", "--no-color", "--no-textconv", branch], root);
+    // The trailing `--` (CC 2.1.319 parity, the "/diff with a top-level file
+    // named HEAD" fix) ends the revision list: without it a branch whose name
+    // matches a top-level file or folder (`docs`, `HEAD`) fails with "ambiguous
+    // argument … both revision and filename".
+    const r = await git(["diff-index", "-p", "--no-color", "--no-textconv", branch, "--"], root);
     const out = r.stdout.trim();
     return { ok: true, output: out || `(no differences between ${branch} and the working tree)` };
   } catch (err) {

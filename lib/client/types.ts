@@ -1510,7 +1510,8 @@ export type ChatActions = {
    */
   jumpToUuid(uuid: string): Promise<string | null>;
   /** Rename the current session (persists via SDK and broadcasts to the rail). */
-  renameTitle(title: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  /** `warning` (CC 2.1.319): renamed, but the session transcript couldn't be updated. */
+  renameTitle(title: string): Promise<{ ok: true; warning?: string } | { ok: false; error: string }>;
   /**
    * Set or replace the session goal. Persists server-side and broadcasts a
    * `goal_changed` event to every open tab. Replacing a goal resets any prior

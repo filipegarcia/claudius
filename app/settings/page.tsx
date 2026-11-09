@@ -1310,6 +1310,20 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Default shell for input-box ! commands. Defaults to 'bash' on all platforms (no Windows auto-flip).",
   },
   {
+    // SDK 0.3.319
+    key: "disableWindowsBashCommandSplit",
+    type: "boolean",
+    section: "Shell",
+    desc: "Windows only. Keep every Bash command in a single argument to bash so endpoint security tools that match text in process command lines see it whole. Otherwise Claude Code may split a long command over several arguments. With true, a command of about 7,000 characters or more (fewer if full of quotes) may reach bash cut short and usually fails with a syntax error.",
+  },
+  {
+    // SDK 0.3.319
+    key: "disableReplyCheck",
+    type: "boolean",
+    section: "Dialogs & messaging",
+    desc: "Disable the reply check in Claude Tag sessions on a self-hosted runner. The check re-prompts Claude (at most four times a turn) when a turn ends without a call to one of Claude Tag's reply tools. It is not a hook, so disableAllHooks does not affect it.",
+  },
+  {
     // SDK 0.3.269
     key: "bashEditDiffEnabled",
     type: "boolean",

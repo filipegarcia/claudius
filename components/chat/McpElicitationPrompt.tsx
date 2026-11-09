@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ClipboardList, ExternalLink, KeyRound, TriangleAlert } from "lucide-react";
 import type { ElicitationDecision, McpElicitationRequestEvent } from "@/lib/shared/events";
 import {
@@ -12,6 +12,7 @@ import {
   type ElicitationFormValues,
 } from "@/lib/shared/elicitation";
 import { cn } from "@/lib/utils/cn";
+import { isBeforePromptArmed } from "@/lib/client/prompt-arm";
 
 type Props = {
   request: McpElicitationRequestEvent;
@@ -53,9 +54,18 @@ export function McpElicitationPrompt({ request, onResolve, queueTotal }: Props) 
   const userConfirmsCompletion = isUrl && !request.elicitationId;
   const [linkOpened, setLinkOpened] = useState(false);
 
+  // CC 2.1.318 — ignore an Escape typed just before this prompt appeared
+  // (see `prompt-arm.ts`); armed per request, not per render.
+  const armedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    armedAtRef.current = performance.now();
+  }, [request.requestId]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !e.repeat) onResolve({ action: "cancel" });
+      if (e.key !== "Escape" || e.repeat) return;
+      if (isBeforePromptArmed(e.timeStamp, armedAtRef.current)) return;
+      onResolve({ action: "cancel" });
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

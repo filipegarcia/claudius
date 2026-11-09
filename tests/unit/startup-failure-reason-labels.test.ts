@@ -33,6 +33,7 @@ describe("STARTUP_FAILURE_REASON_LABELS", () => {
     "org_config_refused",
     "sandbox_required_unavailable",
     "initialize_not_first",
+    "config_file_invalid",
   ];
 
   test("covers every reason value the SDK documents", () => {

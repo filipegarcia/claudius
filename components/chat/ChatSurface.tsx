@@ -123,6 +123,11 @@ import {
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand, isSlashCommandHead, resolveFastCommandArgs, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { renameToastText } from "@/lib/shared/rename-warning";
+import { messageSubagentDraft } from "@/lib/client/open-task";
+
+/** Long enough to read the CC 2.1.319 "may not last" rename warning. */
+const WARNING_TOAST_MS = 6000;
 import { OPEN_ADVISOR_PICKER_EVENT, requestOpenModelPicker } from "@/lib/client/model-picker-events";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { parseEffortArgs } from "@/lib/shared/effort-flags";
@@ -1138,10 +1143,18 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     void refreshSessionsAction();
   }, [stateVersion, refreshSessionsAction]);
 
-  const showToast = useCallback((msg: string) => {
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((msg: string, durationMs = 2200) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2200);
+    // A newer toast owns the timer — an older one's 2.2s must not cut a
+    // longer warning short (CC 2.1.319 rename warning).
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      toastTimerRef.current = null;
+      setToast(null);
+    }, durationMs);
   }, []);
+
 
   const onRewind = useCallback(
     async (messageUuid: string) => {
@@ -1283,11 +1296,13 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           if (args.trim()) {
             const sid = session.sessionId;
             if (!sid) return true;
-            void fetch("/api/sessions/rename", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sessionId: sid, title: args.trim() }),
-            }).then(() => showToast("Renamed"));
+            // CC 2.1.319 parity — through `renameTitle`, which checks the
+            // response: a failed rename says why instead of "Renamed", and a
+            // rename whose transcript write failed carries the warning.
+            void session.renameTitle(args.trim()).then((r) => {
+              if (!r.ok) showToast(`Rename failed: ${r.error}`, WARNING_TOAST_MS);
+              else showToast(renameToastText(r.warning), r.warning ? WARNING_TOAST_MS : undefined);
+            });
           } else {
             setOverlay("rename");
           }
@@ -1549,7 +1564,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           return true;
         }
         case "tasks":
-          showToast("Background tasks panel is on the right rail");
+          showToast(
+            "Background tasks panel is on the right rail — finished subagents are under “Earlier in this session”",
+          );
           return true;
         case "skills":
           setOverlay("skills");
@@ -2137,15 +2154,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     async (title: string) => {
       const sid = session.sessionId;
       if (!sid) return;
-      await fetch("/api/sessions/rename", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: sid, title }),
-      });
+      const r = await session.renameTitle(title);
       setOverlay(null);
-      showToast("Renamed");
+      if (!r.ok) showToast(`Rename failed: ${r.error}`, WARNING_TOAST_MS);
+      else showToast(renameToastText(r.warning), r.warning ? WARNING_TOAST_MS : undefined);
     },
-    [session.sessionId, showToast],
+    [session, showToast],
+  );
+  /** RecapBanner's inline title edit — same warning toast as `/rename`. */
+  const onRecapRename = useCallback(
+    async (title: string) => {
+      const r = await session.renameTitle(title);
+      if (r.ok && r.warning) showToast(renameToastText(r.warning), WARNING_TOAST_MS);
+      return r;
+    },
+    [session, showToast],
   );
 
   // Scope the session-picker dropdown to the active workspace. A session
@@ -2439,7 +2462,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               }
               sessionId={session.sessionId}
               title={session.sessionTitle}
-              onRename={session.renameTitle}
+              onRename={onRecapRename}
               openEditNonce={titleEditNonce}
             />
             <GoalBanner
@@ -2842,6 +2865,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         scheduledLoops={session.scheduledLoops}
         toolHistory={session.toolHistory}
         onOpenBash={setOpenBash}
+        onMessageTask={(t) => {
+          // CC 2.1.319 — "Earlier in this session" → Message: prefill, don't
+          // send; the model's SendMessage resumes the finished subagent.
+          draftTokenRef.current += 1;
+          setDraftInjection({ token: draftTokenRef.current, text: messageSubagentDraft(t.taskId) });
+        }}
         onCancelScheduledLoop={onCancelScheduledLoop}
         onAddTodos={onAddTodos}
         onClearTodos={session.clearTodos}

@@ -7,13 +7,21 @@ export type Scope = "user" | "project" | "local";
 
 export type ScopedRules = Record<
   Scope,
-  { allow: string[]; ask: string[]; deny: string[]; blockReadsOutsideWorkingDirectories: boolean; blockWritesOutsideWorkingDirectories: boolean }
+  {
+    allow: string[];
+    ask: string[];
+    deny: string[];
+    blockReadsOutsideWorkingDirectories: boolean;
+    blockWritesOutsideWorkingDirectories: boolean;
+    /** CC 2.1.319 — only meaningful (and only offered) on the `user` scope. */
+    denyInsteadOfPrompting: boolean;
+  }
 >;
 
 const EMPTY: ScopedRules = {
-  user: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false },
-  project: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false },
-  local: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false },
+  user: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false, denyInsteadOfPrompting: false },
+  project: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false, denyInsteadOfPrompting: false },
+  local: { allow: [], ask: [], deny: [], blockReadsOutsideWorkingDirectories: false, blockWritesOutsideWorkingDirectories: false, denyInsteadOfPrompting: false },
 };
 
 /**
@@ -34,7 +42,14 @@ export function usePermissions() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return (await res.json()) as Record<
           Scope,
-          { allow?: string[]; ask?: string[]; deny?: string[]; blockReadsOutsideWorkingDirectories?: boolean; blockWritesOutsideWorkingDirectories?: boolean }
+          {
+            allow?: string[];
+            ask?: string[];
+            deny?: string[];
+            blockReadsOutsideWorkingDirectories?: boolean;
+            blockWritesOutsideWorkingDirectories?: boolean;
+            denyInsteadOfPrompting?: boolean;
+          }
         >;
       })
       .then((data) => {
@@ -45,6 +60,7 @@ export function usePermissions() {
             deny: data.user?.deny ?? [],
             blockReadsOutsideWorkingDirectories: data.user?.blockReadsOutsideWorkingDirectories ?? false,
             blockWritesOutsideWorkingDirectories: data.user?.blockWritesOutsideWorkingDirectories ?? false,
+            denyInsteadOfPrompting: data.user?.denyInsteadOfPrompting === true,
           },
           project: {
             allow: data.project?.allow ?? [],
@@ -52,6 +68,7 @@ export function usePermissions() {
             deny: data.project?.deny ?? [],
             blockReadsOutsideWorkingDirectories: data.project?.blockReadsOutsideWorkingDirectories ?? false,
             blockWritesOutsideWorkingDirectories: data.project?.blockWritesOutsideWorkingDirectories ?? false,
+            denyInsteadOfPrompting: data.project?.denyInsteadOfPrompting === true,
           },
           local: {
             allow: data.local?.allow ?? [],
@@ -59,6 +76,7 @@ export function usePermissions() {
             deny: data.local?.deny ?? [],
             blockReadsOutsideWorkingDirectories: data.local?.blockReadsOutsideWorkingDirectories ?? false,
             blockWritesOutsideWorkingDirectories: data.local?.blockWritesOutsideWorkingDirectories ?? false,
+            denyInsteadOfPrompting: data.local?.denyInsteadOfPrompting === true,
           },
         };
         setRules(normalized);
@@ -135,6 +153,25 @@ export function usePermissions() {
     [refresh],
   );
 
+  // CC 2.1.319 — `permissions.denyInsteadOfPrompting`. Scope hardcoded to
+  // "user": the engine ignores it in project / local settings (same reason
+  // `updateAutoMode` is user-only).
+  const updateDenyInsteadOfPrompting = useCallback(
+    async (next: boolean) => {
+      setRules((prev) => ({ ...prev, user: { ...prev.user, denyInsteadOfPrompting: next } }));
+      const res = await fetch("/api/settings/permissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope: "user", patch: { denyInsteadOfPrompting: next } }),
+      });
+      if (!res.ok) {
+        setError(`save failed: ${res.status}`);
+        refresh();
+      }
+    },
+    [refresh],
+  );
+
   return {
     rules,
     loading,
@@ -143,5 +180,6 @@ export function usePermissions() {
     updateRules,
     updateBlockReadsOutsideWorkingDirectories,
     updateBlockWritesOutsideWorkingDirectories,
+    updateDenyInsteadOfPrompting,
   };
 }

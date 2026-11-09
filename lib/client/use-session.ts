@@ -115,6 +115,7 @@ import {
   shouldRebuildTranscript,
   streamRecoveryDelayMs,
 } from "./stream-recovery";
+import { stripSubagentHandBackFrame } from "@/lib/shared/subagent-handback";
 
 type SDKContentBlock =
   | { type: "text"; text: string }
@@ -307,6 +308,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.317 — an `--await-initialize` launch whose first stdin line was not the initialize request.
   initialize_not_first:
     "the session process was launched in await-initialize mode but its first input was not the initialize request — restart the session",
+  // SDK 0.3.318 — a configuration file read at startup is not valid JSON.
+  config_file_invalid:
+    "a configuration file read at startup is not valid JSON — fix or remove the file and restart the session",
 };
 
 /**
@@ -646,6 +650,7 @@ export function extractPeerOrigin(
         from?: unknown;
         name?: unknown;
         body?: unknown;
+        handback?: unknown;
         verifiedPeerPid?: unknown;
         msg_id?: unknown;
       };
@@ -654,7 +659,11 @@ export function extractPeerOrigin(
   if (!origin || origin.kind !== "peer") return undefined;
   if (typeof origin.from !== "string" || !origin.from) return undefined;
   const name = typeof origin.name === "string" && origin.name ? origin.name : undefined;
-  const body = typeof origin.body === "string" && origin.body ? origin.body : undefined;
+  const rawBody = typeof origin.body === "string" && origin.body ? origin.body : undefined;
+  // CC 2.1.319 — a background agent's hand-back arrives as a peer message
+  // whose body is the framed report (frame line, provenance notes); show the
+  // report the way the TaskBlock does.
+  const body = rawBody && origin.handback === true ? stripSubagentHandBackFrame(rawBody) || rawBody : rawBody;
   const pid =
     typeof origin.verifiedPeerPid === "number" && Number.isSafeInteger(origin.verifiedPeerPid) && origin.verifiedPeerPid > 0
       ? origin.verifiedPeerPid
@@ -6707,7 +6716,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   }, []);
 
   const renameTitle = useCallback(
-    async (title: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    async (title: string): Promise<{ ok: true; warning?: string } | { ok: false; error: string }> => {
       const id = sessionIdRef.current;
       if (!id) return { ok: false, error: "no active session" };
       const trimmed = title.trim();
@@ -6732,7 +6741,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // active tab already reflects the rename through `sessionTitle` /
         // the SSE `session_title` event.
         void refreshSessions();
-        return { ok: true };
+        // CC 2.1.319 — the rename took, but the transcript couldn't be updated.
+        const body = (await res.json().catch(() => ({}))) as { warning?: unknown };
+        return typeof body.warning === "string" && body.warning ? { ok: true, warning: body.warning } : { ok: true };
       } catch (err) {
         setSessionTitle(prev);
         return { ok: false, error: err instanceof Error ? err.message : String(err) };

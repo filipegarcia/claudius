@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { rename } from "@/lib/server/sessions-store";
 import { sessionManager } from "@/lib/server/session-manager";
 import { retitleIndexedSession } from "@/lib/server/sessions-db";
+import { isMissingTranscriptError, RENAME_MAY_NOT_LAST_WARNING } from "@/lib/shared/rename-warning";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   if (live) {
     const r = await live.rename(title);
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 500 });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json(r.warning ? { ok: true, warning: r.warning } : { ok: true });
   }
   // CC 2.1.309 parity — a rename must win over a generated name after a
   // reload or resume. Every title reader prefers the sessions-index title
@@ -40,7 +41,15 @@ export async function POST(req: Request) {
     await rename(body.sessionId, title, body.dir);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    if (indexed > 0) return NextResponse.json({ ok: true });
+    // CC 2.1.319 parity — the index took the name, but a transcript that
+    // exists and couldn't be written keeps the old one for the CLI and
+    // `--resume`: succeed with the engine's "may not last" warning. With no
+    // transcript yet there's nothing else that could show a stale name.
+    if (indexed > 0) {
+      return NextResponse.json(
+        isMissingTranscriptError(err) ? { ok: true } : { ok: true, warning: RENAME_MAY_NOT_LAST_WARNING },
+      );
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },
       { status: 500 },

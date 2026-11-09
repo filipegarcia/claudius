@@ -60,7 +60,7 @@ import {
   isOAuthRevokedSignal,
   isOAuthRevokedText,
 } from "./auth-failed-detector";
-import { shouldWarnTokenExpiring } from "./token-expiry";
+import { shouldWarnTokenExpiring, signInEndToWarn } from "./token-expiry";
 import {
   clearSessionGoal,
   getSessionGoal,
@@ -96,6 +96,8 @@ import {
 } from "@/lib/shared/events";
 import { hookAsk } from "@/lib/shared/hook-ask";
 import { interpretFeedbackResponse } from "@/lib/shared/feedback-refusal";
+import { isMissingTranscriptError, RENAME_MAY_NOT_LAST_WARNING } from "@/lib/shared/rename-warning";
+import { hasLiveBackgroundAgent } from "./background-agent-keepalive";
 import { bypassDangerousRmDenial } from "@/lib/shared/dangerous-rm-deny";
 import { getSessionUsage, saveSessionUsage } from "./session-usage-db";
 import { lastRecordedCostState, type SdkCumulativeUsage } from "./sdk-cost-state";
@@ -168,8 +170,11 @@ import {
 import {
   coerceSurveyRate,
   getLastSurveyShownAt,
+  isFeedbackRefused,
+  noteFeedbackRefused,
   noteSurveyShown,
   shouldOfferSurvey,
+  surveyAllowedForProvider,
   SURVEY_MIN_INTERVAL_MS,
 } from "./feedback-survey";
 import {
@@ -814,6 +819,18 @@ const STALE_TODO_TURN_THRESHOLD = 15;
  * sweep) — see tests/unit/session-options.test.ts.
  */
 export const TODO_TASK_TOOL_NAMES = ["TodoWrite", "TaskCreate", "TaskGet", "TaskUpdate", "TaskList"];
+
+/**
+ * Claudius's in-process goal tool. `canUseTool` auto-allows it, but with
+ * `permissions.denyInsteadOfPrompting` (CC 2.1.319) the engine denies a call
+ * that would prompt before `canUseTool` is ever asked — which would silently
+ * break the goal banner. Pre-approving it in `allowedTools` lets the engine
+ * allow it on its own.
+ */
+export const GOAL_TOOL_NAME = "mcp__claudius_goal__report_goal_achieved";
+
+/** `Options.allowedTools`: the todo/task tools plus the goal tool. */
+export const SESSION_ALLOWED_TOOLS = [...TODO_TASK_TOOL_NAMES, GOAL_TOOL_NAME];
 
 /**
  * Builds the `env` object actually passed to `query()`'s `Options.env` —
@@ -1978,6 +1995,11 @@ export class Session {
   // automated sessions where the human never typed (mirrors the bus's
   // `lastUserInputAt` gate for idle notifications).
   private sawUserInput = false;
+  /**
+   * `accountInfo().apiProvider`, read once for the feedback nudge's
+   * third-party gate (CC 2.1.319). `null` = asked and unknown.
+   */
+  private surveyApiProvider: string | null | undefined = undefined;
   // True between the user pushing input and the SDK emitting the matching
   // `result` event. Surfaced via `getStatus()` so the SessionTabs strip can
   // paint a "running" dot on non-active tabs whose live SSE isn't bound to
@@ -2178,6 +2200,12 @@ export class Session {
    * broadcast which the client renders as a dismissible banner.
    */
   private tokenExpiringNudgeFired = false;
+  /**
+   * Fire-once gate for the CC 2.1.318 "sign-in ends soon" nudge, read from
+   * each live `result`'s `credential_expires_at`. Separate from
+   * `tokenExpiringNudgeFired`, which is spent at every `system:init`.
+   */
+  private signInEndNudgeFired = false;
 
   /**
    * The active account profile's reported token expiry (Unix ms), captured
@@ -3299,7 +3327,7 @@ export class Session {
       // auto-approves these tools once they exist (no special-cased
       // `canUseTool` handling on them, so this doesn't change any existing
       // permission-prompt behavior).
-      allowedTools: TODO_TASK_TOOL_NAMES,
+      allowedTools: SESSION_ALLOWED_TOOLS,
       // Opt into adaptive extended thinking explicitly so the agent
       // emits the full reasoning text in `thinking` blocks. Without
       // this, recent SDK builds default to a `display: 'omitted'`
@@ -3656,7 +3684,7 @@ export class Session {
     }, 200);
   }
 
-  async rename(title: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  async rename(title: string): Promise<{ ok: true; warning?: string } | { ok: false; error: string }> {
     const trimmed = title.trim();
     if (!trimmed) return { ok: false, error: "title required" };
     // The sessions index is authoritative — it works regardless of whether
@@ -3675,10 +3703,16 @@ export class Session {
     // and that's what other sessions see. Feature-detected: the method is on
     // the SDK's Query at runtime but not in its public typings.
     const toldEngine = await this.renameInEngine(trimmed);
+    let warning: string | undefined;
     try {
       await renameSession(this.id, trimmed, { dir: this.cwd });
       this.pendingTitleMirror = null;
-    } catch {
+    } catch (err) {
+      // CC 2.1.319 parity — a transcript that exists but couldn't be written
+      // (EACCES, ENOSPC, …) is not the "no JSONL yet" case below: unless the
+      // engine took the name (and persists it itself), the CLI and
+      // `--resume` keep the old one. Say so instead of a plain "Renamed".
+      if (!toldEngine && !isMissingTranscriptError(err)) warning = RENAME_MAY_NOT_LAST_WARNING;
       // Non-fatal. The most common reason this fails is "no JSONL yet" for a
       // fresh session that hasn't completed a turn. CC 2.1.309 parity: the
       // JSONL `customTitle` is what the CLI, `--resume` and other sessions
@@ -3690,7 +3724,7 @@ export class Session {
     }
     this.title = trimmed;
     this.broadcast({ type: "session_title", title: trimmed });
-    return { ok: true };
+    return warning ? { ok: true, warning } : { ok: true };
   }
 
   /**
@@ -5584,6 +5618,20 @@ export class Session {
   }
 
   /**
+   * CC 2.1.319 parity — true while a backgrounded agent / workflow / teammate
+   * this session started is still running, so the idle reaper doesn't end
+   * the SDK process under it (Claudius's `/clear` leaves the old session
+   * subscriber-less, and the reap used to kill its background agents).
+   * Shells, monitors and MCP tasks don't count; bounded by
+   * `BACKGROUND_AGENT_KEEPALIVE_MS` of task silence. See
+   * `background-agent-keepalive.ts`.
+   */
+  hasLiveBackgroundAgents(now: number = Date.now()): boolean {
+    if (this.done) return false;
+    return hasLiveBackgroundAgent(this.taskMetaById.values(), this.lastTaskEventAt, now);
+  }
+
+  /**
    * CC 2.1.311 parity — "Fixed a background session that crashed between
    * turns not being restarted while it was attached, pinned, or had a
    * scheduled task or wake-up set". True when the SDK process ended on its
@@ -6378,7 +6426,12 @@ export class Session {
       // CC 2.1.309 — a refusal comes back as a resolved `{ feedback_id: null,
       // unavailable_reason }`, not a rejection; read it.
       const res = await q.submitFeedback(description, { surface, attach_transcript: attachTranscript });
-      return interpretFeedbackResponse(res);
+      const out = interpretFeedbackResponse(res);
+      // CC 2.1.319 — a refusal (with the server's reason) stops the nudge for
+      // the rest of the process; a reasonless failure is connectivity, not
+      // a refusal, and leaves it alone.
+      if (!out.forwarded && out.reason) noteFeedbackRefused();
+      return out;
     } catch {
       // Transport / handler failure (e.g. the query closed): not a refusal,
       // so no reason — the banner keeps its "couldn't reach Anthropic" copy.
@@ -6500,13 +6553,23 @@ export class Session {
       const isError = (message as { is_error?: boolean }).is_error === true;
       // Cheap synchronous gates first — avoid a settings file read on every
       // turn while throttled or ineligible.
-      if (isError || !this.sawUserInput) return;
+      // CC 2.1.319 — not after the org refused feedback.
+      if (isError || !this.sawUserInput || isFeedbackRefused()) return;
       const now = Date.now();
       if (now - getLastSurveyShownAt() < SURVEY_MIN_INTERVAL_MS) return;
       const settings = await readSettings("user", this.cwd).catch(
         () => ({}) as ClaudeSettings,
       );
       const rate = coerceSurveyRate(settings.feedbackSurveyRate);
+      if (rate <= 0) return;
+      // CC 2.1.319 — not on a provider the survey can't be sent from
+      // (Bedrock, Vertex, Foundry, gateways). Asked once per session.
+      if (this.surveyApiProvider === undefined) {
+        const info = await this.accountInfo();
+        const provider = info.ok ? (info.data as { apiProvider?: unknown } | null)?.apiProvider : undefined;
+        this.surveyApiProvider = typeof provider === "string" ? provider : null;
+      }
+      if (!surveyAllowedForProvider(this.surveyApiProvider)) return;
       if (
         !shouldOfferSurvey({
           rate,
@@ -6514,6 +6577,8 @@ export class Session {
           sawUserInput: this.sawUserInput,
           now,
           lastShownAt: getLastSurveyShownAt(),
+          refused: isFeedbackRefused(),
+          apiProvider: this.surveyApiProvider ?? undefined,
         })
       ) {
         return;
@@ -7434,6 +7499,21 @@ export class Session {
       type: "token_expiring_required",
       expiresAt: this.activeProfileExpiresAt as number,
     });
+  }
+
+  /**
+   * CC 2.1.318 parity — warn once per session when the stored claude.ai
+   * sign-in ends within 10 days (`credential_expires_at` on the result; see
+   * `signInEndToWarn`). Rides the existing token-expiring banner with
+   * `kind: "sign_in"`. Never on transcript replay; replay-on-reload is
+   * already excluded for this event type (see the subscribe filter).
+   */
+  private noteSignInEnding(message: SDKMessage): void {
+    if (this.signInEndNudgeFired || this.isReplayingTranscript) return;
+    const at = signInEndToWarn((message as { credential_expires_at?: unknown }).credential_expires_at, Date.now());
+    if (at === null) return;
+    this.signInEndNudgeFired = true;
+    this.broadcast({ type: "token_expiring_required", expiresAt: at, kind: "sign_in" });
   }
 
   /**
@@ -8358,6 +8438,14 @@ export class Session {
    */
   private async flushQueueIfIdle(opts?: { unlessHeld?: boolean }): Promise<void> {
     if (this.done) return;
+    // CC 2.1.318 parity — "Fixed a restarted session re-sending a message that
+    // failed with an API error, ahead of the newer message waiting behind it".
+    // A session scheduled for thinking-replay recovery is about to be torn
+    // down and rebuilt with the failed prompt re-sent; draining the next
+    // queued message into it now sent that message into the poisoned process
+    // and lost it, and put the re-sent prompt ahead of it. Leave the queue
+    // for the rebuilt session.
+    if (this.thinkingReplayRecoveryScheduled) return;
     if (this.isDraining) return;
     if (this.getStatus() !== "idle") return;
     this.isDraining = true;
@@ -9259,6 +9347,8 @@ export class Session {
    * DB on the next session, never read back here.
    */
   private taskMetaById = new Map<string, TaskSnapshotEntry>();
+  /** Last task event or subagent message (see `hasLiveBackgroundAgents`). */
+  private lastTaskEventAt = 0;
   private subagentMsgsByToolUseId = new Map<string, Array<{ at?: number; message: unknown }>>();
   /** Cap inner-message retention per task so a marathon subagent can't bloat one row. */
   private static readonly MAX_INNER_MESSAGES = 500;
@@ -9329,6 +9419,9 @@ export class Session {
     // tool_use id so we can replay the conversation faithfully.
     const parent = msg.parent_tool_use_id ?? null;
     if (parent) {
+      // A subagent's own messages are activity for the reaper's
+      // background-agent keepalive (CC 2.1.319, `background-agent-keepalive.ts`).
+      this.lastTaskEventAt = Date.now();
       const list = this.subagentMsgsByToolUseId.get(parent) ?? [];
       list.push({ at: event.at, message: event.message });
       if (list.length > Session.MAX_INNER_MESSAGES) {
@@ -9346,6 +9439,7 @@ export class Session {
 
     if (msg.type !== "system" || !msg.task_id) return;
     const taskId = msg.task_id;
+    this.lastTaskEventAt = Date.now();
     switch (msg.subtype) {
       case "task_started": {
         const meta: TaskSnapshotEntry = {
@@ -9668,9 +9762,15 @@ export class Session {
           // loop (no success between) still trips the cap. Dynamic import keeps
           // the session ⇄ session-manager cycle out of the static graph.
           if ((message as { subtype?: string }).subtype === "success") {
-            void import("./session-manager").then(({ sessionManager }) =>
-              sessionManager.noteThinkingRecoverySuccess(this.id),
-            );
+            // CC 2.1.318 parity — an API-error turn ALSO ends with
+            // `subtype: "success"` (with `is_error: true`), including the
+            // thinking-replay 400 itself; counting that as a clean turn reset
+            // the 3-attempt recovery cap on every poisoned turn.
+            if ((message as { is_error?: boolean }).is_error !== true) {
+              void import("./session-manager").then(({ sessionManager }) =>
+                sessionManager.noteThinkingRecoverySuccess(this.id),
+              );
+            }
             // A clean turn clears the consecutive-overload streak so a later,
             // unrelated 529 doesn't ride a stale count into the nudge. The
             // nudge itself is fire-once per session lifetime regardless.
@@ -9824,6 +9924,7 @@ export class Session {
           // Occasionally nudge for feedback (CLI-style survey). Fire-and-
           // forget so the settings read never blocks the turn loop.
           void this.maybeOfferFeedbackSurvey(message);
+          this.noteSignInEnding(message);
           // Drain one queued message into a fresh turn — but ONLY on
           // `subtype === "success"`. Interrupts and errored turns drop into
           // the parent `if (type === "result")` block above so `turnInFlight`

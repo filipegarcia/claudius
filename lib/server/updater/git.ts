@@ -351,7 +351,9 @@ export async function hasUnmergedFiles(cwd: string): Promise<boolean> {
 export async function conflictedFiles(cwd: string): Promise<string[]> {
   let out = "";
   try {
-    out = (await git(["diff", "--check", "HEAD"], cwd)).stdout;
+    // `--` so a top-level file or folder named `HEAD` can't make the revision
+    // ambiguous (exit 128 with empty stdout → [] → guard silently off). CC 2.1.319.
+    out = (await git(["diff", "--check", "HEAD", "--"], cwd)).stdout;
   } catch (err) {
     if (err instanceof UpdaterGitError) out = err.stdout || "";
     else throw err;

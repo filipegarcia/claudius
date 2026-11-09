@@ -42,6 +42,7 @@ export default function PermissionsPage() {
     updateRules,
     updateBlockReadsOutsideWorkingDirectories,
     updateBlockWritesOutsideWorkingDirectories,
+    updateDenyInsteadOfPrompting,
   } = usePermissions();
   const [scope, setScope] = useState<Scope>("project");
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
@@ -232,6 +233,34 @@ export default function PermissionsPage() {
                       </p>
                     </span>
                   </label>
+                  {/* CC 2.1.319 parity — permissions.denyInsteadOfPrompting.
+                      Account scope only: the engine reads it from user,
+                      --settings and managed sources, never project/local. */}
+                  {iaScope === "account" && (
+                    <label className="mt-3 flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        data-testid="deny-instead-of-prompting"
+                        checked={rules.user.denyInsteadOfPrompting}
+                        disabled={loading}
+                        onChange={(e) => void updateDenyInsteadOfPrompting(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="font-medium text-[var(--foreground)]">
+                          Deny instead of prompting
+                        </span>
+                        <p className="mt-0.5 text-[10px] text-[var(--muted)]">
+                          A tool call that would wait for your approval is denied and the turn
+                          continues. Permission cards, questions and plan approval stop appearing
+                          and MCP input requests are cancelled; only allow rules, the permission
+                          mode, auto mode and PermissionRequest hooks still let calls through.
+                          Saved in ~/.claude/settings.json, so it also applies to the terminal
+                          CLI.
+                        </p>
+                      </span>
+                    </label>
+                  )}
                 </div>
 
                 <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs">
