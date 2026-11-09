@@ -492,7 +492,7 @@ export function WorkspaceForm({ initial, onCancel, onSubmit, onIconUpload, onDel
                       mode". Leaving this unset doesn't inherit anything:
                       createWorkspace stamps DEFAULT_WORKSPACE_DEFAULTS
                       (permissionMode "auto"), so say so. */}
-                  <option value="">auto (Claudius default)</option>
+                  <option value="">(auto — Claudius default)</option>
                   <option value="default">default</option>
                   <option value="acceptEdits">acceptEdits</option>
                   <option value="plan">plan</option>

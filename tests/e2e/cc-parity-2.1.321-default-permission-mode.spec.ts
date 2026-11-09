@@ -9,7 +9,7 @@
  *   - the workspace settings page's "Inherit (default) · Use the machine-level
  *     setting" actually gives Default, because Claudius always passes an
  *     explicit mode and never reads `permissions.defaultMode`.
- * Both now say what happens ("auto (Claudius default)" / "Not set · New chats
+ * Both now say what happens ("(auto — Claudius default)" / "Not set · New chats
  * start in Default …").
  *
  * Drives the real create form, the real `/api/workspaces` (a scratch
@@ -36,7 +36,7 @@ test.describe("default permission mode labels (CC 2.1.321 parity)", () => {
     await expect(page.getByText("Name", { exact: true })).toBeVisible({ timeout: 10_000 });
 
     const select = page.locator("select").filter({ has: page.locator('option[value="acceptEdits"]') }).first();
-    await expect(select.locator('option[value=""]')).toHaveText("auto (Claudius default)");
+    await expect(select.locator('option[value=""]')).toHaveText("(auto — Claudius default)");
     await expect(select.locator("option", { hasText: "(inherit)" })).toHaveCount(0);
   });
 
@@ -57,7 +57,7 @@ test.describe("default permission mode labels (CC 2.1.321 parity)", () => {
       const unset = page.getByRole("radio", { name: /^Not set/ });
       await expect(unset).toBeVisible({ timeout: 30_000 });
       await expect(unset).toContainText("New chats start in Default");
-      await expect(unset).toContainText("permissions.defaultMode in settings.json isn't applied");
+      await expect(unset).toContainText("settings.json defaultMode isn't used");
       await expect(page.getByRole("radio", { name: /Inherit \(default\)/ })).toHaveCount(0);
       await expect(page.getByText("Use the machine-level setting.")).toHaveCount(0);
       // The stamped mode is the selected one.
