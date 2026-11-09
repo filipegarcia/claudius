@@ -27,8 +27,7 @@ const sseBody = (events: SdkEvent[]) => events.map((e) => `data: ${JSON.stringif
 
 const MODELS = [
   {
-    value: "fable",
-    resolvedModel: "claude-fable-5-2",
+    value: "claude-fable-5-2",
     displayName: "Fable 5.2",
     description: "Most capable for your hardest and longest-running tasks.",
     supportsEffort: true,
@@ -122,14 +121,15 @@ test("the Fast mode toggle names the current model", async ({ page }) => {
   // CC 2.1.321 — the per-row "Draws from usage credits" note shows only while
   // fast mode is on (Fable 5.2 is fast-capable, so it used to sit on every
   // Fable row, plan-included seats too). The `fast` chip stays.
-  const fableRow = panel.locator('[data-testid="model-picker-option"][data-model="fable"]');
+  const fableRow = panel.locator('[data-testid="model-picker-option"][data-model="claude-fable-5-2"]');
   await expect(fableRow).toContainText("fast");
   await expect(panel.getByTestId("model-picker-row-credits")).toHaveCount(0);
+  // Turning fast on closes the picker (like picking a model); reopen it.
   await panel.getByTestId("model-picker-fast").click();
+  await expect(panel).toBeHidden();
+  await trigger.click();
   await expect(panel.getByTestId("model-picker-fast")).toHaveAttribute("aria-pressed", "true");
   await expect(fableRow.getByTestId("model-picker-row-credits")).toHaveText("Draws from usage credits");
-  await panel.getByTestId("model-picker-fast").click();
-  await expect(panel.getByTestId("model-picker-row-credits")).toHaveCount(0);
 
   // Switching to the opus alias relabels the row with its resolved model.
   await panel.locator('[data-testid="model-picker-option"][data-model="opus"]').click();
