@@ -125,6 +125,14 @@ type Props = {
    */
   fastMode?: boolean;
   /**
+   * CC 2.1.321 — the SDK-reported fast-mode state (`fast_mode_state === "on"`).
+   * `fastMode` above is only the optimistic record of the last picker toggle
+   * and resets on reload / resume, so fast mode turned on elsewhere (the
+   * `fastMode` setting, a reloaded tab) would otherwise hide the per-row
+   * "Draws from usage credits" note exactly while it applies.
+   */
+  fastModeActive?: boolean;
+  /**
    * `model` is the active row's canonical id (`resolvedModel ?? value`), so
    * the host can raise the CC 2.1.316 Opus 4.8 fast-mode deprecation notice
    * without re-resolving an alias.
@@ -170,6 +178,7 @@ export function ModelPicker({
   ultracode = false,
   onToggleUltracode,
   fastMode = false,
+  fastModeActive = false,
   onToggleFast,
   onModelsLoaded,
   advisorModel = null,
@@ -484,7 +493,7 @@ export function ModelPicker({
                         always-on note would now sit on every Fable row,
                         plan-included seats too. The `fast` chip still shows
                         the capability. */}
-                    {fastMode && m.supportsFastMode && (
+                    {(fastMode || fastModeActive) && m.supportsFastMode && (
                       <div
                         data-testid="model-picker-row-credits"
                         className="mt-0.5 truncate text-[9px] text-amber-200/80"
@@ -931,11 +940,13 @@ export function ModelPicker({
                   {fastModeLabel(activeId)}
                 </span>
                 <span className="block text-[9px] leading-tight text-[var(--muted)]">
-                  Accelerated responses on supported models.
+                  Accelerated responses from the same model.
                 </span>
                 {/* Mirror the TUI's `Draws from usage credits` confirmation
                     line under the Fast-mode toggle. Subdued amber so it reads
-                    as a cost cue rather than a warning. */}
+                    as a cost cue rather than a warning. Kept while the toggle
+                    is off on purpose: it's the heads-up before you turn fast
+                    on (the per-row note above only shows once it's on). */}
                 <span className="mt-0.5 block text-[9px] leading-tight text-amber-200/80">
                   Draws from usage credits.
                 </span>

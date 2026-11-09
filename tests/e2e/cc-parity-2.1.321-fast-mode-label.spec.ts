@@ -55,7 +55,7 @@ const MODELS = [
   },
 ];
 
-async function mockChatBackend(page: Page) {
+async function mockChatBackend(page: Page, initExtra: Record<string, unknown> = {}) {
   await page.route("**/api/sessions", async (route: Route) => {
     if (route.request().method() !== "POST") return route.fallback();
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: FAKE_SESSION_ID }) });
@@ -66,7 +66,7 @@ async function mockChatBackend(page: Page) {
       headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
       body: sseBody([
         { type: "ready", sessionId: FAKE_SESSION_ID },
-        { type: "sdk", message: { type: "system", subtype: "init", uuid: "sys-init-321f", model: "claude-fable-5-2" } },
+        { type: "sdk", message: { type: "system", subtype: "init", uuid: "sys-init-321f", model: "claude-fable-5-2", ...initExtra } },
         {
           type: "sdk",
           message: { type: "user", uuid: "u-1", message: { role: "user", content: [{ type: "text", text: "Profile the slow import path." }] } },
@@ -142,4 +142,20 @@ test("the Fast mode toggle names the current model", async ({ page }) => {
   // A model without fast mode has no toggle at all.
   await panel.locator('[data-testid="model-picker-option"][data-model="sonnet"]').click();
   await expect(panel.getByTestId("model-picker-fast")).toHaveCount(0);
+});
+
+test("fast mode already on (SDK-reported, e.g. after a reload) shows the credits note", async ({ page }) => {
+  // The picker's own toggle state resets on reload; the engine still reports
+  // fast mode on. The billing note must follow the engine, not the toggle.
+  await mockChatBackend(page, { fast_mode_state: "on" });
+  await page.goto("/");
+  const trigger = page.getByTestId("model-picker-trigger");
+  await expect(trigger).toContainText("Fable 5.2", { timeout: 30_000 });
+  await trigger.click();
+  const panel = page.getByTestId("model-picker-panel");
+  const fableRow = panel.locator('[data-testid="model-picker-option"][data-model="claude-fable-5-2"]');
+  await expect(fableRow.getByTestId("model-picker-row-credits")).toHaveText("Draws from usage credits");
+  // A model without fast mode never shows it.
+  const sonnetRow = panel.locator('[data-testid="model-picker-option"][data-model="sonnet"]');
+  await expect(sonnetRow.getByTestId("model-picker-row-credits")).toHaveCount(0);
 });
