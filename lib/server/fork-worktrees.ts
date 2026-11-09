@@ -118,14 +118,20 @@ export async function createForkWorktree(
     return { ok: false, reason: "the repository has no commits yet" };
   }
 
-  let dirty = false;
+  // CC 2.1.321 parity — "Fixed the git status given to Claude at session
+  // start reading as clean when git status failed; it now reads as
+  // unavailable". Same mistake here: a failed or timed-out `git status`
+  // (corrupt index, huge repo past the 5 s cap) used to leave `dirty = false`,
+  // so the fork toast read as if every change were in the worktree. `null`
+  // means "couldn't check"; the fork itself still goes ahead.
+  let dirty: boolean | null = null;
   try {
     const { stdout } = await execFileP("git", ["-C", repoRoot, "status", "--porcelain"], {
       timeout: 5_000,
     });
     dirty = stdout.trim().length > 0;
   } catch {
-    // Non-fatal — proceed without the dirty note.
+    // Non-fatal — the toast says the check was unavailable.
   }
 
   await fs.mkdir(root, { recursive: true });
