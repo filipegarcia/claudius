@@ -13,7 +13,6 @@ describe("model-named 'requires usage credits' limit text", () => {
       "Fable requires usage credits.",
       "Mythos 5.2 requires usage credits.",
       "Opus 5.5 requires usage credits. Run /usage to set it up.",
-      "fable 5.2 requires usage credits.",
     ]) {
       expect(matchesUsageLimitPrefix(t), t).toBe(true);
     }
@@ -29,6 +28,7 @@ describe("model-named 'requires usage credits' limit text", () => {
       "The Fable model requires usage credits on some plans",
       "Fable 5.2 requires usage credits on Team plans, so I used Opus",
       "Gemini 2 requires usage credits.",
+      "fable 5.2 requires usage credits.", // engine pattern is case-sensitive
     ]) {
       expect(matchesUsageLimitPrefix(t), t).toBe(false);
     }

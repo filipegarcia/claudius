@@ -24,6 +24,11 @@ describe("Fable 5.2 pricing", () => {
     expect([f5.input, f5.cacheRead]).toEqual([10, 1]);
   });
 
+  test("a dated Fable 5 id is not mistaken for Fable 5.2", () => {
+    const p = priceFor("claude-fable-5-20260101");
+    expect([p.input, p.cacheRead]).toEqual([10, 1]);
+  });
+
   test("Fable 5.1 keeps its own price", () => {
     const p = priceFor("claude-fable-5-1");
     expect([p.input, p.output, p.cacheRead]).toEqual([10, 50, 0.25]);

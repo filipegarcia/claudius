@@ -62,10 +62,11 @@ export const USAGE_LIMIT_ERROR_PREFIXES = [
  * `rate-limit-hit-detection` test fixtures).
  */
 export function matchesUsageLimitPrefix(text: string): boolean {
-  const normalized = text.trim().replace(/[‘’]/g, "'").toLowerCase();
+  const trimmed = text.trim().replace(/[‘’]/g, "'");
+  const normalized = trimmed.toLowerCase();
   return (
     USAGE_LIMIT_ERROR_PREFIXES.some((prefix) => normalized.startsWith(prefix.toLowerCase())) ||
-    MODEL_REQUIRES_CREDITS_RE.test(normalized)
+    MODEL_REQUIRES_CREDITS_RE.test(trimmed)
   );
 }
 
@@ -73,11 +74,12 @@ export function matchesUsageLimitPrefix(text: string): boolean {
  * CC 2.1.321 — the engine's "<model> requires usage credits." limit text now
  * names the model (`${displayName} requires usage credits.`), so the fixed
  * "Fable 5 requires usage credits" prefix above misses "Fable 5.2 requires
- * usage credits." The engine detects it with this companion pattern (copied
- * from the bundled CLI, lowercased to match `normalized`): a family name at
- * the very start, an optional short version, then the sentence with its
- * period. Anchored on both ends of the clause so ordinary prose that only
- * mentions "requires usage credits" mid-sentence doesn't read as a limit hit
- * (this also feeds the server's account auto-rotate).
+ * usage credits." The engine detects it with this companion pattern, copied
+ * verbatim from the bundled CLI and matched case-sensitively as it is there
+ * (on the un-lowercased text): a capitalised family name at the very start,
+ * an optional short version, then the sentence with its period. Anchored so
+ * ordinary prose that only mentions "requires usage credits" mid-sentence
+ * doesn't read as a limit hit (this also feeds the server's account
+ * auto-rotate).
  */
-const MODEL_REQUIRES_CREDITS_RE = /^(?:fable|haiku|mythos|opus|sonnet)(?: [^\u00b7\n]{1,40})? requires usage credits\./;
+const MODEL_REQUIRES_CREDITS_RE = /^(?:Fable|Haiku|Mythos|Opus|Sonnet)(?: [^\u00B7\n]{1,40})? requires usage credits\./;

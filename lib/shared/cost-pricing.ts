@@ -84,7 +84,9 @@ export function priceFor(model: string | undefined): Pricing {
   if (m.includes("opus")) return OPUS;
   if (m.includes("haiku-5")) return HAIKU_5_5; // CC 2.1.293
   if (m.includes("haiku")) return HAIKU;
-  if (m.includes("fable-5-2")) return FABLE_5_2; // CC 2.1.321
+  // CC 2.1.321. Digit boundary: a dated Fable 5 id (`claude-fable-5-20260101`)
+  // must not read as Fable 5.2.
+  if (/fable-5-2(?!\d)/.test(m)) return FABLE_5_2;
   if (m.includes("fable-5-1")) return FABLE_5_1;
   if (m.includes("fable-5")) return FABLE_5;
   // The bare `fable` alias (or an unrecognised Fable id) is the current
