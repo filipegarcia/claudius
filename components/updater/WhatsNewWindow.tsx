@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Overlay } from "@/components/overlays/Overlay";
 import { ReleaseNoteSection } from "@/components/updater/ReleaseNoteSection";
@@ -51,7 +51,6 @@ type View = {
 };
 
 export function WhatsNewWindow() {
-  const router = useRouter();
   const [view, setView] = useState<View | null>(null);
 
   // ── Auto-open after an update ──────────────────────────────────────────
@@ -175,16 +174,19 @@ export function WhatsNewWindow() {
         )}
 
         <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
-          <button
-            onClick={() => {
-              close();
-              router.push("/release-notes");
-            }}
+          {/* A real link, not router.push: the window auto-opens at launch,
+              right when the chat binds its session, and use-session's
+              `?session=` writer only stands down for anchor clicks — a
+              programmatic push inside its 500 ms window gets replaced back
+              to the chat URL. */}
+          <Link
+            href="/release-notes"
+            onClick={close}
             data-testid="whats-new-all"
             className="text-xs text-[var(--accent)] hover:underline"
           >
             All release notes
-          </button>
+          </Link>
           <button
             onClick={close}
             data-testid="whats-new-dismiss"
