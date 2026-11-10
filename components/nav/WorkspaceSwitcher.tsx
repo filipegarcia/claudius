@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { RailTooltip } from "@/components/ui/RailTooltip";
 import { CLAUDIUS_VERSION_DISPLAY } from "@/lib/shared/version";
+import { openWhatsNew } from "@/lib/client/whats-new";
 
 /**
  * A binding counts as "plain" (= plausibly text input) only when neither
@@ -611,15 +612,19 @@ export function WorkspaceSwitcher({ mobileOpen = false, onCloseMobile }: Props =
           )}
           {/* claudius version — tracks the Claude Agent SDK (see
               lib/shared/version.ts). Stacked over two lines so the 56px rail
-              isn't blown out; reuses the muted micro-type of the cycle hint. */}
-          <div
+              isn't blown out; reuses the muted micro-type of the cycle hint.
+              Click → the "What's new" window (release notes for this and
+              earlier versions). */}
+          <button
+            type="button"
             data-testid="claudius-version"
-            title={`Claudius ${CLAUDIUS_VERSION_DISPLAY} · version tracks the Claude Agent SDK`}
-            className="px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60"
+            onClick={openWhatsNew}
+            title={`Claudius ${CLAUDIUS_VERSION_DISPLAY} · What's new`}
+            className="rounded px-1 text-center text-[8px] leading-tight text-[var(--muted)]/60 hover:text-[var(--foreground)]"
           >
             <div>claudius</div>
             <div className="font-mono">{CLAUDIUS_VERSION_DISPLAY}</div>
-          </div>
+          </button>
         </div>
       </aside>
       {showForm?.kind === "new" && (

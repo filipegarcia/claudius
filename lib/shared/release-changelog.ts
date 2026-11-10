@@ -13,8 +13,11 @@
  *   perf / refactor → "Improvements"
  *
  * Everything else (docs, test, chore, ci, build, wip, merges, release bumps)
- * is internal and dropped. `total` still counts every commit so the UI can
- * say "and N internal changes" / link to the full compare view.
+ * is internal and dropped — and so is a feat/fix whose SCOPE is the release
+ * machinery itself (`fix(release): …`, `feat(update-pipeline): …`): real
+ * commits, but nothing a user of the app would notice. `total` still counts
+ * every commit so the UI can say "and N internal changes" / link to the full
+ * compare view.
  *
  * Pure and dependency-free so it runs in both the route handler and unit tests.
  */
@@ -60,6 +63,22 @@ const TYPE_TO_GROUP: Record<string, ChangelogGroupKey> = {
   refactor: "improve",
 };
 
+/**
+ * Scopes that name the build / release / test pipeline rather than the app.
+ * Matched case-insensitively against the whole scope. `sdk-update` and
+ * `security` are deliberately NOT here: SDK-bump commits usually ship new
+ * settings or UI, and security fixes are worth telling users about.
+ */
+const INTERNAL_SCOPES = new Set([
+  "ci",
+  "e2e",
+  "release",
+  "releases",
+  "test",
+  "tests",
+  "update-pipeline",
+]);
+
 /** `type(scope)!: subject` — scope and `!` optional. */
 const CONVENTIONAL_RE = /^(\w+)(?:\(([^)]*)\))?!?:\s*(.+)$/;
 /**
@@ -90,6 +109,7 @@ export function classifyCommit(
   const group = TYPE_TO_GROUP[m[1].toLowerCase()];
   if (!group) return null;
   const scope = m[2]?.trim() || null;
+  if (scope && INTERNAL_SCOPES.has(scope.toLowerCase())) return null;
   let text = m[3].replace(PARITY_SUFFIX_RE, "").trim();
   if (!text) return null;
   text = text[0].toUpperCase() + text.slice(1);

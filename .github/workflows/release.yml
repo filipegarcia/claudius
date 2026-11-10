@@ -68,7 +68,15 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
+      # Full history + tags (commits/trees only — `blob:none` skips old file
+      # contents, so this costs seconds, not the repo's ~100 MB). `next build`
+      # runs scripts/release-notes.mjs, which bundles every release's changelog
+      # from the tag ranges; on the default shallow clone it can't see the
+      # earlier tags and ships no notes. See next.config.ts.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          filter: blob:none
 
       - uses: actions/setup-node@v5
         with:
@@ -248,7 +256,12 @@ jobs:
       # the native-rebuild, build, and package steps all skip identity probing.
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
+      # Full history + tags for the bundled release notes — see the
+      # macos-arm64 job's checkout step.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          filter: blob:none
 
       - uses: actions/setup-node@v5
         with:
@@ -899,7 +912,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Full history + tags for the bundled release notes — see the
+      # macos-arm64 job's checkout step.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          filter: blob:none
 
       - uses: actions/setup-node@v5
         with:
