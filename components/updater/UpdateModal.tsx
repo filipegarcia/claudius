@@ -1,8 +1,20 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Download, Loader2, Package, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  Loader2,
+  Package,
+  RefreshCw,
+} from "lucide-react";
 import { Overlay } from "@/components/overlays/Overlay";
+import { ChangelogGroups } from "@/components/updater/ChangelogGroups";
 import type { ClaudiusUpdaterStatus } from "@/lib/shared/electron";
+import type { ReleaseChangelog } from "@/lib/shared/release-changelog";
+import { CLAUDIUS_VERSION } from "@/lib/shared/version";
 
 /**
  * The desktop update flow as an explicit, stepped dialog.
@@ -16,6 +28,15 @@ import type { ClaudiusUpdaterStatus } from "@/lib/shared/electron";
  *   available → downloading(%) → installing → downloaded
  * `installing` is its own step because unpacking the ~370 MB bundle runs long
  * enough that a progress bar parked at 100% reads as a hang.
+ *
+ * Above the steps sits a "What's new" list built from the commits between the
+ * running build and the offered one (GitHub Releases carry no notes — see
+ * lib/shared/release-changelog.ts).
+ *
+ * Pressing Download hands the flow back to the banner strip: the banner closes
+ * this window, the download runs in the background, and the strip fills with
+ * progress and offers "Restart now" once the bundle is staged. Reopening the
+ * window mid-download ("View progress") shows the steps.
  */
 
 type StepState = "pending" | "active" | "done";
@@ -79,6 +100,97 @@ function Step({
   );
 }
 
+type ChangelogState =
+  | { kind: "loading" }
+  | { kind: "ready"; changelog: ReleaseChangelog }
+  | { kind: "unavailable" };
+
+// Survives the modal unmounting (minimize / close → reopen) so the list
+// doesn't flash back to a spinner. Keyed by target version.
+const changelogCache = new Map<string, ChangelogState>();
+
+function useReleaseChangelog(version: string | null): ChangelogState | null {
+  const [, force] = useState(0);
+  const target = version && version !== CLAUDIUS_VERSION ? version : null;
+  useEffect(() => {
+    if (!target) return;
+    // A previous failure is retried on the next mount (reopen / restore).
+    const cached = changelogCache.get(target);
+    if (cached && cached.kind !== "unavailable") return;
+    changelogCache.set(target, { kind: "loading" });
+    const qs = new URLSearchParams({ from: CLAUDIUS_VERSION, to: target });
+    fetch(`/api/updater/changelog?${qs}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return (await res.json()) as ReleaseChangelog;
+      })
+      .then((changelog) => changelogCache.set(target, { kind: "ready", changelog }))
+      .catch(() => changelogCache.set(target, { kind: "unavailable" }))
+      .finally(() => force((n) => n + 1));
+  }, [target]);
+  if (!target) return null;
+  return changelogCache.get(target) ?? { kind: "loading" };
+}
+
+function Changelog({ state }: { state: ChangelogState }) {
+  if (state.kind === "loading") {
+    return (
+      <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading changes…
+      </div>
+    );
+  }
+  if (state.kind === "unavailable") {
+    return (
+      <div className="text-xs text-[var(--muted)]">
+        Couldn&apos;t load the changelog.{" "}
+        <a
+          href="https://github.com/filipegarcia/claudius/releases"
+          target="_blank"
+          rel="noreferrer"
+          className="text-[var(--accent)] hover:underline"
+        >
+          See releases on GitHub
+        </a>
+      </div>
+    );
+  }
+  const { changelog } = state;
+  const shown = changelog.groups.reduce((n, g) => n + g.entries.length, 0);
+  const hidden = changelog.total - shown;
+  return (
+    <div className="flex flex-col gap-2">
+      {shown === 0 ? (
+        <div className="text-xs text-[var(--muted)]">
+          Internal changes only — no user-facing changes listed.
+        </div>
+      ) : (
+        <div
+          className="scroll-thin flex max-h-72 flex-col gap-3 overflow-y-auto pr-1"
+          data-testid="updater-changelog"
+        >
+          <ChangelogGroups groups={changelog.groups} />
+        </div>
+      )}
+      <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
+        {hidden > 0 && (
+          <span>
+            +{hidden} internal {hidden === 1 ? "change" : "changes"}
+          </span>
+        )}
+        <a
+          href={changelog.compareUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+        >
+          Full diff on GitHub <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function UpdateModal({
   status,
   version,
@@ -94,6 +206,7 @@ export function UpdateModal({
   onClose: () => void;
 }) {
   const [dl, inst, ready] = stepStates(status.kind);
+  const changelog = useReleaseChangelog(version);
   const isError = status.kind === "error" || status.kind === "blocked-app-management";
   const percent = status.kind === "downloading" ? status.percent : null;
   const busy = status.kind === "downloading" || status.kind === "installing";
@@ -102,7 +215,7 @@ export function UpdateModal({
     <Overlay
       title={version ? `Claudius ${version}` : "Update Claudius"}
       subtitle="Update"
-      width={520}
+      width={560}
       // A floating, movable window rather than a blocking modal: no dimmed /
       // blurred backdrop, the app underneath stays usable, and the header
       // drags it out of the way while the download runs.
@@ -115,6 +228,17 @@ export function UpdateModal({
       onClose={onClose}
     >
       <div className="flex flex-col gap-4 p-4" data-testid="updater-update-modal">
+        {changelog && (
+          <div className="flex flex-col gap-2 border-b border-[var(--border)] pb-4">
+            <div className="text-sm font-medium">
+              What&apos;s new
+              <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                since v{CLAUDIUS_VERSION}
+              </span>
+            </div>
+            <Changelog state={changelog} />
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           <Step
             state={dl}
@@ -213,7 +337,7 @@ export function UpdateModal({
                 className="flex items-center gap-1.5 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-3 py-1.5 text-xs font-medium hover:bg-[var(--accent)]/25"
               >
                 <Download className="h-3.5 w-3.5" />
-                Download update
+                Download in background
               </button>
             </>
           )}
