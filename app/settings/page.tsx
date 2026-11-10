@@ -1014,7 +1014,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     key: "fastMode",
     type: "boolean",
     section: "Model & behavior",
-    desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
+    desc: "When true, fast mode is enabled. When absent or false, fast mode is off. On Vertex a saved value is ignored: use /fast each session.",
   },
   {
     // CC 2.1.234 — resume automatically once the claude.ai usage limit resets.
