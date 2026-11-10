@@ -31,6 +31,12 @@
 #   • push of a v* tag  — also attaches the artifacts to the GitHub Release
 #     for that tag (create the release first, or this step will create one).
 #
+# "Latest": every attach step below passes `make_latest: "false"`; only the
+# final `release-latest` job marks the release latest, once every build and
+# both update manifests are attached. electron-updater resolves the release
+# via /releases/latest, so a half-built release must never hold that slot —
+# see `release-latest` for the failure that taught us.
+#
 # Each job builds NATIVELY on its own runner, so the native-module +
 # Next.js-standalone story Just Works (no Docker, no cross-arch rebuilds).
 name: release
@@ -238,6 +244,8 @@ jobs:
           files: |
             release/*.dmg
             release/*.zip
+          # Only `release-latest` promotes the release — see the header.
+          make_latest: "false"
 
   macos-x64:
     name: macOS (Intel x64, cross-compiled)
@@ -526,6 +534,8 @@ jobs:
           files: |
             release/*.dmg
             release/*.zip
+          # Only `release-latest` promotes the release — see the header.
+          make_latest: "false"
 
   # Combine the two single-arch `latest-mac.yml` manifests produced by
   # `macos-arm64` and `macos-x64` into one multi-arch manifest that lists
@@ -542,9 +552,11 @@ jobs:
   #
   # `if: always()` (with the inline if-existence checks below) means even
   # when one arch dies (e.g. the Python/distutils failure that nuked 7
-  # arm64 builds before this fix), the merge ships whatever single-arch
-  # manifest survived. That's a strictly better than v0.3.168.41's outcome
-  # (no manifest at all → auto-update broken for everyone).
+  # arm64 builds before this fix), the merge attaches whatever single-arch
+  # manifest survived. The release is NOT promoted to latest in that case
+  # (`release-latest` needs both arches), so clients stay quietly on the
+  # previous version until the dead arch is re-run — the re-run re-merges
+  # and then promotes.
   macos-manifest-merge:
     name: macOS manifest merge (latest-mac.yml)
     needs: [macos-arm64, macos-x64]
@@ -732,6 +744,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: latest-mac.yml
+          # Explicit even though the release already exists: the API
+          # documents "true" as make_latest's default, and only
+          # `release-latest` may promote.
+          make_latest: "false"
 
   # Post-release smoke for the macOS arm64 artifact. Mirrors the linux-smoke
   # pattern: download the just-built zip, extract, strip the quarantine
@@ -746,9 +762,8 @@ jobs:
   # want a smoke failure cascade on top of a build failure (the build job's
   # own red square is the primary signal in that case).
   #
-  # Does NOT gate the release attach above — it's a loud red signal, not a
-  # blocker. To make it a blocker, move the per-job `Attach to GitHub
-  # Release` step into a final job that needs: [macos-arm64, macos-arm64-smoke].
+  # Does NOT gate the release — it's a loud red signal, not a blocker. To
+  # make it a blocker, add it to `release-latest`'s needs.
   macos-arm64-smoke:
     name: macOS arm64 smoke (launch test)
     needs: macos-arm64
@@ -1009,16 +1024,20 @@ jobs:
             release/*.deb
             release/*.rpm
             release/latest-linux.yml
+          # Only `release-latest` promotes the release — see the header.
+          # This job usually finishes first and creates the release, which
+          # used to make it latest before any Mac asset existed.
+          make_latest: "false"
 
   # Post-build smoke: actually LAUNCH the AppImage we just shipped and assert
   # the window comes up + the embedded server answers. The dev-server-backed
   # `chromium-electron` Playwright project never runs the real artifact, so a
   # packaging/sandbox regression (e.g. the AppImage chrome-sandbox crash) is
   # invisible to it and only surfaces when a user double-clicks the download.
-  # This job closes that gap. It does NOT gate the release attach above (the
-  # linux-x64 job attaches on tag pushes); it's a loud red signal that the
-  # shipped binary is broken. To make it BLOCK the release, move the attach
-  # step into a final job that `needs: [linux-x64, linux-smoke]`.
+  # This job closes that gap. It does NOT gate the release (the linux-x64
+  # job attaches on tag pushes); it's a loud red signal that the shipped
+  # binary is broken. To make it BLOCK the release, add it to
+  # `release-latest`'s needs.
   linux-smoke:
     name: Linux AppImage smoke (launch test)
     needs: linux-x64
@@ -1233,3 +1252,62 @@ jobs:
             realrun.log
           if-no-files-found: ignore
           retention-days: 7
+
+  # Promote the release to "latest" — the ONLY place that does (every attach
+  # above passes make_latest: "false").
+  #
+  # electron-updater's GitHub provider resolves the release through
+  # /releases/latest, then fetches latest-mac.yml / latest-linux.yml from it.
+  # softprops creates the release on the FIRST attach, and by default makes
+  # it latest — usually from linux-x64, which finishes first. So whenever a
+  # Mac job died, every Mac client was pointed at a release with no
+  # latest-mac.yml and showed "The latest release is missing its update
+  # manifest" until someone re-ran it. v0.3.322.5: both mac jobs were never
+  # given a hosted macOS runner (capacity) and were cancelled after 15 min,
+  # while Linux had already published the release as latest.
+  #
+  # Needs every build + the merge to have succeeded (the default `success()`
+  # gate), so a partial release stays published-but-not-latest and clients
+  # stay quietly on the previous version. Re-running the failed jobs re-runs
+  # their dependents — this job included — which then promotes. Trade-off:
+  # each platform waits for the slowest; normally that's the mac builds.
+  #
+  # The smoke jobs don't gate (they're signals, see each). To make one block
+  # the release, add it to `needs` here.
+  release-latest:
+    name: Mark release latest (all update manifests attached)
+    needs: [macos-arm64, macos-x64, macos-manifest-merge, linux-x64]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Mark the release latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Belt and braces: the needs above imply both manifests, but this is
+          # the property clients actually depend on, so check it directly.
+          assets=$(gh release view "$TAG" --json assets --jq '.assets[].name')
+          for manifest in latest-mac.yml latest-linux.yml; do
+            if ! grep -qxF "$manifest" <<<"$assets"; then
+              echo "::error::$TAG has no $manifest attached; not marking it latest"
+              exit 1
+            fi
+          done
+          # Two tags released close together can finish out of order (a mac
+          # job stuck waiting for a runner, a re-run). Never let an older
+          # release take "latest" back from a newer one.
+          current=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          if [ -n "$current" ] && [ "$current" != "$TAG" ]; then
+            newest=$(printf '%s\n%s\n' "$current" "$TAG" | sort -V | tail -n1)
+            if [ "$newest" != "$TAG" ]; then
+              echo "::notice::$current is newer than $TAG and already latest; leaving it"
+              exit 0
+            fi
+          fi
+          gh release edit "$TAG" --latest
+          echo "::notice::$TAG is now the latest release"
