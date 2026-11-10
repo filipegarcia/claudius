@@ -614,7 +614,7 @@
     </circle>
 
     <text x="600" y="486" text-anchor="middle" font-size="12" fill="#f3dccb" font-weight="700" letter-spacing="1">MODEL</text>
-    <text x="600" y="502" text-anchor="middle" font-size="10" fill="#c98a6a">claude-opus-4-8</text>
+    <text x="600" y="502" text-anchor="middle" font-size="10" fill="#c98a6a">claude-fable-5-2</text>
   </g>
 
   <!-- ===================== Header strip ===================== -->
