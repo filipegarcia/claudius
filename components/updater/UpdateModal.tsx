@@ -11,6 +11,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Overlay } from "@/components/overlays/Overlay";
+import { ChangelogGroups } from "@/components/updater/ChangelogGroups";
 import type { ClaudiusUpdaterStatus } from "@/lib/shared/electron";
 import type { ReleaseChangelog } from "@/lib/shared/release-changelog";
 import { CLAUDIUS_VERSION } from "@/lib/shared/version";
@@ -164,28 +165,7 @@ function Changelog({ state }: { state: ChangelogState }) {
           className="scroll-thin flex max-h-72 flex-col gap-3 overflow-y-auto pr-1"
           data-testid="updater-changelog"
         >
-          {changelog.groups.map((g) => (
-            <section key={g.key}>
-              <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
-                {g.title}
-              </div>
-              <ul className="flex flex-col gap-1">
-                {g.entries.map((e) => (
-                  <li key={e.sha} className="flex items-baseline gap-2 text-xs leading-relaxed">
-                    <span className="mt-[0.45em] h-1 w-1 shrink-0 self-start rounded-full bg-[var(--muted)]" />
-                    <span className="min-w-0">
-                      {e.scope && (
-                        <span className="mr-1.5 rounded bg-[var(--panel-2)] px-1 py-px font-mono text-[10px] text-[var(--muted)]">
-                          {e.scope}
-                        </span>
-                      )}
-                      {e.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          <ChangelogGroups groups={changelog.groups} />
         </div>
       )}
       <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">

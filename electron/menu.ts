@@ -346,6 +346,14 @@ export function installAppMenu(
       role: "help",
       submenu: [
         {
+          // Opens the renderer's floating "What's new" window
+          // (components/updater/WhatsNewWindow.tsx) — the same one that
+          // appears on its own after an update.
+          label: "What's New in Claudius",
+          click: () => send("app.whatsNew"),
+        },
+        { type: "separator" },
+        {
           label: "Claudius on GitHub",
           click: () => {
             void shell.openExternal("https://github.com/filipegarcia/claudius");

@@ -14,6 +14,7 @@ import { QuitWarningToast } from "@/components/chrome/QuitWarningToast";
 import { TitleBar } from "@/components/chrome/TitleBar";
 import { WebDesktopBanner } from "@/components/chrome/WebDesktopBanner";
 import { UpdaterBanner } from "@/components/updater/UpdaterBanner";
+import { WhatsNewWindow } from "@/components/updater/WhatsNewWindow";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
 import { CommunityNotificationsProvider } from "@/components/community/CommunityNotificationsProvider";
 
@@ -110,6 +111,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   * docs/electron-conversion/PLAN.md. */}
                 <TitleBar />
                 <UpdaterBanner />
+                {/* Post-update "What's new" — a floating window (fixed
+                  * position, renders nothing until opened). */}
+                <WhatsNewWindow />
                 {/* Web-only: advertises the Electron desktop app as
                   * a long-running alternative to the browser tab.
                   * Dismissible; no-op in the Electron build. */}

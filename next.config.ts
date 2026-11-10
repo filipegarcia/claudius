@@ -51,6 +51,27 @@ const claudiusRelease =
     }
   })();
 
+// Release notes — every build bundles the per-release changelog for itself and
+// all earlier releases as `public/release-notes.json` (gitignored), which the
+// post-update "What's new" window and /release-notes read. Generated from the
+// release tags, so it needs full history: release.yml checks out with
+// `fetch-depth: 0`. The script never throws and leaves an existing file alone
+// on a shallow clone / non-git tree.
+//
+// Deliberately NOT de-duplicated with an env flag even though Next evaluates
+// this config in more than one process: anything spawned from a running
+// Claudius (its terminal, the source-install self-updater's `bun run build`)
+// would inherit the flag and silently ship stale notes. The script is ~0.2s,
+// idempotent, and only rewrites the file when its content changes.
+try {
+  execFileSync("node", [join(process.cwd(), "scripts/release-notes.mjs")], {
+    stdio: ["ignore", "ignore", "inherit"],
+    timeout: 30_000,
+  });
+} catch {
+  // Cosmetic: a build without notes shows a "see GitHub" fallback.
+}
+
 const nextConfig: NextConfig = {
   // Allow the e2e Playwright server to opt into its own dist dir
   // (`.next-e2e/`) so it can run alongside the user's own `next dev`
