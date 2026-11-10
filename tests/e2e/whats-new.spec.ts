@@ -49,6 +49,13 @@ test.describe("What's new", () => {
   test("version label opens the window; history page lists every release", async ({ page }) => {
     await activateClaudiusWorkspace(page);
     await page.goto("/");
+    // Let the chat bind its session first. use-session's deferred `?session=`
+    // writer only stands down for navigations that START during its 500 ms
+    // wait; a link clicked just before the bind, whose route is still
+    // compiling on the dev server (~3 s cold on CI), gets replaced back to
+    // the chat URL. That's a pre-existing race in the writer, not in this
+    // window — a person reads the window long after the bind.
+    await expect(page).toHaveURL(/[?&]session=/);
 
     await page.getByTestId("claudius-version").click();
     const win = page.getByTestId("whats-new-window");
