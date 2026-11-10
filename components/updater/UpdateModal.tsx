@@ -31,8 +31,12 @@ import { CLAUDIUS_VERSION } from "@/lib/shared/version";
  *
  * Above the steps sits a "What's new" list built from the commits between the
  * running build and the offered one (GitHub Releases carry no notes — see
- * lib/shared/release-changelog.ts). The header's minimize button hands the
- * window back to the banner, which parks a progress pill in the corner.
+ * lib/shared/release-changelog.ts).
+ *
+ * Pressing Download hands the flow back to the banner strip: the banner closes
+ * this window, the download runs in the background, and the strip fills with
+ * progress and offers "Restart now" once the bundle is staged. Reopening the
+ * window mid-download ("View progress") shows the steps.
  */
 
 type StepState = "pending" | "active" | "done";
@@ -193,7 +197,6 @@ export function UpdateModal({
   onDownload,
   onApply,
   onClose,
-  onMinimize,
 }: {
   status: ClaudiusUpdaterStatus;
   /** Version to show even in states whose payload omits it (e.g. `downloading`). */
@@ -201,8 +204,6 @@ export function UpdateModal({
   onDownload: () => void;
   onApply: () => void;
   onClose: () => void;
-  /** Collapse to the banner's corner pill without ending the flow. */
-  onMinimize?: () => void;
 }) {
   const [dl, inst, ready] = stepStates(status.kind);
   const changelog = useReleaseChangelog(version);
@@ -225,7 +226,6 @@ export function UpdateModal({
       // while work is in flight.
       dismissOnBackdrop={!busy}
       onClose={onClose}
-      onMinimize={onMinimize}
     >
       <div className="flex flex-col gap-4 p-4" data-testid="updater-update-modal">
         {changelog && (
@@ -337,7 +337,7 @@ export function UpdateModal({
                 className="flex items-center gap-1.5 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-3 py-1.5 text-xs font-medium hover:bg-[var(--accent)]/25"
               >
                 <Download className="h-3.5 w-3.5" />
-                Download update
+                Download in background
               </button>
             </>
           )}
