@@ -112,8 +112,8 @@
   <!-- Welcome header text -->
   <g transform="translate(120, 60)">
     <text x="0" y="18" font-size="17" fill="#fff" font-weight="700">Claude Code</text>
-    <text x="124" y="18" font-size="15" fill="#777">v2.1.169</text>
-    <text x="0" y="40" font-size="15" fill="#cfcfcf">Opus 4.8 · Claude Max</text>
+    <text x="124" y="18" font-size="15" fill="#777">v2.1.322</text>
+    <text x="0" y="40" font-size="15" fill="#cfcfcf">Fable 5.2 · Claude Max</text>
     <text x="0" y="62" font-size="15" fill="#777">~/Projects/claudius</text>
   </g>
 
@@ -244,24 +244,24 @@
 
   <!-- ============================ Status bar ============================ -->
   <g transform="translate(36, 622)">
-    <!-- opus-4 -->
-    <rect x="0" y="0" width="68" height="22" rx="3" fill="#2c2c2c"/>
-    <text x="34" y="15" text-anchor="middle" font-size="12" fill="#e0e0e0" font-weight="700">opus-4</text>
+    <!-- model -->
+    <rect x="0" y="0" width="90" height="22" rx="3" fill="#2c2c2c"/>
+    <text x="45" y="15" text-anchor="middle" font-size="12" fill="#e0e0e0" font-weight="700">fable-5-2</text>
 
     <!-- claudius (active workspace) -->
-    <rect x="74" y="0" width="84" height="22" rx="3" fill="#4f6ef0"/>
-    <text x="116" y="15" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">claudius</text>
+    <rect x="96" y="0" width="84" height="22" rx="3" fill="#4f6ef0"/>
+    <text x="138" y="15" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">claudius</text>
 
     <!-- main !2 -->
-    <rect x="164" y="0" width="68" height="22" rx="3" fill="#3a3a3a"/>
-    <text x="198" y="15" text-anchor="middle" font-size="12" fill="#e0e0e0">main <tspan fill="#f1c40f" font-weight="700">!2</tspan></text>
+    <rect x="186" y="0" width="68" height="22" rx="3" fill="#3a3a3a"/>
+    <text x="220" y="15" text-anchor="middle" font-size="12" fill="#e0e0e0">main <tspan fill="#f1c40f" font-weight="700">!2</tspan></text>
 
     <!-- progress percent — shifted left to close the gap that the /loop chip
          used to occupy at x=238. -->
-    <text x="246" y="15" font-size="12" fill="#666" font-weight="700">--%</text>
+    <text x="268" y="15" font-size="12" fill="#666" font-weight="700">--%</text>
 
     <!-- Date -->
-    <text x="278" y="15" font-size="12" fill="#888">2026/06/09 10:41</text>
+    <text x="300" y="15" font-size="12" fill="#888">2026/11/10 10:41</text>
   </g>
 
   <!-- ============================ Auto mode line ============================ -->
