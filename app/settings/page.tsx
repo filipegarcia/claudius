@@ -1014,7 +1014,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     key: "fastMode",
     type: "boolean",
     section: "Model & behavior",
-    desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
+    desc: "When true, fast mode is enabled. When absent or false, fast mode is off. On Vertex a saved value is ignored: use /fast each session.",
   },
   {
     // CC 2.1.234 — resume automatically once the claude.ai usage limit resets.
@@ -1129,7 +1129,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     type: "number",
     section: "Storage & sessions",
     placeholder: "30",
-    desc: "Number of days to retain chat transcripts before automatic cleanup (default: 30). Minimum 1. Use a large value for long retention; use --no-session-persistence to disable transcript writes entirely.",
+    desc: "Number of days to retain chat transcripts before automatic cleanup (default: 30). Minimum 1. Use a large value for long retention; use --no-session-persistence to disable transcript writes entirely. Cleanup deletes data only on this computer, not anything stored by Anthropic.",
   },
   {
     // SDK 0.3.248 — retention ceiling for transcripts written by a
@@ -1175,12 +1175,12 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
   },
   {
     // SDK 0.3.305 — names the claude.ai Project this session is attributed to
-    // in the organization's usage reports (UUID or `claude_proj_…` ID).
+    // in the organization's usage reports (ID or UUID).
     key: "attributionProject",
     type: "string",
     section: "Git",
     placeholder: "claude_proj_…",
-    desc: "The claude.ai Project this session names for your organization's usage reports: the Project's UUID, or its ID starting with \"claude_proj_\". An empty string names none and stops lower-precedence files from naming one. Only sent when Claude Code uses your claude.ai login and connects directly to the Anthropic API. CLAUDE_CODE_ATTRIBUTION_PROJECT takes precedence.",
+    desc: "The claude.ai Project this session names for your organization's usage reports: the Project's ID, starting with \"claude_proj_\" or \"chan_\", or the UUID of a \"claude_proj_\" Project. An empty string names none and stops lower-precedence files from naming one. Only sent when Claude Code uses your claude.ai login and connects directly to the Anthropic API. CLAUDE_CODE_ATTRIBUTION_PROJECT takes precedence.",
   },
   {
     key: "includeCoAuthoredBy",
