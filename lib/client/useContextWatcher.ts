@@ -6,6 +6,12 @@ export type ContextSummary = {
   totalTokens: number;
   maxTokens: number;
   percentage: number;
+  /**
+   * Epoch ms the reading landed. Lets consumers judge "how long since the
+   * last message" against a real clock without reading `Date.now()` during
+   * render (the stale-resume offer does this).
+   */
+  readAt: number;
 };
 
 /**
@@ -51,6 +57,7 @@ export function useContextWatcher(
               totalTokens: d.totalTokens ?? 0,
               maxTokens: d.maxTokens ?? 0,
               percentage: d.percentage ?? 0,
+              readAt: Date.now(),
             },
           });
         }

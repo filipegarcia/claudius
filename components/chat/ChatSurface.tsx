@@ -120,6 +120,9 @@ import {
   useContextWarningPct,
 } from "@/lib/client/useContextWarning";
 import { ContextWarningBanner } from "@/components/chat/ContextWarningBanner";
+import { ResumeFromSummaryPanel } from "@/components/chat/ResumeFromSummaryPanel";
+import { useResumeFromSummaryEnabled } from "@/lib/client/useResumeFromSummary";
+import { lastActivityAt, staleResumeOffer } from "@/lib/shared/resume-from-summary";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand, isSlashCommandHead, resolveFastCommandArgs, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
 import { OPEN_ADVISOR_PICKER_EVENT, requestOpenModelPicker } from "@/lib/client/model-picker-events";
@@ -2131,8 +2134,45 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     return () => window.clearTimeout(id);
   }, [ctxSettling, ctxSummary]);
 
+  // ── "Resume from summary" offer ─────────────────────────────────────────
+  // The session has sat idle long enough for the prompt cache to expire and
+  // is big enough that the next turn re-sending it all is expensive, so offer
+  // to /compact first (Claude Code TUI's stale-resume dialog). Staleness is
+  // measured at the latest context reading, so it's re-checked on bind and on
+  // every idle poll — see lib/shared/resume-from-summary.ts.
+  const { enabled: resumeSummaryEnabled, setEnabled: setResumeSummaryEnabled } =
+    useResumeFromSummaryEnabled();
+  const lastActivity = useMemo(() => lastActivityAt(session.messages), [session.messages]);
+  // `${sessionId}:${lastActivityAt}` of the offer the user last answered. A
+  // new message moves lastActivityAt, so the offer can return the next time
+  // this session goes stale — but never re-pops for the same idle stretch.
+  const [resumeOfferAnswered, setResumeOfferAnswered] = useState<string | null>(null);
+  const resumeOfferCandidate =
+    resumeSummaryEnabled &&
+    session.sessionId &&
+    !session.replaying &&
+    !session.pending &&
+    !session.readOnly &&
+    !compacting &&
+    !ctxSettling &&
+    ctxSummary
+      ? staleResumeOffer({
+          lastActivityAt: lastActivity,
+          totalTokens: ctxSummary.totalTokens,
+          now: ctxSummary.readAt,
+        })
+      : null;
+  const resumeOfferKey = resumeOfferCandidate
+    ? `${session.sessionId}:${resumeOfferCandidate.lastActivityAt}`
+    : null;
+  const resumeOffer =
+    resumeOfferCandidate && resumeOfferKey !== resumeOfferAnswered ? resumeOfferCandidate : null;
+
   const showContextWarning =
-    !ctxSettling && shouldShowContextWarning(ctxSummary?.percentage, contextWarningPct);
+    !ctxSettling &&
+    // The offer already carries a Compact action; don't stack two.
+    !resumeOffer &&
+    shouldShowContextWarning(ctxSummary?.percentage, contextWarningPct);
 
   const onRenameSubmit = useCallback(
     async (title: string) => {
@@ -2763,6 +2803,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               capUsd={sessionCapUsd}
               spentUsd={sessionSpentUsd}
               onOverride={onOverride}
+            />
+          )}
+          {resumeOffer && (
+            <ResumeFromSummaryPanel
+              offer={resumeOffer}
+              onSummarize={() => {
+                setResumeOfferAnswered(resumeOfferKey);
+                startCompaction();
+              }}
+              onContinue={() => setResumeOfferAnswered(resumeOfferKey)}
+              onNever={() => {
+                setResumeOfferAnswered(resumeOfferKey);
+                setResumeSummaryEnabled(false);
+                showToast("Won't ask again. Turn it back on in Settings → Resume from summary.");
+              }}
             />
           )}
           {(showContextWarning || compacting) && (

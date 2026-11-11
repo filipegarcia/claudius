@@ -21,6 +21,7 @@ import { UpdaterSettingsSection } from "@/components/updater/UpdaterSettingsSect
 import { ShortcutsSection } from "@/components/settings/ShortcutsSection";
 import { RateLimitWarningSection } from "@/components/settings/RateLimitWarningSection";
 import { ContextWarningSection } from "@/components/settings/ContextWarningSection";
+import { ResumeFromSummarySection } from "@/components/settings/ResumeFromSummarySection";
 import { GoalBannerSection } from "@/components/settings/GoalBannerSection";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { ChatSizeSection } from "@/components/settings/ChatSizeSection";
@@ -186,6 +187,7 @@ export default function SettingsPage() {
   const sShortcuts = show("keyboard shortcuts keybindings tab cycling navigation side nav workspace");
   const sRateLimit = show("rate limit warning threshold usage pill chat");
   const sContext = show("context window warning compact banner threshold nudge chat");
+  const sResumeSummary = show("resume from summary idle stale session compact tokens prompt cache don't ask again");
   const sGoalBanner = show("session goal prompt banner hide show header objective chat");
   const sBackup = show("backup restore export import config bundle json snapshot");
   // macOS file-permission priming — desktop-app only (the bridge doesn't
@@ -234,7 +236,7 @@ export default function SettingsPage() {
     .filter(([, visible]) => visible.length > 0);
 
   const anyMatch =
-    sEditor || sTheme || sPreviews || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sGoalBanner ||
+    sEditor || sTheme || sPreviews || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sResumeSummary || sGoalBanner ||
     sBackup || sFilePerms || sWorktree || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
     catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
@@ -506,6 +508,11 @@ export default function SettingsPage() {
                 scope tabs — a Claudius UI knob, separate from Claude Code's
                 autoCompactEnabled / autoCompactWindow settings. */}
             {sContext && <ContextWarningSection />}
+
+            {/* Browser-local on/off for the chat's "Resume from summary"
+                offer (compact an idle, large session before its next turn).
+                Its "Don't ask me again" button turns this off. */}
+            {sResumeSummary && <ResumeFromSummarySection />}
 
             {/* Browser-local toggle to hide/restore the empty "Set a session
                 goal" prompt in the chat header. A Claudius UI knob, separate
