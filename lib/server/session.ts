@@ -1691,7 +1691,7 @@ export class Session {
   readonly cwd: string;
   /**
    * Epoch ms when this Session object was constructed. Used to generate
-   * a readable fallback label ("Today at 2:15 PM") in the tab strip for
+   * a readable fallback label ("Jun 30 at 2:15 PM") in the tab strip for
    * sessions that have no user-set or SDK-derived title yet. Kept in
    * memory only — NOT persisted as a DB title, so it never clobbers the
    * SDK's aiTitle once one is available.

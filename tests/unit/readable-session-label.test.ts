@@ -5,11 +5,11 @@ import type { SessionInfo } from "@/lib/client/types";
 /**
  * Unit tests for `readableSessionLabel` — the CC 2.1.196 parity feature that
  * replaces the UUID-prefix fallback in the tab strip with a human-readable
- * date label ("Today at 2:15 PM", "Jun 30 at 2:15 PM", etc.).
+ * date label ("Jun 30 at 2:15 PM", "Jun 30, 2024 at 2:15 PM").
  *
  * The function uses toLocaleTimeString/toLocaleDateString with the browser's
  * locale. In Vitest (Node), these resolve to the default locale (usually
- * en-US). Tests assert the structural invariants ("Today at", includes the
+ * en-US). Tests assert the structural invariants (never "Today", includes the
  * year) rather than the exact formatted string so they stay locale-agnostic.
  */
 describe("readableSessionLabel", () => {
@@ -17,7 +17,7 @@ describe("readableSessionLabel", () => {
     vi.useRealTimers();
   });
 
-  test("same-day timestamp → 'Today at HH:MM ...'", () => {
+  test("same-day timestamp → absolute date, never 'Today'", () => {
     // Fix 'now' to 2025-06-30T14:00:00 UTC
     const now = new Date("2025-06-30T14:00:00Z").getTime();
     vi.useFakeTimers({ now });
@@ -26,7 +26,13 @@ describe("readableSessionLabel", () => {
     const createdAt = new Date("2025-06-30T13:30:00Z").getTime();
     const label = readableSessionLabel(createdAt);
 
-    expect(label).toMatch(/^Today at /);
+    // A relative "Today" goes stale once the day rolls over, so the label
+    // must be the same absolute short date it'll read tomorrow.
+    expect(label).not.toMatch(/Today/);
+    expect(label).toContain(" at ");
+    expect(label).not.toMatch(/2025/);
+    vi.setSystemTime(new Date("2025-07-01T14:00:00Z"));
+    expect(readableSessionLabel(createdAt)).toBe(label);
   });
 
   test("same year, different day → 'Mon DD at HH:MM ...' (no year)", () => {
@@ -72,7 +78,8 @@ describe("tabLabelFor with createdAt fallback", () => {
       { id: "abc12345-def0", createdAt },
     ];
     const label = tabLabelFor("abc12345-def0", sessions);
-    expect(label).toMatch(/^Today at /);
+    expect(label).toBe(readableSessionLabel(createdAt));
+    expect(label).not.toMatch(/Today/);
   });
 
   test("still falls back to id slice when no title and no createdAt", () => {

@@ -545,7 +545,7 @@ export type SessionInfo = {
   /**
    * Epoch ms when the server-side Session object was constructed. Populated
    * for all in-memory sessions by `/api/sessions`. Used to generate a readable
-   * fallback label ("Today at 2:15 PM") in the tab strip for sessions that
+   * fallback label ("Jun 30 at 2:15 PM") in the tab strip for sessions that
    * have no user-set or SDK-derived title yet — computed at display time and
    * never persisted, so it does not clobber the SDK's aiTitle.
    */
