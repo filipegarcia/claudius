@@ -295,7 +295,7 @@ export function StatusLine({
     // THIS row's width (i.e. the chat-area pane width) rather than the
     // viewport. With the side rails open, the viewport can be 1280px while
     // the chat area is only ~700–900px — viewport breakpoints fire too late
-    // and the cluster ("Compact", "Clear", "Copy resume", "Normal", "Bypass")
+    // and the cluster ("Compact", "Clear", "Copy session ID", "Normal", "Bypass")
     // overflows the row and bleeds over the right activity panel. Named
     // container (`/statusline`) so child components (ModeSelector,
     // VerboseSelector) anchor unambiguously to this row even when other
@@ -636,7 +636,7 @@ export function StatusLine({
             onToggleWorkspace={onToggleNotifications}
           />
         )}
-        <ShareButton sessionId={sessionId} />
+        <CopySessionIdButton sessionId={sessionId} />
         </>
         )}
         {onCycleFocus && (
@@ -867,7 +867,7 @@ function VerboseSelector({
         <Eye className="h-3 w-3" />
         {/* Collapse the verbosity label to icon-only when the StatusLine row
             (the named `@container/statusline` ancestor) is below ~768px —
-            same threshold as the Compact / Clear / Copy resume labels
+            same threshold as the Compact / Clear / Copy session ID labels
             above. Previously this label rendered unconditionally, so on a
             narrow chat-area it (plus the ModeSelector label) was what
             pushed the right cluster off the row. The `title` on the
@@ -1093,22 +1093,21 @@ function AgentPicker({
   );
 }
 
-function ShareButton({ sessionId }: { sessionId: string | null }) {
+function CopySessionIdButton({ sessionId }: { sessionId: string | null }) {
   const [copied, setCopied] = useState(false);
   if (!sessionId) return null;
-  const command = `claude --dangerously-skip-permissions --resume ${sessionId}`;
   return (
     <button
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(command);
+          await navigator.clipboard.writeText(sessionId);
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         } catch {
           // ignore
         }
       }}
-      title={`Copy resume command: ${command}`}
+      title={`Copy session ID: ${sessionId}`}
       className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
     >
       {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <LinkIcon className="h-3 w-3" />}
@@ -1117,9 +1116,9 @@ function ShareButton({ sessionId }: { sessionId: string | null }) {
           / Clear / Verbose / Mode pills. Container query (not viewport `md:`)
           because the chat-area width depends on whether the side rails are
           open — viewport-based hiding fires too late and the cluster
-          overflowed. Title attribute keeps the URL discoverable as a
+          overflowed. Title attribute keeps the session ID discoverable as a
           tooltip. */}
-      <span className="hidden text-[10px] @3xl/statusline:inline">{copied ? "Copied" : "Copy resume"}</span>
+      <span className="hidden text-[10px] @3xl/statusline:inline">{copied ? "Copied" : "Copy session ID"}</span>
     </button>
   );
 }
