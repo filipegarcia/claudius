@@ -171,10 +171,36 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
+      # On 2026-11-11 every Ubuntu-based container job in this file started
+      # dying here with `Could not resolve 'archive.ubuntu.com'` (runs
+      # 43038709988, 43059833724) while the Debian-based jobs — same runners,
+      # same apt, but deb.debian.org — stayed green. GitHub reported no
+      # incident, and a re-run 2.5h later failed identically, so this is not
+      # something to wait out: Canonical's mirrors simply aren't reachable from
+      # inside these containers. Try each mirror in turn so one unresolvable
+      # host can't redden all of CI. Same treatment as the bun install below,
+      # which grew a retry loop after the 2026-06-08 github.com 504s.
+      # NB: inline, not a shared script — this step runs BEFORE
+      # actions/checkout (that's its whole purpose), so nothing from the repo
+      # is on disk yet to source.
       - name: Pre-install git so actions/checkout produces a real .git dir
         run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends git ca-certificates
+          for mirror in "" \
+                        "http://azure.archive.ubuntu.com/ubuntu/" \
+                        "http://mirrors.edge.kernel.org/ubuntu/"; do
+            if [ -n "$mirror" ]; then
+              sed -i "s|http://archive.ubuntu.com/ubuntu/|$mirror|g; \
+                      s|http://security.ubuntu.com/ubuntu/|$mirror|g" \
+                /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+            fi
+            if apt-get update -qq \
+               && apt-get install -y --no-install-recommends git ca-certificates; then
+              exit 0
+            fi
+            echo "::warning::apt failed via '${mirror:-default}'; trying next mirror"
+          done
+          echo "::error::apt-get could not reach any Ubuntu mirror"
+          exit 1
       - uses: actions/checkout@v5
       - name: Install bash, zsh, fish, curl
         run: |
@@ -222,8 +248,29 @@ jobs:
       - name: Install bun + make
         run: |
           set -e
-          apt-get update -qq
-          apt-get install -y --no-install-recommends make curl unzip
+          # Mirror fallback — see the long-form note on the setup-script job's
+          # apt step. This image is Ubuntu jammy, so it hits the same
+          # archive.ubuntu.com that stopped resolving on 2026-11-11.
+          apt_ok=""
+          for mirror in "" \
+                        "http://azure.archive.ubuntu.com/ubuntu/" \
+                        "http://mirrors.edge.kernel.org/ubuntu/"; do
+            if [ -n "$mirror" ]; then
+              sed -i "s|http://archive.ubuntu.com/ubuntu/|$mirror|g; \
+                      s|http://security.ubuntu.com/ubuntu/|$mirror|g" \
+                /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+            fi
+            if apt-get update -qq \
+               && apt-get install -y --no-install-recommends make curl unzip; then
+              apt_ok=1
+              break
+            fi
+            echo "::warning::apt failed via '${mirror:-default}'; trying next mirror"
+          done
+          if [ -z "$apt_ok" ]; then
+            echo "::error::apt-get could not reach any Ubuntu mirror"
+            exit 1
+          fi
           for attempt in 1 2 3 4 5; do
             if curl -fsSL https://bun.sh/install | bash; then
               break
