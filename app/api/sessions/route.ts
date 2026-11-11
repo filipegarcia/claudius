@@ -256,7 +256,7 @@ export async function GET(req: Request) {
       model: s.model,
       title: s.title ?? null,
       // Epoch ms when this session was constructed; used by the client to
-      // derive a readable fallback tab label ("Today at 2:15 PM") for
+      // derive a readable fallback tab label ("Jun 30 at 2:15 PM") for
       // sessions that have no user-set title yet.
       createdAt: s.createdAt,
       // Coarse "is the agent doing something right now?" signal so the

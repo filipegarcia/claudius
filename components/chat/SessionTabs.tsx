@@ -1150,7 +1150,7 @@ export function activeTabStatus(opts: {
  *   2. The session's persisted `title` from the `/api/sessions` list — this
  *      is what makes *non-active* tabs show their custom names.
  *   3. A readable date label derived from the session's `createdAt` timestamp,
- *      e.g. "Today at 2:15 PM" or "Jun 30 at 2:15 PM". Computed at display
+ *      e.g. "Jun 30 at 2:15 PM". Computed at display
  *      time only — NOT persisted to the DB — so it never clobbers the SDK's
  *      aiTitle (CC 2.1.196 parity: readable default names for sessions at start).
  *   4. The first 8 characters of the session id as the last-resort fallback.
@@ -1158,22 +1158,23 @@ export function activeTabStatus(opts: {
 
 /**
  * Format a session creation timestamp into a human-readable label.
- * Produces locale-aware output: "Today at 2:15 PM", "Jun 30 at 2:15 PM",
- * "Jun 30, 2024 at 2:15 PM". The label is computed in the user's browser
+ * Produces locale-aware output: "Jun 30 at 2:15 PM" (current year) or
+ * "Jun 30, 2024 at 2:15 PM" (older). The label is computed in the user's browser
  * locale — display-only, not stored anywhere.
  *
  * Exported for unit testing.
  */
 export function readableSessionLabel(createdAt: number): string {
   const d = new Date(createdAt);
-  const now = new Date();
   const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  if (d.toDateString() === now.toDateString()) return `Today at ${time}`;
-  if (d.getFullYear() === now.getFullYear()) {
-    const date = d.toLocaleDateString([], { month: "short", day: "numeric" });
-    return `${date} at ${time}`;
-  }
-  const date = d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  // Always an absolute date — never "Today": a relative label goes stale
+  // when a tab stays open past midnight (nothing re-renders on day change)
+  // and is ambiguous when you come back to a session later.
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  const date = d.toLocaleDateString(
+    [],
+    sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" },
+  );
   return `${date} at ${time}`;
 }
 

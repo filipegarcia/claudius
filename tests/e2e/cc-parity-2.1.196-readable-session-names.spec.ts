@@ -3,9 +3,9 @@
  *
  * Before this release, untitled sessions showed an 8-char UUID prefix
  * ("aaaaaaaa") in the tab strip. Now they show a human-readable date label:
- *   • Same day   → "Today at 2:15 PM"
  *   • Same year  → "Jun 30 at 2:15 PM"
  *   • Older      → "Jun 30, 2024 at 2:15 PM"
+ * (Always an absolute date — a relative "Today" would go stale overnight.)
  *
  * The label is generated at display time by `readableSessionLabel()` in
  * `components/chat/SessionTabs.tsx` using the session's `createdAt` epoch ms.
@@ -19,7 +19,7 @@
  * emits `{ type: "ready" }` so the active session's composer enables (and the
  * app doesn't show a stream-error state). Then we assert that the tab-strip
  * label for our fake session contains " at " — the separator that appears in
- * ALL three forms of `readableSessionLabel` output — rather than the old
+ * BOTH forms of `readableSessionLabel` output — rather than the old
  * 8-char UUID prefix "aaaaaaaa".
  *
  * This simultaneously proves:
@@ -37,13 +37,13 @@ import * as fs from "fs";
 // would break the boot flow this test drives.
 const SESSION_ID = "aaaaaaaa-bbbb-cccc-dddd-000000002196";
 
-// Matches all three forms produced by readableSessionLabel:
-//   "Today at 2:15 PM"  /  "Jun 30 at 2:15 PM"  /  "Jun 30, 2024 at 2:15 PM"
+// Matches both forms produced by readableSessionLabel:
+//   "Jun 30 at 2:15 PM"  /  "Jun 30, 2024 at 2:15 PM"
 const READABLE_LABEL_RE = / at /;
 
 test.describe("CC 2.1.196 — readable default session names", () => {
   test.beforeEach(async ({ page }) => {
-    // A createdAt "now" so the label reads "Today at HH:MM". Must be set in
+    // A createdAt "now" so the label reads "<Mon D> at HH:MM". Must be set in
     // the route handler (Node context) so `Date.now()` is available.
     const createdAt = Date.now();
 
@@ -163,7 +163,7 @@ test.describe("CC 2.1.196 — readable default session names", () => {
     );
     await expect(tabLabel).toBeVisible({ timeout: 15_000 });
 
-    // The label must contain " at " — the separator in all three
+    // The label must contain " at " — the separator in both
     // readableSessionLabel forms — proving the readable fallback fired.
     await expect(tabLabel).toHaveText(READABLE_LABEL_RE, { timeout: 10_000 });
 
