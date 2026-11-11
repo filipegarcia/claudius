@@ -6,11 +6,11 @@ import {
   Bot,
   Check,
   Circle,
+  Copy,
   Eraser,
   Eye,
   Focus,
   GitBranch,
-  Link as LinkIcon,
   Minimize2,
   Users,
   WifiOff,
@@ -1110,7 +1110,7 @@ function CopySessionIdButton({ sessionId }: { sessionId: string | null }) {
       title={`Copy session ID: ${sessionId}`}
       className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 hover:bg-[var(--panel)]"
     >
-      {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <LinkIcon className="h-3 w-3" />}
+      {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
       {/* Label collapses when this button's container (the StatusLine row)
           falls below ~672px so the right cluster fits alongside the Compact
           / Clear / Verbose / Mode pills. Container query (not viewport `md:`)
