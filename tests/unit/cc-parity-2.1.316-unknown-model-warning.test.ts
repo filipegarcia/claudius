@@ -26,9 +26,11 @@ const CATALOG = [
 
 // The engine's wording, except "Update Claudius" (Claudius bundles the
 // engine) and the docs URL, which the notice renders as the "set the window"
-// link instead of raw text.
+// link instead of raw text. CC 2.1.323: the assumed window is 1M unless
+// CLAUDE_CODE_DISABLE_1M_CONTEXT is set (then 200K).
 const TEXT =
-  'Claude Code doesn\'t recognize the model "my-gateway-model", so it assumes a context window of 200k tokens. Update Claudius, or set the window.';
+  'Claude Code doesn\'t recognize the model "my-gateway-model", so it assumes a context window of 1m tokens. Update Claudius, or set the window.';
+const TEXT_NO_1M = TEXT.replace("of 1m tokens", "of 200k tokens");
 
 describe("isRecognizedModel", () => {
   test.each([
@@ -139,6 +141,21 @@ describe("unknownModelWarning", () => {
     ).toBeNull();
   });
 
+  test("CC 2.1.323 — CLAUDE_CODE_DISABLE_1M_CONTEXT keeps the 200k window", () => {
+    for (const v of ["1", "true"]) {
+      expect(
+        unknownModelWarning({ model: "my-gateway-model", models: CATALOG, env: { CLAUDE_CODE_DISABLE_1M_CONTEXT: v } }),
+      ).toBe(TEXT_NO_1M);
+    }
+    expect(
+      unknownModelWarning({ model: "my-gateway-model", models: CATALOG, env: { CLAUDE_CODE_DISABLE_1M_CONTEXT: "0" } }),
+    ).toBe(TEXT);
+    // With 1M off the engine stops honouring the [1m] opt-in, so the id warns.
+    expect(
+      unknownModelWarning({ model: "my-gateway-model[1m]", env: { CLAUDE_CODE_DISABLE_1M_CONTEXT: "1" } }),
+    ).toContain("assumes a context window of 200k tokens");
+  });
+
   test("skips [1m]-tagged and empty ids", () => {
     expect(unknownModelWarning({ model: "my-gateway-model[1m]", env: {} })).toBeNull();
     expect(unknownModelWarning({ model: "", env: {} })).toBeNull();
@@ -156,6 +173,7 @@ let tmp: TmpHome;
 // developer's shell (e.g. `DISABLE_AUTO_COMPACT=1`) can't suppress the
 // warning the Session tests expect.
 const GATE_ENV = [
+  "CLAUDE_CODE_DISABLE_1M_CONTEXT",
   "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT",
   "DISABLE_AUTO_COMPACT",
   "DISABLE_COMPACT",

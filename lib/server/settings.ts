@@ -104,7 +104,8 @@ export type ClaudeSettings = {
   permissions?: PermissionRules;
   hooks?: Record<string, unknown>;
   mcpServers?: Record<string, unknown>;
-  enabledPlugins?: Record<string, boolean>;
+  /** `string[] | boolean | {…}` per sdk.d.ts — only `true` turns a marketplace plugin on. */
+  enabledPlugins?: Record<string, unknown>;
   autoMemoryEnabled?: boolean;
   // Predicted next-user-prompt chips (PromptSuggestions). The SDK's canonical
   // settings key: "When false, prompt suggestions are disabled. When absent or

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
+import { enabledPluginState, VERSION_LIST_NOT_ENABLED_MESSAGE } from "@/lib/shared/enabled-plugin-value";
 import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
 import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
@@ -82,17 +83,24 @@ export default function PluginsPage() {
 
   const merged = useMemo(() => {
     // Map: pluginId → installed entry + which scopes have it enabled
-    type Row = { id: string; installed?: InstalledPlugin; enabledIn: SettingsScope[] };
+    type Row = {
+      id: string;
+      installed?: InstalledPlugin;
+      enabledIn: SettingsScope[];
+      /** CC 2.1.323 — scopes whose entry is a version list (left off). */
+      versionListIn: SettingsScope[];
+    };
     const map = new Map<string, Row>();
     for (const inst of plugins.installed) {
       const id = inst.source ?? inst.name;
-      map.set(id, { id, installed: inst, enabledIn: [] });
+      map.set(id, { id, installed: inst, enabledIn: [], versionListIn: [] });
     }
     for (const s of plugins.scopes) {
-      for (const [pid, on] of Object.entries(s.enabledPlugins)) {
-        if (!on) continue;
-        const ex = map.get(pid) ?? { id: pid, enabledIn: [] };
-        ex.enabledIn.push(s.scope);
+      for (const [pid, value] of Object.entries(s.enabledPlugins)) {
+        const state = enabledPluginState(value);
+        if (state === "off") continue;
+        const ex = map.get(pid) ?? { id: pid, enabledIn: [], versionListIn: [] };
+        (state === "on" ? ex.enabledIn : ex.versionListIn).push(s.scope);
         map.set(pid, ex);
       }
     }
@@ -147,7 +155,7 @@ export default function PluginsPage() {
         <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)]/40 px-4 py-2">
           {(["user", "project", "local"] as SettingsScope[]).map((s) => {
             const sc = plugins.scopes.find((x) => x.scope === s);
-            const total = sc ? Object.values(sc.enabledPlugins).filter(Boolean).length : 0;
+            const total = sc ? Object.values(sc.enabledPlugins).filter((v) => enabledPluginState(v) === "on").length : 0;
             return (
               <button
                 key={s}
@@ -232,8 +240,9 @@ export default function PluginsPage() {
                       key={row.id}
                       id={row.id}
                       installed={row.installed}
-                      enabledInScope={Boolean(active?.enabledPlugins?.[row.id])}
+                      enabledInScope={enabledPluginState(active?.enabledPlugins?.[row.id]) === "on"}
                       enabledInAnyScope={row.enabledIn}
+                      versionListIn={row.versionListIn}
                       onToggle={async (enabled) => {
                         const r = await plugins.toggle(scope, row.id, enabled);
                         setToggleError(r.ok ? null : (r.error ?? "Failed to update plugin."));
@@ -705,6 +714,7 @@ function PluginRow({
   installed,
   enabledInScope,
   enabledInAnyScope,
+  versionListIn,
   onToggle,
   scope,
   optionValues,
@@ -714,6 +724,7 @@ function PluginRow({
   installed?: InstalledPlugin;
   enabledInScope: boolean;
   enabledInAnyScope: SettingsScope[];
+  versionListIn: SettingsScope[];
   onToggle: (enabled: boolean) => Promise<void> | void;
   scope: SettingsScope;
   optionValues: Record<string, PluginOptionValue>;
@@ -770,6 +781,21 @@ function PluginRow({
           <span>enabled here</span>
         </label>
       </div>
+      {versionListIn.length > 0 && (
+        <p
+          data-testid="plugin-version-list-note"
+          className="flex items-start gap-1.5 border-t border-amber-500/20 px-3 py-1.5 text-[11px] text-amber-300"
+        >
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            {VERSION_LIST_NOT_ENABLED_MESSAGE}{" "}
+            <span className="text-[var(--muted)]">
+              ({versionListIn.map((s) => SCOPE_LABELS[s]).join(", ")} settings — tick “enabled here” to set it to
+              true.)
+            </span>
+          </span>
+        </p>
+      )}
       {open && (
         <div className="border-t border-[var(--border)] px-3 py-2 text-[11px]">
           {/* CC 2.1.265 (G2) — description from the plugin's plugin.json. */}
