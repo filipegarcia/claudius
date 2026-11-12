@@ -9,7 +9,13 @@ import { usePermissions, type RuleKind, type Scope } from "@/lib/client/usePermi
 import { useAutoMode } from "@/lib/client/useAutoMode";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useRecentDenials } from "@/lib/client/useRecentDenials";
-import { lintBashWildcardRule, lintPermissionRule, lintTrailingGarbageRule, lintWindowsPathParen } from "@/lib/shared/permission-rule-lint";
+import {
+  lintBashEnvWildcardRule,
+  lintBashWildcardRule,
+  lintPermissionRule,
+  lintTrailingGarbageRule,
+  lintWindowsPathParen,
+} from "@/lib/shared/permission-rule-lint";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPES: { id: Scope; label: string; path: string }[] = [
@@ -528,6 +534,10 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
   // only when it widens what auto-runs; over-matching an `ask`/`deny` rule
   // just asks/denies more, which isn't a risk.
   const draftBashLint = kind === "allow" ? lintBashWildcardRule(draft) : null;
+  // CC 2.1.323 parity: a `*` in a variable's value (`Bash(PORT=* npm run
+  // dev)`) also matches spaces, so the rule approves other commands placed
+  // before the named one. Allow-only, same reasoning as the check above.
+  const draftEnvLint = kind === "allow" ? lintBashEnvWildcardRule(draft) : null;
   // CC 2.1.260 parity: text after a rule's closing parenthesis never
   // matched anything and was silently ignored — warn instead, same
   // "don't block, the rule still saves as typed" treatment as the two
@@ -550,6 +560,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
         {rules.map((r) => {
           const lint = lintPermissionRule(r);
           const bashLint = kind === "allow" ? lintBashWildcardRule(r) : null;
+          const envLint = kind === "allow" ? lintBashEnvWildcardRule(r) : null;
           const trailingLint = lintTrailingGarbageRule(r);
           const winLint = lintWindowsPathParen(r);
           return (
@@ -569,6 +580,14 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
                 <span
                   data-testid="permission-rule-bash-wildcard-warning-icon"
                   title={`The wildcard in "${bashLint.command}" sits before a fixed word — it also matches options inserted in between, not just the subcommand you intended`}
+                >
+                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
+                </span>
+              )}
+              {envLint && (
+                <span
+                  data-testid="permission-rule-bash-env-wildcard-warning-icon"
+                  title={`${envLint.rule} allows any command at the * in its value · use an exact value`}
                 >
                   <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
                 </span>
@@ -645,6 +664,20 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
               The wildcard in <code className="font-mono">{draftBashLint.command}</code> sits before a
               fixed word — it also matches options inserted in between (e.g. a flag), not just the
               subcommand you intended. The rule will still save as typed.
+            </span>
+          </p>
+        )}
+        {draftEnvLint && (
+          <p
+            data-testid="permission-rule-bash-env-wildcard-warning"
+            className="flex items-start gap-1 text-[10px] text-amber-400"
+          >
+            <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+            <span>
+              <code className="font-mono">{draftEnvLint.rule}</code> has a * in a variable&apos;s value.
+              A * also matches spaces, so this rule can also approve a different command that has{" "}
+              <code className="font-mono">{draftEnvLint.command}</code> later in the line, without a
+              prompt. Give the variable an exact value instead. The rule will still save as typed.
             </span>
           </p>
         )}

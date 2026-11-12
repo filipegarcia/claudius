@@ -77,6 +77,52 @@ export function lintBashWildcardRule(rule: string): BashWildcardWarning | null {
 }
 
 /**
+ * CC 2.1.323 parity — "Added a start-up warning for Bash allow rules with a
+ * `*` in a variable's value, such as `Bash(PORT=* npm run dev)`". A `*` also
+ * matches spaces, so `PORT=* npm run dev` approves `PORT=1 rm -rf ~; npm run
+ * dev` without a prompt. Same non-blocking inline treatment as the lints
+ * above.
+ *
+ * Mirrors the engine's check (`Dh` in the 2.1.323 bundle): split the rule's
+ * content on whitespace, find the first token that isn't a `NAME=` / `NAME+=`
+ * assignment (the command), and warn when that command is not a shell
+ * operator and an earlier assignment holds an unescaped `*`. `command` is the
+ * command's leading text before any `*` (what the engine's warning names);
+ * no warning when the command is missing or starts with `*`, or the rule is a
+ * legacy `prefix:*` rule.
+ */
+export type BashEnvWildcardWarning = { rule: string; command: string };
+
+const ENV_ASSIGNMENT_RE = /^[A-Za-z_]\w*\+?=/;
+const SHELL_OPERATOR_RE = /^(?:[|&;<>]|\d+[<>])/;
+
+function hasUnescapedStar(token: string): boolean {
+  for (let i = 0; i < token.length; i++) {
+    if (token[i] !== "*") continue;
+    let backslashes = 0;
+    for (let j = i - 1; j >= 0 && token[j] === "\\"; j--) backslashes++;
+    if (backslashes % 2 === 0) return true;
+  }
+  return false;
+}
+
+export function lintBashEnvWildcardRule(rule: string): BashEnvWildcardWarning | null {
+  const trimmed = rule.trim();
+  const match = /^Bash\((.*)\)$/.exec(trimmed);
+  if (!match) return null;
+  const content = match[1];
+  if (content.endsWith(":*")) return null;
+  const tokens = content.trim().split(/\s+/).filter(Boolean);
+  const cmdIndex = tokens.findIndex((t) => !ENV_ASSIGNMENT_RE.test(t));
+  if (cmdIndex <= 0) return null; // no command, or no assignment before it
+  const cmd = tokens[cmdIndex];
+  if (SHELL_OPERATOR_RE.test(cmd)) return null;
+  if (!tokens.slice(0, cmdIndex).some(hasUnescapedStar)) return null;
+  const command = /^[^*]+/.exec(cmd)?.[0];
+  return command ? { rule: trimmed, command } : null;
+}
+
+/**
  * CC 2.1.260 parity — Claude Code now reports a permission rule with text
  * after the closing parenthesis (e.g. `Bash(ls) x`) as an invalid setting,
  * instead of silently ignoring it — that trailing text never matched

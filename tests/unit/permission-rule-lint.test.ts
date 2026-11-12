@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  lintBashEnvWildcardRule,
   lintBashWildcardRule,
   lintPermissionRule,
   lintTrailingGarbageRule,
@@ -151,5 +152,35 @@ describe("lintTrailingGarbageRule", () => {
 
   test("does not flag a rule with no closing paren at all", () => {
     expect(lintTrailingGarbageRule("Bash(unterminated")).toBeNull();
+  });
+});
+
+describe("lintBashEnvWildcardRule (CC 2.1.323)", () => {
+  test("flags a * in a leading variable's value and names the command", () => {
+    expect(lintBashEnvWildcardRule("Bash(PORT=* npm run dev)")).toEqual({
+      rule: "Bash(PORT=* npm run dev)",
+      command: "npm",
+    });
+    expect(lintBashEnvWildcardRule("  Bash(A=1 B=x* make build)  ")?.command).toBe("make");
+    expect(lintBashEnvWildcardRule("Bash(PATH+=* node app.js)")?.command).toBe("node");
+    // The command's own leading text before a `*` is what the engine names.
+    expect(lintBashEnvWildcardRule("Bash(ENV=* npm*)")?.command).toBe("npm");
+  });
+
+  test("does not flag rules without a wildcard assignment before the command", () => {
+    for (const ok of [
+      "Bash(npm run dev --port=*)",
+      "Bash(NODE_ENV=production npm run *)",
+      "Bash(NODE_ENV*)",
+      "Bash(PORT=*)", // no command after the assignment
+      "Bash(PORT=* *)", // command starts with *
+      "Bash(PORT=* | tee x)", // shell operator, not a command
+      "Bash(PORT=\\* npm run dev)", // escaped *
+      "Bash(PORT=*:*)", // legacy prefix rule
+      "Bash",
+      "Read(PORT=* npm)",
+    ]) {
+      expect(lintBashEnvWildcardRule(ok), ok).toBeNull();
+    }
   });
 });
