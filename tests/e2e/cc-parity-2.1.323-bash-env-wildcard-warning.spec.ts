@@ -58,7 +58,7 @@ test.describe("Bash env-variable wildcard rule warning (CC 2.1.323)", () => {
     await expect(savedIcon).toHaveCount(1, { timeout: 15_000 });
     await expect(savedIcon).toHaveAttribute(
       "title",
-      "Bash(PORT=* npm run dev) allows any command at the * in its value · use an exact value",
+      "The * in a variable's value also matches spaces — this rule can approve a different command that has \"npm\" later in the line. Use an exact value.",
     );
 
     // ── 2. Typing one shows the engine's sentence, naming the command.

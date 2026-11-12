@@ -110,7 +110,9 @@ export function lintBashEnvWildcardRule(rule: string): BashEnvWildcardWarning | 
   const trimmed = rule.trim();
   const match = /^Bash\((.*)\)$/.exec(trimmed);
   if (!match) return null;
-  const content = match[1];
+  // The engine unescapes the rule's content (`\(`, `\)`, `\\`) before
+  // matching it, so the lint reads the same text.
+  const content = match[1].replace(/\\([()\\])/g, "$1");
   if (content.endsWith(":*")) return null;
   const tokens = content.trim().split(/\s+/).filter(Boolean);
   const cmdIndex = tokens.findIndex((t) => !ENV_ASSIGNMENT_RE.test(t));

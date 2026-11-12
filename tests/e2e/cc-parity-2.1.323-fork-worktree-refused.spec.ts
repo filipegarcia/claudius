@@ -21,7 +21,7 @@ mkdirSync(SHOTS_DIR, { recursive: true });
 const FAKE_SESSION_ID = "aaaaaaaa-bbbb-cccc-dddd-00000323fork";
 const FORK_ID = "f0c4a323-0000-4000-8000-000000000001";
 const REASON =
-  "git could write outside this repository through .git/logs, which is a link or a hard link; checkouts made by git-new-workdir or cp -al need a plain clone";
+  ".git/logs is a link or hard link, as in git-new-workdir or cp -al copies — use a plain clone";
 
 type SdkEvent = Record<string, unknown>;
 const sseBody = (events: SdkEvent[]) => events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");

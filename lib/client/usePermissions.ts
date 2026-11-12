@@ -118,6 +118,17 @@ export function usePermissions() {
       if (!res.ok) {
         setError(`save failed: ${res.status}`);
         refresh();
+        return;
+      }
+      if (!delta) return;
+      // The server merged the delta into a fresh read: show that list, which
+      // also holds any rule added to the file since the page loaded.
+      const body = (await res.json().catch(() => null)) as {
+        settings?: { permissions?: Partial<Record<RuleKind, unknown>> };
+      } | null;
+      const merged = body?.settings?.permissions?.[kind];
+      if (Array.isArray(merged) && merged.every((r) => typeof r === "string")) {
+        setRules((prev) => ({ ...prev, [scope]: { ...prev[scope], [kind]: merged } }));
       }
     },
     [refresh],

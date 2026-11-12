@@ -183,4 +183,9 @@ describe("lintBashEnvWildcardRule (CC 2.1.323)", () => {
       expect(lintBashEnvWildcardRule(ok), ok).toBeNull();
     }
   });
+
+  test("reads the rule unescaped, as the engine matches it", () => {
+    // `\(` / `\)` are literal parens once unescaped.
+    expect(lintBashEnvWildcardRule("Bash(PORT=* run\\(x\\))")?.command).toBe("run(x)");
+  });
 });

@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
-import { enabledPluginState, VERSION_LIST_NOT_ENABLED_MESSAGE } from "@/lib/shared/enabled-plugin-value";
+import { enabledPluginState, VERSION_LIST_NOT_ENABLED_MESSAGE, versionListNote } from "@/lib/shared/enabled-plugin-value";
 import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
 import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
@@ -734,6 +734,7 @@ function PluginRow({
   ) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [open, setOpen] = useState(false);
+  const note = versionListNote(versionListIn, enabledInAnyScope, scope);
   return (
     <li className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
       <div className="flex items-center gap-3 px-3 py-2">
@@ -783,7 +784,7 @@ function PluginRow({
           <span>enabled here</span>
         </label>
       </div>
-      {versionListIn.length > 0 && (
+      {note && (
         <p
           data-testid="plugin-version-list-note"
           className="flex items-start gap-1.5 border-t border-amber-500/20 px-3 py-1.5 text-[11px] text-amber-300"
@@ -791,9 +792,10 @@ function PluginRow({
           <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-amber-400" />
           <span className="min-w-0 [overflow-wrap:anywhere]">
             {VERSION_LIST_NOT_ENABLED_MESSAGE}{" "}
-            <span className="text-[var(--muted)]">
-              ({versionListIn.map((s) => SCOPE_LABELS[s]).join(", ")} settings — tick “enabled here” to set it to
-              true.)
+            <span data-testid="plugin-version-list-fix" className="text-[var(--muted)]">
+              {note.fixHere
+                ? "Tick “enabled here” to set it to true."
+                : `Open the ${note.scopes.map((s) => SCOPE_LABELS[s]).join(" or ")} tab and tick “enabled here” to set it to true.`}
             </span>
           </span>
         </p>

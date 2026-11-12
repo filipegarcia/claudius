@@ -82,16 +82,17 @@ export function matchesUsageLimitPrefix(text: string): boolean {
  * doesn't read as a limit hit (this also feeds the server's account
  * auto-rotate).
  */
-const MODEL_REQUIRES_CREDITS_RE = /^(?:Fable|Haiku|Mythos|Opus|Sonnet)(?: [^\u00B7\n]{1,40})? requires usage credits\./;
+// Group 1 is the model name (CC 2.1.323, `modelRequiringCreditsFromText`).
+const MODEL_REQUIRES_CREDITS_RE = /^((?:Fable|Haiku|Mythos|Opus|Sonnet)(?: [^\u00B7\n]{1,40})?) requires usage credits\./;
 
 /**
  * CC 2.1.323 — "Added an options menu (stop, switch to usage credits,
  * upgrade) when a model needs usage credits that are turned off or used
  * up". The name of the model the engine's "<Model> requires usage credits."
- * text names, or `null` when `text` isn't that limit. Same anchored pattern
- * as `MODEL_REQUIRES_CREDITS_RE`.
+ * text names, or `null` when `text` isn't that limit. Uses
+ * `MODEL_REQUIRES_CREDITS_RE` itself, so detection and extraction agree.
  */
 export function modelRequiringCreditsFromText(text: string): string | null {
-  const m = /^((?:Fable|Haiku|Mythos|Opus|Sonnet)(?: [^\u00B7\n]{1,40})?) requires usage credits\./.exec(text.trim());
+  const m = MODEL_REQUIRES_CREDITS_RE.exec(text.trim());
   return m ? m[1] : null;
 }

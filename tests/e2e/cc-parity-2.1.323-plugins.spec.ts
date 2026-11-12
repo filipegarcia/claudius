@@ -94,7 +94,8 @@ test("a version-list enabledPlugins entry reads as off, with the engine's reason
   await expect(note).toContainText(
     "Not enabled because its enabledPlugins entry is a version list. Only the value true turns on a marketplace plugin.",
   );
-  await expect(note).toContainText("User settings");
+  // The list is in User settings, the tab on screen, so the fix is here.
+  await expect(note.getByTestId("plugin-version-list-fix")).toHaveText("Tick “enabled here” to set it to true.");
 
   const row = page.locator("li", { has: note });
   await expect(row).toContainText("linter@acme-tools");
@@ -109,6 +110,12 @@ test("a version-list enabledPlugins entry reads as off, with the engine's reason
 
   await page.waitForTimeout(200);
   await page.screenshot({ path: resolve(SHOTS_DIR, "plugin-version-list.png"), fullPage: false });
+
+  // From another tab, the note names the tab that holds the list.
+  await page.getByTestId("plugin-scope-tab-project").click();
+  await expect(page.getByTestId("plugin-version-list-fix")).toHaveText(
+    "Open the User tab and tick “enabled here” to set it to true.",
+  );
 });
 
 test("marketplace add accepts npm / gh names again", async ({ page }) => {

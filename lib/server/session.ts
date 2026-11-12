@@ -4116,12 +4116,7 @@ export class Session {
     this.broadcastPromptSettled("permission", requestId);
 
     if (decision.kind === "deny") {
-      if (pending.meta.toolUseId) {
-        // Bounded: ids are removed once their result is stamped; a result
-        // that never arrives (turn aborted) only leaves a few stale strings.
-        if (this.userRejectedToolUseIds.size > 200) this.userRejectedToolUseIds.clear();
-        this.userRejectedToolUseIds.add(pending.meta.toolUseId);
-      }
+      this.markUserRejected(pending.meta.toolUseId);
       pending.resolve({ behavior: "deny", message: decision.message ?? "User denied" });
       return true;
     }
@@ -4189,6 +4184,18 @@ export class Session {
    * If the user submits no answers (the cancel path), we deny instead of
    * allow — that's a cleaner signal to the model than empty strings.
    */
+  /**
+   * CC 2.1.323 — remember a tool call the user turned down so its error
+   * result is re-stamped `user-rejected` ("Not run · rejected") when it
+   * streams back. Bounded: ids are removed once their result is stamped; a
+   * result that never arrives (turn aborted) only leaves a few stale strings.
+   */
+  private markUserRejected(toolUseId: string | undefined): void {
+    if (!toolUseId) return;
+    if (this.userRejectedToolUseIds.size > 200) this.userRejectedToolUseIds.clear();
+    this.userRejectedToolUseIds.add(toolUseId);
+  }
+
   submitAskAnswer(requestId: string, answers: AskAnswer[]): boolean {
     const pending = this.pendingAskQuestions.get(requestId);
     if (!pending) return false;
@@ -4239,6 +4246,8 @@ export class Session {
     void notificationBus.markReadByRequestId(this.cwd, requestId);
 
     if (decision.kind === "reject") {
+      // CC 2.1.323: a rejected plan is a rejection, not a failure.
+      this.markUserRejected(pending.toolUseId);
       pending.resolve({
         behavior: "deny",
         message: decision.message ?? "User rejected the plan — keep iterating.",

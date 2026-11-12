@@ -24,6 +24,11 @@ export type RateLimitCtaKind =
   | "usage-credits"
   | "upgrade";
 
+/** Team and Enterprise are already on the top plan: no personal upgrade links (CC 2.1.284). */
+export function isTopPlan(subscriptionType: string | null | undefined): boolean {
+  return subscriptionType === "team" || subscriptionType === "enterprise";
+}
+
 export function rateLimitCtaKind(hit: {
   errorCode?: string;
   canUserPurchaseCredits?: boolean;
@@ -36,7 +41,7 @@ export function rateLimitCtaKind(hit: {
     return hit.canUserPurchaseCredits !== false ? "buy-credits" : "contact-admin-credits";
   }
   if (hit.limitScope === "group_pool") return "contact-admin-pool";
-  if (hit.subscriptionType === "team" || hit.subscriptionType === "enterprise") return "usage-credits";
+  if (isTopPlan(hit.subscriptionType)) return "usage-credits";
   return "upgrade";
 }
 

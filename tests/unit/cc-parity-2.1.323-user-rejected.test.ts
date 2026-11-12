@@ -1,5 +1,9 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import { extractToolResult } from "@/lib/client/use-session";
+import { openDb } from "@/lib/server/db";
+import { Session } from "@/lib/server/session";
+import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
 import { nonExecutionKindOf, stampUserRejectedToolResults } from "@/lib/shared/user-rejected-stamp";
 
 /**
@@ -73,5 +77,29 @@ describe("extractToolResult — user-rejected", () => {
     const rule = extractToolResult(c, undefined, [{ id: "tu1", non_execution_kind: "permission-rule" }]);
     expect(rule).not.toHaveProperty("notRun");
     expect(rule).not.toHaveProperty("rejected");
+  });
+});
+
+describe("Session marks what the user turned down", () => {
+  const CWD = "/tmp/claudius-cc-parity-323-user-rejected";
+  let tmp: TmpHome;
+  beforeEach(async () => {
+    tmp = makeTempHome();
+    await openDb(CWD);
+  });
+  afterEach(() => tmp.restore());
+
+  type Internals = Pick<Session, "resolvePlan"> & {
+    userRejectedToolUseIds: Set<string>;
+    pendingPlans: Map<string, { requestId: string; toolUseId: string; plan: string; resolve: (r: PermissionResult) => void }>;
+  };
+
+  test("a rejected plan is stamped user-rejected; an accepted one is not", async () => {
+    const session = new Session({ id: "s-323-plan", cwd: CWD, permissionMode: "plan" }) as unknown as Internals;
+    session.pendingPlans.set("req-r", { requestId: "req-r", toolUseId: "tool-plan-r", plan: "p", resolve: () => {} });
+    expect(await session.resolvePlan("req-r", { kind: "reject", message: "Not yet" })).toBe(true);
+    expect(session.userRejectedToolUseIds.has("tool-plan-r")).toBe(true);
+    const stamped = stampUserRejectedToolResults(denied("tool-plan-r"), session.userRejectedToolUseIds);
+    expect(nonExecutionKindOf(stamped.tool_result_meta, "tool-plan-r")).toBe("user-rejected");
   });
 });

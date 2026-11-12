@@ -3,7 +3,7 @@
 import { AlertTriangle, Timer } from "lucide-react";
 import type { DisplayMessage } from "@/lib/client/types";
 import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
-import { offersGetMoreUsage, rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
+import { isTopPlan, offersGetMoreUsage, rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
 import { autoContinueNotice } from "@/lib/client/auto-continue";
 
 // Upgrade destinations, mirrored from the Claude Code CLI's `/rate-limit-options`
@@ -208,8 +208,15 @@ export function RateLimitHitPanel({
               >
                 Turn on usage credits
               </a>
-              {/* null: "Get more usage" would repeat the usage-credits link. */}
-              <RateLimitUpgradeLinks subscriptionType={null} />
+              {/* Team / Enterprise are already on the top plan (CC 2.1.284), so
+                  no upgrade links. Otherwise null: "Get more usage" would
+                  repeat the usage-credits link. */}
+              {!isTopPlan(hit.subscriptionType) && (
+                <RateLimitUpgradeLinks subscriptionType={null} />
+              )}
+              <span className="opacity-70" data-testid="model-needs-credits-switch-hint">
+                or switch models with /model
+              </span>
             </>
           )}
         </div>

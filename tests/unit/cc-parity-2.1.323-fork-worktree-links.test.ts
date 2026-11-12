@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
-import { createForkWorktree, worktreeWriteEscape } from "@/lib/server/fork-worktrees";
+import { createForkWorktree, forkLinkRefusalReason, worktreeWriteEscape } from "@/lib/server/fork-worktrees";
 
 const execFileP = promisify(execFile);
 
@@ -18,8 +18,8 @@ const execFileP = promisify(execFile);
  */
 const FORK_ID = "d00df00d-0000-0000-0000-000000000000";
 
-async function makeRepo(dir: string) {
-  await execFileP("git", ["-C", dir, "init", "-q"]);
+async function makeRepo(dir: string, initArgs: string[] = []) {
+  await execFileP("git", ["-C", dir, "init", "-q", ...initArgs]);
   await execFileP("git", ["-C", dir, "config", "user.email", "t@t.co"]);
   await execFileP("git", ["-C", dir, "config", "user.name", "T"]);
   await fs.writeFile(join(dir, "a.txt"), "a\n");
@@ -67,8 +67,11 @@ describe("fork worktree refuses .git link layouts", () => {
     const res = await createForkWorktree(work, FORK_ID);
     expect(res.ok).toBe(false);
     expect(!res.ok && res.reason).toBe(
-      "git could write outside this repository through .git/logs, which is a link or a hard link; checkouts made by git-new-workdir or cp -al need a plain clone",
+      ".git/logs is a link or hard link, as in git-new-workdir or cp -al copies — use a plain clone",
     );
+    // It reads inside the toast's parenthesis: no semicolon, under the 120 cap.
+    expect(!res.ok && res.reason).not.toContain(";");
+    expect(forkLinkRefusalReason(".git/logs/refs/heads/claudius").length).toBeLessThanOrEqual(120);
   });
 
   test("a cp -al copy (hard-linked .git files) is refused", async () => {
@@ -95,5 +98,50 @@ describe("fork worktree refuses .git link layouts", () => {
     const clone = join(scratch, "clone");
     await execFileP("git", ["clone", "-q", origin, clone]);
     expect(await worktreeWriteEscape(join(clone, ".git"), join(clone, ".git"), "claudius/fork-y")).toBeNull();
+  });
+
+  test("a .git that is itself a link is refused, though rev-parse prints the real path", async () => {
+    const store = join(scratch, "gitstore-origin");
+    await fs.mkdir(store);
+    await makeRepo(store);
+    const work = join(scratch, "linked");
+    await fs.mkdir(work);
+    await fs.rename(join(store, ".git"), join(scratch, "gitstore"));
+    await fs.symlink(join(scratch, "gitstore"), join(work, ".git"));
+    await execFileP("git", ["-C", work, "checkout", "-q", "-f"]);
+
+    const res = await createForkWorktree(work, FORK_ID);
+    expect(res.ok).toBe(false);
+    expect(!res.ok && res.reason).toBe(forkLinkRefusalReason(".git"));
+  });
+
+  test("a reftable repository (refs/heads is a stub file) forks into a worktree", async () => {
+    const repo = join(scratch, "reftable");
+    await fs.mkdir(repo);
+    try {
+      await makeRepo(repo, ["--ref-format=reftable"]);
+    } catch {
+      return; // git older than 2.45 has no reftable; nothing to check
+    }
+    expect((await fs.lstat(join(repo, ".git", "refs", "heads"))).isFile()).toBe(true);
+    expect(await worktreeWriteEscape(join(repo, ".git"), join(repo, ".git"), "claudius/fork-z")).toBeNull();
+    const res = await createForkWorktree(repo, FORK_ID);
+    expect(res.ok).toBe(true);
+  });
+
+  test("a hard-linked reftable table list is refused", async () => {
+    const origin = join(scratch, "reftable-origin");
+    await fs.mkdir(origin);
+    try {
+      await makeRepo(origin, ["--ref-format=reftable"]);
+    } catch {
+      return;
+    }
+    const copy = join(scratch, "reftable-copy");
+    await execFileP("cp", ["-R", origin, copy]);
+    const list = join(copy, ".git", "reftable", "tables.list");
+    await fs.rm(list);
+    await fs.link(join(origin, ".git", "reftable", "tables.list"), list);
+    expect(await worktreeWriteEscape(join(copy, ".git"), join(copy, ".git"), "claudius/fork-r")).toBe(list);
   });
 });

@@ -75,6 +75,7 @@ test("a credits-only model gets 'needs usage credits' options, not a plan-window
   await expect(turnOn).toHaveAttribute("href", "https://claude.ai/settings/usage");
   await expect(options.locator('a[href="https://claude.ai/upgrade/max"]')).toHaveText("Upgrade your plan");
   await expect(options.locator('a[href="https://claude.ai/create/team"]')).toBeVisible();
+  await expect(page.getByTestId("model-needs-credits-switch-hint")).toHaveText("or switch models with /model");
 
   await panel.scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);

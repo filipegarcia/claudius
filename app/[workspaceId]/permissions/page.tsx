@@ -534,11 +534,12 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
   // `allow` because a rule matching more than intended is a safety concern
   // only when it widens what auto-runs; over-matching an `ask`/`deny` rule
   // just asks/denies more, which isn't a risk.
-  const draftBashLint = kind === "allow" ? lintBashWildcardRule(draft) : null;
   // CC 2.1.323 parity: a `*` in a variable's value (`Bash(PORT=* npm run
   // dev)`) also matches spaces, so the rule approves other commands placed
-  // before the named one. Allow-only, same reasoning as the check above.
+  // before the named one. Allow-only, same reasoning as the check below. It
+  // is the wider hole, so it wins over the subcommand-wildcard warning.
   const draftEnvLint = kind === "allow" ? lintBashEnvWildcardRule(draft) : null;
+  const draftBashLint = kind === "allow" && !draftEnvLint ? lintBashWildcardRule(draft) : null;
   // CC 2.1.260 parity: text after a rule's closing parenthesis never
   // matched anything and was silently ignored — warn instead, same
   // "don't block, the rule still saves as typed" treatment as the two
@@ -560,8 +561,8 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
         )}
         {rules.map((r) => {
           const lint = lintPermissionRule(r);
-          const bashLint = kind === "allow" ? lintBashWildcardRule(r) : null;
           const envLint = kind === "allow" ? lintBashEnvWildcardRule(r) : null;
+          const bashLint = kind === "allow" && !envLint ? lintBashWildcardRule(r) : null;
           const trailingLint = lintTrailingGarbageRule(r);
           const winLint = lintWindowsPathParen(r);
           return (
@@ -588,7 +589,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
               {envLint && (
                 <span
                   data-testid="permission-rule-bash-env-wildcard-warning-icon"
-                  title={`${envLint.rule} allows any command at the * in its value · use an exact value`}
+                  title={`The * in a variable's value also matches spaces — this rule can approve a different command that has "${envLint.command}" later in the line. Use an exact value.`}
                 >
                   <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
                 </span>

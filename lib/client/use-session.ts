@@ -418,6 +418,9 @@ export function rateLimitHitFromBlocks(
   // tier, no reset, no fallback swap. Inferring them (the model name reads as
   // "weekly Opus limit"; an earlier rate_limit_event's reset clock) mislabelled
   // the panel. Keep only the purchase/plan signals the CTA needs.
+  // `canUserPurchaseCredits` is read as a property of the seat (stable across
+  // events), unlike the event's reset clock and tier. `last` is null on replay
+  // and pagination, so the admin line shows only live, like the other CTAs.
   const creditsModel = modelRequiringCreditsFromText(text);
   if (creditsModel) {
     const hit: NonNullable<DisplayMessage["rateLimitHit"]> = { modelNeedsCredits: creditsModel };

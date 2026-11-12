@@ -5,7 +5,6 @@ import { ChevronDown, Loader2, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { useAutoContinueAtUsageLimit } from "@/lib/client/useAutoContinueAtUsageLimit";
-import type { ClaudeSettings } from "@/lib/server/settings";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { AskUserQuestionPrompt } from "./AskUserQuestionPrompt";
@@ -223,19 +222,18 @@ export function MessageList({
 
   // CC 2.1.234 — whether the usage-limit panel should say "Continuing
   // automatically at HH:MM". Read once here (shared by every rate-limit bubble)
-  // from the user-scope setting; Cancel disables it (read-merge-write so other
-  // keys are preserved).
+  // from the user-scope setting; Cancel disables it. CC 2.1.323: sent as a
+  // one-key patch the server merges into a fresh read, so other keys (and a
+  // hand edit made meanwhile) are kept and a malformed file is left alone.
   const autoContinueAtUsageLimit = useAutoContinueAtUsageLimit(fileLink?.cwd ?? null);
   const onCancelAutoContinue = useCallback(async () => {
     const cwd = fileLink?.cwd;
     if (!cwd) return;
     try {
-      const r = await fetch(`/api/settings?scope=user&cwd=${encodeURIComponent(cwd)}`);
-      const cur = r.ok ? (((await r.json()) as { settings?: ClaudeSettings }).settings ?? {}) : {};
       await fetch("/api/settings/full", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope: "user", cwd, settings: { ...cur, autoContinueAtUsageLimit: false } }),
+        body: JSON.stringify({ scope: "user", cwd, patch: { set: { autoContinueAtUsageLimit: false }, unset: [] } }),
       });
     } catch {
       // best-effort — leave the setting as-is on a transient failure.

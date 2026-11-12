@@ -133,17 +133,29 @@ export default function SettingsPage() {
     try {
       let toWrite = draft;
       if (showRaw) {
+        let parsed: unknown;
         try {
-          toWrite = JSON.parse(rawDraft) as ClaudeSettings;
+          parsed = JSON.parse(rawDraft);
         } catch (err) {
           setRawError(err instanceof Error ? err.message : String(err));
-          setSaving(false);
           return;
         }
+        // The save is a patch of top-level keys against the baseline, so
+        // `null` or an array would be read as "remove every key".
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          setRawError("Settings must be a JSON object");
+          return;
+        }
+        toWrite = parsed as ClaudeSettings;
       }
       // Clearing `dirty` here (rather than letting the post-save refetch
       // do it) is what lets the re-seed guard above protect unsaved edits.
-      if (await settings.save(scope, toWrite, baseline)) setDirty(false);
+      // The saved document is the next patch's baseline: the refetch that
+      // would re-seed it is skipped while the user keeps editing.
+      if (await settings.save(scope, toWrite, baseline)) {
+        setBaseline(toWrite);
+        setDirty(false);
+      }
     } finally {
       setSaving(false);
     }

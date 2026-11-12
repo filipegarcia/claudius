@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { rateLimitHitFromBlocks } from "@/lib/client/use-session";
-import { rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
+import { isTopPlan, rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
 import { matchesUsageLimitPrefix, modelRequiringCreditsFromText } from "@/lib/shared/rate-limit-prefixes";
 
 /**
@@ -44,5 +44,13 @@ describe("rateLimitHitFromBlocks — model needs credits", () => {
     expect(hit.modelNeedsCredits).toBeUndefined();
     expect(hit.rateLimitType).toBe("seven_day_opus");
     expect(rateLimitCtaKind(hit)).toBe("upgrade");
+  });
+});
+
+describe("isTopPlan (model-needs-credits upgrade links)", () => {
+  test("Team and Enterprise get no upgrade links; Pro, Max and unknown do", () => {
+    expect(isTopPlan("team")).toBe(true);
+    expect(isTopPlan("enterprise")).toBe(true);
+    for (const t of ["pro", "max", null, undefined]) expect(isTopPlan(t), String(t)).toBe(false);
   });
 });
