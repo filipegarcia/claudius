@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { stampUserRejectedToolResults } from "@/lib/shared/user-rejected-stamp";
 import { withGoalMcpServer, withoutGoalMcpServer } from "./mcp-in-process";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
@@ -1981,6 +1982,12 @@ export class Session {
    */
   private holderId: string | null = null;
   private pendingPermissions = new Map<string, PendingPermission>();
+  /**
+   * CC 2.1.323 — tool-use ids the user denied from the permission card,
+   * waiting for their error tool_result so it can be re-stamped
+   * `user-rejected` ("Not run · rejected"). See `stampUserRejectedToolResults`.
+   */
+  private userRejectedToolUseIds = new Set<string>();
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
   /**
    * MCP elicitations (SDK `Options.onElicitation`) waiting on the user — form
@@ -4100,6 +4107,12 @@ export class Session {
     this.broadcastPromptSettled("permission", requestId);
 
     if (decision.kind === "deny") {
+      if (pending.meta.toolUseId) {
+        // Bounded: ids are removed once their result is stamped; a result
+        // that never arrives (turn aborted) only leaves a few stale strings.
+        if (this.userRejectedToolUseIds.size > 200) this.userRejectedToolUseIds.clear();
+        this.userRejectedToolUseIds.add(pending.meta.toolUseId);
+      }
       pending.resolve({ behavior: "deny", message: decision.message ?? "User denied" });
       return true;
     }
@@ -9655,7 +9668,10 @@ export class Session {
     let sawResult = false;
     let sawError = false;
     try {
-      for await (const message of this.query as AsyncIterable<SDKMessage>) {
+      for await (const raw of this.query as AsyncIterable<SDKMessage>) {
+        // CC 2.1.323 — mark results of calls the user denied as
+        // `user-rejected` (the engine stamps a host deny `permission-rule`).
+        const message = stampUserRejectedToolResults(raw, this.userRejectedToolUseIds);
         this.broadcast({ type: "sdk", message });
         // Auto-recover from the thinking-block replay 400. The SDK surfaces it
         // as a synthetic assistant "API Error: …" message (not a thrown

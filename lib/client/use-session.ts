@@ -1,5 +1,6 @@
 "use client";
 
+import { nonExecutionKindOf, USER_REJECTED_KIND } from "@/lib/shared/user-rejected-stamp";
 import { evictSupersededFromRecord, evictSupersededMessages, supersededUuidsOf } from "@/lib/client/evict-superseded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionStartConnectionLost, sessionStartHttpError } from "@/lib/shared/session-start-error";
@@ -768,19 +769,19 @@ function summarizeEventForDebug(ev: unknown): string {
  * The engine tags such results on the wrapper `SDKUserMessage` with
  * `tool_result_meta: [{ id, non_execution_kind: "automode-unavailable", … }]`
  * (an @internal field — absent from the public `sdk.d.ts`, present in the
- * bundled CLI's output schema), so it is read defensively here. Only
- * `automode-unavailable` is dimmed, like the CLI: a blocked call
- * (`automode-blocked`), a user rejection or an interrupt stays an error.
+ * bundled CLI's output schema), so it is read defensively here.
+ *
+ * CC 2.1.323 — "a collapsed tool call [no longer looks] as if it ran after
+ * you rejected it with a reason: it now shows 'Not run · rejected'".
+ * `user-rejected` is dimmed too (and flagged `rejected`). Claudius's server
+ * re-stamps the calls the user denied from the permission card with that
+ * kind (`stampUserRejectedToolResults`), because the engine stamps a host
+ * deny `permission-rule`. A blocked call (`automode-blocked`), a deny rule
+ * (`permission-rule`) and an interrupt still read as errors, like the CLI.
  */
-function isAutoModeUnavailable(toolResultMeta: unknown, toolUseId: string): boolean {
-  if (!Array.isArray(toolResultMeta)) return false;
-  return toolResultMeta.some(
-    (m) =>
-      !!m &&
-      typeof m === "object" &&
-      (m as { id?: unknown }).id === toolUseId &&
-      (m as { non_execution_kind?: unknown }).non_execution_kind === "automode-unavailable",
-  );
+function notRunKind(toolResultMeta: unknown, toolUseId: string): "automode-unavailable" | "user-rejected" | null {
+  const kind = nonExecutionKindOf(toolResultMeta, toolUseId);
+  return kind === "automode-unavailable" || kind === USER_REJECTED_KIND ? kind : null;
 }
 
 /**
@@ -803,7 +804,15 @@ export function extractToolResult(
   content: unknown,
   toolUseResult?: unknown,
   toolResultMeta?: unknown,
-): { tool_use_id: string; text: string; isError?: boolean; staged?: boolean; detached?: boolean; notRun?: boolean } | null {
+): {
+  tool_use_id: string;
+  text: string;
+  isError?: boolean;
+  staged?: boolean;
+  detached?: boolean;
+  notRun?: boolean;
+  rejected?: boolean;
+} | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
     if (raw.type === "tool_result") {
@@ -817,14 +826,15 @@ export function extractToolResult(
       const tur = toolUseResult && typeof toolUseResult === "object" ? (toolUseResult as Record<string, unknown>) : null;
       const staged = tur?.staged === true;
       const detached = tur?.detachedToolCall === true;
-      const notRun = tr.is_error === true && isAutoModeUnavailable(toolResultMeta, tr.tool_use_id);
+      const kind = tr.is_error === true ? notRunKind(toolResultMeta, tr.tool_use_id) : null;
       return {
         tool_use_id: tr.tool_use_id,
         text,
         isError: tr.is_error,
         ...(staged ? { staged } : {}),
         ...(detached ? { detached } : {}),
-        ...(notRun ? { notRun } : {}),
+        ...(kind ? { notRun: true } : {}),
+        ...(kind === USER_REJECTED_KIND ? { rejected: true } : {}),
       };
     }
   }
@@ -3638,7 +3648,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         );
         if (result) {
           // Tool results land on whichever tool_use carries that id, in main or subagent.
-          const toolResult = { content: result.text, isError: result.isError, staged: result.staged, detached: result.detached, notRun: result.notRun };
+          const toolResult = {
+            content: result.text,
+            isError: result.isError,
+            staged: result.staged,
+            detached: result.detached,
+            notRun: result.notRun,
+            rejected: result.rejected,
+          };
           setMessages((prev) =>
             prev.map((m) => ({
               ...m,
@@ -3670,6 +3687,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
               endedAt: Date.now(),
               isError: result.isError,
               ...(result.notRun ? { notRun: true } : {}),
+              ...(result.rejected ? { rejected: true } : {}),
             };
             return copy;
           });
@@ -3678,7 +3696,13 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             const idx = prev.findIndex((r) => r.toolUseId === result.tool_use_id);
             if (idx === -1) return prev;
             const copy = prev.slice();
-            copy[idx] = { ...copy[idx], done: true, isError: result.isError, ...(result.notRun ? { notRun: true } : {}) };
+            copy[idx] = {
+              ...copy[idx],
+              done: true,
+              isError: result.isError,
+              ...(result.notRun ? { notRun: true } : {}),
+              ...(result.rejected ? { rejected: true } : {}),
+            };
             return copy;
           });
           // Reconcile subagent (Task) status off its tool_result. The SDK's
@@ -7416,7 +7440,17 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         if (idx === -1) continue;
         const blk = m.blocks[idx];
         if (blk.kind !== "tool_use") break;
-        const patched = { ...blk, result: { content: tr.text, isError: tr.isError, staged: tr.staged, detached: tr.detached, notRun: tr.notRun } };
+        const patched = {
+          ...blk,
+          result: {
+            content: tr.text,
+            isError: tr.isError,
+            staged: tr.staged,
+            detached: tr.detached,
+            notRun: tr.notRun,
+            rejected: tr.rejected,
+          },
+        };
         const blocks = m.blocks.slice();
         blocks[idx] = patched;
         out[i] = { ...m, blocks };

@@ -55,7 +55,14 @@ const SCHEDULE_ACTION_LABELS: Record<string, string> = {
 type Props = {
   name: string;
   input: Record<string, unknown>;
-  result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean; notRun?: boolean };
+  result?: {
+    content: string;
+    isError?: boolean;
+    staged?: boolean;
+    detached?: boolean;
+    notRun?: boolean;
+    rejected?: boolean;
+  };
   /**
    * Client-stamped wall-clock start (epoch ms) for this tool_use, from
    * `DisplayBlock`'s `startedAt`. Drives the live "Xs" / "Xm Ys" elapsed
@@ -333,11 +340,17 @@ export function ToolCall({
           {status === "notrun" && (
             <span
               data-testid="tool-call-not-run"
+              data-not-run-reason={result?.rejected ? "rejected" : "automode-unavailable"}
               className="inline-flex items-center gap-1 text-[10px] text-[var(--muted)]"
-              title="Not run — auto mode's check had no usable answer, so this tool call was skipped"
+              title={
+                result?.rejected
+                  ? "Not run — you rejected this tool call"
+                  : "Not run — auto mode's check had no usable answer, so this tool call was skipped"
+              }
             >
               <MinusCircle className="h-3.5 w-3.5" />
-              Not run
+              {/* CC 2.1.323 — a call the user rejected reads "Not run · rejected". */}
+              {result?.rejected ? "Not run · rejected" : "Not run"}
             </span>
           )}
         </span>
@@ -405,7 +418,13 @@ export function ToolCall({
           {result && (
             <div className="px-3 pb-2">
               <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">
-                {status === "notrun" ? "not run" : result.isError ? "error" : "result"}
+                {status === "notrun"
+                  ? result.rejected
+                    ? "rejected"
+                    : "not run"
+                  : result.isError
+                    ? "error"
+                    : "result"}
               </div>
               <pre
                 className={cn(
