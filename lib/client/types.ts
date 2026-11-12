@@ -162,6 +162,13 @@ export type DisplayMessage = {
      * point at usage credits instead.
      */
     subscriptionType?: "pro" | "max" | "team" | "enterprise" | (string & {});
+    /**
+     * CC 2.1.323 — the hit is the engine's "<Model> requires usage credits."
+     * (a model that runs only on usage credits, which are off or used up),
+     * not a plan-tier window. Holds the model's name; the panel says it needs
+     * usage credits instead of naming a tier or reset.
+     */
+    modelNeedsCredits?: string;
   };
   /**
    * Present when this assistant message IS the Anthropic backend's

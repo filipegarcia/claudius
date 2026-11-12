@@ -51,7 +51,7 @@ import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { clearPendingMessages } from "./clear-pending";
 import { ADVISOR_ACTIVE_SENTINEL, prettyModelName } from "@/lib/shared/advisor";
-import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
+import { matchesUsageLimitPrefix, modelRequiringCreditsFromText } from "@/lib/shared/rate-limit-prefixes";
 import {
   isCompactSummaryContent,
   isImageResizeNoteContent,
@@ -407,13 +407,24 @@ export function rewriteModelUnavailableBlocks(
  * wall-clock but no date, and the reset time is already printed in the message
  * text, so we don't parse it back out on the replay path.
  */
-function rateLimitHitFromBlocks(
+export function rateLimitHitFromBlocks(
   blocks: DisplayBlock[],
   last: SystemEntry["rateLimit"] | null,
   fallbackModel: string | null,
   subscriptionType?: string | null,
 ): NonNullable<DisplayMessage["rateLimitHit"]> {
   const text = blocks.find((b) => b.kind === "text")?.text ?? "";
+  // CC 2.1.323 — "<Model> requires usage credits." is not a plan window: no
+  // tier, no reset, no fallback swap. Inferring them (the model name reads as
+  // "weekly Opus limit"; an earlier rate_limit_event's reset clock) mislabelled
+  // the panel. Keep only the purchase/plan signals the CTA needs.
+  const creditsModel = modelRequiringCreditsFromText(text);
+  if (creditsModel) {
+    const hit: NonNullable<DisplayMessage["rateLimitHit"]> = { modelNeedsCredits: creditsModel };
+    if (typeof last?.canUserPurchaseCredits === "boolean") hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
+    if (subscriptionType) hit.subscriptionType = subscriptionType;
+    return hit;
+  }
   const rateLimitType = last?.rateLimitType ?? rateLimitTypeFromText(text);
   const hit: NonNullable<DisplayMessage["rateLimitHit"]> = {};
   if (rateLimitType) hit.rateLimitType = rateLimitType;
