@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
+import { diffSettings, isEmptyPatch } from "@/lib/shared/settings-patch";
 
 export type ScopedSettings = { scope: SettingsScope; path: string; settings: ClaudeSettings };
 
@@ -46,12 +47,22 @@ export function useSettings(cwd: string | null) {
     setRefetchTrigger((n) => n + 1);
   }, []);
 
+  /**
+   * CC 2.1.323 — with `baseline` (the settings the edited draft started
+   * from), only the top-level keys that changed are sent and the server
+   * merges them into a fresh read of the file, so a hand edit to some other
+   * key made meanwhile survives. Without it, the whole document is written.
+   */
   const save = useCallback(
-    async (scope: SettingsScope, settings: ClaudeSettings) => {
+    async (scope: SettingsScope, settings: ClaudeSettings, baseline?: ClaudeSettings) => {
+      const patch = baseline
+        ? diffSettings(baseline as Record<string, unknown>, settings as Record<string, unknown>)
+        : null;
+      if (patch && isEmptyPatch(patch)) return true;
       const res = await fetch("/api/settings/full", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope, cwd, settings }),
+        body: JSON.stringify(patch ? { scope, cwd, patch } : { scope, cwd, settings }),
       });
       // Trigger a background refresh; we no longer await the GET response
       // before returning. Callers that rely on `save` completing the round

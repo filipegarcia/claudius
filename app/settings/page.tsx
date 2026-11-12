@@ -72,6 +72,10 @@ export default function SettingsPage() {
   // textarea, nothing to filter).
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<ClaudeSettings>({});
+  // CC 2.1.323 — the settings `draft` was seeded from. Save sends only the
+  // keys that differ from it, merged server-side into a fresh read, so a hand
+  // edit to settings.json made after the page loaded isn't undone.
+  const [baseline, setBaseline] = useState<ClaudeSettings>({});
   const [rawDraft, setRawDraft] = useState<string>("");
   const [rawError, setRawError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -115,6 +119,7 @@ export default function SettingsPage() {
     setLastActiveKey(activeKey);
     if (scopeChanged || forceReseed || !dirty) {
       setDraft(active?.settings ?? {});
+      setBaseline(active?.settings ?? {});
       setRawDraft(JSON.stringify(active?.settings ?? {}, null, 2));
       setRawError(null);
       setDirty(false);
@@ -138,7 +143,7 @@ export default function SettingsPage() {
       }
       // Clearing `dirty` here (rather than letting the post-save refetch
       // do it) is what lets the re-seed guard above protect unsaved edits.
-      if (await settings.save(scope, toWrite)) setDirty(false);
+      if (await settings.save(scope, toWrite, baseline)) setDirty(false);
     } finally {
       setSaving(false);
     }

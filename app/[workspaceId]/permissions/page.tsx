@@ -97,7 +97,7 @@ export default function PermissionsPage() {
     if (!v) return;
     const cur = rules[scope][kind];
     if (cur.includes(v)) return;
-    void updateRules(scope, kind, [...cur, v]);
+    void updateRules(scope, kind, [...cur, v], { add: [v] });
   }
 
   function remove(kind: RuleKind, value: string) {
@@ -106,6 +106,7 @@ export default function PermissionsPage() {
       scope,
       kind,
       cur.filter((r) => r !== value),
+      { remove: [value] },
     );
   }
 

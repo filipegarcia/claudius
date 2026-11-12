@@ -3063,8 +3063,17 @@ export class Session {
       this.advisorModel = undefined;
       delete (userSettings as ClaudeSettings).advisorModel;
       // Best-effort disk clear so subsequent sessions also start clean.
-      const cleaned: ClaudeSettings = { ...userSettings };
-      writeSettings("user", this.cwd, cleaned).catch((err) => {
+      // CC 2.1.323 — re-read right before writing instead of writing the
+      // copy read at the top of start(): that copy is several awaits old, so
+      // writing it back could undo a hand edit to settings.json made
+      // meanwhile, or recreate a file deleted meanwhile. Only the
+      // `advisorModel` key is removed, and only if the file still has it.
+      void (async () => {
+        const fresh = await readSettings("user", this.cwd);
+        if (!Object.hasOwn(fresh, "advisorModel")) return;
+        delete fresh.advisorModel;
+        await writeSettings("user", this.cwd, fresh);
+      })().catch((err) => {
         console.error("[session.start] advisor-fable-incompatible clear failed", err);
       });
       // We don't broadcast here synchronously; the SSE client subscribes

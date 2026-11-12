@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import { applyRuleDelta } from "@/lib/shared/settings-patch";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type { WorktreeSettings } from "@/lib/shared/worktree-settings";
@@ -672,6 +673,22 @@ export async function updatePermissions(
   };
   await writeSettings(scope, projectCwd, next);
   return next;
+}
+
+/**
+ * CC 2.1.323 — add/remove rules on one list against a fresh read, so a rule
+ * added to the file by hand after the /permissions page loaded isn't dropped
+ * (the page used to send its whole cached list).
+ */
+export async function updatePermissionRuleList(
+  scope: SettingsScope,
+  projectCwd: string,
+  kind: "allow" | "ask" | "deny",
+  delta: { add?: string[]; remove?: string[] },
+): Promise<ClaudeSettings> {
+  const current = await readSettings(scope, projectCwd);
+  const list = applyRuleDelta(current.permissions?.[kind], delta);
+  return updatePermissions(scope, projectCwd, { [kind]: list });
 }
 
 /**
