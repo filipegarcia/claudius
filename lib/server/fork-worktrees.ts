@@ -138,6 +138,27 @@ export async function createForkWorktree(
     // says the check was unavailable.
   }
 
+  // CC 2.1.323 parity — refuse a checkout whose .git holds links or hard
+  // links (git-new-workdir, `cp -al` copies): git could write outside the
+  // repository through them. The fork stays on the shared checkout.
+  try {
+    const { stdout } = await execFileP(
+      "git",
+      ["-C", repoRoot, "rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"],
+      { timeout: 5_000 },
+    );
+    const [gitDir, commonDir] = stdout.split("\n").map((l) => l.trim());
+    const escape = gitDir && commonDir ? await worktreeWriteEscape(gitDir, commonDir, branch) : null;
+    if (escape) {
+      return {
+        ok: false,
+        reason: `git could write outside this repository through ${escape}, which is a link or a hard-linked entry (as in git-new-workdir checkouts or cp -al copies) — use a plain clone`,
+      };
+    }
+  } catch {
+    // Couldn't resolve the git dirs: `worktree add` below reports its own error.
+  }
+
   await fs.mkdir(root, { recursive: true });
   try {
     await execFileP("git", ["-C", repoRoot, "worktree", "add", "-b", branch, target, "HEAD"], {
@@ -155,6 +176,63 @@ export async function createForkWorktree(
   await writeIndex(idx);
 
   return { ok: true, worktree: { path: target, branch, dirty } };
+}
+
+/**
+ * CC 2.1.323 parity — "Changed worktree creation to refuse checkouts whose
+ * .git folders are links or hold hard links, such as git-new-workdir layouts
+ * and cp -al copies; use a plain clone". Claudius runs `git worktree add`
+ * itself for `/fork`, so the engine's refusal never runs on that path.
+ *
+ * Mirrors the engine's check (`abt` in the 2.1.323 bundle), scoped to what
+ * `worktree add -b <branch>` writes:
+ * - the git dir and common dir must not be links;
+ * - each folder on the way to the branch's ref and reflog, plus `worktrees/`,
+ *   must be a plain folder (not a link);
+ * - `packed-refs` and an existing `refs/heads/<branch>` must be plain files
+ *   with a single name (no hard link). The ref must also not be a symbolic
+ *   `ref:` or hold a path.
+ * A missing entry is fine, because git creates it. Returns the offending
+ * path, or `null` when nothing would let git write outside the repository.
+ * `objects/` is not checked, because `git clone /local/path` hard-links
+ * objects on purpose.
+ */
+export async function worktreeWriteEscape(gitDir: string, commonDir: string, branch: string): Promise<string | null> {
+  for (const dir of [commonDir, gitDir]) {
+    const st = await fs.lstat(dir).catch(() => null);
+    if (!st || st.isSymbolicLink() || !st.isDirectory()) return dir;
+  }
+  const parts = branch.split("/");
+  const chains: Array<[string, string[]]> = [
+    [commonDir, ["logs", "refs", "heads", ...parts]],
+    [gitDir, ["logs", "HEAD"]],
+    [commonDir, ["refs", "heads", ...parts.slice(0, -1)]],
+    [commonDir, ["worktrees"]],
+  ];
+  for (const [base, chain] of chains) {
+    for (let i = 1; i <= chain.length; i++) {
+      const p = join(base, ...chain.slice(0, i));
+      const st = await fs.lstat(p).catch((e: NodeJS.ErrnoException) => (e.code === "ENOENT" ? undefined : null));
+      if (st === undefined) break; // missing: git creates it
+      if (st === null || st.isSymbolicLink()) return p;
+      const last = i === chain.length;
+      if (last && st.isFile()) {
+        if (st.nlink > 1) return p;
+      } else if (!st.isDirectory()) {
+        return p;
+      }
+    }
+  }
+  for (const p of [join(commonDir, "packed-refs"), join(commonDir, "refs", "heads", ...parts)]) {
+    const st = await fs.lstat(p).catch((e: NodeJS.ErrnoException) => (e.code === "ENOENT" ? undefined : null));
+    if (st === undefined) continue;
+    if (st === null || st.isSymbolicLink() || !st.isFile() || st.nlink > 1) return p;
+    if (p.endsWith(join("refs", "heads", ...parts))) {
+      const text = await fs.readFile(p, "utf8").catch(() => null);
+      if (text === null || text.startsWith("ref:") || /[\\/]/.test(text)) return p;
+    }
+  }
+  return null;
 }
 
 /**
