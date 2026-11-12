@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 import { getRepoRoot } from "./git";
@@ -150,9 +150,11 @@ export async function createForkWorktree(
     const [gitDir, commonDir] = stdout.split("\n").map((l) => l.trim());
     const escape = gitDir && commonDir ? await worktreeWriteEscape(gitDir, commonDir, branch) : null;
     if (escape) {
+      const rel = relative(repoRoot, escape);
+      const shown = rel && !rel.startsWith("..") ? rel : escape;
       return {
         ok: false,
-        reason: `git could write outside this repository through ${escape}, which is a link or a hard-linked entry (as in git-new-workdir checkouts or cp -al copies) — use a plain clone`,
+        reason: `git could write outside this repository through ${shown}, which is a link or a hard link; checkouts made by git-new-workdir or cp -al need a plain clone`,
       };
     }
   } catch {

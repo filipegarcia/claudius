@@ -66,7 +66,9 @@ describe("fork worktree refuses .git link layouts", () => {
 
     const res = await createForkWorktree(work, FORK_ID);
     expect(res.ok).toBe(false);
-    expect(!res.ok && res.reason).toMatch(/git could write outside this repository through .*\.git\/logs.* use a plain clone/);
+    expect(!res.ok && res.reason).toBe(
+      "git could write outside this repository through .git/logs, which is a link or a hard link; checkouts made by git-new-workdir or cp -al need a plain clone",
+    );
   });
 
   test("a cp -al copy (hard-linked .git files) is refused", async () => {

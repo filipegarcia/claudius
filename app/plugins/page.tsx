@@ -765,7 +765,9 @@ function PluginRow({
               ))}
             </span>
           )}
-          {!installed && (
+          {/* Only for a plugin turned on but not loaded. A version-list entry
+              (CC 2.1.323) is off, which its own note below explains. */}
+          {!installed && enabledInAnyScope.length > 0 && (
             <span className="ml-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-200">
               configured but not installed
             </span>
