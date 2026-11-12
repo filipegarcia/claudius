@@ -754,8 +754,10 @@ export function BackgroundTasksPanel({
                     <div className="mt-0.5 line-clamp-2 text-[10px] opacity-80">{t.description}</div>
                   )}
                   {/* AI-generated live progress summary (SDK
-                      agentProgressSummaries). Refreshes ~30s while the
-                      subagent runs; distinct from the static `description`. */}
+                      agentProgressSummaries). Refreshes roughly every 30s,
+                      but not a heartbeat — a summary can wait up to 5 min on a
+                      cold prompt cache (SDK 0.3.318); distinct from the static
+                      `description`. */}
                   {t.summary && t.summary !== t.description && (
                     <div className="mt-0.5 line-clamp-2 text-[10px] italic opacity-70">
                       {t.summary}

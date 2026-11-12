@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { withGoalMcpServer, withoutGoalMcpServer } from "./mcp-in-process";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join as pathJoin, resolve as pathResolve, sep as pathSep } from "node:path";
@@ -6826,7 +6827,12 @@ export class Session {
   ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
     if (!this.query) return { ok: false, error: "no active query" };
     try {
-      const data = await this.query.setMcpServers(servers);
+      // SDK 0.3.323: setMcpServers replaces every in-process SDK server,
+      // including `claudius_goal` from the spawn-time `mcpServers` option —
+      // re-send it so a dynamic-servers edit doesn't drop the goal tool.
+      const data = await this.query.setMcpServers(
+        withGoalMcpServer<McpServerConfig>(servers, this.buildGoalMcpServer()),
+      );
       // MCP delta reminder (Claude Code TUI parity, feature 35). The SDK
       // hands back the canonical add/remove lists in McpSetServersResult,
       // so we use those directly rather than re-querying status (which
@@ -6847,12 +6853,16 @@ export class Session {
           ? new Set(Object.keys(result.errors as Record<string, unknown>))
           : new Set<string>();
       const added = Array.isArray(result?.added)
-        ? (result?.added as unknown[]).filter(
-            (s): s is string => typeof s === "string" && !errored.has(s),
+        ? withoutGoalMcpServer(
+            (result?.added as unknown[]).filter(
+              (s): s is string => typeof s === "string" && !errored.has(s),
+            ),
           )
         : [];
       const removed = Array.isArray(result?.removed)
-        ? (result?.removed as unknown[]).filter((s): s is string => typeof s === "string")
+        ? withoutGoalMcpServer(
+            (result?.removed as unknown[]).filter((s): s is string => typeof s === "string"),
+          )
         : [];
       const body = mcpDeltaReminderBody({ added, removed });
       if (body) queueReminder(this, "mcp-delta", body);

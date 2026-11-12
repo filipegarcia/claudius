@@ -1,5 +1,6 @@
 "use client";
 
+import { evictSupersededFromRecord, evictSupersededMessages, supersededUuidsOf } from "@/lib/client/evict-superseded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionStartConnectionLost, sessionStartHttpError } from "@/lib/shared/session-start-error";
 import {
@@ -311,6 +312,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.318 — a configuration file read at startup is not valid JSON.
   config_file_invalid:
     "a configuration file read at startup is not valid JSON — fix or remove the file and restart the session",
+  // SDK 0.3.323 — `--managed-settings-in-initialize` could not use the managed settings the initialize request carried.
+  managed_settings_not_delivered:
+    "your organization's managed settings could not be delivered to the session process — restart the session",
 };
 
 /**
@@ -2948,6 +2952,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           }));
         }
 
+        // SDK 0.3.323 — `supersedes` now also names the earlier messages this
+        // one replaces after a response whose tool call could not be parsed
+        // (previously refusal-fallback only). Evict them on arrival.
+        const superseded = supersededUuidsOf(msg);
+        if (superseded) {
+          setMessages((prev) => evictSupersededMessages(prev, superseded));
+          setSubagentMessages((prev) => evictSupersededFromRecord(prev, superseded));
+        }
         const parent = (msg as { parent_tool_use_id?: string | null }).parent_tool_use_id ?? null;
         // SDK 0.3.214 — true when this split was truncated by an
         // interrupt/abort before the stream completed (content may end
@@ -4278,6 +4290,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
 
       if (msg.type === "tool_progress") {
+        // SDK 0.3.323 — a periodic heartbeat while a turn waits on long-running
+        // hooks arrives as `tool_progress` with a `hook-` id and the hook event
+        // as `tool_name`. It names no tool call we render, so keep it out of the
+        // per-tool progress map (it would only accumulate dead entries).
+        if (isHookHeartbeatToolProgress(msg as { tool_use_id?: unknown })) return;
         const info = toolProgressInfoFromSdkMessage(
           msg as {
             tool_use_id: string;
@@ -7487,6 +7504,14 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
     });
   }
   return { messages: out };
+}
+
+/**
+ * SDK 0.3.323 — true for the hook-wait heartbeat `tool_progress` frame
+ * (`tool_use_id` begins `hook-`; `tool_name` is the hook event).
+ */
+export function isHookHeartbeatToolProgress(tp: { tool_use_id?: unknown }): boolean {
+  return typeof tp.tool_use_id === "string" && tp.tool_use_id.startsWith("hook-");
 }
 
 /**
