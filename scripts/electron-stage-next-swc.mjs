@@ -49,8 +49,9 @@
  * disk is a no-op (good for re-running failed builds without paying the
  * tarball-fetch cost again).
  */
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 import url from "node:url";
 
@@ -149,8 +150,10 @@ if (existsSync(installedPkgJsonPath) && existsSync(nodeBinaryPath)) {
 // Two-step fetch + extract without a shell so targetDir is a plain argv
 // element passed directly to tar — no shell interpolation possible.
 // (Same pattern that closed shell-injection alert #38 in next.config.ts.)
-// curl stdout is buffered and piped as stdin to tar; the ~10 MB tarball
-// fits easily, 150 MB cap is just a safety ceiling.
+// curl downloads to a temp FILE that tar then reads. It used to buffer stdout
+// in memory under a 150 MB `maxBuffer`, and the sibling SDK script died that
+// way when its tarball outgrew the cap (SDK 0.3.323, 155.6 MB → curl SIGTERM).
+// A file has no ceiling.
 //
 // We always rm + mkdir the target first — extracting on top of a stale
 // directory can leave a hybrid version (new .node + old package.json) that
@@ -158,31 +161,40 @@ if (existsSync(installedPkgJsonPath) && existsSync(nodeBinaryPath)) {
 console.log(`[stage-next-swc] fetching ${tarballUrl}`);
 rmSync(targetDir, { recursive: true, force: true });
 mkdirSync(targetDir, { recursive: true });
+const tmpDir = mkdtempSync(path.join(os.tmpdir(), "stage-next-swc-"));
+const tarballPath = path.join(tmpDir, `${unscopedName}-${NEXT_VERSION}.tgz`);
 
-const curlResult = spawnSync("curl", ["-fsSL", tarballUrl], {
-  encoding: "buffer",
-  maxBuffer: 150 * 1024 * 1024,
-  stdio: ["ignore", "pipe", "inherit"],
-});
-if (curlResult.status !== 0 || curlResult.error) {
-  console.error(
-    `[stage-next-swc] curl failed (status=${curlResult.status}, signal=${curlResult.signal ?? "none"})`,
-  );
+/** Clean up both dirs, then exit non-zero. (process.exit skips `finally`.) */
+function bail(message, code) {
+  console.error(`[stage-next-swc] ${message}`);
   rmSync(targetDir, { recursive: true, force: true });
-  process.exit(curlResult.status ?? 1);
+  rmSync(tmpDir, { recursive: true, force: true });
+  process.exit(code || 1); // never 0: this is the failure path
+}
+
+const curlResult = spawnSync(
+  "curl",
+  ["-fsSL", "--retry", "3", "--retry-delay", "5", "-o", tarballPath, tarballUrl],
+  { stdio: ["ignore", "inherit", "inherit"] },
+);
+if (curlResult.status !== 0 || curlResult.error) {
+  bail(
+    `curl failed (status=${curlResult.status}, signal=${curlResult.signal ?? "none"}${curlResult.error ? `, ${curlResult.error.message}` : ""})`,
+    curlResult.status,
+  );
 }
 const tarResult = spawnSync(
   "tar",
-  ["-xz", "--strip-components=1", "-C", targetDir],
-  { input: curlResult.stdout, stdio: ["pipe", "inherit", "inherit"] },
+  ["-x", "-z", "-f", tarballPath, "--strip-components=1", "-C", targetDir],
+  { stdio: ["ignore", "inherit", "inherit"] },
 );
 if (tarResult.status !== 0 || tarResult.error) {
-  console.error(
-    `[stage-next-swc] tar failed (status=${tarResult.status}, signal=${tarResult.signal ?? "none"})`,
+  bail(
+    `tar failed (status=${tarResult.status}, signal=${tarResult.signal ?? "none"})`,
+    tarResult.status,
   );
-  rmSync(targetDir, { recursive: true, force: true });
-  process.exit(tarResult.status ?? 1);
 }
+rmSync(tmpDir, { recursive: true, force: true });
 
 // ── sanity-check ───────────────────────────────────────────────────────────
 // electron-builder asarUnpacks node_modules/@next/** — if the .node is

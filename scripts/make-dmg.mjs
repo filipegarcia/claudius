@@ -35,7 +35,7 @@
 // pipeline can produce a DMG per arch.
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -101,6 +101,33 @@ const mountPath = `/Volumes/${VOL_NAME}`;
 if (existsSync(mountPath)) {
   spawnSync("hdiutil", ["detach", mountPath, "-force"], { stdio: "ignore" });
 }
+
+/**
+ * Remove create-dmg's read-write scratch images (`rw.<pid>.<final name>`) from
+ * release/. A failed or killed attempt leaves one behind, and `release/*.dmg`
+ * then shipped it: v0.3.320.0 has a 1.7 GB `rw.9257.Claudius-0.3.320-mac-arm64.dmg`
+ * asset from its failed first attempt. The workflow globs are now narrowed to
+ * `Claudius-*.dmg` as well; this keeps release/ clean for local builds too.
+ * Unlinking is safe even if the image is still attached (the inode lives
+ * until detach).
+ */
+function removeCreateDmgScratch() {
+  const dir = path.dirname(OUT_PATH);
+  const suffix = `.${path.basename(OUT_PATH)}`;
+  let names = [];
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (/^rw\.\d+\./.test(name) && name.endsWith(suffix)) {
+      rmSync(path.join(dir, name), { force: true });
+      console.log(`· removed create-dmg scratch image release/${name}`);
+    }
+  }
+}
+removeCreateDmgScratch();
 
 // ── package ────────────────────────────────────────────────────────────────
 // Icon coordinates match the cues in build/dmg-background.png:
@@ -229,6 +256,7 @@ while (attempt < MAX_ATTEMPTS) {
   if (existsSync(mountPath)) {
     spawnSync("hdiutil", ["detach", mountPath, "-force"], { stdio: "ignore" });
   }
+  removeCreateDmgScratch();
 
   console.log(
     `· create-dmg attempt ${attempt}/${MAX_ATTEMPTS} → ${path.relative(ROOT, OUT_PATH)} (timeout ${PER_ATTEMPT_TIMEOUT_MS}ms)`,
@@ -270,7 +298,9 @@ if (result.status !== 0) {
   );
   // Leave no half-written output for the fallback step to trip over.
   if (existsSync(OUT_PATH)) rmSync(OUT_PATH);
+  removeCreateDmgScratch();
   process.exit(timedOut ? 124 : result.status || 1);
 }
 
+removeCreateDmgScratch();
 console.log(`✓ ${path.relative(ROOT, OUT_PATH)}`);
