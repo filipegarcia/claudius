@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseInitSystemMessage } from "@/lib/shared/parse-init";
+import { describeManagedLock, parseInitSystemMessage } from "@/lib/shared/parse-init";
 
 /**
  * Pin down the SDK `system:init` → session-state mapping. The init message
@@ -207,6 +207,54 @@ describe("parseInitSystemMessage", () => {
         { plugin: "foo@mkt", type: "hook-load-failed", message: "boom" },
       ]);
       expect("path" in out.pluginErrors[0]).toBe(false);
+    });
+
+    test("maps SDK 0.3.325 managed_lock to managedLock (marketplace optional)", () => {
+      const out = parseInitSystemMessage({
+        plugin_errors: [
+          {
+            plugin: "inline[0]",
+            type: "generic-error",
+            message: "dropped",
+            managed_lock: { plugin_enabled: true, name: "foo", marketplace: "corp" },
+          },
+          {
+            plugin: "synced[1]",
+            type: "generic-error",
+            message: "dropped",
+            managed_lock: { plugin_enabled: false, name: "bar" },
+          },
+        ],
+      });
+      expect(out.pluginErrors[0]?.managedLock).toEqual({
+        pluginEnabled: true,
+        name: "foo",
+        marketplace: "corp",
+      });
+      expect(out.pluginErrors[1]?.managedLock).toEqual({ pluginEnabled: false, name: "bar" });
+    });
+
+    test("ignores a malformed managed_lock without dropping the row", () => {
+      const out = parseInitSystemMessage({
+        plugin_errors: [
+          { plugin: "p@m", type: "t", message: "m", managed_lock: { name: "x" } },
+          { plugin: "q@m", type: "t", message: "m", managed_lock: "nope" },
+        ],
+      });
+      expect(out.pluginErrors).toHaveLength(2);
+      expect("managedLock" in out.pluginErrors[0]).toBe(false);
+      expect("managedLock" in out.pluginErrors[1]).toBe(false);
+    });
+
+    test("describeManagedLock words enabled vs disabled and cleans control/bidi chars", () => {
+      expect(describeManagedLock({ pluginEnabled: true, name: "foo", marketplace: "corp" })).toContain(
+        "enable foo@corp",
+      );
+      expect(describeManagedLock({ pluginEnabled: false, name: "bar" })).toContain("turn bar off");
+      const dirty = describeManagedLock({ pluginEnabled: true, name: "a\u202eb\nc" });
+      expect(dirty).toContain("enable abc,");
+      const long = describeManagedLock({ pluginEnabled: true, name: "x".repeat(500) });
+      expect(long.length).toBeLessThan(260);
     });
 
     test("passes through an unrecognized type verbatim (open set, no whitelist)", () => {

@@ -45,6 +45,7 @@ import {
   opus48FastDeprecationText,
 } from "@/lib/shared/fast-mode";
 import { classifyInformationalLevel } from "@/lib/shared/system-informational";
+import { describeInvalidConfigFile } from "@/lib/shared/invalid-config-file";
 import { describeSessionWritesLost } from "@/lib/shared/session-writes-lost";
 import { parseInitSystemMessage } from "@/lib/shared/parse-init";
 import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
@@ -4198,6 +4199,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // exiting on a known, fixable startup failure. Absent on every
           // other result and on startup failures without a known cause.
           startup_failure_reason?: string;
+          // SDK 0.3.325 — set with `config_file_invalid`: the broken config
+          // file and its backup as separate fields (never parse `errors`).
+          invalid_config_file?: unknown;
         };
         if (r.fast_mode_state) {
           setFastModeState(r.fast_mode_state);
@@ -4277,9 +4281,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           const reason = r.startup_failure_reason;
           const resultErrors = (msg as { errors?: string[] }).errors;
           const detail = STARTUP_FAILURE_REASON_LABELS[reason] ?? reason;
+          const configFileNote =
+            reason === "config_file_invalid" ? describeInvalidConfigFile(r.invalid_config_file) : "";
           setErrors((e) => [
             ...e,
-            `Session failed to start: ${detail}.${resultErrors?.length ? ` (${resultErrors[0]})` : ""}`,
+            `Session failed to start: ${detail}.${configFileNote}${resultErrors?.length ? ` (${resultErrors[0]})` : ""}`,
           ]);
         }
 

@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Search,
   Settings2,
+  ShieldAlert,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -25,8 +26,13 @@ import { enabledPluginState, VERSION_LIST_NOT_ENABLED_MESSAGE, versionListNote }
 import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
 import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
-import type { PluginLoadError } from "@/lib/shared/parse-init";
+import { describeManagedLock, type PluginLoadError } from "@/lib/shared/parse-init";
 import { lintMarketplaceName, lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
+import {
+  MARKETPLACE_TRUST_NOTE,
+  PLUGIN_INSTALL_TRUST_WARNING,
+  PLUGIN_RUNS_CODE_NOTE,
+} from "@/lib/shared/plugin-trust";
 import type {
   ExtraMarketplaceView,
   MarketplaceSource,
@@ -317,9 +323,16 @@ function InstallSection({
       <p className="mb-3 text-[11px] text-[var(--muted)]">
         Sends <code className="font-mono">/plugin install &lt;ref&gt;</code> to your active
         chat session. Watch progress in chat — the SDK handles the marketplace lookup,
-        download, and any prompts for trust or permissions. The list refreshes itself once
-        the install finishes.
+        download, and any permission prompts. The list refreshes itself once the install
+        finishes.
       </p>
+
+      {/* CC 2.1.325 — the engine's install warning. Its terminal install
+          screen shows it before you pick a scope; this form is Claudius's
+          equivalent, so the warning sits above the Install button. */}
+      <TrustNote testId="plugin-install-trust-warning" tone="warning" className="mb-3">
+        {PLUGIN_INSTALL_TRUST_WARNING}
+      </TrustNote>
 
       <form
         onSubmit={async (e) => {
@@ -533,6 +546,15 @@ function AvailableSection({
         ))}
       </div>
 
+      {/* CC 2.1.325 — the engine's one-liner on plugin details and
+          recommendation prompts; here it heads the list the Install buttons
+          live in, once rather than on every row. */}
+      {plugins.length > 0 && (
+        <TrustNote testId="plugin-catalog-trust-note" className="border-b border-[var(--border)] px-4 py-2">
+          {PLUGIN_RUNS_CODE_NOTE}
+        </TrustNote>
+      )}
+
       {plugins.length === 0 && !loading ? (
         <div className="px-4 py-8 text-center text-sm text-[var(--muted)]">
           No marketplaces cached yet. Add one in the Marketplaces section below, then refresh.
@@ -614,6 +636,45 @@ function AvailableSection({
         </ul>
       )}
     </section>
+  );
+}
+
+/**
+ * CC 2.1.325 — a standing "plugins run code" note (the engine's dim warning
+ * line). The text is always muted: it's advice about trust, not a problem
+ * with what was typed. Only the install warning (`tone="warning"`) gets the
+ * amber icon; elsewhere the icon is muted too, so amber on this page keeps
+ * meaning "something you typed is wrong" (the lint lines). `compact` matches
+ * the 10px lines of the Marketplaces section.
+ */
+function TrustNote({
+  testId,
+  tone = "info",
+  compact = false,
+  className,
+  children,
+}: {
+  testId: string;
+  tone?: "info" | "warning";
+  compact?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <p
+      data-testid={testId}
+      className={cn(
+        "flex items-start leading-relaxed text-[var(--muted)]",
+        compact ? "gap-1 text-[10px]" : "gap-1.5 text-[11px]",
+        className,
+      )}
+    >
+      <ShieldAlert
+        aria-hidden
+        className={cn("mt-px h-3 w-3 shrink-0", tone === "warning" ? "text-amber-400" : "text-[var(--muted)]")}
+      />
+      <span>{children}</span>
+    </p>
   );
 }
 
@@ -701,6 +762,14 @@ function PluginErrorsSection({ errors }: { errors: PluginLoadError[] }) {
               <code className="mt-1 block break-all font-mono text-[10px] text-amber-200/70">
                 {e.path}
               </code>
+            )}
+            {e.managedLock && (
+              <p
+                data-testid="plugin-load-error-managed-lock"
+                className="mt-1 text-[10px] text-amber-200/80"
+              >
+                {describeManagedLock(e.managedLock)}
+              </p>
             )}
           </li>
         ))}
@@ -1178,6 +1247,15 @@ function ExtraList({
           <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
           <span>{error ?? refLint?.message}</span>
         </p>
+      )}
+      {/* CC 2.1.325 — the engine's "Add marketplace?" confirmation note.
+          Claudius adds in one click (no confirm step), so the note appears
+          once a source is typed — the moment you're deciding. Placed after
+          the lint lines so it doesn't read as one of them. */}
+      {!legacyExtra && ref.trim() && (
+        <TrustNote testId="marketplace-trust-note" compact className="mt-1">
+          {MARKETPLACE_TRUST_NOTE}
+        </TrustNote>
       )}
     </div>
   );
