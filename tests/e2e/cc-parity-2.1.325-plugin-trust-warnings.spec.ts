@@ -5,8 +5,8 @@
  *
  * Claudius's equivalents live on `/plugins`: the install form carries the
  * engine's install warning, the catalog browser heads its list with the
- * one-liner, and typing a marketplace source (in the add form, or the install
- * form's `--marketplace` field) shows the add-marketplace note.
+ * one-liner, and typing a source into the marketplace add form shows the
+ * add-marketplace note.
  *
  * Screenshots: docs/cc-parity/2.1.325/plugin-trust-install.png
  *              docs/cc-parity/2.1.325/plugin-trust-marketplace.png
@@ -86,6 +86,18 @@ async function mockPluginsBackend(page: Page): Promise<void> {
   });
 }
 
+/**
+ * The app-wide updater banner reflects the dev machine's real updater state
+ * (not mocked here) and has nothing to do with this feature — dismiss it so
+ * the screenshot shows the page chrome without unrelated noise.
+ */
+async function dismissUpdaterBanner(page: Page): Promise<void> {
+  const dismiss = page.getByRole("button", { name: /^Dismiss (updater error|update-feed notice|for this session|for 24 hours|until a newer version is available)$/ });
+  for (let i = 0; i < 3 && (await dismiss.count()) > 0; i++) {
+    await dismiss.first().click().catch(() => {});
+  }
+}
+
 test.beforeEach(async ({ page }) => {
   await activateClaudiusWorkspace(page);
 });
@@ -104,17 +116,13 @@ test.describe("Plugin trust warnings (CC 2.1.325)", () => {
     // Once for the list, not on every row.
     await expect(catalogNote).toHaveCount(1);
 
-    // The install form's marketplace note only shows once a source is typed —
-    // `--marketplace` adds that marketplace, so it's the add-marketplace moment.
-    const installMarketplaceNote = page.getByTestId("plugin-install-marketplace-trust");
-    await expect(installMarketplaceNote).toHaveCount(0);
+    // The long install warning already covers a `--marketplace` install, so
+    // filling that field doesn't stack a second "can run code" line under it.
     await page.getByPlaceholder("frontend-design@claude-plugins-official").fill("dataviz");
     await page.getByTestId("plugin-install-marketplace-source").fill("acme/claude-plugins");
-    await expect(installMarketplaceNote).toHaveText(MARKETPLACE_TRUST_NOTE);
-    await page.getByTestId("plugin-install-marketplace-source").fill("");
-    await expect(installMarketplaceNote).toHaveCount(0);
-    await page.getByTestId("plugin-install-marketplace-source").fill("acme/claude-plugins");
+    await expect(page.getByText(MARKETPLACE_TRUST_NOTE)).toHaveCount(0);
 
+    await dismissUpdaterBanner(page);
     await page.waitForTimeout(300);
     await page.screenshot({ path: resolve(SCREENSHOT_DIR, "plugin-trust-install.png"), fullPage: false });
   });
@@ -139,6 +147,7 @@ test.describe("Plugin trust warnings (CC 2.1.325)", () => {
     await expect(note).toHaveCount(0);
     await sourceInput.fill("acme/claude-plugins");
 
+    await dismissUpdaterBanner(page);
     await note.scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
     await page.screenshot({ path: resolve(SCREENSHOT_DIR, "plugin-trust-marketplace.png"), fullPage: false });

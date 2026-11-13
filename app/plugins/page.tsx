@@ -330,7 +330,7 @@ function InstallSection({
       {/* CC 2.1.325 — the engine's install warning. Its terminal install
           screen shows it before you pick a scope; this form is Claudius's
           equivalent, so the warning sits above the Install button. */}
-      <TrustNote testId="plugin-install-trust-warning" className="mb-3">
+      <TrustNote testId="plugin-install-trust-warning" tone="warning" className="mb-3">
         {PLUGIN_INSTALL_TRUST_WARNING}
       </TrustNote>
 
@@ -389,14 +389,6 @@ function InstallSection({
           <RefreshCw className="h-3 w-3" /> Refresh
         </button>
       </form>
-
-      {/* CC 2.1.325 — `--marketplace <source>` adds that marketplace before
-          installing, so it gets the engine's add-marketplace note too. */}
-      {marketplaceSource.trim() && (
-        <TrustNote testId="plugin-install-marketplace-trust" className="mt-2">
-          {MARKETPLACE_TRUST_NOTE}
-        </TrustNote>
-      )}
 
       {draftLint && (
         <p
@@ -649,24 +641,38 @@ function AvailableSection({
 
 /**
  * CC 2.1.325 — a standing "plugins run code" note (the engine's dim warning
- * line). Muted, not amber: it's advice about trust, not a problem with what
- * was typed, so it doesn't borrow the lint-warning colour.
+ * line). The text is always muted: it's advice about trust, not a problem
+ * with what was typed. Only the install warning (`tone="warning"`) gets the
+ * amber icon; elsewhere the icon is muted too, so amber on this page keeps
+ * meaning "something you typed is wrong" (the lint lines). `compact` matches
+ * the 10px lines of the Marketplaces section.
  */
 function TrustNote({
   testId,
+  tone = "info",
+  compact = false,
   className,
   children,
 }: {
   testId: string;
+  tone?: "info" | "warning";
+  compact?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   return (
     <p
       data-testid={testId}
-      className={cn("flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--muted)]", className)}
+      className={cn(
+        "flex items-start leading-relaxed text-[var(--muted)]",
+        compact ? "gap-1 text-[10px]" : "gap-1.5 text-[11px]",
+        className,
+      )}
     >
-      <ShieldAlert aria-hidden className="mt-px h-3 w-3 shrink-0 text-amber-400" />
+      <ShieldAlert
+        aria-hidden
+        className={cn("mt-px h-3 w-3 shrink-0", tone === "warning" ? "text-amber-400" : "text-[var(--muted)]")}
+      />
       <span>{children}</span>
     </p>
   );
@@ -1224,14 +1230,6 @@ function ExtraList({
           </button>
         </form>
       )}
-      {/* CC 2.1.325 — the engine's "Add marketplace?" confirmation note.
-          Claudius adds in one click (no confirm step), so the note appears
-          as soon as a source is typed — the moment you're deciding. */}
-      {!legacyExtra && ref.trim() && (
-        <TrustNote testId="marketplace-trust-note" className="mt-1">
-          {MARKETPLACE_TRUST_NOTE}
-        </TrustNote>
-      )}
       {nameLint && (
         <p
           data-testid="marketplace-name-warning"
@@ -1249,6 +1247,15 @@ function ExtraList({
           <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
           <span>{error ?? refLint?.message}</span>
         </p>
+      )}
+      {/* CC 2.1.325 — the engine's "Add marketplace?" confirmation note.
+          Claudius adds in one click (no confirm step), so the note appears
+          once a source is typed — the moment you're deciding. Placed after
+          the lint lines so it doesn't read as one of them. */}
+      {!legacyExtra && ref.trim() && (
+        <TrustNote testId="marketplace-trust-note" compact className="mt-1">
+          {MARKETPLACE_TRUST_NOTE}
+        </TrustNote>
       )}
     </div>
   );
