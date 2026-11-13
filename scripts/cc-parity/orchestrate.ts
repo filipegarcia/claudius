@@ -19,12 +19,13 @@
  *   - a different emoji for the channel announce so operators can tell
  *     the two pipelines apart at a glance
  *
- * The Claudius `version` field bump in step 12 (release coupling) lives
- * here too, with one important deviation from the SDK pipeline: the SDK
- * updater sets `version` to the SDK version (also semver 0.3.x); here we
- * INCREMENT the existing version's patch component so Claude Code's
- * 1.x/2.x range doesn't fight the SDK pipeline's 0.3.x bumps. See
- * `bumpClaudiusPatch` for the rationale.
+ * The Claudius `version` field is NOT cc-parity's to invent. It follows the
+ * SDK this branch depends on (SDK 0.3.N ships with Claude Code 2.1.N), and
+ * it's only ever raised to a real SDK version, never past one and never down.
+ * Step 12 goes through the same `syncClaudiusVersionToSdk` as the SDK
+ * pipeline, so on a branch stacked onto an SDK-update PR it's a no-op. This
+ * step used to add one to the patch, minting 0.3.320 and 0.3.324, which no
+ * Claude Code release has.
  */
 
 import { spawnSync } from "node:child_process";
@@ -44,6 +45,10 @@ import {
   readState,
   repoRoot,
 } from "./check";
+import {
+  readInstalledRange as readInstalledSdkRange,
+  syncClaudiusVersionToSdk,
+} from "../sdk-update/check";
 import {
   addNeedsHumanLabel,
   ALL_GATE_STEPS,
@@ -242,45 +247,6 @@ function checkoutFreshBranch(
   sh("git", ["branch", "-D", branch]);
   sh("git", ["checkout", "-b", branch, "origin/main"]);
   return { branch, resumed: false };
-}
-
-// ── Claudius version bump ─────────────────────────────────────────────
-
-/**
- * Bump the patch component of Claudius's own `version` field in
- * package.json. The SDK-update pipeline overwrites this field with the
- * SDK version (0.3.x) on every green run; if cc-parity wrote the
- * upstream Claude Code version (1.x/2.x) the two pipelines would fight
- * over the field and the displayed version would lurch unpredictably.
- *
- * Incrementing the existing patch keeps the version monotonic and lets
- * both pipelines coexist: SDK updater bumps minor as it tracks SDK
- * minors, cc-parity bumps patch every time it lands a parity PR. The
- * trailing `.N` release counter (computed at build time from git, see
- * scripts/claudius-release.mjs) auto-resets to .0 on the new anchor.
- *
- * Returns the new version string so the caller can log it.
- */
-export function bumpClaudiusPatch(): string {
-  const pkgPath = resolve(ROOT, "package.json");
-  const raw = readFileSync(pkgPath, "utf8");
-  const m = raw.match(/("version"\s*:\s*")(\d+)\.(\d+)\.(\d+)(")/);
-  if (!m) {
-    throw new Error(
-      "failed to read top-level version in package.json — pattern miss",
-    );
-  }
-  const major = Number(m[2]);
-  const minor = Number(m[3]);
-  const patch = Number(m[4]) + 1;
-  const next = `${major}.${minor}.${patch}`;
-  const updated = raw.replace(
-    /("version"\s*:\s*")(\d+)\.(\d+)\.(\d+)(")/,
-    `$1${next}$5`,
-  );
-  writeFileSync(pkgPath, updated, "utf8");
-  log(`bumped claudius version → ${next} (release counter auto-resets via git)`);
-  return next;
 }
 
 // ── Changelog extraction ──────────────────────────────────────────────
@@ -1857,21 +1823,34 @@ async function main(): Promise<void> {
       return;
     }
 
-    // Local-green: bump Claudius's own patch version (cc-parity ships
-    // every successful run; the SDK pipeline owns the minor channel)
-    // and commit the bump.
+    // Local-green: line Claudius's version up with the SDK this branch
+    // depends on. It's raised only to a real SDK version, never past it and
+    // never down (see syncClaudiusVersionToSdk). A cc-parity release doesn't
+    // need a version change of its own: auto-tag cuts `v<version>.<N>` for
+    // every push to main. Stacked onto an SDK-update PR, the SDK pipeline has
+    // already synced it, so this is a no-op and no commit is made. Here it
+    // used to add one to the patch (0.3.323 → 0.3.324), a version Claude Code
+    // never had.
     //
     // Lives in the standalone caller, NOT in
-    // `runCcParityOnExistingBranch`, because combined mode must NOT
-    // bump this — the SDK pipeline already set claudius's version to
-    // the SDK version earlier on the same branch.
-    const bumped = bumpClaudiusPatch();
-    sh("git", ["add", "package.json"]);
-    sh("git", [
-      "commit",
-      "-m",
-      `chore(release): bump claudius version → ${bumped} for cc-parity ${newVersion}`,
-    ]);
+    // `runCcParityOnExistingBranch`, because combined mode leaves the
+    // version to the SDK pipeline on the same branch.
+    const sdkRange = readInstalledSdkRange(ROOT); // this branch's tree
+    const versionSync = syncClaudiusVersionToSdk(sdkRange, ROOT);
+    if (versionSync.changed) {
+      log(`claudius version ${versionSync.from} → ${versionSync.to} (matches SDK ${sdkRange})`);
+      sh("git", ["add", "package.json"]);
+      sh("git", [
+        "commit",
+        "-m",
+        `chore(release): claudius version → ${versionSync.to} for cc-parity ${newVersion}`,
+      ]);
+    } else {
+      log(
+        `claudius version stays ${versionSync.from} (SDK ${sdkRange}) — ` +
+          `cc-parity never moves it past the SDK`,
+      );
+    }
 
     pushBranch(branch);
 
