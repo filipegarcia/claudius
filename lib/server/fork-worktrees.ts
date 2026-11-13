@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 import { getRepoRoot } from "./git";
@@ -138,6 +138,28 @@ export async function createForkWorktree(
     // says the check was unavailable.
   }
 
+  // CC 2.1.323 parity — refuse a checkout whose .git holds links or hard
+  // links (git-new-workdir, `cp -al` copies): git could write outside the
+  // repository through them. The fork stays on the shared checkout.
+  try {
+    const { stdout } = await execFileP(
+      "git",
+      ["-C", repoRoot, "rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"],
+      { timeout: 5_000 },
+    );
+    const [gitDir, commonDir] = stdout.split("\n").map((l) => l.trim());
+    const escape =
+      gitDir && commonDir ? await worktreeWriteEscape(gitDir, commonDir, branch, { dotGit: join(repoRoot, ".git") }) : null;
+    if (escape) {
+      const rel = relative(repoRoot, escape);
+      const shown = rel && !rel.startsWith("..") ? rel : escape;
+      return { ok: false, reason: forkLinkRefusalReason(shown) };
+    }
+  } catch {
+    // Couldn't resolve the git dirs, or couldn't read an entry (permissions,
+    // I/O): `worktree add` below reports its own error.
+  }
+
   await fs.mkdir(root, { recursive: true });
   try {
     await execFileP("git", ["-C", repoRoot, "worktree", "add", "-b", branch, target, "HEAD"], {
@@ -155,6 +177,106 @@ export async function createForkWorktree(
   await writeIndex(idx);
 
   return { ok: true, worktree: { path: target, branch, dirty } };
+}
+
+/**
+ * The fork toast's reason (it sits in a parenthesis, so no semicolons), kept
+ * under `worktreeFailureReason`'s 120-character cap where the path allows.
+ */
+export function forkLinkRefusalReason(shownPath: string): string {
+  return `${shownPath} is a link or hard link, as in git-new-workdir or cp -al copies — use a plain clone`;
+}
+
+/** `lstat`, with a missing entry as `undefined`. Other errors throw ("couldn't check"). */
+async function lstatOrMissing(p: string) {
+  try {
+    return await fs.lstat(p);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw e;
+  }
+}
+
+/**
+ * CC 2.1.323 parity — "Changed worktree creation to refuse checkouts whose
+ * .git folders are links or hold hard links, such as git-new-workdir layouts
+ * and cp -al copies; use a plain clone". Claudius runs `git worktree add`
+ * itself for `/fork`, so the engine's refusal never runs on that path.
+ *
+ * Mirrors the engine's check (`abt` in the 2.1.323 bundle), scoped to what
+ * `worktree add -b <branch>` writes:
+ * - the checkout's `.git` (`opts.dotGit`) must not be a link. `rev-parse`
+ *   prints real paths, so a linked `.git` is only visible from here;
+ * - the git dir and common dir must be folders;
+ * - each folder on the way to the branch's ref and reflog, plus `worktrees/`,
+ *   must be a plain folder (not a link);
+ * - `packed-refs` and an existing `refs/heads/<branch>` must be plain files
+ *   with a single name (no hard link). The ref must also not be a symbolic
+ *   `ref:` or hold a path.
+ * A reftable repository (`extensions.refStorage = reftable`) keeps no loose
+ * refs, reflogs or `packed-refs` (`refs/heads` is a stub file there), so only
+ * `reftable/`, its `tables.list` and `worktrees/` are checked.
+ *
+ * A missing entry is fine, because git creates it. Returns the offending
+ * path, or `null` when nothing would let git write outside the repository.
+ * Throws when an entry can't be read (permissions, I/O): that is "couldn't
+ * check", not a link. `objects/` is not checked, because `git clone
+ * /local/path` hard-links objects on purpose.
+ */
+export async function worktreeWriteEscape(
+  gitDir: string,
+  commonDir: string,
+  branch: string,
+  opts: { dotGit?: string } = {},
+): Promise<string | null> {
+  if (opts.dotGit) {
+    const st = await lstatOrMissing(opts.dotGit);
+    if (st?.isSymbolicLink()) return opts.dotGit;
+  }
+  for (const dir of [commonDir, gitDir]) {
+    const st = await lstatOrMissing(dir);
+    if (!st || st.isSymbolicLink() || !st.isDirectory()) return dir;
+  }
+  const config = await fs.readFile(join(commonDir, "config"), "utf8").catch(() => "");
+  const reftable = /^\s*refstorage\s*=\s*reftable\s*$/im.test(config);
+  const parts = branch.split("/");
+  const chains: Array<[string, string[]]> = reftable
+    ? [
+        [commonDir, ["reftable", "tables.list"]],
+        [commonDir, ["worktrees"]],
+      ]
+    : [
+        [commonDir, ["logs", "refs", "heads", ...parts]],
+        [gitDir, ["logs", "HEAD"]],
+        [commonDir, ["refs", "heads", ...parts.slice(0, -1)]],
+        [commonDir, ["worktrees"]],
+      ];
+  for (const [base, chain] of chains) {
+    for (let i = 1; i <= chain.length; i++) {
+      const p = join(base, ...chain.slice(0, i));
+      const st = await lstatOrMissing(p);
+      if (st === undefined) break; // missing: git creates it
+      if (st.isSymbolicLink()) return p;
+      const last = i === chain.length;
+      if (last && st.isFile()) {
+        if (st.nlink > 1) return p;
+      } else if (!st.isDirectory()) {
+        return p;
+      }
+    }
+  }
+  if (reftable) return null;
+  const refPath = join(commonDir, "refs", "heads", ...parts);
+  for (const p of [join(commonDir, "packed-refs"), refPath]) {
+    const st = await lstatOrMissing(p);
+    if (st === undefined) continue;
+    if (st.isSymbolicLink() || !st.isFile() || st.nlink > 1) return p;
+    if (p === refPath) {
+      const text = await fs.readFile(p, "utf8");
+      if (text.startsWith("ref:") || /[\\/]/.test(text)) return p;
+    }
+  }
+  return null;
 }
 
 /**

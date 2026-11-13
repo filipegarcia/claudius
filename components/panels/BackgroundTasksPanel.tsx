@@ -886,7 +886,13 @@ export function BackgroundTasksPanel({
                   <li
                     key={e.toolUseId}
                     className={cn("rounded-md border px-2 py-1.5", tone)}
-                    title={isThinking ? undefined : notRun ? `Not run — auto mode's check had no usable answer${e.primaryArg ? ` · ${e.primaryArg}` : ""}` : e.primaryArg}
+                    title={
+                      isThinking
+                        ? undefined
+                        : notRun
+                          ? `${e.rejected ? "Not run · rejected" : "Not run — auto mode's check had no usable answer"}${e.primaryArg ? ` · ${e.primaryArg}` : ""}`
+                          : e.primaryArg
+                    }
                     data-not-run={notRun ? "1" : undefined}
                   >
                     <div className="flex items-center gap-1.5 text-xs">

@@ -47,8 +47,17 @@ export type DisplayBlock =
        * later turn. `notRun`: CC 2.1.296 — an error result the engine tagged
        * `automode-unavailable` (auto mode's check had no usable answer, so the
        * call never ran); rendered as a dim "Not run" row, not a red error.
+       * `rejected`: CC 2.1.323 — the not-run reason is the user's own
+       * rejection from the permission card ("Not run · rejected").
        */
-      result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean; notRun?: boolean };
+      result?: {
+        content: string;
+        isError?: boolean;
+        staged?: boolean;
+        detached?: boolean;
+        notRun?: boolean;
+        rejected?: boolean;
+      };
       /**
        * Client-stamped wall-clock start (epoch ms), set the first time this
        * tool_use block is built and preserved across scratch-buffer rebuilds
@@ -153,6 +162,13 @@ export type DisplayMessage = {
      * point at usage credits instead.
      */
     subscriptionType?: "pro" | "max" | "team" | "enterprise" | (string & {});
+    /**
+     * CC 2.1.323 — the hit is the engine's "<Model> requires usage credits."
+     * (a model that runs only on usage credits, which are off or used up),
+     * not a plan-tier window. Holds the model's name; the panel says it needs
+     * usage credits instead of naming a tier or reset.
+     */
+    modelNeedsCredits?: string;
   };
   /**
    * Present when this assistant message IS the Anthropic backend's
@@ -590,6 +606,8 @@ export type RecentEdit = {
   isError?: boolean;
   /** CC 2.1.296 — auto mode's check had no usable answer; the edit never ran. */
   notRun?: boolean;
+  /** CC 2.1.323 — not run because the user rejected it. */
+  rejected?: boolean;
 };
 
 /**
@@ -613,6 +631,8 @@ export type ToolHistoryEntry = {
    * dim and neutral instead of red, like the chat row.
    */
   notRun?: boolean;
+  /** CC 2.1.323 — not run because the user rejected it ("Not run · rejected"). */
+  rejected?: boolean;
   /** Set when the tool was invoked by a subagent. */
   parentToolUseId?: string | null;
   /**

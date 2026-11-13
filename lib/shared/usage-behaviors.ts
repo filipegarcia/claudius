@@ -93,7 +93,11 @@ export const USAGE_BEHAVIOR_COPY: Record<UsageBehaviorKey, { headline: (pct: num
     body: "All sessions share one limit. If you don't need them all at once, queueing uses it more evenly.",
   },
   cron: {
-    headline: (pct) => `${pct}% of your usage came from sessions active for 8+ hours`,
+    // CC 2.1.323 — "Fixed /usage … saying sessions ran 8 hours when it only
+    // counts hours with requests". The flag counts whole sessions with
+    // requests in 8+ separate hours, not continuous runtime; the engine's
+    // wording is "whole sessions with requests in 8 or more separate hours".
+    headline: (pct) => `${pct}% of your usage came from sessions with requests in 8 or more separate hours`,
     body: "These are often background/loop sessions. Continuous usage can add up quickly so make sure it is intentional.",
   },
   max_effort: {

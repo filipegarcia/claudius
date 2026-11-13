@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { stampUserRejectedToolResults } from "@/lib/shared/user-rejected-stamp";
 import { withGoalMcpServer, withoutGoalMcpServer } from "./mcp-in-process";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
@@ -1981,6 +1982,12 @@ export class Session {
    */
   private holderId: string | null = null;
   private pendingPermissions = new Map<string, PendingPermission>();
+  /**
+   * CC 2.1.323 — tool-use ids the user denied from the permission card,
+   * waiting for their error tool_result so it can be re-stamped
+   * `user-rejected` ("Not run · rejected"). See `stampUserRejectedToolResults`.
+   */
+  private userRejectedToolUseIds = new Set<string>();
   private pendingAskQuestions = new Map<string, PendingAskQuestion>();
   /**
    * MCP elicitations (SDK `Options.onElicitation`) waiting on the user — form
@@ -3056,8 +3063,17 @@ export class Session {
       this.advisorModel = undefined;
       delete (userSettings as ClaudeSettings).advisorModel;
       // Best-effort disk clear so subsequent sessions also start clean.
-      const cleaned: ClaudeSettings = { ...userSettings };
-      writeSettings("user", this.cwd, cleaned).catch((err) => {
+      // CC 2.1.323 — re-read right before writing instead of writing the
+      // copy read at the top of start(): that copy is several awaits old, so
+      // writing it back could undo a hand edit to settings.json made
+      // meanwhile, or recreate a file deleted meanwhile. Only the
+      // `advisorModel` key is removed, and only if the file still has it.
+      void (async () => {
+        const fresh = await readSettings("user", this.cwd);
+        if (!Object.hasOwn(fresh, "advisorModel")) return;
+        delete fresh.advisorModel;
+        await writeSettings("user", this.cwd, fresh);
+      })().catch((err) => {
         console.error("[session.start] advisor-fable-incompatible clear failed", err);
       });
       // We don't broadcast here synchronously; the SSE client subscribes
@@ -4100,6 +4116,7 @@ export class Session {
     this.broadcastPromptSettled("permission", requestId);
 
     if (decision.kind === "deny") {
+      this.markUserRejected(pending.meta.toolUseId);
       pending.resolve({ behavior: "deny", message: decision.message ?? "User denied" });
       return true;
     }
@@ -4167,6 +4184,18 @@ export class Session {
    * If the user submits no answers (the cancel path), we deny instead of
    * allow — that's a cleaner signal to the model than empty strings.
    */
+  /**
+   * CC 2.1.323 — remember a tool call the user turned down so its error
+   * result is re-stamped `user-rejected` ("Not run · rejected") when it
+   * streams back. Bounded: ids are removed once their result is stamped; a
+   * result that never arrives (turn aborted) only leaves a few stale strings.
+   */
+  private markUserRejected(toolUseId: string | undefined): void {
+    if (!toolUseId) return;
+    if (this.userRejectedToolUseIds.size > 200) this.userRejectedToolUseIds.clear();
+    this.userRejectedToolUseIds.add(toolUseId);
+  }
+
   submitAskAnswer(requestId: string, answers: AskAnswer[]): boolean {
     const pending = this.pendingAskQuestions.get(requestId);
     if (!pending) return false;
@@ -4217,6 +4246,8 @@ export class Session {
     void notificationBus.markReadByRequestId(this.cwd, requestId);
 
     if (decision.kind === "reject") {
+      // CC 2.1.323: a rejected plan is a rejection, not a failure.
+      this.markUserRejected(pending.toolUseId);
       pending.resolve({
         behavior: "deny",
         message: decision.message ?? "User rejected the plan — keep iterating.",
@@ -9655,7 +9686,10 @@ export class Session {
     let sawResult = false;
     let sawError = false;
     try {
-      for await (const message of this.query as AsyncIterable<SDKMessage>) {
+      for await (const raw of this.query as AsyncIterable<SDKMessage>) {
+        // CC 2.1.323 — mark results of calls the user denied as
+        // `user-rejected` (the engine stamps a host deny `permission-rule`).
+        const message = stampUserRejectedToolResults(raw, this.userRejectedToolUseIds);
         this.broadcast({ type: "sdk", message });
         // Auto-recover from the thinking-block replay 400. The SDK surfaces it
         // as a synthetic assistant "API Error: …" message (not a thrown

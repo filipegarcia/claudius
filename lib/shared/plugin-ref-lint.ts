@@ -145,15 +145,15 @@ const RESERVED_MARKETPLACE_NAMES: ReadonlySet<string> = new Set([
 
 /**
  * Marketplace names the CLI reserves for a plugin source of its own, refused
- * regardless of source (case-insensitive). Two kinds, both copied from the
- * bundled CLI's reserved-name map:
- * - built-in sources (`inline`, `builtin`, `skills-dir`, `synced`,
- *   `claude-plugin-test`) — plugins loaded by Claude Code itself, which would
- *   collide with a marketplace of the same name;
- * - install-routing suffixes: `<plugin>@npm` (and the reserved `@pip`, `@uv`,
- *   `@cargo`, `@github`, `@gh`) route to a package registry instead of a
- *   marketplace, so a marketplace under one of these names can never be
- *   installed from.
+ * regardless of source (case-insensitive): the built-in sources (`inline`,
+ * `builtin`, `skills-dir`, `synced`, `claude-plugin-test`) — plugins loaded by
+ * Claude Code itself, which would collide with a marketplace of the same name.
+ * Copied from the bundled CLI's reserved-name map.
+ *
+ * CC 2.1.323 parity — "Fixed marketplaces named npm, pip, uv, cargo, github
+ * or gh being refused as reserved names": the install-routing suffixes
+ * (`npm`, `pip`, `uv`, `cargo`, `github`, `gh`) left the engine's map in
+ * 2.1.323, so Claudius no longer refuses them either.
  */
 const RESERVED_SOURCE_NAMES: Readonly<Record<string, string>> = {
   inline: "--plugin-dir session plugins",
@@ -161,12 +161,6 @@ const RESERVED_SOURCE_NAMES: Readonly<Record<string, string>> = {
   "skills-dir": "plugins auto-loaded from .claude/skills/",
   synced: "plugins synced from your claude.ai account",
   "claude-plugin-test": "plugins loaded by claude plugin test",
-  npm: "plugins installed from an npm registry (<package>@npm)",
-  pip: "plugins installed from a Python package index",
-  uv: "plugins installed from a Python package index through uv",
-  cargo: "plugins installed from a Rust crate registry",
-  github: "plugins installed straight from a GitHub repository (<owner>/<repo>@github)",
-  gh: "plugins installed straight from a GitHub repository",
 };
 
 /** True when `source` is a GitHub `anthropics/<repo>` source. */
@@ -185,9 +179,9 @@ function isAnthropicsGithubSource(source: unknown): boolean {
  * for a marketplace whose name no plugin can be installed under; such an add
  * is now refused". Plugins are installed as `<plugin>@<marketplace>`, so a
  * marketplace name with spaces, `@`, `/`, or a leading `.`/`-` can never be
- * the target of an install ref, nor can one named after an install-routing
- * suffix (`npm`, `gh`, …) or a built-in plugin source (`builtin`, `inline`,
- * …). The CLI also refuses Anthropic's reserved
+ * the target of an install ref, nor can one named after a built-in plugin
+ * source (`builtin`, `inline`, …). (Until CC 2.1.323 the install-routing
+ * suffixes `npm`, `gh`, … were refused too.) The CLI also refuses Anthropic's reserved
  * marketplace names unless the source is a GitHub repo under `anthropics/`.
  * Since CC 2.1.296 it also refuses a name that is an own key of
  * `Object.prototype` (`constructor`, `toString`, …).

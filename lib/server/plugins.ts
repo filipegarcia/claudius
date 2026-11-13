@@ -30,7 +30,8 @@ import {
 export type PluginsByScope = {
   scope: SettingsScope;
   path: string;
-  enabledPlugins: Record<string, boolean>;
+  /** Raw values (`string[] | boolean | {…}`); see `enabledPluginState`. */
+  enabledPlugins: Record<string, unknown>;
   /**
    * G1 — redacted views of the three marketplace keys (SDK object/array
    * shapes). Header values and headersHelper text are withheld; they never
@@ -134,7 +135,7 @@ export async function listAll(cwd: string): Promise<PluginsByScope[]> {
     out.push({
       scope,
       path: pathFor(scope, cwd),
-      enabledPlugins: typeof ep === "object" && ep ? (ep as Record<string, boolean>) : {},
+      enabledPlugins: typeof ep === "object" && ep ? (ep as Record<string, unknown>) : {},
       extraKnownMarketplaces: readExtraMarketplaces(extraRaw),
       strictKnownMarketplaces: readPolicyMarketplaces(
         aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces"),
@@ -233,7 +234,7 @@ export async function setEnabled(
   const settings = await readSettings(scope, cwd);
   const ep =
     typeof settings.enabledPlugins === "object" && settings.enabledPlugins
-      ? { ...(settings.enabledPlugins as Record<string, boolean>) }
+      ? { ...(settings.enabledPlugins as Record<string, unknown>) }
       : {};
   if (enabled) ep[pluginId] = true;
   else delete ep[pluginId];
