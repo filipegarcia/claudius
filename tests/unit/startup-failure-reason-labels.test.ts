@@ -34,6 +34,7 @@ describe("STARTUP_FAILURE_REASON_LABELS", () => {
     "sandbox_required_unavailable",
     "initialize_not_first",
     "config_file_invalid",
+    "managed_settings_not_delivered",
   ];
 
   test("covers every reason value the SDK documents", () => {

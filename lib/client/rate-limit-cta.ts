@@ -10,25 +10,38 @@
  *  - CC 2.1.284: a Team/Enterprise account is already top-tier, so point at
  *    usage credits rather than the personal "Upgrade your plan/Team" links;
  *  - otherwise (Pro/Max/unknown) → the upgrade links.
+ *
+ * CC 2.1.323: a model that runs only on usage credits ("<Model> requires
+ * usage credits.") comes first → `model-needs-credits` (turn on usage
+ * credits + the upgrade links, or the contact-admin line when the seat can't
+ * buy them).
  */
 export type RateLimitCtaKind =
+  | "model-needs-credits"
   | "buy-credits"
   | "contact-admin-credits"
   | "contact-admin-pool"
   | "usage-credits"
   | "upgrade";
 
+/** Team and Enterprise are already on the top plan: no personal upgrade links (CC 2.1.284). */
+export function isTopPlan(subscriptionType: string | null | undefined): boolean {
+  return subscriptionType === "team" || subscriptionType === "enterprise";
+}
+
 export function rateLimitCtaKind(hit: {
   errorCode?: string;
   canUserPurchaseCredits?: boolean;
   limitScope?: string;
   subscriptionType?: string;
+  modelNeedsCredits?: string;
 }): RateLimitCtaKind {
+  if (hit.modelNeedsCredits) return "model-needs-credits";
   if (hit.errorCode === "credits_required") {
     return hit.canUserPurchaseCredits !== false ? "buy-credits" : "contact-admin-credits";
   }
   if (hit.limitScope === "group_pool") return "contact-admin-pool";
-  if (hit.subscriptionType === "team" || hit.subscriptionType === "enterprise") return "usage-credits";
+  if (isTopPlan(hit.subscriptionType)) return "usage-credits";
   return "upgrade";
 }
 

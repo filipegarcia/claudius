@@ -3,7 +3,7 @@ import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { sessionManager } from "@/lib/server/session-manager";
 import { applyModelPickerCuration } from "@/lib/server/model-picker-curation";
 import { readSettings } from "@/lib/server/settings";
-import { resolveManagedModelPolicy } from "@/lib/server/managed-model-policy";
+import { matchManagedDeniedModels, resolveManagedModelPolicy } from "@/lib/server/managed-model-policy";
 import { isModelDeniedByManaged } from "@/lib/shared/denied-models";
 
 export const runtime = "nodejs";
@@ -156,8 +156,17 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     // blocks (the whole point of the policy is to hide it).
     const policy = await resolveManagedModelPolicy(session.cwd);
     const augmented = [...sdkModels];
-    for (const alias of ALWAYS_SHOWN_ALIASES) {
-      if (isModelDeniedByManaged(alias.value, policy.deniedModels, policy.availableModelsMatch)) {
+    // SDK 0.3.323 — ask Claude Code's own matcher too; its `true` is
+    // authoritative, its `false` is not, so OR it with our local check.
+    const sdkDenied = await matchManagedDeniedModels(
+      ALWAYS_SHOWN_ALIASES.map((a) => a.value),
+      policy.deniedModels,
+    );
+    for (const [i, alias] of ALWAYS_SHOWN_ALIASES.entries()) {
+      if (
+        sdkDenied[i] ||
+        isModelDeniedByManaged(alias.value, policy.deniedModels, policy.availableModelsMatch)
+      ) {
         continue;
       }
       if (!listAlreadyCoversAlias(augmented, alias)) {

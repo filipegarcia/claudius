@@ -39,8 +39,21 @@ export const UNKNOWN_MODEL_WINDOW_DOCS_URL =
 /** The warning's words the notice links to the docs anchor above. */
 export const UNKNOWN_MODEL_WINDOW_LINK_TEXT = "set the window";
 
-/** The window auto-compact assumes for a model it doesn't know. */
-export const UNKNOWN_MODEL_ASSUMED_WINDOW = 200_000;
+/**
+ * The window auto-compact assumes for a model it doesn't know. CC 2.1.323
+ * raised it from 200K to 1M ("Changed the context window assumed for a model
+ * ID that Claude Code doesn't recognize from 200K to 1M … or
+ * CLAUDE_CODE_DISABLE_1M_CONTEXT=1 to keep 200K"): the engine's `BC()` now
+ * returns 1M for an id outside its catalog unless that env var is set.
+ */
+export const UNKNOWN_MODEL_ASSUMED_WINDOW = 1_000_000;
+/** The window it assumes instead while `CLAUDE_CODE_DISABLE_1M_CONTEXT` is set. */
+export const UNKNOWN_MODEL_ASSUMED_WINDOW_NO_1M = 200_000;
+
+/** The window the engine assumes for an unrecognized id under `env`. */
+export function unknownModelAssumedWindow(env: Record<string, string | undefined>): number {
+  return envOn(env.CLAUDE_CODE_DISABLE_1M_CONTEXT) ? UNKNOWN_MODEL_ASSUMED_WINDOW_NO_1M : UNKNOWN_MODEL_ASSUMED_WINDOW;
+}
 
 const MODEL_ALIASES = new Set([
   "default",
@@ -160,8 +173,9 @@ export function unknownModelWarningText(model: string, window = UNKNOWN_MODEL_AS
 
 /**
  * The warning for a `/model <id>` switch, or `null`. A `[1m]`-tagged id is
- * skipped: the engine honours the 1M opt-in there instead of assuming 200k,
- * and Claudius can't tell what window it would assume.
+ * skipped: the engine honours the 1M opt-in there instead of assuming a
+ * window — unless `CLAUDE_CODE_DISABLE_1M_CONTEXT` is set, which turns the
+ * opt-in off, so the id is judged like any other.
  */
 export function unknownModelWarning(opts: {
   model: string | null | undefined;
@@ -171,8 +185,8 @@ export function unknownModelWarning(opts: {
 }): string | null {
   const { model } = opts;
   if (typeof model !== "string" || !model.trim()) return null;
-  if (/\[1m\]$/i.test(model.trim())) return null;
+  if (/\[1m\]$/i.test(model.trim()) && !envOn(opts.env.CLAUDE_CODE_DISABLE_1M_CONTEXT)) return null;
   if (isRecognizedModel(model, opts.models, opts.settings?.modelOverrides)) return null;
   if (unknownModelWarningSuppressed(model, opts.env, opts.settings)) return null;
-  return unknownModelWarningText(model);
+  return unknownModelWarningText(model, unknownModelAssumedWindow(opts.env));
 }

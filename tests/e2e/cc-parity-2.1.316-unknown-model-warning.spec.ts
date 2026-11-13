@@ -116,7 +116,7 @@ test.beforeEach(async ({ page }) => {
   await activateClaudiusWorkspace(page);
 });
 
-test("/model with an unrecognized id warns that auto-compact assumes a 200k window", async ({ page }) => {
+test("/model with an unrecognized id warns that auto-compact assumes a 1m window (CC 2.1.323)", async ({ page }) => {
   test.setTimeout(60_000);
   const state = await mockChatBackend(page);
   // Fake timers (time still flows) so the 8s auto-dismiss can be skipped
@@ -139,7 +139,7 @@ test("/model with an unrecognized id warns that auto-compact assumes a 200k wind
   const warning = notice.getByTestId("model-unrecognized-warning");
   await expect(warning).toBeVisible();
   await expect(warning).toContainText(`doesn't recognize the model "${GATEWAY_MODEL}"`);
-  await expect(warning).toContainText("assumes a context window of 200k tokens");
+  await expect(warning).toContainText("assumes a context window of 1m tokens");
   // Claudius bundles the engine — the remedy is updating Claudius.
   await expect(warning).toContainText("Update Claudius, or set the window.");
   await expect(warning).not.toContainText("Update Claude Code");
