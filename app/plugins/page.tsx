@@ -25,7 +25,7 @@ import { enabledPluginState, VERSION_LIST_NOT_ENABLED_MESSAGE, versionListNote }
 import { usePlugins, type InstalledPlugin } from "@/lib/client/usePlugins";
 import type { AvailablePlugin } from "@/lib/server/plugins";
 import type { SettingsScope } from "@/lib/server/settings";
-import type { PluginLoadError } from "@/lib/shared/parse-init";
+import { describeManagedLock, type PluginLoadError } from "@/lib/shared/parse-init";
 import { lintMarketplaceName, lintMarketplaceRef, lintPluginRef } from "@/lib/shared/plugin-ref-lint";
 import type {
   ExtraMarketplaceView,
@@ -701,6 +701,14 @@ function PluginErrorsSection({ errors }: { errors: PluginLoadError[] }) {
               <code className="mt-1 block break-all font-mono text-[10px] text-amber-200/70">
                 {e.path}
               </code>
+            )}
+            {e.managedLock && (
+              <p
+                data-testid="plugin-load-error-managed-lock"
+                className="mt-1 text-[10px] text-amber-200/80"
+              >
+                {describeManagedLock(e.managedLock)}
+              </p>
             )}
           </li>
         ))}
