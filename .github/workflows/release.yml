@@ -847,7 +847,12 @@ jobs:
     name: macOS x64 smoke (launch test under Rosetta)
     needs: macos-x64
     runs-on: macos-15
-    timeout-minutes: 15
+    # Rosetta makes this the slowest smoke: 7-13 min on healthy runners
+    # (v0.3.318.x-v0.3.324.x), so the old 15 min cap left no slack. v0.3.325.0's
+    # run was cancelled at 15m with the smoke step still going on a slow
+    # runner. This job doesn't gate `release-latest`, but a cancel paints the
+    # whole release run red.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
 
