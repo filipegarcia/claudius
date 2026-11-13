@@ -10066,13 +10066,13 @@
   },
   {
     "label": "\u26a1 Claude Code",
-    "total": 564,
-    "stable_count": 564,
+    "total": 565,
+    "stable_count": 565,
     "pre_count": 0,
     "first_date": "2025-02-24T18:03:41.458000+00:00",
-    "latest_date": "2026-11-10T02:29:43+00:00",
-    "span_days": 623,
-    "per_week": 6.337078651685394,
+    "latest_date": "2026-11-12T22:12:13+00:00",
+    "span_days": 626,
+    "per_week": 6.317891373801917,
     "gaps": [
       {
         "hours": 0.4709886111111111,
@@ -14014,6 +14014,13 @@
         "to_tag": "v2.1.322",
         "from_date": "2026-11-09T19:22:30+00:00",
         "to_date": "2026-11-10T02:29:43+00:00"
+      },
+      {
+        "hours": 67.70833333333333,
+        "from_tag": "v2.1.322",
+        "to_tag": "v2.1.323",
+        "from_date": "2026-11-10T02:29:43+00:00",
+        "to_date": "2026-11-12T22:12:13+00:00"
       }
     ],
     "fastest_gap": {
@@ -14030,22 +14037,22 @@
       "from_date": "2025-12-20T17:19:09.800000+00:00",
       "to_date": "2026-01-06T00:26:25.533000+00:00"
     },
-    "avg_gap_h": 26.57270650384843,
-    "median_gap_h": 22.24888888888889,
-    "stdev_gap_h": 28.70558367393041,
+    "avg_gap_h": 26.645642012411347,
+    "median_gap_h": 22.272624027777777,
+    "stdev_gap_h": 28.73233675306357,
     "cl_present": true,
-    "cl_max": 28783,
+    "cl_max": 41558,
     "cl_min": 1,
-    "cl_avg": 4270.583969465649,
+    "cl_avg": 4412.361216730038,
     "cl_max_rel": {
-      "tag": "v2.1.281",
-      "name": "v2.1.281",
-      "date": "2026-09-23T19:19:15+00:00",
-      "cl_chars": 28783,
-      "cl_lines": 179,
-      "cl_body": "## What's changed\n\n- Added Claude apps gateway support for newer Claude Desktop keys in `desktop` policy blocks, including `blockReadsOutsideWorkingDirectories` and `disableBypassPermissionsMode`\n- Added `assume_role` on Claude apps gateway Bedrock upstreams: the gateway calls Bedrock as an IAM role it assumes through STS, in another AWS account if needed, optionally one session per developer\n- Added `guardrail: {id, version}` on Claude apps gateway Bedrock upstreams to apply an Amazon Bedrock guardrail to every request sent through them (set it on all Bedrock upstreams or none)\n- Added `telemetry.resource_attributes` to the Claude apps gateway config, to put fixed labels on the telemetry of Claude Desktop and `/login` sessions\n- Added `\"attribution\": false` in `settings.json` to hide all ",
+      "tag": "v2.1.323",
+      "name": "v2.1.323",
+      "date": "2026-11-12T22:12:13+00:00",
+      "cl_chars": 41558,
+      "cl_lines": 297,
+      "cl_body": "## What's changed\n\n- Added Code Mode, an experimental opt-in in which Claude writes JavaScript to call its tools; see https://code.claude.com/docs/en/code-mode to turn it on, or to turn it off for an organization\n- Added `engines[\"claude-code\"]` to `plugin.json`: plugins outside their stated Claude Code version range are not installed, updated or loaded, and install and update pick the newest version that fits\n- Added type checking of a plugin's TypeScript hooks module to `claude plugin validate`; each finding is a warning, and `--strict` fails on it\n- Added to `claude plugin validate` the `$` nouns a mod's `engine.create` hook adds, withholds or replaces\n- Added support for `CLAUDE_CODE_AUTO_MODE_MODEL` in managed settings for Claude Desktop sessions on third-party providers (takes effect",
       "pre": false,
-      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.281",
+      "url": "https://github.com/anthropics/claude-code/releases/tag/v2.1.323",
       "ver_type": "patch"
     },
     "cl_min_rel": {
@@ -14063,7 +14070,7 @@
       "Monday": 70,
       "Tuesday": 110,
       "Wednesday": 108,
-      "Thursday": 107,
+      "Thursday": 108,
       "Friday": 115,
       "Saturday": 44,
       "Sunday": 10
@@ -14090,11 +14097,11 @@
       "2026-08": 29,
       "2026-09": 27,
       "2026-10": 27,
-      "2026-11": 5
+      "2026-11": 6
     },
     "years": {
       "2025": 284,
-      "2026": 280
+      "2026": 281
     },
     "fav_dow": [
       "Friday",
@@ -14107,23 +14114,23 @@
     "streak": 14,
     "streak_start": "2025-04-25T17:15:09.772000+00:00",
     "vtypes": {
-      "patch": 561,
+      "patch": 562,
       "major": 2,
       "minor": 1
     },
     "vel_trend": "steady",
     "vel_first": 6.646464646464646,
-    "vel_second": 6.073846153846153
+    "vel_second": 6.058103975535168
   },
   {
     "label": "\ud83e\udd16 Agent SDK",
-    "total": 261,
-    "stable_count": 261,
+    "total": 262,
+    "stable_count": 262,
     "pre_count": 0,
     "first_date": "2025-12-17T21:55:57+00:00",
-    "latest_date": "2026-11-10T02:29:43+00:00",
-    "span_days": 327,
-    "per_week": 5.587155963302752,
+    "latest_date": "2026-11-12T22:11:39+00:00",
+    "span_days": 330,
+    "per_week": 5.557575757575758,
     "gaps": [
       {
         "hours": 27.060277777777777,
@@ -15944,6 +15951,13 @@
         "to_tag": "v0.3.322",
         "from_date": "2026-11-09T19:22:16+00:00",
         "to_date": "2026-11-10T02:29:43+00:00"
+      },
+      {
+        "hours": 67.69888888888889,
+        "from_tag": "v0.3.322",
+        "to_tag": "v0.3.323",
+        "from_date": "2026-11-10T02:29:43+00:00",
+        "to_date": "2026-11-12T22:11:39+00:00"
       }
     ],
     "fastest_gap": {
@@ -15960,22 +15974,22 @@
       "from_date": "2025-12-19T22:13:22+00:00",
       "to_date": "2026-01-07T20:37:12+00:00"
     },
-    "avg_gap_h": 30.20216452991453,
-    "median_gap_h": 23.243333333333332,
-    "stdev_gap_h": 36.634075497642456,
+    "avg_gap_h": 30.34583014048531,
+    "median_gap_h": 23.280833333333334,
+    "stdev_gap_h": 36.63714952737379,
     "cl_present": true,
-    "cl_max": 2267,
+    "cl_max": 2840,
     "cl_min": 1,
-    "cl_avg": 573.2796934865901,
+    "cl_avg": 581.9312977099237,
     "cl_max_rel": {
-      "tag": "v0.3.257",
-      "name": "v0.3.257",
-      "date": "2026-09-01T17:53:44+00:00",
-      "cl_chars": 2267,
-      "cl_lines": 27,
-      "cl_body": "## What's changed\n\n- Added `thinkingTokens` to `ModelUsage` (a subset of `outputTokens`), and fixed result-message `usage.output_tokens_details.thinking_tokens` reporting 0 instead of the session's real count\n- Added `tool_use_result.resourceLinks` on user messages carrying MCP tool results: the `resource_link` blocks the tool returned, so hosts can render returned files without parsing the result text\n- Added optional `resource_links` to `task_notification` for an auto-backgrounded MCP tool call that completed, listing the files it returned by reference; join to the call via `tool_use_id`\n- Fixed `mcp_reconnect` and `mcp_toggle` acting on a same-named `.mcp.json` / `~/.claude.json` server instead of the `--mcp-config` or `mcp_set_servers` one\n- Fixed `mcp_toggle` disable also removing the",
+      "tag": "v0.3.323",
+      "name": "v0.3.323",
+      "date": "2026-11-12T22:11:39+00:00",
+      "cl_chars": 2840,
+      "cl_lines": 32,
+      "cl_body": "## What's changed\n\n- Added `machinePolicy.didNotLoad` (alpha) to `resolveSettings()`'s result, which tells a host when a machine policy source may be there and did not load\n- Added `matchDeniedModels()` (alpha), which tells a host which models a `deniedModels` list blocks, by Claude Code's own entry rules\n- Added the periodic `tool_progress` heartbeat while a turn waits on long-running hooks; `tool_name` is the hook event, `tool_use_id` begins `hook-`, `parent_tool_use_id` may name no tool call\n- Added `CLAUDE_CODE_DISABLE_AGENT_PROGRESS_SUMMARIES`: set to `1` to turn off subagent progress summaries even when `agentProgressSummaries` is `true` (available since 0.3.318)\n- Added `tool_use_result` to a subagent's WebSearch result message when the search did not run or found nothing\n- Fixed pr",
       "pre": false,
-      "url": "https://github.com/anthropics/claude-agent-sdk-typescript/releases/tag/v0.3.257",
+      "url": "https://github.com/anthropics/claude-agent-sdk-typescript/releases/tag/v0.3.323",
       "ver_type": "patch"
     },
     "cl_min_rel": {
@@ -15996,7 +16010,7 @@
       "Monday": 22,
       "Tuesday": 50,
       "Saturday": 29,
-      "Thursday": 46
+      "Thursday": 47
     },
     "months": {
       "2025-12": 3,
@@ -16010,11 +16024,11 @@
       "2026-08": 27,
       "2026-09": 27,
       "2026-10": 26,
-      "2026-11": 5
+      "2026-11": 6
     },
     "years": {
       "2025": 3,
-      "2026": 258
+      "2026": 259
     },
     "fav_dow": [
       "Wednesday",
@@ -16027,11 +16041,11 @@
     "streak": 10,
     "streak_start": "2026-02-19T23:28:39+00:00",
     "vtypes": {
-      "patch": 261
+      "patch": 262
     },
     "vel_trend": "steady",
-    "vel_first": 5.384615384615385,
-    "vel_second": 5.840764331210192
+    "vel_first": 5.394117647058824,
+    "vel_second": 5.767295597484276
   },
   {
     "label": "\ud83d\udcd8 TS SDK [npm]",
