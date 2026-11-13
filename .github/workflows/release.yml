@@ -226,7 +226,7 @@ jobs:
           # one `files:` array (the shape electron-updater expects). See
           # the merge job for the merging script + rationale.
           path: |
-            release/*.dmg
+            release/Claudius-*.dmg
             release/*.zip
             release/latest-mac.yml
           if-no-files-found: error
@@ -242,7 +242,7 @@ jobs:
           # `latest-mac.yml` would race and electron-updater would see only
           # one arch (the loser's auto-update would be broken).
           files: |
-            release/*.dmg
+            release/Claudius-*.dmg
             release/*.zip
           # Only `release-latest` promotes the release — see the header.
           make_latest: "false"
@@ -518,7 +518,7 @@ jobs:
           # `latest-mac.yml` rides along so the manifest-merge job can pick
           # up x64's single-arch manifest and combine it with arm64's.
           path: |
-            release/*.dmg
+            release/Claudius-*.dmg
             release/*.zip
             release/latest-mac.yml
           if-no-files-found: error
@@ -532,7 +532,7 @@ jobs:
           # multi-arch combined manifest — see that job. Same reasoning as
           # macos-arm64's attach step.
           files: |
-            release/*.dmg
+            release/Claudius-*.dmg
             release/*.zip
           # Only `release-latest` promotes the release — see the header.
           make_latest: "false"
