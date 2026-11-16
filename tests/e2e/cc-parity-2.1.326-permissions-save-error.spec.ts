@@ -23,7 +23,7 @@ mkdirSync(SHOTS_DIR, { recursive: true });
 
 const EMPTY_RULES = { allow: [], ask: [], deny: [] };
 const FILE = "/Users/me/project/.claude/settings.json";
-const MESSAGE = `Not saved: couldn't write ${FILE} (EACCES). Check that the file and its folder are writable.`;
+const MESSAGE = `Not saved: couldn't write ${FILE} — permission denied (EACCES).`;
 
 test.describe("Permissions save failure names the file (CC 2.1.326)", () => {
   test("a rule that couldn't be written is rolled back and the banner names the file", async ({ page }) => {

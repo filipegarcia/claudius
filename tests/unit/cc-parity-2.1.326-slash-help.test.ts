@@ -41,10 +41,10 @@ describe("findHelpTopic / usageLine", () => {
 });
 
 describe("isGoalClear", () => {
-  test("clear / off / reset / none clear the goal", () => {
-    for (const a of ["clear", " CLEAR ", "off", "reset", "none"]) expect(isGoalClear(a)).toBe(true);
+  test("the word clear clears the goal", () => {
+    for (const a of ["clear", " CLEAR "]) expect(isGoalClear(a)).toBe(true);
   });
-  test("goal text that merely mentions clearing is still a goal", () => {
-    for (const a of ["", "clear the cache", "make it clear"]) expect(isGoalClear(a)).toBe(false);
+  test("anything else is a goal", () => {
+    for (const a of ["", "off", "clear the cache", "make it clear"]) expect(isGoalClear(a)).toBe(false);
   });
 });

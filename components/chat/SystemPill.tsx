@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils/cn";
 import { useParams } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
 import { splitCompactSummaryTools } from "@/lib/shared/compact-summary-tools";
@@ -209,7 +210,7 @@ export function SystemPill({
   // `classifyInformationalLevel`) reads amber, not just its icon, so it
   // stands apart from the grey routine pills.
   const rowTone =
-    entry.kind === "info" && entry.infoLevel === "warning" ? "text-amber-300" : "text-[var(--muted)]";
+    entry.kind === "info" && entry.infoLevel === "warning" ? "text-amber-400" : "text-[var(--muted)]";
   return (
     <div
       className={`my-1 flex items-center gap-2 text-[11px] ${rowTone}`}
@@ -287,9 +288,11 @@ function SystemReminderPill({ entry }: { entry: SystemEntry }) {
 // ---------------------------------------------------------------------------
 
 function HookFailurePill({ entry }: { entry: SystemEntry }) {
-  // CC 2.1.326 — "the reason is shown under them": the stderr reason is
-  // open by default; the toggle still collapses it.
-  const [expanded, setExpanded] = useState(true);
+  // CC 2.1.326 — "the reason is shown under them": the first lines of the
+  // stderr always show under the pill (a broken PreToolUse hook can fail on
+  // every tool call, so a full box each time would flood the transcript);
+  // the toggle opens the whole output.
+  const [expanded, setExpanded] = useState(false);
   const hasStderr = typeof entry.hookStderr === "string" && entry.hookStderr.length > 0;
   return (
     <div className="my-1 text-[11px] text-red-300" data-testid="hook-failure-pill">
@@ -299,17 +302,21 @@ function HookFailurePill({ entry }: { entry: SystemEntry }) {
         aria-expanded={hasStderr ? expanded : undefined}
         disabled={!hasStderr}
         className="flex items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-red-500/10 disabled:cursor-default disabled:hover:bg-transparent"
-        title={hasStderr ? (expanded ? "Hide hook stderr" : "Show hook stderr") : undefined}
+        title={hasStderr ? (expanded ? "Show less of the hook output" : "Show all of the hook output") : undefined}
       >
         <AlertCircle className="h-3 w-3 text-red-400" />
         <span>{entry.label}</span>
         {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
         {hasStderr && <span className="opacity-50">{expanded ? "▾" : "▸"}</span>}
       </button>
-      {expanded && hasStderr && (
+      {hasStderr && (
         <div
           data-testid="hook-failure-reason"
-          className="ml-5 mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-red-500/10 p-2 font-mono text-[10.5px] leading-5 text-red-200 scroll-thin"
+          data-expanded={expanded ? "true" : "false"}
+          className={cn(
+            "ml-5 mt-1 whitespace-pre-wrap rounded-md border border-red-500/30 bg-red-500/10 p-2 font-mono text-[10.5px] leading-5 text-red-200",
+            expanded ? "max-h-60 overflow-auto scroll-thin" : "line-clamp-3",
+          )}
         >
           {entry.hookStderr}
         </div>

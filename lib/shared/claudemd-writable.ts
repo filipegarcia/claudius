@@ -10,16 +10,11 @@
  * `formatClaudeMdWriteError` so the page can keep the draft and say why.
  */
 
-export const MEMORY_READONLY_NOTICE = "This file is read-only — changes may not save.";
+import { errnoHint } from "@/lib/shared/errno-hint";
 
-const ERRNO_HINTS: Readonly<Record<string, string>> = {
-  EACCES: "permission denied",
-  EPERM: "operation not permitted",
-  EROFS: "read-only file system",
-  ENOSPC: "no space left on device",
-  EISDIR: "is a directory",
-  ENOTDIR: "not a directory",
-};
+export const MEMORY_READONLY_NOTICE = "This file is read-only — changes may not save.";
+/** The same warning when the file doesn't exist yet and its folder can't be written. */
+export const MEMORY_READONLY_FOLDER_NOTICE = "This folder is read-only — the file may not be created.";
 
 type WriteErrorLike = { code?: unknown; path?: unknown; message?: unknown };
 
@@ -34,7 +29,7 @@ export function formatClaudeMdWriteError(err: unknown, fallbackPath?: string): s
   const code = typeof e.code === "string" && e.code ? e.code : null;
   const target = path ? `Couldn't save ${path}` : "Couldn't save file";
   if (code) {
-    const hint = ERRNO_HINTS[code];
+    const hint = errnoHint(code);
     return hint ? `${target}: ${code} (${hint})` : `${target}: ${code}`;
   }
   const message =

@@ -21,10 +21,11 @@ describe("settingsSaveFailedMessage", () => {
   });
   test("a write failure is named with its errno", () => {
     const msg = settingsSaveFailedMessage("/p/.claude/settings.json", { code: "EACCES" });
-    expect(msg).toBe("Not saved: couldn't write /p/.claude/settings.json (EACCES). Check that the file and its folder are writable.");
+    expect(msg).toBe("Not saved: couldn't write /p/.claude/settings.json — permission denied (EACCES).");
+    expect(settingsSaveFailedMessage("/x.json", { code: "EBUSY" })).toBe("Not saved: couldn't write /x.json — EBUSY.");
   });
-  test("no code still names the file", () => {
-    expect(settingsSaveFailedMessage("/x.json", {})).toContain("couldn't write /x.json.");
+  test("no code still names the file without claiming a write failed", () => {
+    expect(settingsSaveFailedMessage("/x.json", {})).toBe("Not saved: couldn't update /x.json.");
   });
 });
 
@@ -46,6 +47,6 @@ describe("settingsSaveFailure", () => {
     const out = settingsSaveFailure("local", cwd, err);
     expect(out.status).toBe(500);
     expect(out.error).toContain(join(cwd, ".claude", "settings.local.json"));
-    expect(out.error).toContain("(EROFS)");
+    expect(out.error).toContain("read-only file system (EROFS)");
   });
 });

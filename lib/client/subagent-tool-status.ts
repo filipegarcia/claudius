@@ -9,7 +9,10 @@ import type { TaskStatus } from "./types";
  * tool_result for its last tool_use, so that inner row (a `ToolCall` in the
  * TaskBlock trail) used to read as running forever: pulsing dot plus a live
  * elapsed timer. Once the owning task has settled, a result-less inner call
- * can no longer complete, so it renders as "Not run" with the reason.
+ * can no longer complete, so it renders as "Interrupted" with the reason: no
+ * pulse, no live timer. Not "Not run": the call may have been part-way
+ * through (a Bash command may already have changed things) when the agent
+ * stopped, and Claudius's "Not run" means it never ran at all.
  *
  * Pure + framework-free so the decision is unit-testable.
  */
@@ -18,7 +21,7 @@ import type { TaskStatus } from "./types";
  * Why a result-less inner tool call will never finish. A *completed* agent is
  * deliberately not here: it finished normally, so a missing result there is
  * more likely a gap in what Claudius captured than a call that didn't run,
- * and "Not run" would be a claim we can't back.
+ * and calling it interrupted would be a claim we can't back.
  */
 export type SettledToolReason = "stopped" | "failed";
 
@@ -42,12 +45,12 @@ export function settledToolReason(parentStatus: TaskStatus | undefined): Settled
 
 /** The row's visible label. */
 export function settledToolLabel(reason: SettledToolReason): string {
-  return reason === "stopped" ? "Not run · stopped" : "Not run · agent failed";
+  return reason === "stopped" ? "Interrupted · agent stopped" : "Interrupted · agent failed";
 }
 
 /** Hover text explaining the label. */
 export function settledToolTitle(reason: SettledToolReason): string {
   return reason === "stopped"
-    ? "Not run — the agent was stopped before this tool call finished"
-    : "Not run — the agent failed before this tool call finished";
+    ? "The agent was stopped before this tool call finished — it may have partly run"
+    : "The agent failed before this tool call finished — it may have partly run";
 }

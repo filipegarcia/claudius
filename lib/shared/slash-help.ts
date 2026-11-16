@@ -42,7 +42,11 @@ export function usageLine(cmd: Pick<SlashCommand, "name" | "argsHint">): string 
   return `/${cmd.name}${cmd.argsHint ? ` ${cmd.argsHint}` : ""}`;
 }
 
-/** Whether `/goal <args>` means "clear the goal" rather than "set the goal to this text". */
+/**
+ * Whether `/goal <args>` means "clear the goal" rather than "set the goal to
+ * this text". Only the exact word `clear`, which is what the goal cards and
+ * the usage hint advertise.
+ */
 export function isGoalClear(args: string): boolean {
-  return /^(clear|off|reset|none)$/i.test(args.trim());
+  return args.trim().toLowerCase() === "clear";
 }

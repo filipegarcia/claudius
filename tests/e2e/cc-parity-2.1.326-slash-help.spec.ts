@@ -149,7 +149,7 @@ test.describe("CC 2.1.326 — slash command usage, /goal clear and /copy", () =>
 
     await composer.fill("/help /goal");
     await page.getByTestId("prompt-send").click();
-    await expect(page.getByTestId("help-usage-line")).toHaveText("/goal [goal text]");
+    await expect(page.getByTestId("help-usage-line")).toHaveText("/goal [goal text | clear]");
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("help-usage")).toHaveCount(0);
 

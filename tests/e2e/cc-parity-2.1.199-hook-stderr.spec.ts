@@ -135,14 +135,16 @@ test.describe("CC 2.1.199 — hook stderr surfaced on failure", () => {
     // exit code shown alongside the failure.
     await expect(page.getByText("exit 2")).toBeVisible();
 
-    // CC 2.1.326 — stderr (the reason) is shown by default; the toggle
-    // collapses it and re-expands it.
+    // CC 2.1.326 — the start of stderr (the reason) shows under the pill by
+    // default, clamped to a few lines; the toggle opens the full output and
+    // closes it again.
     const stderrText = /SessionStart hook failed: missing CLAUDE_PROJECT_TOKEN env var/;
     await expect(page.getByText(stderrText)).toBeVisible({ timeout: 5_000 });
+    const reason = page.getByTestId("hook-failure-reason");
+    await expect(reason).toHaveAttribute("data-expanded", "false");
 
     await pill.click();
-    await expect(page.getByText(stderrText)).toHaveCount(0);
-    await pill.click();
+    await expect(reason).toHaveAttribute("data-expanded", "true");
     await expect(page.getByText(stderrText)).toBeVisible({ timeout: 5_000 });
 
     await pill.scrollIntoViewIfNeeded();

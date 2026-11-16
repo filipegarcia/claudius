@@ -10,7 +10,7 @@ import type { TaskInfo } from "@/lib/client/types";
 /**
  * CC 2.1.326 parity — a stopped or failed agent's last command no longer
  * shows as "Running…": once the subagent settles, a result-less inner tool
- * call reads "Not run" with the reason.
+ * call reads "Interrupted" with the reason.
  */
 describe("settledToolReason", () => {
   test("live subagents keep their result-less calls running", () => {
@@ -34,8 +34,8 @@ describe("settledToolReason", () => {
 
 describe("settledToolLabel / settledToolTitle", () => {
   test("labels say why the call never ran", () => {
-    expect(settledToolLabel("stopped")).toBe("Not run · stopped");
-    expect(settledToolLabel("failed")).toBe("Not run · agent failed");
+    expect(settledToolLabel("stopped")).toBe("Interrupted · agent stopped");
+    expect(settledToolLabel("failed")).toBe("Interrupted · agent failed");
   });
 
   test("titles explain the label", () => {

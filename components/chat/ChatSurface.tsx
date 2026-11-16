@@ -1338,7 +1338,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               showToast("No goal to clear");
               return true;
             }
-            void session.clearGoal().then((r) => showToast(r.ok ? "Goal cleared" : `Couldn't clear the goal: ${r.error}`));
+            void session.clearGoal().then((r) =>
+              r.ok ? showToast("Goal cleared") : showToast(`Couldn't clear goal: ${r.error}`, WARNING_TOAST_MS),
+            );
             return true;
           }
           if (text) {
@@ -1871,13 +1873,13 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             return true;
           }
           if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-            showToast("Clipboard isn't available on this page — select the reply text to copy it");
+            showToast("Clipboard unavailable — select the text to copy");
             return true;
           }
           navigator.clipboard
             .writeText(text)
             .then(() => showToast("Copied last response"))
-            .catch(() => showToast("Copy failed — nothing was copied"));
+            .catch(() => showToast("Copy failed"));
           return true;
         }
         case "rewind": {
@@ -1977,8 +1979,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         const cmd = findSlashCommand(head);
         // CC 2.1.326 — `/clear --help` etc. show usage instead of running.
         // Only Claudius's own commands: the engine answers `--help` for the
-        // ones it handles (`sdk`), so those are still forwarded.
-        if (cmd && cmd.handler !== "sdk" && isHelpRequest(args)) {
+        // ones it handles (`sdk`, and natives that forward their arguments
+        // to it, like `/fast`), so those are still forwarded.
+        if (cmd && cmd.handler !== "sdk" && !cmd.forwardsArgsToSdk && isHelpRequest(args)) {
           setHelpTopicName(cmd.name);
           setOverlay("help");
           return;

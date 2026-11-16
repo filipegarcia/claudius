@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
+import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, CircleStop, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
@@ -116,7 +116,7 @@ type Props = {
   /**
    * CC 2.1.326 — set by `TaskBlock` for a subagent's inner tool call once the
    * subagent itself has stopped or failed (see `settledToolReason`).
-   * A result-less call can then never complete, so it reads "Not run · …"
+   * A result-less call can then never complete, so it reads "Interrupted · …"
    * instead of running forever with a live timer.
    */
   settledReason?: SettledToolReason | null;
@@ -154,7 +154,7 @@ export function ToolCall({
         ? "error"
         : !result
           ? settledReason
-            ? "notrun"
+            ? "interrupted"
             : "running"
           : result.isError
             ? // CC 2.1.296 — auto mode's check had no usable answer, so the
@@ -348,33 +348,33 @@ export function ToolCall({
           )}
           {status === "ok" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
           {status === "error" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
+          {status === "interrupted" && settledReason && (
+            <span
+              data-testid="tool-call-interrupted"
+              data-interrupted-reason={settledReason}
+              className="inline-flex items-center gap-1 text-[10px] text-amber-400"
+              title={settledToolTitle(settledReason)}
+            >
+              <CircleStop className="h-3.5 w-3.5" />
+              {/* CC 2.1.326 — a stopped/failed agent's unfinished call stops
+                  "running" and says why. */}
+              {settledToolLabel(settledReason)}
+            </span>
+          )}
           {status === "notrun" && (
             <span
               data-testid="tool-call-not-run"
-              data-not-run-reason={
-                !result && settledReason
-                  ? `agent-${settledReason}`
-                  : result?.rejected
-                    ? "rejected"
-                    : "automode-unavailable"
-              }
+              data-not-run-reason={result?.rejected ? "rejected" : "automode-unavailable"}
               className="inline-flex items-center gap-1 text-[10px] text-[var(--muted)]"
               title={
-                !result && settledReason
-                  ? settledToolTitle(settledReason)
-                  : result?.rejected
-                    ? "Not run — you rejected this tool call"
-                    : "Not run — auto mode's check had no usable answer, so this tool call was skipped"
+                result?.rejected
+                  ? "Not run — you rejected this tool call"
+                  : "Not run — auto mode's check had no usable answer, so this tool call was skipped"
               }
             >
               <MinusCircle className="h-3.5 w-3.5" />
-              {/* CC 2.1.323 — a call the user rejected reads "Not run · rejected".
-                  CC 2.1.326 — a stopped/failed agent's unfinished call says why. */}
-              {!result && settledReason
-                ? settledToolLabel(settledReason)
-                : result?.rejected
-                  ? "Not run · rejected"
-                  : "Not run"}
+              {/* CC 2.1.323 — a call the user rejected reads "Not run · rejected". */}
+              {result?.rejected ? "Not run · rejected" : "Not run"}
             </span>
           )}
         </span>

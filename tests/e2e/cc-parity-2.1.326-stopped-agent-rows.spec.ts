@@ -8,7 +8,7 @@
  * elapsed timer forever. This spec streams an Agent tool_use whose subagent
  * runs a Read (which finishes) and then a Bash (which never gets a result),
  * followed by a `task_notification` with `status: "stopped"`, and asserts the
- * Bash row reads "Not run · stopped" with no running timer.
+ * Bash row reads "Interrupted · agent stopped" with no running timer.
  *
  * Screenshot target: docs/cc-parity/2.1.326/stopped-agent-rows.png
  */
@@ -190,7 +190,7 @@ test.beforeEach(async ({ page }) => {
   await mockChatBackend(page);
 });
 
-test("a stopped agent's unfinished last command reads Not run, not running", async ({ page }) => {
+test("a stopped agent's unfinished last command reads Interrupted, not running", async ({ page }) => {
   await page.goto("/");
 
   const taskBlock = page.getByTestId("task-block");
@@ -208,15 +208,16 @@ test("a stopped agent's unfinished last command reads Not run, not running", asy
 
   // The finished Read keeps its ordinary completed state.
   const readRow = taskBlock.locator('[data-testid="tool-call"][data-tool-name="Read"]');
-  await expect(readRow).not.toHaveAttribute("data-not-run", "1");
+  await expect(readRow.getByTestId("tool-call-interrupted")).toHaveCount(0);
 
-  // The Bash call the agent never finished is settled, not running.
+  // The Bash call the agent never finished is settled, not running. It may
+  // have partly run, so it reads "Interrupted", not "Not run".
   const bashRow = taskBlock.locator('[data-testid="tool-call"][data-tool-name="Bash"]');
-  await expect(bashRow).toHaveAttribute("data-not-run", "1");
-  const notRun = bashRow.getByTestId("tool-call-not-run");
-  await expect(notRun).toHaveText("Not run · stopped");
-  await expect(notRun).toHaveAttribute("data-not-run-reason", "agent-stopped");
-  await expect(notRun).toHaveAttribute("title", /agent was stopped/);
+  await expect(bashRow).not.toHaveAttribute("data-not-run", "1");
+  const interrupted = bashRow.getByTestId("tool-call-interrupted");
+  await expect(interrupted).toHaveText("Interrupted · agent stopped");
+  await expect(interrupted).toHaveAttribute("data-interrupted-reason", "stopped");
+  await expect(interrupted).toHaveAttribute("title", /agent was stopped/);
   await expect(bashRow.getByTestId("tool-call-elapsed")).toHaveCount(0);
   await expect(bashRow.locator(".animate-pulse")).toHaveCount(0);
 

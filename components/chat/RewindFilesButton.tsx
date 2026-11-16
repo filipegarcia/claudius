@@ -99,13 +99,10 @@ export function RewindFilesButton({
   useEffect(() => {
     if (!dialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.preventDefault();
-      e.stopPropagation();
-      setPhase({ kind: "idle" });
+      if (e.key === "Escape") setPhase({ kind: "idle" });
     };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [dialogOpen]);
 
   return (
@@ -199,8 +196,8 @@ function RewindPreview({
       <div data-testid="restore-files-unknown">
         <h2 className="mb-1 text-sm font-semibold">Code changes unknown</h2>
         <p className="mb-3 text-xs text-[var(--muted)]">
-          Claude made no tracked file edits after this message, so there is nothing to restore here. Changes made by
-          Bash commands or outside Claude aren&apos;t tracked and can&apos;t be restored this way.
+          The files Claude edited already match this message, so there&apos;s nothing to restore here. Changes made
+          by Bash commands or outside Claude aren&apos;t tracked and can&apos;t be restored this way.
         </p>
         <div className="flex justify-end">
           <button
@@ -254,10 +251,15 @@ function RewindDone({ result, onClose }: { result: RewindResult; onClose: () => 
   const skipped = result.skippedLinks ?? 0;
   return (
     <>
-      <h2 className="mb-1 text-sm font-semibold">Files restored</h2>
-      <p className="mb-3 text-xs text-[var(--muted)]">
-        {n > 0 ? `Restored ${n} file${n === 1 ? "" : "s"} to this message's state.` : "No tracked files needed restoring."}
-      </p>
+      <h2 className="mb-1 text-sm font-semibold">{n > 0 ? "Files restored" : "Nothing restored"}</h2>
+      {/* With skipped files the warning below says what happened instead. */}
+      {(n > 0 || skipped === 0) && (
+        <p className="mb-3 text-xs text-[var(--muted)]">
+          {n > 0
+            ? `Restored ${n} file${n === 1 ? "" : "s"} to this message's state.`
+            : "The files Claude edited already matched this message."}
+        </p>
+      )}
       {skipped > 0 && (
         <p
           data-testid="rewind-skipped-links-warning"

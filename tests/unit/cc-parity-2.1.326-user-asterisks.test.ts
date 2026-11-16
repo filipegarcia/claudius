@@ -34,11 +34,24 @@ describe("keepLiteralAsterisks", () => {
   test("escapes asterisks between path-ish characters", () => {
     expect(keepLiteralAsterisks("2*3*4")).toBe("2\\*3\\*4");
     expect(keepLiteralAsterisks("src/**/*.ts")).toBe("src/\\*\\*/\\*.ts");
-    expect(keepLiteralAsterisks("x**2")).toBe("x\\*\\*2");
+    expect(keepLiteralAsterisks("10**6")).toBe("10\\*\\*6");
+    expect(keepLiteralAsterisks("lib/*.ts")).toBe("lib/\\*.ts");
   });
 
   test("deliberate emphasis is kept", () => {
-    for (const s of ["**bold**", "this is *it* ok", "(*note*)", "**Note:** text", "a * b * c", "- * item"]) {
+    for (const s of [
+      "**bold**",
+      "this is *it* ok",
+      "(*note*)",
+      "**Note:** text",
+      "a * b * c",
+      "- * item",
+      "Please do it *now*.",
+      "This is **important**.",
+      "it's *really*...",
+      "foo**bar**",
+      "**bold**s",
+    ]) {
       expect(keepLiteralAsterisks(s)).toBe(s);
     }
   });
@@ -60,8 +73,10 @@ describe("a user prompt renders its asterisks", () => {
     expect(out).toContain("src/**/*.ts and lib/**/*.ts");
   });
 
-  test("bold the user typed on purpose still renders", () => {
+  test("bold the user typed on purpose still renders, also before a full stop", () => {
     expect(renderUser("this is **important** now")).toContain("<strong>important</strong>");
+    expect(renderUser("This is **important**.")).toContain("<strong>important</strong>");
+    expect(renderUser("Please do it *now*.")).toContain("<em>now</em>");
   });
 
   test("assistant rendering is unchanged (no literalAsterisks)", () => {

@@ -84,6 +84,11 @@ function isUnsafeSpot(text: string, i: number): boolean {
  * space or another backslash), and the next character must be one a folder
  * name can start with. Code, quote lines, URLs and the other `isUnsafeSpot`
  * cases keep the old rendering.
+ *
+ * Known gaps, left as before: a path with a space in it (`C:\Program
+ * Files\App\.config`) is two tokens, so the second half isn't recognised; and
+ * a UNC path's leading `\\` is still read as one escaped backslash (only its
+ * later separators are kept).
  */
 const PATH_SEGMENT_LEADS = new Set([".", "_", "-", "$", "#", "@", "~", "!", "+", "&", "%", "="]);
 const WINDOWS_PATH_START = /^[*_("'[<]*(?:[A-Za-z]:\\|\\\\[^\\\s]|%[A-Za-z_][A-Za-z0-9_()]*%\\|~\\|\.{1,2}\\)/;

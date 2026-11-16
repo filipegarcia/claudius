@@ -68,9 +68,9 @@ export function HelpOverlay({ sdkSlashCommands, sdkSkills, sessionId, topic, onC
         />
       </div>
       <div className="px-4 py-3">
-        {topic && (
-          <TopicUsage topic={topic} cmd={topicCmd} />
-        )}
+        {/* The card belongs to the filter it opened with: once the user edits
+            the filter, it gives way to the plain list. */}
+        {topic && filter.trim().toLowerCase() === topic && <TopicUsage topic={topic} cmd={topicCmd} />}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {Array.from(grouped.entries()).map(([cat, list]) => (
             <section key={cat}>
@@ -120,7 +120,7 @@ function TopicUsage({ topic, cmd }: { topic: string; cmd: SlashSuggestion | unde
   if (!cmd) {
     return (
       <div data-testid="help-usage-missing" className="mb-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 px-3 py-2 text-xs text-[var(--muted)]">
-        No command named <code className="font-mono text-[var(--foreground)]">/{topic}</code>. Clear the filter to see them all.
+        No command named <code className="font-mono text-[var(--foreground)]">/{topic}</code>.
       </div>
     );
   }

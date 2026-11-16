@@ -118,7 +118,9 @@ export function TaskBlock({
   const disconnected = streamDisconnected && status === "running";
   // CC 2.1.326 — once this subagent has stopped or failed, an inner
   // tool call still without a result can never complete.
-  const settledReason = settledToolReason(status);
+  // Only from a live task status: the result-only fallback above can't tell
+  // a failed agent from one whose inner results weren't captured.
+  const settledReason = settledToolReason(task?.status);
 
   // The numeric metrics render as a single "·"-joined run with tabular figures
   // so the digits don't jitter as they tick up during streaming. Each part is

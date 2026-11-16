@@ -11,6 +11,8 @@
  * content.
  */
 
+import { errnoHint } from "@/lib/shared/errno-hint";
+
 /**
  * Reduce a `JSON.parse` error message to something safe to send to the
  * browser. Recent V8 echoes a slice of the *source* into the message
@@ -57,6 +59,7 @@ export function settingsSaveFailedMessage(path: string, detail: { parseReason?: 
   if (detail.parseReason) {
     return `Not saved: ${path} doesn't load (${detail.parseReason}). Fix the file, then try again. It was not changed.`;
   }
-  const code = detail.code ? ` (${detail.code})` : "";
-  return `Not saved: couldn't write ${path}${code}. Check that the file and its folder are writable.`;
+  if (!detail.code) return `Not saved: couldn't update ${path}.`;
+  const hint = errnoHint(detail.code);
+  return `Not saved: couldn't write ${path} — ${hint ? `${hint} (${detail.code})` : detail.code}.`;
 }
