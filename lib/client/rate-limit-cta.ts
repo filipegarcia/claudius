@@ -56,3 +56,18 @@ export function rateLimitCtaKind(hit: {
 export function offersGetMoreUsage(subscriptionType: string | null | undefined): boolean {
   return subscriptionType === "pro" || subscriptionType === "max";
 }
+
+/**
+ * CC 2.1.326 parity — "Fixed an upgrade hint appearing under an old usage
+ * limit message after the limit had reset". True once the limit's reset time
+ * (epoch **seconds**, as the SDK reports it) is at or before `nowMs`. An
+ * unknown reset (`undefined` / 0) never counts as reset: the panel keeps its
+ * next steps rather than guessing the wall has lifted.
+ */
+export function limitHasReset(resetsAtSec: number | null | undefined, nowMs: number): boolean {
+  if (typeof resetsAtSec !== "number" || !Number.isFinite(resetsAtSec) || resetsAtSec <= 0) return false;
+  return Math.floor(resetsAtSec - nowMs / 1000) <= 0;
+}
+
+/** Muted line shown in place of the upgrade/credits row once the limit has reset (CC 2.1.326). */
+export const LIMIT_RESET_NOTICE = "This limit has reset.";

@@ -4877,8 +4877,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // CC 2.1.217 — `level: 'info'` is transcript-mode-only; don't surface
           // it in the chat. Other levels tone the pill (notice gray, suggestion
           // sky, warning amber) so a data-loss warning stops looking like
-          // routine info.
-          const { hidden, infoLevel } = classifyInformationalLevel(inf.level);
+          // routine info. CC 2.1.326 — a hook that stops Claude
+          // (`prevent_continuation`) is always shown, amber.
+          const { hidden, infoLevel } = classifyInformationalLevel(inf.level, inf.prevent_continuation);
           if (hidden) return;
           if (content) {
             setSystemEntries((prev) => [

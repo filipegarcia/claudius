@@ -26,9 +26,9 @@ import {
   shouldShowRateLimitPill,
   useRateLimitWarningPct,
 } from "@/lib/client/useRateLimitWarning";
-import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
+import { formatResetClock, useResetCountdown } from "@/lib/client/use-countdown";
 import { PURCHASE_CREDITS_URL, RateLimitUpgradeLinks } from "./RateLimitHitPanel";
-import { offersGetMoreUsage } from "@/lib/client/rate-limit-cta";
+import { LIMIT_RESET_NOTICE, offersGetMoreUsage } from "@/lib/client/rate-limit-cta";
 import { OPUS_OVERLOAD_NUDGE_SONNET_TARGET } from "./OpusOverloadNudgePanel";
 import { extraUsageState } from "@/lib/shared/rate-limit-extra-usage";
 import { rateLimitEventPct } from "@/lib/shared/usage-pct";
@@ -205,8 +205,18 @@ export function SystemPill({
       </div>
     );
   }
+  // CC 2.1.326 — a warning-level line (incl. a hook that stopped Claude, see
+  // `classifyInformationalLevel`) reads amber, not just its icon, so it
+  // stands apart from the grey routine pills.
+  const rowTone =
+    entry.kind === "info" && entry.infoLevel === "warning" ? "text-amber-300" : "text-[var(--muted)]";
   return (
-    <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
+    <div
+      className={`my-1 flex items-center gap-2 text-[11px] ${rowTone}`}
+      data-testid="system-pill"
+      data-kind={entry.kind}
+      data-info-level={entry.kind === "info" ? entry.infoLevel : undefined}
+    >
       <Icon className={`h-3 w-3 ${tone}`} />
       <span>{entry.label}</span>
       {typeof entry.count === "number" && entry.count > 1 && (
@@ -277,10 +287,12 @@ function SystemReminderPill({ entry }: { entry: SystemEntry }) {
 // ---------------------------------------------------------------------------
 
 function HookFailurePill({ entry }: { entry: SystemEntry }) {
-  const [expanded, setExpanded] = useState(false);
+  // CC 2.1.326 — "the reason is shown under them": the stderr reason is
+  // open by default; the toggle still collapses it.
+  const [expanded, setExpanded] = useState(true);
   const hasStderr = typeof entry.hookStderr === "string" && entry.hookStderr.length > 0;
   return (
-    <div className="my-1 text-[11px] text-red-300">
+    <div className="my-1 text-[11px] text-red-300" data-testid="hook-failure-pill">
       <button
         type="button"
         onClick={() => hasStderr && setExpanded((v) => !v)}
@@ -295,7 +307,10 @@ function HookFailurePill({ entry }: { entry: SystemEntry }) {
         {hasStderr && <span className="opacity-50">{expanded ? "▾" : "▸"}</span>}
       </button>
       {expanded && hasStderr && (
-        <div className="ml-5 mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-red-500/10 p-2 font-mono text-[10.5px] leading-5 text-red-200 scroll-thin">
+        <div
+          data-testid="hook-failure-reason"
+          className="ml-5 mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-red-500/10 p-2 font-mono text-[10.5px] leading-5 text-red-200 scroll-thin"
+        >
           {entry.hookStderr}
         </div>
       )}
@@ -498,7 +513,7 @@ function RateLimitPill({
   // dedupe in use-session.ts means at most one pill per `rateLimitType`
   // exists at any time, so we're not running runaway timers in hidden
   // pills.
-  const countdown = useCountdownSeconds(liveReset);
+  const { countdown, hasReset } = useResetCountdown(liveReset);
   const params = useParams<{ workspaceId?: string }>();
   const { value: warningThresholdPct } = useRateLimitWarningPct();
 
@@ -539,14 +554,21 @@ function RateLimitPill({
   // perform the flip from the browser (it's CLI/credential-level config),
   // but we can mirror the messaging and link to the workspace's cost page
   // for the manual switchover.
+  // CC 2.1.326 — a rejection whose reset time has passed is an old message:
+  // no upgrade / credits / pay-as-you-go next steps under it, just a note that
+  // the limit has reset.
+  const rejectedAndReset = status === "rejected" && hasReset;
+
   const canSwitchToOverage =
+    !rejectedAndReset &&
     status === "rejected" &&
     (info.overageStatus === "allowed" || info.overageStatus === "allowed_warning") &&
     !info.isUsingOverage;
 
-  const overageBlockedCopy = info.overageDisabledReason
-    ? OVERAGE_DISABLED_COPY[info.overageDisabledReason] ?? null
-    : null;
+  const overageBlockedCopy =
+    info.overageDisabledReason && !rejectedAndReset
+      ? OVERAGE_DISABLED_COPY[info.overageDisabledReason] ?? null
+      : null;
 
   // CC 2.1.295 parity — a soft warning says whether the account has extra
   // usage turned on, i.e. what happens when this limit is actually reached.
@@ -606,7 +628,7 @@ function RateLimitPill({
         )}
       </div>
 
-      {countdown && (
+      {countdown && !rejectedAndReset && (
         <div className="mt-1 flex items-center gap-1.5 opacity-90">
           <Timer className="h-3 w-3" />
           <span className="font-mono">{countdown}</span>
@@ -685,7 +707,13 @@ function RateLimitPill({
           contact-admin line. For ordinary plan limits mirror the CLI's
           `/rate-limit-options`: wait for the reset or upgrade to lift the cap.
           Only shown on rejection — a warning isn't a wall yet. */}
-      {status === "rejected" && info.errorCode === "credits_required" && info.canUserPurchaseCredits !== false ? (
+      {rejectedAndReset ? (
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="rate-limit-pill-reset-notice">
+            {LIMIT_RESET_NOTICE}
+          </span>
+        </div>
+      ) : status === "rejected" && info.errorCode === "credits_required" && info.canUserPurchaseCredits !== false ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
           <span className="opacity-70">Credits required to continue:</span>
           <a
