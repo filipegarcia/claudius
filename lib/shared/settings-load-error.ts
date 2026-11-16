@@ -41,3 +41,22 @@ export function sanitizeJsonParseReason(message: string): string {
 export function pluginSettingsWriteBlockedMessage(path: string, reason: string): string {
   return `${path} doesn't load (${reason}) — fix it before Claudius can change plugins there. The file was not changed.`;
 }
+
+/**
+ * CC 2.1.326 parity — "Fixed rules added in /permissions or at a
+ * main-conversation tool prompt, and /add-dir folders, looking saved when the
+ * settings file couldn't be written; the terminal now warns and names it".
+ *
+ * The message for a permissions / `/add-dir` save that didn't reach disk.
+ * `detail` is either the sanitized parse reason (the file doesn't load, so
+ * `readSettings` refused to start from `{}`) or the errno code of a failed
+ * write (`EACCES`, `EROFS`, `ENOSPC`, …). Names the file so the user knows
+ * which one to fix.
+ */
+export function settingsSaveFailedMessage(path: string, detail: { parseReason?: string; code?: string }): string {
+  if (detail.parseReason) {
+    return `Not saved: ${path} doesn't load (${detail.parseReason}). Fix the file, then try again. It was not changed.`;
+  }
+  const code = detail.code ? ` (${detail.code})` : "";
+  return `Not saved: couldn't write ${path}${code}. Check that the file and its folder are writable.`;
+}

@@ -93,7 +93,7 @@ export function TranscriptViewer({ messages, onRewind, rewinding }: Props) {
                   // reason as `UserMessage.tsx`: this text isn't
                   // model-authored, so the `!`-mode Execute button doesn't
                   // apply.
-                  <Markdown breaks allowExecute={false}>
+                  <Markdown breaks literalAsterisks allowExecute={false}>
                     {userText}
                   </Markdown>
                 )}

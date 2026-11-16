@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readSettings, writeSettings, type SettingsScope } from "@/lib/server/settings";
+import { readSettings, settingsSaveFailure, writeSettings, type SettingsScope } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
@@ -43,6 +43,17 @@ export async function POST(req: Request) {
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
+  // CC 2.1.326 — a folder must never look added when the file wasn't
+  // written: return a message naming the file instead of a bare 500.
+  try {
+    return await saveAdditionalDirs(body, cwd);
+  } catch (err) {
+    const { status, error } = settingsSaveFailure(body.scope, cwd, err);
+    return NextResponse.json({ error }, { status });
+  }
+}
+
+async function saveAdditionalDirs(body: Body, cwd: string): Promise<NextResponse> {
   const settings = await readSettings(body.scope, cwd);
   const current = new Set(
     Array.isArray(settings.permissions?.additionalDirectories)

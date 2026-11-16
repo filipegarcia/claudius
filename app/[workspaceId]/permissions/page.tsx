@@ -45,6 +45,7 @@ export default function PermissionsPage() {
     rules,
     loading,
     error,
+    saveError,
     updateRules,
     updateBlockReadsOutsideWorkingDirectories,
     updateBlockWritesOutsideWorkingDirectories,
@@ -127,6 +128,18 @@ export default function PermissionsPage() {
 
         <div className="flex-1 overflow-y-auto scroll-thin">
           <div className="mx-auto max-w-4xl px-6 py-6">
+            {/* CC 2.1.326 — a rule that didn't reach disk is rolled back; say
+                so, and name the settings file, instead of letting it look saved. */}
+            {saveError && (
+              <div
+                role="alert"
+                data-testid="permissions-save-error"
+                className="mb-4 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+              >
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="break-all">{saveError}</span>
+              </div>
+            )}
             <div className="mb-4 flex items-center gap-2">
               {visibleScopes.map((s) => (
                 <button

@@ -32,6 +32,10 @@ export function usePermissions() {
   const [rules, setRules] = useState<ScopedRules>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // CC 2.1.326 — a failed save keeps its message through the rollback
+  // refetch (which clears `error` on success); only a later successful save
+  // clears it. Without this the rule vanished and so did the warning.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
@@ -99,6 +103,25 @@ export function usePermissions() {
   }, []);
 
   /**
+   * CC 2.1.326 — after a POST: on failure show the server's message (it names
+   * the settings file that couldn't be written) and roll back with a refetch.
+   * Returns whether the save landed.
+   */
+  const settle = useCallback(
+    async (res: Response): Promise<boolean> => {
+      if (res.ok) {
+        setSaveError(null);
+        return true;
+      }
+      const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+      setSaveError(typeof body?.error === "string" && body.error ? body.error : `save failed: ${res.status}`);
+      refresh();
+      return false;
+    },
+    [refresh],
+  );
+
+  /**
    * CC 2.1.323 — pass `delta` (the rules added / removed) and only that is
    * sent; the server applies it to a fresh read of the file, so a rule
    * hand-added since the page loaded isn't dropped. Without it, the whole
@@ -115,11 +138,7 @@ export function usePermissions() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(delta ? { scope, ruleDelta: { kind, ...delta } } : { scope, patch: { [kind]: next } }),
       });
-      if (!res.ok) {
-        setError(`save failed: ${res.status}`);
-        refresh();
-        return;
-      }
+      if (!(await settle(res))) return;
       if (!delta) return;
       // The server merged the delta into a fresh read: show that list, which
       // also holds any rule added to the file since the page loaded.
@@ -131,7 +150,7 @@ export function usePermissions() {
         setRules((prev) => ({ ...prev, [scope]: { ...prev[scope], [kind]: merged } }));
       }
     },
-    [refresh],
+    [settle],
   );
 
   // CC 2.1.257 parity — same optimistic-update / rollback-on-failure shape
@@ -145,12 +164,9 @@ export function usePermissions() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, patch: { blockReadsOutsideWorkingDirectories: next } }),
       });
-      if (!res.ok) {
-        setError(`save failed: ${res.status}`);
-        refresh();
-      }
+      await settle(res);
     },
-    [refresh],
+    [settle],
   );
 
   // SDK 0.3.314 — write-side twin of the reads toggle above.
@@ -162,12 +178,9 @@ export function usePermissions() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, patch: { blockWritesOutsideWorkingDirectories: next } }),
       });
-      if (!res.ok) {
-        setError(`save failed: ${res.status}`);
-        refresh();
-      }
+      await settle(res);
     },
-    [refresh],
+    [settle],
   );
 
   // CC 2.1.319 — `permissions.denyInsteadOfPrompting`. Scope hardcoded to
@@ -181,18 +194,16 @@ export function usePermissions() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope: "user", patch: { denyInsteadOfPrompting: next } }),
       });
-      if (!res.ok) {
-        setError(`save failed: ${res.status}`);
-        refresh();
-      }
+      await settle(res);
     },
-    [refresh],
+    [settle],
   );
 
   return {
     rules,
     loading,
     error,
+    saveError,
     refresh,
     updateRules,
     updateBlockReadsOutsideWorkingDirectories,

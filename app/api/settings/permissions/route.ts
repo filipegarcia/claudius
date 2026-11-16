@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   readSettings,
+  settingsSaveFailure,
   updatePermissionRuleList,
   updatePermissions,
   type PermissionRules,
@@ -48,10 +49,17 @@ export async function POST(req: Request) {
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  const next = delta
-    ? await updatePermissionRuleList(body.scope, cwd, delta.kind, { add: delta.add, remove: delta.remove })
-    : await updatePermissions(body.scope, cwd, body.patch as Partial<PermissionRules>);
-  return NextResponse.json({ ok: true, settings: next });
+  // CC 2.1.326 — a rule must never look saved when the file wasn't written:
+  // return a message naming the file instead of a bare 500.
+  try {
+    const next = delta
+      ? await updatePermissionRuleList(body.scope, cwd, delta.kind, { add: delta.add, remove: delta.remove })
+      : await updatePermissions(body.scope, cwd, body.patch as Partial<PermissionRules>);
+    return NextResponse.json({ ok: true, settings: next });
+  } catch (err) {
+    const { status, error } = settingsSaveFailure(body.scope, cwd, err);
+    return NextResponse.json({ error }, { status });
+  }
 }
 
 export async function GET(req: Request) {

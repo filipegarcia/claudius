@@ -3,7 +3,7 @@ import { applyRuleDelta } from "@/lib/shared/settings-patch";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type { WorktreeSettings } from "@/lib/shared/worktree-settings";
-import { sanitizeJsonParseReason } from "@/lib/shared/settings-load-error";
+import { sanitizeJsonParseReason, settingsSaveFailedMessage } from "@/lib/shared/settings-load-error";
 
 import { assertWithin } from "./safe-path";
 
@@ -600,6 +600,20 @@ export async function readSettings(scope: SettingsScope, projectCwd: string): Pr
       sanitizeJsonParseReason(err instanceof Error ? err.message : String(err)),
     );
   }
+}
+
+/**
+ * CC 2.1.326 — turn a failed `readSettings` / `writeSettings` into the JSON
+ * error a settings route returns, naming the file (see
+ * `settingsSaveFailedMessage`). A file that doesn't load is the user's to fix
+ * (422); any other failure, such as a read-only file or folder, is a 500.
+ */
+export function settingsSaveFailure(scope: SettingsScope, projectCwd: string, err: unknown): { status: number; error: string } {
+  if (err instanceof SettingsParseError) {
+    return { status: 422, error: settingsSaveFailedMessage(err.path, { parseReason: err.reason }) };
+  }
+  const code = typeof (err as NodeJS.ErrnoException | null)?.code === "string" ? (err as NodeJS.ErrnoException).code : undefined;
+  return { status: 500, error: settingsSaveFailedMessage(pathFor(scope, projectCwd), { code }) };
 }
 
 export async function writeSettings(
