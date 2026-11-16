@@ -10,6 +10,7 @@ import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
+import { settledToolLabel, settledToolTitle, type SettledToolReason } from "@/lib/client/subagent-tool-status";
 import { getPreviewType } from "@/lib/shared/file-types";
 import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
 import { splitPathForTruncation } from "@/lib/shared/truncate-path";
@@ -112,6 +113,13 @@ type Props = {
    * `result` alone, unchanged.
    */
   taskStatus?: string;
+  /**
+   * CC 2.1.326 — set by `TaskBlock` for a subagent's inner tool call once the
+   * subagent itself has stopped/failed/finished (see `settledToolReason`).
+   * A result-less call can then never complete, so it reads "Not run · …"
+   * instead of running forever with a live timer.
+   */
+  settledReason?: SettledToolReason | null;
 };
 
 export function ToolCall({
@@ -124,6 +132,7 @@ export function ToolCall({
   defaultOpen = false,
   resourceLinks,
   taskStatus,
+  settledReason,
 }: Props) {
   // CC 2.1.302 — a running call stops pulsing while the stream is reconnecting.
   const disconnected = useStreamDisconnected();
@@ -144,7 +153,9 @@ export function ToolCall({
       : taskStatus === "failed" || taskStatus === "killed"
         ? "error"
         : !result
-          ? "running"
+          ? settledReason
+            ? "notrun"
+            : "running"
           : result.isError
             ? // CC 2.1.296 — auto mode's check had no usable answer, so the
               // call never ran: a dim "Not run" row, not a red error.
@@ -340,17 +351,30 @@ export function ToolCall({
           {status === "notrun" && (
             <span
               data-testid="tool-call-not-run"
-              data-not-run-reason={result?.rejected ? "rejected" : "automode-unavailable"}
+              data-not-run-reason={
+                !result && settledReason
+                  ? `agent-${settledReason}`
+                  : result?.rejected
+                    ? "rejected"
+                    : "automode-unavailable"
+              }
               className="inline-flex items-center gap-1 text-[10px] text-[var(--muted)]"
               title={
-                result?.rejected
-                  ? "Not run — you rejected this tool call"
-                  : "Not run — auto mode's check had no usable answer, so this tool call was skipped"
+                !result && settledReason
+                  ? settledToolTitle(settledReason)
+                  : result?.rejected
+                    ? "Not run — you rejected this tool call"
+                    : "Not run — auto mode's check had no usable answer, so this tool call was skipped"
               }
             >
               <MinusCircle className="h-3.5 w-3.5" />
-              {/* CC 2.1.323 — a call the user rejected reads "Not run · rejected". */}
-              {result?.rejected ? "Not run · rejected" : "Not run"}
+              {/* CC 2.1.323 — a call the user rejected reads "Not run · rejected".
+                  CC 2.1.326 — a stopped/failed agent's unfinished call says why. */}
+              {!result && settledReason
+                ? settledToolLabel(settledReason)
+                : result?.rejected
+                  ? "Not run · rejected"
+                  : "Not run"}
             </span>
           )}
         </span>

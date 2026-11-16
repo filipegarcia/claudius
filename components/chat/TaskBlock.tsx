@@ -6,6 +6,7 @@ import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2, WifiOff } fr
 import { cn } from "@/lib/utils/cn";
 import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { findSubagentRetry } from "@/lib/client/task-status";
+import { settledToolReason, type SettledToolReason } from "@/lib/client/subagent-tool-status";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { prettyModelName } from "@/lib/shared/advisor";
 import { parseSubagentHandBack } from "@/lib/shared/subagent-handback";
@@ -115,6 +116,9 @@ export function TaskBlock({
   // a running card stops pulsing and says it's disconnected instead.
   const streamDisconnected = useStreamDisconnected();
   const disconnected = streamDisconnected && status === "running";
+  // CC 2.1.326 — once this subagent has stopped/failed/finished, an inner
+  // tool call still without a result can never complete.
+  const settledReason = settledToolReason(status);
 
   // The numeric metrics render as a single "·"-joined run with tabular figures
   // so the digits don't jitter as they tick up during streaming. Each part is
@@ -237,7 +241,7 @@ export function TaskBlock({
           ) : (
             <div className="space-y-2">
               {innerMessages.map((m) => (
-                <SubMessage key={m.uuid} message={m} />
+                <SubMessage key={m.uuid} message={m} settledReason={settledReason} />
               ))}
             </div>
           )}
@@ -285,7 +289,14 @@ export function TaskBlock({
  * memoizing on the `message` reference means only the changed message
  * re-renders; the rest of the trail (and its Markdown) is skipped.
  */
-const SubMessage = memo(function SubMessage({ message }: { message: DisplayMessage }) {
+const SubMessage = memo(function SubMessage({
+  message,
+  settledReason,
+}: {
+  message: DisplayMessage;
+  /** CC 2.1.326 — the owning subagent's settled state; see `settledToolReason`. */
+  settledReason: SettledToolReason | null;
+}) {
   if (message.role === "user") {
     const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
     return (
@@ -324,7 +335,14 @@ const SubMessage = memo(function SubMessage({ message }: { message: DisplayMessa
           }
           if (b.kind === "tool_use")
             return (
-              <ToolCall key={i} name={b.name} input={b.input} result={b.result} startedAt={b.startedAt} />
+              <ToolCall
+                key={i}
+                name={b.name}
+                input={b.input}
+                result={b.result}
+                startedAt={b.startedAt}
+                settledReason={settledReason}
+              />
             );
           return null;
         })}
