@@ -29,7 +29,9 @@ type RewindResult = {
    * SDK 0.3.216 — count of tracked files the rewind safety guards refused to
    * restore or delete (symlink / hard link / other non-regular file at the
    * tracked path, a parent directory that no longer resolves where it did at
-   * checkpoint time, or a backup that couldn't be safely read). Only ever
+   * checkpoint time, a file behind a link in a folder sandboxed commands can
+   * write — SDK 0.3.326, macOS/Linux/WSL with the sandbox on — or a backup
+   * that couldn't be safely read). Only ever
    * populated on a real (non-dryRun) rewind — a dry-run preview never sets
    * it, even when the real rewind would later skip files.
    */
@@ -226,8 +228,8 @@ function RewindDone({ result, onClose }: { result: RewindResult; onClose: () => 
           className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-300"
         >
           Skipped {skipped} file{skipped === 1 ? "" : "s"} the safety guard refused to restore — a symlink, hard
-          link, or other non-regular file was tracked at that path. Restore {skipped === 1 ? "it" : "them"} by hand
-          if needed.
+          link, or other non-regular file was tracked at that path, or the file sits behind a link in a folder
+          sandboxed commands can write. Restore {skipped === 1 ? "it" : "them"} by hand if needed.
         </p>
       )}
       <div className="flex justify-end">
