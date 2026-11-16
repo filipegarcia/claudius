@@ -37,7 +37,13 @@ import {
   stripInvisibleUnicode,
 } from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
-import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
+import {
+  canRestoreClearedDraft,
+  ordinalFloorAfterRestore,
+  shouldStashClearedDraft,
+  stashClearedDraft,
+  type ClearedDraft,
+} from "@/lib/client/cleared-draft";
 import { flushPendingDraft, type PendingDraft } from "@/lib/client/pending-draft";
 import {
   mergeIntoDraft,
@@ -366,8 +372,9 @@ export function PromptInput({
   const stashedDraftRef = useRef("");
   // CC 2.1.288 — the draft (text + pasted images) that Ctrl+C / double-Esc last
   // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
-  // is stashed (a fresh session, or already restored).
-  const clearedDraftRef = useRef<{ text: string; images: AttachedImage[] } | null>(null);
+  // is stashed (a fresh session, or already restored). CC 2.1.326 — paste
+  // ranges ride along so ↑ keeps a restored paste marked as pasted.
+  const clearedDraftRef = useRef<ClearedDraft<AttachedImage> | null>(null);
   // CC 2.1.299 — an undelivered message parked for ↑ because the user had
   // already started a new one (see `restoreUndelivered`). Its own slot, not
   // `clearedDraftRef`: following the hint ("press ↑ in an empty box") often
@@ -584,7 +591,7 @@ export function PromptInput({
         shouldStashClearedDraft(value, images.length) &&
         value !== draftInjection.text
       ) {
-        clearedDraftRef.current = { text: value, images };
+        clearedDraftRef.current = stashClearedDraft(value, images, pasteRangesRef.current);
       }
       setValue(draftInjection.text);
       if (draftInjection.recalled) closePickers();
@@ -984,7 +991,7 @@ export function PromptInput({
   function clearInput() {
     // CC 2.1.288 — stash a non-empty draft so plain ↑ can bring it back.
     if (shouldStashClearedDraft(value, images.length)) {
-      clearedDraftRef.current = { text: value, images };
+      clearedDraftRef.current = stashClearedDraft(value, images, pasteRangesRef.current);
       // CC 2.1.312 — "Fixed agent view restoring input text on the next
       // launch after it was cleared with Ctrl+C just before exiting". A draft
       // restored from the server after a reload isn't "typed"
@@ -1482,26 +1489,27 @@ export function PromptInput({
       // CC 2.1.299 — an undelivered message parked by `restoreUndelivered`
       // wins over a Ctrl+C-cleared draft: it's what the hint points at.
       const failed = failedSendForThisSession();
-      let d: { text: string; images: AttachedImage[] };
+      let d: ClearedDraft<AttachedImage>;
       if (failed) {
         failedSendRef.current = null;
         d = failed;
         // Like `restoreUndelivered`: the restored message is the user's draft
         // again — a late seed must not clobber it, and it gets re-saved.
         userTypedRef.current = true;
-        // Restore its paste ranges too (see `restoreUndelivered`).
-        pendingPasteRef.current = null;
-        pasteRangesRef.current = failed.pasteRanges;
-        prevValueRef.current = failed.text;
         if (sendFailed) setSendFailed(null);
-        if (failed.images.length > 0) {
-          const maxOrd = failed.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
-          ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
-        }
       } else {
         d = clearedDraftRef.current!;
         clearedDraftRef.current = null;
       }
+      // Restore the paste ranges too (see `restoreUndelivered`) — CC 2.1.326:
+      // a cleared draft's paste used to come back as typed text. Syncing
+      // `prevValueRef` makes the layout effect see no edit and keep them.
+      pendingPasteRef.current = null;
+      pasteRangesRef.current = d.pasteRanges;
+      prevValueRef.current = d.text;
+      // The clear zeroed the ordinal counter; lift it past the restored images
+      // so the next attach doesn't reuse their `#N` (CC 2.1.326).
+      ordinalCounterRef.current = ordinalFloorAfterRestore(ordinalCounterRef.current, d.images);
       setValue(d.text);
       setImages(d.images);
       requestAnimationFrame(() => {
