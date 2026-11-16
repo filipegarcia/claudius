@@ -116,7 +116,7 @@ export function TaskBlock({
   // a running card stops pulsing and says it's disconnected instead.
   const streamDisconnected = useStreamDisconnected();
   const disconnected = streamDisconnected && status === "running";
-  // CC 2.1.326 — once this subagent has stopped/failed/finished, an inner
+  // CC 2.1.326 — once this subagent has stopped or failed, an inner
   // tool call still without a result can never complete.
   const settledReason = settledToolReason(status);
 

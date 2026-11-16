@@ -26,9 +26,9 @@ describe("settledToolReason", () => {
     expect(settledToolReason("killed")).toBe("stopped");
   });
 
-  test("failed and completed subagents settle too", () => {
+  test("failed subagents settle; completed ones don't claim a call never ran", () => {
     expect(settledToolReason("failed")).toBe("failed");
-    expect(settledToolReason("completed")).toBe("finished");
+    expect(settledToolReason("completed")).toBeNull();
   });
 });
 
@@ -36,13 +36,11 @@ describe("settledToolLabel / settledToolTitle", () => {
   test("labels say why the call never ran", () => {
     expect(settledToolLabel("stopped")).toBe("Not run · stopped");
     expect(settledToolLabel("failed")).toBe("Not run · agent failed");
-    expect(settledToolLabel("finished")).toBe("Not run");
   });
 
   test("titles explain the label", () => {
     expect(settledToolTitle("stopped")).toMatch(/agent was stopped/);
     expect(settledToolTitle("failed")).toMatch(/agent failed/);
-    expect(settledToolTitle("finished")).toMatch(/agent finished/);
   });
 });
 

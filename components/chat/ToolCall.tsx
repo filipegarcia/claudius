@@ -115,7 +115,7 @@ type Props = {
   taskStatus?: string;
   /**
    * CC 2.1.326 — set by `TaskBlock` for a subagent's inner tool call once the
-   * subagent itself has stopped/failed/finished (see `settledToolReason`).
+   * subagent itself has stopped or failed (see `settledToolReason`).
    * A result-less call can then never complete, so it reads "Not run · …"
    * instead of running forever with a live timer.
    */
