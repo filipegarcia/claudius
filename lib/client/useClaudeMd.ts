@@ -9,6 +9,8 @@ export type ScopeFile = {
   path: string;
   exists: boolean;
   content: string;
+  /** Mirrors `lib/server/claudemd.ts` — false when a save is expected to fail (read-only file/dir). */
+  writable: boolean;
   /** Mirrors `lib/server/claudemd.ts` — set when "project" resolved to AGENTS.md. */
   usingAgentsFallback?: boolean;
 };
@@ -74,15 +76,27 @@ export function useClaudeMd(cwd: string | null) {
   }, []);
 
   const save = useCallback(
-    async (scope: Scope, content: string) => {
-      if (!cwd) return false;
-      const res = await fetch("/api/claudemd", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope, cwd, content }),
-      });
-      if (res.ok) refresh();
-      return res.ok;
+    async (
+      scope: Scope,
+      content: string,
+    ): Promise<{ ok: true } | { ok: false; status: number; error: string }> => {
+      if (!cwd) return { ok: false, status: 0, error: "no cwd" };
+      let res: Response;
+      try {
+        res = await fetch("/api/claudemd", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope, cwd, content }),
+        });
+      } catch (err) {
+        return { ok: false, status: 0, error: err instanceof Error ? err.message : String(err) };
+      }
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        return { ok: false, status: res.status, error: err.error ?? `HTTP ${res.status}` };
+      }
+      refresh();
+      return { ok: true };
     },
     [cwd, refresh],
   );
