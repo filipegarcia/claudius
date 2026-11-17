@@ -24,7 +24,6 @@ use claudius_core::image_size::image_size;
 use claudius_core::js_date::date_parse;
 use claudius_core::js_num;
 use claudius_core::paths::{self, encode_project_dir};
-use claudius_core::queue_db::ImageInput;
 use rusqlite::types::ValueRef;
 use serde_json::{Value, json};
 
@@ -287,7 +286,7 @@ fn replays_the_store_list_and_ingest_sequence() {
         let want = &op["got"];
         let got: Value = match op["op"].as_str().unwrap() {
             "record" => {
-                let images: Vec<ImageInput> = serde_json::from_value(op["images"].clone()).unwrap();
+                let images = op["images"].as_array().cloned().unwrap();
                 let out = record_send_uses(
                     &cwd,
                     &s("sessionId"),

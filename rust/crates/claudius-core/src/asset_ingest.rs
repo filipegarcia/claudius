@@ -8,7 +8,10 @@
 //!   are kept) and an `asset_uses` row per (session, message, ordinal).
 //!   An image that fails is logged and skipped; nothing here fails the
 //!   send. `POST /api/sessions/:id/input` calls it, off the request, for
-//!   a prompt with images (sent now or queued), with the input's own images.
+//!   a prompt with images (sent now or queued), with the posted elements as
+//!   they are: `data` goes through `Buffer.from` (a string as base64, an
+//!   array or array-like as bytes), and a `null` element, a `data` Node
+//!   refuses or a non-string `mediaType` is a TypeError that skips it (S29).
 //! * [`backfill_project`] (`backfillProject`): the Files page's first open
 //!   walks every `<encoded cwd>/*.jsonl` under `<home>/.claude/projects`
 //!   (the Claudius state root, not the CLI's config dir, as in TS) and
@@ -19,15 +22,13 @@
 //! Values reach SQLite as better-sqlite3 binds them: every number a REAL
 //! (the INTEGER columns store whole ones as integers).
 
-use rusqlite::params;
 use rusqlite::types::Value as Sql;
 use serde_json::{Map, Value, json};
 
 use crate::db::{Mode, open_db};
 use crate::image_size::{Dim, image_size};
 use crate::js_date::date_parse;
-use crate::queue_db::ImageInput;
-use crate::{asset_store, js_num, log, node_path, paths};
+use crate::{asset_store, js_num, js_params, log, node_path, paths, sql_text};
 
 /// `IngestUseResult`.
 #[derive(Clone, Debug, PartialEq)]
@@ -100,6 +101,59 @@ pub fn buffer_from_base64(s: &str) -> Vec<u8> {
     out
 }
 
+/// The bytes `Buffer.from(v)` copies from an array-like (`fromArrayLike`):
+/// `length` elements (none for `length <= 0`), each `ToUint8(ToNumber(x))`.
+/// A length past 2^31 is refused (V8 would need that many bytes).
+fn from_array_like(length: f64, get: impl Fn(usize) -> Option<Value>) -> Result<Vec<u8>, String> {
+    if length.is_nan() || length <= 0.0 {
+        return Ok(Vec::new());
+    }
+    if length > f64::from(i32::MAX) {
+        return Err("RangeError: Array buffer allocation failed".into());
+    }
+    Ok((0..length as usize)
+        .map(|k| {
+            let n = match get(k) {
+                None => f64::NAN,
+                Some(Value::Null) => 0.0,
+                Some(Value::Bool(b)) => f64::from(u8::from(b)),
+                Some(Value::Number(n)) => n.as_f64().unwrap_or(f64::NAN),
+                Some(v) => claudius_agent::js::to_number(&claudius_agent::js::to_string(Some(&v))),
+            };
+            if n.is_finite() {
+                n.trunc().rem_euclid(256.0) as u8
+            } else {
+                0
+            }
+        })
+        .collect())
+}
+
+/// `Buffer.from(img.data, "base64")` on a parsed JSON value: a string is
+/// base64; an array is its bytes; an object with a `length` is array-like
+/// (empty when that isn't a number), and `{type: "Buffer", data: [...]}`
+/// is `data`'s bytes. Anything else is Node's `ERR_INVALID_ARG_TYPE`.
+fn buffer_from(data: Option<&Value>) -> Result<Vec<u8>, String> {
+    match data {
+        Some(Value::String(s)) => Ok(buffer_from_base64(s)),
+        Some(Value::Array(a)) => from_array_like(a.len() as f64, |k| a.get(k).cloned()),
+        Some(Value::Object(o)) if o.contains_key("length") => match o.get("length") {
+            Some(Value::Number(n)) => from_array_like(n.as_f64().unwrap_or(f64::NAN), |k| {
+                o.get(&k.to_string()).cloned()
+            }),
+            _ => Ok(Vec::new()),
+        },
+        Some(Value::Object(o))
+            if o.get("type").and_then(Value::as_str) == Some("Buffer")
+                && o.get("data").is_some_and(Value::is_array) =>
+        {
+            let a = o["data"].as_array().unwrap();
+            from_array_like(a.len() as f64, |k| a.get(k).cloned())
+        }
+        _ => Err("TypeError [ERR_INVALID_ARG_TYPE]: The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an Array-like Object.".into()),
+    }
+}
+
 /// `safeImageSize(buf)`: the dimensions, or none when `imageSize` throws.
 fn safe_image_size(buf: &[u8]) -> (Dim, Dim) {
     match image_size(buf) {
@@ -130,14 +184,14 @@ const USE: &str =
          VALUES(?, ?, ?, ?, ?)";
 
 /// `recordSendUses({cwd, sessionId, messageUuid, occurredMs, images})`: one
-/// result per image that made it in. An image without an `ordinal` is its
-/// 1-based position.
+/// result per image that made it in. An image without a numeric `ordinal`
+/// is its 1-based position.
 pub fn record_send_uses(
     cwd: &str,
     session_id: &str,
     message_uuid: &str,
     occurred_ms: f64,
-    images: &[ImageInput],
+    images: &[Value],
 ) -> Vec<IngestUseResult> {
     let mut out = Vec::new();
     if images.is_empty() {
@@ -151,26 +205,44 @@ pub fn record_send_uses(
         }
     };
     for (i, img) in images.iter().enumerate() {
-        let buf = buffer_from_base64(&img.data);
-        let written = match asset_store::write_if_absent(cwd, &buf, &img.media_type) {
+        // `img.data` / `img.mediaType`: V8's TypeErrors skip the image.
+        if img.is_null() {
+            tracing::warn!(target: log::API, "[asset-ingest] failed: TypeError: Cannot read properties of null (reading 'data')");
+            continue;
+        }
+        let buf = match buffer_from(img.get("data")) {
+            Ok(b) => b,
+            Err(e) => {
+                tracing::warn!(target: log::API, "[asset-ingest] failed: {e}");
+                continue;
+            }
+        };
+        let Some(media_type) = img.get("mediaType").and_then(Value::as_str) else {
+            tracing::warn!(target: log::API, "[asset-ingest] failed: TypeError: mediaType.toLowerCase is not a function");
+            continue;
+        };
+        let written = match asset_store::write_if_absent(cwd, &buf, media_type) {
             Ok(w) => w,
             Err(e) => {
                 tracing::warn!(target: log::API, "[asset-ingest] failed: {}", e.message);
                 continue;
             }
         };
-        let (width, height) = if img.media_type.starts_with("image/") {
+        let (width, height) = if media_type.starts_with("image/") {
             safe_image_size(&buf)
         } else {
             (None, None)
         };
-        let ordinal = img.ordinal.unwrap_or((i + 1) as f64);
+        let ordinal = img
+            .get("ordinal")
+            .and_then(Value::as_f64)
+            .unwrap_or((i + 1) as f64);
         let rows = db.with(|c| {
             let upserted = c.execute(
                 UPSERT,
-                params![
+                js_params![
                     written.hash,
-                    img.media_type,
+                    media_type,
                     buf.len() as f64,
                     bind_dim(width),
                     bind_dim(height),
@@ -180,7 +252,7 @@ pub fn record_send_uses(
             )?;
             let used = c.execute(
                 USE,
-                params![written.hash, session_id, message_uuid, ordinal, occurred_ms],
+                js_params![written.hash, session_id, message_uuid, ordinal, occurred_ms],
             )?;
             Ok((upserted, used))
         });
@@ -220,8 +292,8 @@ fn read_cursor(c: &rusqlite::Connection, session_id: &str) -> rusqlite::Result<O
     let row: Option<Sql> = c
         .query_row(
             "SELECT value FROM schema_meta WHERE key = ?",
-            [meta_key(session_id)],
-            |r| r.get(0),
+            js_params![meta_key(session_id)],
+            |r| sql_text::get(r, 0),
         )
         .optional()?;
     let Some(value) = row else {
@@ -258,7 +330,7 @@ fn write_cursor(
         claudius_agent::js::stringify(&json!({"mtimeMs": js_num(mtime), "size": js_num(size)}));
     c.execute(
         "INSERT INTO schema_meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-        params![meta_key(session_id), value],
+        js_params![meta_key(session_id), value],
     )?;
     Ok(())
 }
@@ -354,7 +426,7 @@ fn scan_file(
             Some(Value::String(u)) => u.clone(),
             _ => format!("{session_id}-{count}"),
         };
-        let mut images: Vec<ImageInput> = Vec::new();
+        let mut images: Vec<Value> = Vec::new();
         let mut ordinal = 0.0;
         for c in content {
             let source = c
@@ -378,11 +450,7 @@ fn scan_file(
                 Some(Value::String(m)) => m.clone(),
                 Some(_) => continue,
             };
-            images.push(ImageInput {
-                data: data.clone(),
-                media_type,
-                ordinal: Some(ordinal),
-            });
+            images.push(json!({"data": data, "mediaType": media_type, "ordinal": js_num(ordinal)}));
         }
         if images.is_empty() {
             continue;

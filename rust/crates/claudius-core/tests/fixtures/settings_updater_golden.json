@@ -1,0 +1,1641 @@
+{
+ "node": "v22.23.3",
+ "baseline": "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6,\"state\":{\"lastCheckAt\":5,\"lastError\":\"boom\",\"pending\":{\"remoteSha\":\"abc\",\"behind\":2},\"status\":{\"kind\":\"checking\",\"startedAt\":1}},\"extra\":1}",
+ "files": [
+  {
+   "label": "missing",
+   "setup": [],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "an empty object",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "every field",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6,\"state\":{\"lastCheckAt\":5,\"lastError\":\"boom\",\"pending\":{\"remoteSha\":\"abc\",\"behind\":2},\"status\":{\"kind\":\"checking\",\"startedAt\":1}},\"extra\":1}"
+    ]
+   ],
+   "export": "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "odd types",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"nope\",\"remote\":\"  \",\"branch\":7,\"intervalHours\":-1,\"state\":null}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "prototype names",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"constructor\",\"remote\":\"toString\",\"branch\":\"__proto__\"}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"toString\",\"branch\":\"__proto__\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"toString\",\n  \"branch\": \"__proto__\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "not JSON",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "not json"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "truncated",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "["
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "empty",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     ""
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a BOM",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "﻿{\"mode\":\"ff-only\"}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "null",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "null"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "an array",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "[\"ff-only\"]"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a string",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "\"ff-only\""
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "number text",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"intervalHours\":2.50,\"state\":{\"lastCheckAt\":1.50,\"pending\":{\"n\":[1.0,1e2,1e21,-0,0.000001,1e-7,123456789012345678]}}}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":2.5}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"lastCheckAt\": 1.5,\n    \"pending\": {\n      \"n\": [\n        1,\n        100,\n        1e+21,\n        0,\n        0.000001,\n        1e-7,\n        123456789012345680\n      ]\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 2.5,\n  \"state\": {\n    \"lastCheckAt\": 1.5,\n    \"pending\": {\n      \"n\": [\n        1,\n        100,\n        1e+21,\n        0,\n        0.000001,\n        1e-7,\n        123456789012345680\n      ]\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a big interval",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"intervalHours\":1e308}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":1e+308}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 1e+308,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a tiny interval",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"intervalHours\":5e-324}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":5e-324}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 5e-324,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a long integer interval",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"intervalHours\":12345678901234567890}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":12345678901234567000}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 12345678901234567000,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "an overflowing interval",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"intervalHours\":1e400,\"mode\":\"notify-only\"}"
+    ]
+   ],
+   "export": "{\"mode\":\"notify-only\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "infinite stamps",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"state\":{\"lastCheckAt\":1e400,\"lastUpdateAt\":-1e400,\"pending\":{\"n\":1e400}}}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"lastCheckAt\": null,\n    \"lastUpdateAt\": null,\n    \"pending\": {\n      \"n\": null\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"lastCheckAt\": null,\n    \"lastUpdateAt\": null,\n    \"pending\": {\n      \"n\": null\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "lone surrogates in the knobs",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"remote\":\"\\udc00\",\"branch\":\"a\\ud800\"}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"\\udc00\",\"branch\":\"a\\ud800\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"\\udc00\",\n  \"branch\": \"a\\ud800\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "lone surrogates in the state",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"ff-only\",\"state\":{\"lastError\":\"\\ud83d\",\"pending\":{\"remoteSha\":\"\\ud800x\"}}}"
+    ]
+   ],
+   "export": "{\"mode\":\"ff-only\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"lastError\": \"\\ud83d\",\n    \"pending\": {\n      \"remoteSha\": \"\\ud800x\"\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"lastError\": \"\\ud83d\",\n    \"pending\": {\n      \"remoteSha\": \"\\ud800x\"\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "nested 140 deep",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"disabled\",\"state\":{\"pending\":{\"a\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}}}"
+    ]
+   ],
+   "export": "{\"mode\":\"disabled\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"pending\": {\n      \"a\": [\n        [\n          [\n            [\n              [\n                [\n                  [\n                    [\n                      [\n                        [\n                          [\n                            [\n                              [\n                                [\n                                  [\n                                    [\n                                      [\n                                        [\n                                          [\n                                            [\n                                              [\n                                                [\n                                                  [\n                                                    [\n                                                      [\n                                                        [\n                                                          [\n                                                            [\n                                                              [\n                                                                [\n                                                                  [\n                                                                    [\n                                                                      [\n                                                                        [\n                                                                          [\n                                                                            [\n                                                                              [\n                                                                                [\n                                                                                  [\n                                                                                    [\n                                                                                      [\n                                                                                        [\n                                                                                          [\n                                                                                            [\n                                                                                              [\n                                                                                                [\n                                                                                                  [\n                                                                                                    [\n                                                                                                      [\n                                                                                                        [\n                                                                                                          [\n                                                                                                            [\n                                                                                                              [\n                                                                                                                [\n                                                                                                                  [\n                                                                                                                    [\n                                                                                                                      [\n                                                                                                                        [\n                                                                                                                          [\n                                                                                                                            [\n                                                                                                                              [\n                                                                                                                                [\n                                                                                                                                  [\n                                                                                                                                    [\n                                                                                                                                      [\n                                                                                                                                        [\n                                                                                                                                          [\n                                                                                                                                            [\n                                                                                                                                              [\n                                                                                                                                                [\n                                                                                                                                                  [\n                                                                                                                                                    [\n                                                                                                                                                      [\n                                                                                                                                                        [\n                                                                                                                                                          [\n                                                                                                                                                            [\n                                                                                                                                                              [\n                                                                                                                                                                [\n                                                                                                                                                                  [\n                                                                                                                                                                    [\n                                                                                                                                                                      [\n                                                                                                                                                                        [\n                                                                                                                                                                          [\n                                                                                                                                                                            [\n                                                                                                                                                                              [\n                                                                                                                                                                                [\n                                                                                                                                                                                  [\n                                                                                                                                                                                    [\n                                                                                                                                                                                      [\n                                                                                                                                                                                        [\n                                                                                                                                                                                          [\n                                                                                                                                                                                            [\n                                                                                                                                                                                              [\n                                                                                                                                                                                                [\n                                                                                                                                                                                                  [\n                                                                                                                                                                                                    [\n                                                                                                                                                                                                      [\n                                                                                                                                                                                                        [\n                                                                                                                                                                                                          [\n                                                                                                                                                                                                            [\n                                                                                                                                                                                                              [\n                                                                                                                                                                                                                [\n                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                                                                      []\n                                                                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                ]\n                                                                                                                                                                                                              ]\n                                                                                                                                                                                                            ]\n                                                                                                                                                                                                          ]\n                                                                                                                                                                                                        ]\n                                                                                                                                                                                                      ]\n                                                                                                                                                                                                    ]\n                                                                                                                                                                                                  ]\n                                                                                                                                                                                                ]\n                                                                                                                                                                                              ]\n                                                                                                                                                                                            ]\n                                                                                                                                                                                          ]\n                                                                                                                                                                                        ]\n                                                                                                                                                                                      ]\n                                                                                                                                                                                    ]\n                                                                                                                                                                                  ]\n                                                                                                                                                                                ]\n                                                                                                                                                                              ]\n                                                                                                                                                                            ]\n                                                                                                                                                                          ]\n                                                                                                                                                                        ]\n                                                                                                                                                                      ]\n                                                                                                                                                                    ]\n                                                                                                                                                                  ]\n                                                                                                                                                                ]\n                                                                                                                                                              ]\n                                                                                                                                                            ]\n                                                                                                                                                          ]\n                                                                                                                                                        ]\n                                                                                                                                                      ]\n                                                                                                                                                    ]\n                                                                                                                                                  ]\n                                                                                                                                                ]\n                                                                                                                                              ]\n                                                                                                                                            ]\n                                                                                                                                          ]\n                                                                                                                                        ]\n                                                                                                                                      ]\n                                                                                                                                    ]\n                                                                                                                                  ]\n                                                                                                                                ]\n                                                                                                                              ]\n                                                                                                                            ]\n                                                                                                                          ]\n                                                                                                                        ]\n                                                                                                                      ]\n                                                                                                                    ]\n                                                                                                                  ]\n                                                                                                                ]\n                                                                                                              ]\n                                                                                                            ]\n                                                                                                          ]\n                                                                                                        ]\n                                                                                                      ]\n                                                                                                    ]\n                                                                                                  ]\n                                                                                                ]\n                                                                                              ]\n                                                                                            ]\n                                                                                          ]\n                                                                                        ]\n                                                                                      ]\n                                                                                    ]\n                                                                                  ]\n                                                                                ]\n                                                                              ]\n                                                                            ]\n                                                                          ]\n                                                                        ]\n                                                                      ]\n                                                                    ]\n                                                                  ]\n                                                                ]\n                                                              ]\n                                                            ]\n                                                          ]\n                                                        ]\n                                                      ]\n                                                    ]\n                                                  ]\n                                                ]\n                                              ]\n                                            ]\n                                          ]\n                                        ]\n                                      ]\n                                    ]\n                                  ]\n                                ]\n                              ]\n                            ]\n                          ]\n                        ]\n                      ]\n                    ]\n                  ]\n                ]\n              ]\n            ]\n          ]\n        ]\n      ]\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"disabled\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"pending\": {\n      \"a\": [\n        [\n          [\n            [\n              [\n                [\n                  [\n                    [\n                      [\n                        [\n                          [\n                            [\n                              [\n                                [\n                                  [\n                                    [\n                                      [\n                                        [\n                                          [\n                                            [\n                                              [\n                                                [\n                                                  [\n                                                    [\n                                                      [\n                                                        [\n                                                          [\n                                                            [\n                                                              [\n                                                                [\n                                                                  [\n                                                                    [\n                                                                      [\n                                                                        [\n                                                                          [\n                                                                            [\n                                                                              [\n                                                                                [\n                                                                                  [\n                                                                                    [\n                                                                                      [\n                                                                                        [\n                                                                                          [\n                                                                                            [\n                                                                                              [\n                                                                                                [\n                                                                                                  [\n                                                                                                    [\n                                                                                                      [\n                                                                                                        [\n                                                                                                          [\n                                                                                                            [\n                                                                                                              [\n                                                                                                                [\n                                                                                                                  [\n                                                                                                                    [\n                                                                                                                      [\n                                                                                                                        [\n                                                                                                                          [\n                                                                                                                            [\n                                                                                                                              [\n                                                                                                                                [\n                                                                                                                                  [\n                                                                                                                                    [\n                                                                                                                                      [\n                                                                                                                                        [\n                                                                                                                                          [\n                                                                                                                                            [\n                                                                                                                                              [\n                                                                                                                                                [\n                                                                                                                                                  [\n                                                                                                                                                    [\n                                                                                                                                                      [\n                                                                                                                                                        [\n                                                                                                                                                          [\n                                                                                                                                                            [\n                                                                                                                                                              [\n                                                                                                                                                                [\n                                                                                                                                                                  [\n                                                                                                                                                                    [\n                                                                                                                                                                      [\n                                                                                                                                                                        [\n                                                                                                                                                                          [\n                                                                                                                                                                            [\n                                                                                                                                                                              [\n                                                                                                                                                                                [\n                                                                                                                                                                                  [\n                                                                                                                                                                                    [\n                                                                                                                                                                                      [\n                                                                                                                                                                                        [\n                                                                                                                                                                                          [\n                                                                                                                                                                                            [\n                                                                                                                                                                                              [\n                                                                                                                                                                                                [\n                                                                                                                                                                                                  [\n                                                                                                                                                                                                    [\n                                                                                                                                                                                                      [\n                                                                                                                                                                                                        [\n                                                                                                                                                                                                          [\n                                                                                                                                                                                                            [\n                                                                                                                                                                                                              [\n                                                                                                                                                                                                                [\n                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                                                      [\n                                                                                                                                                                                                                                                                        [\n                                                                                                                                                                                                                                                                          [\n                                                                                                                                                                                                                                                                            [\n                                                                                                                                                                                                                                                                              [\n                                                                                                                                                                                                                                                                                [\n                                                                                                                                                                                                                                                                                  [\n                                                                                                                                                                                                                                                                                    [\n                                                                                                                                                                                                                                                                                      []\n                                                                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                                ]\n                                                                                                                                                                                                                              ]\n                                                                                                                                                                                                                            ]\n                                                                                                                                                                                                                          ]\n                                                                                                                                                                                                                        ]\n                                                                                                                                                                                                                      ]\n                                                                                                                                                                                                                    ]\n                                                                                                                                                                                                                  ]\n                                                                                                                                                                                                                ]\n                                                                                                                                                                                                              ]\n                                                                                                                                                                                                            ]\n                                                                                                                                                                                                          ]\n                                                                                                                                                                                                        ]\n                                                                                                                                                                                                      ]\n                                                                                                                                                                                                    ]\n                                                                                                                                                                                                  ]\n                                                                                                                                                                                                ]\n                                                                                                                                                                                              ]\n                                                                                                                                                                                            ]\n                                                                                                                                                                                          ]\n                                                                                                                                                                                        ]\n                                                                                                                                                                                      ]\n                                                                                                                                                                                    ]\n                                                                                                                                                                                  ]\n                                                                                                                                                                                ]\n                                                                                                                                                                              ]\n                                                                                                                                                                            ]\n                                                                                                                                                                          ]\n                                                                                                                                                                        ]\n                                                                                                                                                                      ]\n                                                                                                                                                                    ]\n                                                                                                                                                                  ]\n                                                                                                                                                                ]\n                                                                                                                                                              ]\n                                                                                                                                                            ]\n                                                                                                                                                          ]\n                                                                                                                                                        ]\n                                                                                                                                                      ]\n                                                                                                                                                    ]\n                                                                                                                                                  ]\n                                                                                                                                                ]\n                                                                                                                                              ]\n                                                                                                                                            ]\n                                                                                                                                          ]\n                                                                                                                                        ]\n                                                                                                                                      ]\n                                                                                                                                    ]\n                                                                                                                                  ]\n                                                                                                                                ]\n                                                                                                                              ]\n                                                                                                                            ]\n                                                                                                                          ]\n                                                                                                                        ]\n                                                                                                                      ]\n                                                                                                                    ]\n                                                                                                                  ]\n                                                                                                                ]\n                                                                                                              ]\n                                                                                                            ]\n                                                                                                          ]\n                                                                                                        ]\n                                                                                                      ]\n                                                                                                    ]\n                                                                                                  ]\n                                                                                                ]\n                                                                                              ]\n                                                                                            ]\n                                                                                          ]\n                                                                                        ]\n                                                                                      ]\n                                                                                    ]\n                                                                                  ]\n                                                                                ]\n                                                                              ]\n                                                                            ]\n                                                                          ]\n                                                                        ]\n                                                                      ]\n                                                                    ]\n                                                                  ]\n                                                                ]\n                                                              ]\n                                                            ]\n                                                          ]\n                                                        ]\n                                                      ]\n                                                    ]\n                                                  ]\n                                                ]\n                                              ]\n                                            ]\n                                          ]\n                                        ]\n                                      ]\n                                    ]\n                                  ]\n                                ]\n                              ]\n                            ]\n                          ]\n                        ]\n                      ]\n                    ]\n                  ]\n                ]\n              ]\n            ]\n          ]\n        ]\n      ]\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "index keys",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"state\":{\"pending\":{\"b\":1,\"2\":2,\"1\":1,\"a\":0,\"10\":3,\"01\":4,\"4294967295\":5,\"4294967294\":6}}}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"pending\": {\n      \"1\": 1,\n      \"2\": 2,\n      \"10\": 3,\n      \"4294967294\": 6,\n      \"b\": 1,\n      \"a\": 0,\n      \"01\": 4,\n      \"4294967295\": 5\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"pending\": {\n      \"1\": 1,\n      \"2\": 2,\n      \"10\": 3,\n      \"4294967294\": 6,\n      \"b\": 1,\n      \"a\": 0,\n      \"01\": 4,\n      \"4294967295\": 5\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "__proto__ keys",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"__proto__\":{\"mode\":\"ff-only\"},\"state\":{\"pending\":{\"__proto__\":{\"a\":1},\"remoteSha\":\"x\"}}}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"pending\": {\n      \"__proto__\": {\n        \"a\": 1\n      },\n      \"remoteSha\": \"x\"\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"pending\": {\n      \"__proto__\": {\n        \"a\": 1\n      },\n      \"remoteSha\": \"x\"\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "duplicate keys",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"ff-only\",\"mode\":\"disabled\",\"state\":{\"lastError\":\"a\",\"lastError\":\"b\"}}"
+    ]
+   ],
+   "export": "{\"mode\":\"disabled\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"lastError\": \"b\",\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"disabled\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"lastError\": \"b\",\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "unicode",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"remote\":\"😀\",\"branch\":\"中文\",\"state\":{\"lastError\":\" x\"}}"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"😀\",\"branch\":\"中文\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"lastError\": \" x\",\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"😀\",\n  \"branch\": \"中文\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"lastError\": \" x\",\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "invalid UTF-8",
+   "setup": [
+    [
+     "bytes",
+     "home/.claude/.claudius/updater.json",
+     [
+      123,
+      34,
+      114,
+      101,
+      109,
+      111,
+      116,
+      101,
+      34,
+      58,
+      34,
+      111,
+      255,
+      107,
+      34,
+      44,
+      34,
+      98,
+      114,
+      97,
+      110,
+      99,
+      104,
+      34,
+      58,
+      34,
+      226,
+      130,
+      34,
+      125
+     ]
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"o�k\",\"branch\":\"�\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 420,
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"o�k\",\n  \"branch\": \"�\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "mode 0600",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"ff-only\"}"
+    ],
+    [
+     "chmod",
+     "home/.claude/.claudius/updater.json",
+     384
+    ]
+   ],
+   "export": "{\"mode\":\"ff-only\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 384,
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 384,
+      "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "read-only",
+   "setup": [
+    [
+     "write",
+     "home/.claude/.claudius/updater.json",
+     "{\"mode\":\"ff-only\"}"
+    ],
+    [
+     "chmod",
+     "home/.claude/.claudius/updater.json",
+     292
+    ]
+   ],
+   "export": "{\"mode\":\"ff-only\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"EACCES: permission denied, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 292,
+      "text": "{\"mode\":\"ff-only\"}"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"EACCES: permission denied, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "file",
+      "mode": 292,
+      "text": "{\"mode\":\"ff-only\"}"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a directory",
+   "setup": [
+    [
+     "mkdir",
+     "home/.claude/.claudius/updater.json"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"EISDIR: illegal operation on a directory, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "dir"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"EISDIR: illegal operation on a directory, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "dir"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a dangling symlink into a missing dir",
+   "setup": [
+    [
+     "symlink",
+     "home/.claude/.claudius/updater.json",
+     "$ROOT/nowhere/target.json"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"ENOENT: no such file or directory, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/nowhere/target.json"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"ENOENT: no such file or directory, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/nowhere/target.json"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a dangling symlink into a dir",
+   "setup": [
+    [
+     "symlink",
+     "home/.claude/.claudius/updater.json",
+     "$ROOT/extra/target.json"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/extra/target.json",
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/extra/target.json",
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"main\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a symlink to a file",
+   "setup": [
+    [
+     "write",
+     "extra/linked.json",
+     "{\"branch\":\"linked\"}"
+    ],
+    [
+     "symlink",
+     "home/.claude/.claudius/updater.json",
+     "$ROOT/extra/linked.json"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"linked\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/extra/linked.json",
+      "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/extra/linked.json",
+      "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"origin\",\n  \"branch\": \"linked\",\n  \"intervalHours\": 24,\n  \"state\": {\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a symlink loop",
+   "setup": [
+    [
+     "symlink",
+     "home/.claude/.claudius/updater.json",
+     "$ROOT/home/.claude/.claudius/updater.json"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"ELOOP: too many symbolic links encountered, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/home/.claude/.claudius/updater.json"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"ELOOP: too many symbolic links encountered, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/home/.claude/.claudius/updater.json"
+     }
+    }
+   ]
+  },
+  {
+   "label": "a symlink to a directory",
+   "setup": [
+    [
+     "symlink",
+     "home/.claude/.claudius/updater.json",
+     "$ROOT/extra"
+    ]
+   ],
+   "export": "{\"mode\":\"cc-merge\",\"remote\":\"origin\",\"branch\":\"main\",\"intervalHours\":24}",
+   "imports": [
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"EISDIR: illegal operation on a directory, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/extra"
+     }
+    },
+    {
+     "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+     "got": "{\"state\":\"error\",\"importId\":\"$IMP\",\"error\":\"EISDIR: illegal operation on a directory, open '$ROOT/home/.claude/.claudius/updater.json'\",\"log\":[]}",
+     "after": {
+      "kind": "symlink",
+      "target": "$ROOT/extra"
+     }
+    }
+   ]
+  }
+ ],
+ "bundles": [
+  {
+   "label": "every knob",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"remote\":\"fork\",\"branch\":\"next\",\"intervalHours\":2}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"fork\",\n  \"branch\": \"next\",\n  \"intervalHours\": 2,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode cc-merge",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"cc-merge\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"cc-merge\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode ff-only",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"ff-only\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode notify-only",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode disabled",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"disabled\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"disabled\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode upper-case",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"DISABLED\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode a prototype name",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"constructor\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode a number",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":5}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode null",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":null}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode an array",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":[\"disabled\"]}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "mode an object",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":{\"toString\":\"disabled\"}}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "a bad mode with good knobs",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"x\",\"remote\":\"kept\",\"intervalHours\":3}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"kept\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 3,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote blank",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"   \"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote empty",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote JS whitespace",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"  ﻿　 \"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote NEL (not JS whitespace)",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote U+180E (not JS whitespace)",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"᠎\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"᠎\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "spaced knobs (kept as they are)",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\" spaced \",\"branch\":\"\\tmain\\t\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \" spaced \",\n  \"branch\": \"\\tmain\\t\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote a number",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":5}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote true",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":true}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "remote an array",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":[\"x\"]}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "branch null",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"branch\":null}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "branch an object",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"branch\":{}}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 0",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":0}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval -1",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":-1}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval -0",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":-0}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 1e400",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":1e400}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval -1e400",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":-1e400}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval a string",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":\"3\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval true",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":true}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval an array",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":[6]}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 0.5",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":0.5}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 0.5,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 1.0",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":1.0}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 1,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 1e21",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":1e21}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 1e+21,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 5e-324",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":5e-324}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 5e-324,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 1e-7",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":1e-7}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 1e-7,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 12345678901234567890",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":12345678901234567890}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 12345678901234567000,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "interval 1e308",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"intervalHours\":1e308}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 1e+308,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "updaterSettings a number",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":5},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "updaterSettings a string",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":\"disabled\"},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "updaterSettings true",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":true},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "updaterSettings an empty array",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":[]},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "updaterSettings an array of a patch",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":[{\"mode\":\"disabled\",\"remote\":\"arr\"}]},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "updaterSettings an empty object",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "updaterSettings 0",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":0},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6,\"state\":{\"lastCheckAt\":5,\"lastError\":\"boom\",\"pending\":{\"remoteSha\":\"abc\",\"behind\":2},\"status\":{\"kind\":\"checking\",\"startedAt\":1}},\"extra\":1}"
+   }
+  },
+  {
+   "label": "updaterSettings false",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":false},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6,\"state\":{\"lastCheckAt\":5,\"lastError\":\"boom\",\"pending\":{\"remoteSha\":\"abc\",\"behind\":2},\"status\":{\"kind\":\"checking\",\"startedAt\":1}},\"extra\":1}"
+   }
+  },
+  {
+   "label": "updaterSettings null",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":null},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6,\"state\":{\"lastCheckAt\":5,\"lastError\":\"boom\",\"pending\":{\"remoteSha\":\"abc\",\"behind\":2},\"status\":{\"kind\":\"checking\",\"startedAt\":1}},\"extra\":1}"
+   }
+  },
+  {
+   "label": "updaterSettings an empty string",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":\"\"},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6,\"state\":{\"lastCheckAt\":5,\"lastError\":\"boom\",\"pending\":{\"remoteSha\":\"abc\",\"behind\":2},\"status\":{\"kind\":\"checking\",\"startedAt\":1}},\"extra\":1}"
+   }
+  },
+  {
+   "label": "updaterSettings missing",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\"mode\":\"ff-only\",\"remote\":\"up\",\"branch\":\"dev\",\"intervalHours\":6,\"state\":{\"lastCheckAt\":5,\"lastError\":\"boom\",\"pending\":{\"remoteSha\":\"abc\",\"behind\":2},\"status\":{\"kind\":\"checking\",\"startedAt\":1}},\"extra\":1}"
+   }
+  },
+  {
+   "label": "extra keys and a state (ignored)",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"notify-only\",\"state\":{\"lastError\":\"x\",\"status\":{\"kind\":\"applying\"}},\"extra\":1}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"notify-only\",\n  \"remote\": \"up\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "duplicate keys (last wins)",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"mode\":\"bogus\",\"mode\":\"disabled\",\"remote\":\"a\",\"remote\":\"b\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"disabled\",\n  \"remote\": \"b\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "a __proto__ key",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"__proto__\":{\"mode\":\"disabled\",\"branch\":\"proto\"},\"remote\":\"r\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"r\",\n  \"branch\": \"dev\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "lone surrogates",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"\\ud800x\",\"branch\":\"b\\udfff\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"\\ud800x\",\n  \"branch\": \"b\\udfff\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "unicode",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"😀\",\"branch\":\"maïn\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"😀\",\n  \"branch\": \"maïn\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  },
+  {
+   "label": "control characters",
+   "bundle": "{\"version\":1,\"exportedAt\":1,\"exportedFrom\":{\"hostname\":\"h\",\"platform\":\"darwin\"},\"system\":{\"updaterSettings\":{\"remote\":\"a\\u0000b\",\"branch\":\"\\u001f\"}},\"workspaces\":[]}",
+   "got": "{\"state\":\"done\",\"importId\":\"$IMP\",\"processed\":0,\"total\":0,\"log\":[]}",
+   "after": {
+    "kind": "file",
+    "mode": 420,
+    "text": "{\n  \"mode\": \"ff-only\",\n  \"remote\": \"a\\u0000b\",\n  \"branch\": \"\\u001f\",\n  \"intervalHours\": 6,\n  \"state\": {\n    \"lastCheckAt\": 5,\n    \"lastError\": \"boom\",\n    \"pending\": {\n      \"remoteSha\": \"abc\",\n      \"behind\": 2\n    },\n    \"status\": {\n      \"kind\": \"idle\"\n    }\n  }\n}\n"
+   }
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 //! The customization store's routes: port of `app/api/customizations/route.ts`
-//! (GET; its POST is `bootstrapCustomization`, D14, and stays on Next),
+//! (GET; its POST, the bootstrap, is [`crate::customization_actions`], D14),
 //! `[id]/route.ts` (GET/PATCH/DELETE), `[id]/select/route.ts` (POST),
 //! `[id]/publishes/route.ts` (GET) and `[id]/diff/route.ts` (GET), over
 //! [`claudius_core::customizations`].
@@ -13,10 +13,9 @@
 //! Next's `ResponseCookies` sends them ([`crate::workspaces`]); a missing
 //! customization deletes the customization cookie.
 //!
-//! `DELETE` stops the customization's preview first. The preview servers
-//! live in the Next process until D15 ports them, so this asks Next's own
-//! `DELETE /api/customizations/:id/preview` (best-effort, while the record
-//! still exists); without a Next upstream there is no preview to stop.
+//! `DELETE` stops the customization's preview first
+//! ([`claudius_core::preview_server::stop_preview`], D15), while the record
+//! still exists.
 //!
 //! Path safety: `DELETE` removes `<root>/<id>` and `diff` walks
 //! `<root>/<id>/src` only when that is strictly inside the customizations
@@ -25,17 +24,16 @@
 //! (logged, the record still goes) and the diff answers 403.
 
 use std::borrow::Cow;
-use std::time::Duration;
 
 use axum::Router;
-use axum::body::{Body, Bytes};
-use axum::extract::{Path, Request, State};
-use axum::http::{HeaderMap, Method, StatusCode};
+use axum::body::Bytes;
+use axum::extract::Path;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::Response;
 use axum::routing::{get, post};
 use claudius_agent::js;
 use claudius_core::customizations::{DiffError, Store};
-use claudius_core::{js_string, log, now_ms, runtime_dir};
+use claudius_core::{js_string, log, now_ms, preview_server, runtime_dir};
 use serde_json::{Map, Value, json};
 
 use crate::AppState;
@@ -48,8 +46,11 @@ use crate::workspaces::{
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        // POST is the bootstrap (D14).
-        .route("/api/customizations", get(list).post(crate::proxy::handler))
+        // POST is the bootstrap (D14's module).
+        .route(
+            "/api/customizations",
+            get(list).post(crate::customization_actions::bootstrap),
+        )
         .route(
             "/api/customizations/{id}",
             get(get_one).patch(patch_one).delete(delete_one),
@@ -58,9 +59,6 @@ pub fn router() -> Router<AppState> {
         .route("/api/customizations/{id}/publishes", get(publishes))
         .route("/api/customizations/{id}/diff", get(diff))
 }
-
-/// How long `DELETE` waits for Next to stop a preview.
-const PREVIEW_STOP_TIMEOUT: Duration = Duration::from_secs(5);
 
 fn error(status: StatusCode, msg: &str) -> Response {
     json_text(status, &json!({"error": msg}))
@@ -111,7 +109,7 @@ async fn get_one(Path(id): Path<String>) -> Response {
 /// `try { body = await req.json() } catch { return 400 }`: the text
 /// `Body.json()` parses, lone surrogates kept; a number past the f64 range
 /// (JS ±Infinity, never a string) reads as `0`.
-fn patch_body(bytes: &[u8]) -> Option<Value> {
+pub(crate) fn patch_body(bytes: &[u8]) -> Option<Value> {
     let text = JsonBody::text(bytes);
     let text = replace_overflowing_numbers(&text, "0").map_or(text, Cow::Owned);
     js_string::parse(&text).ok()
@@ -143,29 +141,7 @@ async fn patch_one(Path(id): Path<String>, body: Bytes) -> Response {
     }
 }
 
-/// `stopPreview(id)`, best-effort: Next's preview route stops it.
-async fn stop_preview(app: &AppState, id: &str) {
-    let Some(proxy) = &app.proxy else { return };
-    let Some(seg) = js_string::encode_uri_component(id) else {
-        return;
-    };
-    let Ok(req) = Request::builder()
-        .method(Method::DELETE)
-        .uri(format!("/api/customizations/{seg}/preview"))
-        .body(Body::empty())
-    else {
-        return;
-    };
-    let stop = crate::proxy::forward(proxy, req);
-    if tokio::time::timeout(PREVIEW_STOP_TIMEOUT, stop)
-        .await
-        .is_err()
-    {
-        tracing::warn!(target: log::API, "[customizations] stopping the preview of {id} timed out");
-    }
-}
-
-async fn delete_one(State(app): State<AppState>, Path(id): Path<String>) -> Response {
+async fn delete_one(Path(id): Path<String>) -> Response {
     let store = Store::from_env();
     if let Err(r) = existing(&store, &id, "/[id]") {
         return *r;
@@ -186,7 +162,8 @@ async fn delete_one(State(app): State<AppState>, Path(id): Path<String>) -> Resp
             &format!("cannot delete: {active} active publish{s}. Revert first."),
         );
     }
-    stop_preview(&app, &id).await;
+    // `try { await stopPreview(id) } catch {}`: it never throws.
+    preview_server::stop_preview(&id).await;
     if let Err(e) = store.remove_customization_dir(&id) {
         tracing::warn!(target: log::API, "[customizations] {e}");
     }

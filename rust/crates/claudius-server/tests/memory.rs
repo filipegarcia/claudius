@@ -415,7 +415,10 @@ struct Live {
     turns: usize,
 }
 
-/// Post `text` as a turn and wait for it to end.
+/// Post `text` as a turn and wait for it to end. `sendInput` broadcasts
+/// `running` before the POST answers, and these turns send one `running`
+/// and then one `idle`, so the first `running` read is this turn's, and so is
+/// the `idle` after it.
 fn run_turn(server: &Server, live: &mut Live, text: &str) {
     let (st, _, body) = request(
         server.port,
@@ -433,18 +436,27 @@ fn run_turn(server: &Server, live: &mut Live, text: &str) {
 }
 
 /// A probe turn: what the CLI's user message carried before the prompt.
+/// The fake logs each stdin line before it acts on it, so the line is in by
+/// the turn's `idle`, and in one write, so it stays whole while the other
+/// sessions' fakes append to the same log (I22).
 fn probe(server: &Server, live: &mut Live, log: &Path) -> String {
     live.turns += 1;
     let text = format!("probe {} {}", live.key, live.turns);
     run_turn(server, live, &text);
-    let content = std::fs::read_to_string(log)
-        .unwrap()
+    let raw = std::fs::read_to_string(log).unwrap();
+    let content = raw
         .lines()
         .filter_map(|l| serde_json::from_str::<Value>(l).ok())
         .filter(|m| m["type"] == "user")
         .filter_map(|m| m["message"]["content"].as_str().map(str::to_owned))
         .rfind(|c| c.ends_with(&text))
-        .unwrap_or_else(|| panic!("no user message for {text}"));
+        .unwrap_or_else(|| {
+            let torn: Vec<&str> = raw
+                .lines()
+                .filter(|l| serde_json::from_str::<Value>(l).is_err())
+                .collect();
+            panic!("no user message for {text}; the log's unparsable lines: {torn:#?}")
+        });
     content[..content.len() - text.len()].to_owned()
 }
 

@@ -623,7 +623,7 @@ async fn bad_script_fails_fast_with_stderr() {
 }
 
 /// A01: the typed `Query` methods `lib/server` uses send exactly the SDK
-/// 0.3.299 request bodies (`sdk.mjs`) and unwrap the replies the same way.
+/// 0.3.312 request bodies (`sdk.mjs`) and unwrap the replies the same way.
 #[tokio::test]
 async fn typed_query_methods_send_sdk_request_shapes() {
     let log = tempfile::NamedTempFile::new().unwrap();
@@ -801,7 +801,7 @@ async fn set_mcp_servers_reconciles_in_process_servers() {
 }
 
 /// `initialize` carries in-process server settings and the pre-captured
-/// manifests right after `sdkMcpServers`, like SDK 0.3.299; a server's
+/// manifests right after `sdkMcpServers`, like SDK 0.3.312; a server's
 /// settings also ride along in its `mcp_set_servers` entry.
 #[tokio::test]
 async fn initialize_carries_sdk_server_configs_and_manifests() {
@@ -1005,4 +1005,218 @@ async fn control_sequences_answer_in_turn() {
     );
     assert_eq!(h.interrupt().await.unwrap(), Vec::<String>::new());
     h.close().await;
+}
+
+// ---- lone surrogates (I17) ----
+
+/// The stdout lines of a fake driven over raw stdin, on a thread, so a line
+/// that never comes fails the test instead of hanging it.
+fn stdout_lines(child: &mut std::process::Child) -> std::sync::mpsc::Receiver<String> {
+    use std::io::BufRead;
+    let out = std::io::BufReader::new(child.stdout.take().unwrap());
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for line in out.lines().map_while(Result::ok) {
+            if tx.send(line).is_err() {
+                break;
+            }
+        }
+    });
+    rx
+}
+
+fn next_line(rx: &std::sync::mpsc::Receiver<String>) -> Value {
+    let line = rx
+        .recv_timeout(Duration::from_secs(10))
+        .expect("the fake never answered");
+    serde_json::from_str(&line).unwrap()
+}
+
+/// The SDK writes a lone surrogate as its escape (`JSON.stringify`), which
+/// serde_json refuses. The fake reads such a line as the CLI's `JSON.parse`
+/// does, with U+FFFD in its place, and answers it instead of leaving the
+/// host waiting.
+#[test]
+fn a_lone_surrogate_control_request_gets_its_reply() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().unwrap();
+    let control_log = dir.path().join("control.log");
+    let mut child = std::process::Command::new(fake_bin())
+        .current_dir(dir.path())
+        .env("FAKE_CLAUDE_CONTROL_LOG", &control_log)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let rx = stdout_lines(&mut child);
+    let request = r#"{"type":"control_request","request_id":"r1","request":{"subtype":"submit_feedback","description":"[+1] a\ud800b","surface":"\udc00\ud83d","attach_transcript":false}}"#;
+    writeln!(stdin, "{request}").unwrap();
+    assert_eq!(
+        next_line(&rx),
+        json!({"type": "control_response",
+               "response": {"subtype": "success", "request_id": "r1", "response": {}}})
+    );
+    // A prompt too: echoed, with U+FFFD for the lone surrogate.
+    writeln!(
+        stdin,
+        r#"{{"type":"user","message":{{"role":"user","content":"hi \ud800"}}}}"#
+    )
+    .unwrap();
+    let assistant = next_line(&rx);
+    assert_eq!(
+        assistant["message"]["content"][0]["text"],
+        "echo:hi \u{fffd}"
+    );
+    assert_eq!(next_line(&rx)["result"], "echo:hi \u{fffd}");
+    drop(stdin);
+    assert!(child.wait().unwrap().success());
+    assert_eq!(
+        std::fs::read_to_string(&control_log).unwrap(),
+        "{\"type\":\"control_request\",\"request_id\":\"r1\",\"request\":{\"subtype\":\"submit_feedback\",\
+         \"description\":\"[+1] a\u{fffd}b\",\"surface\":\"\u{fffd}\u{fffd}\",\"attach_transcript\":false}}\n"
+    );
+}
+
+/// The host reads such a line from the CLI too, as the SDK's `JSON.parse`
+/// does (U+FFFD where the SDK keeps the lone surrogate), so the turn's
+/// messages and its `result` arrive instead of the turn never ending.
+#[tokio::test]
+async fn the_host_reads_lone_surrogate_lines() {
+    let raw = |line: &str| json!({"$stdout_bytes": format!("{line}\n").into_bytes()});
+    let script = json!({"turns": [{"steps": [
+        raw(r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"a\ud800b\udfff"}]},"parent_tool_use_id":null}"#),
+        raw(r#"{"type":"result","subtype":"success","is_error":false,"result":"\udc00","num_turns":1,"total_cost_usd":1e400}"#),
+    ], "result": false}]});
+    let mut q = Query::spawn(with_env(
+        base_options(),
+        &[("FAKE_CLAUDE_SCRIPT", script.to_string())],
+    ))
+    .await
+    .unwrap();
+    let h = q.handle();
+    h.send_user_message(&user("go")).await.unwrap();
+    let msgs = collect_turn(&mut q).await;
+    let n = msgs.len();
+    assert_eq!(
+        msgs[n - 2]["message"]["content"][0]["text"],
+        "a\u{fffd}b\u{fffd}"
+    );
+    assert_eq!(msgs[n - 1]["result"], "\u{fffd}");
+    assert_eq!(msgs[n - 1]["total_cost_usd"], Value::Null);
+    h.close().await;
+}
+
+// ---- shared logs (I22) ----
+
+/// `path`'s lines: each of `want`'s sequences whole and in order,
+/// interleaved, plus each of `also`'s lines its number of times (lines any
+/// writer may write, e.g. every fake's `eof`).
+fn assert_interleaved(
+    name: &str,
+    path: &std::path::Path,
+    want: &[Vec<String>],
+    also: &[(&str, usize)],
+) {
+    use std::collections::HashSet;
+    let text = std::fs::read_to_string(path).unwrap();
+    let got: Vec<&str> = text.lines().collect();
+    let total = want.iter().map(Vec::len).sum::<usize>() + also.iter().map(|a| a.1).sum::<usize>();
+    let all: HashSet<&str> = want
+        .iter()
+        .flatten()
+        .map(String::as_str)
+        .chain(also.iter().map(|a| a.0))
+        .collect();
+    let stray: Vec<&str> = got
+        .iter()
+        .copied()
+        .filter(|l| !all.contains(l))
+        .take(3)
+        .collect();
+    assert!(
+        stray.is_empty(),
+        "{name}: lines no fake wrote, e.g. {stray:?}"
+    );
+    assert_eq!(got.len(), total, "{name}: line count");
+    for (line, n) in also {
+        assert_eq!(
+            got.iter().filter(|l| *l == line).count(),
+            *n,
+            "{name}: {line}"
+        );
+    }
+    for (k, w) in want.iter().enumerate() {
+        let mine: HashSet<&str> = w.iter().map(String::as_str).collect();
+        let sub: Vec<&str> = got.iter().copied().filter(|l| mine.contains(l)).collect();
+        assert!(sub == *w, "{name}: fake {k}'s lines out of order");
+    }
+}
+
+/// Every fake CLI a server spawns appends to the same `$FAKE_CLAUDE_LOG`
+/// (and `$FAKE_CLAUDE_CONTROL_LOG`, `$FAKE_CLAUDE_EVENTS`, where the stdin
+/// thread's `eof` also races the main thread's marks). Each line goes out in
+/// one write, so however the writers interleave every line stays whole.
+/// Written as the text and then its newline, another fake's line got in
+/// between: `memory`'s probe lost its user message to an unparsable
+/// `{…get_usage…}{"type":"user",…}` line (I22).
+#[test]
+fn fakes_sharing_their_logs_never_merge_lines() {
+    const FAKES: usize = 8;
+    const LINES: usize = 2000;
+    const MARKS: usize = 2000;
+    let dir = tempfile::tempdir().unwrap();
+    let path = |name: &str| dir.path().join(name);
+    let (mut stdin, mut control, mut marks) = (vec![], vec![], vec![]);
+    let children: Vec<_> = (0..FAKES)
+        .map(|k| {
+            let cancels: Vec<String> = (0..LINES)
+                .map(|i| {
+                    json!({"type": "control_cancel_request", "request_id": format!("{k}-{i}")})
+                        .to_string()
+                })
+                .collect();
+            let steps: Vec<Value> = (0..MARKS)
+                .map(|i| json!({"$mark": format!("{k}-{i}")}))
+                .collect();
+            // The marks first, so the stdin thread's `eof` races them.
+            let mut lines = vec![user(&format!("script:{}", Value::Array(steps))).to_string()];
+            lines.extend(cancels.iter().cloned());
+            let input = path(&format!("stdin-{k}"));
+            std::fs::write(
+                &input,
+                lines.iter().map(|l| format!("{l}\n")).collect::<String>(),
+            )
+            .unwrap();
+            stdin.push(lines);
+            control.push(cancels);
+            marks.push(
+                (0..MARKS)
+                    .map(|i| json!({"mark": format!("{k}-{i}")}).to_string())
+                    .collect(),
+            );
+            std::process::Command::new(fake_bin())
+                .current_dir(dir.path())
+                .env("FAKE_CLAUDE_LOG", path("stdin.log"))
+                .env("FAKE_CLAUDE_CONTROL_LOG", path("control.log"))
+                .env("FAKE_CLAUDE_EVENTS", path("events.log"))
+                .stdin(std::fs::File::open(input).unwrap())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .unwrap()
+        })
+        .collect();
+    for mut c in children {
+        assert!(c.wait().unwrap().success());
+    }
+    assert_interleaved("stdin", &path("stdin.log"), &stdin, &[]);
+    assert_interleaved("control", &path("control.log"), &control, &[]);
+    assert_interleaved(
+        "events",
+        &path("events.log"),
+        &marks,
+        &[(r#"{"eof":true}"#, FAKES)],
+    );
 }

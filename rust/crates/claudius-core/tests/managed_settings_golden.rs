@@ -4,13 +4,17 @@
 //! resolved with `managed_settings::{read_mdm_tier | registry_policy,
 //! file_tier, resolve}`. Registry cases feed the captured `reg query`
 //! outputs to `registry_policy` (the recorder ran the SDK's win32 branch on
-//! them), so they replay on every platform. WSL cases (`wsl: true`) also
-//! stage the Windows managed folder (`win`) the SDK read through `/mnt/c`. The three managed keys, `policyOrigin`, the model policy
-//! and the pricing must match the SDK. Values are compared through
-//! `js::stringify`, so number forms and integer-key order count too. The
-//! plist cases run on macOS only (the SDK reads plists only there, with
-//! `/usr/bin/plutil`). Cases with a `remote` cache aren't staged at all: the
-//! SDK ignores that cache, and their expected results show it.
+//! them), so they replay on every platform. Linux cases (`linux`) ran the
+//! SDK on emulated Linux: `detect_wsl` must reach the SDK's own answer
+//! (`wsl`) from the case's env and `/proc/version`, and then the WSL chain
+//! replays with the Windows managed folder (`win`) the SDK read through
+//! `/mnt/c`, or, off WSL, no OS policy at all. The three managed keys,
+//! `policyOrigin`, the model policy and the pricing must match the SDK.
+//! Values are compared through `js::stringify`, so number forms and
+//! integer-key order count too. The plist cases run on macOS only (the SDK
+//! reads plists only there, with `/usr/bin/plutil`). Cases with a `remote`
+//! cache aren't staged at all: the SDK ignores that cache, and their
+//! expected results show it.
 
 use std::path::Path;
 
@@ -27,12 +31,24 @@ fn fixture() -> Vec<Value> {
     v["cases"].as_array().unwrap().clone()
 }
 
-fn fixture_reg_calls() -> Value {
+fn fixture_field(key: &str) -> Value {
     let raw = std::fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/managed_settings_golden.json"),
     )
     .unwrap();
-    serde_json::from_str::<Value>(&raw).unwrap()["regCalls"].clone()
+    serde_json::from_str::<Value>(&raw).unwrap()[key].clone()
+}
+
+/// `detect_wsl` on a linux case's env and `/proc/version` (`procVersion`
+/// text; absent, or `{dir: true}`, reads as nothing).
+fn case_detects_wsl(linux: &Value) -> bool {
+    let env = |k: &str| linux["env"][k].as_str().map(std::ffi::OsStr::new);
+    managed_settings::detect_wsl(
+        true,
+        env("WSL_DISTRO_NAME"),
+        env("CLAUDE_CODE_ENTRYPOINT"),
+        || linux["procVersion"].as_str().map(str::to_owned),
+    )
 }
 
 /// The bytes of a file spec: raw text, `{base64}`, or `{text, padTo}`
@@ -167,7 +183,14 @@ fn managed_source_matches_the_sdk() {
     let remote = cases.iter().filter(|c| c.get("remote").is_some()).count();
     assert!(remote >= 5, "fixture lost the remote-cache cases");
     let wsl = cases.iter().filter(|c| c["wsl"] == true).count();
-    assert!(wsl >= 40, "fixture lost the WSL cases");
+    assert!(wsl >= 50, "fixture lost the WSL cases");
+    let off_wsl = cases.iter().filter(|c| c["wsl"] == false).count();
+    assert!(off_wsl >= 8, "fixture lost the not-WSL Linux cases");
+    let cowork = cases
+        .iter()
+        .filter(|c| c["linux"]["env"]["CLAUDE_CODE_ENTRYPOINT"].is_string())
+        .count();
+    assert!(cowork >= 8, "fixture lost the entrypoint cases");
     // Any name works for staging; it only has to match what the reader gets.
     let user = managed_settings::current_username().unwrap_or_else(|| "user".into());
     #[cfg(unix)]
@@ -191,11 +214,20 @@ fn managed_source_matches_the_sdk() {
         }
         let tmp = stage(case, &user);
         let managed_dir = tmp.path().join("managed");
-        // WSL cases: the recorder ran the SDK as if under WSL, with `Jn`
+        // Linux cases: the recorder ran the SDK on emulated Linux, with `xn`
         // (the Windows managed folder under `/mnt/c`) at `<tmp>/win`.
         let win = tmp.path().join("win");
-        let windows_dir = (case["wsl"] == true).then_some(win.as_path());
+        let linux = case.get("linux");
+        let detected = linux.map(case_detects_wsl);
+        if let Some(d) = detected
+            && json!(d) != case["wsl"]
+        {
+            failures.push(format!("{name} wsl: got {d}, want {}", case["wsl"]));
+        }
+        let windows_dir = (detected == Some(true)).then_some(win.as_path());
         let os = match case.get("registry") {
+            // Off WSL, Linux reads no OS policy (`lv()`).
+            Some(_) if detected == Some(false) => OsPolicy::default(),
             Some(reg) => managed_settings::registry_policy(
                 &reg_read(&reg["hklm"]),
                 &reg_read(&reg["hkcu"]),
@@ -216,20 +248,15 @@ fn managed_source_matches_the_sdk() {
             .map(|m| m.settings.clone())
             .filter(|s| !s.is_empty());
         let got_json = got.clone().map_or(Value::Null, Value::Object);
-        // The SDK reports an origin whenever the managed source has any key;
-        // the projection can be empty then, so compare it only alongside keys.
-        let got_origin = match (&got, &resolved) {
-            (Some(_), Some(m)) => json!(m.origin),
-            _ => Value::Null,
-        };
-        let want_origin = if case["managed"].is_null() {
-            Value::Null
-        } else {
-            case["origin"].clone()
-        };
+        // The SDK reports an origin whenever the managed source has any key,
+        // so this also pins whether there's a managed source at all when
+        // none of the three keys is in it (e.g. HKCU holding only keys an
+        // admin source must set).
+        let got_origin = resolved.as_ref().map_or(Value::Null, |m| json!(m.origin));
+        let want_origin = &case["origin"];
         let checks = [
             ("managed", got_json, &case["managed"]),
-            ("origin", got_origin, &want_origin),
+            ("origin", got_origin, want_origin),
             (
                 "policy",
                 policy_json(&managed_settings::model_policy_from(got.as_ref())),
@@ -267,5 +294,14 @@ fn reg_query_argv_matches_the_sdk() {
         managed_settings::reg_query_args(managed_settings::HKCU_POLICY_KEY),
         managed_settings::reg_query_args(managed_settings::HKLM_POLICY_KEY),
     ]);
-    assert_eq!(fixture_reg_calls(), want);
+    assert_eq!(fixture_field("regCalls"), want);
+}
+
+/// The cowork cloud entrypoints are the SDK's list (`d_`).
+#[test]
+fn cowork_entrypoints_match_the_sdk() {
+    assert_eq!(
+        fixture_field("coworkEntrypoints"),
+        json!(managed_settings::COWORK_CLOUD_ENTRYPOINTS)
+    );
 }

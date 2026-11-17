@@ -810,7 +810,9 @@ const LISTING = [
   ],
   // Foreign `sessions` tables (`sql`): no primary key, so an id can have two
   // rows (the first wins), and a numeric id column, which `IN` matches to
-  // the text ids by affinity (the key is the number's text).
+  // the text ids by affinity (the key is the number's text: `String()` of
+  // the double better-sqlite3 reads, so past 2^53, 1e21 and 1e999 key as
+  // `9007199254740992`, `1e+21` and `Infinity`).
   [
     "a foreign sessions table",
     {
@@ -824,7 +826,9 @@ const LISTING = [
         n: {
           sql:
             "PRAGMA journal_mode=WAL; CREATE TABLE sessions(id INTEGER, state TEXT); INSERT INTO sessions VALUES " +
-            `(7, '{"accountProfileId":"acc_bravo"}'), (2.5, '{"accountProfileId":"acc_alpha"}');`,
+            `(7, '{"accountProfileId":"acc_bravo"}'), (2.5, '{"accountProfileId":"acc_alpha"}'), ` +
+            `(9007199254740993, '{"accountProfileId":"acc_alpha"}'), (1e21, '{"accountProfileId":"acc_bravo"}'), ` +
+            `(1e999, '{"accountProfileId":"acc_alpha"}');`,
         },
       },
       pairs: [
@@ -833,6 +837,10 @@ const LISTING = [
         ["n", "7"],
         ["n", "2.5"],
         ["n", "07"],
+        ["n", "9007199254740993"],
+        ["n", "1e21"],
+        ["n", "1e+21"],
+        ["n", "1e999"],
       ],
     },
   ],

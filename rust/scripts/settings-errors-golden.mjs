@@ -32,6 +32,9 @@
 //   `spread`: `JSON.stringify({ ...value })`), or `throws`.
 // - `write`: `writeSettings(scope, cwd, JSON.parse(next))`: `ok`, or
 //   `throws`.
+// - `autoMode`: `isAutoModeDisabled(value)` (SDK 0.3.312) over the settings
+//   shapes a hand-edited file can hold, including the nested
+//   `permissions.disableAutoMode` spelling.
 // - `callers`: the real `Session.prototype.setOutputStyle`,
 //   `persistModelToUserSettings`, `enforceAdvisorModelCompatibility`,
 //   `setPermissionMode` and `requestRecap` on a bare session object (no
@@ -122,7 +125,7 @@ if (!process.env.SETTINGS_ERRORS_GOLDEN_CHILD) {
   console.log(
     `wrote ${out.slice(repo.length + 1)}: ${fixture.errorMap.length} errno, ${fixture.fsErrors.length} fs errors, ` +
       `${fixture.sanitize.messages.length} + ${fixture.sanitize.parsed.length} sanitize, ${fixture.read.length} read, ` +
-      `${fixture.write.length} write, ${fixture.callers.length} callers (stable)`,
+      `${fixture.write.length} write, ${fixture.callers.length} callers, ${fixture.autoMode.length} auto-mode gates (stable)`,
   );
   process.exit(0);
 }
@@ -185,6 +188,7 @@ register(`data:text/javascript,${encodeURIComponent(hook)}`);
 
 const { readSettings, writeSettings, SettingsParseError } = await import(join(repo, "lib/server/settings.ts"));
 const { sanitizeJsonParseReason } = await import(join(repo, "lib/shared/settings-load-error.ts"));
+const { isAutoModeDisabled } = await import(join(repo, "lib/shared/auto-mode-disabled.ts"));
 const { Session } = await import(join(repo, "lib/server/session.ts"));
 const { sessionManager } = await import(join(repo, "lib/server/session-manager.ts"));
 const advisorRoute = await import(join(repo, "app/api/sessions/[id]/advisor/route.ts"));
@@ -919,6 +923,49 @@ for (const [what, list] of [["read", read], ["write", writes], ["callers", calle
   }
 }
 
+// ---- isAutoModeDisabled (SDK 0.3.312) --------------------------------
+//
+// `permissions.disableAutoMode` beside the top-level `disableAutoMode`, over
+// the shapes a hand-edited settings.json can hold. The input is a JSON text,
+// parsed here and by the replay, `"undefined"` standing for no value at all.
+const AUTO_MODE = [
+  "undefined", "null", "{}", "[]", "0", "5", "true", "false", '""', '"disable"',
+  '{"disableAutoMode":"disable"}',
+  '{"disableAutoMode":"Disable"}',
+  '{"disableAutoMode":"disabled"}',
+  '{"disableAutoMode":" disable"}',
+  '{"disableAutoMode":true}',
+  '{"disableAutoMode":1}',
+  '{"disableAutoMode":null}',
+  '{"disableAutoMode":["disable"]}',
+  '{"disableAutoMode":{"":"disable"}}',
+  '{"permissions":{"disableAutoMode":"disable"}}',
+  '{"permissions":{"disableAutoMode":"Disable"}}',
+  '{"permissions":{"disableAutoMode":true}}',
+  '{"permissions":{"disableAutoMode":null}}',
+  '{"permissions":{}}',
+  '{"permissions":null}',
+  '{"permissions":"disable"}',
+  '{"permissions":5}',
+  '{"permissions":true}',
+  '{"permissions":[]}',
+  '{"permissions":[{"disableAutoMode":"disable"}]}',
+  '{"permissions":{"disableAutoMode":"disable"},"disableAutoMode":"disable"}',
+  '{"disableAutoMode":"disable","permissions":{"disableAutoMode":"off"}}',
+  '{"disableAutoMode":"off","permissions":{"disableAutoMode":"disable"}}',
+  // Prototype and duplicate-key shapes.
+  '{"__proto__":{"disableAutoMode":"disable"}}',
+  '{"disableAutoMode":"off","disableAutoMode":"disable"}',
+  '{"permissions":{"DISABLEAUTOMODE":"disable"}}',
+  // The 0.3.312 siblings sit beside it and change nothing.
+  '{"skipAutoPermissionPrompt":true,"useAutoModeDuringPlan":false}',
+  '{"permissions":{"classifyAllShell":true}}',
+];
+const autoMode = AUTO_MODE.map((text) => ({
+  text,
+  disabled: isAutoModeDisabled(text === "undefined" ? undefined : JSON.parse(text)),
+}));
+
 reset();
 writeFileSync(
   join(ROOT, "out.json"),
@@ -932,6 +979,7 @@ writeFileSync(
     read,
     write: writes,
     callers,
+    autoMode,
   }),
 );
 process.exit(0);

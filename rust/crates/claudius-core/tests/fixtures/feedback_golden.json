@@ -4592,6 +4592,60 @@
      ]
     }
    ]
+  },
+  {
+   "name": "lone surrogates",
+   "query": "live",
+   "script": null,
+   "cwd": "/claudius-golden/feedback-lone-surrogates",
+   "sessions": [
+    "fb000000-0000-4000-8000-000000000001"
+   ],
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"rating\":\"up\",\"comment\":\"lone \\ud800 high\",\"surface\":\"\\udc00\\ud83d\",\"sessionId\":\"fb000000-0000-4000-8000-000000000001\"}",
+     "bodyHex": "7b22726174696e67223a227570222c22636f6d6d656e74223a226c6f6e65205c75643830302068696768222c2273757266616365223a225c75646330305c7564383364222c2273657373696f6e4964223a2266623030303030302d303030302d343030302d383030302d303030303030303030303031227d",
+     "clock": 1700000164000,
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true,\"stored\":true,\"forwarded\":true}"
+     },
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"submit_feedback\",\"description\":\"[+1] lone \\ud800 high\",\"surface\":\"\\udc00\\ud83d\",\"attach_transcript\":false}}"
+     ],
+     "inserted": {
+      "id": "00000000-0000-4000-a000-000000000061",
+      "createdAt": 1700000164000
+     }
+    },
+    {
+     "op": "rows",
+     "got": [
+      [
+       "text",
+       "00000000-0000-4000-a000-000000000061",
+       "text",
+       "fb000000-0000-4000-8000-000000000001",
+       "text",
+       "/claudius-golden/feedback-lone-surrogates",
+       "text",
+       "up",
+       "text",
+       "lone ��� high",
+       "text",
+       "������",
+       "integer",
+       "1",
+       "integer",
+       "0",
+       "integer",
+       "1700000164000"
+      ]
+     ]
+    }
+   ]
   }
  ],
  "store": [

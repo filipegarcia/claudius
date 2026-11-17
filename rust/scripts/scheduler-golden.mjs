@@ -20,6 +20,14 @@
 // (patched on the instance), so the driver knows when the scheduler has
 // settled. Each rewrite checks how many anchors it replaced.
 //
+// scheduler.ts's `process.pid` reads PID (777001), so a run's recorded pid
+// is the same in both recordings and the replay can map it to its own
+// process's; `process.uptime()` is stubbed so the interrupted-run recovery's
+// `processStartedAt` is the scenario's `procStart` exactly. `process.kill`
+// is NOT stubbed: the recovery's liveness probe runs against real pids, 1
+// (alive, and not ours: EPERM) and 999999 (past any pid), so the replay
+// probes the same ones.
+//
 // Each scenario starts from an empty `~/.claude`, a fresh `Scheduler`
 // (`new scheduler.constructor()`) and the virtual clock at its `base`. Runs
 // go through the real SDK `query()` against the fake CLI in the job's cwd;
@@ -161,6 +169,8 @@ const NOW = "globalThis.__sched.now()";
 const REWRITES = {
   "/lib/server/scheduler.ts": [
     ["Date.now()", NOW, 6],
+    ["process.uptime()", "globalThis.__sched.uptime()", 1],
+    ["process.pid", "globalThis.__sched.PID", 2],
     ["setTimeout(", "globalThis.__sched.setTimeout(", 2],
     ["clearTimeout(", "globalThis.__sched.clearTimeout(", 1],
     ["randomUUID()", "globalThis.__sched.uuid(job.id)", 1],
@@ -207,8 +217,14 @@ register(`data:text/javascript,${encodeURIComponent(hook)}`);
 
 // ---- the virtual clock, timers and settle tracking ----------------------------
 
+// scheduler.ts's `process.pid` under the stub: a value no real process has,
+// so the replay can map it to its own pid without matching a timestamp.
+const PID = 777001;
+
 const S = (globalThis.__sched = {
   t: 0,
+  procStart: 0,
+  PID,
   seq: 0,
   timers: new Set(),
   ops: 0,
@@ -216,6 +232,8 @@ const S = (globalThis.__sched = {
   bus: [],
   ids: new Map(),
   now: () => S.t,
+  // `Date.now() - Math.round(uptime * 1000)` is then `procStart`.
+  uptime: () => (S.t - S.procStart) / 1000,
   setTimeout(cb, delay) {
     let d = Number(delay);
     if (!(d >= 1 && d <= 2147483647)) d = 1;
@@ -447,6 +465,16 @@ const SCRIPT_BODY = {
       ],
       result: false,
     },
+    { match: "[no-result]", steps: [asst("partial", "nr"), { $exit: 0 }], result: false },
+    {
+      match: "[result-then-exit]",
+      steps: [
+        asst("done", "rx"),
+        resultMsg({ total_cost_usd: 0.05, usage: { input_tokens: 2, output_tokens: 3 }, uuid: "result-rx" }),
+        { $exit: 0 },
+      ],
+      result: false,
+    },
     { match: "[alt]", steps: [asst("alternate: $PROMPT", "alt")], result: res() },
     {
       match: "[plain]",
@@ -482,6 +510,28 @@ const run = (id, jobId, extra = {}) => ({ id, jobId, startedAt: T0, status: "run
 const at = (iso) => Date.parse(iso);
 
 const nonAscii = String.fromCodePoint(0xe9, 0x1f600, 0x2028);
+/** A job left mid-run by an earlier process: its latest run is the one seeded. */
+const RECOVER = (lastStatus = "running") => ({
+  cwd: cwdOf("rec"),
+  lastRunAt: T0 - 20 * MIN,
+  lastStatus,
+  enabled: false,
+});
+const stamped = (id, jobId, pid, startedAt = T0 - 20 * MIN) => ({
+  id,
+  jobId,
+  startedAt,
+  status: "running",
+  pid,
+  transcript: [],
+});
+const unstamped = (id, jobId, startedAt) => ({ id, jobId, startedAt, status: "running" });
+/** A runs.jsonl with these lines; `1e400` as a pid is written as the literal. */
+const runLines = (jobId, runs) => ({
+  op: "writeFile",
+  path: `jobs/${jobId}/runs.jsonl`,
+  text: `${runs.map((r) => JSON.stringify(r).split('"1e400"').join("1e400")).join("\n")}\n`,
+});
 const SCENARIOS = [
   {
     name: "store basics",
@@ -890,6 +940,197 @@ const SCENARIOS = [
       { op: "advanceTo", at: at("2026-10-27T13:20:00Z") },
     ],
   },
+  {
+    // CC 2.1.302: a fire whose folder is gone doesn't start, says so on the
+    // job, and tells the inbox once per new reason.
+    name: "a missing folder",
+    base: T0,
+    cwds: ["there"],
+    steps: [
+      seed([
+        job("gone", "*/5 * * * *", "[plain] gone"),
+        // A path that exists but isn't a directory, and one that is no path.
+        job("file", "*/5 * * * *", "[plain] file", { cwd: "$TMP/script.json" }),
+        job("numcwd", "*/5 * * * *", "[plain] num", { cwd: 5 }),
+        job("nocwd", "*/5 * * * *", "[plain] none", { cwd: U }),
+        job("blank", "*/5 * * * *", "[plain] blank", { cwd: "" }),
+        job("there", "*/5 * * * *", "[plain] there"),
+      ]),
+      { op: "boot" },
+      { op: "runNow", id: "gone" },
+      { op: "getJob", id: "gone" },
+      // The same reason again: the job is stamped, the inbox isn't told.
+      { op: "runNow", id: "gone" },
+      { op: "runNow", id: "file" },
+      { op: "runNow", id: "numcwd" },
+      { op: "runNow", id: "nocwd" },
+      { op: "runNow", id: "blank" },
+      // A different stored reason: told again.
+      { op: "patchJob", id: "gone", patch: { lastSkipReason: "other" } },
+      { op: "runNow", id: "gone" },
+      { op: "patchJob", id: "gone", patch: { lastSkipReason: U } },
+      { op: "runNow", id: "gone" },
+      // The timers fire: each skip re-arms, and `there` runs.
+      { op: "advanceTo", at: at("2026-10-27T13:05:00Z") },
+      { op: "listRuns", id: "gone", limit: 3 },
+      { op: "getJob", id: "there" },
+      // A run that starts clears the reason.
+      { op: "mkdirCwd", cwd: "gone" },
+      { op: "runNow", id: "gone" },
+      { op: "getJob", id: "gone" },
+      { op: "rmCwd", cwd: "gone" },
+      { op: "runNow", id: "gone" },
+      { op: "getJob", id: "gone" },
+      { op: "listRuns", id: "gone", limit: 4 },
+    ],
+  },
+  {
+    // CC 2.1.302: the runs an earlier Claudius left `running`.
+    name: "boot recovery",
+    base: T0,
+    procStart: T0 - 10 * MIN,
+    cwds: ["rec"],
+    steps: [
+      seed([
+        job("dead", "*/5 * * * *", "[plain] dead", RECOVER()),
+        job("alive", "*/5 * * * *", "[plain] alive", RECOVER()),
+        job("own", "*/5 * * * *", "[plain] own", RECOVER()),
+        job("old", "*/5 * * * *", "[plain] old", { lastRunAt: T0 - 10 * MIN - 1, lastStatus: "running", enabled: false }),
+        job("new", "*/5 * * * *", "[plain] new", { lastRunAt: T0 - 10 * MIN + 1, lastStatus: "running", enabled: false }),
+        job("edge", "*/5 * * * *", "[plain] edge", { lastRunAt: T0 - 10 * MIN, lastStatus: "running", enabled: false }),
+        job("strstart", "*/5 * * * *", "[plain] str", { lastRunAt: "0", lastStatus: "running", enabled: false }),
+        job("nullstart", "*/5 * * * *", "[plain] null", { lastRunAt: null, lastStatus: "running", enabled: false }),
+        job("objstart", "*/5 * * * *", "[plain] obj", { lastStatus: "running", enabled: false }),
+        job("mismatch", "*/5 * * * *", "[plain] mism", { lastRunAt: T0 - MIN, lastStatus: "running", enabled: false }),
+        job("notrunning", "*/5 * * * *", "[plain] nr", RECOVER("success")),
+        job("pids", "*/5 * * * *", "[plain] pids", { enabled: false }),
+        job("many", "*/5 * * * *", "[plain] many", { lastRunAt: T0 - 20 * MIN, lastStatus: "running", enabled: false }),
+        job(5, "*/5 * * * *", "[plain] five", { cwd: cwdOf("rec"), enabled: false }),
+        job("dirruns", "*/5 * * * *", "[plain] dir", { enabled: false }),
+        job("norunsfile", "*/5 * * * *", "[plain] norf", { lastStatus: "running", enabled: false }),
+        job("odd", "*/5 * * * *", "[plain] odd", { enabled: false }),
+      ]),
+      runLines("dead", [stamped("d1", "dead", 999999)]),
+      runLines("alive", [stamped("a1", "alive", 1)]),
+      runLines("own", [stamped("o1", "own", PID)]),
+      runLines("old", [unstamped("u1", "old", T0 - 10 * MIN - 1)]),
+      runLines("new", [unstamped("u2", "new", T0 - 10 * MIN + 1)]),
+      runLines("edge", [unstamped("u3", "edge", T0 - 10 * MIN)]),
+      runLines("strstart", [unstamped("u4", "strstart", "0")]),
+      runLines("nullstart", [unstamped("u5", "nullstart", null)]),
+      runLines("objstart", [unstamped("u6", "objstart", {})]),
+      runLines("mismatch", [stamped("m1", "mismatch", 999999)]),
+      runLines("notrunning", [stamped("n1", "notrunning", 999999)]),
+      runLines("pids", [
+        stamped("p-inf", "pids", "1e400"),
+        stamped("p-frac", "pids", 1.5),
+        stamped("p-zero", "pids", 0),
+        stamped("p-neg", "pids", -1),
+        { ...unstamped("p-str", "pids", T0 - 20 * MIN), pid: "1" },
+        { ...unstamped("p-null", "pids", T0 - 20 * MIN), pid: null },
+      ]),
+      // Only the newest 50 runs are looked at.
+      {
+        op: "writeFile",
+        path: "jobs/many/runs.jsonl",
+        text: `${JSON.stringify(stamped("far", "many", 999999, T0 - 20 * MIN))}\n${Array.from(
+          { length: 55 },
+          (_, i) => JSON.stringify({ id: `k${i}`, jobId: "many", startedAt: i, status: "success" }),
+        ).join("\n")}\n`,
+      },
+      // Lines a recovery pass walks past, and one it would rewrite.
+      {
+        op: "writeFile",
+        path: "jobs/odd/runs.jsonl",
+        text: `5\n"str"\n[1]\nnot json\n\n{"status":"running"}\n${JSON.stringify({
+          jobId: "odd",
+          startedAt: T0 - 20 * MIN,
+          status: "running",
+          extra: 1,
+        })}\n`,
+      },
+      { op: "mkdir", path: "jobs/dirruns/runs.jsonl" },
+      { op: "boot" },
+      { op: "boot" },
+      { op: "listJobs" },
+      { op: "listRuns", id: "dead" },
+      { op: "listRuns", id: "alive" },
+      { op: "listRuns", id: "own" },
+      { op: "listRuns", id: "pids" },
+      { op: "listRuns", id: "odd" },
+      { op: "listRuns", id: "many", limit: 2 },
+      { op: "advanceTo", at: at("2026-10-27T13:05:00Z") },
+    ],
+  },
+  {
+    // The run this process is still running is nobody's to recover.
+    name: "boot during a run",
+    base: T0,
+    procStart: T0 - 10 * MIN,
+    cwds: ["g"],
+    steps: [
+      seed([job("g", "*/5 * * * *", "[gate] G", { lastRunAt: T0 - 20 * MIN, lastStatus: "running" })]),
+      // Its startedAt is the one the live run will have, so the job's
+      // `lastRunAt` points at it once the live run has started.
+      runLines("g", [stamped("old", "g", 999999, T0)]),
+      { op: "startRun", id: "g", cwd: "g" },
+      { op: "boot" },
+      { op: "listRuns", id: "g" },
+      { op: "getJob", id: "g" },
+      { op: "release", cwd: "g" },
+      { op: "listRuns", id: "g" },
+      { op: "getJob", id: "g" },
+    ],
+  },
+  {
+    // A `null` run line in the window: `run.status` throws outside the try.
+    name: "boot recovery throws",
+    base: T0,
+    cwds: ["rec2"],
+    steps: [
+      seed([job("n1", "*/5 * * * *", "[plain] n1", { cwd: cwdOf("rec2") })]),
+      runLines("n1", [null]),
+      { op: "boot" },
+      // The kept rejection: every later boot throws the same way.
+      { op: "boot" },
+      { op: "listRuns", id: "n1" },
+    ],
+  },
+  {
+    // CC 2.1.302: a stream that ends with no result didn't finish.
+    name: "a stream without a result",
+    base: T0,
+    cwds: ["nr", "rx"],
+    steps: [
+      seed([
+        job("nr", "*/5 * * * *", "[no-result]"),
+        job("rx", "*/5 * * * *", "[result-then-exit]"),
+      ]),
+      { op: "runNow", id: "nr" },
+      { op: "runNow", id: "rx" },
+      { op: "listRuns", id: "nr" },
+      { op: "listRuns", id: "rx" },
+    ],
+  },
+  {
+    // CC 2.1.312: the job's effort level reaches the CLI.
+    name: "a job with effort",
+    base: T0,
+    cwds: ["e1", "e2", "e3", "e4"],
+    steps: [
+      seed([
+        job("e1", "*/5 * * * *", "[plain] e1", { effort: "high" }),
+        job("e2", "*/5 * * * *", "[plain] e2", { effort: "" }),
+        job("e3", "*/5 * * * *", "[plain] e3", { effort: 5 }),
+        job("e4", "*/5 * * * *", "[plain] e4", { effort: "bogus", model: "claude-golden-1" }),
+      ]),
+      { op: "runNow", id: "e1" },
+      { op: "runNow", id: "e2" },
+      { op: "runNow", id: "e3" },
+      { op: "runNow", id: "e4" },
+      { op: "listRuns", id: "e1" },
+    ],
+  },
 ];
 
 // ---- the driver ----------------------------------------------------------------------
@@ -900,6 +1141,8 @@ let parked;
 let gates;
 let subs;
 let unsubs;
+/** cwd -> the `startRun` promise whose turn is parked there. */
+let pending;
 
 async function settle() {
   const deadline = Date.now() + 60_000;
@@ -1000,6 +1243,17 @@ async function doStep(step) {
       return call(() => sched.deleteJob(step.id));
     case "runNow":
       return call(() => sched.runNow(denorm(step.id)));
+    case "startRun": {
+      park(step.cwd);
+      pending.set(step.cwd, call(() => sched.runNow(denorm(step.id))));
+      return NONE;
+    }
+    case "mkdirCwd":
+      mkdirSync(join(CWDS, step.cwd), { recursive: true });
+      return NONE;
+    case "rmCwd":
+      rmSync(join(CWDS, step.cwd), { recursive: true, force: true });
+      return NONE;
     case "advanceTo":
       for (const cwd of step.park ?? []) park(cwd);
       await advanceTo(step.at);
@@ -1010,7 +1264,10 @@ async function doStep(step) {
       parked.delete(step.cwd);
       await settle();
       unlinkSync(gate);
-      return NONE;
+      if (!pending.has(step.cwd)) return NONE;
+      const r = await pending.get(step.cwd);
+      pending.delete(step.cwd);
+      return r;
     }
     case "subscribe": {
       const list = (subs[step.as] = []);
@@ -1069,6 +1326,7 @@ for (const sc of SCENARIOS) {
   mkdirSync(CWDS, { recursive: true });
   for (const c of sc.cwds) mkdirSync(join(CWDS, c));
   S.t = sc.base;
+  S.procStart = sc.procStart ?? sc.base - 5 * MIN;
   S.seq = 0;
   S.timers.clear();
   S.bus = [];
@@ -1076,6 +1334,7 @@ for (const sc of SCENARIOS) {
   sched = instrument(new Scheduler());
   parked = new Map();
   gates = new Map();
+  pending = new Map();
   subs = {};
   unsubs = {};
   let last = null;
@@ -1097,12 +1356,13 @@ for (const sc of SCENARIOS) {
     }
     steps.push(rec);
   }
-  if (S.fires !== 0 || S.ops !== 0 || parked.size !== 0) throw new Error(`${sc.name}: left work in flight`);
-  scenarios.push({ name: sc.name, base: sc.base, cwds: sc.cwds, steps });
+  if (S.fires !== 0 || S.ops !== 0 || parked.size !== 0 || pending.size !== 0)
+    throw new Error(`${sc.name}: left work in flight`);
+  scenarios.push({ name: sc.name, base: sc.base, procStart: S.procStart, cwds: sc.cwds, steps });
 }
 
 writeFileSync(
   join(ROOT, "out.json"),
-  JSON.stringify({ sdkVersion, tz: TZ, script: SCRIPT_BODY, scenarios }),
+  JSON.stringify({ sdkVersion, tz: TZ, pid: PID, script: SCRIPT_BODY, scenarios }),
 );
 process.exit(0);

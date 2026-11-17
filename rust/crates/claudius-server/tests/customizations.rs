@@ -19,9 +19,10 @@
 //! pinned time.
 //!
 //! Three recorded requests differ on purpose ([`expected_difference`]).
-//! The Next half (the bootstrap POST and the preview stop on `DELETE`) runs
-//! against a fake upstream in [`delete_stops_the_preview_through_next`]
-//! and [`a_hung_preview_stop_is_given_up_after_5s`].
+//! [`delete_leaves_next_alone`] runs against a fake Next upstream: since D15
+//! the preview routes and the preview stop on `DELETE` are this server's
+//! own (replayed in `customization_preview.rs`), and only a route still
+//! Next-only goes there.
 #![cfg(unix)]
 
 mod common;
@@ -632,35 +633,14 @@ fn rec_index(
 
 // ---- the Next half -----------------------------------------------------------------
 
-/// How the fake Next answers `DELETE …/preview`.
-#[derive(Clone, Copy, PartialEq)]
-enum Preview {
-    /// After a pause, so a caller that doesn't wait would run ahead.
-    Slow,
-    /// Never (the connection stays open).
-    Hang,
-}
-
 /// A fake Next upstream: answers every request `200 {"next":true}` and logs
-/// `METHOD path body` plus whether the index still names `probe` and `dir`
-/// still exists, both when it answers (a preview stop: when it arrives, then
-/// as it answers).
-fn fake_next(
-    index: PathBuf,
-    probe: &'static str,
-    dir: PathBuf,
-    preview: Preview,
-) -> (u16, Arc<Mutex<Vec<String>>>) {
+/// `METHOD path body`.
+fn fake_next() -> (u16, Arc<Mutex<Vec<String>>>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let log = Arc::new(Mutex::new(Vec::new()));
     let seen = log.clone();
-    let state = move || {
-        let has = std::fs::read_to_string(&index).is_ok_and(|t| t.contains(probe));
-        format!("record:{has} dir:{}", dir.exists())
-    };
     std::thread::spawn(move || {
-        let mut held = Vec::new();
         for conn in listener.incoming() {
             let Ok(mut conn) = conn else { continue };
             let mut reader = BufReader::new(conn.try_clone().unwrap());
@@ -681,17 +661,9 @@ fn fake_next(
             let mut body = vec![0; len];
             let _ = reader.read_exact(&mut body);
             let target = line.split(' ').take(2).collect::<Vec<_>>().join(" ");
-            let mut entry = format!("{target} {} {}", String::from_utf8_lossy(&body), state());
-            if target.ends_with("/preview") {
-                if preview == Preview::Hang {
-                    seen.lock().unwrap().push(entry);
-                    held.push(conn);
-                    continue;
-                }
-                std::thread::sleep(Duration::from_millis(400));
-                entry = format!("{entry} → {}", state());
-            }
-            seen.lock().unwrap().push(entry);
+            seen.lock()
+                .unwrap()
+                .push(format!("{target} {}", String::from_utf8_lossy(&body)));
             let _ = conn.write_all(
                 b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 13\r\nConnection: close\r\n\r\n{\"next\":true}",
             );
@@ -700,11 +672,15 @@ fn fake_next(
     (port, log)
 }
 
+/// Since D15 the preview routes, and the preview stop on `DELETE`, are this
+/// server's own (`tests/customization_preview.rs`): with a Next upstream
+/// configured, only a route still Next-only (`updater/apply`) goes
+/// there, body and all.
 #[test]
-fn delete_stops_the_preview_through_next() {
+fn delete_leaves_next_alone() {
     let w = World::new();
     let dir = w.claudius().join("customizations/cust a/b");
-    let (up, log) = fake_next(w.index(), "cust a/b", dir.clone(), Preview::Slow);
+    let (up, log) = fake_next();
     let server = w.spawn(Some(up));
     std::fs::create_dir_all(dir.join("src")).unwrap();
     let index = json!({
@@ -717,25 +693,29 @@ fn delete_stops_the_preview_through_next() {
     });
     std::fs::write(w.index(), js_string::stringify_pretty(&index)).unwrap();
 
-    // The bootstrap POST is Next's (D14), body and all.
     let (st, body) = http(
         server.port,
         "POST",
-        "/api/customizations",
-        r#"{"name":"x"}"#,
+        "/api/updater/apply",
+        r#"{"paths":["x"]}"#,
     );
     assert_eq!((st, body.as_str()), (200, r#"{"next":true}"#));
-    // So are the routes this port leaves to D14/D15.
-    let (st, _) = http(
-        server.port,
-        "POST",
-        "/api/customizations/cust_busy/publish",
-        "",
-    );
-    assert_eq!(st, 200);
-    // The port's own routes don't go there.
+    // The port's own routes don't go there, the preview's included.
     let (st, _) = http(server.port, "GET", "/api/customizations", "");
     assert_eq!(st, 200);
+    let (st, body) = http(
+        server.port,
+        "GET",
+        "/api/customizations/cust_busy/preview",
+        "",
+    );
+    assert_eq!(
+        (st, body.as_str()),
+        (
+            200,
+            r#"{"customizationId":"cust_busy","status":"exited","port":null,"pid":null,"startedAt":null,"exitCode":null,"exitSignal":null,"logs":[]}"#
+        )
+    );
     // A blocked DELETE stops nothing.
     let (st, body) = http(server.port, "DELETE", "/api/customizations/cust_busy", "");
     assert_eq!(
@@ -745,8 +725,7 @@ fn delete_stops_the_preview_through_next() {
             r#"{"error":"cannot delete: 1 active publish. Revert first."}"#
         )
     );
-    // DELETE asks Next to stop the preview while the record and the dir
-    // still exist, waits for the answer, then removes the dir and the record.
+    // DELETE stops the preview here, then removes the dir and the record.
     let (st, body) = http(
         server.port,
         "DELETE",
@@ -763,40 +742,7 @@ fn delete_stops_the_preview_through_next() {
     );
     assert_eq!(
         *log.lock().unwrap(),
-        [
-            r#"POST /api/customizations {"name":"x"} record:true dir:true"#,
-            "POST /api/customizations/cust_busy/publish  record:true dir:true",
-            "DELETE /api/customizations/cust%20a%2Fb/preview  record:true dir:true \
-             → record:true dir:true",
-        ]
-    );
-}
-
-#[test]
-fn a_hung_preview_stop_is_given_up_after_5s() {
-    let w = World::new();
-    let dir = w.claudius().join("customizations/c");
-    let (up, log) = fake_next(w.index(), "\"c\"", dir.clone(), Preview::Hang);
-    let server = w.spawn(Some(up));
-    std::fs::create_dir_all(dir.join("src")).unwrap();
-    let index = json!({"version": 1, "customizations": [{"id": "c"}], "publishes": []});
-    std::fs::write(w.index(), js_string::stringify(&index)).unwrap();
-    let start = std::time::Instant::now();
-    let (st, body) = http(server.port, "DELETE", "/api/customizations/c", "");
-    let took = start.elapsed();
-    assert_eq!((st, body.as_str()), (200, r#"{"ok":true}"#));
-    assert!(
-        (Duration::from_secs(5)..Duration::from_secs(9)).contains(&took),
-        "{took:?}"
-    );
-    assert!(!dir.exists());
-    assert_eq!(
-        *log.lock().unwrap(),
-        ["DELETE /api/customizations/c/preview  record:true dir:true"]
-    );
-    assert_eq!(
-        std::fs::read_to_string(w.index()).unwrap(),
-        "{\n  \"version\": 1,\n  \"customizations\": [],\n  \"publishes\": []\n}\n"
+        ["POST /api/updater/apply {\"paths\":[\"x\"]}"]
     );
 }
 
@@ -810,7 +756,8 @@ fn without_next_the_delete_still_goes_through() {
     let (st, body) = http(server.port, "DELETE", "/api/customizations/c", "");
     assert_eq!((st, body.as_str()), (200, r#"{"ok":true}"#));
     assert!(!w.claudius().join("customizations/c").exists());
-    let (st, body) = http(server.port, "POST", "/api/customizations", "");
+    // A route still Next-only has nowhere to go.
+    let (st, body) = http(server.port, "POST", "/api/updater/apply", "");
     assert_eq!(
         (st, body.as_str()),
         (404, "not found (no Next upstream configured)")

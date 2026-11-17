@@ -1,4 +1,4 @@
-//! The SDK's sandbox merge (`CZ()` + `bZ()`, sdk.mjs 0.3.299).
+//! The SDK's sandbox merge (0.3.299 `CZ()` + `bZ()`, 0.3.312 `i6()` + `s6()`).
 //!
 //! `query({sandbox})` doesn't send the sandbox as a flag. It folds it into
 //! the `--settings` JSON: the existing `settings.sandbox` is deep-merged with

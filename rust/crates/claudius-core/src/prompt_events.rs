@@ -137,12 +137,15 @@ pub fn suggested_rules(suggestions: Option<&Value>) -> Vec<Value> {
 
 /// The `permission_request` `canUseTool` broadcasts. `raw` is the
 /// `can_use_tool` request; `mcp_server` the SDK's `{ name, source }` copy of
-/// a truthy `mcp_server`.
+/// a truthy `mcp_server`; `hook_ask` the CC 2.1.301
+/// [`crate::hook_ask::hook_ask`] marker, kept in the event so the reconnect
+/// re-emit and `/pending-prompts` carry it too.
 pub fn permission_event(
     request_id: &str,
     tool_name: &str,
     raw: &Value,
     mcp_server: Option<Value>,
+    hook_ask: Option<Value>,
 ) -> Value {
     let field = |k: &str| js::prop(Some(raw), k).cloned();
     let mut m = Map::new();
@@ -162,6 +165,7 @@ pub fn permission_event(
         field("suppress_always_allow_rule"),
     );
     put(&mut m, "mcpServer", mcp_server);
+    put(&mut m, "hookAsk", hook_ask);
     m.insert(
         "suggestedRules".into(),
         Value::Array(suggested_rules(js::prop(

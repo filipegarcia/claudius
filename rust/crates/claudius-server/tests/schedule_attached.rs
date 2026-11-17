@@ -78,9 +78,10 @@ async fn a_watched_run_is_attached() {
     assert!(paths::set_config_dir_override(config.clone()));
     let dir = home.join(".claude/claudius/schedule");
     std::fs::create_dir_all(&dir).unwrap();
-    // Booted by the first route (nothing else boots it here), on a store
-    // whose list reads but whose boot throws.
-    std::fs::write(dir.join("jobs.json"), r#"{"jobs":[null]}"#).unwrap();
+    // Booted by the first route (nothing else boots it here). A boot that
+    // threw is kept and thrown again (`schedule_routes.rs` replays that), so
+    // this one has to succeed for the rest to run.
+    std::fs::write(dir.join("jobs.json"), r#"{"jobs":[]}"#).unwrap();
     let jobs = json!({"jobs": [{
         "id": "w",
         "name": "watched",
@@ -120,11 +121,10 @@ async fn a_watched_run_is_attached() {
     let port = l.local_addr().unwrap().port();
     tokio::spawn(async move { axum::serve(l, app(state)).await.unwrap() });
 
-    // `await scheduler.boot()` threw, once: then it's booted.
-    assert_eq!(get(port, "/api/schedule").await, (500, String::new()));
+    // `await scheduler.boot()` on an empty store: nothing armed.
     assert_eq!(
         get(port, "/api/schedule").await,
-        (200, r#"{"jobs":[null]}"#.to_owned())
+        (200, r#"{"jobs":[]}"#.to_owned())
     );
     // A job saved now isn't armed by a boot that already ran.
     let mut armed = jobs.clone();
@@ -150,8 +150,9 @@ async fn a_watched_run_is_attached() {
     assert_eq!(
         body,
         format!(
-            r#"{{"runs":[{{"id":"{run_id}","jobId":"w","startedAt":{},"status":"running","transcript":[],"attached":false}}]}}"#,
-            list[0]["startedAt"]
+            r#"{{"runs":[{{"id":"{run_id}","jobId":"w","startedAt":{},"status":"running","pid":{},"transcript":[],"attached":false}}]}}"#,
+            list[0]["startedAt"],
+            std::process::id()
         )
     );
 

@@ -1,0 +1,2200 @@
+{
+ "sdkVersion": "0.3.312",
+ "maxDeadRestarts": 3,
+ "cooldownMs": 300000,
+ "scenarios": [
+  {
+   "name": "a crash between turns, then a send restarts it",
+   "id": "dead-0",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 1,
+      "bound": true,
+      "instance": 1,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"hello\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 1,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "stream": true,
+     "got": {
+      "status": 200,
+      "bound": true,
+      "instance": 1,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": false
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"exit:3\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 1,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": false
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 1,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": false
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 1,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": false
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"again\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 2,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": true
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 2,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": true
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"and again\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 2,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "a passive caller restarts a session whose CLI came up",
+   "id": "dead-1",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 3,
+      "bound": true,
+      "instance": 3,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"hello\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 3,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"exit:3\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 3,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 3,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": true
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 4,
+      "bound": true,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 4,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": true
+     },
+     "got": {
+      "ok": true,
+      "restarted": false,
+      "instance": 4,
+      "bound": true,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": false,
+      "instance": 4,
+      "bound": true,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "a CLI that dies on boot stays bound and dead",
+   "id": "dead-2",
+   "steps": [
+    {
+     "bin": "missing",
+     "got": {
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    },
+    {
+     "create": true,
+     "got": {
+      "created": 5,
+      "bound": true,
+      "instance": 5,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 5,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 5,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": true
+     },
+     "got": {
+      "ok": false,
+      "reason": "skipped",
+      "error": null,
+      "bound": true,
+      "instance": 5,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 5,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "stream": true,
+     "got": {
+      "status": 200,
+      "bound": true,
+      "instance": 5,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": false
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 5,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": false
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 6,
+      "bound": true,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": true
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 6,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": true
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 6,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [],
+      "streamClosed": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "the budget: three restarts, then max_attempts; the cooldown refills it",
+   "id": "dead-3",
+   "steps": [
+    {
+     "bin": "missing",
+     "got": {
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    },
+    {
+     "create": true,
+     "got": {
+      "created": 7,
+      "bound": true,
+      "instance": 7,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 7,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 8,
+      "bound": true,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 8,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 9,
+      "bound": true,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 9,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 10,
+      "bound": true,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 10,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": false,
+      "reason": "max_attempts",
+      "error": null,
+      "bound": true,
+      "instance": 10,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"x\"}",
+      null
+     ],
+     "got": {
+      "status": 503,
+      "body": "{\"error\":\"This session's process keeps exiting, so it wasn't restarted again. Check the error in the chat, or start a new session.\"}",
+      "bound": true,
+      "instance": 10,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "advance": 1000,
+     "got": {
+      "bound": true,
+      "instance": 10,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": false,
+      "reason": "max_attempts",
+      "error": null,
+      "bound": true,
+      "instance": 10,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "advance": 300000,
+     "got": {
+      "bound": true,
+      "instance": 10,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 11,
+      "bound": true,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 11,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 12,
+      "bound": true,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "noteSuccess": true,
+     "got": {
+      "bound": true,
+      "instance": 12,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 13,
+      "bound": true,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 13,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 13,
+      "isDead": true,
+      "cameUpLive": false,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "a failed rebuild keeps the dead session bound",
+   "id": "dead-4",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 14,
+      "bound": true,
+      "instance": 14,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"exit:3\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 14,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 14,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "settings": "null",
+     "got": {
+      "bound": true,
+      "instance": 14,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": false,
+      "reason": "failed",
+      "error": "Cannot read properties of null (reading 'spinnerTipsEnabled')",
+      "bound": true,
+      "instance": 14,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 14,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"again\"}",
+      null
+     ],
+     "got": {
+      "status": 503,
+      "body": "{\"error\":\"Couldn't restart the session: Cannot read properties of null (reading 'spinnerTipsEnabled')\"}",
+      "bound": true,
+      "instance": 14,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "settings": "$RM",
+     "got": {
+      "bound": true,
+      "instance": 14,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"now\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 15,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 15,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "the queue survives send-now and send-all on a dead session",
+   "id": "dead-5",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 16,
+      "bound": true,
+      "instance": 16,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"q one\",\"forceQueue\":true}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":true,\"uuid\":\"$Q1\"}",
+      "bound": true,
+      "instance": 16,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       }
+      ]
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"q two\",\"forceQueue\":true}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":true,\"uuid\":\"$Q2\"}",
+      "bound": true,
+      "instance": 16,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "kill": true,
+     "got": {
+      "killed": true,
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "settings": "null",
+     "got": {
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "post": [
+      "send-now",
+      null,
+      "$Q1"
+     ],
+     "got": {
+      "status": 503,
+      "body": "{\"error\":\"Couldn't restart the session: Cannot read properties of null (reading 'spinnerTipsEnabled')\"}",
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "post": [
+      "send-all",
+      null,
+      null
+     ],
+     "got": {
+      "status": 503,
+      "body": "{\"error\":\"Couldn't restart the session: Cannot read properties of null (reading 'spinnerTipsEnabled')\"}",
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "sendQueuedNow": "$Q1",
+     "got": {
+      "dispatched": false,
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    },
+    {
+     "settings": "$RM",
+     "got": {
+      "bound": true,
+      "instance": 16,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": [
+       {
+        "uuid": "$Q1",
+        "text": "q one"
+       },
+       {
+        "uuid": "$Q2",
+        "text": "q two"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "send-now and send-all restart a dead session",
+   "id": "dead-6",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 17,
+      "bound": true,
+      "instance": 17,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"hello\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 17,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "kill": true,
+     "got": {
+      "killed": true,
+      "bound": true,
+      "instance": 17,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 17,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "send-now",
+      null,
+      "00000000-0000-4000-8000-000000000001"
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"dispatched\":false}",
+      "bound": true,
+      "instance": 18,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 18,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "kill": true,
+     "got": {
+      "killed": true,
+      "bound": true,
+      "instance": 18,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 18,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "send-all",
+      null,
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"dispatched\":[]}",
+      "bound": true,
+      "instance": 19,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 19,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "input validates before any restart",
+   "id": "dead-7",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 20,
+      "bound": true,
+      "instance": 20,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"exit:3\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      null,
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "null",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "0",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "false",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "\"\"",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "\"hi\"",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{}",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"\"}",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":5}",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"images\":[]}",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": true,
+      "instance": 20,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"ok\",\"inlinePastes\":[\"a\",\"\",5,null,\"b\"]}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 21,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 21,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "an unknown id",
+   "id": "dead-8",
+   "steps": [
+    {
+     "post": [
+      "input",
+      "{\"text\":\"hello\"}",
+      null
+     ],
+     "got": {
+      "status": 404,
+      "body": "{\"error\":\"session not found\"}",
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{",
+      null
+     ],
+     "got": {
+      "status": 400,
+      "body": "{\"error\":\"text or images required\"}",
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "send-now",
+      null,
+      "00000000-0000-4000-8000-000000000000"
+     ],
+     "got": {
+      "status": 404,
+      "body": "{\"error\":\"session not found\"}",
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "send-all",
+      null,
+      null
+     ],
+     "got": {
+      "status": 404,
+      "body": "{\"error\":\"session not found\"}",
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": false,
+      "reason": "gone",
+      "error": null,
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": true
+     },
+     "got": {
+      "ok": false,
+      "reason": "gone",
+      "error": null,
+      "bound": false,
+      "instance": null,
+      "isDead": null,
+      "cameUpLive": null,
+      "done": null,
+      "turnStatus": null,
+      "hasArmedLoops": null,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "end() is not a death, but one before it still is",
+   "id": "dead-9",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 22,
+      "bound": true,
+      "instance": 22,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"hello\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 22,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "end": true,
+     "got": {
+      "bound": true,
+      "instance": 22,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 22,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": false,
+      "instance": 22,
+      "bound": true,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 22,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "a crash before end() keeps it dead",
+   "id": "dead-10",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 23,
+      "bound": true,
+      "instance": 23,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"exit:3\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 23,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 23,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "end": true,
+     "got": {
+      "bound": true,
+      "instance": 23,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 23,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "restart": {
+      "passive": false
+     },
+     "got": {
+      "ok": true,
+      "restarted": true,
+      "instance": 24,
+      "bound": true,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 24,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "an armed wake-up stops keeping a dead session alive",
+   "id": "dead-11",
+   "steps": [
+    {
+     "create": true,
+     "got": {
+      "created": 25,
+      "bound": true,
+      "instance": 25,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"arm\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 25,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": true,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 25,
+      "isDead": false,
+      "cameUpLive": true,
+      "done": false,
+      "turnStatus": "idle",
+      "hasArmedLoops": true,
+      "queue": []
+     }
+    },
+    {
+     "post": [
+      "input",
+      "{\"text\":\"exit:3\"}",
+      null
+     ],
+     "got": {
+      "status": 200,
+      "body": "{\"ok\":true,\"queued\":false,\"uuid\":\"$UUID\"}",
+      "bound": true,
+      "instance": 25,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "waitDead": true,
+     "got": {
+      "dead": true,
+      "bound": true,
+      "instance": 25,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    },
+    {
+     "probe": true,
+     "got": {
+      "bound": true,
+      "instance": 25,
+      "isDead": true,
+      "cameUpLive": true,
+      "done": true,
+      "turnStatus": "idle",
+      "hasArmedLoops": false,
+      "queue": []
+     }
+    }
+   ]
+  }
+ ],
+ "responses": [
+  {
+   "res": {
+    "reason": "gone"
+   },
+   "error": "session not found",
+   "status": 404
+  },
+  {
+   "res": {
+    "reason": "max_attempts"
+   },
+   "error": "This session's process keeps exiting, so it wasn't restarted again. Check the error in the chat, or start a new session.",
+   "status": 503
+  },
+  {
+   "res": {
+    "reason": "failed",
+    "error": "boom"
+   },
+   "error": "Couldn't restart the session: boom",
+   "status": 503
+  },
+  {
+   "res": {
+    "reason": "failed",
+    "error": ""
+   },
+   "error": "Couldn't restart the session: ",
+   "status": 503
+  },
+  {
+   "res": {
+    "reason": "failed"
+   },
+   "error": "Couldn't restart the session: unknown error",
+   "status": 503
+  },
+  {
+   "res": {
+    "reason": "skipped"
+   },
+   "error": "Couldn't restart the session: unknown error",
+   "status": 503
+  }
+ ],
+ "rejections": []
+}

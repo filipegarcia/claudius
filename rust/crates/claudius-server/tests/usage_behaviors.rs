@@ -66,9 +66,9 @@ fn usage_extras_ride_one_scan() {
             200,
             concat!(
                 r#"{"behaviors":{"day":{"requestCount":4,"sessionCount":1,"behaviors":"#,
-                r#"[{"key":"cache_miss","pct":12.5,"count":2}]},"#,
+                r#"[{"key":"cache_miss","pct":12.5,"count":2}],"recommendations":[]},"#,
                 r#""week":{"requestCount":9,"sessionCount":0,"behaviors":"#,
-                r#"[{"key":"cron","pct":1e+21,"count":0}]}}}"#,
+                r#"[{"key":"cron","pct":1e+21,"count":0}],"recommendations":[]}}}"#,
             )
             .to_owned()
         )

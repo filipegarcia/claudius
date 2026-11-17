@@ -36,6 +36,9 @@ icu_collator = "2"
 icu_properties = "2"
 indexmap = "2"
 http-body-util = "0.1"
+# The dictation socket's handshake response (`claudius_core::voice_ws`), as
+# Node's HTTP parser reads it. Already in the tree through hyper.
+httparse = "1"
 hyper = { version = "1", features = ["client", "http1", "http2"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "tokio"] }
 libc = "0.2"
@@ -51,6 +54,10 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls-no-p
 # rustls's crypto provider below).
 ring = { version = "0.17", default-features = false }
 rusqlite = { version = "0.37", features = ["bundled"] }
+# The dictation socket's TLS (`claudius_core::voice_ws`): the same rustls
+# (ring) and OS trust store as reqwest's above, plus the NODE_EXTRA_CA_CERTS
+# roots Node would add. Already in the tree through reqwest.
+rustls-platform-verifier = "0.7"
 # reqwest's TLS crypto provider (ring: no cmake, a small C build).
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { version = "1", features = ["derive"] }
@@ -60,11 +67,20 @@ sha2 = "0.11"
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
+# The dictation socket's TLS stream (`claudius_core::voice_ws`), over the
+# rustls above. Already in the tree through reqwest.
+tokio-rustls = { version = "0.26", default-features = false, features = ["tls12"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# The dictation proxy's upstream WebSocket (`claudius_core::voice_ws`, TS's
+# `ws` package): RFC 6455 frame encoding and the handshake key / accept
+# digest. The connection, the opening handshake and the receiving side are
+# `ws`'s own logic written out (its checks, their order and its error words
+# reach the composer), so no async wrapper, TLS or client features.
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 # WHATWG URL parsing (`new URL()`), for the Bedrock `baseUrl` check.
 url = "2"
 # NFC, as the SDK's `normalize("NFC")` (`listSessions` paths, the config dir).

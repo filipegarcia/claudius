@@ -12,25 +12,39 @@
 //! - Missed slots are not caught up: a job has a timer for its next slot
 //!   only, and a run re-arms from the slot after the one it started in.
 //! - One run per job at a time: a fire while the job's run is in flight
-//!   records a `skipped` run (`previous_run_in_progress`) and re-arms.
+//!   records a `skipped` run (`previous_run_in_progress`) and re-arms. So
+//!   does a fire whose job's folder is gone
+//!   (`workspace_folder_missing`, CC 2.1.302). Either way the reason is
+//!   also stamped on the job (`lastSkipReason` / `lastSkipAt`, which the
+//!   next run that actually starts clears), and a missing folder reaches
+//!   the notification bus once per new reason.
+//! - [`Scheduler::boot`] first recovers the runs an earlier Claudius left
+//!   `running` ([`Scheduler::recover_interrupted_runs`], CC 2.1.302).
 //! - A run is a single-turn query (`permissionMode: "auto"`,
 //!   `permissionPrompts: "none"`, the job's cwd and model). Each SDK message
 //!   goes to the run's transcript as `{type: "sdk", message}` and to the
 //!   run's live subscribers; the finished run (status, note, cost, tokens)
 //!   is written over the `running` record, and reported through
-//!   [`SchedulerConfig::on_run_finished`] (the notification bus in TS). Its
-//!   live buffer stays replayable for 5 s after it ends.
+//!   [`SchedulerConfig::on_run_finished`] (`main` sets [`record_on_bus`],
+//!   the notification bus, as TS calls it). Its live buffer stays
+//!   replayable for 5 s after it ends. A stream that ends with no result
+//!   message is an error (`session_ended_without_result`), and the `running`
+//!   record carries the process's pid, so another Claudius can tell a run
+//!   whose owner died from one still going.
+//! - A job's `effort` (CC 2.1.312) goes to the run's options when truthy.
 //!
 //! Time comes from a [`Clock`] (`Date.now()`) and timers are tokio's, so a
 //! test drives both on the paused clock ([`TokioClock`]); run ids come from
 //! [`SchedulerConfig::run_id`] (`randomUUID()`).
 //!
 //! TS boots this in `instrumentation.ts` whenever Next starts, and every
-//! schedule route calls `boot()` too. Here it stays off unless the process
-//! is started with `--scheduler` or `CLAUDIUS_SCHEDULER=1` ([`enabled`]):
-//! while Next serves the schedule routes it boots its own scheduler on the
-//! same `jobs.json`, and two would run every job twice. No test or dev run
-//! fires a job unless it opts in.
+//! schedule route calls `boot()` too. Here it is on by default as well
+//! (G07d), and `main` turns it off for `--no-scheduler` or
+//! `CLAUDIUS_SCHEDULER=0|false|no|off` ([`enabled_by_env`], [`enabled`]).
+//! Two schedulers on one `jobs.json` would run every job twice, so the Next
+//! behind the Rust front door must be started with
+//! `CLAUDIUS_RUST_SCHEDULER=1`, which makes `scheduler.ts` skip its own
+//! `boot()` and arm no timers.
 //!
 //! Differences:
 //! - a job's `cwd` that isn't a string is no cwd (Node throws on spawn), and
@@ -42,7 +56,14 @@
 //!   (TS leaves an unhandled rejection), and a failed boot doesn't stop the
 //!   server (TS's `register()` rejects, skipping the rest of it);
 //! - [`Scheduler::shutdown`] (SIGTERM) stops the timers and ends the
-//!   in-flight runs; TS has no shutdown.
+//!   in-flight runs; TS has no shutdown;
+//! - the process start time an unstamped interrupted run is judged against
+//!   is read once, when the first scheduler is built
+//!   ([`SchedulerConfig::process_started_at`]), where TS reads
+//!   `process.uptime()` at each boot. Node has no portable equivalent in
+//!   Rust, and `main` builds the scheduler as it starts;
+//! - the HMR probe for a stale instance (`pickScheduler`'s `recordSkip`
+//!   check) has no counterpart: there is one [`scheduler`] per process.
 
 use std::collections::{HashMap, HashSet};
 use std::panic::AssertUnwindSafe;
@@ -59,7 +80,11 @@ use tokio::task::AbortHandle;
 use crate::cron::{self, Zone};
 use crate::js_num;
 use crate::log::SCHEDULER as LOG;
-use crate::scheduler_store::{JobPatch, JsValue, SchedulerStore, StoreError, prop};
+use crate::schedule_skip::{
+    RUN_ENDED_WITHOUT_RESULT, RUN_INTERRUPTED, SKIP_FOLDER_MISSING, SKIP_PREVIOUS_RUN,
+    run_note_text,
+};
+use crate::scheduler_store::{JobPatch, JsValue, SchedulerStore, StoreError, prop, strict_eq};
 
 /// `MAX_TIMEOUT_MS`: a timer is set at most a day out, then re-armed.
 pub const MAX_TIMEOUT_MS: f64 = 24.0 * 60.0 * 60.0 * 1000.0;
@@ -69,6 +94,36 @@ pub const EARLY_WAKE_MS: f64 = 250.0;
 pub const LIVE_LINGER_MS: u64 = 5000;
 /// Node's timer limit: a delay past it (or below 1 ms) is 1 ms.
 const NODE_TIMEOUT_MAX: f64 = 2_147_483_647.0;
+
+/// When this process started, for [`SchedulerConfig::process_started_at`]:
+/// read the first time it is asked for (`main` builds the scheduler as it
+/// starts), where TS computes it per boot from `process.uptime()`.
+pub fn process_started_ms() -> f64 {
+    static AT: OnceLock<f64> = OnceLock::new();
+    *AT.get_or_init(|| crate::now_ms() as f64)
+}
+
+/// `pidAlive(pid)`: `process.kill(pid, 0)`, which only probes. EPERM means
+/// it exists but isn't ours, so it counts as alive; any other failure
+/// (ESRCH, or Node's range check on a pid that isn't an int32) doesn't.
+#[cfg(unix)]
+pub fn pid_alive(pid: f64) -> bool {
+    let Some(p) = (pid.fract() == 0.0)
+        .then_some(pid as i64)
+        .and_then(|p| i32::try_from(p).ok())
+    else {
+        return false;
+    };
+    if unsafe { libc::kill(p, 0) } == 0 {
+        return true;
+    }
+    std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+}
+
+#[cfg(not(unix))]
+pub fn pid_alive(_pid: f64) -> bool {
+    false
+}
 
 /// `Date.now()`.
 pub trait Clock: Send + Sync {
@@ -115,14 +170,34 @@ pub struct RunnerOptions {
 }
 
 /// `notificationBus.recordSchedulerEvent(job.cwd, runId, job.id, event)`:
-/// a run ended (not a skipped one). `event` is `{type: "run_finished",
-/// status, costUsd?, note?}`.
+/// a run ended, or a fire was skipped for a new `workspace_folder_missing`
+/// (not a repeat of it, nor `previous_run_in_progress`). `event` is `{type:
+/// "run_finished", status, costUsd?, note?}`.
 #[derive(Clone, Debug)]
 pub struct RunFinished {
     pub cwd: JsValue,
     pub run_id: String,
     pub job_id: JsValue,
     pub event: Value,
+}
+
+/// The production [`SchedulerConfig::on_run_finished`]: hand it to the
+/// process's [`NotificationBus`](crate::notification_bus::NotificationBus),
+/// as TS's `void notificationBus.recordSchedulerEvent(...)` does. A `cwd`
+/// that isn't a string maps to no workspace (TS's `Map` lookup misses), so
+/// nothing is recorded. A job id that isn't a string is recorded as its
+/// `String()`, where TS binds the raw value (`null` / `undefined` as NULL);
+/// only a hand-edited `jobs.json` has one.
+pub fn record_on_bus(f: RunFinished) {
+    let Some(Value::String(cwd)) = &f.cwd else {
+        return;
+    };
+    let job_id = match &f.job_id {
+        Some(Value::String(id)) => id.clone(),
+        other => js::to_string(other.as_ref()),
+    };
+    crate::notification_bus::NotificationBus::global()
+        .record_scheduler_event(cwd, &f.run_id, &job_id, &f.event);
 }
 
 pub type RunIdFn = Arc<dyn Fn(&JsValue) -> String + Send + Sync>;
@@ -141,6 +216,9 @@ pub struct SchedulerConfig {
     pub run_id: RunIdFn,
     pub runner: RunnerOptions,
     pub on_run_finished: Option<RunFinishedFn>,
+    /// `Date.now() - Math.round(process.uptime() * 1000)`: an unstamped run
+    /// that started before this counts as interrupted.
+    pub process_started_at: f64,
 }
 
 impl Default for SchedulerConfig {
@@ -152,6 +230,7 @@ impl Default for SchedulerConfig {
             run_id: Arc::new(|_| uuid::Uuid::new_v4().to_string()),
             runner: RunnerOptions::default(),
             on_run_finished: None,
+            process_started_at: process_started_ms(),
         }
     }
 }
@@ -240,7 +319,12 @@ pub struct Scheduler {
     runner: Mutex<RunnerOptions>,
     on_run_finished: Mutex<Option<RunFinishedFn>>,
     state: Mutex<State>,
-    booted: AtomicBool,
+    process_started_at: f64,
+    /// What [`Scheduler::boot`] settled as, `None` until it runs. Held
+    /// across the boot, so a route that boots waits for the recovery
+    /// instead of appending a run the rewrite could drop (TS awaits one
+    /// shared `bootPromise`).
+    boot_state: Mutex<Option<Result<(), StoreError>>>,
     fires: Arc<Fires>,
     seq: AtomicU64,
 }
@@ -252,11 +336,12 @@ pub fn scheduler() -> &'static Arc<Scheduler> {
     S.get_or_init(|| Scheduler::new(SchedulerConfig::default()))
 }
 
-static ENABLED: AtomicBool = AtomicBool::new(false);
+static ENABLED: AtomicBool = AtomicBool::new(true);
 
 /// Whether this process runs scheduled jobs: set by `main` from
-/// `--scheduler` / [`enabled_by_env`]. A route that boots the scheduler
-/// (the TS ones all call `boot()`) must check it first.
+/// `--no-scheduler` / [`enabled_by_env`]. A route that boots the scheduler
+/// (the TS ones all call `boot()`) must check it first. On unless `main`
+/// turns it off, which it does before it serves anything.
 pub fn enabled() -> bool {
     ENABLED.load(Ordering::SeqCst)
 }
@@ -265,11 +350,11 @@ pub fn set_enabled(on: bool) {
     ENABLED.store(on, Ordering::SeqCst);
 }
 
-/// `CLAUDIUS_SCHEDULER`: `1`, `true`, `yes` or `on` (any case) turn the
-/// scheduler on; anything else, or unset, leaves it off.
+/// `CLAUDIUS_SCHEDULER`: `0`, `false`, `no` or `off` (any case, trimmed)
+/// turn the scheduler off (G07d). Unset, or any other value, leaves it on.
 pub fn enabled_by_env(raw: Option<&str>) -> bool {
-    raw.map(|v| js::trim(v).to_ascii_lowercase())
-        .is_some_and(|v| matches!(v.as_str(), "1" | "true" | "yes" | "on"))
+    !raw.map(|v| js::trim(v).to_ascii_lowercase())
+        .is_some_and(|v| matches!(v.as_str(), "0" | "false" | "no" | "off"))
 }
 
 /// A job id as a timer / in-flight key: `undefined`, or its JSON.
@@ -313,6 +398,20 @@ fn number(v: Option<&Value>) -> f64 {
     v.and_then(Value::as_f64).unwrap_or(0.0)
 }
 
+/// `Number(v)` as a relational operator coerces it (`run.startedAt <
+/// processStartedAt`): `undefined` is NaN (every comparison false), `null`
+/// 0, a string its numeric value, an array or object its `String()`.
+fn to_number(v: Option<&Value>) -> f64 {
+    match v {
+        None => f64::NAN,
+        Some(Value::Null) => 0.0,
+        Some(Value::Bool(b)) => f64::from(u8::from(*b)),
+        Some(Value::Number(n)) => n.as_f64().unwrap_or(f64::NAN),
+        Some(Value::String(s)) => js::to_number(s),
+        Some(v) => js::to_number(&js::to_string(Some(v))),
+    }
+}
+
 fn truthy_number(n: f64) -> bool {
     n != 0.0 && !n.is_nan()
 }
@@ -325,6 +424,8 @@ struct Outcome {
     output_tokens: f64,
     status: &'static str,
     note: Option<Value>,
+    /// `sawResult`: a stream that ends without one didn't finish.
+    saw_result: bool,
 }
 
 impl Outcome {
@@ -334,6 +435,7 @@ impl Outcome {
         if msg.get("type").and_then(Value::as_str) != Some("result") {
             return;
         }
+        self.saw_result = true;
         self.cost_usd += number(msg.get("total_cost_usd"));
         let usage = msg.get("usage");
         self.input_tokens += number(usage.and_then(|u| u.get("input_tokens")));
@@ -384,7 +486,8 @@ impl Scheduler {
             runner: Mutex::new(config.runner),
             on_run_finished: Mutex::new(config.on_run_finished),
             state: Mutex::new(State::default()),
-            booted: AtomicBool::new(false),
+            process_started_at: config.process_started_at,
+            boot_state: Mutex::new(None),
             fires: Arc::default(),
             seq: AtomicU64::new(0),
         })
@@ -409,13 +512,30 @@ impl Scheduler {
         lock(&self.state)
     }
 
-    /// `boot()`: once per scheduler, arm every enabled job. A `null` entry
-    /// throws there, after the jobs before it were armed.
+    /// `boot()`: once per scheduler, recover the runs an earlier process
+    /// left behind, then arm every enabled job. A `null` entry throws in
+    /// the arm loop (recovery skips it), after the jobs before it were
+    /// armed. A boot that threw is remembered and throws the same way
+    /// again, as TS's kept `bootPromise` rejects again.
     pub fn boot(self: &Arc<Self>) -> Result<(), StoreError> {
-        if self.booted.swap(true, Ordering::SeqCst) {
-            return Ok(());
+        let mut settled = lock(&self.boot_state);
+        match &*settled {
+            Some(Ok(())) => return Ok(()),
+            Some(Err(e)) => return Err(e.duplicate()),
+            None => {}
         }
-        for job in self.store.list_jobs()? {
+        let r = self.boot_once();
+        *settled = Some(match &r {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e.duplicate()),
+        });
+        r
+    }
+
+    fn boot_once(self: &Arc<Self>) -> Result<(), StoreError> {
+        let jobs = self.store.list_jobs()?;
+        self.recover_interrupted_runs(&jobs)?;
+        for job in jobs {
             if job.is_null() {
                 return Err(StoreError::reading_null("enabled"));
             }
@@ -426,6 +546,134 @@ impl Scheduler {
             }
         }
         Ok(())
+    }
+
+    /// `recoverInterruptedRuns(jobs)` (CC 2.1.302): a run still `running`
+    /// whose owner is gone becomes `error` / `interrupted` with no
+    /// `endedAt` (when it died is unknown), and a job whose latest run was
+    /// recovered gets `lastStatus: "error"` so the Schedule page stops
+    /// showing it live. The owner is gone unless the run is live here, is
+    /// stamped with this process's pid, is stamped with another pid that is
+    /// still alive (another Claudius on the same store), or — unstamped —
+    /// started after this process did.
+    fn recover_interrupted_runs(&self, jobs: &[Value]) -> Result<(), StoreError> {
+        for job in jobs {
+            // A `null` job throws on `job.id` inside the `try`: skipped.
+            if job.is_null() {
+                continue;
+            }
+            let id = prop(job, "id");
+            let Ok(runs) = self.store.list_runs(&id, 50.0) else {
+                continue;
+            };
+            let mut recovered_latest = false;
+            for run in runs {
+                if run.is_null() {
+                    // `run.status` off a `null` line isn't in the `try`.
+                    return Err(StoreError::reading_null("status"));
+                }
+                if prop(&run, "status").as_ref().and_then(Value::as_str) != Some("running") {
+                    continue;
+                }
+                if !self.owner_gone(&run) {
+                    continue;
+                }
+                let mut next: Map<String, Value> = js::entries(&run).into_iter().collect();
+                next.insert("status".into(), json!("error"));
+                next.insert("note".into(), json!(RUN_INTERRUPTED));
+                self.store.update_run(&Value::Object(next))?;
+                if strict_eq(
+                    prop(&run, "startedAt").as_ref(),
+                    prop(job, "lastRunAt").as_ref(),
+                ) {
+                    recovered_latest = true;
+                }
+            }
+            if recovered_latest
+                && prop(job, "lastStatus").as_ref().and_then(Value::as_str) == Some("running")
+                && !self.state().in_flight.contains(&key_of(&id))
+            {
+                let patch: JobPatch = vec![("lastStatus".to_owned(), Some(json!("error")))];
+                self.store.patch_job(&id, &patch)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// `ownerGone(run)`.
+    fn owner_gone(&self, run: &Value) -> bool {
+        let id = prop(run, "id");
+        if let Some(Value::String(id)) = &id
+            && self.state().live_runs.contains_key(id)
+        {
+            return false;
+        }
+        match prop(run, "pid") {
+            Some(Value::Number(n)) => {
+                let pid = n.as_f64().unwrap_or(f64::NAN);
+                if pid == f64::from(std::process::id()) {
+                    return false;
+                }
+                !pid_alive(pid)
+            }
+            _ => to_number(prop(run, "startedAt").as_ref()) < self.process_started_at,
+        }
+    }
+
+    /// `recordSkip(job, runId, reason)`: a `skipped` run and the job-level
+    /// reason the Schedule page's banner explains. A missing folder also
+    /// reaches the notification inbox, once per new reason.
+    fn record_skip(&self, job: &Value, run_id: &str, reason: &str) -> Result<(), StoreError> {
+        let id = prop(job, "id");
+        let at = self.clock.now_ms();
+        let mut skipped = Map::new();
+        skipped.insert("id".into(), json!(run_id));
+        if let Some(job_id) = &id {
+            skipped.insert("jobId".into(), job_id.clone());
+        }
+        skipped.insert("startedAt".into(), js_num(at));
+        skipped.insert("endedAt".into(), js_num(at));
+        skipped.insert("status".into(), json!("skipped"));
+        skipped.insert("note".into(), json!(reason));
+        self.store.append_run(&Value::Object(skipped))?;
+        let before = self.store.get_job(&id)?;
+        let patch: JobPatch = vec![
+            ("lastSkipReason".to_owned(), Some(json!(reason))),
+            ("lastSkipAt".to_owned(), Some(js_num(at))),
+        ];
+        self.store.patch_job(&id, &patch)?;
+        // `before?.lastSkipReason !== reason`: a job that keeps skipping for
+        // the same reason notifies once.
+        let said = before
+            .as_ref()
+            .filter(|b| !b.is_null())
+            .and_then(|b| prop(b, "lastSkipReason"));
+        if reason == SKIP_FOLDER_MISSING && !strict_eq(said.as_ref(), Some(&json!(reason))) {
+            let notify = lock(&self.on_run_finished).clone();
+            if let Some(notify) = notify {
+                notify(RunFinished {
+                    cwd: prop(job, "cwd"),
+                    run_id: run_id.to_owned(),
+                    job_id: id,
+                    event: json!({
+                        "type": "run_finished",
+                        "status": "skipped",
+                        "note": run_note_text(reason),
+                    }),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    /// `folderExists(cwd)`: the job's `cwd` is a directory. A `cwd` that
+    /// isn't a string doesn't reach `fs.stat` in TS either (it throws,
+    /// inside the `try`).
+    fn folder_exists(job: &Value) -> bool {
+        match prop(job, "cwd") {
+            Some(Value::String(cwd)) => std::fs::metadata(cwd).is_ok_and(|m| m.is_dir()),
+            _ => false,
+        }
     }
 
     /// `arm(job)`: replace the job's timer with one for its next slot,
@@ -568,11 +816,18 @@ impl Scheduler {
         }
 
         if !self.state().in_flight.insert(key.clone()) {
-            record.insert("startedAt".into(), js_num(self.clock.now_ms()));
-            record.insert("endedAt".into(), js_num(self.clock.now_ms()));
-            record.insert("status".into(), json!("skipped"));
-            record.insert("note".into(), json!("previous_run_in_progress"));
-            self.store.append_run(&Value::Object(record))?;
+            self.record_skip(&job, &run_id, SKIP_PREVIOUS_RUN)?;
+            if re_arm {
+                self.rearm_from_store(&id)?;
+            }
+            return Ok(run_id);
+        }
+        // CC 2.1.302 — the folder is only checked when the job is saved; one
+        // deleted since then used to read as a failed run, not "didn't
+        // start". The job counts as in flight while it's checked, as in TS.
+        if !Self::folder_exists(&job) {
+            self.state().in_flight.remove(&key);
+            self.record_skip(&job, &run_id, SKIP_FOLDER_MISSING)?;
             if re_arm {
                 self.rearm_from_store(&id)?;
             }
@@ -582,11 +837,17 @@ impl Scheduler {
         let started_at = self.clock.now_ms();
         record.insert("startedAt".into(), js_num(started_at));
         record.insert("status".into(), json!("running"));
+        // Lets boot-time recovery tell a run whose process died from one a
+        // live Claudius owns.
+        record.insert("pid".into(), js_num(f64::from(std::process::id())));
         record.insert("transcript".into(), json!([]));
         self.store.append_run(&Value::Object(record.clone()))?;
+        // A run started: any earlier "didn't start" reason no longer applies.
         let running: JobPatch = vec![
             ("lastRunAt".to_owned(), Some(js_num(started_at))),
             ("lastStatus".to_owned(), Some(json!("running"))),
+            ("lastSkipReason".to_owned(), None),
+            ("lastSkipAt".to_owned(), None),
         ];
         self.store.patch_job(&id, &running)?;
 
@@ -604,14 +865,24 @@ impl Scheduler {
             output_tokens: 0.0,
             status: "success",
             note: None,
+            saw_result: false,
         };
-        if let Err(e) = self.run_query(&job, &run_id, &mut out).await {
-            let message = e.to_string();
-            out.status = "error";
-            out.note = Some(json!(message));
-            let ev = json!({"type": "error", "message": message});
-            out.transcript.push(ev.clone());
-            self.broadcast_run(&run_id, ev);
+        match self.run_query(&job, &run_id, &mut out).await {
+            // CC 2.1.302 — a session that stopped without a final result
+            // didn't complete; the "success" default would call it done.
+            Ok(()) if !out.saw_result => {
+                out.status = "error";
+                out.note = Some(json!(RUN_ENDED_WITHOUT_RESULT));
+            }
+            Ok(()) => {}
+            Err(e) => {
+                let message = e.to_string();
+                out.status = "error";
+                out.note = Some(json!(message));
+                let ev = json!({"type": "error", "message": message});
+                out.transcript.push(ev.clone());
+                self.broadcast_run(&run_id, ev);
+            }
         }
         self.end_live_run(&key, &run_id);
 
@@ -648,8 +919,13 @@ impl Scheduler {
             if truthy_number(out.cost_usd) {
                 event.insert("costUsd".into(), js_num(out.cost_usd));
             }
+            // Readable text, not the raw reason code.
             if let Some(note) = out.note.filter(js::truthy) {
-                event.insert("note".into(), note);
+                let text = match &note {
+                    Value::String(n) => json!(run_note_text(n)),
+                    other => other.clone(),
+                };
+                event.insert("note".into(), text);
             }
             notify(RunFinished {
                 cwd: prop(&job, "cwd"),
@@ -681,6 +957,10 @@ impl Scheduler {
             model: prop(job, "model")
                 .filter(js::truthy)
                 .map(|m| js::to_string(Some(&m))),
+            // CC 2.1.312 — the job's effort level, when one was picked.
+            effort: prop(job, "effort")
+                .filter(js::truthy)
+                .map(|e| js::to_string(Some(&e))),
             // No `can_use_tool`: an unattended run can't ask. `auto` plus
             // `permissionPrompts: "none"` denies what isn't pre-approved
             // right away instead of leaving the turn on a prompt.
@@ -892,14 +1172,41 @@ mod tests {
     }
 
     #[test]
-    fn the_env_switch() {
-        for on in ["1", "true", "TRUE", " yes ", "on"] {
-            assert!(enabled_by_env(Some(on)), "{on:?}");
-        }
-        for off in ["", "0", "false", "no", "off", "2"] {
+    fn the_env_switch_only_turns_it_off() {
+        // G07d: on by default, so only an explicit no counts.
+        for off in ["0", "false", "FALSE", " no ", "off", "\tOff\n"] {
             assert!(!enabled_by_env(Some(off)), "{off:?}");
         }
-        assert!(!enabled_by_env(None));
+        for on in ["", "1", "true", "yes", "on", "2", " ", "nope", "false ish"] {
+            assert!(enabled_by_env(Some(on)), "{on:?}");
+        }
+        assert!(enabled_by_env(None));
+    }
+
+    #[test]
+    fn numbers_coerce_as_a_comparison_does() {
+        assert!(to_number(None).is_nan());
+        assert_eq!(to_number(Some(&json!(null))), 0.0);
+        assert_eq!(to_number(Some(&json!(true))), 1.0);
+        assert_eq!(to_number(Some(&json!(false))), 0.0);
+        assert_eq!(to_number(Some(&json!(2.5))), 2.5);
+        assert_eq!(to_number(Some(&json!(" 5 "))), 5.0);
+        assert!(to_number(Some(&json!("x"))).is_nan());
+        assert_eq!(to_number(Some(&json!([]))), 0.0);
+        assert_eq!(to_number(Some(&json!([7]))), 7.0);
+        assert!(to_number(Some(&json!([1, 2]))).is_nan());
+        assert!(to_number(Some(&json!({}))).is_nan());
+    }
+
+    #[test]
+    fn a_pid_is_alive_only_when_a_process_has_it() {
+        assert!(pid_alive(f64::from(std::process::id())));
+        // init: alive, and not ours (EPERM unless this runs as root).
+        assert!(pid_alive(1.0));
+        // Past any pid, and the values Node's range check refuses.
+        for dead in [999_999.0, 1.5, f64::INFINITY, f64::NAN, -1e12] {
+            assert!(!pid_alive(dead), "{dead}");
+        }
     }
 
     #[test]
@@ -911,9 +1218,11 @@ mod tests {
             output_tokens: 0.0,
             status: "success",
             note: None,
+            saw_result: false,
         };
         out.count(&json!({"type": "assistant", "total_cost_usd": 9, "subtype": "x"}));
         assert_eq!((out.cost_usd, out.status), (0.0, "success"));
+        assert!(!out.saw_result);
         out.count(
             &json!({"type": "result", "subtype": "success", "total_cost_usd": 0.1,
             "usage": {"input_tokens": 1, "output_tokens": 2}}),
@@ -928,6 +1237,7 @@ mod tests {
             (out.status, out.note),
             ("error", Some(json!("error_max_turns")))
         );
+        assert!(out.saw_result);
     }
 
     /// A scheduler on a temp root and tokio's clock, with one enabled job

@@ -7,7 +7,9 @@
 //! as `$ID`). Groups: request validation and the fake's canned reply;
 //! replies scripted per session (`canRewind: false`, an error, odd shapes,
 //! number text); a session whose CLI never started (`session not active`);
-//! and one whose CLI exited after `initialize`.
+//! one whose CLI exited after `initialize`; and lone-surrogate escapes in
+//! `userMessageId`, whose wire is compared with each lone surrogate as
+//! U+FFFD ([`LONE_SURROGATES`]).
 #![cfg(unix)]
 
 mod common;
@@ -35,6 +37,41 @@ const GAPS: &[(&str, &str)] = &[(
     "V8 parses nesting past 128 levels; serde_json refuses it, so the body is a 503 \
      with serde's recursion-limit message instead of a rewind",
 )];
+
+/// The group whose `userMessageId`s hold lone-surrogate escapes (I20; the
+/// fake reads them as `JSON.parse` does, so TS gets its reply). `JsonBody`
+/// reads each as U+FFFD, so the CLI gets U+FFFD's bytes where the SDK writes
+/// the lone surrogate back as its escape. The answers must match as
+/// recorded, the wire once each escape is read as U+FFFD ([`lossy_line`]).
+const LONE_SURROGATES: &str = "lone surrogates";
+
+/// A recorded wire line with each `\udXXX` escape as U+FFFD: what the Rust
+/// host writes. `JSON.stringify` escapes only lone surrogates that way (a
+/// pair is written as its character), and an escaped backslash stays.
+fn lossy_line(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+    while let Some(at) = rest.find('\\') {
+        out.push_str(&rest[..at]);
+        let escape = &rest[at..];
+        let unit = escape
+            .strip_prefix("\\u")
+            .and_then(|hex| hex.get(..4))
+            .and_then(|hex| u16::from_str_radix(hex, 16).ok());
+        let len = if unit.is_some_and(|u| (0xd800..=0xdfff).contains(&u)) {
+            out.push('\u{fffd}');
+            6
+        } else {
+            // The escaped character too, so `\\` doesn't start an escape.
+            let len = escape[1..].chars().next().map_or(1, |c| 1 + c.len_utf8());
+            out.push_str(&escape[..len]);
+            len
+        };
+        rest = &escape[len..];
+    }
+    out.push_str(rest);
+    out
+}
 
 fn unhex(hex: &str) -> Vec<u8> {
     (0..hex.len())
@@ -137,6 +174,7 @@ fn replay_group(server: &Server, world: &World, log: &Path, group: &Value) -> us
         _ => {}
     }
     let mut matched = 0;
+    let mut lossy = 0;
     for (i, case) in group["cases"].as_array().unwrap().iter().enumerate() {
         let bytes = case["requestHex"].as_str().map(unhex);
         let shown = String::from_utf8_lossy(bytes.as_deref().unwrap_or_default());
@@ -152,7 +190,12 @@ fn replay_group(server: &Server, world: &World, log: &Path, group: &Value) -> us
             bytes.as_deref(),
         );
         let got = (status, text, wire_since(log, from));
-        let want = expected(case);
+        let mut want = expected(case);
+        if name == LONE_SURROGATES {
+            let wire: Vec<String> = want.2.iter().map(|l| lossy_line(l)).collect();
+            lossy += usize::from(wire != want.2);
+            want.2 = wire;
+        }
         match GAPS.iter().find(|(prefix, _)| shown.starts_with(prefix)) {
             Some((_, why)) => assert_ne!(got, want, "{name} case {i}: stale gap: {why}"),
             None => {
@@ -160,6 +203,12 @@ fn replay_group(server: &Server, world: &World, log: &Path, group: &Value) -> us
                 matched += 1;
             }
         }
+    }
+    if name == LONE_SURROGATES {
+        assert!(
+            lossy >= 8,
+            "{name}: only {lossy} cases put a lone surrogate on the wire"
+        );
     }
     matched
 }
@@ -193,7 +242,20 @@ fn the_route_replays_the_ts_handler() {
         matched += replay_group(&server, &world, &log, group);
     }
     assert_eq!(matched + GAPS.len(), total);
-    assert!(total >= 90, "{total} cases");
+    assert!(total >= 110, "{total} cases");
+    assert!(
+        groups.iter().any(|g| g["name"] == LONE_SURROGATES),
+        "no {LONE_SURROGATES:?} group"
+    );
+}
+
+#[test]
+fn lossy_line_reads_only_lone_surrogate_escapes() {
+    assert_eq!(
+        lossy_line(r#"{"a":"x\ud800y\uDC00","b":"\\ud800\\\udfff\u00e9\n"}"#),
+        "{\"a\":\"x\u{fffd}y\u{fffd}\",\"b\":\"\\\\ud800\\\\\u{fffd}\\u00e9\\n\"}"
+    );
+    assert_eq!(lossy_line(r"\ud80"), r"\ud80");
 }
 
 /// `sessionManager.get`, not `getOrResume`: a session that isn't live is a

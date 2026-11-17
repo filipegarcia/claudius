@@ -1,7 +1,8 @@
 //! `lib/server/git.ts`: the exec wrapper every git route runs through, the
-//! readers behind `workspaces/[id]/git/{status,diff,show}` (D06), and the
+//! readers behind `workspaces/[id]/git/{status,diff,show}` (D06), the
 //! branch commands behind `git/{branches,branch-compare,branch-delete,
-//! branch-rename,checkout}` (D07).
+//! branch-rename,checkout}` (D07), and the stage / commit / commit-message
+//! diff behind `git/{stage,commit,commit-message}` (D08).
 //!
 //! The wrapper is TS's `git()` over `execFile("git", args, {cwd, maxBuffer,
 //! timeout, encoding: "utf8"})`, with what that implies:
@@ -304,7 +305,7 @@ fn validate_spawn(args: &[&str], cwd: Option<&Path>) -> Result<(), String> {
 
 /// Node's message for a failed spawn: the errnos libuv reports after the
 /// fact are `spawn <file> <CODE>`; `spawn()` throws the rest as `spawn <CODE>`.
-fn spawn_message(file: &str, e: &std::io::Error) -> String {
+pub(crate) fn spawn_message(file: &str, e: &std::io::Error) -> String {
     match claudius_agent::binary::node_error_code(e) {
         Some(code)
             if matches!(
@@ -1620,6 +1621,271 @@ pub async fn checkout_and_rebase_onto(cwd: &str, branch: &str, onto: &str) -> Me
         return MergeOutcome::Error(e.message);
     }
     rebase_current_onto(cwd, onto).await
+}
+
+// ----------------------------- stage, commit (D08) -----------------------------
+
+/// `StageOp`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StageOp {
+    Stage,
+    Unstage,
+    Discard,
+    Remove,
+}
+
+impl StageOp {
+    /// The route's `OPS`, in its order.
+    pub const ALL: [StageOp; 4] = [
+        StageOp::Stage,
+        StageOp::Unstage,
+        StageOp::Discard,
+        StageOp::Remove,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            StageOp::Stage => "stage",
+            StageOp::Unstage => "unstage",
+            StageOp::Discard => "discard",
+            StageOp::Remove => "remove",
+        }
+    }
+    pub fn parse(s: &str) -> Option<StageOp> {
+        StageOp::ALL.into_iter().find(|op| op.as_str() == s)
+    }
+}
+
+/// `new Map(status.files.map((f) => [f.path, f]))`: a later entry for the
+/// same path wins.
+fn files_by_path(files: &[GitFileChange]) -> std::collections::HashMap<&str, &GitFileChange> {
+    files.iter().map(|f| (f.path.as_str(), f)).collect()
+}
+
+/// `git(args, root)` where a failure is only collected (`errors.push(err
+/// .message)`).
+async fn collect_failure(args: &[&str], root: &str, errors: &mut Vec<String>) {
+    if let Err(e) = git(args, Path::new(root), GitOpts::default()).await {
+        errors.push(e.message().to_owned());
+    }
+}
+
+/// `["<verb>", ..., "--", ...paths]`.
+fn with_paths<'a>(head: &[&'a str], paths: &[&'a str]) -> Vec<&'a str> {
+    let mut args = head.to_vec();
+    args.push("--");
+    args.extend_from_slice(paths);
+    args
+}
+
+/// `stagePaths(cwd, paths, op)`: no paths is done before anything runs.
+/// * `stage`: `add -A --` of the paths status lists with a worktree change
+///   (an unknown or fully staged path is dropped; none left is done);
+/// * `unstage`: `restore --staged --` of every path;
+/// * `discard`: `reset HEAD --` of the listed paths in the index, `checkout
+///   --` of the listed tracked ones HEAD has (not a fresh add), then `clean
+///   -fd --` of every path; each failure is collected;
+/// * `remove`: `rm -f --` of the listed tracked paths, then an `unlink` of
+///   each untracked one (ENOENT is fine); failures collected.
+///
+/// Collected failures are one `git-failed`, joined with `; `. The paths
+/// always come after `--`, so none is an option.
+pub async fn stage_paths(cwd: &str, paths: &[String], op: StageOp) -> Result<(), GitError> {
+    if paths.is_empty() {
+        return Ok(());
+    }
+    let Some(root) = get_repo_root(cwd).await else {
+        return Err(not_a_repo());
+    };
+    let all: Vec<&str> = paths.iter().map(String::as_str).collect();
+    let failed = |e: ExecError| GitError::failed(e.message());
+    match op {
+        StageOp::Stage => {
+            let status = get_status(&root).await?;
+            let by_path = files_by_path(&status.files);
+            let to_stage: Vec<&str> = all
+                .iter()
+                .copied()
+                .filter(|p| by_path.get(p).is_some_and(|f| f.worktree != " "))
+                .collect();
+            if to_stage.is_empty() {
+                return Ok(());
+            }
+            git(
+                &with_paths(&["add", "-A"], &to_stage),
+                Path::new(&root),
+                GitOpts::default(),
+            )
+            .await
+            .map_err(failed)?;
+        }
+        StageOp::Unstage => {
+            git(
+                &with_paths(&["restore", "--staged"], &all),
+                Path::new(&root),
+                GitOpts::default(),
+            )
+            .await
+            .map_err(failed)?;
+        }
+        StageOp::Discard => {
+            let status = get_status(&root).await?;
+            let by_path = files_by_path(&status.files);
+            let (mut to_unstage, mut in_head) = (vec![], vec![]);
+            for p in &all {
+                let Some(f) = by_path.get(p) else { continue };
+                if !f.untracked && f.index != " " {
+                    to_unstage.push(*p);
+                }
+                if !f.untracked && f.index != "A" {
+                    in_head.push(*p);
+                }
+            }
+            let mut errors = vec![];
+            if !to_unstage.is_empty() {
+                collect_failure(
+                    &with_paths(&["reset", "HEAD"], &to_unstage),
+                    &root,
+                    &mut errors,
+                )
+                .await;
+            }
+            if !in_head.is_empty() {
+                collect_failure(&with_paths(&["checkout"], &in_head), &root, &mut errors).await;
+            }
+            collect_failure(&with_paths(&["clean", "-fd"], &all), &root, &mut errors).await;
+            if !errors.is_empty() {
+                return Err(GitError::failed(errors.join("; ")));
+            }
+        }
+        StageOp::Remove => {
+            let status = get_status(&root).await?;
+            let by_path = files_by_path(&status.files);
+            let (mut tracked, mut untracked) = (vec![], vec![]);
+            for p in &all {
+                let Some(f) = by_path.get(p) else { continue };
+                if f.untracked {
+                    untracked.push(*p);
+                } else {
+                    tracked.push(*p);
+                }
+            }
+            let mut errors = vec![];
+            if !tracked.is_empty() {
+                collect_failure(&with_paths(&["rm", "-f"], &tracked), &root, &mut errors).await;
+            }
+            for p in untracked {
+                // `unlink(join(root, p))`: `p` is a path git listed, relative
+                // to the root. `join` keeps a trailing `/` (an untracked
+                // nested repo), so Node's message names it.
+                let target = crate::node_path::join(&[&root, p]);
+                if !target.starts_with(&format!("{root}/")) {
+                    continue;
+                }
+                match crate::node_err::fs::unlink(Path::new(&target)) {
+                    Ok(()) => {}
+                    Err(e) if e.code == "ENOENT" => {}
+                    Err(e) => errors.push(e.message),
+                }
+            }
+            if !errors.is_empty() {
+                return Err(GitError::failed(errors.join("; ")));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// `getDiffForCommit(cwd, paths)`: one diff of the given paths for the
+/// commit-message model. Tracked ones (anything status doesn't list as
+/// untracked) are `diff HEAD --no-color --no-textconv --`, from HEAD to the
+/// working tree; each untracked one is its `--no-index` diff against
+/// `/dev/null`. The non-empty parts are joined with a newline. Status runs
+/// on `cwd` (it finds the root again); the first failure is the error.
+pub async fn get_diff_for_commit(cwd: &str, paths: &[String]) -> Result<String, GitError> {
+    if paths.is_empty() {
+        return Ok(String::new());
+    }
+    let Some(root) = get_repo_root(cwd).await else {
+        return Err(not_a_repo());
+    };
+    let status = get_status(cwd).await?;
+    let untracked: std::collections::HashSet<&str> = status
+        .files
+        .iter()
+        .filter(|f| f.untracked)
+        .map(|f| f.path.as_str())
+        .collect();
+    let (new_files, tracked): (Vec<&str>, Vec<&str>) = paths
+        .iter()
+        .map(String::as_str)
+        .partition(|p| untracked.contains(p));
+    let mut parts = vec![];
+    if !tracked.is_empty() {
+        let args = with_paths(&["diff", "HEAD", "--no-color", "--no-textconv"], &tracked);
+        let out = git(&args, Path::new(&root), GitOpts::default())
+            .await
+            .map_err(|e| GitError::failed(e.message()))?;
+        if !out.stdout.is_empty() {
+            parts.push(out.stdout);
+        }
+    }
+    for p in new_files {
+        let diff = diff_no_index(&root, p).await.map_err(GitError::failed)?;
+        if !diff.diff.is_empty() {
+            parts.push(diff.diff);
+        }
+    }
+    Ok(parts.join("\n"))
+}
+
+/// `CommitResult`'s success: `{ ok: true, sha, subject }`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Commit {
+    pub sha: String,
+    pub subject: String,
+}
+
+impl Commit {
+    pub fn to_json(&self) -> Value {
+        json!({"ok": true, "sha": self.sha, "subject": self.subject})
+    }
+}
+
+/// `commitStaged(cwd, message)`: `commit -F - --cleanup=strip` with the
+/// message on stdin, under the hook timeout (pre-commit hooks), then `log -1
+/// --pretty=%H%n%s` for the new commit's sha and subject (each JS-trimmed).
+/// A failure is its `git <verb> …` message.
+pub async fn commit_staged(cwd: &str, message: &str) -> Result<Commit, GitError> {
+    let Some(root) = get_repo_root(cwd).await else {
+        return Err(not_a_repo());
+    };
+    if js::trim(message).is_empty() {
+        return Err(GitError::failed("commit message required"));
+    }
+    let failed = |e: ExecError| GitError::failed(e.message());
+    let opts = GitOpts {
+        input: Some(message),
+        timeout_ms: Some(HOOK_TIMEOUT_MS),
+    };
+    git(
+        &["commit", "-F", "-", "--cleanup=strip"],
+        Path::new(&root),
+        opts,
+    )
+    .await
+    .map_err(failed)?;
+    let out = git(
+        &["log", "-1", "--pretty=%H%n%s"],
+        Path::new(&root),
+        GitOpts::default(),
+    )
+    .await
+    .map_err(failed)?;
+    let mut lines = out.stdout.split('\n');
+    let sha = js::trim(lines.next().unwrap_or_default()).to_owned();
+    let subject = js::trim(lines.next().unwrap_or_default()).to_owned();
+    Ok(Commit { sha, subject })
 }
 
 #[cfg(test)]

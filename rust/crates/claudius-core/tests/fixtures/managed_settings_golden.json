@@ -1,5 +1,5 @@
 {
-  "sdkVersion": "0.3.299",
+  "sdkVersion": "0.3.312",
   "regCalls": [
     [
       "query",
@@ -13,6 +13,10 @@
       "/v",
       "Settings"
     ]
+  ],
+  "coworkEntrypoints": [
+    "remote_cowork",
+    "remote_cowork_trigger"
   ],
   "cases": [
     {
@@ -3067,6 +3071,62 @@
       "pricing": null
     },
     {
+      "name": "reg_hkcu_attribution_project_policy_dropped",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"attributionProjectPolicy\":{\"default\":\"claude_proj_x\"}}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hkcu_admin_only_keys_only_dropped",
+      "registry": {
+        "hklm": {
+          "out": "ERROR: The system was unable to find the specified registry key or value.\r\n",
+          "code": 1
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"managedMcpServers\":{},\"isolation\":{},\"appendPlugins\":[\"p\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "reg_hklm_attribution_project_policy_kept",
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"attributionProjectPolicy\":{\"default\":\"claude_proj_x\"}}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "managed": null,
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
       "name": "reg_file_bad_json_shuts_hkcu",
       "registry": {
         "hklm": {
@@ -3430,8 +3490,13 @@
     },
     {
       "name": "wsl_nothing",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -3442,11 +3507,16 @@
     },
     {
       "name": "wsl_local_file_alone",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3463,12 +3533,17 @@
     },
     {
       "name": "wsl_unarmed_hklm_ignored",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n"
         }
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -3479,7 +3554,11 @@
     },
     {
       "name": "wsl_unarmed_hklm_keeps_local_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3488,6 +3567,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3504,7 +3584,11 @@
     },
     {
       "name": "wsl_unarmed_windows_file_ignored",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -3514,6 +3598,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3530,12 +3615,17 @@
     },
     {
       "name": "wsl_unarmed_hkcu_ignored",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hkcu": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
         }
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -3546,7 +3636,11 @@
     },
     {
       "name": "wsl_hklm_armed",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3555,6 +3649,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "h"
@@ -3571,12 +3666,17 @@
     },
     {
       "name": "wsl_hklm_armed_by_string_true",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"true\",\"deniedModels\":[\"h\"]}\r\n\r\n"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "h"
@@ -3593,7 +3693,11 @@
     },
     {
       "name": "wsl_hklm_flag_false",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":false,\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3602,6 +3706,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3618,7 +3723,11 @@
     },
     {
       "name": "wsl_hklm_flag_string_false",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"false\",\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3627,6 +3736,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3643,7 +3753,11 @@
     },
     {
       "name": "wsl_hklm_flag_null",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":null,\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3652,6 +3766,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3668,7 +3783,11 @@
     },
     {
       "name": "wsl_hklm_flag_uppercase_unreadable_with_content",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"TRUE\",\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3677,6 +3796,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "h"
@@ -3693,7 +3813,11 @@
     },
     {
       "name": "wsl_hklm_flag_unreadable_only_binds_empty",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":1}\r\n\r\n"
@@ -3702,6 +3826,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -3712,7 +3837,11 @@
     },
     {
       "name": "wsl_hklm_flag_only_reads_local_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -3721,6 +3850,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3737,7 +3867,11 @@
     },
     {
       "name": "wsl_hklm_flag_only_windows_file_wins",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -3751,6 +3885,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w"
@@ -3767,7 +3902,11 @@
     },
     {
       "name": "wsl_hklm_armed_ties_windows_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3778,6 +3917,7 @@
           "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "h"
@@ -3794,7 +3934,11 @@
     },
     {
       "name": "wsl_hklm_armed_merges_windows_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"h\"]}\r\n\r\n"
@@ -3805,6 +3949,7 @@
           "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "h",
@@ -3823,7 +3968,11 @@
     },
     {
       "name": "wsl_hklm_armed_substitute_binds_beside_windows_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"availableModelsMatch\":\"bogus\"}\r\n\r\n"
@@ -3834,6 +3983,7 @@
           "managed-settings.json": "{\"deniedModels\":[\"w\"]}"
         }
       },
+      "wsl": true,
       "managed": {
         "availableModelsMatch": "exact",
         "deniedModels": [
@@ -3851,7 +4001,11 @@
     },
     {
       "name": "wsl_hklm_unreadable_windows_armed",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":5}\r\n\r\n"
@@ -3862,6 +4016,7 @@
           "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w"
@@ -3878,7 +4033,11 @@
     },
     {
       "name": "wsl_hklm_false_windows_armed",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":false}\r\n\r\n"
@@ -3889,6 +4048,7 @@
           "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w"
@@ -3905,7 +4065,11 @@
     },
     {
       "name": "wsl_windows_file_arms",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -3915,6 +4079,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w"
@@ -3931,7 +4096,11 @@
     },
     {
       "name": "wsl_windows_file_flag_only_reads_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -3941,6 +4110,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -3957,7 +4127,11 @@
     },
     {
       "name": "wsl_windows_drop_in_arms",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -3965,6 +4139,7 @@
           "managed-settings.d/b.json": "{\"deniedModels\":[\"b\"]}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "b"
@@ -3981,7 +4156,11 @@
     },
     {
       "name": "wsl_windows_unreadable_then_armed_drop_in",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -3989,6 +4168,7 @@
           "managed-settings.d/z.json": "{\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"z\"]}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "z"
@@ -4005,7 +4185,11 @@
     },
     {
       "name": "wsl_windows_unreadable_flag_with_content",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4015,6 +4199,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w"
@@ -4031,7 +4216,11 @@
     },
     {
       "name": "wsl_windows_unreadable_flag_only",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4041,6 +4230,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4051,7 +4241,11 @@
     },
     {
       "name": "wsl_windows_dot_and_txt_drop_ins_skipped",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4062,6 +4256,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -4078,7 +4273,11 @@
     },
     {
       "name": "wsl_windows_utf16_flag_arms",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4087,6 +4286,7 @@
           }
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w16"
@@ -4103,7 +4303,11 @@
     },
     {
       "name": "wsl_windows_bad_json_shuts_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4113,6 +4317,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4123,7 +4328,11 @@
     },
     {
       "name": "wsl_windows_blank_file_keeps_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4133,6 +4342,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -4149,7 +4359,11 @@
     },
     {
       "name": "wsl_windows_dangling_drop_in_keeps_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "symlinks": {
@@ -4159,6 +4373,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -4175,7 +4390,11 @@
     },
     {
       "name": "wsl_windows_enotdir_main_keeps_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4188,6 +4407,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -4204,7 +4424,11 @@
     },
     {
       "name": "wsl_windows_drop_in_symlink_to_dir_shuts_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "dirs": [
@@ -4217,6 +4441,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4227,7 +4452,11 @@
     },
     {
       "name": "wsl_windows_main_is_directory_shuts_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "dirs": [
@@ -4237,6 +4466,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4247,7 +4477,11 @@
     },
     {
       "name": "wsl_hklm_overflow_shuts_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n",
@@ -4257,6 +4491,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4267,7 +4502,11 @@
     },
     {
       "name": "wsl_hklm_bad_json_shuts_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {bad\r\n\r\n"
@@ -4276,6 +4515,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4286,7 +4526,11 @@
     },
     {
       "name": "wsl_hklm_overflow_windows_armed",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"h\"]}\r\n\r\n",
@@ -4301,6 +4545,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w"
@@ -4317,7 +4562,11 @@
     },
     {
       "name": "wsl_hklm_armed_windows_bad_json",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -4331,6 +4580,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4341,7 +4591,11 @@
     },
     {
       "name": "wsl_hkcu_needs_its_own_flag",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -4350,6 +4604,7 @@
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"deniedModels\":[\"u\"]}\r\n\r\n"
         }
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4360,7 +4615,11 @@
     },
     {
       "name": "wsl_hkcu_armed_used",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -4369,6 +4628,7 @@
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "u"
@@ -4385,7 +4645,11 @@
     },
     {
       "name": "wsl_hkcu_string_true_used",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -4394,6 +4658,7 @@
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":\"true\",\"deniedModels\":[\"u\"]}\r\n\r\n"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "u"
@@ -4410,7 +4675,11 @@
     },
     {
       "name": "wsl_hkcu_with_windows_flag_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hkcu": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
@@ -4421,6 +4690,7 @@
           "managed-settings.json": "{\"wslInheritsWindowsSettings\":true}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "u"
@@ -4437,7 +4707,11 @@
     },
     {
       "name": "wsl_hkcu_shut_out_by_windows_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hkcu": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
@@ -4448,6 +4722,7 @@
           "managed-settings.json": "{\"deniedModels\":[\"w\"],\"wslInheritsWindowsSettings\":true}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "w"
@@ -4464,7 +4739,11 @@
     },
     {
       "name": "wsl_hkcu_shut_out_by_local_file",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -4476,6 +4755,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "l"
@@ -4492,7 +4772,11 @@
     },
     {
       "name": "wsl_hkcu_shut_out_by_windows_bad_drop_in",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -4506,6 +4790,7 @@
           "managed-settings.d/z.json": "nope"
         }
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4516,7 +4801,11 @@
     },
     {
       "name": "wsl_hklm_unreadable_windows_flag_arms_hkcu",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":5}\r\n\r\n"
@@ -4530,6 +4819,7 @@
           "managed-settings.json": "{\"wslInheritsWindowsSettings\":true}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "u"
@@ -4546,7 +4836,11 @@
     },
     {
       "name": "wsl_windows_main_armed_beats_unreadable_drop_in",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hkcu": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
@@ -4558,6 +4852,7 @@
           "managed-settings.d/a.json": "{\"wslInheritsWindowsSettings\":\"x\"}"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "u"
@@ -4574,7 +4869,11 @@
     },
     {
       "name": "wsl_windows_drop_in_unreadable_flag_only",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "files": {
@@ -4584,6 +4883,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4594,7 +4894,11 @@
     },
     {
       "name": "wsl_windows_dot_drop_in_doesnt_arm_hkcu",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hkcu": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
@@ -4606,6 +4910,7 @@
           "managed-settings.d/a.txt": "{\"wslInheritsWindowsSettings\":true}"
         }
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4616,7 +4921,11 @@
     },
     {
       "name": "wsl_windows_drop_in_dir_loop_shuts_local",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {},
       "win": {
         "symlinks": {
@@ -4626,6 +4935,7 @@
       "files": {
         "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
       },
+      "wsl": true,
       "managed": null,
       "origin": null,
       "policy": {
@@ -4636,7 +4946,11 @@
     },
     {
       "name": "wsl_hkcu_drops_composition_keys",
-      "wsl": true,
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
       "registry": {
         "hklm": {
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
@@ -4645,6 +4959,7 @@
           "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"managedSourcesBehavior\":\"merge\",\"deniedModels\":[\"u\"]}\r\n\r\n"
         }
       },
+      "wsl": true,
       "managed": {
         "deniedModels": [
           "u"
@@ -4658,6 +4973,618 @@
         "availableModelsMatch": "prefix"
       },
       "pricing": null
+    },
+    {
+      "name": "wsl_hkcu_attribution_project_policy_dropped",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"attributionProjectPolicy\":{\"default\":\"claude_proj_x\"}}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_distro_name_is_wsl",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_distro_name_with_plain_proc_is_wsl",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu"
+        },
+        "procVersion": "Linux version 6.1.0-18-amd64 (debian-kernel@lists.debian.org) (gcc-12) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_proc_wsl2_is_wsl",
+      "linux": {
+        "env": {},
+        "procVersion": "Linux version 5.15.153.1-microsoft-standard-WSL2 (root@x) (gcc) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_proc_wsl1_is_wsl",
+      "linux": {
+        "env": {},
+        "procVersion": "Linux version 4.4.0-19041-Microsoft (Microsoft@Microsoft.com) (gcc version 5.4.0) #1-Microsoft\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_proc_uppercase_wsl_is_wsl",
+      "linux": {
+        "env": {},
+        "procVersion": "Linux version 6.6.0-WSL (gcc)"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_plain_proc_not_wsl",
+      "linux": {
+        "env": {},
+        "procVersion": "Linux version 6.1.0-18-amd64 (debian-kernel@lists.debian.org) (gcc-12) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "wsl": false,
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_empty_distro_name_not_wsl",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": ""
+        },
+        "procVersion": "Linux version 6.1.0-18-amd64 (debian-kernel@lists.debian.org) (gcc-12) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "wsl": false,
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_no_proc_version_not_wsl",
+      "linux": {
+        "env": {}
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "wsl": false,
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_proc_version_directory_not_wsl",
+      "linux": {
+        "env": {},
+        "procVersion": {
+          "dir": true
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "wsl": false,
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_wsl_interop_alone_not_wsl",
+      "linux": {
+        "env": {
+          "WSL_INTEROP": "/run/WSL/1_interop"
+        },
+        "procVersion": "Linux version 6.1.0-18-amd64 (debian-kernel@lists.debian.org) (gcc-12) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "files": {
+        "managed-settings.json": "{\"deniedModels\":[\"l\"]}"
+      },
+      "wsl": false,
+      "managed": {
+        "deniedModels": [
+          "l"
+        ]
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "l"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_other_entrypoint_distro_name_counts",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu",
+          "CLAUDE_CODE_ENTRYPOINT": "sdk-ts"
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_entrypoint_match_is_case_sensitive",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu",
+          "CLAUDE_CODE_ENTRYPOINT": "Remote_Cowork"
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "linux_entrypoint_match_is_exact",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu",
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork "
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_distro_name_not_wsl",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu",
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork"
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": false,
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_trigger_distro_name_not_wsl",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu",
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork_trigger"
+        }
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": false,
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_distro_name_plain_proc_not_wsl",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu",
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork"
+        },
+        "procVersion": "Linux version 6.1.0-18-amd64 (debian-kernel@lists.debian.org) (gcc-12) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": false,
+      "managed": null,
+      "origin": null,
+      "policy": {
+        "deniedModels": null,
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_proc_is_wsl",
+      "linux": {
+        "env": {
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork"
+        },
+        "procVersion": "Linux version 5.15.153.1-microsoft-standard-WSL2 (root@x) (gcc) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_trigger_proc_is_wsl",
+      "linux": {
+        "env": {
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork_trigger"
+        },
+        "procVersion": "Linux version 4.4.0-19041-Microsoft (Microsoft@Microsoft.com) (gcc version 5.4.0) #1-Microsoft\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_proc_and_distro_name_is_wsl",
+      "linux": {
+        "env": {
+          "WSL_DISTRO_NAME": "Ubuntu",
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork"
+        },
+        "procVersion": "Linux version 4.4.0-19041-Microsoft (Microsoft@Microsoft.com) (gcc version 5.4.0) #1-Microsoft\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"h\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "h"
+        ]
+      },
+      "origin": "hklm",
+      "policy": {
+        "deniedModels": [
+          "h"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_proc_hkcu_armed",
+      "linux": {
+        "env": {
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork"
+        },
+        "procVersion": "Linux version 5.15.153.1-microsoft-standard-WSL2 (root@x) (gcc) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        },
+        "hkcu": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true,\"deniedModels\":[\"u\"]}\r\n\r\n"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "u"
+        ]
+      },
+      "origin": "hkcu",
+      "policy": {
+        "deniedModels": [
+          "u"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": null
+    },
+    {
+      "name": "cowork_proc_windows_file",
+      "linux": {
+        "env": {
+          "CLAUDE_CODE_ENTRYPOINT": "remote_cowork"
+        },
+        "procVersion": "Linux version 5.15.153.1-microsoft-standard-WSL2 (root@x) (gcc) #1 SMP\n"
+      },
+      "registry": {
+        "hklm": {
+          "out": "\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\ClaudeCode\r\n    Settings    REG_SZ    {\"wslInheritsWindowsSettings\":true}\r\n\r\n"
+        }
+      },
+      "win": {
+        "files": {
+          "managed-settings.json": "{\"deniedModels\":[\"w\"],\"modelPricing\":{\"multiplier\":2}}"
+        }
+      },
+      "wsl": true,
+      "managed": {
+        "deniedModels": [
+          "w"
+        ],
+        "modelPricing": {
+          "multiplier": 2
+        }
+      },
+      "origin": "file",
+      "policy": {
+        "deniedModels": [
+          "w"
+        ],
+        "availableModelsMatch": "prefix"
+      },
+      "pricing": {
+        "multiplier": 2
+      }
     },
     {
       "name": "remote_cache_ignored_alone",

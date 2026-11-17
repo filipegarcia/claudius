@@ -200,6 +200,10 @@ async function drain() {
   if (pending !== 0) throw new Error("fs operations never settled");
 }
 
+// console.warn: captured per step (the CC 2.1.309 cert-failure line).
+let warnLog = [];
+console.warn = (...a) => warnLog.push(a.map((v) => String(v)).join(" "));
+
 // fetch: scripted.
 let fetchQueue = [];
 let fetchCalls = [];
@@ -207,6 +211,12 @@ globalThis.fetch = async (url, init) => {
   fetchCalls.push({ url: String(url), method: init?.method ?? null, headers: init?.headers ?? null });
   const r = fetchQueue.shift();
   if (!r) throw new Error("unscripted fetch");
+  if (r.throwCert !== undefined) {
+    // undici's shape for a TLS failure: `TypeError("fetch failed")` whose
+    // `cause` carries the OpenSSL code / message (CC 2.1.309).
+    const cause = Object.assign(new Error(r.throwCert.message), { code: r.throwCert.code });
+    throw new TypeError("fetch failed", { cause });
+  }
   if (r.throws !== undefined) throw new TypeError(r.throws);
   const body = r.hex !== undefined ? Buffer.from(r.hex, "hex") : (r.body ?? null);
   return new Response(body, { status: r.status });
@@ -381,12 +391,14 @@ async function runStoreCase(c, index) {
         case "info": {
           fetchQueue = [...(step.fetch ?? [])];
           fetchCalls = [];
+          warnLog = [];
           try {
             v = await profileInfo.getProfileInfoForAccount(id, step.skipCache ? { skipCache: true } : undefined);
           } finally {
             await drain();
             r.fetches = fetchCalls;
             r.unused = fetchQueue.length;
+            if (warnLog.length) r.warns = warnLog.map(sub);
           }
           break;
         }
@@ -1242,6 +1254,29 @@ add({
     info(P.oauth2.id, { fetch: [{ status: 529, body: "" }] }),
     info("falsy", { fetch: [{ status: 403, body: "" }] }),
     info(P.oauth.id, { fetch: [{ throws: "fetch failed" }] }),
+  ],
+});
+// CC 2.1.309: a certificate-verification failure reports the hint instead
+// of undici's bare "fetch failed", with or without cached metadata.
+const CERT = { code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE", message: "unable to verify the first certificate" };
+add({
+  name: "info: the profile endpoint's certificate is not trusted",
+  files: accFile(
+    store2([
+      P.oauth,
+      { ...P.oauth, id: "cached", emailAddress: "e@example.com", subscriptionType: "Claude Pro" },
+    ]),
+  ),
+  steps: [
+    info(P.oauth.id, { fetch: [{ throwCert: CERT }] }),
+    info("cached", { fetch: [{ throwCert: CERT }] }),
+    // By message alone (no `code`), and nested one level down.
+    info(P.oauth.id, { skipCache: true, fetch: [{ throwCert: { message: "self signed certificate in certificate chain" } }] }),
+    // A TLS failure a CA bundle can't fix keeps undici's message.
+    info(P.oauth.id, { skipCache: true, fetch: [{ throwCert: { code: "CERT_HAS_EXPIRED", message: "certificate has expired" } }] }),
+    // A successful lookup after one still caches and backfills.
+    info(P.oauth.id, { skipCache: true, fetch: [ok(FULL)] }),
+    S("read"),
   ],
 });
 const BODIES = [

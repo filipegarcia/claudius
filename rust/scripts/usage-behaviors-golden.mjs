@@ -58,6 +58,7 @@ const J = (v) => JSON.stringify(v);
 const win = (over) => ({ request_count: 10, session_count: 2, behaviors: [], ...over });
 const usage = (day, week) => J({ behaviors: { day, week } });
 const one = (b) => usage(win({ behaviors: [b] }), win({}));
+const one2 = (r) => usage(win({ recommendations: [r] }), win({}));
 const skills = (list) => J({ behaviors: { day: win({}), week: { ...win({}), skills: list } } });
 
 // Usage responses, as the JSON text the CLI would send.
@@ -119,6 +120,62 @@ const USAGE = [
   usage(win({ behaviors: "cron" }), win({ behaviors: 3 })),
   // Duplicate JSON keys: the last one wins.
   '{"behaviors":{"day":{"request_count":1,"request_count":2,"behaviors":[]},"week":{"behaviors":[{"key":"cron","key":"workflow","pct":1,"pct":2}]}},"behaviors":{"day":{},"week":{"request_count":9}}}',
+  // Recommendations (SDK 0.3.305 `behaviors.{day,week}.recommendations`):
+  // a string `key`, a non-blank string `title` and a finite number `pct`;
+  // `detail` only when it is a non-blank string.
+  usage(
+    win({ recommendations: [{ key: "max_effort", pct: 40, title: "Lower effort", detail: "/effort low" }] }),
+    win({ recommendations: [{ key: "agent", pct: 12.5, title: "Drop the reviewer agent" }] }),
+  ),
+  // `recommendations` that isn't an array.
+  ...[null, 0, 1, "", "x", true, {}, { 0: { key: "a", pct: 1, title: "t" } }].map((recommendations) =>
+    usage(win({ recommendations }), win({})),
+  ),
+  // Entries that aren't objects.
+  usage(win({ recommendations: [null, 0, 1, "", "k", true, [], ["k", 1, "t"]] }), win({})),
+  // `key`: any string passes (it may name an agent / skill / plugin), a
+  // non-string drops the entry.
+  ...["", "max_effort", "agent", "skill", "plugin", "mcp_server", "Some Agent", "__proto__", "constructor",
+    "\u00e9t\u00e9", "\ud83d\ude00", "a".repeat(300)].map((key) =>
+    one2({ key, pct: 10, title: "t" }),
+  ),
+  ...[1, null, true, [], {}, ["agent"]].map((key) => one2({ key, pct: 10, title: "t" })),
+  one2({ pct: 10, title: "t" }),
+  // `title`: a non-blank string; JS `trim` whitespace counts as blank.
+  ...["t", " padded ", "multi\nline", "\u00e9", "\ud83d\ude00", "0", "false"].map((title) =>
+    one2({ key: "agent", pct: 10, title }),
+  ),
+  ...["", " ", "\t\n", "\u00a0", "\ufeff", "\u2028", "\u0085"].map((title) =>
+    one2({ key: "agent", pct: 10, title }),
+  ),
+  ...[1, null, true, [], {}, ["t"]].map((title) => one2({ key: "agent", pct: 10, title })),
+  one2({ key: "agent", pct: 10 }),
+  // `pct`: a finite number, else the entry is dropped.
+  ...[0, -5, 12.75, 100, 250, 1e-9].map((pct) => one2({ key: "agent", pct, title: "t" })),
+  ...["10", null, true, [10], { v: 10 }].map((pct) => one2({ key: "agent", pct, title: "t" })),
+  one2({ key: "agent", title: "t" }),
+  '{"behaviors":{"day":{"recommendations":[{"key":"a","pct":1.0,"title":"t"},{"key":"b","pct":-0,"title":"t"},{"key":"c","pct":1e21,"title":"t"},{"key":"d","pct":5e-324,"title":"t"}]},"week":{}}}',
+  // `detail`: kept only as a non-blank string, and after `title` in order.
+  ...["d", " padded ", "\u00e9", "0"].map((detail) => one2({ key: "agent", pct: 1, title: "t", detail })),
+  ...["", " ", "\ufeff"].map((detail) => one2({ key: "agent", pct: 1, title: "t", detail })),
+  ...[1, null, true, [], {}].map((detail) => one2({ key: "agent", pct: 1, title: "t", detail })),
+  // Extra fields are dropped; key order in the source doesn't matter.
+  one2({ key: "agent", pct: 1, title: "t", detail: "d", extra: "x" }),
+  '{"behaviors":{"day":{"recommendations":[{"detail":"d","title":"t","pct":3,"key":"k"}]},"week":{}}}',
+  // Several entries keep their order, duplicates included.
+  usage(
+    win({ recommendations: [{ key: "a", pct: 3, title: "t1" }, { key: "a", pct: 1, title: "t2" }, { key: "b", pct: 2, title: "t3", detail: "d" }] }),
+    win({}),
+  ),
+  // Duplicate JSON keys: the last wins.
+  '{"behaviors":{"day":{"recommendations":[{"key":"a","key":"b","pct":1,"pct":2,"title":"t1","title":"t2"}]},"week":{}}}',
+  // A window that is an array has no `recommendations`.
+  usage([{ recommendations: [{ key: "a", pct: 1, title: "t" }] }], {}),
+  // Both sections at once, with behaviours beside them.
+  usage(
+    win({ behaviors: [{ key: "cron", pct: 5, count: 1 }], recommendations: [{ key: "cron", pct: 5, title: "t" }] }),
+    win({ behaviors: [{ key: "workflow", pct: 6, count: 2 }], recommendations: [{ key: "workflow", pct: 6, title: "u", detail: "v" }] }),
+  ),
   // Skills (`behaviors.week.skills`).
   skills([{ name: "pdf", pct: 12 }, { name: "docx", pct: 0 }, { name: "xlsx", pct: -1 }, { name: "pptx" }]),
   skills([{ name: "a", pct: "0" }, { name: "b", pct: null }, { name: "c", pct: true }, { name: "d", pct: [] }, { name: "e", pct: {} }]),

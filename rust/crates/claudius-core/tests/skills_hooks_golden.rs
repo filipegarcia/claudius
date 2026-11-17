@@ -8,6 +8,9 @@
 //!   point, against V8's `\p{…}` (node 22's ICU);
 //! - `names`: the folder-name rule, the engine's shown / offerable rules and
 //!   `visualizeHiddenNameUnicode` on the recorded names;
+//! - `handlers` / `agentEvents`: the CC 2.1.300 agent-hook rules of
+//!   `lib/shared/hook-events.ts` (`isLegacyAgentHook`,
+//!   `legacyAgentHookName`, `agentHandlerAllowed`);
 //! - `modules`: each scenario's calls in order on a fresh world (one temp
 //!   root, `$ROOT/home` as the home dir), checking each result or thrown
 //!   error (name, message) and every watched path the call changed (kind,
@@ -232,6 +235,37 @@ impl World {
 }
 
 /// `.tmp-<pid>-<n>` as `.tmp-PID-N`.
+/// CC 2.1.300: the agent-hook shape rules, on every recorded handler.
+#[test]
+fn agent_hook_shapes_match_the_ts() {
+    let fx = fixture();
+    let rows = fx["handlers"].as_array().unwrap();
+    assert!(rows.len() >= 30, "{} handlers", rows.len());
+    let mut legacy = 0;
+    for row in rows {
+        let (h, want_legacy, want_name) = (&row[0], row[1].as_bool().unwrap(), &row[2]);
+        assert_eq!(hooks::is_legacy_agent_hook(h), want_legacy, "{h}");
+        assert_eq!(
+            hooks::legacy_agent_hook_name(h).map_or(Value::Null, Value::from),
+            *want_name,
+            "{h}"
+        );
+        legacy += u32::from(want_legacy);
+    }
+    assert!(legacy >= 8, "{legacy} legacy shapes recorded");
+    // `agentHandlerAllowed` over every event name, in the TS order.
+    let events = fx["agentEvents"].as_array().unwrap();
+    assert_eq!(events.len(), hooks::HOOK_EVENT_NAMES.len());
+    for (row, name) in events.iter().zip(hooks::HOOK_EVENT_NAMES) {
+        assert_eq!(row[0].as_str(), Some(name), "the event order");
+        assert_eq!(
+            hooks::agent_handler_allowed(name),
+            row[1].as_bool().unwrap(),
+            "{name}"
+        );
+    }
+}
+
 fn mask_tmp(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut rest = s;

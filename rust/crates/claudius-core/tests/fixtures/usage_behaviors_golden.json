@@ -13,7 +13,7 @@
  "usage": [
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":1,\"behaviors\":[{\"key\":\"max_effort\",\"pct\":40,\"count\":4}],\"skills\":[]},\"week\":{\"request_count\":50,\"session_count\":3,\"behaviors\":[{\"key\":\"workflow\",\"pct\":25,\"count\":12}],\"skills\":[{\"name\":\"pdf\",\"pct\":12}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":1,\"behaviors\":[{\"key\":\"max_effort\",\"pct\":40,\"count\":4}]},\"week\":{\"requestCount\":50,\"sessionCount\":3,\"behaviors\":[{\"key\":\"workflow\",\"pct\":25,\"count\":12}]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":1,\"behaviors\":[{\"key\":\"max_effort\",\"pct\":40,\"count\":4}],\"recommendations\":[]},\"week\":{\"requestCount\":50,\"sessionCount\":3,\"behaviors\":[{\"key\":\"workflow\",\"pct\":25,\"count\":12}],\"recommendations\":[]}}",
    "skills": "[\"pdf\"]"
   },
   {
@@ -123,7 +123,7 @@
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
@@ -133,22 +133,22 @@
   },
   {
    "text": "{\"behaviors\":{\"day\":{},\"week\":{}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":[],\"week\":[]}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":[1,2],\"week\":{}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{},\"week\":[[]]}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
@@ -193,312 +193,717 @@
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":1.5,\"session_count\":-3,\"behaviors\":[]},\"week\":{\"request_count\":0,\"session_count\":1e+300,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":1.5,\"sessionCount\":-3,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":1e+300,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":1.5,\"sessionCount\":-3,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":1e+300,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":\"7\",\"session_count\":null,\"behaviors\":[]},\"week\":{\"request_count\":true,\"session_count\":[],\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":{},\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"behaviors\":[]},\"week\":{\"request_count\":3}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":3,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":3,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":1.0,\"session_count\":1e2,\"behaviors\":[]},\"week\":{\"request_count\":-0,\"session_count\":0.1e1,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":1,\"sessionCount\":100,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":1,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":1,\"sessionCount\":100,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":1,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":1e21,\"session_count\":1E+21,\"behaviors\":[]},\"week\":{\"request_count\":9007199254740993,\"session_count\":123456789012345678901234567890,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":1e+21,\"sessionCount\":1e+21,\"behaviors\":[]},\"week\":{\"requestCount\":9007199254740992,\"sessionCount\":1.2345678901234568e+29,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":1e+21,\"sessionCount\":1e+21,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":9007199254740992,\"sessionCount\":1.2345678901234568e+29,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":1e-7,\"session_count\":-1.5e-10,\"behaviors\":[]},\"week\":{\"request_count\":0.000001,\"session_count\":-0.0,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":1e-7,\"sessionCount\":-1.5e-10,\"behaviors\":[]},\"week\":{\"requestCount\":0.000001,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":1e-7,\"sessionCount\":-1.5e-10,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0.000001,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cache_miss\",\"pct\":0,\"count\":0},{\"key\":\"long_context\",\"pct\":7.5,\"count\":1},{\"key\":\"subagent_heavy\",\"pct\":15,\"count\":2},{\"key\":\"high_parallel\",\"pct\":22.5,\"count\":3},{\"key\":\"cron\",\"pct\":30,\"count\":4},{\"key\":\"max_effort\",\"pct\":37.5,\"count\":5},{\"key\":\"workflow\",\"pct\":45,\"count\":6},{\"key\":\"always_on_context\",\"pct\":52.5,\"count\":7},{\"key\":\"large_tool_results\",\"pct\":60,\"count\":8}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cache_miss\",\"pct\":0,\"count\":0},{\"key\":\"long_context\",\"pct\":7.5,\"count\":1},{\"key\":\"subagent_heavy\",\"pct\":15,\"count\":2},{\"key\":\"high_parallel\",\"pct\":22.5,\"count\":3},{\"key\":\"cron\",\"pct\":30,\"count\":4},{\"key\":\"max_effort\",\"pct\":37.5,\"count\":5},{\"key\":\"workflow\",\"pct\":45,\"count\":6},{\"key\":\"always_on_context\",\"pct\":52.5,\"count\":7},{\"key\":\"large_tool_results\",\"pct\":60,\"count\":8}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cache_miss\",\"pct\":0,\"count\":0},{\"key\":\"long_context\",\"pct\":7.5,\"count\":1},{\"key\":\"subagent_heavy\",\"pct\":15,\"count\":2},{\"key\":\"high_parallel\",\"pct\":22.5,\"count\":3},{\"key\":\"cron\",\"pct\":30,\"count\":4},{\"key\":\"max_effort\",\"pct\":37.5,\"count\":5},{\"key\":\"workflow\",\"pct\":45,\"count\":6},{\"key\":\"always_on_context\",\"pct\":52.5,\"count\":7},{\"key\":\"large_tool_results\",\"pct\":60,\"count\":8}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"foo\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"MAX_EFFORT\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\" max_effort\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"max_effort \",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"max-effort\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"__proto__\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"constructor\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"toString\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"hasOwnProperty\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"valueOf\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"headline\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"body\",\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":1,\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":null,\"pct\":50}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":[\"cron\"],\"pct\":50}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":{\"cron\":1},\"pct\":50}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"pct\":50,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":0,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":0,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":0,\"count\":2}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":-5,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":-5,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":-5,\"count\":2}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":12.75,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":12.75,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":12.75,\"count\":2}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":100,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":100,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":100,\"count\":2}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":250,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":250,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":250,\"count\":2}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":1e-9,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":1e-9,\"count\":2}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":1e-9,\"count\":2}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":\"40\",\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":null,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":true,\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":[40],\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":{\"v\":40},\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"count\":2}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"behaviors\":[{\"key\":\"cron\",\"pct\":1.0,\"count\":2.0},{\"key\":\"cron\",\"pct\":-0,\"count\":-0},{\"key\":\"cron\",\"pct\":1e21,\"count\":1e21},{\"key\":\"cron\",\"pct\":5e-324,\"count\":1.7976931348623157e308}]},\"week\":{}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[{\"key\":\"cron\",\"pct\":1,\"count\":2},{\"key\":\"cron\",\"pct\":0,\"count\":0},{\"key\":\"cron\",\"pct\":1e+21,\"count\":1e+21},{\"key\":\"cron\",\"pct\":5e-324,\"count\":1.7976931348623157e+308}]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[{\"key\":\"cron\",\"pct\":1,\"count\":2},{\"key\":\"cron\",\"pct\":0,\"count\":0},{\"key\":\"cron\",\"pct\":1e+21,\"count\":1e+21},{\"key\":\"cron\",\"pct\":5e-324,\"count\":1.7976931348623157e+308}],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":\"4\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":null}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":true}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":[]}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":{}}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":2.5}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":2.5}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":2.5}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":-1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":-1}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":-1}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":30,\"count\":0}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[null,0,1,\"\",\"cron\",true,[],[\"cron\",50,1],{\"key\":\"cron\",\"pct\":9,\"count\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1,\"extra\":\"x\",\"headline\":\"h\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"extra\":1}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1},{\"key\":\"cron\",\"pct\":3,\"count\":0},{\"key\":\"workflow\",\"pct\":99,\"count\":9}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1},{\"key\":\"cron\",\"pct\":3,\"count\":0},{\"key\":\"workflow\",\"pct\":99,\"count\":9}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":9,\"count\":1},{\"key\":\"cron\",\"pct\":3,\"count\":0},{\"key\":\"workflow\",\"pct\":99,\"count\":9}],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"behaviors\":[{\"count\":3,\"pct\":7,\"key\":\"cron\"}],\"session_count\":2,\"request_count\":1},\"week\":{}}}",
-   "behaviors": "{\"day\":{\"requestCount\":1,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":7,\"count\":3}]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":1,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":7,\"count\":3}],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":null},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":{\"0\":{\"key\":\"cron\",\"pct\":1,\"count\":1}}}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":\"cron\"},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":3}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":1,\"request_count\":2,\"behaviors\":[]},\"week\":{\"behaviors\":[{\"key\":\"cron\",\"key\":\"workflow\",\"pct\":1,\"pct\":2}]}},\"behaviors\":{\"day\":{},\"week\":{\"request_count\":9}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":9,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":9,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"max_effort\",\"pct\":40,\"title\":\"Lower effort\",\"detail\":\"/effort low\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":12.5,\"title\":\"Drop the reviewer agent\"}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"max_effort\",\"pct\":40,\"title\":\"Lower effort\",\"detail\":\"/effort low\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":12.5,\"title\":\"Drop the reviewer agent\"}]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":null},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":0},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":1},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":\"\"},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":\"x\"},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":true},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":{}},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":{\"0\":{\"key\":\"a\",\"pct\":1,\"title\":\"t\"}}},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[null,0,1,\"\",\"k\",true,[],[\"k\",1,\"t\"]]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"max_effort\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"max_effort\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"skill\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"skill\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"plugin\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"plugin\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"mcp_server\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"mcp_server\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"Some Agent\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"Some Agent\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"__proto__\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"__proto__\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"constructor\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"constructor\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"été\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"été\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"😀\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"😀\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":1,\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":null,\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":true,\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":[],\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":{},\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":[\"agent\"],\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\" padded \"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\" padded \"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"multi\\nline\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"multi\\nline\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"é\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"é\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"😀\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"😀\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"0\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"0\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"false\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"false\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\" \"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"\\t\\n\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\" \"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"﻿\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\" \"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":\"\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":null}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":true}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":[]}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":{}}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10,\"title\":[\"t\"]}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":10}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":0,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":0,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":-5,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":-5,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":12.75,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":12.75,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":100,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":100,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":250,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":250,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1e-9,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1e-9,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":\"10\",\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":null,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":true,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":[10],\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":{\"v\":10},\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"recommendations\":[{\"key\":\"a\",\"pct\":1.0,\"title\":\"t\"},{\"key\":\"b\",\"pct\":-0,\"title\":\"t\"},{\"key\":\"c\",\"pct\":1e21,\"title\":\"t\"},{\"key\":\"d\",\"pct\":5e-324,\"title\":\"t\"}]},\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[{\"key\":\"a\",\"pct\":1,\"title\":\"t\"},{\"key\":\"b\",\"pct\":0,\"title\":\"t\"},{\"key\":\"c\",\"pct\":1e+21,\"title\":\"t\"},{\"key\":\"d\",\"pct\":5e-324,\"title\":\"t\"}]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"d\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"d\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\" padded \"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\" padded \"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"é\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"é\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"0\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"0\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\" \"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"﻿\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":1}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":null}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":true}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":[]}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":{}}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"d\",\"extra\":\"x\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"agent\",\"pct\":1,\"title\":\"t\",\"detail\":\"d\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"recommendations\":[{\"detail\":\"d\",\"title\":\"t\",\"pct\":3,\"key\":\"k\"}]},\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[{\"key\":\"k\",\"pct\":3,\"title\":\"t\",\"detail\":\"d\"}]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"a\",\"pct\":3,\"title\":\"t1\"},{\"key\":\"a\",\"pct\":1,\"title\":\"t2\"},{\"key\":\"b\",\"pct\":2,\"title\":\"t3\",\"detail\":\"d\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[{\"key\":\"a\",\"pct\":3,\"title\":\"t1\"},{\"key\":\"a\",\"pct\":1,\"title\":\"t2\"},{\"key\":\"b\",\"pct\":2,\"title\":\"t3\",\"detail\":\"d\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"recommendations\":[{\"key\":\"a\",\"key\":\"b\",\"pct\":1,\"pct\":2,\"title\":\"t1\",\"title\":\"t2\"}]},\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[{\"key\":\"b\",\"pct\":2,\"title\":\"t2\"}]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":[{\"recommendations\":[{\"key\":\"a\",\"pct\":1,\"title\":\"t\"}]}],\"week\":{}}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
+   "skills": "[]"
+  },
+  {
+   "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":5,\"count\":1}],\"recommendations\":[{\"key\":\"cron\",\"pct\":5,\"title\":\"t\"}]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":6,\"count\":2}],\"recommendations\":[{\"key\":\"workflow\",\"pct\":6,\"title\":\"u\",\"detail\":\"v\"}]}}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"cron\",\"pct\":5,\"count\":1}],\"recommendations\":[{\"key\":\"cron\",\"pct\":5,\"title\":\"t\"}]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[{\"key\":\"workflow\",\"pct\":6,\"count\":2}],\"recommendations\":[{\"key\":\"workflow\",\"pct\":6,\"title\":\"u\",\"detail\":\"v\"}]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"pdf\",\"pct\":12},{\"name\":\"docx\",\"pct\":0},{\"name\":\"xlsx\",\"pct\":-1},{\"name\":\"pptx\"}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[\"pdf\",\"pptx\"]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"a\",\"pct\":\"0\"},{\"name\":\"b\",\"pct\":null},{\"name\":\"c\",\"pct\":true},{\"name\":\"d\",\"pct\":[]},{\"name\":\"e\",\"pct\":{}}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[\"a\",\"b\",\"c\",\"d\",\"e\"]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"\",\"pct\":5},{\"name\":5,\"pct\":5},{\"pct\":5},{\"name\":null},{\"name\":[\"x\"]},{\"name\":{\"n\":1}}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[null,0,\"pdf\",[],[\"pdf\",1],true,{\"name\":\"ok\",\"pct\":1e-300},{\"name\":\"big\",\"pct\":1e+300}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[\"ok\",\"big\"]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\"dup\",\"pct\":1},{\"name\":\"dup\",\"pct\":2},{\"name\":\"Dup\",\"pct\":3}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[\"dup\",\"dup\",\"Dup\"]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[]},\"week\":{\"request_count\":10,\"session_count\":2,\"behaviors\":[],\"skills\":[{\"name\":\" spaced \",\"pct\":1},{\"name\":\"été\",\"pct\":1},{\"name\":\"😀\",\"pct\":1},{\"name\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"pct\":1}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":10,\"sessionCount\":2,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[\" spaced \",\"été\",\"😀\",\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{},\"week\":{\"skills\":[{\"name\":\"neg0\",\"pct\":-0},{\"name\":\"zero\",\"pct\":0.0},{\"name\":\"tiny\",\"pct\":5e-324},{\"name\":\"exp\",\"pct\":1e2}]}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[\"tiny\",\"exp\"]"
   },
   {
    "text": "{\"behaviors\":{\"day\":{\"skills\":[{\"name\":\"day-only\",\"pct\":9}]},\"week\":{}}}",
-   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[]}}",
+   "behaviors": "{\"day\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]},\"week\":{\"requestCount\":0,\"sessionCount\":0,\"behaviors\":[],\"recommendations\":[]}}",
    "skills": "[]"
   },
   {

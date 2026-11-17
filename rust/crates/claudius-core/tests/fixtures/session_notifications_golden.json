@@ -1,0 +1,6093 @@
+{
+ "sdkVersion": "0.3.312",
+ "workspacesJson": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_s31_0\",\n      \"name\": \"Scenario 0\",\n      \"rootPath\": \"$ROOT/p/0\"\n    },\n    {\n      \"id\": \"wks_s31_1\",\n      \"name\": \"Scenario 1\",\n      \"rootPath\": \"$ROOT/p/1\"\n    },\n    {\n      \"id\": \"wks_s31_2\",\n      \"name\": \"Scenario 2\",\n      \"rootPath\": \"$ROOT/p/2\"\n    },\n    {\n      \"id\": \"wks_s31_3\",\n      \"name\": \"Scenario 3\",\n      \"rootPath\": \"$ROOT/p/3\"\n    },\n    {\n      \"id\": \"wks_s31_4\",\n      \"name\": \"Scenario 4\",\n      \"rootPath\": \"$ROOT/p/4\"\n    },\n    {\n      \"id\": \"wks_s31_5\",\n      \"name\": \"Scenario 5\",\n      \"rootPath\": \"$ROOT/p/5\"\n    },\n    {\n      \"id\": \"wks_s31_6\",\n      \"name\": \"Scenario 6\",\n      \"rootPath\": \"$ROOT/p/6\",\n      \"defaults\": {\n        \"notifications\": {\n          \"enabledKinds\": [\n            \"permission_request\",\n            \"ask_user_question\",\n            \"plan_approval_request\",\n            \"session_idle\",\n            \"session_error\",\n            \"scheduled_run_finished\"\n          ]\n        }\n      }\n    },\n    {\n      \"id\": \"wks_s31_7\",\n      \"name\": \"Scenario 7\",\n      \"rootPath\": \"$ROOT/p/7\"\n    },\n    {\n      \"id\": \"wks_s31_8\",\n      \"name\": \"Scenario 8\",\n      \"rootPath\": \"$ROOT/p/8\"\n    },\n    {\n      \"id\": \"wks_s31_9\",\n      \"name\": \"Scenario 9\",\n      \"rootPath\": \"$ROOT/p/9\"\n    },\n    {\n      \"id\": \"wks_s31_10\",\n      \"name\": \"Scenario 10\",\n      \"rootPath\": \"$ROOT/p/10\"\n    },\n    {\n      \"id\": \"wks_s31_11\",\n      \"name\": \"Scenario 11\",\n      \"rootPath\": \"$ROOT/p/11\"\n    },\n    {\n      \"id\": \"wks_s31_12\",\n      \"name\": \"Scenario 12\",\n      \"rootPath\": \"$ROOT/p/12\",\n      \"defaults\": {\n        \"notifications\": {\n          \"enabled\": false\n        }\n      }\n    },\n    {\n      \"id\": \"wks_s31_13\",\n      \"name\": \"Scenario 13\",\n      \"rootPath\": \"$ROOT/p/13\",\n      \"defaults\": {\n        \"notifications\": {\n          \"enabledKinds\": [\n            \"permission_request\"\n          ]\n        }\n      }\n    },\n    {\n      \"id\": \"wks_s31_15\",\n      \"name\": \"Scenario 15\",\n      \"rootPath\": \"$ROOT/p/15\"\n    },\n    {\n      \"id\": \"wks_s31_16\",\n      \"name\": \"Scenario 16\",\n      \"rootPath\": \"$ROOT/p/16\",\n      \"defaults\": {\n        \"notifications\": {\n          \"enabledKinds\": [\n            \"permission_request\",\n            \"ask_user_question\",\n            \"plan_approval_request\",\n            \"session_idle\",\n            \"session_error\",\n            \"scheduled_run_finished\"\n          ]\n        }\n      }\n    }\n  ]\n}\n",
+ "scenarios": [
+  {
+   "name": "an idle row per turn, toasted only while a tab watches",
+   "id": "s31-00-even",
+   "workspace": {},
+   "script": null,
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "a"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "hello",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_0",
+        "sessionId": "s31-00-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-00-e",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-00-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "unsubscribe",
+      "a"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "again",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-00-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "rename",
+      "  Fix the café 🚀 bug  "
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "subscribe",
+      "b"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "third",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "Fix the café 🚀 bug",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N2",
+        "workspaceId": "wks_s31_0",
+        "sessionId": "s31-00-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "Fix the café 🚀 bug",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-00-even": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-00-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-00-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "Fix the café 🚀 bug",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "a result before any input is no idle row",
+   "id": "s31-01-odd",
+   "workspace": {},
+   "script": null,
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "sdk",
+       "message": {
+        "type": "result",
+        "subtype": "success",
+        "result": "early"
+       }
+      }
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "sdk",
+       "message": {
+        "type": "result",
+        "parent_tool_use_id": "toolu_sub"
+       }
+      }
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "hi",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-01-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-01-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-01-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "sdk",
+       "message": {
+        "type": "result",
+        "subtype": "success"
+       }
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-01-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-01-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-01-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-01-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-01-odd": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "sdk",
+       "message": {
+        "type": "result",
+        "parent_tool_use_id": "toolu_sub"
+       }
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-01-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-01-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-01-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-01-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-01-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-01-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-01-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-01-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "permission prompts answered",
+   "id": "s31-02-even",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"go\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"ls\"},\"tool_use_id\":\"tu_1\",\"title\":\"Run ls\"}}],\"result\":\"ran\"},{\"match\":\"deny\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Write\",\"input\":{\"file_path\":\"/x\"},\"tool_use_id\":\"tu_2\"}}],\"result\":\"denied\"},{\"match\":\"always\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Read\",\"input\":{\"file_path\":\"/y\"},\"tool_use_id\":\"tu_3\"}}],\"result\":\"read\"}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "a"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "go",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_2",
+        "sessionId": "s31-02-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Run ls",
+        "payload": {
+         "toolName": "Bash",
+         "toolUseId": "tu_1"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-02-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      0,
+      {
+       "perm": {
+        "kind": "allow_once"
+       }
+      },
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N1",
+        "workspaceId": "wks_s31_2",
+        "sessionId": "s31-02-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-02-e",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-02-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "send",
+      "deny",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Write",
+       "payload": "{\"toolName\":\"Write\",\"toolUseId\":\"tu_2\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N2",
+        "workspaceId": "wks_s31_2",
+        "sessionId": "s31-02-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Write",
+        "payload": {
+         "toolName": "Write",
+         "toolUseId": "tu_2"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-02-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      1,
+      {
+       "perm": {
+        "kind": "deny",
+        "message": "no"
+       }
+      },
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Write",
+       "payload": "{\"toolName\":\"Write\",\"toolUseId\":\"tu_2\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N3",
+        "workspaceId": "wks_s31_2",
+        "sessionId": "s31-02-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-02-e",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-02-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "unsubscribe",
+      "a"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Write",
+       "payload": "{\"toolName\":\"Write\",\"toolUseId\":\"tu_2\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "always",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Write",
+       "payload": "{\"toolName\":\"Write\",\"toolUseId\":\"tu_2\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Read",
+       "payload": "{\"toolName\":\"Read\",\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N4",
+        "workspaceId": "wks_s31_2",
+        "sessionId": "s31-02-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Read",
+        "payload": {
+         "toolName": "Read",
+         "toolUseId": "tu_3"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-02-even": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      2,
+      {
+       "perm": {
+        "kind": "allow_always_session"
+       }
+      },
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Write",
+       "payload": "{\"toolName\":\"Write\",\"toolUseId\":\"tu_2\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Read",
+       "payload": "{\"toolName\":\"Read\",\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-02-even": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run ls",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Write",
+       "payload": "{\"toolName\":\"Write\",\"toolUseId\":\"tu_2\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Read",
+       "payload": "{\"toolName\":\"Read\",\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-02-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-02-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "ask, plan and elicitation answered",
+   "id": "s31-03-odd",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"go\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"AskUserQuestion\",\"input\":{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Red\",\"description\":\"warm\"},{\"label\":\"Blue\",\"description\":\"cool\"}],\"multiSelect\":false}]},\"tool_use_id\":\"tu_a\"}},{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"ExitPlanMode\",\"input\":{\"plan\":\"# Plan 🚀\\n1. Edit the file\\n2. Run the tests\\n\"},\"tool_use_id\":\"tu_p\"}},{\"$control\":{\"subtype\":\"elicitation\",\"mcp_server_name\":\"srv\",\"message\":\"Fill this in\\nsecond line\",\"mode\":\"form\",\"requested_schema\":{\"type\":\"object\",\"properties\":{}}}}],\"result\":\"done\"},{\"match\":\"more\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"AskUserQuestion\",\"input\":{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Red\",\"description\":\"warm\"},{\"label\":\"Blue\",\"description\":\"cool\"}],\"multiSelect\":false}]},\"tool_use_id\":\"tu_a2\"}},{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"ExitPlanMode\",\"input\":{\"plan\":\"  \\n\"},\"tool_use_id\":\"tu_p2\"}},{\"$control\":{\"subtype\":\"elicitation\",\"mcp_server_name\":\"github\",\"message\":\"  Sign in  \",\"mode\":\"url\",\"url\":\"https://example.com/auth\"}}],\"result\":\"done\"}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "a"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "go",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "ask_user_question",
+        "title": "Claude is asking a question",
+        "body": "Which color?",
+        "payload": {
+         "toolUseId": "tu_a",
+         "header": "Color"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-03-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      0,
+      {
+       "ask": [
+        {
+         "label": "Blue"
+        }
+       ]
+      },
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N1",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "plan_approval_request",
+        "title": "Claude has a plan to review",
+        "body": "# Plan 🚀",
+        "payload": {
+         "toolUseId": "tu_p"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-03-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      1,
+      {
+       "plan": {
+        "kind": "reject",
+        "message": "More detail"
+       }
+      },
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "Fill this in",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N2",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "srv needs your input",
+        "body": "Fill this in",
+        "payload": {
+         "serverName": "srv",
+         "mode": "form"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-03-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      2,
+      {
+       "elicit": {
+        "action": "accept",
+        "content": {
+         "name": "Ada"
+        }
+       }
+      },
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "Fill this in",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N3",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-03-o",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-03-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "send",
+      "more",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "Fill this in",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a2\",\"header\":\"Color\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N4",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "ask_user_question",
+        "title": "Claude is asking a question",
+        "body": "Which color?",
+        "payload": {
+         "toolUseId": "tu_a2",
+         "header": "Color"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-03-odd": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      3,
+      {
+       "ask": []
+      },
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "Fill this in",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a2\",\"header\":\"Color\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p2\"}",
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N5",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "plan_approval_request",
+        "title": "Claude has a plan to review",
+        "body": null,
+        "payload": {
+         "toolUseId": "tu_p2"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-03-odd": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      4,
+      {
+       "plan": {
+        "kind": "accept"
+       }
+      },
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "Fill this in",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a2\",\"header\":\"Color\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p2\"}",
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R5",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N6",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "github needs you to sign in",
+        "body": "Sign in",
+        "payload": {
+         "serverName": "github",
+         "mode": "url"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-03-odd": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      5,
+      {
+       "elicit": {
+        "action": "decline"
+       }
+      },
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "Fill this in",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a2\",\"header\":\"Color\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p2\"}",
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R5",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N7",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N7",
+        "workspaceId": "wks_s31_3",
+        "sessionId": "s31-03-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-03-o",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-03-odd": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Color\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "Fill this in",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_a2\",\"header\":\"Color\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p2\"}",
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R5",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N7",
+       "session_id": "s31-03-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-03-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "prompts the CLI cancels",
+   "id": "s31-04-even",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"perm\",\"steps\":[{\"$send\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"sleep 9\"},\"tool_use_id\":\"tu_1\"}},{\"$wait_file\":\"g1\"},{\"type\":\"control_cancel_request\",\"request_id\":\"cli_1_s0\"},{\"$collect_ms\":1500}],\"result\":\"done\"},{\"match\":\"ask\",\"steps\":[{\"$send\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"AskUserQuestion\",\"input\":{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Red\",\"description\":\"warm\"},{\"label\":\"Blue\",\"description\":\"cool\"}],\"multiSelect\":false}]},\"tool_use_id\":\"tu_2\"}},{\"$wait_file\":\"g2\"},{\"type\":\"control_cancel_request\",\"request_id\":\"cli_2_s0\"},{\"$collect_ms\":1500}],\"result\":\"done\"},{\"match\":\"plan\",\"steps\":[{\"$send\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"ExitPlanMode\",\"input\":{\"plan\":\"# Plan 🚀\\n1. Edit the file\\n2. Run the tests\\n\"},\"tool_use_id\":\"tu_3\"}},{\"$wait_file\":\"g3\"},{\"type\":\"control_cancel_request\",\"request_id\":\"cli_3_s0\"},{\"$collect_ms\":1500}],\"result\":\"done\"},{\"match\":\"elicit\",\"steps\":[{\"$send\":{\"subtype\":\"elicitation\",\"mcp_server_name\":\"srv\",\"message\":\"m\"}},{\"$wait_file\":\"g4\"},{\"type\":\"control_cancel_request\",\"request_id\":\"cli_4_s0\"},{\"$collect_ms\":1500}],\"result\":\"done\"}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "send",
+      "perm",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_4",
+        "sessionId": "s31-04-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Bash",
+        "payload": {
+         "toolName": "Bash",
+         "toolUseId": "tu_1"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-04-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g1",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-04-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "send",
+      "ask",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N2",
+        "workspaceId": "wks_s31_4",
+        "sessionId": "s31-04-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "ask_user_question",
+        "title": "Claude is asking a question",
+        "body": "Which color?",
+        "payload": {
+         "toolUseId": "tu_2",
+         "header": "Color"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-04-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g2",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-04-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "send",
+      "plan",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N4",
+        "workspaceId": "wks_s31_4",
+        "sessionId": "s31-04-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "plan_approval_request",
+        "title": "Claude has a plan to review",
+        "body": "# Plan 🚀",
+        "payload": {
+         "toolUseId": "tu_3"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-04-even": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g3",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-04-even": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "send",
+      "elicit",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "m",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N6",
+        "workspaceId": "wks_s31_4",
+        "sessionId": "s31-04-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "srv needs your input",
+        "body": "m",
+        "payload": {
+         "serverName": "srv",
+         "mode": "form"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 4,
+      "perSession": {
+       "s31-04-even": 4
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g4",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "m",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N7",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 4,
+      "perSession": {
+       "s31-04-even": 4
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_3\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "m",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N7",
+       "session_id": "s31-04-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-04-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "open prompts drained by end",
+   "id": "s31-05-odd",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"go\",\"steps\":[{\"$send\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"a\"},\"tool_use_id\":\"tu_1\"}},{\"$wait_file\":\"g1\"},{\"$send\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"AskUserQuestion\",\"input\":{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Red\",\"description\":\"warm\"},{\"label\":\"Blue\",\"description\":\"cool\"}],\"multiSelect\":false}]},\"tool_use_id\":\"tu_2\"}},{\"$wait_file\":\"g2\"},{\"$send\":{\"subtype\":\"elicitation\",\"mcp_server_name\":\"srv\",\"message\":\"m\"}},{\"$wait_file\":\"g3\"},{\"$send\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"ExitPlanMode\",\"input\":{\"plan\":\"# Plan 🚀\\n1. Edit the file\\n2. Run the tests\\n\"},\"tool_use_id\":\"tu_4\"}},{\"$wait_file\":\"never\"}],\"result\":false}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "send",
+      "go",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_5",
+        "sessionId": "s31-05-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Bash",
+        "payload": {
+         "toolName": "Bash",
+         "toolUseId": "tu_1"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-05-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g1",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N1",
+        "workspaceId": "wks_s31_5",
+        "sessionId": "s31-05-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "ask_user_question",
+        "title": "Claude is asking a question",
+        "body": "Which color?",
+        "payload": {
+         "toolUseId": "tu_2",
+         "header": "Color"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-05-odd": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g2",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "m",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N2",
+        "workspaceId": "wks_s31_5",
+        "sessionId": "s31-05-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "srv needs your input",
+        "body": "m",
+        "payload": {
+         "serverName": "srv",
+         "mode": "form"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-05-odd": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g3",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "m",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_4\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N3",
+        "workspaceId": "wks_s31_5",
+        "sessionId": "s31-05-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "plan_approval_request",
+        "title": "Claude has a plan to review",
+        "body": "# Plan 🚀",
+        "payload": {
+         "toolUseId": "tu_4"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 4,
+      "perSession": {
+       "s31-05-odd": 4
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Which color?",
+       "payload": "{\"toolUseId\":\"tu_2\",\"header\":\"Color\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "srv needs your input",
+       "body": "m",
+       "payload": "{\"serverName\":\"srv\",\"mode\":\"form\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-05-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": "# Plan 🚀",
+       "payload": "{\"toolUseId\":\"tu_4\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    }
+   ]
+  },
+  {
+   "name": "errors and a crash",
+   "id": "s31-06-even",
+   "workspace": {
+    "enabledKinds": [
+     "permission_request",
+     "ask_user_question",
+     "plan_approval_request",
+     "session_idle",
+     "session_error",
+     "scheduled_run_finished"
+    ]
+   },
+   "script": null,
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "a"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "boom-probe"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "boom-probe",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_6",
+        "sessionId": "s31-06-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_error",
+        "title": "Session error",
+        "body": "boom-probe",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-06-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "  Claude Code process aborted by user \n"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "boom-probe",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-06-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "unsubscribe",
+      "a"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "boom-probe",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "unwatched"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "boom-probe",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "unwatched",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-06-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "b"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "boom-probe",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "unwatched",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "exit:3",
+      "done"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "boom-probe",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "unwatched",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Claude Code process exited with code 3. stderr: boom",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N2",
+        "workspaceId": "wks_s31_6",
+        "sessionId": "s31-06-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_error",
+        "title": "Session error",
+        "body": "Claude Code process exited with code 3. stderr: boom",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-06-even": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "boom-probe",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "unwatched",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-06-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Claude Code process exited with code 3. stderr: boom",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "a clean exit without a result",
+   "id": "s31-07-odd",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"go\",\"steps\":[{\"$text\":\"partial\"},{\"$exit\":0}],\"result\":false}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "a"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "go",
+      "done"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-07-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-07-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_7",
+        "sessionId": "s31-07-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-07-o",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-07-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-07-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-07-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "a clean exit with a prompt open",
+   "id": "s31-08-even",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"go\",\"steps\":[{\"$send\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"a\"},\"tool_use_id\":\"tu_1\"}},{\"$wait_file\":\"g1\"},{\"$exit\":0}],\"result\":false}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "send",
+      "go",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-08-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_8",
+        "sessionId": "s31-08-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Bash",
+        "payload": {
+         "toolName": "Bash",
+         "toolUseId": "tu_1"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-08-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "gate",
+      "g1",
+      "done"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-08-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-08-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-08-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-08-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-08-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_1\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-08-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-08-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "a clean exit before any input",
+   "id": "s31-09-odd",
+   "workspace": {},
+   "script": "{\"on_init\":[{\"$exit\":0}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "done"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "background work holds the idle row",
+   "id": "s31-10-even",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"spawn\",\"steps\":[{\"type\":\"system\",\"subtype\":\"task_started\",\"task_id\":\"t1\",\"tool_use_id\":\"toolu_t1\",\"description\":\"Survey\"}],\"result\":\"spawned\"},{\"match\":\"finish\",\"steps\":[{\"type\":\"system\",\"subtype\":\"task_notification\",\"task_id\":\"t1\",\"status\":\"completed\",\"summary\":\"Done\"}],\"result\":\"finished\"},{\"match\":\"bg\",\"steps\":[{\"type\":\"system\",\"subtype\":\"task_started\",\"task_id\":\"t2\",\"tool_use_id\":\"toolu_t2\",\"description\":\"Long job\"},{\"type\":\"system\",\"subtype\":\"task_updated\",\"task_id\":\"t2\",\"patch\":{\"is_backgrounded\":true}}],\"result\":\"bg\"},{\"match\":\"later\",\"steps\":[{\"type\":\"system\",\"subtype\":\"task_notification\",\"task_id\":\"t2\",\"status\":\"completed\",\"summary\":\"Done\"}],\"result\":\"later\"}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "a"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "spawn",
+      "result"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "send",
+      "finish",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-10-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-10-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_10",
+        "sessionId": "s31-10-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-10-e",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-10-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "send",
+      "bg",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-10-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-10-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-10-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "send",
+      "later",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-10-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-10-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-10-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-10-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N1",
+        "workspaceId": "wks_s31_10",
+        "sessionId": "s31-10-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_idle",
+        "title": "Claude finished a turn",
+        "body": "s31-10-e",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-10-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-10-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-10-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-10-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-10-e",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "a muted session",
+   "id": "s31-11-odd",
+   "workspace": {},
+   "script": "{\"turns\":[{\"match\":\"perm\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"x\"},\"tool_use_id\":\"tu_m\"}}],\"result\":\"ok\"}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "mute",
+      {
+       "blocked": true
+      }
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "hello",
+      "result"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "send",
+      "perm",
+      "prompt"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "answer",
+      0,
+      {
+       "perm": {
+        "kind": "allow_once"
+       }
+      },
+      "result"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "mute",
+      {
+       "blocked": false
+      }
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "again",
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-11-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-11-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-11-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-11-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "s31-11-o",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "the workspace switch off",
+   "id": "s31-12-even",
+   "workspace": {
+    "enabled": false
+   },
+   "script": "{\"turns\":[{\"match\":\"perm\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"x\"},\"tool_use_id\":\"tu_o\"}}],\"result\":\"ok\"}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "hello",
+      "result"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "perm",
+      "prompt"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "answer",
+      0,
+      {
+       "perm": {
+        "kind": "allow_once"
+       }
+      },
+      "result"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "nope"
+      }
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "only some kinds",
+   "id": "s31-13-odd",
+   "workspace": {
+    "enabledKinds": [
+     "permission_request"
+    ]
+   },
+   "script": "{\"turns\":[{\"match\":\"perm\",\"steps\":[{\"$control\":{\"subtype\":\"can_use_tool\",\"tool_name\":\"Bash\",\"input\":{\"command\":\"x\"},\"tool_use_id\":\"tu_k\"}}],\"result\":\"ok\"}]}",
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "send",
+      "hello",
+      "result"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "send",
+      "perm",
+      "prompt"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-13-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_k\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_13",
+        "sessionId": "s31-13-odd",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Bash",
+        "payload": {
+         "toolName": "Bash",
+         "toolUseId": "tu_k"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-13-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "answer",
+      0,
+      {
+       "perm": {
+        "kind": "deny"
+       }
+      },
+      "result"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-13-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_k\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "not enabled"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-13-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_k\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-13-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Bash",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_k\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      }
+     ],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "no workspace for the cwd",
+   "id": "s31-14-even",
+   "workspace": null,
+   "script": null,
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "send",
+      "hello",
+      "result"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "nobody"
+      }
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    }
+   ]
+  },
+  {
+   "name": "the start sweep",
+   "id": "s31-15-odd",
+   "workspace": {},
+   "script": null,
+   "steps": [
+    {
+     "step": [
+      "seed",
+      [
+       "INSERT INTO notifications (id, session_id, kind, title, request_id, created_at, read_at) VALUES ('n-perm', '$ID', 'permission_request', 'Claude needs permission', 'r-old-1', 1000, NULL)",
+       "INSERT INTO notifications (id, session_id, kind, title, request_id, created_at, read_at) VALUES ('n-ask', '$ID', 'ask_user_question', 'Claude is asking a question', 'r-old-2', 1001, NULL)",
+       "INSERT INTO notifications (id, session_id, kind, title, request_id, created_at, read_at) VALUES ('n-plan', '$ID', 'plan_approval_request', 'Claude has a plan to review', 'r-old-3', 1002, NULL)",
+       "INSERT INTO notifications (id, session_id, kind, title, body, created_at, read_at) VALUES ('n-idle', '$ID', 'session_idle', 'Claude finished a turn', 'x', 1003, NULL)",
+       "INSERT INTO notifications (id, session_id, kind, title, request_id, created_at, read_at) VALUES ('n-read', '$ID', 'permission_request', 'Claude needs permission', 'r-old-4', 1004, 1005)",
+       "INSERT INTO notifications (id, session_id, kind, title, request_id, created_at, read_at) VALUES ('n-other', 'other-session', 'permission_request', 'Claude needs permission', 'r-old-5', 1006, NULL)"
+      ]
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": null,
+       "payload": null,
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": null,
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "x",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "other-session",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": null,
+       "payload": null,
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": null,
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "x",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "other-session",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "other-session": 1,
+       "s31-15-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": null,
+       "payload": null,
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": null,
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "x",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "other-session",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "other-session": 1,
+       "s31-15-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": null,
+       "payload": null,
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": null,
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "x",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "other-session",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "other-session": 1,
+       "s31-15-odd": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": null,
+       "payload": null,
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": null,
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_idle",
+       "title": "Claude finished a turn",
+       "body": "x",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-15-odd",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": "$T"
+      },
+      {
+       "id": "$N5",
+       "session_id": "other-session",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": null,
+       "payload": null,
+       "request_id": "$R4",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "other-session": 1,
+       "s31-15-odd": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "events sent through broadcast",
+   "id": "s31-16-even",
+   "workspace": {
+    "enabledKinds": [
+     "permission_request",
+     "ask_user_question",
+     "plan_approval_request",
+     "session_idle",
+     "session_error",
+     "scheduled_run_finished"
+    ]
+   },
+   "script": null,
+   "steps": [
+    {
+     "step": [
+      "start",
+      "init"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": {
+      "totalUnread": 0,
+      "perSession": {}
+     }
+    },
+    {
+     "step": [
+      "subscribe",
+      "a"
+     ],
+     "rows": [],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "permission_request",
+       "requestId": "r-dup",
+       "toolName": "Bash",
+       "toolUseId": "tu_x",
+       "title": "Run it",
+       "input": {}
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N0",
+        "workspaceId": "wks_s31_16",
+        "sessionId": "s31-16-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "Claude needs permission",
+        "body": "Run it",
+        "payload": {
+         "toolName": "Bash",
+         "toolUseId": "tu_x"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-16-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "permission_request",
+       "requestId": "r-dup",
+       "toolName": "Bash",
+       "toolUseId": "tu_y"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 1,
+      "perSession": {
+       "s31-16-even": 1
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "mcp_elicitation_request",
+       "requestId": "r-el",
+       "serverName": "github",
+       "mode": "url",
+       "message": "  Sign in to GitHub  \r\nmore"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N1",
+        "workspaceId": "wks_s31_16",
+        "sessionId": "s31-16-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "permission_request",
+        "title": "github needs you to sign in",
+        "body": "Sign in to GitHub",
+        "payload": {
+         "serverName": "github",
+         "mode": "url"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 2,
+      "perSession": {
+       "s31-16-even": 2
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "ask_user_question",
+       "requestId": "r-ask",
+       "toolUseId": "tu_a",
+       "questions": [
+        {
+         "question": "Pick one",
+         "header": "Choice"
+        }
+       ]
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N2",
+        "workspaceId": "wks_s31_16",
+        "sessionId": "s31-16-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "ask_user_question",
+        "title": "Claude is asking a question",
+        "body": "Pick one",
+        "payload": {
+         "toolUseId": "tu_a",
+         "header": "Choice"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 3,
+      "perSession": {
+       "s31-16-even": 3
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "plan_approval_request",
+       "requestId": "r-plan",
+       "toolUseId": "tu_p",
+       "plan": "\n\nStep one\nStep two"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N3",
+        "workspaceId": "wks_s31_16",
+        "sessionId": "s31-16-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "plan_approval_request",
+        "title": "Claude has a plan to review",
+        "body": null,
+        "payload": {
+         "toolUseId": "tu_p"
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 4,
+      "perSession": {
+       "s31-16-even": 4
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "run_finished",
+       "status": "error",
+       "note": "it broke",
+       "costUsd": 0.25
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "scheduled_run_finished",
+       "title": "Scheduled run error",
+       "body": "it broke",
+       "payload": "{\"status\":\"error\",\"costUsd\":0.25}",
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N4",
+        "workspaceId": "wks_s31_16",
+        "sessionId": "s31-16-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "scheduled_run_finished",
+        "title": "Scheduled run error",
+        "body": "it broke",
+        "payload": {
+         "status": "error",
+         "costUsd": 0.25
+        },
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 5,
+      "perSession": {
+       "s31-16-even": 5
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "Session exploded"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "scheduled_run_finished",
+       "title": "Scheduled run error",
+       "body": "it broke",
+       "payload": "{\"status\":\"error\",\"costUsd\":0.25}",
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Session exploded",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [
+      {
+       "type": "notification",
+       "notification": {
+        "id": "$N5",
+        "workspaceId": "wks_s31_16",
+        "sessionId": "s31-16-even",
+        "runId": null,
+        "jobId": null,
+        "kind": "session_error",
+        "title": "Session error",
+        "body": "Session exploded",
+        "payload": null,
+        "createdAt": "$T",
+        "readAt": null
+       }
+      }
+     ],
+     "state": {
+      "totalUnread": 6,
+      "perSession": {
+       "s31-16-even": 6
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "turn_status",
+       "status": "idle",
+       "backgroundTasks": 0
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "scheduled_run_finished",
+       "title": "Scheduled run error",
+       "body": "it broke",
+       "payload": "{\"status\":\"error\",\"costUsd\":0.25}",
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Session exploded",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 6,
+      "perSession": {
+       "s31-16-even": 6
+      }
+     }
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "custom_thing",
+       "message": "ignored"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "scheduled_run_finished",
+       "title": "Scheduled run error",
+       "body": "it broke",
+       "payload": "{\"status\":\"error\",\"costUsd\":0.25}",
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Session exploded",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "unsubscribe",
+      "a"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "scheduled_run_finished",
+       "title": "Scheduled run error",
+       "body": "it broke",
+       "payload": "{\"status\":\"error\",\"costUsd\":0.25}",
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Session exploded",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": null
+    },
+    {
+     "step": [
+      "broadcast",
+      {
+       "type": "error",
+       "message": "café 🚀"
+      }
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "scheduled_run_finished",
+       "title": "Scheduled run error",
+       "body": "it broke",
+       "payload": "{\"status\":\"error\",\"costUsd\":0.25}",
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Session exploded",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "café 🚀",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 7,
+      "perSession": {
+       "s31-16-even": 7
+      }
+     }
+    },
+    {
+     "step": [
+      "end"
+     ],
+     "rows": [
+      {
+       "id": "$N0",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "Claude needs permission",
+       "body": "Run it",
+       "payload": "{\"toolName\":\"Bash\",\"toolUseId\":\"tu_x\"}",
+       "request_id": "$R0",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N1",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "permission_request",
+       "title": "github needs you to sign in",
+       "body": "Sign in to GitHub",
+       "payload": "{\"serverName\":\"github\",\"mode\":\"url\"}",
+       "request_id": "$R1",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N2",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "ask_user_question",
+       "title": "Claude is asking a question",
+       "body": "Pick one",
+       "payload": "{\"toolUseId\":\"tu_a\",\"header\":\"Choice\"}",
+       "request_id": "$R2",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N3",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "plan_approval_request",
+       "title": "Claude has a plan to review",
+       "body": null,
+       "payload": "{\"toolUseId\":\"tu_p\"}",
+       "request_id": "$R3",
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N4",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "scheduled_run_finished",
+       "title": "Scheduled run error",
+       "body": "it broke",
+       "payload": "{\"status\":\"error\",\"costUsd\":0.25}",
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N5",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "Session exploded",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      },
+      {
+       "id": "$N6",
+       "session_id": "s31-16-even",
+       "run_id": null,
+       "job_id": null,
+       "kind": "session_error",
+       "title": "Session error",
+       "body": "café 🚀",
+       "payload": null,
+       "request_id": null,
+       "created_at": "$T",
+       "read_at": null
+      }
+     ],
+     "envs": [],
+     "state": {
+      "totalUnread": 7,
+      "perSession": {
+       "s31-16-even": 7
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

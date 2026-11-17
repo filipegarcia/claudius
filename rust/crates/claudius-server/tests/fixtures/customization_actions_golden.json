@@ -1,0 +1,2414 @@
+{
+ "live": "$ROOT/live",
+ "prompt": "You are resolving merge conflicts between this customization and upstream Claudius.\n\nFor each path below, the upstream Claudius and the customization both diverged from a common ancestor. Your job: produce a single resolved file that\n\n  - preserves the user's customization intent (visible UI tweaks, behavioral changes, copy edits)\n  - pulls in the upstream bug fixes and improvements\n  - doesn't break the build\n\nApproach:\n\n  1. For each conflicted path, read all three sides:\n     - the upstream version: <repo-root>/{path}\n     - the customization version: <customization-src>/{path}\n     - the manifest snapshot if available (the fork point)\n  2. Diff them mentally. Identify what each side is doing and why.\n  3. Write the resolved file back to the customization src.\n  4. Once every conflict is resolved, run `npm run lint` on the touched files. Report any failures with the file path so the user can act on them.\n\nConflicting paths ({{conflict_count}}):\n\n{{conflict_paths}}\n\nDon't ask before each file — work through the list and report when done.",
+ "version": "0.3.312.0",
+ "fakes": {
+  "git": "#!/bin/sh\n# git diff --no-index --no-color -- <a> <b>\na=\"$5\"\nb=\"$6\"\ncase \"$a$b\" in\n  *gitfail*) printf 'fatal: fake git refuses\\n' >&2; exit 128 ;;\n  *nodiff*) exit 0 ;;\nesac\nprintf -- '--- %s\\n+++ %s\\n@@ -1 +1 @@\\n-old\\n+new\\n' \"$a\" \"$b\"\nexit 1\n",
+  "node": "#!/bin/sh\n# Stands in for the node a launcher lookup finds: runs the fake scripts.\ncase \"$1\" in\n  *claudius-revert)\n  id=\"--last\"\n  while [ $# -gt 0 ]; do\n    if [ \"$1\" = \"--id\" ]; then id=\"$2\"; fi\n    shift\n  done\n  printf 'r:%s\\n' \"$id\" >> \"$HOME/.claude/.claudius/revert.log\"\n  printf 'reverted %s\\n' \"$id\"\n  case \"$id\" in\n    *fail*) printf 'boom\\n' >&2; exit 3 ;;\n  esac\n  printf 'ok\\n' >&2\n  exit 0\n ;;\n  *build-app-local.mjs)\n  src=\"\"\n  while [ $# -gt 0 ]; do\n    if [ \"$1\" = \"--overlay-src\" ]; then src=\"$2\"; fi\n    shift\n  done\n  case \"$src\" in\n    *hang*) n=0; while [ ! -f ./go ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n+1)); done ;;\n  esac\n  printf 'overlay %s\\r\\nbuilding\\n\\nline three\\n' \"$src\"\n  case \"$src\" in\n    *bad*) printf 'oops\\n' >&2; exit 7 ;;\n    *noapp*) exit 0 ;;\n  esac\n  mkdir -p ./release/mac/Claudius.app ./release/mac-arm64/Claudius.app\n  exit 0\n ;;\nesac\nprintf 'fake node: %s\\n' \"$1\" >&2\nexit 9\n"
+ },
+ "steps": [
+  {
+   "op": "fs",
+   "act": "mkdir",
+   "path": "$ROOT/home/.claude/.claudius"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/a.txt",
+   "text": "a"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/b.txt",
+   "text": "b"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/conf.txt",
+   "text": "theirs"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/up.txt",
+   "text": "new"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/fresh.txt",
+   "text": "f"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/nodiff.txt",
+   "text": "live"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/sub/c.txt",
+   "text": "c"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/electron-builder.yml",
+   "text": "mac: {}\n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/scripts/build-app-local.mjs",
+   "text": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/bin/claudius-revert",
+   "text": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [],\n  \"publishes\": []\n}"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/nope/sync",
+   "clock": 1700001000003,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/nope/sync",
+   "clock": 1700002000006,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/nope/description",
+   "clock": 1700003000009,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/nope/description",
+   "clock": 1700004000012,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   },
+   "cli": {
+    "argv": null,
+    "system": null,
+    "prompt": null
+   }
+  },
+  {
+   "op": "req",
+   "method": "PATCH",
+   "path": "/api/customizations/nope/description",
+   "body": "{\"description\":\"x\"}",
+   "clock": 1700005000015,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/nope/build-app",
+   "clock": 1700006000018,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/nope/build-app",
+   "clock": 1700007000021,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/nope/publish",
+   "clock": 1700008000024,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/nope/auto-fix",
+   "clock": 1700009000027,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/nope/deactivate",
+   "clock": 1700010000030,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/nope/publishes/pub_x/revert",
+   "clock": 1700011000033,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"customization not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "clock": 1700012000036,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"customization\":{\"id\":\"cust_b0f8d5cc65f6\",\"name\":\"Customization 2023-11-15\",\"createdAt\":1700012000036,\"updatedAt\":1700012000036,\"baseVersion\":\"0.3.312.0\"},\"filesCopied\":10,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_b0f8d5cc65f6/src\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_b0f8d5cc65f6\",\n      \"name\": \"Customization 2023-11-15\",\n      \"createdAt\": 1700012000036,\n      \"updatedAt\": 1700012000036,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_b0f8d5cc65f6": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700012000036,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"d16d74303205ee1884bba2395511c1f66af12d14\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"98aadb37083eddd855c27feccb15dc8c5b127fd0\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a",
+       "b.txt": "b",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "theirs",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "nodiff.txt": "live",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "{\"name\":\"  Mine  \"}",
+   "clock": 1700013000039,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"customization\":{\"id\":\"cust_08d694cff016\",\"name\":\"Mine\",\"createdAt\":1700013000039,\"updatedAt\":1700013000039,\"baseVersion\":\"0.3.312.0\"},\"filesCopied\":10,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_08d694cff016/src\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_08d694cff016\",\n      \"name\": \"Mine\",\n      \"createdAt\": 1700013000039,\n      \"updatedAt\": 1700013000039,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_08d694cff016": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700013000039,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"d16d74303205ee1884bba2395511c1f66af12d14\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"98aadb37083eddd855c27feccb15dc8c5b127fd0\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a",
+       "b.txt": "b",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "theirs",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "nodiff.txt": "live",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "{\"name\":null}",
+   "clock": 1700014000042,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"customization\":{\"id\":\"cust_9055794cc0cd\",\"name\":\"Customization 2023-11-15\",\"createdAt\":1700014000042,\"updatedAt\":1700014000042,\"baseVersion\":\"0.3.312.0\"},\"filesCopied\":10,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_9055794cc0cd/src\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_9055794cc0cd\",\n      \"name\": \"Customization 2023-11-15\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_9055794cc0cd": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700014000042,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"d16d74303205ee1884bba2395511c1f66af12d14\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"98aadb37083eddd855c27feccb15dc8c5b127fd0\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a",
+       "b.txt": "b",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "theirs",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "nodiff.txt": "live",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "{\"name\":5}",
+   "clock": 1700015000045,
+   "got": {
+    "threw": "body?.name?.trim is not a function"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "not json",
+   "clock": 1700016000048,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"customization\":{\"id\":\"cust_17e21b67b9ab\",\"name\":\"Customization 2023-11-15\",\"createdAt\":1700016000048,\"updatedAt\":1700016000048,\"baseVersion\":\"0.3.312.0\"},\"filesCopied\":10,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_17e21b67b9ab/src\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_17e21b67b9ab\",\n      \"name\": \"Customization 2023-11-15\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_17e21b67b9ab": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700016000048,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"d16d74303205ee1884bba2395511c1f66af12d14\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"98aadb37083eddd855c27feccb15dc8c5b127fd0\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a",
+       "b.txt": "b",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "theirs",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "nodiff.txt": "live",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "",
+   "clock": 1700017000051,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"customization\":{\"id\":\"cust_29943c45d09c\",\"name\":\"Customization 2023-11-15\",\"createdAt\":1700017000051,\"updatedAt\":1700017000051,\"baseVersion\":\"0.3.312.0\"},\"filesCopied\":10,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_29943c45d09c/src\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_29943c45d09c\",\n      \"name\": \"Customization 2023-11-15\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_29943c45d09c": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700017000051,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"d16d74303205ee1884bba2395511c1f66af12d14\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"98aadb37083eddd855c27feccb15dc8c5b127fd0\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a",
+       "b.txt": "b",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "theirs",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "nodiff.txt": "live",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "{\"name\":\"😀 rocket\"}",
+   "clock": 1700018000054,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"customization\":{\"id\":\"cust_0b0d7db3abb4\",\"name\":\"😀 rocket\",\"createdAt\":1700018000054,\"updatedAt\":1700018000054,\"baseVersion\":\"0.3.312.0\"},\"filesCopied\":10,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_0b0d7db3abb4/src\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_0b0d7db3abb4\",\n      \"name\": \"😀 rocket\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_0b0d7db3abb4": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700018000054,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"d16d74303205ee1884bba2395511c1f66af12d14\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"98aadb37083eddd855c27feccb15dc8c5b127fd0\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a",
+       "b.txt": "b",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "theirs",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "nodiff.txt": "live",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "fs",
+   "act": "chmod",
+   "path": "$ROOT/live/sub",
+   "mode": 0
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "{\"name\":\"rollback\"}",
+   "clock": 1700019000057,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"EACCES: permission denied, scandir '$ROOT/live/sub'\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "chmod",
+   "path": "$ROOT/live/sub",
+   "mode": 493
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/node_modules/pkg/index.js",
+   "text": "mod"
+  },
+  {
+   "op": "fs",
+   "act": "symlink",
+   "path": "$ROOT/live/node_modules/.bin/x",
+   "target": "../pkg/index.js"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations",
+   "body": "{\"name\":\"with deps\"}",
+   "clock": 1700020000060,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"customization\":{\"id\":\"cust_d1ff6193a6f8\",\"name\":\"with deps\",\"createdAt\":1700020000060,\"updatedAt\":1700020000060,\"baseVersion\":\"0.3.312.0\"},\"filesCopied\":10,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_d1ff6193a6f8/src\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_d1ff6193a6f8\",\n      \"name\": \"with deps\",\n      \"createdAt\": 1700020000060,\n      \"updatedAt\": 1700020000060,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_d1ff6193a6f8": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700020000060,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"d16d74303205ee1884bba2395511c1f66af12d14\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"98aadb37083eddd855c27feccb15dc8c5b127fd0\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a",
+       "b.txt": "b",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "theirs",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "node_modules": {
+        ".bin": {
+         "x": "l>../pkg/index.js"
+        },
+        "pkg": {
+         "index.js": "mod"
+        }
+       },
+       "nodiff.txt": "live",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/live/node_modules"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_s100000002\",\n      \"name\": \"n 02\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"cust_b100000003\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/a.txt",
+   "text": "a2"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/new.txt",
+   "text": "n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt",
+   "text": "mine"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/nodiff.txt",
+   "text": "mirror"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/up.txt",
+   "text": "old"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/gone.txt",
+   "text": "g"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/sub/c.txt",
+   "text": "c"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/base-manifest.json",
+   "text": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_d100000001/sync",
+   "clock": 1700021000063,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"manifestCreatedAt\":5,\"baseVersion\":\"0.0.1\",\"currentVersion\":\"0.3.312.0\",\"outdated\":true,\"totals\":{\"in-sync\":1,\"upstream-only\":1,\"user-only\":1,\"conflict\":2,\"new-upstream\":4,\"new-user\":1,\"deleted-upstream\":1,\"deleted-user\":1},\"entries\":[{\"path\":\"a.txt\",\"verdict\":\"user-only\",\"manifestHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\"customHash\":\"b9f85daa6f83cf02ce5c31913d1f64d3f5c8fade\",\"liveHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\"},{\"path\":\"b.txt\",\"verdict\":\"deleted-user\",\"manifestHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\"customHash\":null,\"liveHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\"},{\"path\":\"bin/claudius-revert\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\"},{\"path\":\"conf.txt\",\"verdict\":\"conflict\",\"manifestHash\":\"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\"customHash\":\"8034c43d15bb7ef42e2cc24255217acfc5f4b2f4\",\"liveHash\":\"d16d74303205ee1884bba2395511c1f66af12d14\"},{\"path\":\"electron-builder.yml\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\"},{\"path\":\"fresh.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\"},{\"path\":\"gone.txt\",\"verdict\":\"deleted-upstream\",\"manifestHash\":\"54fd1711209fb1c0781092374132c66e79e2241b\",\"customHash\":\"54fd1711209fb1c0781092374132c66e79e2241b\",\"liveHash\":null},{\"path\":\"new.txt\",\"verdict\":\"new-user\",\"manifestHash\":null,\"customHash\":\"d1854cae891ec7b29161ccaf79a24b00c274bdaa\",\"liveHash\":null},{\"path\":\"nodiff.txt\",\"verdict\":\"conflict\",\"manifestHash\":\"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\"customHash\":\"ffff80d25a2651a57130b409d7bf0e751e29b578\",\"liveHash\":\"98aadb37083eddd855c27feccb15dc8c5b127fd0\"},{\"path\":\"scripts/build-app-local.mjs\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\"},{\"path\":\"sub/c.txt\",\"verdict\":\"in-sync\",\"manifestHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\"customHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\"liveHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"},{\"path\":\"up.txt\",\"verdict\":\"upstream-only\",\"manifestHash\":\"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\"customHash\":\"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\"liveHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"}]}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/src/only.txt",
+   "text": "o"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700022000066,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"manifestCreatedAt\":1700022000066,\"currentVersion\":\"0.3.312.0\",\"outdated\":false,\"totals\":{\"in-sync\":0,\"upstream-only\":0,\"user-only\":0,\"conflict\":0,\"new-upstream\":10,\"new-user\":0,\"deleted-upstream\":1,\"deleted-user\":0},\"entries\":[{\"path\":\"a.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\"},{\"path\":\"b.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\"},{\"path\":\"bin/claudius-revert\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\"},{\"path\":\"conf.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d16d74303205ee1884bba2395511c1f66af12d14\"},{\"path\":\"electron-builder.yml\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\"},{\"path\":\"fresh.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\"},{\"path\":\"nodiff.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"98aadb37083eddd855c27feccb15dc8c5b127fd0\"},{\"path\":\"only.txt\",\"verdict\":\"deleted-upstream\",\"manifestHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"customHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"liveHash\":null},{\"path\":\"scripts/build-app-local.mjs\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\"},{\"path\":\"sub/c.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"},{\"path\":\"up.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"}]}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "conf.txt": "mine",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700022000066,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700023000069,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"manifestCreatedAt\":1700022000066,\"currentVersion\":\"0.3.312.0\",\"outdated\":false,\"totals\":{\"in-sync\":0,\"upstream-only\":0,\"user-only\":0,\"conflict\":0,\"new-upstream\":10,\"new-user\":0,\"deleted-upstream\":1,\"deleted-user\":0},\"entries\":[{\"path\":\"a.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\"},{\"path\":\"b.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\"},{\"path\":\"bin/claudius-revert\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\"},{\"path\":\"conf.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d16d74303205ee1884bba2395511c1f66af12d14\"},{\"path\":\"electron-builder.yml\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\"},{\"path\":\"fresh.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\"},{\"path\":\"nodiff.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"98aadb37083eddd855c27feccb15dc8c5b127fd0\"},{\"path\":\"only.txt\",\"verdict\":\"deleted-upstream\",\"manifestHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"customHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"liveHash\":null},{\"path\":\"scripts/build-app-local.mjs\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\"},{\"path\":\"sub/c.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"},{\"path\":\"up.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"}]}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/sync",
+   "clock": 1700024000072,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"applied\":1,\"added\":4,\"deleted\":1,\"skippedConflicts\":2,\"appliedPaths\":[\"bin/claudius-revert\",\"electron-builder.yml\",\"fresh.txt\",\"gone.txt\",\"scripts/build-app-local.mjs\",\"up.txt\"]}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 1700024000072,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_s100000002\",\n      \"name\": \"n 02\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"cust_b100000003\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700024000072,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700022000066,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_d100000001/sync",
+   "clock": 1700025000075,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"manifestCreatedAt\":1700024000072,\"baseVersion\":\"0.3.312.0\",\"currentVersion\":\"0.3.312.0\",\"outdated\":false,\"totals\":{\"in-sync\":6,\"upstream-only\":0,\"user-only\":1,\"conflict\":2,\"new-upstream\":0,\"new-user\":1,\"deleted-upstream\":0,\"deleted-user\":1},\"entries\":[{\"path\":\"a.txt\",\"verdict\":\"user-only\",\"manifestHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\"customHash\":\"b9f85daa6f83cf02ce5c31913d1f64d3f5c8fade\",\"liveHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\"},{\"path\":\"b.txt\",\"verdict\":\"deleted-user\",\"manifestHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\"customHash\":null,\"liveHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\"},{\"path\":\"bin/claudius-revert\",\"verdict\":\"in-sync\",\"manifestHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\"customHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\"liveHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\"},{\"path\":\"conf.txt\",\"verdict\":\"conflict\",\"manifestHash\":\"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\"customHash\":\"8034c43d15bb7ef42e2cc24255217acfc5f4b2f4\",\"liveHash\":\"d16d74303205ee1884bba2395511c1f66af12d14\"},{\"path\":\"electron-builder.yml\",\"verdict\":\"in-sync\",\"manifestHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\"customHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\"liveHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\"},{\"path\":\"fresh.txt\",\"verdict\":\"in-sync\",\"manifestHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\"customHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\"liveHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\"},{\"path\":\"new.txt\",\"verdict\":\"new-user\",\"manifestHash\":null,\"customHash\":\"d1854cae891ec7b29161ccaf79a24b00c274bdaa\",\"liveHash\":null},{\"path\":\"nodiff.txt\",\"verdict\":\"conflict\",\"manifestHash\":\"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\"customHash\":\"ffff80d25a2651a57130b409d7bf0e751e29b578\",\"liveHash\":\"98aadb37083eddd855c27feccb15dc8c5b127fd0\"},{\"path\":\"scripts/build-app-local.mjs\",\"verdict\":\"in-sync\",\"manifestHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\",\"customHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\",\"liveHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\"},{\"path\":\"sub/c.txt\",\"verdict\":\"in-sync\",\"manifestHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\"customHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\"liveHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"},{\"path\":\"up.txt\",\"verdict\":\"in-sync\",\"manifestHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\",\"customHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\",\"liveHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"}]}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/base-manifest.json",
+   "text": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"only.txt\": 5,\n    \"missing\": \"zz\"\n  }\n}"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700026000078,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"manifestCreatedAt\":5,\"currentVersion\":\"0.3.312.0\",\"outdated\":false,\"totals\":{\"in-sync\":1,\"upstream-only\":0,\"user-only\":0,\"conflict\":1,\"new-upstream\":10,\"new-user\":0,\"deleted-upstream\":0,\"deleted-user\":0},\"entries\":[{\"path\":\"a.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\"},{\"path\":\"b.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\"},{\"path\":\"bin/claudius-revert\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\"},{\"path\":\"conf.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d16d74303205ee1884bba2395511c1f66af12d14\"},{\"path\":\"electron-builder.yml\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\"},{\"path\":\"fresh.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\"},{\"path\":\"missing\",\"verdict\":\"in-sync\",\"manifestHash\":\"zz\",\"customHash\":null,\"liveHash\":null},{\"path\":\"nodiff.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"98aadb37083eddd855c27feccb15dc8c5b127fd0\"},{\"path\":\"only.txt\",\"verdict\":\"conflict\",\"manifestHash\":5,\"customHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"liveHash\":null},{\"path\":\"scripts/build-app-local.mjs\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\"},{\"path\":\"sub/c.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"},{\"path\":\"up.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"}]}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/base-manifest.json",
+   "text": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": [\n    \"x\",\n    \"y\"\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700027000081,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"manifestCreatedAt\":5,\"currentVersion\":\"0.3.312.0\",\"outdated\":false,\"totals\":{\"in-sync\":2,\"upstream-only\":0,\"user-only\":0,\"conflict\":0,\"new-upstream\":10,\"new-user\":1,\"deleted-upstream\":0,\"deleted-user\":0},\"entries\":[{\"path\":\"0\",\"verdict\":\"in-sync\",\"manifestHash\":\"x\",\"customHash\":null,\"liveHash\":null},{\"path\":\"1\",\"verdict\":\"in-sync\",\"manifestHash\":\"y\",\"customHash\":null,\"liveHash\":null},{\"path\":\"a.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\"},{\"path\":\"b.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\"},{\"path\":\"bin/claudius-revert\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\"},{\"path\":\"conf.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d16d74303205ee1884bba2395511c1f66af12d14\"},{\"path\":\"electron-builder.yml\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\"},{\"path\":\"fresh.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\"},{\"path\":\"nodiff.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"98aadb37083eddd855c27feccb15dc8c5b127fd0\"},{\"path\":\"only.txt\",\"verdict\":\"new-user\",\"manifestHash\":null,\"customHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"liveHash\":null},{\"path\":\"scripts/build-app-local.mjs\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\"},{\"path\":\"sub/c.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"},{\"path\":\"up.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"}]}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/base-manifest.json",
+   "text": "{\n  \"version\": 2,\n  \"files\": {}\n}"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700028000084,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"manifestCreatedAt\":1700028000084,\"currentVersion\":\"0.3.312.0\",\"outdated\":false,\"totals\":{\"in-sync\":0,\"upstream-only\":0,\"user-only\":0,\"conflict\":0,\"new-upstream\":10,\"new-user\":0,\"deleted-upstream\":1,\"deleted-user\":0},\"entries\":[{\"path\":\"a.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\"},{\"path\":\"b.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\"},{\"path\":\"bin/claudius-revert\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\"},{\"path\":\"conf.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"d16d74303205ee1884bba2395511c1f66af12d14\"},{\"path\":\"electron-builder.yml\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"5baa587c0b2d0184e0fc126b6714be408a0fac4a\"},{\"path\":\"fresh.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"4a0a19218e082a343a1b17e5333409af9d98f0f5\"},{\"path\":\"nodiff.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"98aadb37083eddd855c27feccb15dc8c5b127fd0\"},{\"path\":\"only.txt\",\"verdict\":\"deleted-upstream\",\"manifestHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"customHash\":\"7a81af3e591ac713f81ea1efe93dcf36157d8376\",\"liveHash\":null},{\"path\":\"scripts/build-app-local.mjs\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"ac5053564c4a1529c7df2c886d72793afa10da9b\"},{\"path\":\"sub/c.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"},{\"path\":\"up.txt\",\"verdict\":\"new-upstream\",\"manifestHash\":null,\"customHash\":null,\"liveHash\":\"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"}]}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700024000072,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700028000084,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/base-manifest.json",
+   "text": "null"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700029000087,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Cannot read properties of null (reading 'version')\"}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/base-manifest.json",
+   "text": "{nope"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700030000090,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/base-manifest.json"
+  },
+  {
+   "op": "fs",
+   "act": "chmod",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/src/only.txt",
+   "mode": 0
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700031000093,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customizations/cust_s100000002/src/only.txt'\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_s100000002/sync",
+   "clock": 1700032000096,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customizations/cust_s100000002/src/only.txt'\"}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "chmod",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_s100000002/src/only.txt",
+   "mode": 420
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_s100000002/auto-fix",
+   "clock": 1700033000099,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"no conflicts to fix\"}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700024000072,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"bin/claudius-revert\": \"d1e00f13fc7b33377f3a5dce631650d39bdea5fc\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"electron-builder.yml\": \"5baa587c0b2d0184e0fc126b6714be408a0fac4a\",\n    \"fresh.txt\": \"4a0a19218e082a343a1b17e5333409af9d98f0f5\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"scripts/build-app-local.mjs\": \"ac5053564c4a1529c7df2c886d72793afa10da9b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\",\n    \"up.txt\": \"c2a6b03f190dfb2b4aa91f8af8d477a9bc3401dc\"\n  }\n}\n",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    }
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/auto-fix",
+   "clock": 1700034000102,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"prompt\":\"You are resolving merge conflicts between this customization and upstream Claudius.\\n\\nFor each path below, the upstream Claudius and the customization both diverged from a common ancestor. Your job: produce a single resolved file that\\n\\n  - preserves the user's customization intent (visible UI tweaks, behavioral changes, copy edits)\\n  - pulls in the upstream bug fixes and improvements\\n  - doesn't break the build\\n\\nApproach:\\n\\n  1. For each conflicted path, read all three sides:\\n     - the upstream version: <repo-root>/{path}\\n     - the customization version: <customization-src>/{path}\\n     - the manifest snapshot if available (the fork point)\\n  2. Diff them mentally. Identify what each side is doing and why.\\n  3. Write the resolved file back to the customization src.\\n  4. Once every conflict is resolved, run `npm run lint` on the touched files. Report any failures with the file path so the user can act on them.\\n\\nConflicting paths (2):\\n\\n  - conf.txt\\n  - nodiff.txt\\n\\nDon't ask before each file — work through the list and report when done.\",\"conflictCount\":2}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customize-settings.json",
+   "text": "{\n  \"autoFixPrompt\": \"fix {{conflict_count}}:\\n{{conflict_paths}}\\n\"\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/auto-fix",
+   "clock": 1700035000105,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"prompt\":\"fix 2:\\n  - conf.txt\\n  - nodiff.txt\\n\",\"conflictCount\":2}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customize-settings.json",
+   "text": "{\n  \"autoFixPrompt\": \"$$ $& $` $' {{conflict_count}} {{conflict_paths}}\"\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/auto-fix",
+   "clock": 1700036000108,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"prompt\":\"$$ $& $` $' 2   - conf.txt\\n  - nodiff.txt\",\"conflictCount\":2}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customize-settings.json",
+   "text": "{\n  \"autoFixPrompt\": \"   \"\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/auto-fix",
+   "clock": 1700037000111,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"prompt\":\"You are resolving merge conflicts between this customization and upstream Claudius.\\n\\nFor each path below, the upstream Claudius and the customization both diverged from a common ancestor. Your job: produce a single resolved file that\\n\\n  - preserves the user's customization intent (visible UI tweaks, behavioral changes, copy edits)\\n  - pulls in the upstream bug fixes and improvements\\n  - doesn't break the build\\n\\nApproach:\\n\\n  1. For each conflicted path, read all three sides:\\n     - the upstream version: <repo-root>/{path}\\n     - the customization version: <customization-src>/{path}\\n     - the manifest snapshot if available (the fork point)\\n  2. Diff them mentally. Identify what each side is doing and why.\\n  3. Write the resolved file back to the customization src.\\n  4. Once every conflict is resolved, run `npm run lint` on the touched files. Report any failures with the file path so the user can act on them.\\n\\nConflicting paths (2):\\n\\n  - conf.txt\\n  - nodiff.txt\\n\\nDon't ask before each file — work through the list and report when done.\",\"conflictCount\":2}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customize-settings.json",
+   "text": "{\n  \"autoFixPrompt\": 5\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/auto-fix",
+   "clock": 1700038000114,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"prompt\":\"You are resolving merge conflicts between this customization and upstream Claudius.\\n\\nFor each path below, the upstream Claudius and the customization both diverged from a common ancestor. Your job: produce a single resolved file that\\n\\n  - preserves the user's customization intent (visible UI tweaks, behavioral changes, copy edits)\\n  - pulls in the upstream bug fixes and improvements\\n  - doesn't break the build\\n\\nApproach:\\n\\n  1. For each conflicted path, read all three sides:\\n     - the upstream version: <repo-root>/{path}\\n     - the customization version: <customization-src>/{path}\\n     - the manifest snapshot if available (the fork point)\\n  2. Diff them mentally. Identify what each side is doing and why.\\n  3. Write the resolved file back to the customization src.\\n  4. Once every conflict is resolved, run `npm run lint` on the touched files. Report any failures with the file path so the user can act on them.\\n\\nConflicting paths (2):\\n\\n  - conf.txt\\n  - nodiff.txt\\n\\nDon't ask before each file — work through the list and report when done.\",\"conflictCount\":2}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customize-settings.json",
+   "text": "null"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/auto-fix",
+   "clock": 1700039000117,
+   "got": {
+    "threw": "Cannot read properties of null (reading 'autoFixPrompt')"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customize-settings.json",
+   "text": "{nope"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/auto-fix",
+   "clock": 1700040000120,
+   "got": {
+    "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius/customize-settings.json"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700041000123,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":null,\"descriptionGeneratedAt\":null,\"descriptionDiffHash\":null,\"descriptionIsManual\":false,\"currentDiffHash\":\"\",\"stale\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "PATCH",
+   "path": "/api/customizations/cust_d100000001/description",
+   "body": "{nope",
+   "clock": 1700042000126,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid json\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "PATCH",
+   "path": "/api/customizations/cust_d100000001/description",
+   "body": "{\"description\":5}",
+   "clock": 1700043000129,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"description must be a string\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "PATCH",
+   "path": "/api/customizations/cust_d100000001/description",
+   "body": "{}",
+   "clock": 1700044000132,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"description must be a string\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "PATCH",
+   "path": "/api/customizations/cust_d100000001/description",
+   "body": "null",
+   "clock": 1700045000135,
+   "got": {
+    "threw": "Cannot read properties of null (reading 'description')"
+   }
+  },
+  {
+   "op": "req",
+   "method": "PATCH",
+   "path": "/api/customizations/cust_d100000001/description",
+   "body": "{\"description\":\"  — typed  \"}",
+   "clock": 1700046000138,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":\"— typed\",\"descriptionGeneratedAt\":1700046000138,\"descriptionDiffHash\":null,\"descriptionIsManual\":true,\"currentDiffHash\":\"\",\"stale\":false}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 1700046000138,\n      \"baseVersion\": \"0.3.312.0\",\n      \"description\": \"— typed\",\n      \"descriptionGeneratedAt\": 1700046000138,\n      \"descriptionIsManual\": true\n    },\n    {\n      \"id\": \"cust_s100000002\",\n      \"name\": \"n 02\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"cust_b100000003\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700047000141,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":\"— typed\",\"descriptionGeneratedAt\":1700046000138,\"descriptionDiffHash\":null,\"descriptionIsManual\":true,\"currentDiffHash\":\"\",\"stale\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "PATCH",
+   "path": "/api/customizations/cust_d100000001/description",
+   "body": "{\"description\":\"\"}",
+   "clock": 1700048000144,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":null,\"descriptionGeneratedAt\":null,\"descriptionDiffHash\":null,\"descriptionIsManual\":false,\"currentDiffHash\":\"\",\"stale\":false}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 1700048000144,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_s100000002\",\n      \"name\": \"n 02\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"cust_b100000003\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700049000147,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":null,\"descriptionGeneratedAt\":null,\"descriptionDiffHash\":null,\"descriptionIsManual\":false,\"currentDiffHash\":\"\",\"stale\":false}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_s100000002/description",
+   "clock": 1700050000150,
+   "got": {
+    "status": 422,
+    "type": "application/json",
+    "body": "{\"error\":\"no user-authored changes to describe\"}"
+   },
+   "cli": {
+    "argv": null,
+    "system": null,
+    "prompt": null
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-argv.json"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-stdin.log"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/cli-script.json",
+   "text": "{\n  \"turns\": [\n    {\n      \"result\": \"```md\\n  A tidy change.  \\n```\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "db",
+   "cwd": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src",
+   "sql": "INSERT INTO sessions (id, cwd, title, created_at, updated_at, last_seen_at) VALUES\n       ('11111111-1111-4111-8111-111111111111', '$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src', 'Sidebar', 1, 20, 20),\n       ('22222222-2222-4222-8222-222222222222', '$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src', NULL, 1, 10, 10),\n       ('not-a-uuid', '$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src', 'skipped', 1, 30, 30)"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "sdk": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src",
+   "name": "11111111-1111-4111-8111-111111111111.jsonl",
+   "text": "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"  Make the sidebar narrower.  \"},\"timestamp\":\"2023-11-14T22:13:20.000Z\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"uuid\":\"00000000-0000-4000-8000-000000000000\",\"parentUuid\":null}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"before<system-reminder>nag</system-reminder>after\"},\"timestamp\":\"2023-11-14T22:13:20.000Z\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"uuid\":\"00000001-0000-4000-8000-000000000001\",\"parentUuid\":\"00000000-0000-4000-8000-000000000000\"}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"  first  \"},{\"type\":\"tool_result\",\"text\":\"dropped\"},{\"type\":\"text\",\"text\":\"<bash-input>ls</bash-input>\\n<bash-stdout>a</bash-stdout>\\n<bash-stderr></bash-stderr>\"},{\"type\":\"text\",\"text\":\"second\"}]},\"timestamp\":\"2023-11-14T22:13:20.000Z\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"uuid\":\"00000002-0000-4000-8000-000000000002\",\"parentUuid\":\"00000001-0000-4000-8000-000000000001\"}\n{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"no\"}]},\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"uuid\":\"00000003-0000-4000-8000-000000000003\",\"parentUuid\":\"00000002-0000-4000-8000-000000000002\"}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":{\"nope\":1}},\"timestamp\":\"2023-11-14T22:13:20.000Z\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"uuid\":\"00000004-0000-4000-8000-000000000004\",\"parentUuid\":\"00000003-0000-4000-8000-000000000003\"}\n{\"type\":\"user\",\"message\":{\"role\":\"system\",\"content\":\"sys\"},\"timestamp\":\"2023-11-14T22:13:20.000Z\",\"sessionId\":\"11111111-1111-4111-8111-111111111111\",\"uuid\":\"00000005-0000-4000-8000-000000000005\",\"parentUuid\":\"00000004-0000-4000-8000-000000000004\"}\n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "sdk": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src",
+   "name": "22222222-2222-4222-8222-222222222222.jsonl",
+   "text": "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"😀 emoji intent\"},\"timestamp\":\"2023-11-14T22:13:20.000Z\",\"sessionId\":\"22222222-2222-4222-8222-222222222222\",\"uuid\":\"00000006-0000-4000-8000-000000000006\",\"parentUuid\":null}\n"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700051000153,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":\"A tidy change.\",\"descriptionGeneratedAt\":1700051000153,\"descriptionDiffHash\":\"0273d719210225f8e0e8641404e9838488df27a3a64a8b0a6007de19fc9e1754\",\"descriptionIsManual\":false,\"currentDiffHash\":\"0273d719210225f8e0e8641404e9838488df27a3a64a8b0a6007de19fc9e1754\",\"stale\":false}"
+   },
+   "cli": {
+    "argv": [
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--input-format",
+     "stream-json",
+     "--max-turns=1",
+     "--tools=",
+     "--permission-mode=bypassPermissions"
+    ],
+    "system": [
+     "You write concise, plain-prose descriptions of user-authored modifications to a codebase (\"customizations\").\n\nYou will receive two inputs:\n  1. A unified diff of files the USER EDITED in their customization — already filtered to remove unrelated upstream drift, so every change you see is the user's own work.\n  2. The user's own chat messages from the workspace where they made these changes — these capture WHY they wanted the change.\n\nRules:\n- Output ONLY the description. No preamble, no quotes, no markdown headers, no code fences.\n- Decide first: is this ONE cohesive feature, or SEVERAL distinct concerns?\n  • One feature → 2–3 sentences describing what it does and (if clear from chat) why.\n  • Multiple features → start with a single sentence saying so (\"This customization bundles N changes:\"), then one short sentence per feature. Stay under ~5 sentences total.\n- Use the user's own words / phrasing when it captures intent well.\n- Don't list files. Don't mention diffs or chat verbatim.\n- If the changes are trivial or unclear, say so honestly in one sentence."
+    ],
+    "prompt": "[{\"type\":\"text\",\"text\":\"Describe the following customization.\\n\\nCHANGES (unified diff):\\n--- $ROOT/live/a.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/a.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/b.txt\\n+++ /dev/null\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/conf.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- /dev/null\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/new.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n\\nUSER INTENT (from chat — user messages only, newest first):\\n── Sidebar ──\\nMake the sidebar narrower.\\n\\nbeforeafter\\n\\nfirst\\nsecond\\n\\n── $UUID ──\\n😀 emoji intent\\n\"}]"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 1700051000153,\n      \"baseVersion\": \"0.3.312.0\",\n      \"description\": \"A tidy change.\",\n      \"descriptionGeneratedAt\": 1700051000153,\n      \"descriptionDiffHash\": \"0273d719210225f8e0e8641404e9838488df27a3a64a8b0a6007de19fc9e1754\",\n      \"descriptionIsManual\": false\n    },\n    {\n      \"id\": \"cust_s100000002\",\n      \"name\": \"n 02\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"cust_b100000003\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700052000156,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":\"A tidy change.\",\"descriptionGeneratedAt\":1700051000153,\"descriptionDiffHash\":\"0273d719210225f8e0e8641404e9838488df27a3a64a8b0a6007de19fc9e1754\",\"descriptionIsManual\":false,\"currentDiffHash\":\"0273d719210225f8e0e8641404e9838488df27a3a64a8b0a6007de19fc9e1754\",\"stale\":false}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt",
+   "text": "mine2"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700053000159,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"description\":\"A tidy change.\",\"descriptionGeneratedAt\":1700051000153,\"descriptionDiffHash\":\"0273d719210225f8e0e8641404e9838488df27a3a64a8b0a6007de19fc9e1754\",\"descriptionIsManual\":false,\"currentDiffHash\":\"15fae65e3cf43aecb111cfe784cce6d4225fa15d33d750a00c2d32d6fa65eb67\",\"stale\":true}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-argv.json"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-stdin.log"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/cli-script.json",
+   "text": "{\n  \"turns\": [\n    {\n      \"result\": \"   \"\n    }\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700054000162,
+   "got": {
+    "status": 422,
+    "type": "application/json",
+    "body": "{\"error\":\"claude returned empty text\"}"
+   },
+   "cli": {
+    "argv": [
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--input-format",
+     "stream-json",
+     "--max-turns=1",
+     "--tools=",
+     "--permission-mode=bypassPermissions"
+    ],
+    "system": [
+     "You write concise, plain-prose descriptions of user-authored modifications to a codebase (\"customizations\").\n\nYou will receive two inputs:\n  1. A unified diff of files the USER EDITED in their customization — already filtered to remove unrelated upstream drift, so every change you see is the user's own work.\n  2. The user's own chat messages from the workspace where they made these changes — these capture WHY they wanted the change.\n\nRules:\n- Output ONLY the description. No preamble, no quotes, no markdown headers, no code fences.\n- Decide first: is this ONE cohesive feature, or SEVERAL distinct concerns?\n  • One feature → 2–3 sentences describing what it does and (if clear from chat) why.\n  • Multiple features → start with a single sentence saying so (\"This customization bundles N changes:\"), then one short sentence per feature. Stay under ~5 sentences total.\n- Use the user's own words / phrasing when it captures intent well.\n- Don't list files. Don't mention diffs or chat verbatim.\n- If the changes are trivial or unclear, say so honestly in one sentence."
+    ],
+    "prompt": "[{\"type\":\"text\",\"text\":\"Describe the following customization.\\n\\nCHANGES (unified diff):\\n--- $ROOT/live/a.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/a.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/b.txt\\n+++ /dev/null\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/conf.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- /dev/null\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/new.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n\\nUSER INTENT (from chat — user messages only, newest first):\\n── Sidebar ──\\nMake the sidebar narrower.\\n\\nbeforeafter\\n\\nfirst\\nsecond\\n\\n── $UUID ──\\n😀 emoji intent\\n\"}]"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-argv.json"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-stdin.log"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/cli-script.json",
+   "text": "{\n  \"turns\": [\n    {\n      \"steps\": [\n        {\n          \"type\": \"result\",\n          \"subtype\": \"error_max_turns\",\n          \"is_error\": true,\n          \"errors\": [\n            \"too many turns\"\n          ],\n          \"duration_ms\": 1,\n          \"duration_api_ms\": 1,\n          \"num_turns\": 1,\n          \"total_cost_usd\": 0,\n          \"usage\": {\n            \"input_tokens\": 1,\n            \"output_tokens\": 1\n          },\n          \"session_id\": \"$SESSION_ID\",\n          \"uuid\": \"$UUID\"\n        }\n      ],\n      \"result\": false\n    }\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700055000165,
+   "got": {
+    "status": 422,
+    "type": "application/json",
+    "body": "{\"error\":\"claude returned error_max_turns\"}"
+   },
+   "cli": {
+    "argv": [
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--input-format",
+     "stream-json",
+     "--max-turns=1",
+     "--tools=",
+     "--permission-mode=bypassPermissions"
+    ],
+    "system": [
+     "You write concise, plain-prose descriptions of user-authored modifications to a codebase (\"customizations\").\n\nYou will receive two inputs:\n  1. A unified diff of files the USER EDITED in their customization — already filtered to remove unrelated upstream drift, so every change you see is the user's own work.\n  2. The user's own chat messages from the workspace where they made these changes — these capture WHY they wanted the change.\n\nRules:\n- Output ONLY the description. No preamble, no quotes, no markdown headers, no code fences.\n- Decide first: is this ONE cohesive feature, or SEVERAL distinct concerns?\n  • One feature → 2–3 sentences describing what it does and (if clear from chat) why.\n  • Multiple features → start with a single sentence saying so (\"This customization bundles N changes:\"), then one short sentence per feature. Stay under ~5 sentences total.\n- Use the user's own words / phrasing when it captures intent well.\n- Don't list files. Don't mention diffs or chat verbatim.\n- If the changes are trivial or unclear, say so honestly in one sentence."
+    ],
+    "prompt": "[{\"type\":\"text\",\"text\":\"Describe the following customization.\\n\\nCHANGES (unified diff):\\n--- $ROOT/live/a.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/a.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/b.txt\\n+++ /dev/null\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/conf.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- /dev/null\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/new.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n\\nUSER INTENT (from chat — user messages only, newest first):\\n── Sidebar ──\\nMake the sidebar narrower.\\n\\nbeforeafter\\n\\nfirst\\nsecond\\n\\n── $UUID ──\\n😀 emoji intent\\n\"}]"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-argv.json"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-stdin.log"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/cli-script.json",
+   "text": "{\n  \"turns\": [\n    {\n      \"steps\": [\n        {\n          \"$stderr\": \"nope\"\n        },\n        {\n          \"$exit\": 1\n        }\n      ]\n    }\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700056000168,
+   "got": {
+    "status": 422,
+    "type": "application/json",
+    "body": "{\"error\":\"Claude Code process exited with code 1. stderr: nope\"}"
+   },
+   "cli": {
+    "argv": [
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--input-format",
+     "stream-json",
+     "--max-turns=1",
+     "--tools=",
+     "--permission-mode=bypassPermissions"
+    ],
+    "system": [
+     "You write concise, plain-prose descriptions of user-authored modifications to a codebase (\"customizations\").\n\nYou will receive two inputs:\n  1. A unified diff of files the USER EDITED in their customization — already filtered to remove unrelated upstream drift, so every change you see is the user's own work.\n  2. The user's own chat messages from the workspace where they made these changes — these capture WHY they wanted the change.\n\nRules:\n- Output ONLY the description. No preamble, no quotes, no markdown headers, no code fences.\n- Decide first: is this ONE cohesive feature, or SEVERAL distinct concerns?\n  • One feature → 2–3 sentences describing what it does and (if clear from chat) why.\n  • Multiple features → start with a single sentence saying so (\"This customization bundles N changes:\"), then one short sentence per feature. Stay under ~5 sentences total.\n- Use the user's own words / phrasing when it captures intent well.\n- Don't list files. Don't mention diffs or chat verbatim.\n- If the changes are trivial or unclear, say so honestly in one sentence."
+    ],
+    "prompt": "[{\"type\":\"text\",\"text\":\"Describe the following customization.\\n\\nCHANGES (unified diff):\\n--- $ROOT/live/a.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/a.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/b.txt\\n+++ /dev/null\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/conf.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- /dev/null\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/new.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n\\nUSER INTENT (from chat — user messages only, newest first):\\n── Sidebar ──\\nMake the sidebar narrower.\\n\\nbeforeafter\\n\\nfirst\\nsecond\\n\\n── $UUID ──\\n😀 emoji intent\\n\"}]"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/base-manifest.json",
+   "text": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": 5\n  }\n}"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-argv.json"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/cli-stdin.log"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/cli-script.json",
+   "text": "{\n  \"turns\": [\n    {\n      \"result\": \"x\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_d100000001/description",
+   "clock": 1700057000171,
+   "got": {
+    "status": 422,
+    "type": "application/json",
+    "body": "{\"error\":\"The \\\"data\\\" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type number (5)\"}"
+   },
+   "cli": {
+    "argv": [
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--input-format",
+     "stream-json",
+     "--max-turns=1",
+     "--tools=",
+     "--permission-mode=bypassPermissions"
+    ],
+    "system": [
+     "You write concise, plain-prose descriptions of user-authored modifications to a codebase (\"customizations\").\n\nYou will receive two inputs:\n  1. A unified diff of files the USER EDITED in their customization — already filtered to remove unrelated upstream drift, so every change you see is the user's own work.\n  2. The user's own chat messages from the workspace where they made these changes — these capture WHY they wanted the change.\n\nRules:\n- Output ONLY the description. No preamble, no quotes, no markdown headers, no code fences.\n- Decide first: is this ONE cohesive feature, or SEVERAL distinct concerns?\n  • One feature → 2–3 sentences describing what it does and (if clear from chat) why.\n  • Multiple features → start with a single sentence saying so (\"This customization bundles N changes:\"), then one short sentence per feature. Stay under ~5 sentences total.\n- Use the user's own words / phrasing when it captures intent well.\n- Don't list files. Don't mention diffs or chat verbatim.\n- If the changes are trivial or unclear, say so honestly in one sentence."
+    ],
+    "prompt": "[{\"type\":\"text\",\"text\":\"Describe the following customization.\\n\\nCHANGES (unified diff):\\n--- $ROOT/live/a.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/a.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- $ROOT/live/conf.txt\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n--- /dev/null\\n+++ $ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/new.txt\\n@@ -1 +1 @@\\n-old\\n+new\\n\\n\\nUSER INTENT (from chat — user messages only, newest first):\\n── Sidebar ──\\nMake the sidebar narrower.\\n\\nbeforeafter\\n\\nfirst\\nsecond\\n\\n── $UUID ──\\n😀 emoji intent\\n\"}]"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/a.txt",
+   "text": "a2"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/new.txt",
+   "text": "n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/conf.txt",
+   "text": "mine"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/nodiff.txt",
+   "text": "mirror"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/up.txt",
+   "text": "old"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/gone.txt",
+   "text": "g"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/src/sub/c.txt",
+   "text": "c"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_d100000001/base-manifest.json",
+   "text": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/publish",
+   "clock": 1700058000174,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"nothing to publish\"}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_p100000004/src/a.txt",
+   "text": "published"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_p100000004/src/added.txt",
+   "text": "brand new"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/publish",
+   "clock": 1700059000177,
+   "got": {
+    "status": 201,
+    "type": "application/json",
+    "body": "{\"id\":\"pub_bc1f8272c06b\",\"customizationId\":\"cust_p100000004\",\"publishedAt\":1700059000177,\"revertedAt\":null,\"baseHash\":\"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\",\"files\":[{\"path\":\"a.txt\",\"baseHash\":\"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\"customHash\":\"c2807535f28e44fe6c7375dcf90518115529a8fa\"},{\"path\":\"added.txt\",\"baseHash\":null,\"customHash\":\"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"}],\"snapshotDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_bc1f8272c06b/snapshot\"}"
+   },
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 1700051000153,\n      \"baseVersion\": \"0.3.312.0\",\n      \"description\": \"A tidy change.\",\n      \"descriptionGeneratedAt\": 1700051000153,\n      \"descriptionDiffHash\": \"0273d719210225f8e0e8641404e9838488df27a3a64a8b0a6007de19fc9e1754\",\n      \"descriptionIsManual\": false\n    },\n    {\n      \"id\": \"cust_s100000002\",\n      \"name\": \"n 02\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"cust_b100000003\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"pub_bc1f8272c06b\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 1700059000177,\n      \"revertedAt\": null,\n      \"baseHash\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\",\n      \"files\": [\n        {\n          \"path\": \"a.txt\",\n          \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n          \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n        },\n        {\n          \"path\": \"added.txt\",\n          \"baseHash\": null,\n          \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n        }\n      ],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_bc1f8272c06b/snapshot\"\n    }\n  ]\n}\n",
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    }
+   },
+   "live": {
+    "a.txt": "published",
+    "added.txt": "brand new",
+    "b.txt": "b",
+    "bin": {
+     "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+    },
+    "conf.txt": "theirs",
+    "electron-builder.yml": "mac: {}\n",
+    "fresh.txt": "f",
+    "nodiff.txt": "live",
+    "scripts": {
+     "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+    },
+    "sub": {
+     "c.txt": "c"
+    },
+    "up.txt": "new"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/publishes/$PUB/revert",
+   "clock": 1700060000180,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"stdout\":\"reverted pub_bc1f8272c06b\\n\",\"stderr\":\"ok\\n\"}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_bc1f8272c06b\n"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/publishes/$PUB/revert",
+   "clock": 1700061000183,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"stdout\":\"reverted pub_bc1f8272c06b\\n\",\"stderr\":\"ok\\n\"}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\n"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/publishes/pub_missing/revert",
+   "clock": 1700062000186,
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"publish not found\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/deactivate",
+   "clock": 1700063000189,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"reverted\":1}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\n"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"pub_old\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": null,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_old/snapshot\"\n    },\n    {\n      \"id\": \"pub_fail\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 30,\n      \"revertedAt\": null,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_fail/snapshot\"\n    },\n    {\n      \"id\": \"pub_str\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": \"20\",\n      \"revertedAt\": null,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_str/snapshot\"\n    },\n    {\n      \"id\": \"pub_done\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 40,\n      \"revertedAt\": 41,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_done/snapshot\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/deactivate",
+   "clock": 1700064000192,
+   "got": {
+    "status": 207,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"reverted\":2,\"errors\":[{\"publishId\":\"pub_fail\",\"error\":\"Command failed: $NODE $ROOT/live/bin/claudius-revert --id pub_fail --live $ROOT/live\\nboom\\n\"}]}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_fail\nr:pub_str\nr:pub_old\n"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": 7,\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": null,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/7/snapshot\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/deactivate",
+   "clock": 1700065000195,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"reverted\":1}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_fail\nr:pub_str\nr:pub_old\nr:7\n"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"pub_a\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": {\n        \"toString\": 1\n      },\n      \"revertedAt\": null,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_a/snapshot\"\n    },\n    {\n      \"id\": \"pub_b\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": null,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_b/snapshot\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_p100000004/deactivate",
+   "clock": 1700066000198,
+   "got": {
+    "threw": "Cannot convert object to primitive value"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_b100000003\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_b100000003/src/a.txt",
+   "text": "built"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_b100000003/build-app",
+   "clock": 1700067000201,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"availability\":{\"available\":true},\"state\":null}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/live/scripts/build-app-local.mjs"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_b100000003/build-app",
+   "clock": 1700068000204,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"availability\":{\"available\":false,\"reason\":\"Local build needs the Claudius source checkout — run from source (electron:dev) to enable it.\"},\"state\":null}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_b100000003/build-app",
+   "clock": 1700069000207,
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"Local build needs the Claudius source checkout — run from source (electron:dev) to enable it.\"}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/scripts/build-app-local.mjs",
+   "text": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/live/release"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_b100000003bad\",\n      \"name\": \"n 03\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_b100000003bad/src/a.txt",
+   "text": "built"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_b100000003bad/build-app",
+   "clock": 1700070000210,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"customizationId\":\"cust_b100000003bad\",\"status\":\"building\",\"startedAt\":1700070000210,\"finishedAt\":null,\"artifactPath\":null,\"logs\":[]}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_b100000003": {
+      "src": {
+       "a.txt": "built"
+      }
+     },
+     "cust_b100000003bad": {
+      ".build-overlay.txt": "a.txt\n",
+      "src": {
+       "a.txt": "built"
+      }
+     },
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_fail\nr:pub_str\nr:pub_old\nr:7\n"
+   }
+  },
+  {
+   "op": "wait",
+   "id": "cust_b100000003bad"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_b100000003bad/build-app",
+   "clock": 1700071000213,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"availability\":{\"available\":true},\"state\":{\"customizationId\":\"cust_b100000003bad\",\"status\":\"error\",\"startedAt\":1700070000210,\"finishedAt\":1700070000210,\"artifactPath\":null,\"errorMessage\":\"build exited with code 7 (no .app produced)\",\"logs\":[\"overlay $ROOT/home/.claude/.claudius/customizations/cust_b100000003bad/src\",\"building\",\"line three\",\"oops\"]}}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_b100000003hang\",\n      \"name\": \"n ng\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/cust_b100000003hang/src/a.txt",
+   "text": "built"
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_b100000003hang/build-app",
+   "clock": 1700072000216,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"customizationId\":\"cust_b100000003hang\",\"status\":\"building\",\"startedAt\":1700072000216,\"finishedAt\":null,\"artifactPath\":null,\"logs\":[]}"
+   },
+   "tree": {
+    "customizations": {
+     "cust_b100000003": {
+      "src": {
+       "a.txt": "built"
+      }
+     },
+     "cust_b100000003bad": {
+      ".build-overlay.txt": "a.txt\n",
+      "src": {
+       "a.txt": "built"
+      }
+     },
+     "cust_b100000003hang": {
+      ".build-overlay.txt": "a.txt\n",
+      "src": {
+       "a.txt": "built"
+      }
+     },
+     "cust_d100000001": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 5,\n  \"files\": {\n    \"a.txt\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n    \"b.txt\": \"e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98\",\n    \"conf.txt\": \"1405df66cbe219b0bf6355bc3d60361a8376b6b4\",\n    \"nodiff.txt\": \"f98bcc43e9bc2458a6e8e057b95972f9ce86c0e3\",\n    \"up.txt\": \"c00dbbc9dadfbe1e232e93a729dd4752fade0abf\",\n    \"gone.txt\": \"54fd1711209fb1c0781092374132c66e79e2241b\",\n    \"sub/c.txt\": \"84a516841ba77a5b4648de2cd0dfcb30ea46dbb4\"\n  }\n}",
+      "src": {
+       "a.txt": "a2",
+       "bin": {
+        "claudius-revert": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+       },
+       "conf.txt": "mine",
+       "electron-builder.yml": "mac: {}\n",
+       "fresh.txt": "f",
+       "gone.txt": "g",
+       "new.txt": "n",
+       "nodiff.txt": "mirror",
+       "scripts": {
+        "build-app-local.mjs": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+       },
+       "sub": {
+        "c.txt": "c"
+       },
+       "up.txt": "old"
+      }
+     },
+     "cust_p100000004": {
+      ".publishes": {
+       "pub_bc1f8272c06b": {
+        "manifest.json": "{\n  \"publishId\": \"pub_bc1f8272c06b\",\n  \"customizationId\": \"cust_p100000004\",\n  \"publishedAt\": 1700059000177,\n  \"files\": [\n    {\n      \"path\": \"a.txt\",\n      \"baseHash\": \"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8\",\n      \"customHash\": \"c2807535f28e44fe6c7375dcf90518115529a8fa\"\n    },\n    {\n      \"path\": \"added.txt\",\n      \"baseHash\": null,\n      \"customHash\": \"9f50882295d3f0af6e6a0be5eab9b8566614d0bb\"\n    }\n  ],\n  \"baseHashAfterPublish\": \"d3deb9b3b26a449f7769457ab11ad0d71c1ba936\"\n}\n",
+        "snapshot": {
+         "a.txt": "a"
+        }
+       }
+      },
+      "src": {
+       "a.txt": "published",
+       "added.txt": "brand new"
+      }
+     },
+     "cust_s100000002": {
+      "base-manifest.json": "{\n  \"version\": 1,\n  \"createdAt\": 1700033000099,\n  \"files\": {\n    \"only.txt\": \"7a81af3e591ac713f81ea1efe93dcf36157d8376\"\n  }\n}\n",
+      "src": {
+       "only.txt": "o"
+      }
+     },
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_bc1f8272c06b\nr:pub_fail\nr:pub_str\nr:pub_old\nr:7\n"
+   }
+  },
+  {
+   "op": "req",
+   "method": "POST",
+   "path": "/api/customizations/cust_b100000003hang/build-app",
+   "clock": 1700073000219,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"customizationId\":\"cust_b100000003hang\",\"status\":\"building\",\"startedAt\":1700072000216,\"finishedAt\":null,\"artifactPath\":null,\"logs\":[]}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/go",
+   "text": ""
+  },
+  {
+   "op": "wait",
+   "id": "cust_b100000003hang"
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_b100000003hang/build-app",
+   "clock": 1700074000222,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"availability\":{\"available\":true},\"state\":{\"customizationId\":\"cust_b100000003hang\",\"status\":\"done\",\"startedAt\":1700072000216,\"finishedAt\":1700073000219,\"artifactPath\":\"$ROOT/live/release/$MAC/Claudius.app\",\"logs\":[\"overlay $ROOT/home/.claude/.claudius/customizations/cust_b100000003hang/src\",\"building\",\"line three\"]}}"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/live/go"
+  }
+ ],
+ "startup": [
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/home/.claude/.claudius"
+  },
+  {
+   "op": "fs",
+   "act": "rm",
+   "path": "$ROOT/live"
+  },
+  {
+   "op": "fs",
+   "act": "mkdir",
+   "path": "$ROOT/home/.claude/.claudius"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/a.txt",
+   "text": "a"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/b.txt",
+   "text": "b"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/conf.txt",
+   "text": "theirs"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/up.txt",
+   "text": "new"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/fresh.txt",
+   "text": "f"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/nodiff.txt",
+   "text": "live"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/sub/c.txt",
+   "text": "c"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/electron-builder.yml",
+   "text": "mac: {}\n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/scripts/build-app-local.mjs",
+   "text": "#!/usr/bin/env node\nimport { existsSync, mkdirSync } from \"node:fs\";\nconst a = process.argv.slice(2);\nconst src = a[a.indexOf(\"--overlay-src\") + 1] ?? \"\";\nif (src.includes(\"hang\")) {\n  const t = new Int32Array(new SharedArrayBuffer(4));\n  for (let n = 0; n < 300 && !existsSync(\"./go\"); n++) Atomics.wait(t, 0, 0, 100);\n}\nprocess.stdout.write(`overlay ${src}\\r\\nbuilding\\n\\nline three\\n`);\nif (src.includes(\"bad\")) {\n  process.stderr.write(\"oops\\n\");\n  process.exit(7);\n}\nif (!src.includes(\"noapp\")) {\n  mkdirSync(\"./release/mac/Claudius.app\", { recursive: true });\n  mkdirSync(\"./release/mac-arm64/Claudius.app\", { recursive: true });\n}\n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/live/bin/claudius-revert",
+   "text": "#!/usr/bin/env node\nimport { appendFileSync } from \"node:fs\";\nimport { join } from \"node:path\";\nconst a = process.argv.slice(2);\nconst i = a.indexOf(\"--id\");\nconst id = i >= 0 ? a[i + 1] : \"--last\";\nappendFileSync(join(process.env.HOME, \".claude/.claudius/revert.log\"), `r:${id}\\n`);\nprocess.stdout.write(`reverted ${id}\\n`);\nif (id.includes(\"fail\")) {\n  process.stderr.write(\"boom\\n\");\n  process.exit(3);\n}\nprocess.stderr.write(\"ok\\n\");\n"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"pub_r1\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": 1,\n      \"baseHash\": \"b0\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_r1/snapshot\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "call",
+   "fn": "runCustomizationsUpgradeCheck",
+   "clock": 1700075000225
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"pub_r2\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": null,\n      \"baseHash\": \"stale\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_r2/snapshot\"\n    },\n    {\n      \"id\": \"pub_r3\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": null,\n      \"baseHash\": \"also\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_r3/snapshot\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "call",
+   "fn": "runCustomizationsUpgradeCheck",
+   "clock": 1700076000228,
+   "logs": [
+    "[customizations] active publish pub_r2 is stale (base tree changed); auto-reverting",
+    "[customizations] active publish pub_r3 is stale (base tree changed); auto-reverting"
+   ],
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"pub_r2\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": 1700076000228,\n      \"baseHash\": \"stale\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_r2/snapshot\",\n      \"revertReason\": \"stale_at_upgrade\"\n    },\n    {\n      \"id\": \"pub_r3\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": 1700076000228,\n      \"baseHash\": \"also\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_r3/snapshot\",\n      \"revertReason\": \"stale_at_upgrade\"\n    }\n  ]\n}\n",
+   "tree": {
+    "customizations": {
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_r2\nr:pub_r3\n"
+   }
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"pub_fresh\",\n      \"customizationId\": \"cust_p100000004\",\n      \"publishedAt\": 10,\n      \"revertedAt\": null,\n      \"baseHash\": \"a31ea48557ed18b2dede69b4d379a6879a235d8d\",\n      \"files\": [],\n      \"snapshotDir\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/.publishes/pub_fresh/snapshot\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "call",
+   "fn": "runCustomizationsUpgradeCheck",
+   "clock": 1700077000231
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/workspaces.json",
+   "text": "{\n  \"version\": 1,\n  \"activeId\": \"wks_c\",\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"a\",\n      \"rootPath\": \"$ROOT/live\"\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"c\",\n      \"rootPath\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/src\",\n      \"kind\": \"customization\"\n    }\n  ]\n}"
+  },
+  {
+   "op": "fs",
+   "act": "write",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\",\n      \"workspaceId\": \"wks_c\"\n    },\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}"
+  },
+  {
+   "op": "call",
+   "fn": "reconcileCustomizationWorkspaces",
+   "clock": 1700078000234,
+   "logs": [
+    "[customizations] stripped legacy workspaceId from 1 record(s)",
+    "[customizations] removed legacy customization workspace wks_c"
+   ],
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_p100000004\",\n      \"name\": \"n 04\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    },\n    {\n      \"id\": \"cust_d100000001\",\n      \"name\": \"n 01\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.0.1\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "tree": {
+    "customizations": {
+     "index.json": "index"
+    },
+    "revert.log": "r:pub_r2\nr:pub_r3\n",
+    "workspaces.json": "{\n  \"version\": 1,\n  \"activeId\": \"wks_a\",\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"a\",\n      \"rootPath\": \"$ROOT/live\"\n    }\n  ]\n}\n",
+    "workspaces.json.bak.2023-11-15T19-53-20-234Z": "{\n  \"version\": 1,\n  \"activeId\": \"wks_c\",\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"a\",\n      \"rootPath\": \"$ROOT/live\"\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"c\",\n      \"rootPath\": \"$ROOT/home/.claude/.claudius/customizations/cust_p100000004/src\",\n      \"kind\": \"customization\"\n    }\n  ]\n}"
+   }
+  },
+  {
+   "op": "call",
+   "fn": "reconcileCustomizationWorkspaces",
+   "clock": 1700079000237
+  },
+  {
+   "op": "fs",
+   "act": "chmod",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "mode": 0
+  },
+  {
+   "op": "call",
+   "fn": "reconcileCustomizationWorkspaces",
+   "clock": 1700080000240,
+   "logs": [
+    "[customizations] could not reconcile customization workspaces: EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customizations/index.json'"
+   ]
+  },
+  {
+   "op": "fs",
+   "act": "chmod",
+   "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
+   "mode": 420
+  },
+  {
+   "op": "call",
+   "fn": "isRunningInsideCustomizationMirror",
+   "clock": 1700081000243,
+   "result": "false"
+  }
+ ]
+}

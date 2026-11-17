@@ -101,7 +101,10 @@ impl Fetch for NoFetch {
     fn fetch<'a>(
         &'a self,
         _req: &'a claudius_core::fetch::Request,
-    ) -> futures::future::BoxFuture<'a, Result<claudius_core::fetch::Response, String>> {
+    ) -> futures::future::BoxFuture<
+        'a,
+        Result<claudius_core::fetch::Response, claudius_core::fetch::FetchError>,
+    > {
         panic!("the refresh is disabled")
     }
 }

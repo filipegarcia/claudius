@@ -13,7 +13,10 @@
 //!
 //! The `initialize` control request is written before `spawn` returns, so
 //! every later write (including the first prompt) is ordered after it — the
-//! same guarantee `streamInput` gets by awaiting `initializeWritten`.
+//! same guarantee `streamInput` gets by awaiting `initializeWritten`. Its
+//! reply may list prompts the CLI is still waiting on
+//! (`pending_permission_requests` / `pending_user_dialog_requests`); those
+//! are redelivered as if they had just arrived.
 
 use std::collections::HashMap;
 use std::process::Stdio;
@@ -39,6 +42,9 @@ use crate::stream::{self, LineSplitter, Utf8Decoder};
 
 /// SIGTERM → SIGKILL grace on close.
 const KILL_GRACE: Duration = Duration::from_secs(2);
+/// How long the SDK's `ProcessTransport.close()` lets the CLI exit on its
+/// own after ending its stdin before it sends SIGTERM (`D9e`).
+const CLOSE_GRACE: Duration = Duration::from_secs(2);
 /// How long after the exit the SDK waits for stderr to close before it
 /// reports the exit (`vVe`). Stderr arriving later is ignored.
 const STDERR_DRAIN_GRACE: Duration = Duration::from_millis(200);
@@ -131,10 +137,24 @@ enum InitFailure {
     Failed(String),
 }
 
+/// A host→CLI control request waiting for its `control_response`.
+struct Waiter {
+    tx: oneshot::Sender<ControlReply>,
+    /// `subtype === "initialize"`: only that reply's `pending_*` prompts
+    /// are redelivered.
+    initialize: bool,
+}
+
 struct Shared {
     stdin: tokio::sync::Mutex<Option<ChildStdin>>,
-    pending: Mutex<HashMap<String, oneshot::Sender<ControlReply>>>,
-    inflight: Mutex<HashMap<String, CancellationToken>>,
+    pending: Mutex<HashMap<String, Waiter>>,
+    /// The SDK's `cancelControllers`: CLI→host requests being handled, each
+    /// with the generation that registered it (see `next_inflight`).
+    inflight: Mutex<HashMap<String, (u64, CancellationToken)>>,
+    /// Tells one registration of a request id from another, so a handler
+    /// only unregisters its own: after a `control_cancel_request` the same
+    /// id may be delivered (and registered) again.
+    next_inflight: AtomicU64,
     callbacks: Callbacks,
     /// The `initialize` outcome, once the init task has it. It always gets
     /// one: the reply, a waiter failed when stdout closed, or the close.
@@ -351,6 +371,7 @@ impl Query {
             stdin: tokio::sync::Mutex::new(stdin),
             pending: Mutex::new(HashMap::new()),
             inflight: Mutex::new(HashMap::new()),
+            next_inflight: AtomicU64::new(0),
             callbacks: Callbacks {
                 can_use_tool: options.can_use_tool.clone(),
                 on_elicitation: options.on_elicitation.clone(),
@@ -440,18 +461,43 @@ impl Query {
                 let mut stdout = stdout;
                 let mut lines = LineSplitter::default();
                 let mut buf = vec![0u8; 64 * 1024];
-                let mut dispatch = |line: String| handle.dispatch_line(&line, &tx);
+                // Set once a line makes the SDK's reader throw: the lines
+                // after it are never read.
+                let threw = std::sync::atomic::AtomicBool::new(false);
+                let mut dispatch = |line: String| {
+                    if !threw.load(Ordering::Relaxed) && !handle.dispatch_line(&line, &tx) {
+                        threw.store(true, Ordering::Relaxed);
+                    }
+                };
                 let read_error = loop {
                     match stdout.read(&mut buf).await {
                         Ok(0) => {
                             lines.finish(&mut dispatch);
                             break None;
                         }
-                        Ok(n) => lines.push(&buf[..n], &mut dispatch),
+                        Ok(n) => {
+                            lines.push(&buf[..n], &mut dispatch);
+                            if threw.load(Ordering::Relaxed) {
+                                break None;
+                            }
+                        }
                         Err(e) => break Some(e),
                     }
                 };
-                handle.on_stdout_closed(&tx, read_error).await;
+                if threw.load(Ordering::Relaxed) {
+                    // The rest of `cleanup(e)`: `transport.close()` ends
+                    // stdin, and terminates the CLI if it's still running
+                    // after `CLOSE_GRACE`.
+                    handle.end_input().await;
+                    if tokio::time::timeout(CLOSE_GRACE, handle.wait_exit())
+                        .await
+                        .is_err()
+                    {
+                        handle.shared.kill.cancel();
+                    }
+                } else {
+                    handle.on_stdout_closed(&tx, read_error).await;
+                }
             });
         }
 
@@ -729,12 +775,13 @@ impl QueryHandle {
             &uuid::Uuid::new_v4().simple().to_string()[..8]
         );
         let (tx, rx) = oneshot::channel();
+        let initialize = body.get("subtype").and_then(Value::as_str) == Some("initialize");
         {
             let mut pending = self.shared.pending.lock().unwrap();
             if self.shared.cleaned_up.load(Ordering::Acquire) {
                 return Err(AgentError::QueryClosed);
             }
-            pending.insert(id.clone(), tx);
+            pending.insert(id.clone(), Waiter { tx, initialize });
         }
         let msg = json!({"request_id": id, "type": "control_request", "request": body});
         if let Err(e) = self.write_json(&msg).await {
@@ -880,6 +927,24 @@ impl QueryHandle {
     /// `getSettings()`: `{effective, applied, …}` as the CLI reports it.
     pub async fn get_settings(&self) -> Result<Value, AgentError> {
         self.request(json!({"subtype": "get_settings"})).await
+    }
+
+    /// `renameSession(title, sessionId)`: the CLI's `rename_session` control
+    /// request with `source: "host"`, which it counts as a user rename. An
+    /// absent `sessionId` is left out, as `JSON.stringify` drops it.
+    pub async fn rename_session(
+        &self,
+        title: &str,
+        session_id: Option<&str>,
+    ) -> Result<Value, AgentError> {
+        let mut body = Map::new();
+        body.insert("subtype".into(), json!("rename_session"));
+        body.insert("title".into(), json!(title));
+        body.insert("source".into(), json!("host"));
+        if let Some(id) = session_id {
+            body.insert("session_id".into(), json!(id));
+        }
+        self.request(Value::Object(body)).await
     }
 
     /// `submitFeedback(description, opts)`. Unset options are omitted, like
@@ -1064,30 +1129,40 @@ impl QueryHandle {
 
     // ---- inbound ----
 
-    fn dispatch_line(&self, line: &str, tx: &mpsc::UnboundedSender<Result<Value, AgentError>>) {
+    /// One stdout line, as the SDK's `readMessages` loop body handles it.
+    /// `false` when the SDK's reader would throw on it (see
+    /// [`Self::redeliver_prompts`]): the query is then cleaned up and no
+    /// later line is read.
+    fn dispatch_line(
+        &self,
+        line: &str,
+        tx: &mpsc::UnboundedSender<Result<Value, AgentError>>,
+    ) -> bool {
         // Blank by JS `trim`, but parsed untrimmed: `JSON.parse` only skips
         // JSON whitespace, so e.g. an NBSP-padded line is dropped.
         if js::trim(line).is_empty() {
-            return;
+            return true;
         }
-        let v: Value = match serde_json::from_str(line) {
+        // `JSON.parse`: a lone-surrogate escape reads as U+FFFD (the SDK
+        // keeps the lone surrogate), a number past f64 as `null`.
+        let v: Value = match js::parse_line(line) {
             Ok(v) => v,
             Err(e) => {
                 tracing::debug!(
                     "ignoring non-JSON stdout line ({e}): {}",
                     truncate(line, 200)
                 );
-                return;
+                return true;
             }
         };
         match v.get("type").and_then(Value::as_str) {
             Some("control_response") => {
                 let resp = v.get("response").cloned().unwrap_or(Value::Null);
                 let Some(id) = resp.get("request_id").and_then(Value::as_str) else {
-                    return;
+                    return true;
                 };
                 let Some(waiter) = self.shared.pending.lock().unwrap().remove(id) else {
-                    return;
+                    return true;
                 };
                 let reply = if resp.get("subtype").and_then(Value::as_str) == Some("success") {
                     Ok(resp.get("response").cloned().unwrap_or_else(|| json!({})))
@@ -1099,34 +1174,132 @@ impl QueryHandle {
                             .to_owned(),
                     ))
                 };
-                let _ = waiter.send(reply);
+                // `request()`'s handler settles the waiter, then (error
+                // replies too) redelivers the prompts an `initialize` reply
+                // lists. The waiter's continuation runs after those
+                // callbacks started, so it is told last.
+                let keep_reading = if waiter.initialize {
+                    self.redeliver_prompts(&resp, tx)
+                } else {
+                    if [
+                        "pending_permission_requests",
+                        "pending_user_dialog_requests",
+                    ]
+                    .iter()
+                    .any(|k| resp.get(*k).is_some_and(js::truthy))
+                    {
+                        tracing::debug!(
+                            "ignoring prompt-redelivery fields on a non-initialize response"
+                        );
+                    }
+                    true
+                };
+                let _ = waiter.tx.send(reply);
+                keep_reading
             }
             Some("control_request") => {
-                // The SDK calls `handleControlRequest` without awaiting it,
-                // so each callback runs up to its first `await` in arrival
-                // order (two `can_use_tool`s prompt in the CLI's order).
-                // Poll once here for the same; a task finishes the rest.
-                let this = self.clone();
-                let mut fut = Box::pin(async move { this.handle_control_request(v).await });
-                let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
-                if fut.as_mut().poll(&mut cx).is_pending() {
-                    tokio::spawn(fut);
-                }
+                self.start_control_request(v);
+                true
             }
             Some("control_cancel_request") => {
-                if let Some(id) = v.get("request_id").and_then(Value::as_str)
-                    && let Some(tok) = self.shared.inflight.lock().unwrap().get(id)
-                {
+                // `handleControlCancelRequest`: abort and forget it, so the
+                // same id can be delivered again.
+                let cancelled = v
+                    .get("request_id")
+                    .and_then(Value::as_str)
+                    .and_then(|id| self.shared.inflight.lock().unwrap().remove(id));
+                if let Some((_, tok)) = cancelled {
                     tok.cancel();
                 }
+                true
             }
-            Some("keep_alive") | Some("transcript_mirror") => {}
+            Some("keep_alive") | Some("transcript_mirror") => true,
             _ => {
                 if self.read_message(&v) {
                     let _ = tx.send(Ok(v));
                 }
+                true
             }
         }
+    }
+
+    /// `handleControlRequest`, which the SDK calls without awaiting it, so
+    /// each callback runs up to its first `await` in arrival order (two
+    /// `can_use_tool`s prompt in the CLI's order). Poll once here for the
+    /// same; a task finishes the rest.
+    fn start_control_request(&self, v: Value) {
+        let this = self.clone();
+        let mut fut = Box::pin(async move { this.handle_control_request(v).await });
+        let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+        if fut.as_mut().poll(&mut cx).is_pending() {
+            tokio::spawn(fut);
+        }
+    }
+
+    /// The SDK's `processPendingPermissionRequests` and
+    /// `processPendingUserDialogRequests` on an `initialize` reply: each
+    /// listed request goes through `handleControlRequest` like a live one
+    /// (so an id already in flight is skipped), `can_use_tool`s with
+    /// `server_policy_ask_only` cleared. `false` when walking the lists
+    /// throws (see [`pending_prompts`]): the SDK's reader then fails, so the
+    /// query is cleaned up with V8's `TypeError`. The requests listed before
+    /// the throw are still handled first. The SDK's reader closes its line
+    /// iterator before its `catch` runs, so a callback that settles within
+    /// those few microtasks is still answered and a slower one is aborted;
+    /// here, one that settles on its first poll is answered.
+    fn redeliver_prompts(
+        &self,
+        resp: &Value,
+        tx: &mpsc::UnboundedSender<Result<Value, AgentError>>,
+    ) -> bool {
+        let (requests, threw) = pending_prompts(resp);
+        // The SDK dispatches the whole batch synchronously, and a handler
+        // unregisters its id only after an `await`, so an id listed twice
+        // (in either list) is a duplicate even when its first callback
+        // settles at once, as it may here on the first poll.
+        let mut batch = std::collections::HashSet::new();
+        for v in requests {
+            if let Some(id) = v.get("request_id").and_then(Value::as_str)
+                && !batch.insert(id.to_owned())
+            {
+                tracing::debug!("duplicate delivery of in-flight request {id}");
+                continue;
+            }
+            self.start_control_request(v);
+        }
+        match threw {
+            None => true,
+            Some(message) => {
+                self.reader_threw(tx, message);
+                false
+            }
+        }
+    }
+
+    /// `readMessages`' `catch` for an error thrown while reading (a
+    /// `TypeError` from [`pending_prompts`]), and `cleanup(e)`'s synchronous
+    /// part: the error (swapped for the last error result's text, like an
+    /// exit error) ends the stream and fails every waiter, and in-flight
+    /// callbacks are aborted (their tokens are children of `closed`). The
+    /// reader task then closes the transport.
+    fn reader_threw(&self, tx: &mpsc::UnboundedSender<Result<Value, AgentError>>, message: String) {
+        let err = match self.error_result_text() {
+            Some(text) => {
+                tracing::debug!("replacing exit error with result text. Original: {message}");
+                AgentError::ErrorResult(text)
+            }
+            None => AgentError::TypeError(message),
+        };
+        let waiters: Vec<_> = {
+            let mut pending = self.shared.pending.lock().unwrap();
+            self.shared.cleaned_up.store(true, Ordering::Release);
+            pending.drain().map(|(_, w)| w.tx).collect()
+        };
+        for w in waiters {
+            let _ = w.send(Err(err.duplicate()));
+        }
+        let _ = tx.send(Err(err));
+        self.shared.closed.cancel();
     }
 
     /// `readMessages`' bookkeeping for one SDK message. `false` when the SDK
@@ -1268,19 +1441,38 @@ impl QueryHandle {
             return;
         }
         let token = self.shared.closed.child_token();
+        let generation = self.shared.next_inflight.fetch_add(1, Ordering::Relaxed);
         {
             let mut inflight = self.shared.inflight.lock().unwrap();
             if inflight.contains_key(&request_id) {
                 tracing::debug!("duplicate delivery of in-flight request {request_id}");
                 return;
             }
-            inflight.insert(request_id.clone(), token.clone());
+            inflight.insert(request_id.clone(), (generation, token.clone()));
         }
         let result = self
             .process_control_request(&request_id, v.get("request"), token)
             .await;
-        self.shared.inflight.lock().unwrap().remove(&request_id);
-        if self.shared.closed.is_cancelled() {
+        self.reply_to_control_request(&request_id, result).await;
+        // `finally`: unless a cancel dropped it (and the id was delivered
+        // again since).
+        let mut inflight = self.shared.inflight.lock().unwrap();
+        if inflight
+            .get(&request_id)
+            .is_some_and(|(g, _)| *g == generation)
+        {
+            inflight.remove(&request_id);
+        }
+    }
+
+    /// Writes `handleControlRequest`'s reply, unless the query was cleaned
+    /// up meanwhile (`cleanupPerformed`) or the request is left unanswered.
+    async fn reply_to_control_request(
+        &self,
+        request_id: &str,
+        result: Result<Option<Value>, String>,
+    ) {
+        if self.shared.closed.is_cancelled() || self.shared.cleaned_up.load(Ordering::Acquire) {
             return;
         }
         let msg = match result {
@@ -1444,7 +1636,7 @@ impl QueryHandle {
         let waiters: Vec<_> = {
             let mut pending = self.shared.pending.lock().unwrap();
             self.shared.cleaned_up.store(true, Ordering::Release);
-            pending.drain().map(|(_, w)| w).collect()
+            pending.drain().map(|(_, w)| w.tx).collect()
         };
         for w in waiters {
             let cause = err
@@ -1452,7 +1644,7 @@ impl QueryHandle {
                 .map_or(AgentError::QueryClosed, AgentError::duplicate);
             let _ = w.send(Err(cause));
         }
-        for tok in self.shared.inflight.lock().unwrap().values() {
+        for (_, tok) in self.shared.inflight.lock().unwrap().values() {
             tok.cancel();
         }
         if let Some(e) = err {
@@ -1530,4 +1722,58 @@ fn result_error_text(v: &Value) -> Option<Value> {
 /// V8's `TypeError` for reading a property of `undefined` / `null`.
 fn read_prop_error(of: &str, key: &str) -> String {
     format!("Cannot read properties of {of} (reading '{key}')")
+}
+
+/// The prompts an `initialize` reply asks the host to redeliver, in the
+/// SDK's order: `pending_permission_requests`' `can_use_tool`s (each with
+/// `server_policy_ask_only` cleared: `{...request, server_policy_ask_only:
+/// undefined}`), then `pending_user_dialog_requests`' `request_user_dialog`s.
+/// A falsy list is skipped, and so is an entry whose `request` has another
+/// subtype or isn't an object.
+///
+/// The SDK walks each truthy list with `for (const t of list)
+/// t.request.subtype`, so a shape the CLI never sends throws a `TypeError`,
+/// returned here as V8 words it, with the requests listed before it: a
+/// list that isn't iterable (`e` is the minified parameter's name), an
+/// entry that's `null`, or one whose `request` is missing or `null` (as it
+/// always is for an entry that isn't an object, e.g. a string list's
+/// characters).
+fn pending_prompts(resp: &Value) -> (Vec<Value>, Option<String>) {
+    const LISTS: [(&str, &str); 2] = [
+        ("pending_permission_requests", "can_use_tool"),
+        ("pending_user_dialog_requests", "request_user_dialog"),
+    ];
+    let mut out = Vec::new();
+    for (key, subtype) in LISTS {
+        let entries = match resp.get(key) {
+            Some(list) if !js::truthy(list) => continue,
+            None => continue,
+            Some(Value::Array(entries)) => entries,
+            Some(Value::String(_)) => return (out, Some(read_prop_error("undefined", "subtype"))),
+            Some(_) => return (out, Some("e is not iterable".to_owned())),
+        };
+        for entry in entries {
+            let request = match entry {
+                Value::Null => return (out, Some(read_prop_error("null", "request"))),
+                Value::Object(o) => o.get("request"),
+                _ => None,
+            };
+            let request = match request {
+                None => return (out, Some(read_prop_error("undefined", "subtype"))),
+                Some(Value::Null) => return (out, Some(read_prop_error("null", "subtype"))),
+                Some(request) => request,
+            };
+            if js::prop(Some(request), "subtype").and_then(Value::as_str) != Some(subtype) {
+                continue;
+            }
+            let mut entry = entry.clone();
+            if subtype == "can_use_tool"
+                && let Some(Value::Object(r)) = entry.get_mut("request")
+            {
+                r.shift_remove("server_policy_ask_only");
+            }
+            out.push(entry);
+        }
+    }
+    (out, None)
 }

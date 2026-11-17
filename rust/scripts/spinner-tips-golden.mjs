@@ -11,10 +11,10 @@
 // - `normalizeSpinnerTipsOverride`, `SPINNER_TIPS_FILE_MAX_BYTES` and
 //   `mergeSpinnerTipsFile` (with session.ts's own `fsp` / `homedir` /
 //   `isAbsolute` / `pathJoin` bindings);
-// - from `start()`, the `readSettings("user", …)` statement and the
-//   `this.spinnerTipsConfig = { … }` assignment after it, run with `this` set
+// - from `start()`, the `readSettings("user", ...)` statement and the
+//   `this.spinnerTipsConfig = { ... }` assignment after it, run with `this` set
 //   to a stand-in;
-// - from `subscribe()`, the `selectTips({ … })` call behind the `tips` event.
+// - from `subscribe()`, the `selectTips({ ... })` call behind the `tips` event.
 // `readSettings` (lib/server/settings.ts) and `selectTips`
 // (lib/shared/tips.ts) are imported as they are.
 //
@@ -52,7 +52,7 @@ const rustDir = resolve(here, "..");
 const repo = resolve(rustDir, "..");
 const out = join(rustDir, "crates/claudius-core/tests/fixtures/spinner_tips_golden.json");
 
-// ─────────────────────────────── recording ───────────────────────────────
+// ------------------------------- recording -------------------------------
 
 if (!process.env.SPINNER_TIPS_GOLDEN_CHILD) {
   const runs = [0, 1].map(() => {
@@ -109,7 +109,7 @@ export async function resolve(spec, ctx, next) {
 }`;
 register(`data:text/javascript,${encodeURIComponent(hook)}`);
 
-// ──────────────────────── the real source, as text ────────────────────────
+// ------------------------ the real source, as text ------------------------
 
 const src = readFileSync(join(repo, "lib/server/session.ts"), "utf8");
 const once = (needle, what) => {
@@ -129,7 +129,7 @@ const slice = (start, end, what) => {
 for (const line of [
   /^import \{[^}]*\bpromises as fsp\b[^}]*\} from "node:fs";$/m,
   /^import \{ homedir \} from "node:os";$/m,
-  /^import \{ isAbsolute, join as pathJoin \} from "node:path";$/m,
+  /^import \{ isAbsolute, join as pathJoin\b[^}]*\} from "node:path";$/m,
   /^import \{ selectTips\b[^}]*\} from "@\/lib\/shared\/tips";$/m,
   /^import \{[^}]*\breadSettings,[^}]*\} from "\.\/settings";$/m,
 ]) {
@@ -193,7 +193,7 @@ writeFileSync(
 const ex = await import(pathToFileURL(modPath).href);
 const MAX = ex.SPINNER_TIPS_FILE_MAX_BYTES;
 
-// ──────────────────────────────── cases ────────────────────────────────
+// -------------------------------- cases --------------------------------
 
 const ch = (...codes) => String.fromCharCode(...codes);
 const NBSP = ch(0xa0);
@@ -525,7 +525,7 @@ const JOIN_FILES = [
   "~/.x", "~/x/..", "~/x/../", "~//x", "~/x/./", "~/a/../../b/", "~", "~x", "/abs/x", "/abs/../x", "rel/x", "",
 ];
 
-// ─────────────────────────────── recording ───────────────────────────────
+// ------------------------------- recording -------------------------------
 
 const fill = (s) => s.split("$HOME").join(home);
 const unfill = (s) => s.split(home).join("$HOME");

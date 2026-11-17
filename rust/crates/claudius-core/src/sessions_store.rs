@@ -571,7 +571,10 @@ fn find_file_where(
     if let Some(d) = dir {
         let real = realpath(d);
         let mut paths_ = vec![real.clone(), d.to_owned()];
-        paths_.extend(git_worktrees(&real));
+        // The SDK's lookup skips the macOS git stub (0.3.312).
+        if !crate::git_stub::is_git_stub() {
+            paths_.extend(git_worktrees(&real));
+        }
         for p in paths_ {
             let f = projects
                 .join(paths::sdk_project_dir_name(&p))
@@ -692,7 +695,7 @@ pub fn write_fork(file: &Path, fork_id: &str, text: &str) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// The fork's title fallback (the closure `oTe` hands `WU`): the tail's
+/// The fork's title fallback (the closure `Owe` hands `Z0`): the tail's
 /// `customTitle` (even `""`, which then falls through), else the sidecar or
 /// the head's `customTitle`; then `aiTitle` (tail, head); then the first
 /// prompt.
@@ -728,6 +731,11 @@ pub fn rename(session_id: &str, title: &str, dir: Option<&str>) -> anyhow::Resul
     let Some((file, _)) = find_file(session_id, dir) else {
         match dir {
             Some(d) => anyhow::bail!("Session {session_id} not found in project directory for {d}"),
+            // The SDK lists the projects dir first (`m3`), so a missing or
+            // unreadable one has its own message.
+            None if std::fs::read_dir(paths::sdk_projects_dir()).is_err() => {
+                anyhow::bail!("Session {session_id} not found (no projects directory)")
+            }
             None => anyhow::bail!("Session {session_id} not found in any project directory"),
         }
     };

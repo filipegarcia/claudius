@@ -1,5 +1,5 @@
 {
-  "sdkVersion": "0.3.299",
+  "sdkVersion": "0.3.312",
   "case": "claudius_session",
   "spec": {
     "model": "claude-opus-4-8",
@@ -128,7 +128,7 @@
     "{\"includeCoAuthoredBy\":false}"
   ],
   "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
     "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",

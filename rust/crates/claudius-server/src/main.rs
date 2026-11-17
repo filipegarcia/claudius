@@ -9,9 +9,13 @@
 //! claudius --port 3100 --next http://127.0.0.1:3000
 //! ```
 //!
-//! `--scheduler` (or `CLAUDIUS_SCHEDULER=1`) also runs Claudius's scheduled
-//! jobs (`claudius_core::scheduler`). Off by default: Next boots its own
-//! scheduler on the same `jobs.json`, so only turn it on where Next doesn't.
+//! It also runs Claudius's scheduled jobs (`claudius_core::scheduler`),
+//! which is the default since G07d. `--no-scheduler`, or
+//! `CLAUDIUS_SCHEDULER=0|false|no|off`, turns that off; `--scheduler` forces
+//! it on. Two schedulers on one `jobs.json` would run every job twice, so
+//! the Next behind this front door must be started with
+//! `CLAUDIUS_RUST_SCHEDULER=1`, which makes `lib/server/scheduler.ts` skip
+//! its own boot and arm no timers.
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -56,9 +60,10 @@ fn parse_args() -> anyhow::Result<Args> {
             "--no-next" => a.next = None,
             "--claude-bin" => a.claude_bin = Some(PathBuf::from(val("--claude-bin")?)),
             "--scheduler" => a.scheduler = true,
+            "--no-scheduler" => a.scheduler = false,
             "-h" | "--help" => {
                 println!(
-                    "claudius [--host 127.0.0.1] [--port 3100] [--next http://127.0.0.1:3000 | --no-next] [--claude-bin PATH] [--scheduler]"
+                    "claudius [--host 127.0.0.1] [--port 3100] [--next http://127.0.0.1:3000 | --no-next] [--claude-bin PATH] [--no-scheduler]"
                 );
                 std::process::exit(0);
             }
@@ -88,15 +93,18 @@ async fn main() -> anyhow::Result<()> {
             env_override: None,
         };
     }
-    // TS boots it from `instrumentation.ts`; here only when asked (see the
-    // module doc). Booted before the listener, so a health check implies it.
+    // TS boots it from `instrumentation.ts`; here unless told not to (see
+    // the module doc). Booted before the listener, so a health check
+    // implies it.
+    scheduler::set_enabled(args.scheduler);
     if args.scheduler {
         let sched = scheduler::scheduler();
         sched.set_runner(RunnerOptions {
             claude_bin: args.claude_bin.clone(),
             env: None,
         });
-        scheduler::set_enabled(true);
+        // Finished runs and a missing folder reach the notification inbox.
+        sched.set_on_run_finished(Some(Arc::new(scheduler::record_on_bus)));
         match sched.boot() {
             Ok(()) => tracing::info!("scheduler on: jobs in {}", sched.store().root().display()),
             Err(e) => tracing::error!(
@@ -113,6 +121,7 @@ async fn main() -> anyhow::Result<()> {
         .map(Arc::new);
     let addr: SocketAddr = format!("{}:{}", args.host, args.port).parse()?;
     let listener = tokio::net::TcpListener::bind(addr).await?;
+    claudius_core::preview_server::reserve_port(listener.local_addr()?.port());
     tracing::info!(
         "claudius (rust) listening on http://{addr}{}",
         proxy
@@ -137,6 +146,8 @@ async fn main() -> anyhow::Result<()> {
     if args.scheduler {
         scheduler::scheduler().shutdown().await;
     }
+    // Customization previews (`next dev` children) don't outlive the server.
+    claudius_core::preview_server::shutdown().await;
     // End every session first, concurrently: each waits for its CLI to exit
     // (SIGTERM → SIGKILL after the kill grace), so no child is orphaned.
     let ids: Vec<String> = mgr.list().into_iter().map(|s| s.id.clone()).collect();

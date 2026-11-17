@@ -46,7 +46,10 @@ fn fixture() -> &'static Value {
     F.get_or_init(|| {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures/session_callbacks_golden.json");
-        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+        // `js_string::parse`, not serde: a hook-ask reason capped through
+        // an astral pair leaves a lone surrogate, which `JSON.parse` reads
+        // and serde refuses.
+        claudius_core::js_string::parse(&std::fs::read_to_string(path).unwrap()).unwrap()
     })
 }
 
@@ -296,7 +299,35 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
         unsafe { std::env::set_var(k, v.as_str().unwrap()) };
     }
 
-    let mut options = case["options"].as_object().unwrap().clone();
+    // `files`: the cwd's tree before `start()` (the CC 2.1.310 symlink
+    // lookup reads it). A path holding `$ROOT` or starting with `/` is
+    // absolute, the rest are relative to the cwd.
+    for op in case["files"].as_array().map(Vec::as_slice).unwrap_or(&[]) {
+        let a = op.as_array().unwrap();
+        let abs = |p: &str| {
+            if p.contains("$ROOT") {
+                PathBuf::from(p.replace("$ROOT", &e.root))
+            } else if p.starts_with('/') {
+                PathBuf::from(p)
+            } else {
+                cwd.join(p)
+            }
+        };
+        match a[0].as_str().unwrap() {
+            "write" => {
+                std::fs::write(abs(a[1].as_str().unwrap()), a[2].as_str().unwrap_or("")).unwrap()
+            }
+            "mkdir" => std::fs::create_dir_all(abs(a[1].as_str().unwrap())).unwrap(),
+            "symlink" => {
+                std::os::unix::fs::symlink(abs(a[1].as_str().unwrap()), abs(a[2].as_str().unwrap()))
+                    .unwrap()
+            }
+            o => panic!("{name}: unknown file op {o}"),
+        }
+    }
+
+    let mut options: Map<String, Value> =
+        serde_json::from_str(&case["options"].to_string().replace("$ROOT", &e.root)).unwrap();
     options.insert("id".into(), json!(id));
     options.insert("cwd".into(), json!(cwd_s));
     let mut opts: SessionOptions = serde_json::from_value(Value::Object(options))

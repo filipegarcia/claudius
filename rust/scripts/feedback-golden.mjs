@@ -758,6 +758,19 @@ const GROUPS = [
     sessions: [S1],
     steps: [P({ comment: "never started", sessionId: S1 }), G(`sessionId=${S1}`), ROWS],
   },
+  {
+    // Lone surrogates forwarded to a live CLI: the SDK writes each as its
+    // escape, which the fake reads as the CLI's `JSON.parse` does (I17), so
+    // the request gets its reply; better-sqlite3 stores each as 3 bytes.
+    name: "lone surrogates",
+    query: "live",
+    script: null,
+    sessions: [S1],
+    steps: [
+      P(`{"rating":"up","comment":"lone ${ju("d800")} high","surface":"${ju("dc00")}${ju("d83d")}","sessionId":"${S1}"}`),
+      ROWS,
+    ],
+  },
 ].map((g) => ({ ...g, cwd: cwdOf(g.name.replace(/ /g, "-")) }));
 
 const groups = [];

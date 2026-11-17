@@ -1,0 +1,4798 @@
+{
+ "node": "v22.23.3",
+ "hint": "Denied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.",
+ "renameWorld": {
+  "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"B\",\n      \"rootPath\": \"$ROOT/w/b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+  "roots": [
+   {
+    "root": "$ROOT/w/a",
+    "sql": [
+     "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', 'Old A', NULL, 1000, 2000, 3000);",
+     "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('not-a-uuid', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+    ]
+   },
+   {
+    "root": "$ROOT/w/b",
+    "sql": [
+     "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/b', NULL, NULL, 1000, 2000, 3000);",
+     "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000002', '$ROOT/w/b', 'Old B', NULL, 1000, 2000, 3000);"
+    ]
+   }
+  ]
+ },
+ "history": [
+  {
+   "name": "no title",
+   "id": "a",
+   "title": "null",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "no title, empty id",
+   "id": "",
+   "title": "null",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "no title, live",
+   "id": "a",
+   "title": "null",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "no title, live, empty id",
+   "id": "",
+   "title": "null",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "undefined title",
+   "id": "a",
+   "title": "null",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "undefined title, empty id",
+   "id": "",
+   "title": "null",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "undefined title, live",
+   "id": "a",
+   "title": "null",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "undefined title, live, empty id",
+   "id": "",
+   "title": "null",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a title",
+   "id": "a",
+   "title": "\"Release prep\"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "a title, empty id",
+   "id": "",
+   "title": "\"Release prep\"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "a title, live",
+   "id": "a",
+   "title": "\"Release prep\"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "a title, live, empty id",
+   "id": "",
+   "title": "\"Release prep\"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an untrimmed title",
+   "id": "a",
+   "title": "\"  Release prep  \"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an untrimmed title, empty id",
+   "id": "",
+   "title": "\"  Release prep  \"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an untrimmed title, live",
+   "id": "a",
+   "title": "\"  Release prep  \"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an untrimmed title, live, empty id",
+   "id": "",
+   "title": "\"  Release prep  \"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an empty title",
+   "id": "a",
+   "title": "\"\"",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "an empty title, empty id",
+   "id": "",
+   "title": "\"\"",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "an empty title, live",
+   "id": "a",
+   "title": "\"\"",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "an empty title, live, empty id",
+   "id": "",
+   "title": "\"\"",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "spaces only",
+   "id": "a",
+   "title": "\"   \"",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "spaces only, empty id",
+   "id": "",
+   "title": "\"   \"",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "spaces only, live",
+   "id": "a",
+   "title": "\"   \"",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "spaces only, live, empty id",
+   "id": "",
+   "title": "\"   \"",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "tabs and newlines only",
+   "id": "a",
+   "title": "\"\\t\\n\\r \"",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "tabs and newlines only, empty id",
+   "id": "",
+   "title": "\"\\t\\n\\r \"",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "tabs and newlines only, live",
+   "id": "a",
+   "title": "\"\\t\\n\\r \"",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "tabs and newlines only, live, empty id",
+   "id": "",
+   "title": "\"\\t\\n\\r \"",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a BOM only",
+   "id": "a",
+   "title": "\"﻿\"",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a BOM only, empty id",
+   "id": "",
+   "title": "\"﻿\"",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a BOM only, live",
+   "id": "a",
+   "title": "\"﻿\"",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a BOM only, live, empty id",
+   "id": "",
+   "title": "\"﻿\"",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a NEL only",
+   "id": "a",
+   "title": "\"\"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "a NEL only, empty id",
+   "id": "",
+   "title": "\"\"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "a NEL only, live",
+   "id": "a",
+   "title": "\"\"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "a NEL only, live, empty id",
+   "id": "",
+   "title": "\"\"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an astral title",
+   "id": "a",
+   "title": "\"🦀\"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an astral title, empty id",
+   "id": "",
+   "title": "\"🦀\"",
+   "live": false,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an astral title, live",
+   "id": "a",
+   "title": "\"🦀\"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "an astral title, live, empty id",
+   "id": "",
+   "title": "\"🦀\"",
+   "live": true,
+   "asked": [],
+   "result": "true"
+  },
+  {
+   "name": "a number title",
+   "id": "a",
+   "title": "5",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a number title, empty id",
+   "id": "",
+   "title": "5",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a number title, live",
+   "id": "a",
+   "title": "5",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a number title, live, empty id",
+   "id": "",
+   "title": "5",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a zero title",
+   "id": "a",
+   "title": "0",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a zero title, empty id",
+   "id": "",
+   "title": "0",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a zero title, live",
+   "id": "a",
+   "title": "0",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a zero title, live, empty id",
+   "id": "",
+   "title": "0",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a NaN title",
+   "id": "a",
+   "title": "null",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a NaN title, empty id",
+   "id": "",
+   "title": "null",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a NaN title, live",
+   "id": "a",
+   "title": "null",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a NaN title, live, empty id",
+   "id": "",
+   "title": "null",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a true title",
+   "id": "a",
+   "title": "true",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a true title, empty id",
+   "id": "",
+   "title": "true",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a true title, live",
+   "id": "a",
+   "title": "true",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a true title, live, empty id",
+   "id": "",
+   "title": "true",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a false title",
+   "id": "a",
+   "title": "false",
+   "live": false,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a false title, empty id",
+   "id": "",
+   "title": "false",
+   "live": false,
+   "asked": [
+    "\"\""
+   ],
+   "result": "false"
+  },
+  {
+   "name": "a false title, live",
+   "id": "a",
+   "title": "false",
+   "live": true,
+   "asked": [
+    "\"a\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a false title, live, empty id",
+   "id": "",
+   "title": "false",
+   "live": true,
+   "asked": [
+    "\"\""
+   ],
+   "result": "true"
+  },
+  {
+   "name": "a Buffer title",
+   "id": "a",
+   "title": "{\"type\":\"Buffer\",\"data\":[104,105]}",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a Buffer title, empty id",
+   "id": "",
+   "title": "{\"type\":\"Buffer\",\"data\":[104,105]}",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a Buffer title, live",
+   "id": "a",
+   "title": "{\"type\":\"Buffer\",\"data\":[104,105]}",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "a Buffer title, live, empty id",
+   "id": "",
+   "title": "{\"type\":\"Buffer\",\"data\":[104,105]}",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an empty Buffer title",
+   "id": "a",
+   "title": "{\"type\":\"Buffer\",\"data\":[]}",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an empty Buffer title, empty id",
+   "id": "",
+   "title": "{\"type\":\"Buffer\",\"data\":[]}",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an empty Buffer title, live",
+   "id": "a",
+   "title": "{\"type\":\"Buffer\",\"data\":[]}",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an empty Buffer title, live, empty id",
+   "id": "",
+   "title": "{\"type\":\"Buffer\",\"data\":[]}",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an object title",
+   "id": "a",
+   "title": "{}",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an object title, empty id",
+   "id": "",
+   "title": "{}",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an object title, live",
+   "id": "a",
+   "title": "{}",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an object title, live, empty id",
+   "id": "",
+   "title": "{}",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an array title",
+   "id": "a",
+   "title": "[\"x\"]",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an array title, empty id",
+   "id": "",
+   "title": "[\"x\"]",
+   "live": false,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an array title, live",
+   "id": "a",
+   "title": "[\"x\"]",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  },
+  {
+   "name": "an array title, live, empty id",
+   "id": "",
+   "title": "[\"x\"]",
+   "live": true,
+   "asked": [],
+   "throws": "row.title.trim is not a function"
+  }
+ ],
+ "rm": [
+  {
+   "name": "the working directory in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "the working directory in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the working directory in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the working directory in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the working directory in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the working directory in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the working directory in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the working directory in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir on a critical path in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rmdir operation on critical path: /usr\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "rmdir on a critical path in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir on a critical path in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir on a critical path in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir on a critical path in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir on a critical path in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir on a critical path in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir on a critical path in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Dangerous rmdir operation on critical path: /usr\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a compound command in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"subcommandResults\"}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "not ruled out in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "not ruled out in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "not ruled out in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "not ruled out in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "not ruled out in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "not ruled out in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "not ruled out in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "not ruled out in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation not ruled out - some nested commands or function substitutions could not be analyzed\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a derived variable in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on possibly-empty variable path: ${OUT}/x (use a literal path: $OUT is set in this command from `mktemp -d`, which can print nothing)\",\"decisionReasonType\":\"subcommandResults\"}",
+   "result": "\"Dangerous rm operation on possibly-empty variable path: ${OUT}/x (use a literal path: $OUT is set in this command from `mktemp -d`, which can print nothing)\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "another safety check in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "another safety check in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "another safety check in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "another safety check in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "another safety check in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "another safety check in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "another safety check in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "another safety check in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Claude requested permissions to edit .git/config, which is a sensitive file.\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a hook ask in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"hook\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason type in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason type in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":null}",
+   "result": "null"
+  },
+  {
+   "name": "a reason type object in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":{\"t\":\"safetyCheck\"}}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "no reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a null reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":null,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a number reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":5,\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an object reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":{\"text\":\"Dangerous rm operation on working directory or its ancestor: .\"},\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an array reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":[\"Dangerous rm operation on working directory or its ancestor: .\"],\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "a forced ask rule in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{\"source\":\"userSettings\",\"toolName\":\"Bash\",\"ruleContent\":\"rm:*\"}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "an empty ask rule object in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":{}}",
+   "result": "null"
+  },
+  {
+   "name": "a falsy ask rule in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "a falsy ask rule in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "null"
+  },
+  {
+   "name": "a falsy ask rule in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "null"
+  },
+  {
+   "name": "a falsy ask rule in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "null"
+  },
+  {
+   "name": "a falsy ask rule in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "null"
+  },
+  {
+   "name": "a falsy ask rule in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "null"
+  },
+  {
+   "name": "a falsy ask rule in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "null"
+  },
+  {
+   "name": "a falsy ask rule in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":0}",
+   "result": "null"
+  },
+  {
+   "name": "an ask rule empty string in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "an ask rule empty string in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "null"
+  },
+  {
+   "name": "an ask rule empty string in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "null"
+  },
+  {
+   "name": "an ask rule empty string in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "null"
+  },
+  {
+   "name": "an ask rule empty string in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "null"
+  },
+  {
+   "name": "an ask rule empty string in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "null"
+  },
+  {
+   "name": "an ask rule empty string in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "null"
+  },
+  {
+   "name": "an ask rule empty string in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"Dangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\",\"matchedAskRule\":\"\"}",
+   "result": "null"
+  },
+  {
+   "name": "ANSI around the reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rmdir operation on critical path: /usr\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "ANSI around the reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "ANSI around the reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "ANSI around the reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "ANSI around the reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "ANSI around the reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "ANSI around the reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "ANSI around the reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"\\u001b[1mDangerous rmdir operation on critical path: /usr\\u001b[0m\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an OSC sequence in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "an OSC sequence in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an OSC sequence in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an OSC sequence in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an OSC sequence in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an OSC sequence in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an OSC sequence in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "an OSC sequence in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"\\u001b]8;;http://x\\u0007Dangerous rm operation on working directory or its ancestor: .\\u001b]8;;\\u0007\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a two-character escape in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "a two-character escape in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a two-character escape in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a two-character escape in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a two-character escape in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a two-character escape in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a two-character escape in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a two-character escape in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"\\u001bBDangerous rm operation on working directory or its ancestor: .\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "padded with whitespace in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "padded with whitespace in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "padded with whitespace in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "padded with whitespace in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "padded with whitespace in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "padded with whitespace in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "padded with whitespace in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "padded with whitespace in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"  \\nDangerous rm operation on working directory or its ancestor: .\\t \",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a BOM around the reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"Dangerous rm operation on working directory or its ancestor: .\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "a BOM around the reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a BOM around the reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a BOM around the reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a BOM around the reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a BOM around the reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a BOM around the reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a BOM around the reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"﻿Dangerous rm operation on working directory or its ancestor: .﻿\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "only the phrase in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"dangerous rm operations\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "only the phrase in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "only the phrase in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "only the phrase in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "only the phrase in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "only the phrase in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "only the phrase in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "only the phrase in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase in upper case in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"DANGEROUS RMDIR OPERATION\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "the phrase in upper case in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase in upper case in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase in upper case in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase in upper case in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase in upper case in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase in upper case in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase in upper case in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"DANGEROUS RMDIR OPERATION\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase without the noun in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "the phrase glued to a word in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"xdangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a word glued after it in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm operationsx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "rmdir glued to a word in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rmdirx operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "two spaces inside in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous  rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerouſ rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s as the plural in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"dangerous rm operationſ\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "a long s as the plural in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s as the plural in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s as the plural in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s as the plural in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s as the plural in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s as the plural in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long s as the plural in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm operationſ\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a dotless i in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rmdır operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "underscored in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"a_dangerous rm operations\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "in parentheses in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"(dangerous rmdir operations)\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "in parentheses in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "in parentheses in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "in parentheses in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "in parentheses in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "in parentheses in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "in parentheses in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "in parentheses in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"(dangerous rmdir operations)\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "a long reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm operations xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long astral reason in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀…\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "a long astral reason in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long astral reason in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long astral reason in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long astral reason in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long astral reason in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long astral reason in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "a long astral reason in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm operations 🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀🦀\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "exactly at the cap in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "exactly at the cap in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "exactly at the cap in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "exactly at the cap in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "exactly at the cap in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "exactly at the cap in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "exactly at the cap in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "exactly at the cap in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "one past the cap in bypassPermissions",
+   "permissionMode": "bypassPermissions",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…\\n\\nDenied automatically because this session runs in Bypass permissions mode, so it can keep going without a person to approve. Rewrite the command so it removes only literal paths inside the project, or leave the removal for the user to run.\""
+  },
+  {
+   "name": "one past the cap in default",
+   "permissionMode": "default",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "one past the cap in acceptEdits",
+   "permissionMode": "acceptEdits",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "one past the cap in plan",
+   "permissionMode": "plan",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "one past the cap in auto",
+   "permissionMode": "auto",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "one past the cap in dontAsk",
+   "permissionMode": "dontAsk",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "one past the cap in (empty mode)",
+   "permissionMode": "",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  },
+  {
+   "name": "one past the cap in BYPASSPERMISSIONS",
+   "permissionMode": "BYPASSPERMISSIONS",
+   "ask": "{\"decisionReason\":\"dangerous rm operations yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"decisionReasonType\":\"safetyCheck\"}",
+   "result": "null"
+  }
+ ],
+ "retitle": [
+  {
+   "name": "no store at all",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": null,
+   "roots": [],
+   "result": "0",
+   "rows": {},
+   "dirs": []
+  },
+  {
+   "name": "no workspaces",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": []\n}\n",
+   "roots": [],
+   "result": "0",
+   "rows": {},
+   "dirs": []
+  },
+  {
+   "name": "the row of the only workspace",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "  New name  ",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', 'Old', NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "1",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a workspace without a database",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [],
+   "result": "0",
+   "rows": {},
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a workspace whose database has no such row",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000002', '$ROOT/w/a', 'Other', NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Other",
+       2000
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "the row in the second workspace",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"B\",\n      \"rootPath\": \"$ROOT/w/b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000002', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    },
+    {
+     "root": "$ROOT/w/b",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/b', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "1",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a",
+    "$EROOT-w-b"
+   ]
+  },
+  {
+   "name": "the row in both workspaces",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"B\",\n      \"rootPath\": \"$ROOT/w/b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    },
+    {
+     "root": "$ROOT/w/b",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/b', 'Keep?', NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "2",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a",
+    "$EROOT-w-b"
+   ]
+  },
+  {
+   "name": "two workspaces on the same root",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"B\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "1",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a row recorded under another cwd",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '/elsewhere', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "1",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "falsy and odd roots before the real one",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_empty\",\n      \"name\": \"Empty\",\n      \"rootPath\": \"\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_none\",\n      \"name\": \"None\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null\",\n      \"name\": \"Null\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num\",\n      \"name\": \"Number\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_obj\",\n      \"name\": \"Object\",\n      \"rootPath\": {\n        \"path\": \"$ROOT/w/a\"\n      },\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true\",\n      \"name\": \"True\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "1",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a null store entry",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    null\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "throws": "Cannot read properties of null (reading 'rootPath')",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a null store entry before the workspace",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    null,\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "throws": "Cannot read properties of null (reading 'rootPath')",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a store that is not JSON",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{ not json",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a database that is not one",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "raw": null
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "file is not a database"
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a database without the sessions table",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "raw": "CREATE TABLE other (id TEXT);"
+    }
+   ],
+   "throws": "no such table: sessions",
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "no such table: sessions"
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a newer schema without the table, after an update",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"B\",\n      \"rootPath\": \"$ROOT/w/b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    },
+    {
+     "root": "$ROOT/w/b",
+     "raw": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);\nINSERT INTO schema_meta VALUES ('version', '999');"
+    }
+   ],
+   "throws": "no such table: sessions",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "error": "no such table: sessions"
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a",
+    "$EROOT-w-b"
+   ]
+  },
+  {
+   "name": "a foreign sessions table without a title column",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "raw": "CREATE TABLE sessions (id TEXT, cwd TEXT);\nINSERT INTO sessions VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a');"
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "no such column: title"
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "an empty id",
+   "id": "",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a blank title",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "   ",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', 'Old', NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old",
+       2000
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a BOM title",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": "﻿",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', 'Old', NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old",
+       2000
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "an astral title",
+   "id": "00000000-0000-4000-8000-000000000001",
+   "title": " 🦀  ",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('00000000-0000-4000-8000-000000000001', '$ROOT/w/a', 'Old', NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "1",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "🦀 ",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a non-uuid id",
+   "id": "not-a-uuid",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "sql": [
+      "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('not-a-uuid', '$ROOT/w/a', NULL, NULL, 1000, 2000, 3000);"
+     ]
+    }
+   ],
+   "result": "1",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "not-a-uuid",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  },
+  {
+   "name": "a numeric id in the row",
+   "id": "5",
+   "title": "New name",
+   "store": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"A\",\n      \"rootPath\": \"$ROOT/w/a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n",
+   "roots": [
+    {
+     "root": "$ROOT/w/a",
+     "raw": "CREATE TABLE sessions (id, cwd, title, updated_at);\nINSERT INTO sessions VALUES (5, '$ROOT/w/a', NULL, 1);"
+    }
+   ],
+   "result": "0",
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "integer",
+       "5",
+       "null",
+       null,
+       1
+      ]
+     ]
+    }
+   },
+   "dirs": [
+    "$EROOT-w-a"
+   ]
+  }
+ ],
+ "renameRoute": [
+  {
+   "name": "no body",
+   "request": {
+    "raw": ""
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "threw": "SyntaxError: Unexpected end of JSON input"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a malformed body",
+   "request": {
+    "raw": "{"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "threw": "SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a null body",
+   "request": {
+    "raw": "null"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "an array body",
+   "request": {
+    "raw": "[]"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a string body",
+   "request": {
+    "raw": "\"x\""
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "no fields",
+   "request": {
+    "body": "{}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "no title",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "no session id",
+   "request": {
+    "body": "{\"title\":\"New\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "an empty session id",
+   "request": {
+    "body": "{\"sessionId\":\"\",\"title\":\"New\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "an empty title",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a blank title",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"   \"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a BOM title",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"﻿\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a number title",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":5}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a null title",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":null}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "an object title",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":{\"t\":\"New\"}}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 400,
+    "body": "{\"error\":\"sessionId and title required\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a number session id",
+   "request": {
+    "body": "{\"sessionId\":5,\"title\":\"New\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 500,
+    "body": "{\"error\":\"Invalid sessionId: 5\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "the row and the transcript",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"  New name  \"}"
+   },
+   "jsonl": "00000000-0000-4000-8000-000000000001",
+   "live": null,
+   "got": {
+    "status": 200,
+    "body": "{\"ok\":true}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"New name\",\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}"
+   ]
+  },
+  {
+   "name": "the row only, no transcript",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"New name\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 200,
+    "body": "{\"ok\":true}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "New name",
+       "$NOW"
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "no row and no transcript",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000003\",\"title\":\"New name\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 500,
+    "body": "{\"error\":\"Session 00000000-0000-4000-8000-000000000003 not found (no projects directory)\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a transcript with no row",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"New name\"}"
+   },
+   "jsonl": "00000000-0000-4000-8000-000000000004",
+   "live": null,
+   "got": {
+    "status": 200,
+    "body": "{\"ok\":true}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"New name\",\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}"
+   ]
+  },
+  {
+   "name": "the dir of the transcript",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"New name\",\"dir\":\"$ROOT/w/a\"}"
+   },
+   "jsonl": "00000000-0000-4000-8000-000000000004",
+   "live": null,
+   "got": {
+    "status": 200,
+    "body": "{\"ok\":true}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"New name\",\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}"
+   ]
+  },
+  {
+   "name": "a dir with no transcript",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"New name\",\"dir\":\"$ROOT/w/b\"}"
+   },
+   "jsonl": "00000000-0000-4000-8000-000000000004",
+   "live": null,
+   "got": {
+    "status": 500,
+    "body": "{\"error\":\"Session 00000000-0000-4000-8000-000000000004 not found in project directory for $ROOT/w/b\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}"
+   ]
+  },
+  {
+   "name": "a non-string dir",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"New name\",\"dir\":5}"
+   },
+   "jsonl": "00000000-0000-4000-8000-000000000004",
+   "live": null,
+   "got": {
+    "status": 500,
+    "body": "{\"error\":\"e.normalize is not a function\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}"
+   ]
+  },
+  {
+   "name": "a non-uuid id with a row",
+   "request": {
+    "body": "{\"sessionId\":\"not-a-uuid\",\"title\":\"New name\"}"
+   },
+   "jsonl": null,
+   "live": null,
+   "got": {
+    "status": 200,
+    "body": "{\"ok\":true}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a live session that renames",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\" Live \"}"
+   },
+   "jsonl": null,
+   "live": "{\"ok\":true}",
+   "got": {
+    "status": 200,
+    "body": "{\"ok\":true}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  },
+  {
+   "name": "a live session that fails",
+   "request": {
+    "body": "{\"sessionId\":\"00000000-0000-4000-8000-000000000001\",\"title\":\"Live\"}"
+   },
+   "jsonl": null,
+   "live": "{\"ok\":false,\"error\":\"disk full\"}",
+   "got": {
+    "status": 500,
+    "body": "{\"error\":\"disk full\"}"
+   },
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "text",
+       "Old A",
+       2000
+      ],
+      [
+       "text",
+       "not-a-uuid",
+       "null",
+       null,
+       2000
+      ]
+     ]
+    },
+    "$ROOT/w/b": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000001",
+       "null",
+       null,
+       2000
+      ],
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000002",
+       "text",
+       "Old B",
+       2000
+      ]
+     ]
+    }
+   },
+   "transcript": null
+  }
+ ],
+ "session": [
+  {
+   "name": "a rename with no transcript and no query",
+   "id": "00000000-0000-4000-8000-000000000050",
+   "title": "New name",
+   "query": "none",
+   "jsonl": false,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"New name\"",
+   "mirror": "\"New name\"",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"New name\"}]",
+   "engine": [],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000050",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a rename with no transcript, the engine takes it",
+   "id": "00000000-0000-4000-8000-000000000051",
+   "title": "New name",
+   "query": "ok",
+   "jsonl": false,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"New name\"",
+   "mirror": "null",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"New name\"}]",
+   "engine": [
+    "[\"New name\",\"00000000-0000-4000-8000-000000000051\"]"
+   ],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000051",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a rename with no transcript, the engine refuses",
+   "id": "00000000-0000-4000-8000-000000000052",
+   "title": "New name",
+   "query": "throws",
+   "jsonl": false,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"New name\"",
+   "mirror": "\"New name\"",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"New name\"}]",
+   "engine": [
+    "[\"New name\",\"00000000-0000-4000-8000-000000000052\"]"
+   ],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000052",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a rename with no transcript, a query without the method",
+   "id": "00000000-0000-4000-8000-000000000053",
+   "title": "New name",
+   "query": "no-method",
+   "jsonl": false,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"New name\"",
+   "mirror": "\"New name\"",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"New name\"}]",
+   "engine": [],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000053",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a rename with a transcript",
+   "id": "00000000-0000-4000-8000-000000000054",
+   "title": "  New name  ",
+   "query": "none",
+   "jsonl": true,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"New name\"",
+   "mirror": "null",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"New name\"}]",
+   "engine": [],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000054\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"New name\",\"sessionId\":\"00000000-0000-4000-8000-000000000054\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000054",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a rename with a transcript and the engine",
+   "id": "00000000-0000-4000-8000-000000000055",
+   "title": "New name",
+   "query": "ok",
+   "jsonl": true,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"New name\"",
+   "mirror": "null",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"New name\"}]",
+   "engine": [
+    "[\"New name\",\"00000000-0000-4000-8000-000000000055\"]"
+   ],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000055\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"New name\",\"sessionId\":\"00000000-0000-4000-8000-000000000055\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000055",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a blank rename",
+   "id": "00000000-0000-4000-8000-000000000056",
+   "title": "   ",
+   "query": "ok",
+   "jsonl": false,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":false,\"error\":\"title required\"}",
+   "after": "null",
+   "mirror": "null",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  },
+  {
+   "name": "an astral rename",
+   "id": "00000000-0000-4000-8000-000000000057",
+   "title": " 🦀 ",
+   "query": "none",
+   "jsonl": false,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"🦀\"",
+   "mirror": "\"🦀\"",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"🦀\"}]",
+   "engine": [],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000057",
+       "text",
+       "🦀",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a rename the engine never answers",
+   "id": "00000000-0000-4000-8000-000000000058",
+   "title": "New name",
+   "query": "hangs",
+   "jsonl": false,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "{\"ok\":true}",
+   "after": "\"New name\"",
+   "mirror": "\"New name\"",
+   "broadcasts": "[{\"type\":\"session_title\",\"title\":\"New name\"}]",
+   "engine": [
+    "[\"New name\",\"00000000-0000-4000-8000-000000000058\"]"
+   ],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "rows": [
+      [
+       "text",
+       "00000000-0000-4000-8000-000000000058",
+       "text",
+       "New name",
+       "$NOW"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a flush with no pending mirror",
+   "id": "00000000-0000-4000-8000-000000000059",
+   "title": null,
+   "query": null,
+   "jsonl": true,
+   "pending": null,
+   "racedTo": "$none",
+   "result": "null",
+   "after": "null",
+   "mirror": "null",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000059\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  },
+  {
+   "name": "a flush with no transcript",
+   "id": "00000000-0000-4000-8000-000000000060",
+   "title": null,
+   "query": null,
+   "jsonl": false,
+   "pending": "Pending",
+   "racedTo": "$none",
+   "result": "null",
+   "after": "\"Pending\"",
+   "mirror": "\"Pending\"",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": null,
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  },
+  {
+   "name": "a flush that lands",
+   "id": "00000000-0000-4000-8000-000000000061",
+   "title": null,
+   "query": null,
+   "jsonl": true,
+   "pending": "Pending",
+   "racedTo": "$none",
+   "result": "null",
+   "after": "\"Pending\"",
+   "mirror": "null",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000061\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"Pending\",\"sessionId\":\"00000000-0000-4000-8000-000000000061\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  },
+  {
+   "name": "a flush of an untrimmed name",
+   "id": "00000000-0000-4000-8000-000000000062",
+   "title": null,
+   "query": null,
+   "jsonl": true,
+   "pending": "  Pending  ",
+   "racedTo": "$none",
+   "result": "null",
+   "after": "\"  Pending  \"",
+   "mirror": "null",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000062\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"Pending\",\"sessionId\":\"00000000-0000-4000-8000-000000000062\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  },
+  {
+   "name": "a flush raced by a newer rename",
+   "id": "00000000-0000-4000-8000-000000000063",
+   "title": null,
+   "query": null,
+   "jsonl": true,
+   "pending": "Pending",
+   "racedTo": "\"Newer\"",
+   "result": "null",
+   "after": "\"Newer\"",
+   "mirror": "\"Newer\"",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000063\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"Pending\",\"sessionId\":\"00000000-0000-4000-8000-000000000063\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"Newer\",\"sessionId\":\"00000000-0000-4000-8000-000000000063\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  },
+  {
+   "name": "a flush raced with no current title",
+   "id": "00000000-0000-4000-8000-000000000064",
+   "title": null,
+   "query": null,
+   "jsonl": true,
+   "pending": "Pending",
+   "racedTo": "null",
+   "result": "null",
+   "after": "null",
+   "mirror": "null",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000064\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"Pending\",\"sessionId\":\"00000000-0000-4000-8000-000000000064\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  },
+  {
+   "name": "a flush raced to the same title",
+   "id": "00000000-0000-4000-8000-000000000065",
+   "title": null,
+   "query": null,
+   "jsonl": true,
+   "pending": "Pending",
+   "racedTo": "\"Pending\"",
+   "result": "null",
+   "after": "\"Pending\"",
+   "mirror": "\"Pending\"",
+   "broadcasts": "[]",
+   "engine": [],
+   "transcript": [
+    "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"$ROOT/w/a\",\"sessionId\":\"00000000-0000-4000-8000-000000000065\"}",
+    "{\"type\":\"custom-title\",\"customTitle\":\"Pending\",\"sessionId\":\"00000000-0000-4000-8000-000000000065\"}"
+   ],
+   "rows": {
+    "$ROOT/w/a": {
+     "error": "unable to open database file"
+    }
+   }
+  }
+ ]
+}

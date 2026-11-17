@@ -280,6 +280,15 @@ pub fn readdir(path: &str) -> io::Result<Vec<String>> {
         .collect())
 }
 
+/// `fs.promises.copyFile(src, dst)` (D14): the bytes and mode through
+/// symlinks, a clone where the file system can (APFS), over an existing
+/// `dst`. Errors name both paths (`ENOENT: …, copyfile 'src' -> 'dst'`).
+pub fn copy_file(src: &str, dst: &str) -> Result<(), FsError> {
+    std::fs::copy(src, dst)
+        .map(|_| ())
+        .map_err(|e| FsError::new(&e, "copyfile", Some(src), Some(dst)))
+}
+
 /// `fs.promises.readdir(path, { withFileTypes: true })`: [`readdir`]'s
 /// names, each with the type of the entry itself (a symlink is a symlink,
 /// never what it points at), as libuv reads it from the directory.

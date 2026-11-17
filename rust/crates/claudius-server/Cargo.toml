@@ -34,6 +34,10 @@ chrono.workspace = true
 # The files replay: pinned nanosecond mtimes (`utimensat`), the umask, root.
 libc.workspace = true
 rusqlite.workspace = true
+# The voice replay's fake upstream: its TLS server and the handshake's
+# accept digest.
+rustls.workspace = true
+tungstenite.workspace = true
 # The files replay's snapshot hashes (the recorder's `sha256`).
 sha2.workspace = true
 tempfile.workspace = true

@@ -156,6 +156,8 @@ impl World {
 /// Claude session's environment (`CLAUDE_*`, `CLAUDECODE`, `__NEXT_PRIVATE_*`,
 /// `CLAUDIUS_PACKAGED`, `CLAUDIUS_ELECTRON`, as `rust/scripts/clean-env.sh`
 /// strips it), so the CLI env a test sees doesn't depend on where it runs.
+/// The scheduler is on by default (G07d), so it boots on the world's store
+/// (no `jobs.json`: nothing armed, nothing written).
 pub struct Server {
     pub child: Child,
     pub port: u16,

@@ -16,7 +16,8 @@
 //! Infinity → `"Infinity"`, which doesn't parse); a BLOB from its UTF-8
 //! text. Writes open it read-write (creating and migrating it) and upsert
 //! with the TS statement, so a table another writer made without a unique
-//! key fails the same way.
+//! key fails the same way. Ids are JS strings ([`js_string`]): a lone
+//! surrogate is read, stored and bound as TS does.
 
 use claudius_agent::js;
 use rusqlite::OptionalExtension;
@@ -25,6 +26,7 @@ use serde_json::Value;
 
 use crate::db::{Mode, open_db};
 use crate::loop_ticks_db::math_round;
+use crate::{js_params, js_string};
 
 const KEY: &str = "open_tabs";
 const ACTIVE_KEY: &str = "active_tab";
@@ -62,18 +64,22 @@ fn parse_text(v: ValueRef) -> Option<String> {
 
 /// `JSON.parse(row.value)` for `key`'s row, or `None` where the TS returns
 /// its default first (no DB, a query that throws, no row, a falsy value) or
-/// the parse throws.
+/// the parse throws. A lone-surrogate escape (which `JSON.stringify` writes
+/// for one) reads as its [`js_string`] stand-in, so it is written back as
+/// the same escape.
 fn read_parsed(cwd: &str, key: &str) -> Option<Value> {
     let db = open_db(cwd, Mode::ReadOnly).ok()?;
     let row = db.with(|c| {
-        c.query_row("SELECT value FROM ui_state WHERE key = ?", [key], |r| {
-            Ok(parse_text(r.get_ref(0)?))
-        })
+        c.query_row(
+            "SELECT value FROM ui_state WHERE key = ?",
+            js_params![key],
+            |r| Ok(parse_text(r.get_ref(0)?)),
+        )
         .optional()
     });
     // The query threw (no table), no row, or a falsy value.
     let text = row.ok()???;
-    js::json_parse(&text).ok()
+    js_string::parse(&text).ok()
 }
 
 /// The string items of a parsed array, in order, duplicates kept.
@@ -152,14 +158,14 @@ fn upsert(cwd: &str, key: &str, value: &str) -> anyhow::Result<()> {
         c.execute(
             "INSERT INTO ui_state(key, value) VALUES(?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-            [key, value],
+            js_params![key, value],
         )
     })?;
     Ok(())
 }
 
 fn json_ids(ids: &[&str]) -> String {
-    js::stringify(&Value::Array(
+    js_string::stringify(&Value::Array(
         ids.iter().map(|s| Value::String((*s).to_owned())).collect(),
     ))
 }
@@ -180,13 +186,13 @@ pub fn set_pinned_tabs<S: AsRef<str>>(cwd: &str, ids: &[S]) -> anyhow::Result<()
 pub fn set_active_tab(cwd: &str, id: Option<&str>) -> anyhow::Result<()> {
     let Some(id) = id else {
         let db = open_db(cwd, Mode::ReadWrite)?;
-        db.with(|c| c.execute("DELETE FROM ui_state WHERE key = ?", [ACTIVE_KEY]))?;
+        db.with(|c| c.execute("DELETE FROM ui_state WHERE key = ?", js_params![ACTIVE_KEY]))?;
         return Ok(());
     };
     upsert(
         cwd,
         ACTIVE_KEY,
-        &js::stringify(&Value::String(id.to_owned())),
+        &js_string::stringify(&Value::String(id.to_owned())),
     )
 }
 

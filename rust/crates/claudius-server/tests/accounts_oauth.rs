@@ -376,6 +376,14 @@ fn binary_case(case: &Value) -> bool {
         .unwrap()
         .iter()
         .all(|s| matches!(s["op"].as_str(), Some("post" | "files")))
+        // A `throwCert` response is a rejected TLS handshake, which the
+        // plain-HTTP fake can't present; `tests/account_oauth_golden.rs`
+        // replays those through the scripted client.
+        && !case["steps"].as_array().unwrap().iter().any(|s| {
+            s["responses"]
+                .as_array()
+                .is_some_and(|r| r.iter().any(|r| r.get("throwCert").is_some()))
+        })
 }
 
 fn refuses(case: &Value) -> bool {

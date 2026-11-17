@@ -809,10 +809,16 @@ const EXEC = [
   [P, "printf '\\342\\202'", {}],
   [P, "printf '\\342\\202x\\355\\240\\200\\300\\257'", {}],
   [P, "printf '\\360\\237'; /bin/sleep 0.1; printf '\\230\\200'", { maxOutputBytes: 1 }],
-  // The timeout: one SIGTERM to the group.
+  // The timeout: SIGTERM to the group, then SIGKILL 1.5 s later (CC 2.1.300).
   [P, "/bin/sleep 5", { timeoutMs: 300 }],
   [P, "printf before; /bin/sleep 5; printf after", { timeoutMs: 500 }],
-  [P, "trap '' TERM; /bin/sleep 1.5; printf survived", { timeoutMs: 500 }],
+  // A command that outruns the TERM but finishes inside the 1.5 s grace
+  // (`trap '' TERM` is inherited, so the sleep ignores TERM too).
+  [P, "trap '' TERM; /bin/sleep 0.6; printf survived", { timeoutMs: 500 }],
+  // Past the grace the group is SIGKILLed: the shell itself, and a `&` job
+  // that would otherwise hold the stdio pipes (and the answer) open.
+  [P, "trap '' TERM; while :; do /bin/sleep 1; done", { timeoutMs: 300 }],
+  [P, "(trap '' TERM; while :; do /bin/sleep 1; done) & printf early", { timeoutMs: 300 }],
   [P, "trap 'printf got-term; exit 3' TERM; /bin/sleep 5 & wait", { timeoutMs: 1000 }],
   [P, "(/bin/sleep 5; printf never) & printf early", { timeoutMs: 1000 }],
   [P, "/bin/cat", { timeoutMs: 300 }],

@@ -34,6 +34,7 @@ use serde_json::{Map, Value, json};
 use crate::accounts::AccountsStore;
 use crate::asset_list::{Cell, v8_sort};
 use crate::db::{Mode, open_db};
+use crate::session_history;
 use crate::sessions_db::{self, SessionRow};
 use crate::sessions_store::{self, SessionInfo};
 
@@ -106,7 +107,15 @@ fn slice_end(len: usize, end: f64) -> usize {
 
 /// The route's 200 body `{sessions, accountsConfigured}` for `dir` (`""` is
 /// none) and `limit` ([`limit_param`]), or the message of what it catches.
-pub fn list_all(dir: Option<&str>, limit: f64) -> Result<Value, String> {
+///
+/// `is_live` is `(id) => sessionManager.get(id) !== undefined`: CC 2.1.309
+/// drops a DB-only row with no title unless its session is still open
+/// ([`session_history`]).
+pub fn list_all(
+    dir: Option<&str>,
+    limit: f64,
+    is_live: &dyn Fn(&str) -> bool,
+) -> Result<Value, String> {
     let dir = dir.filter(|d| !d.is_empty());
     let sessions = sessions_store::list(dir, Some(limit), None);
     let sdk_ids: HashSet<&str> = sessions.iter().map(|s| s.session_id.as_str()).collect();
@@ -115,6 +124,17 @@ pub fn list_all(dir: Option<&str>, limit: f64) -> Result<Value, String> {
     for row in rows {
         if matches!(&row.id, Cell::Text(id) if sdk_ids.contains(id.as_str())) {
             continue;
+        }
+        // CC 2.1.309: an abandoned new tab leaves an untitled row and no
+        // transcript; history keeps it only while it is open. A truthy
+        // non-string title throws, which the route answers as its 500.
+        match session_history::is_history_worthy_db_row(
+            session_history::title_of(&row.title),
+            || session_history::id_is_live(&row.id, is_live),
+        ) {
+            Ok(true) => {}
+            Ok(false) => continue,
+            Err(msg) => return Err(msg.to_owned()),
         }
         entries.push(Entry::from_row(row));
     }
@@ -229,7 +249,7 @@ fn get_session_accounts_by_cwd(
         probe_accounts(cwd, ids, &mut out, false);
     }
     if !no_cwd.is_empty() {
-        let workspaces = crate::active_cwd::list_workspaces_raw().unwrap_or_default();
+        let workspaces = crate::workspaces::list_raw().unwrap_or_default();
         for ws in &workspaces {
             let root = match ws {
                 Value::Null => anyhow::bail!("Cannot read properties of null (reading 'rootPath')"),

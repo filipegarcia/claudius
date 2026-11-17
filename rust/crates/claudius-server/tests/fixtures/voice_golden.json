@@ -1,0 +1,2059 @@
+{
+ "accounts": {
+  "profiles": [
+   {
+    "id": "p-key",
+    "label": "Key",
+    "kind": "api-key",
+    "secret": "sk-ant-api-golden",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "p-oauth",
+    "label": "Max",
+    "kind": "oauth-token",
+    "secret": "sk-ant-oat-golden",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+   }
+  ],
+  "activeProfileId": "p-oauth",
+  "autoRotateOnRateLimit": false
+ },
+ "worlds": [
+  {
+   "name": "main",
+   "upstream": "plain",
+   "files": {},
+   "settings": null,
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "x0",
+     "q": ""
+    },
+    {
+     "op": "open",
+     "s": "x1",
+     "q": "id=short"
+    },
+    {
+     "op": "open",
+     "s": "x2",
+     "q": "id=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+     "op": "open",
+     "s": "x3",
+     "q": "id=abcd%20efgh"
+    },
+    {
+     "op": "open",
+     "s": "x4",
+     "q": "id="
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=bad",
+     "hex": "00",
+     "cl": true
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close?id=bad!bad!bad"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=unknown01",
+     "hex": "",
+     "cl": true
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=unknown01",
+     "hex": "00",
+     "cl": true
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close?id=unknown01"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=unknown01",
+     "fill": [
+      1,
+      1048577
+     ],
+     "cl": true
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=unknown01",
+     "fill": [
+      1,
+      1048577
+     ],
+     "cl": false
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=unknown01",
+     "fill": [
+      1,
+      1048576
+     ],
+     "cl": false
+    },
+    {
+     "op": "accounts",
+     "remove": true
+    },
+    {
+     "op": "open",
+     "s": "noAccounts01",
+     "q": "id=noAccounts01"
+    },
+    {
+     "op": "drain",
+     "s": "noAccounts01"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=noAccounts01",
+     "hex": "0102",
+     "cl": true
+    },
+    {
+     "op": "accounts",
+     "json": {
+      "profiles": [
+       {
+        "id": "p-key",
+        "label": "Key",
+        "kind": "api-key",
+        "secret": "sk-ant-api-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       },
+       {
+        "id": "p-oauth",
+        "label": "Max",
+        "kind": "oauth-token",
+        "secret": "sk-ant-oat-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       }
+      ],
+      "activeProfileId": "p-key",
+      "autoRotateOnRateLimit": false
+     }
+    },
+    {
+     "op": "open",
+     "s": "apiKeyOnly01",
+     "q": "id=apiKeyOnly01"
+    },
+    {
+     "op": "drain",
+     "s": "apiKeyOnly01"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=apiKeyOnly01",
+     "hex": "0102",
+     "cl": true
+    },
+    {
+     "op": "accounts",
+     "json": {
+      "profiles": [
+       {
+        "id": "p-key",
+        "label": "Key",
+        "kind": "api-key",
+        "secret": "sk-ant-api-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       },
+       {
+        "id": "p-oauth",
+        "label": "Max",
+        "kind": "oauth-token",
+        "secret": "sk-ant-oat-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       }
+      ],
+      "activeProfileId": "p-gone",
+      "autoRotateOnRateLimit": false
+     }
+    },
+    {
+     "op": "open",
+     "s": "noActive0001",
+     "q": "id=noActive0001"
+    },
+    {
+     "op": "drain",
+     "s": "noActive0001"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=noActive0001",
+     "hex": "0102",
+     "cl": true
+    },
+    {
+     "op": "accounts",
+     "json": {
+      "profiles": [
+       {
+        "id": "p-key",
+        "label": "Key",
+        "kind": "api-key",
+        "secret": "sk-ant-api-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       },
+       {
+        "id": "p-oauth",
+        "label": "Max",
+        "kind": "oauth-token",
+        "secret": "",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       }
+      ],
+      "activeProfileId": "p-oauth",
+      "autoRotateOnRateLimit": false
+     }
+    },
+    {
+     "op": "open",
+     "s": "emptySecret1",
+     "q": "id=emptySecret1"
+    },
+    {
+     "op": "drain",
+     "s": "emptySecret1"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=emptySecret1",
+     "hex": "0102",
+     "cl": true
+    },
+    {
+     "op": "accounts",
+     "text": "{oops"
+    },
+    {
+     "op": "open",
+     "s": "badAccounts1",
+     "q": "id=badAccounts1"
+    },
+    {
+     "op": "drain",
+     "s": "badAccounts1"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=badAccounts1",
+     "hex": "0102",
+     "cl": true
+    },
+    {
+     "op": "accounts",
+     "json": {
+      "profiles": [
+       {
+        "id": "p-key",
+        "label": "Key",
+        "kind": "api-key",
+        "secret": "sk-ant-api-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       },
+       {
+        "id": "p-oauth",
+        "label": "Max",
+        "kind": "oauth-token",
+        "secret": "tok\nen",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       }
+      ],
+      "activeProfileId": "p-oauth",
+      "autoRotateOnRateLimit": false
+     }
+    },
+    {
+     "op": "open",
+     "s": "badHeader001",
+     "q": "id=badHeader001"
+    },
+    {
+     "op": "drain",
+     "s": "badHeader001"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=badHeader001",
+     "hex": "0102",
+     "cl": true
+    },
+    {
+     "op": "accounts",
+     "json": {
+      "profiles": [
+       {
+        "id": "p-key",
+        "label": "Key",
+        "kind": "api-key",
+        "secret": "sk-ant-api-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       },
+       {
+        "id": "p-oauth",
+        "label": "Max",
+        "kind": "oauth-token",
+        "secret": "sk-ant-oat-golden",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+       }
+      ],
+      "activeProfileId": "p-oauth",
+      "autoRotateOnRateLimit": false
+     }
+    },
+    {
+     "op": "open",
+     "s": "idleSession1",
+     "q": "id=idleSession1&lang=reject-idle"
+    },
+    {
+     "op": "wait",
+     "s": "idleSession1",
+     "needle": "retry:"
+    },
+    {
+     "op": "open",
+     "s": "echoSession1",
+     "q": "id=echoSession1&lang=echo"
+    },
+    {
+     "op": "wait",
+     "s": "echoSession1",
+     "needle": "event: ready"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=echoSession1",
+     "hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+     "cl": true
+    },
+    {
+     "op": "wait",
+     "s": "echoSession1",
+     "needle": "256 bytes"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=echoSession1",
+     "fill": [
+      7,
+      1048576
+     ],
+     "cl": true
+    },
+    {
+     "op": "wait",
+     "s": "echoSession1",
+     "needle": "1048576 bytes"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close?id=echoSession1"
+    },
+    {
+     "op": "drain",
+     "s": "echoSession1"
+    },
+    {
+     "op": "upstream",
+     "lang": "echo"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=echoSession1",
+     "hex": "00",
+     "cl": true
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close?id=echoSession1"
+    },
+    {
+     "op": "open",
+     "s": "dupSession01",
+     "q": "id=dupSession01&lang=echo-dup"
+    },
+    {
+     "op": "wait",
+     "s": "dupSession01",
+     "needle": "event: ready"
+    },
+    {
+     "op": "open",
+     "s": "dupSession01-b",
+     "q": "id=dupSession01&lang=echo-other"
+    },
+    {
+     "op": "drain",
+     "s": "dupSession01-b"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=dupSession01",
+     "hex": "0a0b0c",
+     "cl": true
+    },
+    {
+     "op": "wait",
+     "s": "dupSession01",
+     "needle": "3 bytes"
+    },
+    {
+     "op": "abort",
+     "s": "dupSession01"
+    },
+    {
+     "op": "upstream",
+     "lang": "echo-dup"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=dupSession01",
+     "hex": "00",
+     "cl": true
+    },
+    {
+     "op": "open",
+     "s": "langSession1",
+     "q": "id=langSession1&lang=echo%20%C3%A9%2B%26x"
+    },
+    {
+     "op": "wait",
+     "s": "langSession1",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "langSession1"
+    },
+    {
+     "op": "upstream",
+     "lang": "echo é+&x"
+    },
+    {
+     "op": "open",
+     "s": "deflangSess1",
+     "q": "id=deflangSess1"
+    },
+    {
+     "op": "wait",
+     "s": "deflangSess1",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "deflangSess1"
+    },
+    {
+     "op": "upstream",
+     "lang": "en"
+    },
+    {
+     "op": "open",
+     "s": "multiSession",
+     "q": "id=multiSession&lang=multi"
+    },
+    {
+     "op": "drain",
+     "s": "multiSession"
+    },
+    {
+     "op": "upstream",
+     "lang": "multi"
+    },
+    {
+     "op": "open",
+     "s": "rejectSess01",
+     "q": "id=rejectSess01&lang=reject"
+    },
+    {
+     "op": "wait",
+     "s": "rejectSess01",
+     "needle": "retry:"
+    },
+    {
+     "op": "settle",
+     "ms": 300
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=rejectSess01",
+     "hex": "00",
+     "cl": true
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close?id=rejectSess01"
+    },
+    {
+     "op": "abort",
+     "s": "rejectSess01"
+    },
+    {
+     "op": "upstream",
+     "lang": "reject"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close?id=rejectSess01"
+    },
+    {
+     "op": "open",
+     "s": "badAccept001",
+     "q": "id=badAccept001&lang=badaccept"
+    },
+    {
+     "op": "drain",
+     "s": "badAccept001"
+    },
+    {
+     "op": "upstream",
+     "lang": "badaccept"
+    },
+    {
+     "op": "open",
+     "s": "badUpgrade01",
+     "q": "id=badUpgrade01&lang=badupgrade"
+    },
+    {
+     "op": "drain",
+     "s": "badUpgrade01"
+    },
+    {
+     "op": "upstream",
+     "lang": "badupgrade"
+    },
+    {
+     "op": "open",
+     "s": "protocol0001",
+     "q": "id=protocol0001&lang=protocol"
+    },
+    {
+     "op": "drain",
+     "s": "protocol0001"
+    },
+    {
+     "op": "upstream",
+     "lang": "protocol"
+    },
+    {
+     "op": "open",
+     "s": "extensions01",
+     "q": "id=extensions01&lang=extensions"
+    },
+    {
+     "op": "drain",
+     "s": "extensions01"
+    },
+    {
+     "op": "upstream",
+     "lang": "extensions"
+    },
+    {
+     "op": "open",
+     "s": "hangup000001",
+     "q": "id=hangup000001&lang=hangup"
+    },
+    {
+     "op": "drain",
+     "s": "hangup000001"
+    },
+    {
+     "op": "upstream",
+     "lang": "hangup"
+    },
+    {
+     "op": "open",
+     "s": "garbage00001",
+     "q": "id=garbage00001&lang=garbage"
+    },
+    {
+     "op": "drain",
+     "s": "garbage00001"
+    },
+    {
+     "op": "upstream",
+     "lang": "garbage"
+    },
+    {
+     "op": "open",
+     "s": "rsvFrame0001",
+     "q": "id=rsvFrame0001&lang=rsv"
+    },
+    {
+     "op": "drain",
+     "s": "rsvFrame0001"
+    },
+    {
+     "op": "upstream",
+     "lang": "rsv"
+    },
+    {
+     "op": "open",
+     "s": "badUtf800001",
+     "q": "id=badUtf800001&lang=badutf"
+    },
+    {
+     "op": "drain",
+     "s": "badUtf800001"
+    },
+    {
+     "op": "upstream",
+     "lang": "badutf"
+    },
+    {
+     "op": "open",
+     "s": "badClose0001",
+     "q": "id=badClose0001&lang=badclose"
+    },
+    {
+     "op": "drain",
+     "s": "badClose0001"
+    },
+    {
+     "op": "upstream",
+     "lang": "badclose"
+    },
+    {
+     "op": "open",
+     "s": "masked000001",
+     "q": "id=masked000001&lang=masked"
+    },
+    {
+     "op": "drain",
+     "s": "masked000001"
+    },
+    {
+     "op": "upstream",
+     "lang": "masked"
+    },
+    {
+     "op": "open",
+     "s": "bigFrame0001",
+     "q": "id=bigFrame0001&lang=big"
+    },
+    {
+     "op": "drain",
+     "s": "bigFrame0001"
+    },
+    {
+     "op": "upstream",
+     "lang": "big"
+    },
+    {
+     "op": "drain",
+     "s": "idleSession1"
+    },
+    {
+     "op": "upstream",
+     "lang": "reject-idle"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/close?id=idleSession1"
+    }
+   ],
+   "results": [
+    {
+     "status": 400,
+     "type": "text/plain;charset=UTF-8",
+     "body": "invalid or missing id"
+    },
+    {
+     "status": 400,
+     "type": "text/plain;charset=UTF-8",
+     "body": "invalid or missing id"
+    },
+    {
+     "status": 400,
+     "type": "text/plain;charset=UTF-8",
+     "body": "invalid or missing id"
+    },
+    {
+     "status": 400,
+     "type": "text/plain;charset=UTF-8",
+     "body": "invalid or missing id"
+    },
+    {
+     "status": 400,
+     "type": "text/plain;charset=UTF-8",
+     "body": "invalid or missing id"
+    },
+    {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"invalid id\"}"
+    },
+    {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"invalid id\"}"
+    },
+    {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"invalid id\"}"
+    },
+    {
+     "status": 400,
+     "type": "application/json",
+     "body": "{\"error\":\"empty chunk\"}"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    {
+     "status": 413,
+     "type": "application/json",
+     "body": "{\"error\":\"chunk too large\"}"
+    },
+    {
+     "status": 413,
+     "type": "application/json",
+     "body": "{\"error\":\"chunk too large\"}"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"no-auth\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"no-auth\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"no-auth\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"no-auth\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"open-failed\",\"message\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"open-failed\",\"message\":\"Invalid character in header content [\\\"Authorization\\\"]\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "status": 204,
+     "type": null,
+     "body": ""
+    },
+    null,
+    {
+     "status": 204,
+     "type": null,
+     "body": ""
+    },
+    null,
+    {
+     "status": 204,
+     "type": null,
+     "body": ""
+    },
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"echoSession1\"}\n\nevent: message\ndata: {\"type\":\"TranscriptInterim\",\"data\":\"256 bytes\"}\n\nevent: message\ndata: {\"type\":\"TranscriptInterim\",\"data\":\"1048576 bytes\"}\n\nevent: message\ndata: {\"type\":\"TranscriptText\",\"data\":\"final \\\"text\\\" \\u00e9\"}\n\nevent: message\ndata: {\"type\":\"TranscriptEndpoint\"}\n\nevent: close\ndata: {\"code\":1000,\"reason\":\"\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=echo&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "binary 256 0001020304050607",
+     "binary 1048576 0707070707070707",
+     "text {\"type\":\"CloseStream\"}",
+     "close 1000 ",
+     "keepalive"
+    ],
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"open-failed\",\"message\":\"voice session dupSession01 already exists\"}\n\n"
+    },
+    {
+     "status": 204,
+     "type": null,
+     "body": ""
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"dupSession01\"}\n\nevent: message\ndata: {\"type\":\"TranscriptInterim\",\"data\":\"3 bytes\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=echo-dup&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "binary 3 0a0b0c",
+     "close 1000 client-abort",
+     "keepalive"
+    ],
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"langSession1\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=echo+%C3%A9%2B%26x&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"deflangSess1\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"multiSession\"}\n\nevent: message\ndata: line one\nline two\n\nevent: message\ndata: {\"type\":\"TranscriptInterim\",\"data\":\"x\"}\n\nevent: close\ndata: {\"code\":4001,\"reason\":\"bye é\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=multi&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "pong hi",
+     "close 4001 bye é",
+     "keepalive"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    null,
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    {
+     "status": 204,
+     "type": null,
+     "body": ""
+    },
+    {
+     "text": "retry: 3600000\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=reject&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "eof"
+    ],
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    },
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Invalid Sec-WebSocket-Accept header\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=badaccept&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "eof"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Invalid Upgrade header\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=badupgrade&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "eof"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Server sent a subprotocol but none was requested\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=protocol&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "eof"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Server sent a Sec-WebSocket-Extensions header but no extension was requested\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=extensions&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "eof"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"socket hang up\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=hangup&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Parse Error: Expected HTTP/, RTSP/ or ICE/\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=garbage&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "eof"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"rsvFrame0001\"}\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Invalid WebSocket frame: RSV2 and RSV3 must be clear\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=rsv&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1002 ",
+     "keepalive"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"badUtf800001\"}\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Invalid WebSocket frame: invalid UTF-8 sequence\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=badutf&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1007 ",
+     "keepalive"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"badClose0001\"}\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Invalid WebSocket frame: invalid status code 1005\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=badclose&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1002 ",
+     "keepalive"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"masked000001\"}\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Invalid WebSocket frame: MASK must be clear\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=masked&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1002 ",
+     "keepalive"
+    ],
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"bigFrame0001\"}\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Max payload size exceeded\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=big&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1009 ",
+     "keepalive"
+    ],
+    {
+     "text": "retry: 3600000\n\nevent: close\ndata: {\"code\":null,\"reason\":\"idle-timeout\"}\n\n",
+     "pinged": true
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=reject-idle&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "eof"
+    ],
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "refused",
+   "upstream": "refused",
+   "files": {},
+   "settings": null,
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "refusedSess1",
+     "q": "id=refusedSess1"
+    },
+    {
+     "op": "drain",
+     "s": "refusedSess1"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=refusedSess1",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"connect ECONNREFUSED 127.0.0.1:<port>\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "bad-url",
+   "upstream": "badurl",
+   "files": {},
+   "settings": null,
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "badUrlSess01",
+     "q": "id=badUrlSess01"
+    },
+    {
+     "op": "drain",
+     "s": "badUrlSess01"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=badUrlSess01",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"open-failed\",\"message\":\"Invalid URL: not a url/api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "tls-self-signed",
+   "upstream": "tls:self",
+   "files": {
+    "not-a-cert.txt": {
+     "text": "hello\n"
+    }
+   },
+   "settings": {
+    "env": {
+     "NODE_EXTRA_CA_CERTS": "not-a-cert.txt"
+    }
+   },
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsSelf00001",
+     "q": "id=tlsSelf00001"
+    },
+    {
+     "op": "drain",
+     "s": "tlsSelf00001"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=tlsSelf00001",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"self-signed certificate\",\"hint\":\"Dictation couldn't connect — certificate not trusted. Set NODE_EXTRA_CA_CERTS to your proxy's CA bundle and try again.\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "tls-leaf-untrusted",
+   "upstream": "tls:leaf",
+   "files": {},
+   "settings": {
+    "env": {
+     "NODE_EXTRA_CA_CERTS": "~/missing.pem"
+    }
+   },
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsLeaf00001",
+     "q": "id=tlsLeaf00001"
+    },
+    {
+     "op": "drain",
+     "s": "tlsLeaf00001"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=tlsLeaf00001",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"unable to verify the first certificate\",\"hint\":\"Dictation couldn't connect — certificate not trusted. Set NODE_EXTRA_CA_CERTS to your proxy's CA bundle and try again.\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "tls-settings-ca",
+   "upstream": "tls:leaf",
+   "files": {
+    "ca.pem": {
+     "cert": "ca"
+    }
+   },
+   "settings": {
+    "env": {
+     "NODE_EXTRA_CA_CERTS": " ca.pem "
+    }
+   },
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsCaOk00001",
+     "q": "id=tlsCaOk00001&lang=en"
+    },
+    {
+     "op": "wait",
+     "s": "tlsCaOk00001",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "tlsCaOk00001"
+    },
+    {
+     "op": "upstream",
+     "lang": "en"
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"tlsCaOk00001\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ]
+   ]
+  },
+  {
+   "name": "tls-settings-wrong-ca",
+   "upstream": "tls:leaf",
+   "files": {
+    "other-ca.pem": {
+     "cert": "other"
+    }
+   },
+   "settings": {
+    "env": {
+     "NODE_EXTRA_CA_CERTS": "~/other-ca.pem"
+    }
+   },
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsWrongCa01",
+     "q": "id=tlsWrongCa01"
+    },
+    {
+     "op": "drain",
+     "s": "tlsWrongCa01"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=tlsWrongCa01",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"unable to verify the first certificate\",\"hint\":\"Dictation couldn't connect — certificate not trusted even with NODE_EXTRA_CA_CERTS. Check it has your proxy's CA.\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "tls-env-ca",
+   "upstream": "tls:leaf",
+   "files": {
+    "ca.pem": {
+     "cert": "ca"
+    }
+   },
+   "settings": null,
+   "env": {
+    "NODE_EXTRA_CA_CERTS": "ca.pem"
+   },
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsEnvCa0001",
+     "q": "id=tlsEnvCa0001&lang=en"
+    },
+    {
+     "op": "wait",
+     "s": "tlsEnvCa0001",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "tlsEnvCa0001"
+    },
+    {
+     "op": "upstream",
+     "lang": "en"
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"tlsEnvCa0001\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ]
+   ]
+  },
+  {
+   "name": "tls-wrong-host",
+   "upstream": "tls:host",
+   "files": {
+    "ca.pem": {
+     "cert": "ca"
+    }
+   },
+   "settings": {
+    "env": {
+     "NODE_EXTRA_CA_CERTS": "~/ca.pem"
+    }
+   },
+   "env": {},
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsHost00001",
+     "q": "id=tlsHost00001"
+    },
+    {
+     "op": "drain",
+     "s": "tlsHost00001"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=tlsHost00001",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"Hostname/IP does not match certificate's altnames: IP: 127.0.0.1 is not in the cert's list: \"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "tls-env-ca-read-once",
+   "upstream": "tls:leaf",
+   "files": {
+    "ca.pem": {
+     "cert": "ca"
+    }
+   },
+   "settings": null,
+   "env": {
+    "NODE_EXTRA_CA_CERTS": "ca.pem"
+   },
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsOnce00001",
+     "q": "id=tlsOnce00001&lang=en"
+    },
+    {
+     "op": "wait",
+     "s": "tlsOnce00001",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "tlsOnce00001"
+    },
+    {
+     "op": "upstream",
+     "lang": "en"
+    },
+    {
+     "op": "file",
+     "path": "ca.pem",
+     "text": "garbage\n"
+    },
+    {
+     "op": "open",
+     "s": "tlsOnce00002",
+     "q": "id=tlsOnce00002&lang=en-garbled"
+    },
+    {
+     "op": "wait",
+     "s": "tlsOnce00002",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "tlsOnce00002"
+    },
+    {
+     "op": "upstream",
+     "lang": "en-garbled"
+    },
+    {
+     "op": "file",
+     "path": "ca.pem",
+     "remove": true
+    },
+    {
+     "op": "open",
+     "s": "tlsOnce00003",
+     "q": "id=tlsOnce00003&lang=en-removed"
+    },
+    {
+     "op": "wait",
+     "s": "tlsOnce00003",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "tlsOnce00003"
+    },
+    {
+     "op": "upstream",
+     "lang": "en-removed"
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"tlsOnce00001\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ],
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"tlsOnce00002\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en-garbled&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ],
+    null,
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"tlsOnce00003\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en-removed&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ]
+   ]
+  },
+  {
+   "name": "tls-env-ca-then-bad-der",
+   "upstream": "tls:leaf",
+   "files": {
+    "bundle.pem": {
+     "cert": "ca",
+     "after": "-----BEGIN CERTIFICATE-----\nAAAAAAAA\n-----END CERTIFICATE-----\n"
+    }
+   },
+   "settings": null,
+   "env": {
+    "NODE_EXTRA_CA_CERTS": "bundle.pem"
+   },
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsPartial01",
+     "q": "id=tlsPartial01&lang=en"
+    },
+    {
+     "op": "wait",
+     "s": "tlsPartial01",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "tlsPartial01"
+    },
+    {
+     "op": "upstream",
+     "lang": "en"
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"tlsPartial01\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ]
+   ]
+  },
+  {
+   "name": "tls-env-bad-der-then-ca",
+   "upstream": "tls:leaf",
+   "files": {
+    "bundle.pem": {
+     "before": "-----BEGIN CERTIFICATE-----\nAAAAAAAA\n-----END CERTIFICATE-----\n",
+     "cert": "ca"
+    }
+   },
+   "settings": null,
+   "env": {
+    "NODE_EXTRA_CA_CERTS": "bundle.pem"
+   },
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsBadDer001",
+     "q": "id=tlsBadDer001"
+    },
+    {
+     "op": "drain",
+     "s": "tlsBadDer001"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=tlsBadDer001",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"unable to verify the first certificate\",\"hint\":\"Dictation couldn't connect — certificate not trusted even with NODE_EXTRA_CA_CERTS. Check it has your proxy's CA.\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "tls-env-and-settings",
+   "upstream": "tls:leaf",
+   "files": {
+    "ca.pem": {
+     "cert": "ca"
+    },
+    "other-ca.pem": {
+     "cert": "other"
+    }
+   },
+   "settings": {
+    "env": {
+     "NODE_EXTRA_CA_CERTS": "~/ca.pem"
+    }
+   },
+   "env": {
+    "NODE_EXTRA_CA_CERTS": "other-ca.pem"
+   },
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsBoth00001",
+     "q": "id=tlsBoth00001"
+    },
+    {
+     "op": "drain",
+     "s": "tlsBoth00001"
+    },
+    {
+     "op": "post",
+     "path": "/api/voice/chunk?id=tlsBoth00001",
+     "hex": "0102",
+     "cl": true
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    {
+     "text": "retry: 3600000\n\nevent: error\ndata: {\"kind\":\"upstream\",\"message\":\"unable to verify the first certificate\",\"hint\":\"Dictation couldn't connect — certificate not trusted even with NODE_EXTRA_CA_CERTS. Check it has your proxy's CA.\"}\n\n"
+    },
+    {
+     "status": 410,
+     "type": "application/json",
+     "body": "{\"error\":\"session gone\"}"
+    }
+   ]
+  },
+  {
+   "name": "tls-env-blank-and-settings",
+   "upstream": "tls:leaf",
+   "files": {
+    "ca.pem": {
+     "cert": "ca"
+    }
+   },
+   "settings": {
+    "env": {
+     "NODE_EXTRA_CA_CERTS": "~/ca.pem"
+    }
+   },
+   "env": {},
+   "envRaw": {
+    "NODE_EXTRA_CA_CERTS": " "
+   },
+   "steps": [
+    {
+     "op": "open",
+     "s": "tlsBlank0001",
+     "q": "id=tlsBlank0001&lang=en"
+    },
+    {
+     "op": "wait",
+     "s": "tlsBlank0001",
+     "needle": "event: ready"
+    },
+    {
+     "op": "abort",
+     "s": "tlsBlank0001"
+    },
+    {
+     "op": "upstream",
+     "lang": "en"
+    }
+   ],
+   "results": [
+    {
+     "status": 200,
+     "type": "text/event-stream",
+     "cache": "no-cache, no-transform",
+     "connection": "keep-alive",
+     "buffering": "no"
+    },
+    null,
+    {
+     "text": "retry: 3600000\n\nevent: ready\ndata: {\"id\":\"tlsBlank0001\"}\n\n"
+    },
+    [
+     "request GET /api/ws/speech_to_text/voice_stream?encoding=linear16&sample_rate=16000&channels=1&endpointing_ms=300&utterance_end_ms=1000&language=en&use_conversation_engine=true&forward_interims=typed&stt_provider=deepgram-nova3 HTTP/1.1",
+     "header Authorization: Bearer sk-ant-oat-golden",
+     "header Sec-WebSocket-Version: 13",
+     "header Sec-WebSocket-Key: <key>",
+     "header Connection: Upgrade",
+     "header Upgrade: websocket",
+     "header Host: 127.0.0.1:<port>",
+     "close 1000 client-abort",
+     "keepalive"
+    ]
+   ]
+  }
+ ]
+}

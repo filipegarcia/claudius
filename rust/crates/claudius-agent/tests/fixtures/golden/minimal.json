@@ -1,5 +1,5 @@
 {
-  "sdkVersion": "0.3.299",
+  "sdkVersion": "0.3.312",
   "case": "minimal",
   "spec": {},
   "baseEnv": {
@@ -19,7 +19,7 @@
     "stream-json"
   ],
   "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_QUESTION_EXTENDED": "1",

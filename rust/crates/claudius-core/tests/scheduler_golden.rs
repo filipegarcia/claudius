@@ -15,6 +15,13 @@
 //! The two recorded differences (`diff` on a step) are checked as such: a
 //! lone surrogate reads as U+FFFD (and is written that way), and a job id
 //! whose run files would land outside the schedule root is refused.
+//!
+//! The recording stubbed `process.pid` as [`REC_PID`] and `process.uptime()`
+//! so each scenario's `processStartedAt` is its `procStart`. Here the
+//! scheduler is told that `procStart`, and a `"pid"` of this process reads as
+//! [`REC_PID`] (and the other way round when a run is seeded), so a recovery
+//! pass has to leave the runs this process owns alone, and every run it
+//! starts has to carry its own pid.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -112,11 +119,21 @@ async fn real_sleep(ms: u64) {
         .unwrap();
 }
 
+/// `process.pid` as the recorder stubbed it: no process has it, so the
+/// mapping can't hit a timestamp.
+const REC_PID: u32 = 777_001;
+
+/// This process's pid as the recording writes one.
+fn our_pid() -> String {
+    std::process::id().to_string()
+}
+
 /// A scenario's world: the paths, the scheduler(s) and what the recorder
 /// kept beside them.
 struct World {
     root: String,
     fake: String,
+    proc_start: f64,
     claude: PathBuf,
     sched_root: PathBuf,
     cwds: PathBuf,
@@ -135,6 +152,8 @@ struct World {
     unsubs: HashMap<String, RunUnsubscribe>,
     /// Unsubscribes of names subscribed again (TS just loses them).
     lost: Vec<RunUnsubscribe>,
+    /// cwd -> a `startRun` whose turn is parked there.
+    pending: HashMap<String, tokio::task::JoinHandle<Result<Option<String>, StoreError>>>,
 }
 
 impl World {
@@ -156,6 +175,7 @@ impl World {
                 claude_bin: Some(fake_cli().clone()),
                 env: Some(self.env.clone()),
             },
+            process_started_at: self.proc_start,
             on_run_finished: Some(Arc::new(move |f: RunFinished| {
                 let mut m = Map::new();
                 if let Some(cwd) = f.cwd {
@@ -173,13 +193,26 @@ impl World {
 
     fn norm(&self, v: Value) -> Value {
         match v {
-            Value::String(s) => {
-                Value::String(s.replace(&self.fake, "$FAKE").replace(&self.root, "$TMP"))
-            }
+            Value::String(s) => Value::String(
+                s.replace(&self.fake, "$FAKE")
+                    .replace(&self.root, "$TMP")
+                    // A run's own pid, as the recording stubbed it. Keyed on
+                    // the field so no other number can match.
+                    .replace(
+                        &format!("\"pid\":{}", our_pid()),
+                        &format!("\"pid\":{REC_PID}"),
+                    ),
+            ),
             Value::Array(a) => Value::Array(a.into_iter().map(|v| self.norm(v)).collect()),
-            Value::Object(o) => {
-                Value::Object(o.into_iter().map(|(k, v)| (k, self.norm(v))).collect())
-            }
+            Value::Object(o) => Value::Object(
+                o.into_iter()
+                    .map(|(k, v)| {
+                        let ours = k == "pid" && v.as_f64() == Some(f64::from(std::process::id()));
+                        let v = if ours { json!(REC_PID) } else { self.norm(v) };
+                        (k, v)
+                    })
+                    .collect(),
+            ),
             v => v,
         }
     }
@@ -189,7 +222,14 @@ impl World {
     fn denorm(&self, v: &Value) -> JsValue {
         Some(match v {
             Value::Object(o) if o.get("$undefined") == Some(&json!(true)) => return None,
-            Value::String(s) => Value::String(s.replace("$TMP", &self.root)),
+            Value::String(s) => Value::String(
+                s.replace("$TMP", &self.root)
+                    // A seeded run of this process's.
+                    .replace(
+                        &format!("\"pid\":{REC_PID}"),
+                        &format!("\"pid\":{}", our_pid()),
+                    ),
+            ),
             Value::Array(a) => Value::Array(
                 a.iter()
                     .map(|v| self.denorm(v).unwrap_or(Value::Null))
@@ -422,6 +462,26 @@ impl World {
                     None => Value::Null,
                 })
             }
+            // A run-now left at its gate; `release` records what it gave.
+            "startRun" => {
+                let cwd = step["cwd"].as_str().unwrap().to_owned();
+                let n = self.gates.entry(cwd.clone()).or_insert(0);
+                *n += 1;
+                self.parked.insert(cwd.clone(), *n);
+                let sched = self.sched.clone();
+                let id = self.denorm(&step["id"]);
+                self.pending
+                    .insert(cwd, tokio::spawn(async move { sched.run_now(&id).await }));
+                return None;
+            }
+            "mkdirCwd" => {
+                std::fs::create_dir_all(self.cwds.join(step["cwd"].as_str().unwrap())).unwrap();
+                return None;
+            }
+            "rmCwd" => {
+                let _ = std::fs::remove_dir_all(self.cwds.join(step["cwd"].as_str().unwrap()));
+                return None;
+            }
             "advanceTo" => {
                 for cwd in step["park"].as_array().into_iter().flatten() {
                     let cwd = cwd.as_str().unwrap().to_owned();
@@ -439,7 +499,13 @@ impl World {
                 self.parked.remove(cwd);
                 self.settle().await;
                 std::fs::remove_file(gate).unwrap();
-                return None;
+                match self.pending.remove(cwd) {
+                    None => return None,
+                    Some(run) => self.result(run.await.unwrap(), |id| match id {
+                        Some(id) => json!({ "runId": id }),
+                        None => Value::Null,
+                    }),
+                }
             }
             "subscribe" => {
                 let name = step["as"].as_str().unwrap().to_owned();
@@ -669,8 +735,9 @@ async fn the_scheduler_matches_the_golden() {
     .collect();
     let zone = Zone::named(f["tz"].as_str().unwrap()).unwrap();
 
+    assert_eq!(f["pid"].as_u64(), Some(u64::from(REC_PID)));
     let scenarios = f["scenarios"].as_array().unwrap();
-    assert!(scenarios.len() >= 13);
+    assert!(scenarios.len() >= 20);
     let mut steps_run = 0;
     for sc in scenarios {
         let name = sc["name"].as_str().unwrap();
@@ -686,6 +753,7 @@ async fn the_scheduler_matches_the_golden() {
         let mut w = World {
             root: root.display().to_string(),
             fake: fake_cli().display().to_string(),
+            proc_start: sc["procStart"].as_f64().unwrap(),
             sched_root: claude.join("claudius").join("schedule"),
             claude,
             cwds,
@@ -705,6 +773,7 @@ async fn the_scheduler_matches_the_golden() {
             subs: Vec::new(),
             unsubs: HashMap::new(),
             lost: Vec::new(),
+            pending: HashMap::new(),
         };
         w.sched = w.scheduler();
 
@@ -770,12 +839,13 @@ async fn the_scheduler_matches_the_golden() {
             }
         }
         assert!(w.parked.is_empty(), "{name}: parked runs left");
+        assert!(w.pending.is_empty(), "{name}: run-nows left at a gate");
         for s in w.all_schedulers() {
             assert_eq!(s.debug_state().fires, 0, "{name}: runs left in flight");
             s.shutdown().await;
         }
     }
-    assert!(steps_run >= 200, "{steps_run} steps");
+    assert!(steps_run >= 300, "{steps_run} steps");
     drop(hold);
     inhibitor.await.unwrap();
 }
@@ -885,6 +955,40 @@ async fn a_timer_that_wakes_up_to_250_ms_early_still_fires() {
     inhibitor.await.unwrap();
 }
 
+/// With the default config, a run is stamped with this process's pid (the
+/// golden replay compares the recorder's stand-in against this one).
+#[tokio::test(start_paused = true)]
+async fn a_run_records_this_process_s_pid() {
+    let (hold, held) = std::sync::mpsc::channel::<()>();
+    let inhibitor = tokio::task::spawn_blocking(move || {
+        let _ = held.recv();
+    });
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().canonicalize().unwrap();
+    let sched_root = seed_jobs(&root, &root, &[("p", "p")]);
+    let sched = Scheduler::new(SchedulerConfig {
+        root: sched_root.clone(),
+        clock: Arc::new(TokioClock::new(T0)),
+        zone: Zone::named("America/New_York").unwrap(),
+        // A CLI that can't launch: the run still records.
+        runner: RunnerOptions {
+            claude_bin: Some(root.join("no-such-claude")),
+            env: Some(HashMap::new()),
+        },
+        ..SchedulerConfig::default()
+    });
+    // The default process start is in the past, so an unstamped run that
+    // started before this process counts as interrupted.
+    assert!(claudius_core::scheduler::process_started_ms() <= claudius_core::now_ms() as f64);
+    sched.run_now(&Some(json!("p"))).await.unwrap().unwrap();
+    let runs = std::fs::read_to_string(sched_root.join("jobs/p/runs.jsonl")).unwrap();
+    let rec: Value = serde_json::from_str(runs.trim()).unwrap();
+    assert_eq!(rec["pid"], json!(std::process::id()), "{rec}");
+    sched.shutdown().await;
+    drop(hold);
+    inhibitor.await.unwrap();
+}
+
 #[tokio::test(start_paused = true)]
 async fn shutdown_ends_the_runs_in_flight_and_stops_the_timers() {
     let (hold, held) = std::sync::mpsc::channel::<()>();
@@ -916,6 +1020,7 @@ async fn shutdown_ends_the_runs_in_flight_and_stops_the_timers() {
             env: Some(env),
         },
         on_run_finished: None,
+        process_started_at: T0,
     });
     sched.boot().unwrap();
     assert_eq!(sched.debug_state().timers.len(), 2);

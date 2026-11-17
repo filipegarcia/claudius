@@ -224,6 +224,12 @@ pub mod fs {
         std::fs::rename(from, to).map_err(|e| uv_exception(&e, "rename", Some(from), Some(to)))
     }
 
+    /// `fs.promises.unlink(path)` (a directory is EPERM on macOS, EISDIR
+    /// on Linux, as unlink(2) says).
+    pub fn unlink(path: &Path) -> Result<(), NodeError> {
+        std::fs::remove_file(path).map_err(|e| uv_exception(&e, "unlink", Some(path), None))
+    }
+
     /// `fs.promises.mkdir(path, { recursive: true })`, node's `MKDirpAsync`:
     /// create `path`, and on ENOENT its parents first. The error names the
     /// component whose `mkdir` (or the `stat` after it) failed, always as

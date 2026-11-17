@@ -9,7 +9,8 @@
 //! `submit_feedback` request to the CLI (byte for byte, the request id as
 //! `$ID`) and add the recorded row to the database file; the hand-written
 //! SQL runs in between, and each row dump must hold the same stored types
-//! and values.
+//! and values. The `lone surrogates` group's wire and rows are compared
+//! with each lone surrogate as U+FFFD ([`LONE_SURROGATES`]).
 //!
 //! The recorder pinned `Date.now` and `randomUUID`; this server runs on the
 //! real ones. A row a POST added must carry a v4 UUID and a `created_at`
@@ -48,6 +49,31 @@ const GAPS: &[(&str, &str)] = &[(
     "V8 parses nesting past 128 levels; serde_json refuses it, so the body reads as \
      null (400 `empty feedback`) instead of the 409 for a session that isn't live",
 )];
+
+/// The group that forwards lone-surrogate escapes to a live CLI (the fake
+/// reads them as `JSON.parse` does, so TS gets its reply). `JsonBody` reads
+/// each as U+FFFD, so the CLI gets U+FFFD where TS forwards the escape, and
+/// the row holds U+FFFD's bytes where better-sqlite3 binds the surrogate's
+/// own three (`ED A0 80`, read back as three U+FFFD; I15). The answers must
+/// match as recorded; the wire once the recorded line is read the same way
+/// ([`lossy_line`]), and the rows once each three U+FFFD read as one
+/// ([`lossy_cell`]).
+const LONE_SURROGATES: &str = "lone surrogates";
+
+/// A recorded wire line as the Rust host writes it: each lone surrogate as
+/// U+FFFD (`js::json_parse`).
+fn lossy_line(line: &Value) -> Value {
+    json!(js::stringify(
+        &js::json_parse(line.as_str().unwrap()).unwrap()
+    ))
+}
+
+/// A recorded row cell with each lone surrogate's three U+FFFD as one.
+fn lossy_cell(v: &mut Value) {
+    if let Value::String(t) = v {
+        *t = t.replace("\u{fffd}\u{fffd}\u{fffd}", "\u{fffd}");
+    }
+}
 
 /// `(status, content type, body)`; `body: None` sends none (no
 /// `Content-Length`).
@@ -346,10 +372,19 @@ fn replay_group(group: &Value, failures: &mut Vec<String>) -> (usize, usize) {
             "rows" => {
                 let got = on_disk(&db, &rows_sql(), 18).expect("a row dump");
                 let mut want = s["got"].clone();
+                let mut lossy = false;
                 for row in want.as_array_mut().unwrap() {
                     for v in row.as_array_mut().unwrap() {
                         subst.cell(v);
+                        if name == LONE_SURROGATES {
+                            let recorded = v.clone();
+                            lossy_cell(v);
+                            lossy |= *v != recorded;
+                        }
                     }
+                }
+                if name == LONE_SURROGATES && !lossy {
+                    failures.push(format!("{here} rows: no lone surrogate"));
                 }
                 if js::stringify(&json!(got)) != js::stringify(&want) {
                     failures.push(format!(
@@ -427,7 +462,7 @@ fn replay_group(group: &Value, failures: &mut Vec<String>) -> (usize, usize) {
                 if let Some(t) = want["body"].as_str() {
                     want["body"] = json!(subst.body(t));
                 }
-                let want_wire: Vec<Value> = s["wire"]
+                let mut want_wire: Vec<Value> = s["wire"]
                     .as_array()
                     .map(|w| {
                         w.iter()
@@ -435,6 +470,13 @@ fn replay_group(group: &Value, failures: &mut Vec<String>) -> (usize, usize) {
                             .collect()
                     })
                     .unwrap_or_default();
+                if name == LONE_SURROGATES {
+                    let lossy: Vec<Value> = want_wire.iter().map(lossy_line).collect();
+                    if lossy == want_wire {
+                        failures.push(format!("{here}: no lone surrogate on the wire"));
+                    }
+                    want_wire = lossy;
+                }
                 let same = got == want && wire == want_wire;
                 match GAPS.iter().find(|(piece, _)| shown.contains(piece)) {
                     Some((_, why)) => {

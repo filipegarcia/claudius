@@ -5383,13 +5383,41 @@
    }
   },
   {
-   "command": "trap '' TERM; /bin/sleep 1.5; printf survived",
+   "command": "trap '' TERM; /bin/sleep 0.6; printf survived",
    "opts": {
     "timeoutMs": 500
    },
    "cwd": "$ROOT/p1",
    "got": {
     "stdout": "survived",
+    "stderr": "",
+    "truncated": false,
+    "exitCode": 0,
+    "signal": null
+   }
+  },
+  {
+   "command": "trap '' TERM; while :; do /bin/sleep 1; done",
+   "opts": {
+    "timeoutMs": 300
+   },
+   "cwd": "$ROOT/p1",
+   "got": {
+    "stdout": "",
+    "stderr": "",
+    "truncated": false,
+    "exitCode": -1,
+    "signal": "SIGKILL"
+   }
+  },
+  {
+   "command": "(trap '' TERM; while :; do /bin/sleep 1; done) & printf early",
+   "opts": {
+    "timeoutMs": 300
+   },
+   "cwd": "$ROOT/p1",
+   "got": {
+    "stdout": "early",
     "stderr": "",
     "truncated": false,
     "exitCode": 0,

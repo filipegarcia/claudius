@@ -4,12 +4,13 @@
 //! the tick's turn ends with a `result`. Lives in the per-cwd database, like
 //! `session_tasks`.
 
-use rusqlite::params;
 use rusqlite::types::ValueRef;
+use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
 
 use crate::db::{Mode, open_db};
-use crate::{js_num, now_ms};
+use crate::sql_text::get;
+use crate::{js_num, js_params, now_ms};
 
 /// `LoopTick`.
 #[derive(Clone, Debug, PartialEq)]
@@ -34,7 +35,7 @@ pub fn record_loop_tick(cwd: &str, tick: &LoopTick) {
             "INSERT INTO loop_ticks(session_id, session_title, tool_use_id, prompt, fired_at, noop, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(tool_use_id) DO NOTHING",
-            params![
+            js_params![
                 tick.session_id,
                 tick.session_title,
                 tick.tool_use_id,
@@ -64,7 +65,7 @@ pub fn attach_loop_tick_tokens(cwd: &str, tool_use_id: &str, tokens: f64) {
     let _ = db.with(|c| {
         c.execute(
             "UPDATE loop_ticks SET tokens = ? WHERE tool_use_id = ? AND tokens IS NULL",
-            params![tokens, tool_use_id],
+            js_params![tokens, tool_use_id],
         )
     });
 }
@@ -121,8 +122,8 @@ pub fn list_loop_breakdown(cwd: &str) -> Vec<LoopBreakdownRow> {
         let rows = st
             .query_map([], |r| {
                 Ok((
-                    r.get::<_, String>(0)?,
-                    r.get::<_, Option<String>>(1)?,
+                    get::<String, _>(r, 0)?,
+                    get::<Option<String>, _>(r, 1)?,
                     number(r.get_ref(2)?).unwrap_or(0.0),
                     number(r.get_ref(3)?),
                     number(r.get_ref(4)?).unwrap_or(0.0),
@@ -136,7 +137,7 @@ pub fn list_loop_breakdown(cwd: &str) -> Vec<LoopBreakdownRow> {
             .map(|(session_id, session_title, run_count, total, last_run)| {
                 let total_tokens = total.unwrap_or(0.0);
                 let last_prompt = last
-                    .query_row(params![session_id], |r| r.get::<_, String>(0))
+                    .query_row(params![session_id], |r| get::<String, _>(r, 0))
                     .unwrap_or_default();
                 Ok(LoopBreakdownRow {
                     session_id,
@@ -155,6 +156,80 @@ pub fn list_loop_breakdown(cwd: &str) -> Vec<LoopBreakdownRow> {
             .collect::<rusqlite::Result<Vec<_>>>()
     })
     .unwrap_or_default()
+}
+
+/// `listLoopBreakdown(cwd)` as the `GET /api/cost/loops` route hands it to
+/// `JSON.stringify` (D18b): each column as better-sqlite3 reads it (a
+/// foreign row's BLOB, number or text kept as it is), the last prompt
+/// looked up with the row's `session_id` bound as better-sqlite3 binds it.
+/// `[]` when the database doesn't open read-only; `Err` is SQLite's message
+/// when a query fails (no `loop_ticks` table, an integer overflow in `SUM`),
+/// which TS throws.
+pub fn list_loop_breakdown_js(cwd: &str) -> Result<Vec<Value>, String> {
+    use crate::asset_list::Cell;
+    let Ok(db) = open_db(cwd, Mode::ReadOnly) else {
+        return Ok(vec![]);
+    };
+    db.with(|c| {
+        let mut st = c.prepare(
+            "SELECT session_id, MAX(session_title) AS session_title, COUNT(*) AS run_count,
+                    SUM(COALESCE(tokens, 0)) AS total_tokens, MAX(fired_at) AS last_run
+               FROM loop_ticks
+              GROUP BY session_id
+              ORDER BY last_run DESC",
+        )?;
+        let rows = st
+            .query_map([], |r| {
+                Ok([
+                    Cell::read(r.get_ref(0)?),
+                    Cell::read(r.get_ref(1)?),
+                    Cell::read(r.get_ref(2)?),
+                    Cell::read(r.get_ref(3)?),
+                    Cell::read(r.get_ref(4)?),
+                ])
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        let mut last = c.prepare(
+            "SELECT prompt FROM loop_ticks WHERE session_id = ? ORDER BY fired_at DESC LIMIT 1",
+        )?;
+        let num = |c: &Cell| match c {
+            Cell::Num(n) => *n,
+            _ => 0.0,
+        };
+        let mut out = Vec::with_capacity(rows.len());
+        for [session_id, session_title, run_count, total, last_run] in rows {
+            let run = num(&run_count);
+            let total_tokens = if matches!(total, Cell::Null) {
+                Cell::Num(0.0)
+            } else {
+                total
+            };
+            let id: rusqlite::types::Value = match &session_id {
+                Cell::Null => rusqlite::types::Value::Null,
+                Cell::Num(n) => rusqlite::types::Value::Real(*n),
+                Cell::Text(t) => rusqlite::types::Value::Text(t.clone()),
+                Cell::Blob(b) => rusqlite::types::Value::Blob(b.clone()),
+            };
+            let prompt = last
+                .query_row([id], |r| Ok(Cell::read(r.get_ref(0)?)))
+                .optional()?;
+            let prompt = match prompt {
+                None | Some(Cell::Null) => Cell::Text(String::new()),
+                Some(p) => p,
+            };
+            out.push(json!({
+                "sessionId": session_id.to_json(),
+                "sessionTitle": session_title.to_json(),
+                "runCount": run_count.to_json(),
+                "totalTokens": total_tokens.to_json(),
+                "tokensPerRun": js_num(if run > 0.0 { math_round(num(&total_tokens) / run) } else { 0.0 }),
+                "lastRun": last_run.to_json(),
+                "lastPrompt": prompt.to_json(),
+            }));
+        }
+        Ok(out)
+    })
+    .map_err(|e| crate::db::sqlite_message(&e))
 }
 
 #[cfg(test)]

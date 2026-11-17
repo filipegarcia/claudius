@@ -46,8 +46,12 @@ const CAPTURE_ID_PREFIX: &str = "sdk-manifest-capture:";
 
 /// Per-server settings the SDK forwards to the CLI: the `timeout` and
 /// `disableAutoBackground` fields of a `createSdkMcpServer` config, validated
-/// like the SDK's `Tw()`. They go out in `initialize.sdkMcpServerConfigs` and
-/// in the server's `mcp_set_servers` entry.
+/// like the SDK's `Tw()` (0.3.312 `dw()`). They go out in
+/// `initialize.sdkMcpServerConfigs` and in the server's `mcp_set_servers`
+/// entry. SDK 0.3.312 also forwards a config's per-tool permission policy
+/// (`tools: [{name, permission_policy}]`) and `connectorId`; neither is
+/// modelled, because `createSdkMcpServer` never sets them and Claudius's one
+/// in-process server (`claudius_goal`) doesn't add them.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SdkServerSettings {
     /// Per-tool-call timeout in ms. `Some(0)` is dropped like the SDK's `sh()`

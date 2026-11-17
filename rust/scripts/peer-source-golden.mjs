@@ -27,6 +27,9 @@
 //   `rm`, `chmod`; a file's mtime is set and recorded as `mtimeNs`), `get`
 //   answers status, content type and body text, or `threw` (`name:
 //   message`; Next's empty 500), and `fill` sends `n` socket-only misses.
+//   A fill takes no `Date.now` time (the clock is set back by what it
+//   took), so on a loaded machine the 30 s miss TTL can't expire the misses
+//   cached before it.
 //   `sessionManager.get` is stubbed to know one session (`hosted`); the Rust
 //   replay starts that session on the fake CLI instead. `needsPerms` marks
 //   steps whose answer relies on a mode-000 file or folder being refused.
@@ -987,6 +990,8 @@ step({ op: "dir", path: WS });
 get("pid=@LIVE@");
 
 let fills = 0;
+let fillSkew = 0;
+Date.now = () => realNow() - fillSkew;
 for (const s of routeSteps) {
   if (s.op === "get") {
     const url = `http://localhost/api/sessions/peer-source${s.query === null ? "" : `?${sub(s.query)}`}`;
@@ -997,6 +1002,7 @@ for (const s of routeSteps) {
       s.got = { threw: `${e.name}: ${e.message}` };
     }
   } else if (s.op === "fill") {
+    const t0 = realNow();
     for (let i = 0; i < s.n; i++) {
       const res = await route.GET(
         new Request(`http://localhost/api/sessions/peer-source?from=uds%3A%2Ftmp%2Ffill%2F${fills++}.sock`),
@@ -1004,10 +1010,12 @@ for (const s of routeSteps) {
       const body = await res.text();
       if (res.status !== 200 || body !== '{"source":null}') throw new Error(`fill ${i}: ${res.status} ${body}`);
     }
+    fillSkew += realNow() - t0;
   } else {
     apply(HOME, s);
   }
 }
+Date.now = realNow;
 
 const fixture = {
   node: process.version,

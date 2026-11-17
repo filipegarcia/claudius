@@ -1,5 +1,5 @@
 {
-  "sdkVersion": "0.3.299",
+  "sdkVersion": "0.3.312",
   "case": "resume_and_limits",
   "spec": {
     "resume": "11111111-1111-4111-8111-111111111111",
@@ -89,7 +89,7 @@
     "--custom-flag=-dash-value"
   ],
   "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_AGENT_PROGRESS_SUMMARIES": "1",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_QUESTION_EXTENDED": "1",

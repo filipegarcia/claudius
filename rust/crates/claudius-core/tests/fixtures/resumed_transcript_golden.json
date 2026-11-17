@@ -1,0 +1,422 @@
+{
+ "finds": [
+  {
+   "name": "the cwd's own project dir wins over another with the same name",
+   "defaultBase": false,
+   "files": [
+    [
+     "write",
+     "-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "-Users-x-source/11112222-3333-4444-5555-666677778888.jsonl"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "found": "$BASE/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  },
+  {
+   "name": "a fork resumed in its worktree: the SOURCE project's dir",
+   "defaultBase": false,
+   "files": [
+    [
+     "mkdir",
+     "-Users-x-wt"
+    ],
+    [
+     "write",
+     "-Users-x-source/11112222-3333-4444-5555-666677778888.jsonl"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/wt",
+     "found": "$BASE/-Users-x-source/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  },
+  {
+   "name": "several other dirs: the first in readdir order that has it",
+   "defaultBase": false,
+   "files": [
+    [
+     "write",
+     "-b-one/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "-a-two/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "-c-three/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "mkdir",
+     "-Users-x-proj"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "found": "$BASE/-a-two/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  },
+  {
+   "name": "nothing anywhere, and ids the name check refuses",
+   "defaultBase": false,
+   "files": [
+    [
+     "write",
+     "-Users-x-proj/other.jsonl"
+    ],
+    [
+     "write",
+     "-Users-x-proj/11112222-3333-4444-5555-666677778888.txt"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "other",
+     "cwd": "/Users/x/proj",
+     "found": "$BASE/-Users-x-proj/other.jsonl"
+    },
+    {
+     "id": "a.b",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "a b",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "a/b",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "../etc/passwd",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "..-Users-x-proj",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "é",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "🚀",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "a\u0000b",
+     "cwd": "/Users/x/proj",
+     "found": null
+    },
+    {
+     "id": "under_score-and-DIGITS-123",
+     "cwd": "/Users/x/proj",
+     "found": null
+    }
+   ]
+  },
+  {
+   "name": "a file, a symlinked dir and a symlinked transcript in the base",
+   "defaultBase": false,
+   "files": [
+    [
+     "write",
+     "loose/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "mkdir",
+     "$ROOT/elsewhere"
+    ],
+    [
+     "write",
+     "$ROOT/elsewhere/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "symlink",
+     "$ROOT/elsewhere",
+     "linked-dir"
+    ],
+    [
+     "mkdir",
+     "-real-dir"
+    ],
+    [
+     "symlink",
+     "$ROOT/elsewhere/11112222-3333-4444-5555-666677778888.jsonl",
+     "-real-dir/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "mkdir",
+     "-Users-x-proj"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "found": "$BASE/-real-dir/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  },
+  {
+   "name": "the cwd's own dir is a symlink",
+   "defaultBase": false,
+   "files": [
+    [
+     "mkdir",
+     "$ROOT/target-dir"
+    ],
+    [
+     "write",
+     "$ROOT/target-dir/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "symlink",
+     "$ROOT/target-dir",
+     "-Users-x-proj"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "found": "$BASE/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  },
+  {
+   "name": "a dangling symlinked transcript, and a directory named like one",
+   "defaultBase": false,
+   "files": [
+    [
+     "mkdir",
+     "-Users-x-proj"
+    ],
+    [
+     "symlink",
+     "$ROOT/gone.jsonl",
+     "-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "mkdir",
+     "-dir-shaped/11112222-3333-4444-5555-666677778888.jsonl"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "found": null
+    }
+   ]
+  },
+  {
+   "name": "odd cwds: empty, relative, unicode, a trailing slash and a long one",
+   "defaultBase": false,
+   "files": [
+    [
+     "write",
+     "/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "rel-dir/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "-Users-x---/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "-Users-x-proj-/11112222-3333-4444-5555-666677778888.jsonl"
+    ],
+    [
+     "write",
+     "-Users-x-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/11112222-3333-4444-5555-666677778888.jsonl"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "",
+     "found": "$BASE/11112222-3333-4444-5555-666677778888.jsonl"
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "rel/dir",
+     "found": "$BASE/rel-dir/11112222-3333-4444-5555-666677778888.jsonl"
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/🚀",
+     "found": "$BASE/-Users-x---/11112222-3333-4444-5555-666677778888.jsonl"
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj/",
+     "found": "$BASE/-Users-x-proj-/11112222-3333-4444-5555-666677778888.jsonl"
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+     "found": "$BASE/-Users-x-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  },
+  {
+   "name": "a base that is missing, a file, or relative",
+   "defaultBase": false,
+   "files": [
+    [
+     "write",
+     "-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": "$ROOT/no-such-base",
+     "found": null
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": "$ROOT/a-file",
+     "found": null
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": "",
+     "found": null
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": ".",
+     "found": null
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": "$BASE/",
+     "found": "$BASE/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": "$BASE/sub/..",
+     "found": "$BASE/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": "$BASE/../",
+     "found": "$ROOT/bases/4/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  },
+  {
+   "name": "the default base is the home's .claude/projects",
+   "defaultBase": true,
+   "files": [
+    [
+     "write",
+     "-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    ]
+   ],
+   "calls": [
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "base": "$DEFAULT",
+     "found": "$BASE/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    },
+    {
+     "id": "11112222-3333-4444-5555-666677778888",
+     "cwd": "/Users/x/proj",
+     "found": "$BASE/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+    }
+   ]
+  }
+ ],
+ "display": [
+  {
+   "file": null,
+   "result": null
+  },
+  {
+   "file": "",
+   "result": null
+  },
+  {
+   "file": "$HOME/.claude/projects/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl",
+   "result": "~/.claude/projects/-Users-x-proj/11112222-3333-4444-5555-666677778888.jsonl"
+  },
+  {
+   "file": "$HOME/x.jsonl",
+   "result": "~/x.jsonl"
+  },
+  {
+   "file": "$HOME",
+   "result": "$HOME"
+  },
+  {
+   "file": "$HOMEx/y.jsonl",
+   "result": "$HOMEx/y.jsonl"
+  },
+  {
+   "file": "/elsewhere/a.jsonl",
+   "result": "/elsewhere/a.jsonl"
+  },
+  {
+   "file": "/a.jsonl",
+   "result": "/a.jsonl"
+  },
+  {
+   "file": "$HOME/🚀/é.jsonl",
+   "result": "~/🚀/é.jsonl"
+  },
+  {
+   "file": "$HOME//double.jsonl",
+   "result": "~//double.jsonl"
+  }
+ ]
+}

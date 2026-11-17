@@ -31,7 +31,7 @@
 /// mirrors. `rust/scripts/sdk-diff.sh` fails when the installed SDK, the
 /// version baked into its bundle, or `rust/scripts/sdk-snapshot.json`
 /// disagrees with it.
-pub const SDK_VERSION: &str = "0.3.299";
+pub const SDK_VERSION: &str = "0.3.312";
 
 pub mod binary;
 pub mod error;

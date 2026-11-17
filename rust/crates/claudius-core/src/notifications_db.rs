@@ -25,7 +25,8 @@ use rusqlite::{Connection, OptionalExtension, ToSql};
 use serde_json::{Map, Value, json};
 
 use crate::db::{Mode, open_db};
-use crate::{js_num, now_ms};
+use crate::sql_text::{self, JsText};
+use crate::{js_num, js_params, js_string, now_ms};
 
 // ───────────────────────── kinds (lib/shared/notifications.ts) ─────────────────────────
 
@@ -302,7 +303,7 @@ pub fn insert_notification(
     let payload = input
         .payload
         .as_ref()
-        .map(|p| js::stringify(&Value::Object(p.clone())));
+        .map(|p| js_string::stringify(&Value::Object(p.clone())));
     let opt = |v: &Option<String>| v.as_ref().map_or(Value::Null, |s| json!(s));
     let args = [
         json!(id),
@@ -330,7 +331,7 @@ pub fn insert_notification(
         if let Some(last) = values.last_mut() {
             *last = Sql::Real(created_at);
         }
-        st.execute(rusqlite::params_from_iter(values))
+        st.execute(rusqlite::params_from_iter(values.into_iter().map(JsText::new)))
     });
     let changes = match changes {
         Ok(n) => n,
@@ -468,6 +469,7 @@ fn mark(cwd: &str, sql: &str, args: Vec<Sql>, now: &dyn Fn() -> f64) -> anyhow::
     let db = open_db(cwd, Mode::ReadWrite)?;
     let mut params = vec![Sql::Real(now())];
     params.extend(args);
+    let params = params.into_iter().map(JsText::new);
     Ok(db.with(|c| c.execute(sql, rusqlite::params_from_iter(params)))?)
 }
 
@@ -582,14 +584,16 @@ pub fn mark_read_by_request_id(
         let mut st =
             c.prepare("SELECT id FROM notifications WHERE read_at IS NULL AND request_id = ?")?;
         let ids = st
-            .query_map([request_id], |r| Ok(Cell::read(r.get_ref(0)?).to_json()))?
+            .query_map(js_params![request_id], |r| {
+                Ok(Cell::read(r.get_ref(0)?).to_json())
+            })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         if ids.is_empty() {
             return Ok(ids);
         }
         c.execute(
             "UPDATE notifications SET read_at = ? WHERE read_at IS NULL AND request_id = ?",
-            rusqlite::params![now(), request_id],
+            js_params![now(), request_id],
         )?;
         Ok(ids)
     })?)
@@ -608,7 +612,7 @@ pub fn get_notification(
     Ok(db.with(|c| {
         c.query_row(
             &format!("SELECT {ROW_COLUMNS} FROM notifications WHERE id = ?"),
-            [id],
+            js_params![id],
             |r| hydrate(r, workspace_id),
         )
         .optional()
@@ -742,9 +746,9 @@ const SELECT: &str =
 /// passes too (a `blocked` column without INTEGER affinity keeps the REAL
 /// better-sqlite3 binds).
 fn read_row(c: &Connection, session_id: &str) -> rusqlite::Result<Option<SessionPrefs>> {
-    c.query_row(SELECT, [session_id], |r| {
+    c.query_row(SELECT, js_params![session_id], |r| {
         Ok(SessionPrefs {
-            session_id: r.get(0)?,
+            session_id: sql_text::get(r, 0)?,
             blocked: match r.get_ref(1)? {
                 ValueRef::Integer(n) => n == 1,
                 ValueRef::Real(f) => f == 1.0,
@@ -794,7 +798,7 @@ pub fn set_session_prefs(
              ON CONFLICT(session_id) DO UPDATE SET
                blocked      = excluded.blocked,
                snooze_until = excluded.snooze_until",
-            rusqlite::params![session_id, blocked, prefs.snooze_until],
+            js_params![session_id, blocked, prefs.snooze_until],
         )?;
         // What was given, not what was stored: a TEXT-affinity column turns
         // the deadline into text, but TS answers the number it bound.

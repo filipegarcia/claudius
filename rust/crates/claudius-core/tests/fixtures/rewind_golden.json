@@ -1,5 +1,5 @@
 {
- "sdkVersion": "0.3.299",
+ "sdkVersion": "0.3.312",
  "controls": [
   {
    "name": "default",
@@ -1489,6 +1489,143 @@
      "status": 503,
      "body": "{\"error\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}",
      "wire": []
+    }
+   ]
+  },
+  {
+   "name": "lone surrogates",
+   "script": null,
+   "query": "live",
+   "cases": [
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\ud800\"}",
+     "requestHex": "7b22757365724d6573736167654964223a225c7564383030227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"\\ud800\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\udc00\",\"dryRun\":true}",
+     "requestHex": "7b22757365724d6573736167654964223a225c7564633030222c2264727952756e223a747275657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"\\udc00\",\"dry_run\":true}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"a\\ud800b\\udfffc\"}",
+     "requestHex": "7b22757365724d6573736167654964223a22615c7564383030625c756466666663227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"a\\ud800b\\udfffc\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\ud83d\\ude00\\ud83d\"}",
+     "requestHex": "7b22757365724d6573736167654964223a225c75643833645c75646530305c7564383364227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"😀\\ud83d\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\ude00\\ud83d\",\"dryRun\":false}",
+     "requestHex": "7b22757365724d6573736167654964223a225c75646530305c7564383364222c2264727952756e223a66616c73657d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"\\ude00\\ud83d\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\ud800\\ud800\"}",
+     "requestHex": "7b22757365724d6573736167654964223a225c75643830305c7564383030227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"\\ud800\\ud800\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\uDBFFx\"}",
+     "requestHex": "7b22757365724d6573736167654964223a225c754442464678227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"\\udbffx\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\\\\\ud800\\\\ud800\"}",
+     "requestHex": "7b22757365724d6573736167654964223a225c5c5c75643830305c5c7564383030227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"\\\\\\ud800\\\\ud800\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\ud800\\udc00\"}",
+     "requestHex": "7b22757365724d6573736167654964223a225c75643830305c7564633030227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"𐀀\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"\\ud800\":1,\"userMessageId\":\"u1\"}",
+     "requestHex": "7b225c7564383030223a312c22757365724d6573736167654964223a227531227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"u1\",\"dryRun\":\"\\ud800\"}",
+     "requestHex": "7b22757365724d6573736167654964223a227531222c2264727952756e223a225c7564383030227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u1\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": "{\"userMessageId\":\"\\ud800\",\"userMessageId\":\"u2\"}",
+     "requestHex": "7b22757365724d6573736167654964223a225c7564383030222c22757365724d6573736167654964223a227532227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"u2\",\"dry_run\":false}}"
+     ]
+    },
+    {
+     "id": "live",
+     "request": null,
+     "requestHex": "7b22757365724d6573736167654964223a22eda080227d",
+     "status": 200,
+     "body": "{\"result\":{\"canRewind\":true,\"filesChanged\":[],\"insertions\":0,\"deletions\":0}}",
+     "wire": [
+      "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"rewind_files\",\"user_message_id\":\"���\",\"dry_run\":false}}"
+     ]
     }
    ]
   }

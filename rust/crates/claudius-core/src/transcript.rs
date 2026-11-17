@@ -1,6 +1,7 @@
 //! Transcript reconstruction — port of the SDK's `getSessionMessages`
-//! pipeline (SDK 0.3.299, minified names in brackets so the next bump can be
-//! diffed function-by-function):
+//! pipeline (SDK 0.3.299 minified names in brackets, so the next bump can be
+//! diffed function-by-function; checked against 0.3.312, whose only changes
+//! here are one more interrupt text in `AD` and `taskKind` in `dE`):
 //!
 //! 1. parse entries + queued-command delivery bookkeeping   [`xve`/`aU`/`lU`]
 //! 2. resolve the main chain root→leaf (compact relinks)    [`Pu`]
@@ -20,9 +21,12 @@ pub type Obj = Map<String, Value>;
 static RUN_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[A-Za-z0-9_.:-]{1,128}$").unwrap());
 
-/// `AD` — synthetic tool_result / user texts that count as a "reply".
+/// `AD` (0.3.312 `aL`) — synthetic tool_result / user texts that count as a
+/// "reply". 0.3.312 added the second one (a subagent cut off by the session's
+/// end).
 const INTERRUPT_PREFIXES: &[&str] = &[
     "[Request interrupted by user]",
+    "[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]",
     "[Request interrupted by user for tool use]",
     "[Tool call did not complete: the turn was ended to deliver the message that follows. Nothing refused it; re-run it if still needed.]",
     "[Tool call interrupted: the session ended before this call's result was recorded, so its outcome is unknown. Check whether it took effect before relying on it or running it again.]",
@@ -156,7 +160,8 @@ fn valid_run_id(v: Option<&Value>) -> Option<String> {
         .map(str::to_owned)
 }
 
-/// `dE` — normalize a task-notification origin.
+/// `dE` (0.3.312 `yb`) — normalize a task-notification origin. 0.3.312 keeps
+/// `taskKind`, but only when it's exactly `"mcp-task"`.
 fn normalize_origin(origin: &Value) -> Value {
     if origin.get("kind").and_then(Value::as_str) != Some("task-notification") {
         return origin.clone();
@@ -170,6 +175,9 @@ fn normalize_origin(origin: &Value) -> Value {
     }
     if let Some(r) = valid_run_id(origin.get("runId")) {
         m.insert("runId".into(), json!(r));
+    }
+    if origin.get("taskKind").and_then(Value::as_str) == Some("mcp-task") {
+        m.insert("taskKind".into(), json!("mcp-task"));
     }
     Value::Object(m)
 }

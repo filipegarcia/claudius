@@ -286,7 +286,8 @@ if (
   !ordered(
     at("} catch (err) {", loopStart),
     at("const message = err instanceof Error ? err.message : String(err);", loopStart),
-    at('this.broadcast({ type: "error", message });', loopStart),
+    // CC 2.1.311 (R03) flags the thrown-iterator error with `sessionEnded`.
+    at('this.broadcast({ type: "error", message, sessionEnded: true });', loopStart),
     pos("this.noteOverloadObservation(isOverloadErrorText(message));"),
   ) ||
   !ordered(bcast, at("this.buffer.push(event);", bcast), pos("this.noteTokenExpiringAtStartup();"), at("for (const sub of this.subscribers)", bcast))

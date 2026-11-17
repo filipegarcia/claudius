@@ -440,6 +440,8 @@ const ins = {
 // --------------------------------- core ---------------------------------
 
 const L = (root) => ({ call: ["list", root] });
+/** `listWorkspaceSessionIds(root, {isLive})`; `live: null` passes `{}`. */
+const LI = (root, live) => ({ call: ["list", root, { live }] });
 const R = (from, to) => ({ call: ["relocate", from, to] });
 
 const S1 = SID(1);
@@ -880,6 +882,67 @@ const CORE = [
     ],
   },
   {
+    name: "the history filter on database rows (CC 2.1.309)",
+    steps: [
+      S(
+        T("/wsrel/hist/a", S1),
+        SQL(
+          "/wsrel/hist/a",
+          [
+            ins.session(S1, "/wsrel/hist/a", "A transcript row"),
+            ins.session(DBONLY, "/wsrel/hist/a", "Renamed before first turn"),
+            ins.session(S2, "/wsrel/hist/a"),
+            ins.session(S3, "/wsrel/hist/a", "   "),
+            ins.session(S4, "/wsrel/hist/a", U(0xfeff)),
+            ins.session(S5, "/wsrel/hist/a", `${U(0x1f980)} crab`),
+            "INSERT INTO sessions(id, cwd, created_at, updated_at, last_seen_at) VALUES (X'0001', '/wsrel/hist/a', 1, 1, 1), (7, '/wsrel/hist/a', 1, 1, 1), (NULL, '/wsrel/hist/a', 1, 1, 1);",
+          ].join("\n"),
+        ),
+        // A numeric title: `row.title.trim` throws, which ends the row loop
+        // inside the same catch a pre-v2 database lands in.
+        T("/wsrel/hist/num", S1),
+        SQL(
+          "/wsrel/hist/num",
+          [
+            ins.session(DBONLY, "/wsrel/hist/num", "Kept before the throw"),
+            "INSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES ('" + S2 + "', '/wsrel/hist/num', 5, 1, 1, 1);",
+            ins.session(S3, "/wsrel/hist/num", "After the throw"),
+          ].join("\n"),
+        ),
+        // The same numeric title on a row whose id a transcript already has:
+        // `ids.has` skips it before the filter can throw.
+        T("/wsrel/hist/dup", S1),
+        SQL(
+          "/wsrel/hist/dup",
+          [
+            "INSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES ('" + S1 + "', '/wsrel/hist/dup', 5, 1, 1, 1);",
+            ins.session(DBONLY, "/wsrel/hist/dup", "After the duplicate"),
+          ].join("\n"),
+        ),
+        // A BLOB title is an object: truthy, and no `trim` either.
+        T("/wsrel/hist/blob", S1),
+        SQL(
+          "/wsrel/hist/blob",
+          [
+            "INSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES ('" + S2 + "', '/wsrel/hist/blob', X'6869', 1, 1, 1);",
+          ].join("\n"),
+        ),
+      ),
+      L("/wsrel/hist/a"),
+      LI("/wsrel/hist/a", null),
+      LI("/wsrel/hist/a", []),
+      LI("/wsrel/hist/a", [S2, "7", "nope"]),
+      LI("/wsrel/hist/a", [DBONLY, S3, S4]),
+      L("/wsrel/hist/num"),
+      LI("/wsrel/hist/num", []),
+      L("/wsrel/hist/dup"),
+      LI("/wsrel/hist/dup", []),
+      L("/wsrel/hist/blob"),
+      LI("/wsrel/hist/blob", []),
+      LI("/wsrel/hist/missing", []),
+    ],
+  },
+  {
     name: "permissions",
     needs: ["perm"],
     steps: [
@@ -930,7 +993,15 @@ const CORE = [
 
 async function call([fn, ...args]) {
   try {
-    const v = fn === "list" ? await reloc.listWorkspaceSessionIds(...args) : await reloc.relocateWorkspaceSessions(...args);
+    let v;
+    if (fn === "list") {
+      const [root, opts] = args;
+      // CC 2.1.309: the move-sessions preview passes `isLive`; nothing else does.
+      const o = opts === undefined ? undefined : opts.live === null ? {} : { isLive: (id) => opts.live.includes(id) };
+      v = o === undefined ? await reloc.listWorkspaceSessionIds(root) : await reloc.listWorkspaceSessionIds(root, o);
+    } else {
+      v = await reloc.relocateWorkspaceSessions(...args);
+    }
     return { result: deep(JSON.parse(J(v)), toRel) };
   } catch (e) {
     return { threw: threwOf(e) };
@@ -1258,7 +1329,13 @@ const ROUTES = [
     name: "live sessions: idle ones end",
     dirs: ROOT_DIRS,
     store: store([ws("wks_live", "Live", "$ROOT/r/live"), ws("wks_other", "Other", "$ROOT/r/other")]),
-    setup: [T("$ROOT/r/live", S1), W(`${PD("$ROOT/r/live")}/${S1}/a.txt`, "a\n")],
+    setup: [
+      T("$ROOT/r/live", S1),
+      W(`${PD("$ROOT/r/live")}/${S1}/a.txt`, "a\n"),
+      // CC 2.1.309: the titled DB-only row counts, the untitled one only
+      // while its session is live.
+      SQL("$ROOT/r/live", [ins.session(DBONLY, "$ROOT/r/live", "Renamed before first turn"), ins.session(OTHER, "$ROOT/r/live")].join("\n")),
+    ],
     sessions: [
       { key: "A", id: SID(21, "c"), cwd: "$ROOT/r/live", status: "idle" },
       { key: "B", id: SID(22, "c"), cwd: "$ROOT/r/live", status: "idle" },

@@ -27,7 +27,8 @@ use claudius_core::account_oauth::{
     self, OAuthFlows, RouteAnswer, SecureRandom, code_challenge, post_route,
 };
 use claudius_core::accounts::{self, AccountsStore, accounts_dir_for};
-use claudius_core::fetch::{Fetch, Request, Response};
+use claudius_core::fetch::{Fetch, FetchError, Request, Response};
+use claudius_core::tls_cert_hint;
 use common_oauth::{build, fill, fixture, hex, recorded_tree, request_body, sub, tree, unlock};
 use futures::future::BoxFuture;
 use serde_json::{Value, json};
@@ -65,7 +66,7 @@ struct Scripted {
 }
 
 impl Fetch for Scripted {
-    fn fetch<'a>(&'a self, req: &'a Request) -> BoxFuture<'a, Result<Response, String>> {
+    fn fetch<'a>(&'a self, req: &'a Request) -> BoxFuture<'a, Result<Response, FetchError>> {
         let headers: Vec<Value> = req.headers.iter().map(|(k, v)| json!([k, v])).collect();
         self.calls.lock().unwrap().push(json!({
             "url": req.url,
@@ -77,7 +78,15 @@ impl Fetch for Scripted {
         Box::pin(async move {
             let next = next.expect("unscripted fetch");
             if let Some(m) = next["throws"].as_str() {
-                return Err(m.to_owned());
+                // The recorded rejection, with the verdict the real client
+                // reaches from the handshake (the recorder's `cause` is the
+                // Node error undici wrapped).
+                let err = json!({"message": m, "cause": next["cause"].clone()});
+                return Err(if tls_cert_hint::is_ca_trust_failure(&err) {
+                    FetchError::ca_trust(m)
+                } else {
+                    FetchError::new(m)
+                });
             }
             Ok(Response {
                 status: next["status"].as_u64().unwrap() as u16,
@@ -203,6 +212,22 @@ async fn replay(case: &Value) {
             "files" => build(&w, &step["files"]),
             op => panic!("unknown op {op}"),
         }
+        // The CC 2.1.309 log line, which the port writes with the same
+        // wording (pinned as text: no tracing subscriber here).
+        let want_warns: Vec<&str> = step["warns"]
+            .as_array()
+            .map(|a| a.iter().map(|v| v.as_str().unwrap()).collect())
+            .unwrap_or_default();
+        for warn in want_warns {
+            assert_eq!(
+                warn,
+                format!(
+                    "[accounts] token exchange failed certificate verification \u{2014} {}",
+                    tls_cert_hint::OWN_REQUEST_HINT
+                ),
+                "{at}: the warning"
+            );
+        }
         let calls: Vec<Value> = std::mem::take(&mut *fetch.calls.lock().unwrap());
         let want: Vec<Value> = step["fetches"]
             .as_array()
@@ -291,6 +316,56 @@ fn recorded_challenges_are_s256_of_the_verifiers() {
     assert!(checked > 100, "{checked}");
 }
 
+/// CC 2.1.311: `isRefusedAuthCode(status, bodyText)` on every recorded
+/// status / body pair.
+#[test]
+fn the_refused_code_predicate_matches_the_ts() {
+    let f = fixture();
+    let rows = f["refusedCodes"].as_array().unwrap();
+    assert!(rows.len() >= 200, "{} rows", rows.len());
+    let mut refused = 0;
+    for row in rows {
+        let (status, body, want) = (
+            row[0].as_i64().unwrap(),
+            row[1].as_str().unwrap(),
+            row[2].as_bool().unwrap(),
+        );
+        // The status reaches the port as the response's `u16`; the recorder
+        // also asks about values no HTTP response can carry.
+        let got = u16::try_from(status)
+            .map(|s| account_oauth::is_refused_auth_code(s, body))
+            .unwrap_or(false);
+        assert_eq!(got, want, "status {status}, body {body:?}");
+        refused += u32::from(want);
+    }
+    assert!(refused >= 12, "{refused} refusals recorded");
+    assert_eq!(
+        account_oauth::REFUSED_AUTH_CODE_MESSAGE,
+        "That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code."
+    );
+}
+
+/// CC 2.1.309: `isCaTrustFailure` / `ownRequestCertFailureHint` on every
+/// recorded error shape.
+#[test]
+fn the_cert_hint_matches_the_ts() {
+    let f = fixture();
+    let rows = f["certHints"].as_array().unwrap();
+    assert!(rows.len() >= 40, "{} rows", rows.len());
+    let mut hinted = 0;
+    for row in rows {
+        let (spec, want_trust, want_hint) = (&row[0], row[1].as_bool().unwrap(), &row[2]);
+        let trust = tls_cert_hint::is_ca_trust_failure(spec);
+        assert_eq!(trust, want_trust, "{spec}");
+        let hint = tls_cert_hint::own_request_cert_failure_hint(spec);
+        assert_eq!(hint.map_or(Value::Null, Value::from), *want_hint, "{spec}");
+        // The classified form the HTTPS client's verdict goes through.
+        assert_eq!(tls_cert_hint::own_request_hint_for(trust), hint, "{spec}");
+        hinted += u32::from(want_trust);
+    }
+    assert!(hinted >= 15, "{hinted} failures recorded");
+}
+
 /// The constants the authorize URL and the token request are built from.
 #[test]
 fn constants() {
@@ -356,7 +431,7 @@ impl claudius_core::account_profile::ProfileFetch for NoProfileFetch {
         &'a self,
         _: &'a str,
         _: &'a [(String, String)],
-    ) -> BoxFuture<'a, Result<claudius_core::account_profile::FetchResponse, String>> {
+    ) -> BoxFuture<'a, Result<claudius_core::account_profile::FetchResponse, FetchError>> {
         panic!("no profile fetch expected")
     }
 }

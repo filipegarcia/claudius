@@ -396,6 +396,95 @@ pub fn create_raw(input: CreateInput) -> anyhow::Result<Value> {
     Ok(ws)
 }
 
+/// `createWorkspace(input)` for an input whose fields can be JS
+/// `undefined` (`None`), which `JSON.stringify` drops — what the settings
+/// import passes from a bundle's `meta` (see [`crate::settings_import`]).
+/// The inner `Err` is the `TypeError` `defaultLetterIcon` throws when the
+/// icon is nullish and `input.name.match` isn't callable.
+pub struct CreateInputJs<'a> {
+    pub name: Option<&'a Value>,
+    pub root_path: Option<&'a Value>,
+    pub icon: Option<&'a Value>,
+    pub defaults: Option<&'a Value>,
+}
+
+/// [`create_raw`] over [`CreateInputJs`].
+pub fn create_raw_js(input: CreateInputJs<'_>) -> anyhow::Result<Result<Value, String>> {
+    let _g = lock();
+    let mut shape = ensure_bootstrap()?;
+    let id = format!("wks_{}", &uuid::Uuid::new_v4().simple().to_string()[..12]);
+    // `input.icon ?? defaultLetterIcon(input.name, id)`.
+    let icon = match input.icon.filter(|v| !v.is_null()) {
+        Some(v) => v.clone(),
+        None => match input.name {
+            Some(Value::String(name)) => default_letter_icon(name, &id),
+            other => {
+                return Ok(Err(match other {
+                    None => "Cannot read properties of undefined (reading 'match')".to_owned(),
+                    Some(Value::Null) => {
+                        "Cannot read properties of null (reading 'match')".to_owned()
+                    }
+                    Some(_) => "input.name.match is not a function".to_owned(),
+                }));
+            }
+        },
+    };
+    let mut defaults = Map::new();
+    defaults.insert("permissionMode".into(), json!("auto"));
+    if let Some(d) = input.defaults {
+        js_string::spread_into(&mut defaults, d);
+    }
+    let now = now_ms();
+    let mut ws = Map::new();
+    ws.insert("id".into(), json!(id));
+    if let Some(name) = input.name {
+        ws.insert("name".into(), name.clone());
+    }
+    if let Some(root) = input.root_path {
+        ws.insert("rootPath".into(), root.clone());
+    }
+    ws.insert("icon".into(), icon);
+    ws.insert("createdAt".into(), json!(now));
+    ws.insert("updatedAt".into(), json!(now));
+    ws.insert("lastOpenedAt".into(), json!(now));
+    ws.insert("defaults".into(), Value::Object(defaults));
+    let ws = Value::Object(ws);
+    workspaces_mut(&mut shape).push(ws.clone());
+    write_shape(&shape)?;
+    Ok(Ok(ws))
+}
+
+/// [`update_raw`] for a patch whose values can be JS `undefined` (`None`):
+/// `{...ws, ...patch}` sets the key to `undefined`, which
+/// `JSON.stringify` drops, so the key goes.
+pub fn update_raw_js(id: &str, patch: &[(&str, Option<Value>)]) -> anyhow::Result<Option<Value>> {
+    let _g = lock();
+    let mut shape = ensure_bootstrap()?;
+    let Some(idx) = find_index(workspaces_of(&shape), &json!(id))? else {
+        return Ok(None);
+    };
+    let mut next = workspaces_of(&shape)[idx]
+        .as_object()
+        .cloned()
+        .expect("a matched entry is an object");
+    for (k, v) in patch {
+        match v {
+            Some(v) => {
+                next.insert((*k).to_owned(), v.clone());
+            }
+            None => {
+                next.shift_remove(*k);
+            }
+        }
+    }
+    next.insert("id".into(), json!(id));
+    next.insert("updatedAt".into(), json!(now_ms()));
+    let next = Value::Object(next);
+    workspaces_mut(&mut shape)[idx] = next.clone();
+    write_shape(&shape)?;
+    Ok(Some(next))
+}
+
 /// `updateWorkspace`: `{...ws, ...patch, id, updatedAt: Date.now()}`, where
 /// `patch` is any JSON value (a string spreads its code units).
 pub fn update_raw(id: &str, patch: &Value) -> anyhow::Result<Option<Value>> {
@@ -719,6 +808,24 @@ mod tests {
         assert!(Key::of(None).same(&Key::of(None)));
         assert!(!Key::of(Some(&json!([]))).same(&Key::of(Some(&json!([])))));
         assert!(Key::of(Some(&json!(-0.0))).same(&Key::of(Some(&json!(0)))));
+        assert!(strict_eq(Some(&Value::Null), &Value::Null));
+        assert!(strict_eq(Some(&json!(true)), &json!(true)));
+        assert!(!strict_eq(Some(&json!(false)), &json!(true)));
+        assert!(!strict_eq(Some(&json!(0)), &json!(false)));
+        assert!(!strict_eq(Some(&json!([])), &json!([])));
+    }
+
+    #[test]
+    fn find_throws_on_a_null_entry_before_the_match_only() {
+        let list = [json!(5), json!({"id": "a"}), Value::Null];
+        assert_eq!(find_index(&list, &json!("a")).unwrap(), Some(1));
+        assert!(find_index(&list, &json!("b")).is_err());
+        assert_eq!(find_index(&list[..2], &json!("b")).unwrap(), None);
+        // A lone surrogate is its own code unit, never U+FFFD's.
+        let lone = |u| json!(js_string::lone(u).to_string());
+        let list = [json!({"id": lone(0xDC00)}), json!({"id": lone(0xD800)})];
+        assert_eq!(find_index(&list, &lone(0xD800)).unwrap(), Some(1));
+        assert_eq!(find_index(&list, &json!("\u{FFFD}")).unwrap(), None);
     }
 
     #[test]

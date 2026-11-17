@@ -16,7 +16,7 @@ use rusqlite::types::ValueRef;
 use serde_json::{Map, Value, json};
 
 use crate::agents::MAX_AGENT_NAME_LENGTH;
-use crate::db;
+use crate::{db, js_params, js_string};
 
 // ─── JS values from JSON.parse ────────────────────────────────────────────
 
@@ -366,7 +366,7 @@ pub fn upsert_db_agent(
      ON CONFLICT(name) DO UPDATE SET
        definition_json = excluded.definition_json,
        updated_at = excluded.updated_at",
-                rusqlite::params![name, js::stringify(&def), updated_at],
+                js_params![name, js_string::stringify(&def), updated_at],
             )
         })
         .map_err(|e| e.to_string())?;
@@ -378,7 +378,7 @@ pub fn delete_db_agent(cwd: &str, name: &str) -> Result<bool, String> {
     assert_valid_agent_name(&json!(name))?;
     let handle = db::open_db(cwd, db::Mode::ReadWrite).map_err(|e| e.to_string())?;
     handle
-        .with(|c| c.execute("DELETE FROM db_agents WHERE name = ?", [name]))
+        .with(|c| c.execute("DELETE FROM db_agents WHERE name = ?", js_params![name]))
         .map(|n| n > 0)
         .map_err(|e| e.to_string())
 }

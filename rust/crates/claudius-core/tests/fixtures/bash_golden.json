@@ -762,6 +762,97 @@
       ]
     },
     {
+      "name": "kill_escalation",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "bg",
+          "(trap '' TERM; while :; do /bin/sleep 1; done) >/dev/null 2>&1 & echo $!; /bin/sleep 30",
+          300
+        ],
+        [
+          "gone",
+          "bg_gone",
+          "bg",
+          6000
+        ],
+        [
+          "exec",
+          "after",
+          "echo alive"
+        ]
+      ],
+      "results": [
+        {
+          "label": "bg",
+          "result": {
+            "stdout": "<pid>\n",
+            "stderr": "",
+            "exitCode": -1,
+            "truncated": false,
+            "timedOut": true
+          }
+        },
+        {
+          "label": "bg_gone",
+          "result": {
+            "gone": true,
+            "pids": 1
+          }
+        },
+        {
+          "label": "after",
+          "result": {
+            "stdout": "alive",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "dispose_escalation",
+      "cwd": "tmp",
+      "steps": [
+        [
+          "exec",
+          "bg",
+          "(trap '' TERM; while :; do /bin/sleep 1; done) >/dev/null 2>&1 & echo $!"
+        ],
+        [
+          "dispose"
+        ],
+        [
+          "gone",
+          "bg_gone",
+          "bg",
+          6000
+        ]
+      ],
+      "results": [
+        {
+          "label": "bg",
+          "result": {
+            "stdout": "<pid>",
+            "stderr": "",
+            "exitCode": 0,
+            "truncated": false,
+            "timedOut": false
+          }
+        },
+        {
+          "label": "bg_gone",
+          "result": {
+            "gone": true,
+            "pids": 1
+          }
+        }
+      ]
+    },
+    {
       "name": "missing_cwd",
       "cwd": "missing",
       "steps": [

@@ -433,6 +433,26 @@ const FOLDS = [
   ["resume: within 1e-9 of the checkpoint is not a reset",
     { ...Z(), totalCostUsd: 7 }, { totalCostUsd: 5, durationApiMs: 0 },
     [res({ total_cost_usd: 4.9999999995, num_turns: 1 }), res({ total_cost_usd: 4.999999998, num_turns: 1 })]],
+  // SDK 0.3.311 \u2014 the 5m / 1h split of `cacheCreationInputTokens`
+  // accumulates like the parent instead of going last-write-wins, and a
+  // counter that shrank restarted (the whole current value is new).
+  ["the 5m / 1h cache-creation split accumulates", Z(), ZL(), [
+    res({ total_cost_usd: 1, num_turns: 1, modelUsage: mu({ m: { cc: 100, cost: 1, extra: { cacheCreationEphemeral5mInputTokens: 60, cacheCreationEphemeral1hInputTokens: 40 } } }) }),
+    res({ total_cost_usd: 2, num_turns: 1, modelUsage: mu({ m: { cc: 250, cost: 2, extra: { cacheCreationEphemeral5mInputTokens: 150, cacheCreationEphemeral1hInputTokens: 100 } } }) }),
+    // A shrink: the whole current value is new for that field.
+    res({ total_cost_usd: 3, num_turns: 1, modelUsage: mu({ m: { cc: 300, cost: 3, extra: { cacheCreationEphemeral5mInputTokens: 10, cacheCreationEphemeral1hInputTokens: 500 } } }) }),
+    // Odd types: a non-number is carried from the current frame as is.
+    res({ total_cost_usd: 4, num_turns: 1, modelUsage: mu({ m: { cc: 400, cost: 4, extra: { cacheCreationEphemeral5mInputTokens: "20", cacheCreationEphemeral1hInputTokens: null } } }) }),
+    // The fields missing again: nothing to accumulate.
+    res({ total_cost_usd: 5, num_turns: 1, modelUsage: mu({ m: { cc: 500, cost: 5 } }) }),
+    // A second model with only one of the two.
+    res({ total_cost_usd: 6, num_turns: 1, modelUsage: mu({ m: { cc: 500, cost: 5 }, h: { cc: 7, cost: 1, extra: { cacheCreationEphemeral1hInputTokens: 7 } } }) })]],
+  ["the split over a resumed checkpoint",
+    { ...Z(), totalCostUsd: 2, cacheCreationInputTokens: 100,
+      modelUsage: mu({ m: { cc: 100, cost: 2, extra: { cacheCreationEphemeral5mInputTokens: 60, cacheCreationEphemeral1hInputTokens: 40 } } }) },
+    { totalCostUsd: 2, durationApiMs: 0,
+      modelUsage: mu({ m: { cc: 100, cost: 2, extra: { cacheCreationEphemeral5mInputTokens: 60, cacheCreationEphemeral1hInputTokens: 40 } } }) },
+    [res({ total_cost_usd: 3, num_turns: 1, modelUsage: mu({ m: { cc: 180, cost: 3, extra: { cacheCreationEphemeral5mInputTokens: 100, cacheCreationEphemeral1hInputTokens: 80 } } }) })]],
   ["string and array messages carry nothing", Z(), ZL(), ["result", [1], res({ total_cost_usd: 1, num_turns: 1 })]],
 ];
 const folds = FOLDS.map(([name, totals0, last0, messages]) => {

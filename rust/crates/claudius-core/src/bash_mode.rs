@@ -14,6 +14,10 @@
 //! printf '%s:%d\n' '__CLAUDIUS_BASH_END_<id>__' "$__claudius_ec"
 //! ```
 //!
+//! A timeout and `dispose()` stop the shell's whole process group: SIGTERM,
+//! then SIGKILL 1.5 s later for anything that ignored it (CC 2.1.300,
+//! [`crate::process_group`]).
+//!
 //! The TS class is event driven (stream `data`, child `close` / `error`, a
 //! timer, a queue), so this is an actor: one task owns the state and each TS
 //! callback is a message. Ported as-is, TS quirks included:
@@ -741,14 +745,11 @@ impl Actor {
         self.truncated = false;
     }
 
-    /// `process.kill(-pid, "SIGTERM")`.
+    /// `killProcessGroup(pid)`: SIGTERM the group, then SIGKILL whatever
+    /// ignored it 1.5 s later ([`crate::process_group`]).
     fn kill_group(&self) {
-        #[cfg(unix)]
         if let Some(pid) = self.child.as_ref().and_then(|c| c.pid) {
-            // SAFETY: plain syscall; a gone group is just ESRCH.
-            unsafe {
-                libc::kill(-(pid as i32), libc::SIGTERM);
-            }
+            crate::process_group::kill_process_group(pid);
         }
     }
 

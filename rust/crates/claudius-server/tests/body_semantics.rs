@@ -147,7 +147,6 @@ async fn routes_fail_on_bad_bodies_like_their_ts_handlers() {
     // Strict `await req.json()`: empty/malformed → bare 500. A `null` body is
     // fine where the handler uses `body?.x`.
     for route in [
-        "input",
         "permission",
         "model",
         "advisor",
@@ -173,10 +172,33 @@ async fn routes_fail_on_bad_bodies_like_their_ts_handlers() {
             "{route}"
         );
     }
-    let r = raw(&c, "POST", &s("input"), b"null").await;
+    // input: `req.json().catch(() => null)`, and the validation runs before the
+    // session lookup and the dead-session restart (CC 2.1.311), so a body with
+    // no text or images is a 400 whatever the id.
+    for bad in [
+        &b""[..],
+        b"{",
+        b"not json",
+        b"null",
+        b"0",
+        b"false",
+        b"\"hi\"",
+        b"{}",
+    ] {
+        for url in [s("input"), gone("input")] {
+            let r = raw(&c, "POST", &url, bad).await;
+            assert_eq!(
+                (r.status, r.json()),
+                (400, json!({"error": "text or images required"})),
+                "input {bad:?}"
+            );
+        }
+    }
+    let r = raw(&c, "POST", &gone("input"), b"{\"text\":\"hi\"}").await;
     assert_eq!(
         (r.status, r.json()),
-        (400, json!({"error": "text or images required"}))
+        (404, json!({"error": "session not found"})),
+        "input on an unknown id"
     );
     let r = raw(&c, "POST", &s("permission"), b"[1]").await;
     assert_eq!(

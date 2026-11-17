@@ -43,6 +43,13 @@ const NOT_MIRRORED: &[(&str, &str)] = &[
         "set from `query()`'s internal `resumeConfigDir` parameter, not from an option",
     ),
     (
+        "CLAUDE_CODE_SDK_READS_STARTUP_MARKS",
+        "set only under `query()`'s internal `readsStartupMarks` parameter, which only \
+         `startup()` / `prewarm()` pass (`startupMarkReached()` then decorates their \
+         initialize-timeout error). A plain `query()`, Claudius's only entry point, leaves \
+         it unset, as the 0.3.312 golden wire fixtures show",
+    ),
+    (
         "CLAUDE_SECURESTORAGE_CONFIG_DIR",
         "set beside `CLAUDE_CONFIG_DIR` from `resumeConfigDir`, on Windows only",
     ),
@@ -74,8 +81,21 @@ fn snapshot_is_on_sdk_version() {
     );
 }
 
+/// Fixtures still recorded on an older SDK, with the task that owns the
+/// re-record. Their recorders read the current `lib/` as well as the SDK, so
+/// re-recording them on this SDK would bake in TS drift another task is
+/// porting. A fixture that is no longer stale fails too, so the list can't
+/// rot.
+const PENDING_RERECORD: &[(&str, &str)] = &[];
+
 /// Every fixture recorded from the SDK (a top-level `sdkVersion`) must come
-/// from the mirrored version; re-record the stale ones after a bump.
+/// from the mirrored version; re-record the stale ones after a bump, or list
+/// them in [`PENDING_RERECORD`] with the task that will.
+///
+/// A fixture `serde_json` can't parse is skipped, not failed, so a lone
+/// surrogate escape in test data hides it from this check:
+/// `scheduler_golden.json` (`\ud800`) and R04's `session_callbacks_golden.json`
+/// are invisible here (both are on 0.3.312).
 #[test]
 fn recorded_fixtures_are_on_sdk_version() {
     let mut stale = Vec::new();
@@ -103,18 +123,34 @@ fn recorded_fixtures_are_on_sdk_version() {
             };
             if let Some(version) = doc.get("sdkVersion") {
                 seen += 1;
+                let name = path.file_name().unwrap().to_string_lossy().into_owned();
                 if version != claudius_agent::SDK_VERSION {
-                    stale.push(format!("{} ({version})", path.display()));
+                    stale.push((name, format!("{} ({version})", path.display())));
                 }
             }
         }
     }
-    assert!(seen >= 7, "found only {seen} recorded fixtures");
+    let unexplained: Vec<&str> = stale
+        .iter()
+        .filter(|(name, _)| !PENDING_RERECORD.iter().any(|(f, _)| f == name))
+        .map(|(_, shown)| shown.as_str())
+        .collect();
     assert!(
-        stale.is_empty(),
-        "fixtures from another SDK:\n{}",
-        stale.join("\n")
+        unexplained.is_empty(),
+        "fixtures from another SDK, and not listed in PENDING_RERECORD:\n{}",
+        unexplained.join("\n")
     );
+    // An entry whose fixture is current (or gone) is stale itself.
+    let rotted: Vec<&str> = PENDING_RERECORD
+        .iter()
+        .filter(|(f, _)| !stale.iter().any(|(name, _)| name == f))
+        .map(|(f, _)| *f)
+        .collect();
+    assert!(
+        rotted.is_empty(),
+        "PENDING_RERECORD entries whose fixture is no longer stale: {rotted:?}"
+    );
+    assert!(seen >= 7, "found only {seen} recorded fixtures");
 }
 
 #[test]

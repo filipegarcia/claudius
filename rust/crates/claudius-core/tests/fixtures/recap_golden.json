@@ -1,5 +1,5 @@
 {
- "sdkVersion": "0.3.299",
+ "sdkVersion": "0.3.312",
  "instruction": "The user stepped away and is coming back. Recap in under 40 words, 1-2 plain sentences, no markdown. Lead with the overall goal and current task, then the one next action. Skip root-cause narrative, fix internals, secondary to-dos, and em-dash tangents.",
  "dedupeWindowMs": 60000,
  "maxChars": 400,
@@ -2067,7 +2067,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2135,7 +2135,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2203,7 +2203,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2294,7 +2294,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2375,7 +2375,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2453,7 +2453,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2519,7 +2519,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2598,7 +2598,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2681,7 +2681,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2751,7 +2751,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2821,7 +2821,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",
@@ -2893,7 +2893,7 @@
     "--no-session-persistence"
    ],
    "env": {
-    "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+    "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
     "HOME": "$TMP/home",

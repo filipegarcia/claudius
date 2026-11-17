@@ -15,11 +15,27 @@
 //          given (minus the abort signal), so the replies also pin how the
 //          SDK maps a request onto the callback arguments. `silent` inputs
 //          make them return null (the request stays unanswered).
-// Replies are keyed by request id; `null` means unanswered. Written to
-// rust/crates/claudius-agent/tests/fixtures/control_golden.json and replayed
-// against the Rust `Query` by crates/claudius-agent/tests/control_golden.rs.
+// Replies are keyed by request id; `null` means unanswered.
+//
+// Then prompt redelivery (`redelivery`): the `initialize` reply's
+// `pending_permission_requests` / `pending_user_dialog_requests`, which the
+// SDK hands to `handleControlRequest` like live requests (0.3.312 clears
+// `server_policy_ask_only` first). One fake CLI per case and setup (bare,
+// wired, or wired only where a callback must hold a request in flight):
+// the reply's lists (well-formed, skipped entries, falsy, malformed shapes
+// that make the SDK's reader throw), live requests before the reply (in
+// flight, answered, cancelled), an error reply, and a non-initialize reply
+// carrying the fields. Each run records `initializationResult()`, an
+// optional host request, the messages the stream yielded and the error it
+// ended with, the wired `canUseTool` calls (and the aborts of the `hold`
+// ones), every reply the fake CLI read (by request id, sorted), and
+// whether its stdin was closed while it ran.
+//
+// Written to rust/crates/claudius-agent/tests/fixtures/control_golden.json
+// and replayed against the Rust `Query` by
+// crates/claudius-agent/tests/control_golden.rs.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -41,12 +57,14 @@ const REQUESTS = [
   ["can_use_tool_all_fields", {
     subtype: "can_use_tool", tool_name: "mcp__srv__echo", input: { msg: "hi" }, tool_use_id: "toolu_2",
     mcp_server: { name: "srv", source: "sdk", extra: 1 }, decision_reason_type: "rule", decision_reason_code: "ask_rule",
+    server_policy_ask_only: true,
     default_to_no: true, suppress_always_allow_rule: true, plugin: "plug@market", requires_user_interaction: true,
     server_prompt: "why", computer_folder: { path: "/p", computer_name: "mac", extra: 1 },
     matched_ask_rule: { source: "userSettings", tool_name: "Bash", rule_content: "ls:*" },
   }],
   ["can_use_tool_odd_types", {
     subtype: "can_use_tool", tool_name: "Read", input: {}, decision_reason_type: 5, decision_reason_code: null, plugin: 7,
+    server_policy_ask_only: "true",
     requires_user_interaction: "yes", server_prompt: false, computer_folder: { path: 1, computer_name: "mac" },
     mcp_server: "named", matched_ask_rule: { source: "projectSettings" },
   }],
@@ -113,7 +131,7 @@ const REQUESTS = [
   ["oauth_token_refresh", { subtype: "oauth_token_refresh" }],
   ["host_auth_token_refresh", { subtype: "host_auth_token_refresh" }],
   ["remote_control_work_secret", { subtype: "remote_control_work_secret", session_id: "session_abcd" }],
-  ...["ui_copy", "ui_prompt_read", "ui_prompt_fill", "ui_prompt_suggest", "ui_read_selection"].map((s) => [s, { subtype: s, text: "x" }]),
+  ...["ui_copy", "ui_prompt_read", "ui_prompt_fill", "ui_prompt_paint", "ui_prompt_suggest", "ui_read_selection"].map((s) => [s, { subtype: s, text: "x" }]),
   ...["remote_tool_call", "remote_plumbing_call", "remote_tools_probe", "remote_tools_reannounce"].map((s) => [s, { subtype: s }]),
   ["unknown_subtype", { subtype: "zz_unknown", a: 1 }],
   ["missing_subtype", { a: 1 }],
@@ -153,10 +171,20 @@ function script() {
   return [{ on_init: steps }, ids];
 }
 
-function wiredOptions() {
+// `calls` gets every canUseTool call and, for `hold`, its abort.
+function wiredOptions(calls = []) {
   return {
     canUseTool: async (toolName, input, ctx) => {
       const { signal, ...rest } = ctx;
+      calls.push({ requestId: ctx.requestId, toolName, input });
+      if (toolName === "hold" || toolName === "hold_slow") {
+        // Stays in flight until the CLI cancels it (or the query goes);
+        // `hold_slow` then takes another 100 ms to settle.
+        await new Promise((r) => (signal.aborted ? r() : signal.addEventListener("abort", r, { once: true })));
+        calls.push({ aborted: ctx.requestId });
+        if (toolName === "hold_slow") await new Promise((r) => setTimeout(r, 100));
+        return { behavior: "allow", updatedInput: { input, ctx: rest, aborted: signal.aborted } };
+      }
       if (toolName === "silent") return null;
       if (toolName === "deny") return { behavior: "deny", message: `no ${ctx.toolUseID}`, interrupt: true };
       if (toolName === "always") return { behavior: "allow", updatedInput: input, updatedPermissions: ctx.suggestions };
@@ -217,13 +245,320 @@ async function record(fake, wired) {
   return Object.fromEntries(REQUESTS.map(([name]) => [name, responses.get(ids[name]) ?? null]));
 }
 
+// ---- prompt redelivery ----
+
+const cut = (request_id, request) => ({ type: "control_request", request_id, request });
+const perm = (tool_name, input, extra = {}) => ({ subtype: "can_use_tool", tool_name, input, ...extra });
+const dialog = (extra = {}) => ({ subtype: "request_user_dialog", dialog_kind: "confirm", payload: { a: 1 }, ...extra });
+const cancel = (request_id) => ({ type: "control_cancel_request", request_id });
+// Every case ends with a live request both setups answer: replies to the
+// requests handled before it are written (and read) first, so one the SDK
+// skips shows up if Rust answers it. `expect` lists the ids that should get
+// replies some other way (once per reply).
+const tail = (expect = [], ms = COLLECT_MS) => [
+  { $send: perm("Read", { sentinel: true }), $id: "sentinel" },
+  ...(expect.length ? [{ $expect: expect }] : []),
+  { $collect_ms: ms },
+  { $exit: 0 },
+];
+// Once the reader throws, the host stops reading and ends the CLI's stdin:
+// the fake CLI exits at that EOF, long before this collect would time out.
+const deathTail = () => tail([], 60_000);
+// An initialize reply carrying `envelope` (plus other directive keys).
+const pending = (envelope, extra = {}) => ({ control: { initialize: { $envelope: envelope, ...extra } } });
+const P = "pending_permission_requests";
+const U = "pending_user_dialog_requests";
+const fullPerm = perm("mcp__srv__echo", { msg: "hi" }, {
+  tool_use_id: "toolu_p1", permission_suggestions: [suggestion], blocked_path: "/tmp/x", decision_reason: "rule says ask",
+  title: "Run echo", display_name: "Echo", description: "Echo it", agent_id: "agent_p",
+  mcp_server: { name: "srv", source: "sdk" }, decision_reason_type: "rule", decision_reason_code: "ask_rule",
+  server_policy_ask_only: true, default_to_no: true, suppress_always_allow_rule: true, plugin: "plug@market",
+  requires_user_interaction: true, server_prompt: "why", computer_folder: { path: "/p", computer_name: "mac" },
+  matched_ask_rule: { source: "userSettings", tool_name: "Bash", rule_content: "ls:*" },
+});
+
+// {name, script, setups?, host?}. `host`: `set_permission_mode` once
+// initialized, `set_permission_mode_early` right away (still waiting when
+// the initialize reply arrives), or `set_permission_mode_after` once the
+// stream has ended.
+const REDELIVERY = [
+  {
+    name: "basic",
+    script: {
+      ...pending({
+        [P]: [
+          cut("pend_full", fullPerm),
+          cut("pend_false", perm("Read", { file_path: "/b" }, { tool_use_id: "toolu_p2", server_policy_ask_only: false })),
+          { request_id: "pend_no_type", request: perm("Read", { file_path: "/c" }) },
+          cut("pend_odd_ask_only", perm("Read", {}, { server_policy_ask_only: "true" })),
+          cut("pend_deny", perm("deny", {}, { tool_use_id: "toolu_p4" })),
+          cut("pend_always", perm("always", { a: 1 }, { tool_use_id: "toolu_p5", permission_suggestions: [suggestion] })),
+          cut("pend_silent", perm("silent", {})),
+        ],
+        [U]: [cut("dialog_1", dialog({ tool_use_id: "toolu_p6" }))],
+      }),
+      on_init: tail(["pend_full", "pend_false", "pend_no_type", "pend_odd_ask_only", "pend_deny", "pend_always", "pend_silent"]),
+    },
+  },
+  {
+    name: "skipped_entries",
+    script: {
+      ...pending({
+        [P]: [
+          cut("skip_hook", { subtype: "hook_callback", callback_id: "hook_0", input: {} }),
+          cut("skip_dialog_in_permissions", dialog()),
+          cut("skip_number_subtype", { subtype: 5, tool_name: "Read", input: {} }),
+          cut("skip_padded_subtype", perm("Read", {}, { subtype: " can_use_tool" })),
+          cut("skip_upper_subtype", perm("Read", {}, { subtype: "CAN_USE_TOOL" })),
+          cut("skip_string_request", "can_use_tool"),
+          cut("skip_array_request", ["can_use_tool"]),
+          cut("skip_zero_request", 0),
+          cut("skip_false_request", false),
+          cut("kept", perm("Read", { a: 1 })),
+        ],
+        [U]: [cut("skip_permission_in_dialogs", perm("Read", {})), cut("dialog_kept", dialog()), cut("skip_empty_request", "")],
+      }),
+      on_init: tail(["kept"]),
+    },
+  },
+  { name: "falsy_null_zero", script: { ...pending({ [P]: null, [U]: 0 }), on_init: tail() } },
+  { name: "falsy_false_empty_string", script: { ...pending({ [P]: false, [U]: "" }), on_init: tail() } },
+  { name: "empty_lists", script: { ...pending({ [P]: [], [U]: [] }), on_init: tail() } },
+  {
+    name: "initialize_error_reply",
+    script: {
+      ...pending({ [P]: [cut("after_error", perm("Read", { e: 1 }, { server_policy_ask_only: true }))] }, { $error: "init exploded" }),
+      on_init: tail(["after_error"]),
+    },
+  },
+  {
+    name: "non_initialize_reply",
+    host: "set_permission_mode",
+    script: {
+      control: {
+        set_permission_mode: { $envelope: { [P]: [cut("not_redelivered", perm("Read", {}))], [U]: 5 }, $emit: tail() },
+      },
+    },
+  },
+  {
+    // Lines the reader skips after the redelivery: it keeps reading.
+    name: "noise_after_reply",
+    script: {
+      ...pending({ [P]: [cut("before_noise", perm("Read", { n: 1 }))] }),
+      on_init: [
+        { type: "keep_alive" },
+        { type: "control_response", response: { subtype: "success", request_id: "nobody_asked", response: {} } },
+        { type: "control_response", response: { subtype: "success", response: {} } },
+        ...tail(["before_noise"]),
+      ],
+    },
+  },
+  {
+    name: "answered_then_redelivered",
+    script: {
+      ...pending({ [P]: [cut("answered", perm("Read", { copy: true }))] }, { $before: [{ $control: perm("Read", { live: true }), $id: "answered" }] }),
+      on_init: tail(["answered"]),
+    },
+  },
+  {
+    name: "in_flight_dedupe",
+    setups: ["wired"],
+    script: {
+      ...pending(
+        {
+          [P]: [
+            cut("live_hold", perm("Read", { copy: true })),
+            cut("twice", perm("Read", { first: true })),
+            cut("twice", perm("Read", { second: true })),
+            cut("pend_hold", perm("hold", { n: 2 }, { server_policy_ask_only: true })),
+          ],
+          [U]: [cut("pend_hold", dialog())],
+        },
+        { $before: [cut("live_hold", perm("hold", { n: 1 }))] },
+      ),
+      on_init: [
+        { $send: perm("Read", { live_copy: true }, { server_policy_ask_only: true }), $id: "pend_hold" },
+        cancel("live_hold"),
+        cancel("pend_hold"),
+        ...tail(["live_hold", "twice"]),
+      ],
+    },
+  },
+  {
+    // The first `again` settles 100 ms after its cancel, with the
+    // redelivered one in flight under the same id, which it must not
+    // unregister: the second cancel reaches it.
+    name: "cancelled_then_redelivered",
+    setups: ["wired"],
+    script: {
+      ...pending({ [P]: [cut("again", perm("hold", { n: 2 }))] }, { $before: [cut("again", perm("hold_slow", { n: 1 })), cancel("again")] }),
+      on_init: [{ $delay_ms: 300 }, cancel("again"), ...tail(["again", "again"])],
+    },
+  },
+  {
+    name: "odd_request_ids",
+    script: {
+      ...pending({
+        [P]: [
+          { type: "control_request", request_id: 7, request: perm("Read", { id: 7 }) },
+          { type: "control_request", request: perm("Read", { id: "missing" }) },
+          cut("string_id", perm("Read", { id: "string" })),
+        ],
+      }),
+      on_init: tail(["string_id"]),
+    },
+  },
+  // The SDK's reader throws walking these, and the query dies.
+  {
+    name: "throw_stops_reading",
+    script: {
+      ...pending({ [P]: true }, {
+        $same_write: [
+          { type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "after" }] }, parent_tool_use_id: null, session_id: "s", uuid: "u" },
+          cut("after_throw", perm("Read", {})),
+        ],
+      }),
+      on_init: deathTail(),
+    },
+  },
+  {
+    name: "throw_object_list",
+    host: "set_permission_mode_after",
+    script: { ...pending({ [P]: { 0: cut("object_0", perm("Read", {})) }, [U]: [cut("never", dialog())] }), on_init: deathTail() },
+  },
+  {
+    name: "throw_number_dialogs",
+    host: "set_permission_mode_early",
+    script: { ...pending({ [P]: [cut("before_throw", perm("Read", { n: 1 }))], [U]: 7 }), on_init: deathTail() },
+  },
+  { name: "throw_true_dialogs", script: { ...pending({ [P]: [], [U]: true }), on_init: deathTail() } },
+  { name: "throw_string_list", script: { ...pending({ [P]: "can_use_tool" }), on_init: deathTail() } },
+  {
+    name: "throw_null_entry",
+    script: { ...pending({ [P]: [cut("null_1", perm("Read", { n: 1 })), null, cut("null_2", perm("Read", { n: 2 }))] }), on_init: deathTail() },
+  },
+  { name: "throw_null_request", script: { ...pending({ [P]: [cut("skipped", dialog()), { request_id: "null_request", request: null }] }), on_init: deathTail() } },
+  { name: "throw_missing_request", script: { ...pending({ [P]: [{ type: "control_request", request_id: "no_request" }] }), on_init: deathTail() } },
+  {
+    name: "throw_primitive_entry",
+    script: { ...pending({ [P]: [cut("primitive_1", perm("Read", {}))], [U]: [cut("primitive_dialog", dialog()), "x"] }), on_init: deathTail() },
+  },
+  { name: "throw_array_entry", script: { ...pending({ [P]: [[cut("nested", perm("Read", {}))]] }), on_init: deathTail() } },
+  {
+    name: "throw_aborts_in_flight",
+    setups: ["wired"],
+    script: { ...pending({ [P]: [null] }, { $before: [cut("held", perm("hold", { n: 1 }))] }), on_init: deathTail() },
+  },
+  {
+    // The fake CLI is asleep when its stdin is ended, so only the SIGTERM
+    // after the close grace (2 s) ends it.
+    name: "throw_cli_ignores_eof",
+    script: { ...pending({ [P]: 5 }), on_init: [{ $delay_ms: 60_000 }, { $exit: 0 }] },
+  },
+  {
+    name: "throw_after_error_result",
+    script: {
+      ...pending({ [P]: 1 }, {
+        $before: [{ type: "result", subtype: "error_during_execution", is_error: true, errors: ["  kaput  ", ""], num_turns: 1 }],
+      }),
+      on_init: deathTail(),
+    },
+  },
+];
+
+async function waitExit(pidFile) {
+  const pid = Number(readFileSync(pidFile, "utf8"));
+  for (let i = 0; i < 3000; i++) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  throw new Error(`fake CLI ${pid} never exited`);
+}
+
+async function recordRedelivery(fake, c, wired) {
+  const tmp = realpathSync(mkdtempSync(join(tmpdir(), "control-golden-")));
+  const log = join(tmp, "stdin.log");
+  const pidFile = join(tmp, "pid");
+  const events = join(tmp, "events.log");
+  const calls = [];
+  const messages = [];
+  let finish;
+  const done = new Promise((r) => (finish = r));
+  async function* prompt() {
+    await done;
+  }
+  const q = query({
+    prompt: prompt(),
+    options: {
+      pathToClaudeCodeExecutable: fake,
+      cwd: tmp,
+      env: {
+        PATH: "/usr/bin:/bin",
+        HOME: tmp,
+        FAKE_CLAUDE_LOG: log,
+        FAKE_CLAUDE_PID: pidFile,
+        FAKE_CLAUDE_EVENTS: events,
+        FAKE_CLAUDE_SCRIPT: JSON.stringify(c.script),
+      },
+      ...(wired ? wiredOptions(calls) : {}),
+    },
+  });
+  const outcome = (p) => p.then(() => "ok", (e) => ({ error: e.message }));
+  const init = outcome(q.initializationResult());
+  const host =
+    c.host === "set_permission_mode_early"
+      ? outcome(q.setPermissionMode("default"))
+      : c.host === "set_permission_mode"
+        ? outcome(q.initializationResult().then(() => q.setPermissionMode("default")))
+        : undefined;
+  let end = null;
+  let after;
+  try {
+    for await (const msg of q) messages.push(msg.subtype === undefined ? msg.type : `${msg.type}/${msg.subtype}`);
+  } catch (e) {
+    end = e.message;
+  } finally {
+    finish();
+  }
+  if (c.host === "set_permission_mode_after") after = outcome(q.setPermissionMode("default"));
+  await waitExit(pidFile);
+  const eof = existsSync(events) && readFileSync(events, "utf8").includes('"eof"');
+  const replies = {};
+  for (const line of readFileSync(log, "utf8").split("\n").filter(Boolean)) {
+    const m = JSON.parse(line);
+    if (m.type !== "control_response") continue;
+    const id = m.response?.request_id;
+    const key = typeof id === "string" ? id : `#${JSON.stringify(id) ?? "undefined"}`;
+    (replies[key] ??= []).push(m.response);
+  }
+  rmSync(tmp, { recursive: true, force: true });
+  const byText = (a, b) => (JSON.stringify(a) < JSON.stringify(b) ? -1 : 1);
+  const sorted = Object.fromEntries(Object.keys(replies).sort().map((k) => [k, replies[k].sort(byText)]));
+  return { init: await init, ...((host || after) && { host: await (host ?? after) }), messages, ...(wired && { calls }), replies: sorted, end, eof };
+}
+
 const fake = buildFake();
 const [scriptJson, ids] = script();
 const cases = { bare: await record(fake, false), wired: await record(fake, true) };
+const redelivery = [];
+for (const c of REDELIVERY) {
+  const recorded = {};
+  for (const setup of c.setups ?? ["bare", "wired"]) recorded[setup] = await recordRedelivery(fake, c, setup === "wired");
+  redelivery.push({ name: c.name, ...(c.host && { host: c.host }), script: c.script, recorded });
+}
 const file = join(rustDir, "crates/claudius-agent/tests/fixtures/control_golden.json");
-writeFileSync(file, `${JSON.stringify({ sdkVersion, collectMs: COLLECT_MS, script: scriptJson, ids, cases }, null, 2)}\n`);
+writeFileSync(file, `${JSON.stringify({ sdkVersion, collectMs: COLLECT_MS, script: scriptJson, ids, cases, redelivery }, null, 2)}\n`);
 for (const [name, replies] of Object.entries(cases)) {
   const unanswered = Object.entries(replies).filter(([, r]) => r === null).map(([n]) => n);
   console.log(`${name}: ${Object.keys(replies).length} requests, unanswered: ${unanswered.join(", ")}`);
+}
+for (const { name, recorded } of redelivery) {
+  for (const [setup, r] of Object.entries(recorded)) {
+    console.log(`redelivery ${name}/${setup}: replies ${Object.keys(r.replies).join(" ")}${r.end ? `; ended: ${r.end}` : ""}`);
+  }
 }
 console.log(`wrote ${file.slice(repo.length + 1)}`);

@@ -41,6 +41,17 @@
 // pending flows outlive a case in the TS module, so each case ends by
 // taking its flows back out.
 //
+// Besides the cases, two tables recorded from the module's own exports:
+// `refusedCodes` ([status, bodyText, isRefusedAuthCode(...)]: the CC 2.1.311
+// predicate for a refused pasted code) and `certHints` ([errorSpec,
+// isCaTrustFailure, ownRequestCertFailureHint] from
+// lib/shared/tls-cert-hint.ts, the CC 2.1.309 hint; the specs are plain
+// objects, because the TS only reads `code` / `message` / `cause`). A
+// response `{throwCert: {code, message}}` makes the wrapped `fetch` reject
+// with undici's shape (`TypeError("fetch failed", {cause})`) instead of
+// sending anything, which is how a TLS-inspecting proxy shows; each step
+// also records the `console.warn` lines it produced (`warns`).
+//
 // Written to rust/crates/claudius-core/tests/fixtures/account_oauth_golden.json;
 // replayed by crates/claudius-core/tests/account_oauth_golden.rs (every
 // case, scripted fetch) and crates/claudius-server/tests/accounts_oauth.rs
@@ -125,7 +136,8 @@ if (!process.env.OAUTH_GOLDEN_CHILD) {
   const posts = fixture.cases.reduce((n, c) => n + c.steps.filter((s) => s.op === "post").length, 0);
   const fetches = fixture.cases.reduce((n, c) => n + c.steps.reduce((m, s) => m + (s.fetches?.length ?? 0), 0), 0);
   console.log(
-    `wrote ${out.slice(repo.length + 1)}: ${fixture.cases.length} cases, ${steps} steps (${posts} requests, ${fetches} fetches) (stable)`,
+    `wrote ${out.slice(repo.length + 1)}: ${fixture.cases.length} cases, ${steps} steps (${posts} requests, ` +
+      `${fetches} fetches), ${fixture.refusedCodes.length} refusal checks, ${fixture.certHints.length} cert hints (stable)`,
   );
   process.exit(0);
 }
@@ -189,6 +201,10 @@ globalThis.Date = class extends RealDate {
   }
 };
 
+// console.warn: captured per step (the CC 2.1.309 cert-failure lines).
+let warnLog = [];
+console.warn = (...a) => warnLog.push(a.map((v) => String(v)).join(" "));
+
 // ---- the local token server ---------------------------------------------------
 
 let wireQueue = [];
@@ -251,6 +267,16 @@ globalThis.fetch = async (url, init) => {
   };
   fetchCalls.push(call);
   const u = new URL(String(url));
+  // A certificate failure: undici rejects with `TypeError("fetch failed")`
+  // whose `cause` carries the OpenSSL code. Nothing is sent.
+  const cert = wireQueue[0]?.throwCert;
+  if (cert) {
+    wireQueue.shift();
+    const cause = Object.assign(new Error(cert.message), { code: cert.code });
+    const err = new TypeError("fetch failed", { cause });
+    call.res = { throws: err.message, cause: { code: cert.code, message: cert.message } };
+    throw err;
+  }
   const refuse = wireQueue[0]?.refuse === true;
   if (refuse) wireQueue.shift();
   const target = `http://127.0.0.1:${refuse ? CLOSED_PORT : PORT}/${u.host}${u.pathname}${u.search}`;
@@ -272,6 +298,7 @@ globalThis.fetch = async (url, init) => {
 
 const mod = (p) => import(pathToFileURL(join(repo, p)).href);
 const oauth = await mod("lib/server/account-oauth.ts");
+const tlsHint = await mod("lib/shared/tls-cert-hint.ts");
 const route = await mod("app/api/accounts/oauth/route.ts");
 
 // ---- helpers ----------------------------------------------------------------
@@ -365,6 +392,7 @@ async function runCase(c, index) {
     wireLog = [];
     fetchCalls = [];
     rngSizes = [];
+    warnLog = [];
     try {
       switch (step.op) {
         case "post": {
@@ -415,6 +443,7 @@ async function runCase(c, index) {
       if (wireQueue.length) throw new Error(`${c.name}: ${wireQueue.length} responses unused`);
       if (wireLog.some((w) => w.unscripted)) throw new Error(`${c.name}: an unscripted request`);
     }
+    if (warnLog.length) r.warns = warnLog.map(sub);
     if (fetchCalls.length) r.fetches = JSON.parse(sub(JSON.stringify(fetchCalls)));
     if (wireLog.length) r.wire = JSON.parse(sub(JSON.stringify(wireLog)));
     if (rngSizes.length) r.rng = rngSizes;
@@ -727,6 +756,49 @@ for (const [name, res] of failing) {
       : [res];
   add({ name: `token endpoint: ${name}`, steps: [start, post(complete("fake-code#$STATE0"), responses)] });
 }
+// -- CC 2.1.311: a refused pasted code says to sign in again
+const refusals = [
+  ["400 invalid_grant", http(400, "Bad Request", '{"error":"invalid_grant"}')],
+  ["400 invalid_grant on hold", http(400, "Bad Request", '{"error":"invalid_grant","error_description":"account_on_hold"}')],
+  ["400 invalid_grant nearly on hold", http(400, "Bad Request", '{"error":"invalid_grant","error_description":"account_on_holdx"}')],
+  ["400 nested type", http(400, "Bad Request", '{"error":{"type":"invalid_grant","message":"nope"}}')],
+  ["400 nested code", http(400, "Bad Request", '{"error":{"code":"invalid_grant"}}')],
+  ["400 nested other", http(400, "Bad Request", '{"error":{"type":"invalid_request"}}')],
+  ["400 nested deeper", http(400, "Bad Request", '{"error":{"type":{"type":"invalid_grant"}}}')],
+  ["400 other error", http(400, "Bad Request", '{"error":"invalid_request"}')],
+  ["400 error true", http(400, "Bad Request", '{"error":true}')],
+  ["400 error array", http(400, "Bad Request", '{"error":["invalid_grant"]}')],
+  ["400 not JSON", http(400, "Bad Request", "invalid_grant")],
+  ["400 array body", http(400, "Bad Request", '["invalid_grant"]')],
+  ["400 null body", http(400, "Bad Request", "null")],
+  ["400 string body", http(400, "Bad Request", '"invalid_grant"')],
+  ["400 padded body", http(400, "Bad Request", ' {"error":"invalid_grant"}\n')],
+  ["400 duplicate error keys", http(400, "Bad Request", '{"error":"x","error":"invalid_grant"}')],
+  ["400 body with a BOM", http(400, "Bad Request", "", { hex: `efbbbf${Buffer.from('{"error":"invalid_grant"}').toString("hex")}` })],
+  ["400 on hold without invalid_grant", http(400, "Bad Request", '{"error_description":"account_on_hold"}')],
+  ["401 invalid_grant", http(401, "Unauthorized", '{"error":"invalid_grant"}')],
+  ["401 other error", http(401, "Unauthorized", '{"error":"invalid_client"}')],
+  ["403 invalid_grant", http(403, "Forbidden", '{"error":"invalid_grant"}')],
+  ["500 invalid_grant", http(500, "Internal Server Error", '{"error":"invalid_grant"}')],
+];
+for (const [name, res] of refusals) {
+  add({ name: `refused code: ${name}`, steps: [start, post(complete("fake-code#$STATE0", "Refused"), [res])] });
+}
+
+// -- CC 2.1.309: the exchange can't verify the server's certificate
+add({
+  name: "token endpoint: the certificate is not trusted",
+  steps: [start, post(complete("fake-code#$STATE0", "Proxy"), [{ throwCert: { code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE", message: "unable to verify the first certificate" } }])],
+});
+add({
+  name: "token endpoint: a self-signed chain, by message alone",
+  steps: [start, post(complete("fake-code#$STATE0", "SelfSigned"), [{ throwCert: { code: undefined, message: "self signed certificate in certificate chain" } }])],
+});
+add({
+  name: "token endpoint: a TLS failure a CA bundle cannot fix",
+  steps: [start, post(complete("fake-code#$STATE0", "Expired"), [{ throwCert: { code: "CERT_HAS_EXPIRED", message: "certificate has expired" } }])],
+});
+
 const bodies = [
   ["not JSON", "<html>nope</html>"],
   ["empty", ""],
@@ -948,9 +1020,118 @@ add({
   steps: [post(`{"action":"start","x":${"[".repeat(200)}${"]".repeat(200)}}`)],
 });
 
+// ---- the module's own tables --------------------------------------------------
+
+/** `isRefusedAuthCode(status, bodyText)` over every shape that matters. */
+const REFUSED_CODES = [];
+for (const status of [400, 401, 403, 500, 200, 0, -1, 1e3]) {
+  for (const body of [
+    '{"error":"invalid_grant"}',
+    '{"error":"invalid_grant","error_description":"account_on_hold"}',
+    '{"error":"invalid_grant","error_description":"ACCOUNT_ON_HOLD"}',
+    '{"error":"invalid_grant","error_description":null}',
+    '{"error":{"type":"invalid_grant"}}',
+    '{"error":{"code":"invalid_grant"}}',
+    '{"error":{"type":"x","code":"invalid_grant"}}',
+    '{"error":{"type":"other"}}',
+    '{"error":["invalid_grant"]}',
+    '{"error":[{"type":"invalid_grant"}]}',
+    '{"error":"Invalid_Grant"}',
+    '{"error":" invalid_grant"}',
+    '{"error":null}',
+    '{"error":0}',
+    '{"error":false}',
+    '{"error":true}',
+    '{"error":5}',
+    "{}",
+    "null",
+    "[]",
+    '["invalid_grant"]',
+    "5",
+    "true",
+    '"invalid_grant"',
+    "",
+    "   ",
+    "invalid_grant",
+    "{",
+    '{"error":"invalid_grant"',
+    '{"error":"x","error":"invalid_grant"}',
+    '{"error_description":"account_on_hold"}',
+    '{"__proto__":{"error":"invalid_grant"}}',
+    '{"error":"invalid_grant","error":"x"}',
+    ' \t{"error":"invalid_grant"}\n',
+    '{"error":"invalid_grant\u0000"}',
+  ]) {
+    REFUSED_CODES.push([status, body, oauth.isRefusedAuthCode(status, body)]);
+  }
+}
+
+/**
+ * `isCaTrustFailure` / `ownRequestCertFailureHint` over plain objects (the
+ * TS reads only `code`, `message` and `cause`).
+ */
+const CERT_SPECS = [
+  null,
+  5,
+  true,
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  {},
+  [],
+  { code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE" },
+  { code: "SELF_SIGNED_CERT_IN_CHAIN" },
+  { code: "DEPTH_ZERO_SELF_SIGNED_CERT" },
+  { code: "UNABLE_TO_GET_ISSUER_CERT" },
+  { code: "UNABLE_TO_GET_ISSUER_CERT_LOCALLY" },
+  { code: "CERT_UNTRUSTED" },
+  { code: "unable_to_verify_leaf_signature" },
+  { code: "CERT_HAS_EXPIRED" },
+  { code: "ERR_TLS_CERT_ALTNAME_INVALID" },
+  { code: "ECONNREFUSED" },
+  { code: 5 },
+  { code: null },
+  { code: ["CERT_UNTRUSTED"] },
+  { message: "unable to verify the first certificate" },
+  { message: "UNABLE TO VERIFY THE FIRST CERTIFICATE" },
+  { message: "Unable To Verify Leaf Signature" },
+  { message: "x self signed certificate in certificate chain" },
+  { message: "self-signed certificate" },
+  { message: "unable to get issuer certificate" },
+  { message: "unable to get local issuer certificate" },
+  { message: "certificate trusted" },
+  { message: "certificate untrusted" },
+  { message: "certificate is trusted" },
+  { message: "certificate is not trusted" },
+  { message: "certificate is not untrusted" },
+  { message: "CERTIFICATE NOT TRUSTED!" },
+  { message: "trusted certificate" },
+  { message: "certificate has expired" },
+  { message: "Hostname/IP does not match certificate's altnames: Host: x" },
+  { message: "fetch failed" },
+  { message: 5 },
+  // A non-ASCII unit that case-folds to ASCII: a non-`u` `i` regex does not
+  // canonicalize it, so these do not match.
+  { message: `unable to verify the fir${String.fromCodePoint(0x17f)}t certificate` },
+  { message: `certificate ${String.fromCodePoint(0x131)}s not trusted` },
+  { message: `certificate not trusted${String.fromCodePoint(0x212a)}` },
+  { cause: { code: "SELF_SIGNED_CERT_IN_CHAIN" } },
+  { cause: { cause: { code: "CERT_UNTRUSTED" } } },
+  { cause: { cause: { cause: { code: "CERT_UNTRUSTED" } } } },
+  { message: "fetch failed", cause: { message: "self signed certificate" } },
+  { code: "ECONNRESET", cause: "UNABLE_TO_VERIFY_LEAF_SIGNATURE" },
+  { cause: null },
+  { cause: 5 },
+  { cause: [{ code: "CERT_UNTRUSTED" }] },
+  { message: 5, cause: { code: "CERT_UNTRUSTED" } },
+];
+const certHints = CERT_SPECS.map((spec) => [
+  spec === undefined ? null : spec,
+  tlsHint.isCaTrustFailure(spec),
+  tlsHint.ownRequestCertFailureHint(spec) ?? null,
+]);
+
 // ---- run ----------------------------------------------------------------------
 
-const fixture = { t0: T0, cases: [] };
+const fixture = { t0: T0, refusedCodes: REFUSED_CODES, certHints, cases: [] };
 for (const [i, c] of cases.entries()) fixture.cases.push(await runCase(c, i));
 server.close();
 writeFileSync(join(ROOT, "out.json"), JSON.stringify(fixture));

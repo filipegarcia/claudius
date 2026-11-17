@@ -1,5 +1,5 @@
-//! `forkSession` core: SDK 0.3.299's `tTe` (load) + `WU` (build entries) +
-//! `aTe`/`kA`/`HU` (compaction-aware slicing) + `lTe`/`cTe` (uuid rewrites).
+//! `forkSession` core: SDK 0.3.312's `Awe` (load) + `Z0` (build entries) +
+//! `vwe`/`FR`/`G0` (compaction-aware slicing) + `kwe`/`Pwe` (uuid rewrites).
 //! Minified names are in brackets so the next SDK bump can be diffed function
 //! by function. The file lookup, title and write live in
 //! [`crate::sessions_store::fork`].
@@ -8,7 +8,7 @@
 //! fresh uuid, the parent chain is kept (progress entries are dropped and
 //! bridged over), the copy is optionally sliced at `upToMessageId`, and
 //! trailer entries are appended (content replacements, ATIS latch, relocated
-//! cwd, a `custom-title`).
+//! cwd, the tools used, a `custom-title`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -19,9 +19,9 @@ use crate::transcript::{Obj, resolve_chain};
 /// Entry types kept as transcript messages (`eTe`).
 const TRANSCRIPT_TYPES: [&str; 5] = ["user", "assistant", "attachment", "system", "progress"];
 
-/// `GU`, minus `isSidechain: false`: keys a fork sets to `undefined`, which
-/// `JSON.stringify` drops.
-const RESET_KEYS: [&str; 7] = [
+/// `Y0`, minus `isSidechain: false`: keys a fork sets to `undefined`, which
+/// `JSON.stringify` drops. `turnAttributionKey` joined them in SDK 0.3.312.
+const RESET_KEYS: [&str; 8] = [
     "teamName",
     "agentName",
     "sessionKind",
@@ -29,9 +29,10 @@ const RESET_KEYS: [&str; 7] = [
     "sourceToolAssistantUUID",
     "summarizedTurnPromptUuids",
     "droppedPromptUuids",
+    "turnAttributionKey",
 ];
 
-/// What `tTe` pulls out of a source transcript.
+/// What `Awe` pulls out of a source transcript.
 #[derive(Debug, Default)]
 pub struct Loaded {
     pub transcript: Vec<Obj>,
@@ -39,6 +40,10 @@ pub struct Loaded {
     pub relocated_cwd: Option<String>,
     pub history_suppressed: bool,
     pub atis_latch: Option<String>,
+    /// The `tools-used` trailer's `tools`, kept to non-empty strings (SDK
+    /// 0.3.312). `None` until a trailer names them; a trailer with an empty
+    /// (or all-blank) array still counts, and forks an empty list on.
+    pub tools_used: Option<Vec<String>>,
 }
 
 fn str_field<'a>(o: &'a Obj, k: &str) -> Option<&'a str> {
@@ -87,6 +92,20 @@ pub fn load(buf: &[u8], session_id: &str) -> Loaded {
                     str_field(&e, "atis").filter(|a| a.bytes().all(|b| (0x21..=0x7e).contains(&b)))
                 {
                     out.atis_latch = Some(a.to_owned());
+                }
+            }
+            // The last `tools-used` trailer for this session wins, like each
+            // assignment in the SDK's reducer.
+            Some("tools-used") if same_session => {
+                if let Some(Value::Array(tools)) = e.get("tools") {
+                    out.tools_used = Some(
+                        tools
+                            .iter()
+                            .filter_map(Value::as_str)
+                            .filter(|t| !t.is_empty())
+                            .map(str::to_owned)
+                            .collect(),
+                    );
                 }
             }
             Some("content-replacement") if same_session => {
@@ -167,7 +186,7 @@ fn preserved_uuids(b: &Obj) -> Vec<&str> {
     out
 }
 
-/// The `aTe` working state (`{slice, byUuid, live, index, start, leftOut}`).
+/// The `vwe` working state (`{slice, byUuid, live, index, start, leftOut}`).
 struct Slice<'a> {
     slice: &'a [Obj],
     by_uuid: HashMap<&'a str, &'a Obj>,
@@ -178,12 +197,12 @@ struct Slice<'a> {
 }
 
 impl Slice<'_> {
-    /// `kA`: not on a live path, and not before the chain's first entry.
+    /// `FR`: not on a live path, and not before the chain's first entry.
     fn droppable(&self, id: &str) -> bool {
         !self.live.contains(id) && self.index.get(id).copied().unwrap_or(self.start) >= self.start
     }
 
-    /// `HU`: drop a dead branch from `id` towards the root, then (one forward
+    /// `G0`: drop a dead branch from `id` towards the root, then (one forward
     /// pass in file order) everything parented on a dropped entry.
     fn leave_out(&mut self, id: &str) {
         let mut cur = self.by_uuid.get(id).copied();
@@ -296,7 +315,7 @@ fn prune_slice(e: Vec<Obj>, new_uuid: &mut dyn FnMut() -> String) -> Vec<Obj> {
     }
 }
 
-/// `cTe`: a `deferred_tools_record` attachment's `nameOnlyAnnouncements`
+/// `Pwe`: a `deferred_tools_record` attachment's `nameOnlyAnnouncements`
 /// mapped to the new uuids (unknown and non-string entries dropped).
 fn remap_deferred_tools(e: &Obj, ids: &HashMap<String, String>) -> Option<Value> {
     if ty(e) != Some("attachment") {
@@ -318,7 +337,7 @@ fn remap_deferred_tools(e: &Obj, ids: &HashMap<String, String>) -> Option<Value>
     Some(Value::Object(att))
 }
 
-/// `lTe`: a system entry's `compactMetadata` with preserved uuids mapped to
+/// `kwe`: a system entry's `compactMetadata` with preserved uuids mapped to
 /// the new ones (unknown strings kept) and `runningTurnSends` dropped. The
 /// rest keeps its order; `preservedMessages` / `preservedSegment` move last.
 fn remap_compact_metadata(e: &Obj, ids: &HashMap<&str, &str>) -> Option<Value> {
@@ -384,7 +403,7 @@ pub struct ForkRequest<'a> {
     pub now: String,
 }
 
-/// `WU`: the forked session's entries and its new id. `derive_title` is only
+/// `Z0`: the forked session's entries and its new id. `derive_title` is only
 /// called when `title` is missing or blank.
 pub fn build(
     loaded: &Loaded,
@@ -527,6 +546,9 @@ pub fn build(
     }
     if let Some(atis) = &loaded.atis_latch {
         out.push(json!({"type": "atis-latch", "sessionId": fork_id, "atis": atis}));
+    }
+    if let Some(tools) = &loaded.tools_used {
+        out.push(json!({"type": "tools-used", "sessionId": fork_id, "tools": tools}));
     }
     if let Some(cwd) = &loaded.relocated_cwd {
         out.push(json!({"type": "relocated", "sessionId": fork_id, "relocatedCwd": cwd}));

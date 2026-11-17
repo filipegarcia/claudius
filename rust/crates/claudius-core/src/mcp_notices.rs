@@ -20,13 +20,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
-use rusqlite::params;
 use rusqlite::types::Value as SqlValue;
 use serde_json::{Value, json};
 use tokio::sync::watch;
 
 use crate::db::{Mode, open_db};
 use crate::session::Session;
+use crate::{js_params, sql_text};
 
 /// `mcpRecheckDue`'s default `intervalMs`.
 pub const MCP_RECHECK_INTERVAL_MS: f64 = 30_000.0;
@@ -119,7 +119,7 @@ pub fn sync_notifications(
         // matches `=`), like better-sqlite3.
         let already: Vec<SqlValue> = {
             let mut q = tx.prepare(&format!("SELECT server_name FROM {table}"))?;
-            q.query_map([], |r| r.get(0))?
+            q.query_map([], |r| sql_text::get(r, 0))?
                 .collect::<rusqlite::Result<_>>()?
         };
         let announced: HashSet<&str> = already
@@ -149,7 +149,7 @@ pub fn sync_notifications(
                     "INSERT INTO {table}(server_name, notified_at) VALUES (?, ?)
                      ON CONFLICT(server_name) DO UPDATE SET notified_at = excluded.notified_at"
                 ),
-                params![name, now],
+                js_params![name, now],
             )?;
         }
         tx.commit()?;
@@ -323,8 +323,13 @@ pub(crate) fn note_at_startup(session: Arc<Session>) {
     {
         return;
     }
+    // Off a runtime there is no query either, so both checks would fail
+    // (an init broadcast to an unstarted session, in a unit test).
+    let Ok(rt) = tokio::runtime::Handle::try_current() else {
+        return;
+    };
     let running = session.mcp_notices.track();
-    tokio::spawn(async move {
+    rt.spawn(async move {
         let _running = running;
         let s = &*session;
         in_arrival_order(

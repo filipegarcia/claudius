@@ -44,7 +44,8 @@
 //   undefined.
 // - `background`: `getPricingTable()` steps with the refresh on. Each sets
 //   things up (`env`, `rm`, `mkdir`, `write`, `mtime`, `reset`), makes
-//   `calls` calls (the tables they returned are `got`), waits 400 ms, then
+//   `calls` calls (the tables they returned are `got`), waits until the fake
+//   has taken every scripted response and then 400 ms more, then
 //   records what the fake `served` and the cache file (`cache`: null, "dir"
 //   or `{sha256, bytes}`).
 // - `limits`: the limits route (`GET` / `PUT` / `POST`) and file setups
@@ -762,6 +763,10 @@ for (const step of BG) {
   served = [];
   const got = [];
   for (let i = 0; i < (step.calls ?? 1); i++) got.push(summary(await pricing.getPricingTable()));
+  // The refresh is fire-and-forget: on a loaded machine its request alone
+  // can take longer than the settle time, so wait for every scripted
+  // response to be taken first (at most 15 s).
+  for (let t = 0; queue.length && t < 750; t++) await sleep(20);
   await sleep(400);
   if (queue.length || unscripted) throw new Error(`background "${step.name}": ${queue.length} responses unused, ${unscripted} unscripted`);
   background.push({ ...rec, got, served, cache: cacheState() });

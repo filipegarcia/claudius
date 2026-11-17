@@ -1,5 +1,5 @@
 {
-  "sdkVersion": "0.3.299",
+  "sdkVersion": "0.3.312",
   "collectMs": 1500,
   "script": {
     "on_init": [
@@ -47,6 +47,7 @@
           },
           "decision_reason_type": "rule",
           "decision_reason_code": "ask_rule",
+          "server_policy_ask_only": true,
           "default_to_no": true,
           "suppress_always_allow_rule": true,
           "plugin": "plug@market",
@@ -72,6 +73,7 @@
           "decision_reason_type": 5,
           "decision_reason_code": null,
           "plugin": 7,
+          "server_policy_ask_only": "true",
           "requires_user_interaction": "yes",
           "server_prompt": false,
           "computer_folder": {
@@ -766,6 +768,12 @@
       },
       {
         "$send": {
+          "subtype": "ui_prompt_paint",
+          "text": "x"
+        }
+      },
+      {
+        "$send": {
           "subtype": "ui_prompt_suggest",
           "text": "x"
         }
@@ -932,20 +940,21 @@
     "ui_copy": "cli_0_s60",
     "ui_prompt_read": "cli_0_s61",
     "ui_prompt_fill": "cli_0_s62",
-    "ui_prompt_suggest": "cli_0_s63",
-    "ui_read_selection": "cli_0_s64",
-    "remote_tool_call": "cli_0_s65",
-    "remote_plumbing_call": "cli_0_s66",
-    "remote_tools_probe": "cli_0_s67",
-    "remote_tools_reannounce": "cli_0_s68",
-    "unknown_subtype": "cli_0_s69",
-    "missing_subtype": "cli_0_s70",
-    "number_subtype": "cli_0_s71",
-    "null_subtype": "cli_0_s72",
-    "array_subtype": "cli_0_s73",
-    "nested_array_subtype": "cli_0_s74",
-    "bool_subtype": "cli_0_s75",
-    "object_subtype": "cli_0_s76",
+    "ui_prompt_paint": "cli_0_s63",
+    "ui_prompt_suggest": "cli_0_s64",
+    "ui_read_selection": "cli_0_s65",
+    "remote_tool_call": "cli_0_s66",
+    "remote_plumbing_call": "cli_0_s67",
+    "remote_tools_probe": "cli_0_s68",
+    "remote_tools_reannounce": "cli_0_s69",
+    "unknown_subtype": "cli_0_s70",
+    "missing_subtype": "cli_0_s71",
+    "number_subtype": "cli_0_s72",
+    "null_subtype": "cli_0_s73",
+    "array_subtype": "cli_0_s74",
+    "nested_array_subtype": "cli_0_s75",
+    "bool_subtype": "cli_0_s76",
+    "object_subtype": "cli_0_s77",
     "missing_request": "raw_missing",
     "null_request": "raw_null"
   },
@@ -1270,14 +1279,19 @@
         "request_id": "cli_0_s62",
         "error": "Unsupported control request subtype: ui_prompt_fill"
       },
-      "ui_prompt_suggest": {
+      "ui_prompt_paint": {
         "subtype": "error",
         "request_id": "cli_0_s63",
+        "error": "Unsupported control request subtype: ui_prompt_paint"
+      },
+      "ui_prompt_suggest": {
+        "subtype": "error",
+        "request_id": "cli_0_s64",
         "error": "Unsupported control request subtype: ui_prompt_suggest"
       },
       "ui_read_selection": {
         "subtype": "error",
-        "request_id": "cli_0_s64",
+        "request_id": "cli_0_s65",
         "error": "Unsupported control request subtype: ui_read_selection"
       },
       "remote_tool_call": null,
@@ -1286,42 +1300,42 @@
       "remote_tools_reannounce": null,
       "unknown_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s69",
+        "request_id": "cli_0_s70",
         "error": "Unsupported control request subtype: zz_unknown"
       },
       "missing_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s70",
+        "request_id": "cli_0_s71",
         "error": "Unsupported control request subtype: undefined"
       },
       "number_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s71",
+        "request_id": "cli_0_s72",
         "error": "Unsupported control request subtype: 7"
       },
       "null_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s72",
+        "request_id": "cli_0_s73",
         "error": "Unsupported control request subtype: null"
       },
       "array_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s73",
+        "request_id": "cli_0_s74",
         "error": "Unsupported control request subtype: can_use_tool,2"
       },
       "nested_array_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s74",
+        "request_id": "cli_0_s75",
         "error": "Unsupported control request subtype: a,,1,,[object Object],1.5"
       },
       "bool_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s75",
+        "request_id": "cli_0_s76",
         "error": "Unsupported control request subtype: false"
       },
       "object_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s76",
+        "request_id": "cli_0_s77",
         "error": "Unsupported control request subtype: [object Object]"
       },
       "missing_request": {
@@ -1389,6 +1403,7 @@
               },
               "decisionReasonType": "rule",
               "decisionReasonCode": "ask_rule",
+              "serverPolicyAskOnly": true,
               "defaultToNo": true,
               "suppressAlwaysAllowRule": true,
               "toolUseID": "toolu_2",
@@ -2032,14 +2047,19 @@
         "request_id": "cli_0_s62",
         "error": "Unsupported control request subtype: ui_prompt_fill"
       },
-      "ui_prompt_suggest": {
+      "ui_prompt_paint": {
         "subtype": "error",
         "request_id": "cli_0_s63",
+        "error": "Unsupported control request subtype: ui_prompt_paint"
+      },
+      "ui_prompt_suggest": {
+        "subtype": "error",
+        "request_id": "cli_0_s64",
         "error": "Unsupported control request subtype: ui_prompt_suggest"
       },
       "ui_read_selection": {
         "subtype": "error",
-        "request_id": "cli_0_s64",
+        "request_id": "cli_0_s65",
         "error": "Unsupported control request subtype: ui_read_selection"
       },
       "remote_tool_call": null,
@@ -2048,42 +2068,42 @@
       "remote_tools_reannounce": null,
       "unknown_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s69",
+        "request_id": "cli_0_s70",
         "error": "Unsupported control request subtype: zz_unknown"
       },
       "missing_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s70",
+        "request_id": "cli_0_s71",
         "error": "Unsupported control request subtype: undefined"
       },
       "number_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s71",
+        "request_id": "cli_0_s72",
         "error": "Unsupported control request subtype: 7"
       },
       "null_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s72",
+        "request_id": "cli_0_s73",
         "error": "Unsupported control request subtype: null"
       },
       "array_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s73",
+        "request_id": "cli_0_s74",
         "error": "Unsupported control request subtype: can_use_tool,2"
       },
       "nested_array_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s74",
+        "request_id": "cli_0_s75",
         "error": "Unsupported control request subtype: a,,1,,[object Object],1.5"
       },
       "bool_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s75",
+        "request_id": "cli_0_s76",
         "error": "Unsupported control request subtype: false"
       },
       "object_subtype": {
         "subtype": "error",
-        "request_id": "cli_0_s76",
+        "request_id": "cli_0_s77",
         "error": "Unsupported control request subtype: [object Object]"
       },
       "missing_request": {
@@ -2097,5 +2117,3122 @@
         "error": "Cannot read properties of null (reading 'subtype')"
       }
     }
-  }
+  },
+  "redelivery": [
+    {
+      "name": "basic",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "pend_full",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "mcp__srv__echo",
+                    "input": {
+                      "msg": "hi"
+                    },
+                    "tool_use_id": "toolu_p1",
+                    "permission_suggestions": [
+                      {
+                        "type": "addRules",
+                        "rules": [
+                          {
+                            "toolName": "Bash",
+                            "ruleContent": "ls:*"
+                          }
+                        ],
+                        "behavior": "allow",
+                        "destination": "session"
+                      }
+                    ],
+                    "blocked_path": "/tmp/x",
+                    "decision_reason": "rule says ask",
+                    "title": "Run echo",
+                    "display_name": "Echo",
+                    "description": "Echo it",
+                    "agent_id": "agent_p",
+                    "mcp_server": {
+                      "name": "srv",
+                      "source": "sdk"
+                    },
+                    "decision_reason_type": "rule",
+                    "decision_reason_code": "ask_rule",
+                    "server_policy_ask_only": true,
+                    "default_to_no": true,
+                    "suppress_always_allow_rule": true,
+                    "plugin": "plug@market",
+                    "requires_user_interaction": true,
+                    "server_prompt": "why",
+                    "computer_folder": {
+                      "path": "/p",
+                      "computer_name": "mac"
+                    },
+                    "matched_ask_rule": {
+                      "source": "userSettings",
+                      "tool_name": "Bash",
+                      "rule_content": "ls:*"
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "pend_false",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "file_path": "/b"
+                    },
+                    "tool_use_id": "toolu_p2",
+                    "server_policy_ask_only": false
+                  }
+                },
+                {
+                  "request_id": "pend_no_type",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "file_path": "/c"
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "pend_odd_ask_only",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {},
+                    "server_policy_ask_only": "true"
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "pend_deny",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "deny",
+                    "input": {},
+                    "tool_use_id": "toolu_p4"
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "pend_always",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "always",
+                    "input": {
+                      "a": 1
+                    },
+                    "tool_use_id": "toolu_p5",
+                    "permission_suggestions": [
+                      {
+                        "type": "addRules",
+                        "rules": [
+                          {
+                            "toolName": "Bash",
+                            "ruleContent": "ls:*"
+                          }
+                        ],
+                        "behavior": "allow",
+                        "destination": "session"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "pend_silent",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "silent",
+                    "input": {}
+                  }
+                }
+              ],
+              "pending_user_dialog_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "dialog_1",
+                  "request": {
+                    "subtype": "request_user_dialog",
+                    "dialog_kind": "confirm",
+                    "payload": {
+                      "a": 1
+                    },
+                    "tool_use_id": "toolu_p6"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "pend_full",
+              "pend_false",
+              "pend_no_type",
+              "pend_odd_ask_only",
+              "pend_deny",
+              "pend_always",
+              "pend_silent"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "pend_always": [
+              {
+                "subtype": "error",
+                "request_id": "pend_always",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "pend_deny": [
+              {
+                "subtype": "error",
+                "request_id": "pend_deny",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "pend_false": [
+              {
+                "subtype": "error",
+                "request_id": "pend_false",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "pend_full": [
+              {
+                "subtype": "error",
+                "request_id": "pend_full",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "pend_no_type": [
+              {
+                "subtype": "error",
+                "request_id": "pend_no_type",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "pend_odd_ask_only": [
+              {
+                "subtype": "error",
+                "request_id": "pend_odd_ask_only",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "pend_silent": [
+              {
+                "subtype": "error",
+                "request_id": "pend_silent",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "pend_full",
+              "toolName": "mcp__srv__echo",
+              "input": {
+                "msg": "hi"
+              }
+            },
+            {
+              "requestId": "pend_false",
+              "toolName": "Read",
+              "input": {
+                "file_path": "/b"
+              }
+            },
+            {
+              "requestId": "pend_no_type",
+              "toolName": "Read",
+              "input": {
+                "file_path": "/c"
+              }
+            },
+            {
+              "requestId": "pend_odd_ask_only",
+              "toolName": "Read",
+              "input": {}
+            },
+            {
+              "requestId": "pend_deny",
+              "toolName": "deny",
+              "input": {}
+            },
+            {
+              "requestId": "pend_always",
+              "toolName": "always",
+              "input": {
+                "a": 1
+              }
+            },
+            {
+              "requestId": "pend_silent",
+              "toolName": "silent",
+              "input": {}
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "pend_always": [
+              {
+                "subtype": "success",
+                "request_id": "pend_always",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "a": 1
+                  },
+                  "updatedPermissions": [
+                    {
+                      "type": "addRules",
+                      "rules": [
+                        {
+                          "toolName": "Bash",
+                          "ruleContent": "ls:*"
+                        }
+                      ],
+                      "behavior": "allow",
+                      "destination": "session"
+                    }
+                  ],
+                  "toolUseID": "toolu_p5"
+                }
+              }
+            ],
+            "pend_deny": [
+              {
+                "subtype": "success",
+                "request_id": "pend_deny",
+                "response": {
+                  "behavior": "deny",
+                  "message": "no toolu_p4",
+                  "interrupt": true,
+                  "toolUseID": "toolu_p4"
+                }
+              }
+            ],
+            "pend_false": [
+              {
+                "subtype": "success",
+                "request_id": "pend_false",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "file_path": "/b"
+                    },
+                    "ctx": {
+                      "toolUseID": "toolu_p2",
+                      "requestId": "pend_false"
+                    },
+                    "aborted": false
+                  },
+                  "toolUseID": "toolu_p2"
+                }
+              }
+            ],
+            "pend_full": [
+              {
+                "subtype": "success",
+                "request_id": "pend_full",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "msg": "hi"
+                    },
+                    "ctx": {
+                      "suggestions": [
+                        {
+                          "type": "addRules",
+                          "rules": [
+                            {
+                              "toolName": "Bash",
+                              "ruleContent": "ls:*"
+                            }
+                          ],
+                          "behavior": "allow",
+                          "destination": "session"
+                        }
+                      ],
+                      "blockedPath": "/tmp/x",
+                      "mcpServer": {
+                        "name": "srv",
+                        "source": "sdk"
+                      },
+                      "decisionReason": "rule says ask",
+                      "decisionReasonType": "rule",
+                      "decisionReasonCode": "ask_rule",
+                      "title": "Run echo",
+                      "displayName": "Echo",
+                      "description": "Echo it",
+                      "defaultToNo": true,
+                      "suppressAlwaysAllowRule": true,
+                      "toolUseID": "toolu_p1",
+                      "agentID": "agent_p",
+                      "plugin": "plug@market",
+                      "requestId": "pend_full",
+                      "requiresUserInteraction": true,
+                      "serverPrompt": "why",
+                      "computerFolder": {
+                        "path": "/p",
+                        "computer_name": "mac"
+                      },
+                      "matchedAskRule": {
+                        "source": "userSettings",
+                        "toolName": "Bash",
+                        "ruleContent": "ls:*"
+                      }
+                    },
+                    "aborted": false
+                  },
+                  "toolUseID": "toolu_p1"
+                }
+              }
+            ],
+            "pend_no_type": [
+              {
+                "subtype": "success",
+                "request_id": "pend_no_type",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "file_path": "/c"
+                    },
+                    "ctx": {
+                      "requestId": "pend_no_type"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "pend_odd_ask_only": [
+              {
+                "subtype": "success",
+                "request_id": "pend_odd_ask_only",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {},
+                    "ctx": {
+                      "requestId": "pend_odd_ask_only"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "skipped_entries",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "skip_hook",
+                  "request": {
+                    "subtype": "hook_callback",
+                    "callback_id": "hook_0",
+                    "input": {}
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_dialog_in_permissions",
+                  "request": {
+                    "subtype": "request_user_dialog",
+                    "dialog_kind": "confirm",
+                    "payload": {
+                      "a": 1
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_number_subtype",
+                  "request": {
+                    "subtype": 5,
+                    "tool_name": "Read",
+                    "input": {}
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_padded_subtype",
+                  "request": {
+                    "subtype": " can_use_tool",
+                    "tool_name": "Read",
+                    "input": {}
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_upper_subtype",
+                  "request": {
+                    "subtype": "CAN_USE_TOOL",
+                    "tool_name": "Read",
+                    "input": {}
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_string_request",
+                  "request": "can_use_tool"
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_array_request",
+                  "request": [
+                    "can_use_tool"
+                  ]
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_zero_request",
+                  "request": 0
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_false_request",
+                  "request": false
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "kept",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "a": 1
+                    }
+                  }
+                }
+              ],
+              "pending_user_dialog_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "skip_permission_in_dialogs",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {}
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "dialog_kept",
+                  "request": {
+                    "subtype": "request_user_dialog",
+                    "dialog_kind": "confirm",
+                    "payload": {
+                      "a": 1
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "skip_empty_request",
+                  "request": ""
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "kept"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "kept": [
+              {
+                "subtype": "error",
+                "request_id": "kept",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "kept",
+              "toolName": "Read",
+              "input": {
+                "a": 1
+              }
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "kept": [
+              {
+                "subtype": "success",
+                "request_id": "kept",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "a": 1
+                    },
+                    "ctx": {
+                      "requestId": "kept"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "falsy_null_zero",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": null,
+              "pending_user_dialog_requests": 0
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "falsy_false_empty_string",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": false,
+              "pending_user_dialog_requests": ""
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "empty_lists",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [],
+              "pending_user_dialog_requests": []
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "initialize_error_reply",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "after_error",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "e": 1
+                    },
+                    "server_policy_ask_only": true
+                  }
+                }
+              ]
+            },
+            "$error": "init exploded"
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "after_error"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": {
+            "error": "init exploded"
+          },
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "after_error": [
+              {
+                "subtype": "error",
+                "request_id": "after_error",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": {
+            "error": "init exploded"
+          },
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "after_error",
+              "toolName": "Read",
+              "input": {
+                "e": 1
+              }
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "after_error": [
+              {
+                "subtype": "success",
+                "request_id": "after_error",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "e": 1
+                    },
+                    "ctx": {
+                      "requestId": "after_error"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "non_initialize_reply",
+      "host": "set_permission_mode",
+      "script": {
+        "control": {
+          "set_permission_mode": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "not_redelivered",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {}
+                  }
+                }
+              ],
+              "pending_user_dialog_requests": 5
+            },
+            "$emit": [
+              {
+                "$send": {
+                  "subtype": "can_use_tool",
+                  "tool_name": "Read",
+                  "input": {
+                    "sentinel": true
+                  }
+                },
+                "$id": "sentinel"
+              },
+              {
+                "$collect_ms": 1500
+              },
+              {
+                "$exit": 0
+              }
+            ]
+          }
+        }
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "host": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "host": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "noise_after_reply",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "before_noise",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "n": 1
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "type": "keep_alive"
+          },
+          {
+            "type": "control_response",
+            "response": {
+              "subtype": "success",
+              "request_id": "nobody_asked",
+              "response": {}
+            }
+          },
+          {
+            "type": "control_response",
+            "response": {
+              "subtype": "success",
+              "response": {}
+            }
+          },
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "before_noise"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "before_noise": [
+              {
+                "subtype": "error",
+                "request_id": "before_noise",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "before_noise",
+              "toolName": "Read",
+              "input": {
+                "n": 1
+              }
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "before_noise": [
+              {
+                "subtype": "success",
+                "request_id": "before_noise",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "n": 1
+                    },
+                    "ctx": {
+                      "requestId": "before_noise"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "answered_then_redelivered",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "answered",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "copy": true
+                    }
+                  }
+                }
+              ]
+            },
+            "$before": [
+              {
+                "$control": {
+                  "subtype": "can_use_tool",
+                  "tool_name": "Read",
+                  "input": {
+                    "live": true
+                  }
+                },
+                "$id": "answered"
+              }
+            ]
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "answered"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "answered": [
+              {
+                "subtype": "error",
+                "request_id": "answered",
+                "error": "canUseTool callback is not provided."
+              },
+              {
+                "subtype": "error",
+                "request_id": "answered",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "answered",
+              "toolName": "Read",
+              "input": {
+                "live": true
+              }
+            },
+            {
+              "requestId": "answered",
+              "toolName": "Read",
+              "input": {
+                "copy": true
+              }
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "answered": [
+              {
+                "subtype": "success",
+                "request_id": "answered",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "copy": true
+                    },
+                    "ctx": {
+                      "requestId": "answered"
+                    },
+                    "aborted": false
+                  }
+                }
+              },
+              {
+                "subtype": "success",
+                "request_id": "answered",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "live": true
+                    },
+                    "ctx": {
+                      "requestId": "answered"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "in_flight_dedupe",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "live_hold",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "copy": true
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "twice",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "first": true
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "twice",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "second": true
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "pend_hold",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "hold",
+                    "input": {
+                      "n": 2
+                    },
+                    "server_policy_ask_only": true
+                  }
+                }
+              ],
+              "pending_user_dialog_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "pend_hold",
+                  "request": {
+                    "subtype": "request_user_dialog",
+                    "dialog_kind": "confirm",
+                    "payload": {
+                      "a": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "$before": [
+              {
+                "type": "control_request",
+                "request_id": "live_hold",
+                "request": {
+                  "subtype": "can_use_tool",
+                  "tool_name": "hold",
+                  "input": {
+                    "n": 1
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "live_copy": true
+              },
+              "server_policy_ask_only": true
+            },
+            "$id": "pend_hold"
+          },
+          {
+            "type": "control_cancel_request",
+            "request_id": "live_hold"
+          },
+          {
+            "type": "control_cancel_request",
+            "request_id": "pend_hold"
+          },
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "live_hold",
+              "twice"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "live_hold",
+              "toolName": "hold",
+              "input": {
+                "n": 1
+              }
+            },
+            {
+              "requestId": "twice",
+              "toolName": "Read",
+              "input": {
+                "first": true
+              }
+            },
+            {
+              "requestId": "pend_hold",
+              "toolName": "hold",
+              "input": {
+                "n": 2
+              }
+            },
+            {
+              "aborted": "live_hold"
+            },
+            {
+              "aborted": "pend_hold"
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "live_hold": [
+              {
+                "subtype": "success",
+                "request_id": "live_hold",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "n": 1
+                    },
+                    "ctx": {
+                      "requestId": "live_hold"
+                    },
+                    "aborted": true
+                  }
+                }
+              }
+            ],
+            "pend_hold": [
+              {
+                "subtype": "success",
+                "request_id": "pend_hold",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "n": 2
+                    },
+                    "ctx": {
+                      "requestId": "pend_hold"
+                    },
+                    "aborted": true
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "twice": [
+              {
+                "subtype": "success",
+                "request_id": "twice",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "first": true
+                    },
+                    "ctx": {
+                      "requestId": "twice"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "cancelled_then_redelivered",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "again",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "hold",
+                    "input": {
+                      "n": 2
+                    }
+                  }
+                }
+              ]
+            },
+            "$before": [
+              {
+                "type": "control_request",
+                "request_id": "again",
+                "request": {
+                  "subtype": "can_use_tool",
+                  "tool_name": "hold_slow",
+                  "input": {
+                    "n": 1
+                  }
+                }
+              },
+              {
+                "type": "control_cancel_request",
+                "request_id": "again"
+              }
+            ]
+          }
+        },
+        "on_init": [
+          {
+            "$delay_ms": 300
+          },
+          {
+            "type": "control_cancel_request",
+            "request_id": "again"
+          },
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "again",
+              "again"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "again",
+              "toolName": "hold_slow",
+              "input": {
+                "n": 1
+              }
+            },
+            {
+              "aborted": "again"
+            },
+            {
+              "requestId": "again",
+              "toolName": "hold",
+              "input": {
+                "n": 2
+              }
+            },
+            {
+              "aborted": "again"
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "again": [
+              {
+                "subtype": "success",
+                "request_id": "again",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "n": 1
+                    },
+                    "ctx": {
+                      "requestId": "again"
+                    },
+                    "aborted": true
+                  }
+                }
+              },
+              {
+                "subtype": "success",
+                "request_id": "again",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "n": 2
+                    },
+                    "ctx": {
+                      "requestId": "again"
+                    },
+                    "aborted": true
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "odd_request_ids",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": 7,
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "id": 7
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "id": "missing"
+                    }
+                  }
+                },
+                {
+                  "type": "control_request",
+                  "request_id": "string_id",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "id": "string"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$expect": [
+              "string_id"
+            ]
+          },
+          {
+            "$collect_ms": 1500
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "#7": [
+              {
+                "subtype": "error",
+                "request_id": 7,
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "#undefined": [
+              {
+                "subtype": "error",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "error",
+                "request_id": "sentinel",
+                "error": "canUseTool callback is not provided."
+              }
+            ],
+            "string_id": [
+              {
+                "subtype": "error",
+                "request_id": "string_id",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": 7,
+              "toolName": "Read",
+              "input": {
+                "id": 7
+              }
+            },
+            {
+              "toolName": "Read",
+              "input": {
+                "id": "missing"
+              }
+            },
+            {
+              "requestId": "string_id",
+              "toolName": "Read",
+              "input": {
+                "id": "string"
+              }
+            },
+            {
+              "requestId": "sentinel",
+              "toolName": "Read",
+              "input": {
+                "sentinel": true
+              }
+            }
+          ],
+          "replies": {
+            "#7": [
+              {
+                "subtype": "success",
+                "request_id": 7,
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "id": 7
+                    },
+                    "ctx": {
+                      "requestId": 7
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "#undefined": [
+              {
+                "subtype": "success",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "id": "missing"
+                    },
+                    "ctx": {},
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "sentinel": [
+              {
+                "subtype": "success",
+                "request_id": "sentinel",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "sentinel": true
+                    },
+                    "ctx": {
+                      "requestId": "sentinel"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ],
+            "string_id": [
+              {
+                "subtype": "success",
+                "request_id": "string_id",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "id": "string"
+                    },
+                    "ctx": {
+                      "requestId": "string_id"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": null,
+          "eof": false
+        }
+      }
+    },
+    {
+      "name": "throw_stops_reading",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": true
+            },
+            "$same_write": [
+              {
+                "type": "assistant",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "after"
+                    }
+                  ]
+                },
+                "parent_tool_use_id": null,
+                "session_id": "s",
+                "uuid": "u"
+              },
+              {
+                "type": "control_request",
+                "request_id": "after_throw",
+                "request": {
+                  "subtype": "can_use_tool",
+                  "tool_name": "Read",
+                  "input": {}
+                }
+              }
+            ]
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_object_list",
+      "host": "set_permission_mode_after",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": {
+                "0": {
+                  "type": "control_request",
+                  "request_id": "object_0",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {}
+                  }
+                }
+              },
+              "pending_user_dialog_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "never",
+                  "request": {
+                    "subtype": "request_user_dialog",
+                    "dialog_kind": "confirm",
+                    "payload": {
+                      "a": 1
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "host": {
+            "error": "Query closed before response received"
+          },
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "host": {
+            "error": "Query closed before response received"
+          },
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_number_dialogs",
+      "host": "set_permission_mode_early",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "before_throw",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "n": 1
+                    }
+                  }
+                }
+              ],
+              "pending_user_dialog_requests": 7
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "host": {
+            "error": "e is not iterable"
+          },
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "before_throw": [
+              {
+                "subtype": "error",
+                "request_id": "before_throw",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": "e is not iterable",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "host": {
+            "error": "e is not iterable"
+          },
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "before_throw",
+              "toolName": "Read",
+              "input": {
+                "n": 1
+              }
+            }
+          ],
+          "replies": {
+            "before_throw": [
+              {
+                "subtype": "success",
+                "request_id": "before_throw",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "n": 1
+                    },
+                    "ctx": {
+                      "requestId": "before_throw"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": "e is not iterable",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_true_dialogs",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [],
+              "pending_user_dialog_requests": true
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_string_list",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": "can_use_tool"
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_null_entry",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "null_1",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "n": 1
+                    }
+                  }
+                },
+                null,
+                {
+                  "type": "control_request",
+                  "request_id": "null_2",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {
+                      "n": 2
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "null_1": [
+              {
+                "subtype": "error",
+                "request_id": "null_1",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": "Cannot read properties of null (reading 'request')",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "null_1",
+              "toolName": "Read",
+              "input": {
+                "n": 1
+              }
+            }
+          ],
+          "replies": {
+            "null_1": [
+              {
+                "subtype": "success",
+                "request_id": "null_1",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {
+                      "n": 1
+                    },
+                    "ctx": {
+                      "requestId": "null_1"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": "Cannot read properties of null (reading 'request')",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_null_request",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "skipped",
+                  "request": {
+                    "subtype": "request_user_dialog",
+                    "dialog_kind": "confirm",
+                    "payload": {
+                      "a": 1
+                    }
+                  }
+                },
+                {
+                  "request_id": "null_request",
+                  "request": null
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "Cannot read properties of null (reading 'subtype')",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "Cannot read properties of null (reading 'subtype')",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_missing_request",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "no_request"
+                }
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_primitive_entry",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "primitive_1",
+                  "request": {
+                    "subtype": "can_use_tool",
+                    "tool_name": "Read",
+                    "input": {}
+                  }
+                }
+              ],
+              "pending_user_dialog_requests": [
+                {
+                  "type": "control_request",
+                  "request_id": "primitive_dialog",
+                  "request": {
+                    "subtype": "request_user_dialog",
+                    "dialog_kind": "confirm",
+                    "payload": {
+                      "a": 1
+                    }
+                  }
+                },
+                "x"
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {
+            "primitive_1": [
+              {
+                "subtype": "error",
+                "request_id": "primitive_1",
+                "error": "canUseTool callback is not provided."
+              }
+            ]
+          },
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "primitive_1",
+              "toolName": "Read",
+              "input": {}
+            }
+          ],
+          "replies": {
+            "primitive_1": [
+              {
+                "subtype": "success",
+                "request_id": "primitive_1",
+                "response": {
+                  "behavior": "allow",
+                  "updatedInput": {
+                    "input": {},
+                    "ctx": {
+                      "requestId": "primitive_1"
+                    },
+                    "aborted": false
+                  }
+                }
+              }
+            ]
+          },
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_array_entry",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                [
+                  {
+                    "type": "control_request",
+                    "request_id": "nested",
+                    "request": {
+                      "subtype": "can_use_tool",
+                      "tool_name": "Read",
+                      "input": {}
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "Cannot read properties of undefined (reading 'subtype')",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_aborts_in_flight",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": [
+                null
+              ]
+            },
+            "$before": [
+              {
+                "type": "control_request",
+                "request_id": "held",
+                "request": {
+                  "subtype": "can_use_tool",
+                  "tool_name": "hold",
+                  "input": {
+                    "n": 1
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [
+            {
+              "requestId": "held",
+              "toolName": "hold",
+              "input": {
+                "n": 1
+              }
+            },
+            {
+              "aborted": "held"
+            }
+          ],
+          "replies": {},
+          "end": "Cannot read properties of null (reading 'request')",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_cli_ignores_eof",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": 5
+            }
+          }
+        },
+        "on_init": [
+          {
+            "$delay_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "e is not iterable",
+          "eof": true
+        }
+      }
+    },
+    {
+      "name": "throw_after_error_result",
+      "script": {
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": 1
+            },
+            "$before": [
+              {
+                "type": "result",
+                "subtype": "error_during_execution",
+                "is_error": true,
+                "errors": [
+                  "  kaput  ",
+                  ""
+                ],
+                "num_turns": 1
+              }
+            ]
+          }
+        },
+        "on_init": [
+          {
+            "$send": {
+              "subtype": "can_use_tool",
+              "tool_name": "Read",
+              "input": {
+                "sentinel": true
+              }
+            },
+            "$id": "sentinel"
+          },
+          {
+            "$collect_ms": 60000
+          },
+          {
+            "$exit": 0
+          }
+        ]
+      },
+      "recorded": {
+        "bare": {
+          "init": "ok",
+          "messages": [
+            "system/init",
+            "result/error_during_execution"
+          ],
+          "replies": {},
+          "end": "Claude Code returned an error result: kaput",
+          "eof": true
+        },
+        "wired": {
+          "init": "ok",
+          "messages": [
+            "system/init",
+            "result/error_during_execution"
+          ],
+          "calls": [],
+          "replies": {},
+          "end": "Claude Code returned an error result: kaput",
+          "eof": true
+        }
+      }
+    }
+  ]
 }

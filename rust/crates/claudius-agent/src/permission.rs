@@ -29,6 +29,10 @@ pub struct ToolPermissionContext {
     /// `decision_reason_type` / `decision_reason_code`, when strings.
     pub decision_reason_type: Option<String>,
     pub decision_reason_code: Option<String>,
+    /// `server_policy_ask_only`, when a boolean (SDK 0.3.312): the tool's own
+    /// MCP server asked for a prompt, so an "always allow" rule shouldn't
+    /// skip it. The SDK clears it when it replays a parked request.
+    pub server_policy_ask_only: Option<bool>,
     /// The plugin that owns the tool, when a string.
     pub plugin: Option<String>,
     /// `requires_user_interaction`, when a boolean.
@@ -90,6 +94,7 @@ impl ToolPermissionContext {
                 .map(|v| pick(v, &[("name", "name"), ("source", "source")])),
             decision_reason_type: s("decision_reason_type"),
             decision_reason_code: s("decision_reason_code"),
+            server_policy_ask_only: b("server_policy_ask_only"),
             plugin: s("plugin"),
             requires_user_interaction: b("requires_user_interaction"),
             server_prompt: s("server_prompt"),

@@ -3,6 +3,11 @@
 //! event name to a list of matcher groups; `disableAllHooks` turns them all
 //! off for that scope.
 //!
+//! A handler's own shape is never read here: the engine runs the hooks, so
+//! the server only edits them. The two shape readers the editor needs live
+//! here anyway ([`is_legacy_agent_hook`], [`legacy_agent_hook_name`]) with
+//! the event rules, from `lib/shared/hook-events.ts`.
+//!
 //! Values are read the way the TS reads them off whatever `JSON.parse`
 //! gave: a settings file holding `null` throws on the property read, any
 //! other non-object has no `hooks`, and a `hooks` value that isn't an object
@@ -53,6 +58,44 @@ pub const HOOK_EVENT_NAMES: [&str; 33] = [
     "DirectoryAdded",
     "MessageDisplay",
 ];
+
+/// `AGENT_HANDLER_DISALLOWED_EVENTS`: an `agent` handler the engine won't
+/// run on these events.
+pub const AGENT_HANDLER_DISALLOWED_EVENTS: [&str; 1] = ["PermissionRequest"];
+
+/// `agentHandlerAllowed(event)`.
+pub fn agent_handler_allowed(event: &str) -> bool {
+    !AGENT_HANDLER_DISALLOWED_EVENTS.contains(&event)
+}
+
+/// `isLegacyAgentHook(h)` (CC 2.1.300): an agent hook saved in the old
+/// `{type:"agent", agent:"<name>"}` shape, which the engine's schema skips
+/// at load because it has no `prompt`. Only a missing or non-string
+/// `prompt` is the skipped shape — an empty string still loads — and only
+/// such a hook is flagged (the 2.1.300 review).
+pub fn is_legacy_agent_hook(handler: &Value) -> bool {
+    // `!h || typeof h !== "object"`: an array is an object, whose `type` is
+    // `undefined`.
+    match handler {
+        Value::Object(_) | Value::Array(_) => {
+            handler.get("type").and_then(Value::as_str) == Some("agent")
+                && !matches!(handler.get("prompt"), Some(Value::String(_)))
+        }
+        _ => false,
+    }
+}
+
+/// `legacyAgentHookName(h)`: the legacy hook's subagent name, for display;
+/// `None` unless it is a non-blank string (JS `trim`).
+pub fn legacy_agent_hook_name(handler: &Value) -> Option<&str> {
+    if !is_legacy_agent_hook(handler) {
+        return None;
+    }
+    match handler.get("agent") {
+        Some(Value::String(name)) if !js::trim(name).is_empty() => Some(name),
+        _ => None,
+    }
+}
 
 /// The three settings scopes, in `listAll`'s order.
 pub const SCOPES: [(Scope, &str); 3] = [

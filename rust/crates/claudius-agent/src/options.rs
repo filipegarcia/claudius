@@ -1,7 +1,7 @@
 //! `Options` → CLI argv / env / initialize payload.
 //!
 //! This mirrors `ProcessTransport.initialize()` in
-//! `@anthropic-ai/claude-agent-sdk/sdk.mjs` (v0.3.299) flag-for-flag and in
+//! `@anthropic-ai/claude-agent-sdk/sdk.mjs` (v0.3.312) flag-for-flag and in
 //! the same order, so a Rust-spawned `claude` sees exactly the argv the TS
 //! SDK would have produced for the same options. When bumping the SDK, diff
 //! the arg builder there against [`Options::to_args`].
@@ -130,7 +130,7 @@ pub struct Options {
     pub resume: Option<String>,
     pub session_id: Option<String>,
     pub resume_session_at: Option<String>,
-    /// SDK 0.3.299 types this as a string (passed through verbatim).
+    /// SDK 0.3.312 types this as a string (passed through verbatim).
     pub resume_drops_turn: Option<String>,
     pub fork_session: bool,
     /// `Some(false)` → `--no-session-persistence`.
@@ -184,12 +184,13 @@ pub struct Options {
     pub forward_subagent_text: Option<bool>,
     pub per_task_stop_affordance: Option<bool>,
     /// Any other initialize fields, merged verbatim after the modelled ones
-    /// (forward-compat escape hatch). SDK 0.3.299 initialize fields Claudius
+    /// (forward-compat escape hatch). SDK 0.3.312 initialize fields Claudius
     /// never sets, so they aren't typed here: `toolAliases`,
-    /// `webSearchIsolationExemptMcpServers`, `supportedDialogKinds` (needs an
-    /// `onUserDialog` callback), `rapidFollowupPreempt`,
-    /// `forwardNestedSubagentToolCalls`, `workspaceTrust`, and `plugins` under
-    /// `pluginDelivery: "initialize"` (the default delivery is argv).
+    /// `codeRunningMcpTools`, `webSearchIsolationExemptMcpServers`,
+    /// `supportedDialogKinds` (needs an `onUserDialog` callback),
+    /// `rapidFollowupPreempt`, `forwardNestedSubagentToolCalls`,
+    /// `workspaceTrust`, and `plugins` under `pluginDelivery: "initialize"`
+    /// (the default delivery is argv).
     pub initialize_extra: Map<String, Value>,
 
     // ---- callbacks ----

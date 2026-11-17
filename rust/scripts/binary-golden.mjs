@@ -41,14 +41,34 @@ const bundle = readFileSync(join(sdkPath, "sdk.mjs"), "utf8");
 if (process.platform !== "darwin") throw new Error("record on macOS: the launch errors are macOS errno behaviour");
 
 // ---- 1. candidate lookup ----
+// Minification renames the lookup on every SDK bump, so it's found by shape:
+// the `(resolve, {platform, arch, exists, preferMusl})` function that follows
+// the package-name constant. The slice between them carries the glibc check
+// it calls; `existsSync` is imported, so it's passed in (every call site here
+// passes `exists` explicitly anyway).
 function extractLookup() {
-  const start = bundle.indexOf('var pc="@anthropic-ai/claude-agent-sdk"');
-  const end = bundle.indexOf("var DVe=", start);
-  if (start < 0 || end < start) throw new Error("xZ moved in sdk.mjs: update the anchors");
-  const slice = bundle.slice(start, end);
-  if (!slice.includes("function xZ(")) throw new Error("xZ is not in the slice");
-  // `PVe` (existsSync) is imported; every call passes `exists` explicitly.
-  return new Function("PVe", `${slice};return xZ;`)(() => {
+  const pkg = /var ([\w$]+)="@anthropic-ai\/claude-agent-sdk";/.exec(bundle);
+  const lookup = /function ([\w$]+)\(e,t=\{\}\)\{let n=t\.platform\?\?process\.platform/.exec(bundle);
+  if (!pkg || !lookup || lookup.index < pkg.index) {
+    throw new Error("the native-binary lookup moved in sdk.mjs: re-derive the extraction");
+  }
+  // The match already consumed the body's opening brace (its parameter list
+  // has a `{}` default, so the first brace after the name isn't the body's).
+  let depth = 1;
+  let end = -1;
+  for (let i = lookup.index + lookup[0].length; i < bundle.length; i++) {
+    if (bundle[i] === "{") depth++;
+    else if (bundle[i] === "}" && --depth === 0) {
+      end = i + 1;
+      break;
+    }
+  }
+  const slice = bundle.slice(pkg.index, end);
+  const exists = /\.exists\?\?([\w$]+)/.exec(slice);
+  if (end < 0 || slice.length > 4000 || !exists) {
+    throw new Error("the native-binary lookup slice is wrong: re-derive the extraction");
+  }
+  return new Function(exists[1], `${slice};return ${lookup[1]};`)(() => {
     throw new Error("unexpected default exists");
   });
 }
@@ -187,5 +207,5 @@ rmSync(tmp, { recursive: true, force: true });
 const file = join(rustDir, "crates/claudius-agent/tests/fixtures/binary_golden.json");
 writeFileSync(file, `${JSON.stringify({ sdkVersion, os: "macos", candidates, notFound, launches, jsEntries, errnoNames }, null, 1)}\n`);
 for (const l of launches) console.log(`${l.name.padEnd(26)} ${l.threw ? "(threw) " : ""}${l.error}`);
-for (const j of jsEntries) console.log(`${j.file.padEnd(26)} ${JSON.stringify(j.execArgv)} ${JSON.stringify(j.argv.slice(0, 4))}… ${j.error}`);
+for (const j of jsEntries) console.log(`${j.file.padEnd(26)} ${JSON.stringify(j.execArgv)} ${JSON.stringify(j.argv.slice(0, 4))}\u2026 ${j.error}`);
 console.log(`${candidates.length} lookup cases; wrote ${file.slice(repo.length + 1)}`);

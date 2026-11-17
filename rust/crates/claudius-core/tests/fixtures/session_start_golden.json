@@ -1,5 +1,5 @@
 {
- "sdkVersion": "0.3.299",
+ "sdkVersion": "0.3.312",
  "tz": "America/New_York",
  "workspaces": {
   "version": 1,
@@ -64,7 +64,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -128,7 +128,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -191,7 +191,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -260,7 +260,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -327,7 +327,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -390,7 +390,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -481,7 +481,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -548,7 +548,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -611,7 +611,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -679,7 +679,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -744,7 +744,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -809,7 +809,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -877,7 +877,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -945,7 +945,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1013,7 +1013,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1078,7 +1078,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1149,7 +1149,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1216,7 +1216,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1284,7 +1284,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1352,7 +1352,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1417,7 +1417,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1483,7 +1483,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1547,7 +1547,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1617,7 +1617,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1680,7 +1680,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1743,7 +1743,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1806,7 +1806,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1869,7 +1869,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1932,7 +1932,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -1995,7 +1995,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2058,7 +2058,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2121,7 +2121,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2184,7 +2184,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2247,7 +2247,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2310,7 +2310,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2373,7 +2373,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2436,7 +2436,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2499,7 +2499,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2561,7 +2561,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2625,7 +2625,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2691,7 +2691,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2756,7 +2756,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2825,7 +2825,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2896,7 +2896,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -2959,7 +2959,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3020,7 +3020,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3083,7 +3083,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3146,7 +3146,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3209,7 +3209,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3270,7 +3270,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3331,7 +3331,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3394,7 +3394,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3457,7 +3457,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3518,7 +3518,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3579,7 +3579,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3642,7 +3642,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3705,7 +3705,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3766,7 +3766,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3827,7 +3827,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3888,7 +3888,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -3949,7 +3949,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4010,7 +4010,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4071,7 +4071,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4140,7 +4140,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4206,7 +4206,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4272,7 +4272,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4336,7 +4336,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4402,7 +4402,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4466,7 +4466,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4527,7 +4527,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4589,7 +4589,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4650,7 +4650,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4719,7 +4719,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -4885,7 +4885,8 @@
     },
     {
      "type": "error",
-     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable."
+     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable.",
+     "sessionEnded": true
     },
     {
      "type": "turn_status",
@@ -4994,7 +4995,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -5057,7 +5058,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -5158,7 +5159,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -5196,7 +5197,8 @@
     },
     {
      "type": "error",
-     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable."
+     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable.",
+     "sessionEnded": true
     },
     {
      "type": "turn_status",
@@ -5738,7 +5740,8 @@
     },
     {
      "type": "error",
-     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable."
+     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable.",
+     "sessionEnded": true
     },
     {
      "type": "turn_status",
@@ -5804,7 +5807,8 @@
     },
     {
      "type": "error",
-     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable."
+     "message": "Claude Code native binary not found at /nonexistent/claude. Please ensure Claude Code is installed via native installer or specify a valid path with options.pathToClaudeCodeExecutable.",
+     "sessionEnded": true
     },
     {
      "type": "turn_status",
@@ -6356,7 +6360,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -6417,7 +6421,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -6493,7 +6497,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -6582,7 +6586,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -6692,7 +6696,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -6824,7 +6828,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -6952,7 +6956,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -7075,7 +7079,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -7203,7 +7207,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -7318,7 +7322,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -7448,7 +7452,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -7575,7 +7579,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -7703,7 +7707,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -7827,7 +7831,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -7951,7 +7955,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -8075,7 +8079,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -8191,7 +8195,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -8327,7 +8331,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -8466,7 +8470,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -8604,7 +8608,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -8742,7 +8746,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -8880,7 +8884,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -9018,7 +9022,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -9165,7 +9169,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -9304,7 +9308,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -9451,7 +9455,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -9603,7 +9607,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -9762,7 +9766,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -9921,7 +9925,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -10073,7 +10077,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -10221,7 +10225,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -10374,7 +10378,7 @@
      "AWS_REGION": "us-west-2",
      "AWS_SECRET_ACCESS_KEY": "FAKE-aws-secret-s30",
      "AWS_SESSION_TOKEN": "FAKE-session-token",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -10544,7 +10548,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -10720,7 +10724,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -10915,7 +10919,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -11106,7 +11110,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -11459,7 +11463,7 @@
    ],
    "env": {
     "added": {
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
@@ -11635,7 +11639,7 @@
    "env": {
     "added": {
      "ANTHROPIC_API_KEY": "sk-ant-api03-FAKE-s30-alpha",
-     "CLAUDE_AGENT_SDK_VERSION": "0.3.299",
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
      "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
      "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
@@ -11653,6 +11657,181 @@
    "stateAfter": "{\"accountProfileId\":\"acc_alpha\"}",
    "accounts": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_alpha\",\n      \"label\": \"Alpha\",\n      \"kind\": \"api-key\",\n      \"secret\": \"sk-ant-api03-FAKE-s30-alpha\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_bravo\",\n      \"label\": \"Bravo\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-s30-bravo\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\",\n      \"accountUuid\": \"11111111-2222-4333-8444-555555555555\",\n      \"emailAddress\": \"bravo@example.com\",\n      \"organizationUuid\": \"66666666-7777-4888-9999-000000000000\"\n    }\n  ],\n  \"activeProfileId\": \"acc_alpha\",\n  \"autoRotateOnRateLimit\": true\n}",
    "state": null,
+   "parentEnv": null,
+   "blockProfile": null,
+   "expiresIn": null,
+   "profiles": {
+    "acc_alpha": {
+     "t": "d",
+     "m": "700"
+    },
+    "acc_alpha/.claudius": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/.claudius"
+    },
+    "acc_alpha/projects": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/projects"
+    },
+    "acc_ambient": {
+     "t": "d",
+     "m": "700"
+    },
+    "acc_ambient/.claudius": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/.claudius"
+    },
+    "acc_ambient/projects": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/projects"
+    },
+    "acc_bedrock": {
+     "t": "d",
+     "m": "700"
+    },
+    "acc_bedrock/.claudius": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/.claudius"
+    },
+    "acc_bedrock/projects": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/projects"
+    },
+    "acc_bravo": {
+     "t": "d",
+     "m": "700"
+    },
+    "acc_bravo/.claudius": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/.claudius"
+    },
+    "acc_bravo/.credentials.json": {
+     "t": "f",
+     "m": "600",
+     "x": "{\n  \"claudeAiOauth\": {\n    \"accessToken\": \"sk-ant-oat01-FAKE-s30-bravo\"\n  }\n}"
+    },
+    "acc_bravo/projects": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/projects"
+    },
+    "acc_charlie": {
+     "t": "d",
+     "m": "700"
+    },
+    "acc_charlie/.claudius": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/.claudius"
+    },
+    "acc_charlie/.credentials.json": {
+     "t": "f",
+     "m": "600",
+     "x": "{\n  \"claudeAiOauth\": {\n    \"accessToken\": \"sk-ant-oat01-FAKE-s30-charlie\"\n  }\n}"
+    },
+    "acc_charlie/projects": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/projects"
+    },
+    "acc_nolabel": {
+     "t": "d",
+     "m": "700"
+    },
+    "acc_nolabel/.claudius": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/.claudius"
+    },
+    "acc_nolabel/projects": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/projects"
+    },
+    "acc_uni": {
+     "t": "d",
+     "m": "700"
+    },
+    "acc_uni/.claudius": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/.claudius"
+    },
+    "acc_uni/projects": {
+     "t": "l",
+     "to": "$ROOT/home/.claude/projects"
+    }
+   }
+  },
+  {
+   "name": "account pin empty, a profile with the empty id",
+   "id": "s27-case-125",
+   "options": {},
+   "settings": null,
+   "goal": null,
+   "dbAgents": [],
+   "cwd": null,
+   "bin": null,
+   "resume": null,
+   "transcriptHex": null,
+   "threw": null,
+   "replayed": [],
+   "events": [
+    {
+     "type": "ready",
+     "sessionId": "s27-case-125",
+     "account": {
+      "id": "acc_bravo",
+      "label": "Bravo"
+     }
+    }
+   ],
+   "lateReady": [
+    {
+     "type": "ready",
+     "sessionId": "s27-case-125",
+     "account": {
+      "id": "acc_bravo",
+      "label": "Bravo"
+     }
+    },
+    {
+     "type": "ready",
+     "sessionId": "s27-case-125"
+    }
+   ],
+   "argv": [
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--input-format",
+    "stream-json",
+    "--thinking=adaptive",
+    "--permission-prompt-tool=stdio",
+    "--allowedTools=TodoWrite,TaskCreate,TaskGet,TaskUpdate,TaskList",
+    "--permission-mode=default",
+    "--include-hook-events",
+    "--include-partial-messages",
+    "--session-id=s27-case-125"
+   ],
+   "env": {
+    "added": {
+     "CLAUDE_AGENT_SDK_VERSION": "0.3.312",
+     "CLAUDE_CODE_ACCOUNT_UUID": "11111111-2222-4333-8444-555555555555",
+     "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING": "true",
+     "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
+     "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+     "CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat01-FAKE-s30-bravo",
+     "CLAUDE_CODE_ORGANIZATION_UUID": "66666666-7777-4888-9999-000000000000",
+     "CLAUDE_CODE_QUESTION_PREVIEW_FORMAT": "html",
+     "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+     "CLAUDE_CODE_STARTUP_FAILURE_RESULTS": "1",
+     "CLAUDE_CODE_USER_EMAIL": "bravo@example.com",
+     "CLAUDE_CONFIG_DIR": "$ROOT/home/.claude/.claudius/profiles/acc_bravo"
+    },
+    "removed": [
+     "NODE_OPTIONS"
+    ]
+   },
+   "initialize": "{\"request_id\":\"$ID\",\"type\":\"control_request\",\"request\":{\"subtype\":\"initialize\",\"hooks\":{\"PreToolUse\":[{\"hookCallbackIds\":[\"hook_0\"]}],\"PostToolUse\":[{\"hookCallbackIds\":[\"hook_1\"]}],\"CwdChanged\":[{\"hookCallbackIds\":[\"hook_2\"]}],\"PostModelSwitch\":[{\"hookCallbackIds\":[\"hook_3\"]}]},\"sdkMcpServers\":[\"claudius_goal\"],\"sdkMcpServerConfigs\":{\"claudius_goal\":{\"timeout\":10000}},\"sdkMcpServerManifests\":{\"claudius_goal\":{\"initializeResult\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{\"tools\":{\"listChanged\":true}},\"serverInfo\":{\"name\":\"claudius_goal\",\"version\":\"1.0.0\"}},\"toolsListResult\":{\"tools\":[{\"name\":\"report_goal_achieved\",\"description\":\"Report that the user's stated session goal has been fully accomplished. Only call this when the goal is genuinely complete — never for partial progress or intermediate steps. Calling it marks the goal as done in the UI.\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"summary\":{\"type\":\"string\",\"description\":\"One sentence summarizing what was accomplished.\"}},\"required\":[\"summary\"]},\"execution\":{\"taskSupport\":\"forbidden\"}}]}}},\"systemPrompt\":[\"\"],\"promptSuggestions\":true,\"agentProgressSummaries\":true,\"forwardSubagentText\":true,\"perTaskStopAffordance\":true}}",
+   "settingsAfter": null,
+   "stateAfter": "{\"accountProfileId\":\"acc_bravo\"}",
+   "accounts": "{\n  \"profiles\": [\n    {\n      \"id\": \"\",\n      \"label\": \"Nameless\",\n      \"kind\": \"api-key\",\n      \"secret\": \"sk-ant-api03-FAKE-s30-alpha\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_bravo\",\n      \"label\": \"Bravo\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-s30-bravo\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\",\n      \"accountUuid\": \"11111111-2222-4333-8444-555555555555\",\n      \"emailAddress\": \"bravo@example.com\",\n      \"organizationUuid\": \"66666666-7777-4888-9999-000000000000\"\n    }\n  ],\n  \"activeProfileId\": \"acc_bravo\",\n  \"autoRotateOnRateLimit\": false\n}",
+   "state": "{\"accountProfileId\":\"\"}",
    "parentEnv": null,
    "blockProfile": null,
    "expiresIn": null,

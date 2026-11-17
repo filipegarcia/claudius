@@ -266,6 +266,7 @@ const WS_A = "/claudius-golden/ws-a";
 const WS_B = "/claudius-golden/ws-b";
 const WS_C = "/claudius-golden/ws-c";
 const WS_U = `/claudius-golden/ws ${NFC_E} ${EMOJI}`;
+const WS_L = `/claudius-golden/lone-${LONE}`;
 const CUST_ROOT = "$HOME/.claude/.claudius/customizations";
 const WSJSON = ".claude/.claudius/workspaces.json";
 const CUSTJSON = ".claude/.claudius/customizations/index.json";
@@ -427,11 +428,11 @@ const STEPS = [
   P(`{"tabs":["${esc("00e9")}", "${esc("d83d")}${esc("de00")}", "${esc("0041")}"]}`),
   ROWS("$PROC"),
   G(),
-  // Where the Rust port is known to differ (its replay lists them): V8 parses nesting past serde_json's
-  // 127 levels ...
+  // Where the Rust port is known to differ (its replay lists it): V8 parses nesting past serde_json's
+  // 127 levels.
   P(`{"tabs":["deep",${"[".repeat(150)}${"]".repeat(150)}]}`),
   ROWS("$PROC"),
-  // ... and keeps lone surrogates, which JSON.stringify writes back as escapes.
+  // Lone surrogates are kept, and JSON.stringify writes them back as escapes.
   P(`{"tabs":["${esc("d800")}x"],"activeId":"${esc("dc00")}"}`),
   ROWS("$PROC"),
   G(),
@@ -639,6 +640,21 @@ const STEPS = [
   J({ pinned: [] }),
   wsFile([ws("wks_o", { p: "/claudius-golden/ws-a" })]),
   G(),
+  // Lone surrogates are code units of their own: the hint \ud800 picks its own workspace, not the \udc00
+  // one before it, and a cookie's U+FFFD (a cookie can't carry a lone surrogate) matches neither. The
+  // rootPath is the cwd as is: its DB, its rows, its title lookup (which binds the id's code units; a row
+  // whose id is a lone surrogate's bytes reads back as three U+FFFD, so it titles nothing).
+  wsFile([ws(ch(0xdc00), WS_A), ws(LONE, WS_L)], { activeId: LONE }),
+  G(),
+  J({ tabs: ["l1", LONE, `${LONE}x`, ch(0xdc00), "l2"], activeId: LONE, pinned: [ch(0xdc00)] }),
+  ROWS(WS_L),
+  ROWS(WS_A),
+  SQL(WS_L, [sessionRow("'l1'", "x", "' lone root '"), sessionRow("CAST(X'eda080' AS TEXT)", "x", "'lone id'")].join("\n")),
+  G(),
+  G(WSC(ch(0xfffd))),
+  wsFile([ws(ch(0xfffd), WS_A), ws(LONE, WS_L)], { activeId: LONE }),
+  G(),
+  G(WSC(ch(0xfffd))),
   wsFile([ws("wks_a", WS_A), ws("wks_b", WS_B)], { activeId: "wks_b" }),
 
   // Customizations: the customization cookie wins over the workspace one.
@@ -1291,6 +1307,18 @@ const ACTIVE_STEPS = [
   FILE(WSJSON, { text: "nope" }),
   A(),
   A(undefined, "wks_a"),
+  // Lone surrogates are code units of their own; a cookie's U+FFFD is another character.
+  wsFile([ws(ch(0xdc00), WS_A), ws(LONE, WS_L)], { activeId: LONE }),
+  A(),
+  A(undefined, ch(0xfffd)),
+  wsFile([ws(ch(0xfffd), WS_A), ws(LONE, WS_L)], { activeId: LONE }),
+  A(),
+  A(undefined, ch(0xfffd)),
+  custFile([{ id: LONE }, { id: ch(0xfffd) }]),
+  A(ch(0xfffd)),
+  custFile([{ id: LONE }]),
+  A(ch(0xfffd), "wks_zz"),
+  FILE(CUSTJSON, { rm: true }),
   // An empty cookie is no cookie, even where an entry has the id "".
   wsFile([ws("", WS_A), ws("wks_b", WS_B)], { activeId: "wks_b" }),
   A(undefined, ""),

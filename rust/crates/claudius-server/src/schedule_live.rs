@@ -4,8 +4,9 @@
 //! (POST).
 //!
 //! **Who answers.** The run stream reads the scheduler's live runs, so it
-//! follows [`crate::schedule`]'s switch: Rust with `--scheduler`, else the
-//! request goes to Next unchanged (where the run is). The session loops are
+//! follows [`crate::schedule`]'s switch: Rust while it runs the scheduler
+//! (the default since G07d), else the request goes to Next unchanged (where
+//! the run is). The session loops are
 //! read off live sessions, which only the Rust process has, so Rust always
 //! answers those; Next's session manager is empty behind the front door.
 //!
@@ -27,7 +28,11 @@
 //!   that doesn't parse is 400 `{ok: false, error: "invalid json body"}`;
 //!   both ids go through `?.trim()` (a non-string throws: Next's empty 500),
 //!   then a blank one is 400 `sessionId and loopId required`, no live session
-//!   404 `session not found`, no loop with that id (stale ones count) 404
+//!   404 `session not found`, a session whose CLI ended on its own 410
+//!   `this session's process exited, so its loops no longer run` (CC 2.1.311:
+//!   its loop timers died with it, and `sendInput` would drop the prompt
+//!   while this answered `ok`; the session isn't restarted just for this),
+//!   no loop with that id (stale ones count) 404
 //!   `loop not found in this session`. A cancelled loop is `{ok: true}`
 //!   with nothing sent; otherwise the session is sent
 //!   [`session_loops::cancel_prompt`] as a user prompt and the answer is
@@ -244,6 +249,14 @@ async fn cancel_loop(State(app): State<AppState>, body: Bytes) -> Response {
     let Some(session) = app.mgr.get(session_id) else {
         return refused(StatusCode::NOT_FOUND, "session not found");
     };
+    // CC 2.1.311 — the CLI ended on its own and took its loop timers with
+    // it, so there is nothing left to cancel.
+    if session.is_dead() {
+        return refused(
+            StatusCode::GONE,
+            "this session's process exited, so its loops no longer run",
+        );
+    }
     // Only an id the agent itself minted reaches the prompt.
     let Some(known) = session
         .scheduled_loops()

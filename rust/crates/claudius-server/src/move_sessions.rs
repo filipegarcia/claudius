@@ -4,7 +4,8 @@
 //!
 //! * `GET` previews the "move sessions to the new root?" prompt:
 //!   `{rootPath, count, busy, sharedWith}`: the sessions recorded under the
-//!   root (any failure counts 0), how many live sessions there are not idle,
+//!   root that history shows (any failure counts 0), how many live sessions
+//!   there are not idle,
 //!   and the names of the other workspaces with the same root (`===` on the
 //!   stored values; a `null` store entry after the match throws).
 //! * `POST {to}` re-roots the workspace and carries its sessions along. In
@@ -121,7 +122,12 @@ async fn preview(State(app): State<AppState>, Path(id): Path<String>) -> Respons
     let count = match root {
         Some(Value::String(r)) => {
             let r = r.clone();
-            tokio::task::spawn_blocking(move || reloc::list_workspace_session_ids(&r))
+            // CC 2.1.309: count what history shows, so the prompt matches
+            // `/api/sessions/all` (an untitled DB-only row only while its
+            // session is live).
+            let mgr = app.mgr.clone();
+            let live = move |id: &str| mgr.get(id).is_some();
+            tokio::task::spawn_blocking(move || reloc::list_workspace_session_ids(&r, Some(&live)))
                 .await
                 .ok()
                 .and_then(Result::ok)

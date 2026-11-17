@@ -11786,6 +11786,175 @@
    ]
   },
   {
+   "name": "info: the profile endpoint's certificate is not trusted",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {
+    "acc/accounts.json": {
+     "text": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_oauth\",\n      \"label\": \"Personal Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-0001-alpha\",\n      \"createdAt\": \"2026-01-02T03:04:05.006Z\"\n    },\n    {\n      \"id\": \"cached\",\n      \"label\": \"Personal Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-0001-alpha\",\n      \"createdAt\": \"2026-01-02T03:04:05.006Z\",\n      \"emailAddress\": \"e@example.com\",\n      \"subscriptionType\": \"Claude Pro\"\n    }\n  ],\n  \"activeProfileId\": null,\n  \"autoRotateOnRateLimit\": false\n}"
+    }
+   },
+   "dir": "$W/acc",
+   "start": {
+    "acc": {
+     "t": "d",
+     "m": "755"
+    },
+    "acc/accounts.json": {
+     "t": "f",
+     "m": "644",
+     "x": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_oauth\",\n      \"label\": \"Personal Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-0001-alpha\",\n      \"createdAt\": \"2026-01-02T03:04:05.006Z\"\n    },\n    {\n      \"id\": \"cached\",\n      \"label\": \"Personal Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-0001-alpha\",\n      \"createdAt\": \"2026-01-02T03:04:05.006Z\",\n      \"emailAddress\": \"e@example.com\",\n      \"subscriptionType\": \"Claude Pro\"\n    }\n  ],\n  \"activeProfileId\": null,\n  \"autoRotateOnRateLimit\": false\n}"
+    }
+   },
+   "steps": [
+    {
+     "op": "info",
+     "id": "acc_oauth",
+     "fetch": [
+      {
+       "throwCert": {
+        "code": "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+        "message": "unable to verify the first certificate"
+       }
+      }
+     ],
+     "fetches": [
+      {
+       "url": "https://api.anthropic.com/api/oauth/profile",
+       "method": "GET",
+       "headers": {
+        "Authorization": "Bearer sk-ant-oat01-FAKE-0001-alpha",
+        "Content-Type": "application/json"
+       }
+      }
+     ],
+     "unused": 0,
+     "warns": [
+      "[accounts] profile request failed certificate verification — The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+     ],
+     "out": "{\"provider\":\"firstParty\",\"profileId\":\"acc_oauth\",\"profileLabel\":\"Personal Max\",\"profileKind\":\"oauth-token\",\"errored\":true,\"error\":\"The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.\"}"
+    },
+    {
+     "op": "info",
+     "id": "cached",
+     "fetch": [
+      {
+       "throwCert": {
+        "code": "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+        "message": "unable to verify the first certificate"
+       }
+      }
+     ],
+     "fetches": [
+      {
+       "url": "https://api.anthropic.com/api/oauth/profile",
+       "method": "GET",
+       "headers": {
+        "Authorization": "Bearer sk-ant-oat01-FAKE-0001-alpha",
+        "Content-Type": "application/json"
+       }
+      }
+     ],
+     "unused": 0,
+     "warns": [
+      "[accounts] profile request failed certificate verification — The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+     ],
+     "out": "{\"provider\":\"firstParty\",\"profileId\":\"cached\",\"profileLabel\":\"Personal Max\",\"profileKind\":\"oauth-token\",\"email\":\"e@example.com\",\"subscriptionType\":\"Claude Pro\",\"errored\":false,\"error\":\"The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.\"}"
+    },
+    {
+     "op": "info",
+     "id": "acc_oauth",
+     "skipCache": true,
+     "fetch": [
+      {
+       "throwCert": {
+        "message": "self signed certificate in certificate chain"
+       }
+      }
+     ],
+     "fetches": [
+      {
+       "url": "https://api.anthropic.com/api/oauth/profile",
+       "method": "GET",
+       "headers": {
+        "Authorization": "Bearer sk-ant-oat01-FAKE-0001-alpha",
+        "Content-Type": "application/json"
+       }
+      }
+     ],
+     "unused": 0,
+     "warns": [
+      "[accounts] profile request failed certificate verification — The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+     ],
+     "out": "{\"provider\":\"firstParty\",\"profileId\":\"acc_oauth\",\"profileLabel\":\"Personal Max\",\"profileKind\":\"oauth-token\",\"errored\":true,\"error\":\"The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.\"}"
+    },
+    {
+     "op": "info",
+     "id": "acc_oauth",
+     "skipCache": true,
+     "fetch": [
+      {
+       "throwCert": {
+        "code": "CERT_HAS_EXPIRED",
+        "message": "certificate has expired"
+       }
+      }
+     ],
+     "fetches": [
+      {
+       "url": "https://api.anthropic.com/api/oauth/profile",
+       "method": "GET",
+       "headers": {
+        "Authorization": "Bearer sk-ant-oat01-FAKE-0001-alpha",
+        "Content-Type": "application/json"
+       }
+      }
+     ],
+     "unused": 0,
+     "out": "{\"provider\":\"firstParty\",\"profileId\":\"acc_oauth\",\"profileLabel\":\"Personal Max\",\"profileKind\":\"oauth-token\",\"errored\":true,\"error\":\"fetch failed\"}"
+    },
+    {
+     "op": "info",
+     "id": "acc_oauth",
+     "skipCache": true,
+     "fetch": [
+      {
+       "status": 200,
+       "body": "{\"account\":{\"uuid\":\"u-live\",\"email\":\"live@example.com\",\"display_name\":\"Live Person\"},\"organization\":{\"uuid\":\"org-live\",\"organization_type\":\"claude_max\",\"rate_limit_tier\":\"default_claude_max_20x\"}}"
+      }
+     ],
+     "fetches": [
+      {
+       "url": "https://api.anthropic.com/api/oauth/profile",
+       "method": "GET",
+       "headers": {
+        "Authorization": "Bearer sk-ant-oat01-FAKE-0001-alpha",
+        "Content-Type": "application/json"
+       }
+      }
+     ],
+     "unused": 0,
+     "out": "{\"provider\":\"firstParty\",\"profileId\":\"acc_oauth\",\"profileLabel\":\"Personal Max\",\"profileKind\":\"oauth-token\",\"email\":\"live@example.com\",\"displayName\":\"Live Person\",\"organizationUuid\":\"org-live\",\"subscriptionType\":\"Claude Max\",\"rateLimitTier\":\"default_claude_max_20x\"}",
+     "tree": {
+      "acc": {
+       "t": "d",
+       "m": "755"
+      },
+      "acc/accounts.json": {
+       "t": "f",
+       "m": "600",
+       "x": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_oauth\",\n      \"label\": \"Personal Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-0001-alpha\",\n      \"createdAt\": \"2026-01-02T03:04:05.006Z\",\n      \"accountUuid\": \"u-live\",\n      \"emailAddress\": \"live@example.com\",\n      \"organizationUuid\": \"org-live\",\n      \"subscriptionType\": \"Claude Max\"\n    },\n    {\n      \"id\": \"cached\",\n      \"label\": \"Personal Max\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-0001-alpha\",\n      \"createdAt\": \"2026-01-02T03:04:05.006Z\",\n      \"emailAddress\": \"e@example.com\",\n      \"subscriptionType\": \"Claude Pro\"\n    }\n  ],\n  \"activeProfileId\": null,\n  \"autoRotateOnRateLimit\": false\n}"
+      }
+     }
+    },
+    {
+     "op": "read",
+     "out": "{\"profiles\":[{\"id\":\"acc_oauth\",\"label\":\"Personal Max\",\"kind\":\"oauth-token\",\"secret\":\"sk-ant-oat01-FAKE-0001-alpha\",\"createdAt\":\"2026-01-02T03:04:05.006Z\",\"accountUuid\":\"u-live\",\"emailAddress\":\"live@example.com\",\"organizationUuid\":\"org-live\",\"subscriptionType\":\"Claude Max\"},{\"id\":\"cached\",\"label\":\"Personal Max\",\"kind\":\"oauth-token\",\"secret\":\"sk-ant-oat01-FAKE-0001-alpha\",\"createdAt\":\"2026-01-02T03:04:05.006Z\",\"emailAddress\":\"e@example.com\",\"subscriptionType\":\"Claude Pro\"}],\"activeProfileId\":null,\"autoRotateOnRateLimit\":false}"
+    }
+   ]
+  },
+  {
    "name": "info: a 200 body that is HTML",
    "env": {
     "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"

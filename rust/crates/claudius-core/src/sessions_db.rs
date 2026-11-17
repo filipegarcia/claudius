@@ -8,14 +8,15 @@
 use std::path::PathBuf;
 
 use claudius_agent::js;
+use rusqlite::OptionalExtension;
 use rusqlite::types::ValueRef;
-use rusqlite::{OptionalExtension, params};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 use crate::asset_list::Cell;
 use crate::db::{Mode, open_db};
-use crate::{js_num, now_ms, paths};
+use crate::sql_text::{self, JsText};
+use crate::{js_num, js_params, js_string, now_ms, paths};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,7 +58,7 @@ pub fn upsert_session(
                cwd          = excluded.cwd,
                model        = COALESCE(excluded.model, sessions.model),
                last_seen_at = excluded.last_seen_at",
-            params![id, cwd, title, model, now, now, now],
+            js_params![id, cwd, title, model, now, now, now],
         )
     })?;
     Ok(())
@@ -69,7 +70,7 @@ pub fn touch_session(cwd: &str, id: &str) -> anyhow::Result<()> {
     db.with(|c| {
         c.execute(
             "UPDATE sessions SET updated_at = ?, last_seen_at = ? WHERE id = ?",
-            params![now, now, id],
+            js_params![now, now, id],
         )
     })?;
     Ok(())
@@ -94,9 +95,11 @@ pub fn get_session_title(cwd: &str, id: &str) -> anyhow::Result<Option<String>> 
 pub fn get_session_title_cell(cwd: &str, id: &str) -> anyhow::Result<Option<Cell>> {
     let db = open_db(cwd, Mode::ReadWrite)?;
     let t: Option<Cell> = db.with(|c| {
-        c.query_row("SELECT title FROM sessions WHERE id = ?", [id], |r| {
-            Ok(Cell::read(r.get_ref(0)?))
-        })
+        c.query_row(
+            "SELECT title FROM sessions WHERE id = ?",
+            js_params![id],
+            |r| Ok(Cell::read(r.get_ref(0)?)),
+        )
         .optional()
     })?;
     if let Some(t) = t.filter(Cell::truthy) {
@@ -111,7 +114,7 @@ pub fn get_session_title_cell(cwd: &str, id: &str) -> anyhow::Result<Option<Cell
             "INSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at)
              VALUES (?, ?, ?, ?, ?, ?)
              ON CONFLICT(id) DO UPDATE SET title = excluded.title",
-            params![id, cwd, legacy, now, now, now],
+            js_params![id, cwd, legacy, now, now, now],
         )
     });
     Ok(Some(Cell::Text(legacy)))
@@ -209,7 +212,7 @@ pub fn get_session_titles_by_cwd_cells(
         probe_titles(cwd, ids, &mut out, false)?;
     }
     if !no_cwd.is_empty() {
-        let workspaces = crate::active_cwd::list_workspaces_raw().unwrap_or_default();
+        let workspaces = crate::workspaces::list_raw().unwrap_or_default();
         for ws in &workspaces {
             let root = match ws {
                 Value::Null => anyhow::bail!("Cannot read properties of null (reading 'rootPath')"),
@@ -281,9 +284,10 @@ fn probe_titles(
         );
         let rows = db.with(|c| {
             let mut stmt = c.prepare(&sql)?;
-            let rows = stmt.query_map(rusqlite::params_from_iter(chunk.iter()), |r| {
-                Ok((js_string(r.get_ref(0)?), probe_title(r.get_ref(1)?)))
-            })?;
+            let rows = stmt.query_map(
+                rusqlite::params_from_iter(chunk.iter().map(JsText::new)),
+                |r| Ok((js_string(r.get_ref(0)?), probe_title(r.get_ref(1)?))),
+            )?;
             rows.collect::<rusqlite::Result<Vec<_>>>()
         })?;
         for (id, title) in rows {
@@ -300,7 +304,7 @@ fn probe_titles(
 }
 
 /// `String(v)` for a column value as better-sqlite3 returns it.
-fn js_string(v: ValueRef) -> String {
+pub(crate) fn js_string(v: ValueRef) -> String {
     match v {
         ValueRef::Null => "null".into(),
         ValueRef::Integer(n) => js::number_to_string(n as f64),
@@ -369,6 +373,80 @@ fn legacy_property<'a>(legacy: &'a Value, id: &str) -> LegacyProperty<'a> {
     }
 }
 
+/// `retitleIndexedSession(id, title)` (CC 2.1.309): re-title an already
+/// indexed session from a path with no live `Session` (the non-live branch
+/// of `/api/sessions/rename`). Every title reader prefers this row over the
+/// transcript's `customTitle`, so a rename that only reached the JSONL left
+/// the old title shadowing it.
+///
+/// It walks the workspaces Claudius knows about ([`workspaces::list_raw`],
+/// so the bootstrap runs), skipping a falsy or already-seen root, probes
+/// each one read-only (a workspace without a database is never given one)
+/// and updates the row where it exists. One workspace's read-write open or
+/// update failing is swallowed, so earlier updates still count. Returns how
+/// many rows were updated.
+///
+/// `Err` is what the TS lets throw: `ws.rootPath` on a `null` store entry,
+/// and a read-only probe whose `sessions` table is missing (its `prepare`
+/// is outside the `try`). The route reads a throw as 0 updates.
+pub fn retitle_indexed_session(id: &str, title: &str) -> Result<u64, String> {
+    let trimmed = js::trim(title);
+    if id.is_empty() || trimmed.is_empty() {
+        return Ok(0);
+    }
+    let workspaces = crate::workspaces::list_raw().unwrap_or_default();
+    let mut updated = 0u64;
+    let mut seen: Vec<&str> = Vec::new();
+    for ws in &workspaces {
+        let root = match ws {
+            Value::Null => {
+                return Err("Cannot read properties of null (reading 'rootPath')".into());
+            }
+            Value::Object(m) => m.get("rootPath"),
+            _ => None,
+        };
+        // `if (!root || seen.has(root)) continue`. Only a string root gets
+        // past `openDb`, which a non-string one makes throw (caught there),
+        // so its place in `seen` can't change what happens.
+        let Some(root) = root.filter(|v| js::truthy(v)).and_then(Value::as_str) else {
+            continue;
+        };
+        if seen.contains(&root) {
+            continue;
+        }
+        seen.push(root);
+        let Ok(ro) = open_db(root, Mode::ReadOnly) else {
+            continue;
+        };
+        let hit = ro
+            .with(|c| {
+                c.query_row(
+                    "SELECT 1 FROM sessions WHERE id = ?",
+                    [JsText::new(id)],
+                    |_| Ok(()),
+                )
+                .optional()
+            })
+            .map_err(|e| crate::db::sqlite_message(&e))?;
+        if hit.is_none() {
+            continue;
+        }
+        let now = now_ms();
+        let changed = open_db(root, Mode::ReadWrite).ok().and_then(|db| {
+            db.with(|c| {
+                c.execute(
+                    "UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?",
+                    js_params![trimmed, now, id],
+                )
+            })
+            .ok()
+        });
+        // `catch {}`: one workspace's failure must not hide earlier updates.
+        updated += changed.unwrap_or(0) as u64;
+    }
+    Ok(updated)
+}
+
 /// `setSessionTitle`: the JS-trimmed title; an empty one clears it to NULL.
 pub fn set_session_title(cwd: &str, id: &str, title: &str) -> anyhow::Result<()> {
     let trimmed = js::trim(title);
@@ -378,7 +456,7 @@ pub fn set_session_title(cwd: &str, id: &str, title: &str) -> anyhow::Result<()>
         if trimmed.is_empty() {
             c.execute(
                 "UPDATE sessions SET title = NULL, updated_at = ? WHERE id = ?",
-                params![now, id],
+                js_params![now, id],
             )
         } else {
             c.execute(
@@ -387,7 +465,7 @@ pub fn set_session_title(cwd: &str, id: &str, title: &str) -> anyhow::Result<()>
                  ON CONFLICT(id) DO UPDATE SET
                    title      = excluded.title,
                    updated_at = excluded.updated_at",
-                params![id, cwd, trimmed, now, now, now],
+                js_params![id, cwd, trimmed, now, now, now],
             )
         }
     })?;
@@ -398,12 +476,12 @@ fn goal_from_row(c: &rusqlite::Connection, id: &str) -> rusqlite::Result<Session
     let row = c
         .query_row(
             "SELECT goal, goal_achieved, goal_summary, goal_set_at, goal_achieved_at FROM sessions WHERE id = ?",
-            [id],
+            js_params![id],
             |r| {
                 Ok((
-                    r.get::<_, Option<String>>(0)?,
+                    sql_text::get::<Option<String>, _>(r, 0)?,
                     r.get::<_, Option<i64>>(1)?,
-                    r.get::<_, Option<String>>(2)?,
+                    sql_text::get::<Option<String>, _>(r, 2)?,
                     r.get::<_, Option<i64>>(3)?,
                     r.get::<_, Option<i64>>(4)?,
                 ))
@@ -449,7 +527,7 @@ pub fn set_session_goal(cwd: &str, id: &str, goal: &str) -> anyhow::Result<Sessi
                goal_set_at      = excluded.goal_set_at,
                goal_achieved_at = NULL,
                updated_at       = excluded.updated_at",
-            params![id, cwd, trimmed, now, now, now, now],
+            js_params![id, cwd, trimmed, now, now, now, now],
         )
     })?;
     Ok(SessionGoal {
@@ -469,7 +547,7 @@ pub fn clear_session_goal(cwd: &str, id: &str) -> anyhow::Result<SessionGoal> {
                 SET goal = NULL, goal_achieved = 0, goal_summary = NULL,
                     goal_set_at = NULL, goal_achieved_at = NULL, updated_at = ?
               WHERE id = ?",
-            params![now_ms(), id],
+            js_params![now_ms(), id],
         )
     })?;
     Ok(SessionGoal::default())
@@ -484,7 +562,7 @@ pub fn set_goal_achieved(cwd: &str, id: &str, summary: &str) -> anyhow::Result<S
             "UPDATE sessions
                 SET goal_achieved = 1, goal_summary = ?, goal_achieved_at = ?, updated_at = ?
               WHERE id = ? AND goal IS NOT NULL",
-            params![clean, now, now, id],
+            js_params![clean, now, now, id],
         )?;
         goal_from_row(c, id)
     })?)
@@ -498,9 +576,11 @@ pub fn get_session_state(cwd: &str, id: &str) -> Map<String, Value> {
     };
     let raw: Option<Option<String>> = db
         .with(|c| {
-            c.query_row("SELECT state FROM sessions WHERE id = ?", [id], |r| {
-                r.get(0)
-            })
+            c.query_row(
+                "SELECT state FROM sessions WHERE id = ?",
+                js_params![id],
+                |r| sql_text::get(r, 0),
+            )
             .optional()
         })
         .unwrap_or(None);
@@ -518,7 +598,7 @@ pub fn merge_session_state(cwd: &str, id: &str, patch: Map<String, Value>) -> an
         current.insert(k, v);
     }
     // `JSON.stringify({ ...current, ...patch })`.
-    let next = js::stringify(&Value::Object(current));
+    let next = js_string::stringify(&Value::Object(current));
     let db = open_db(cwd, Mode::ReadWrite)?;
     let now = now_ms();
     db.with(|c| {
@@ -528,7 +608,7 @@ pub fn merge_session_state(cwd: &str, id: &str, patch: Map<String, Value>) -> an
              ON CONFLICT(id) DO UPDATE SET
                state      = excluded.state,
                updated_at = excluded.updated_at",
-            params![id, cwd, next, now, now, now],
+            js_params![id, cwd, next, now, now, now],
         )
     })?;
     Ok(())
@@ -547,7 +627,7 @@ pub fn list_indexed_sessions(cwd: &str) -> anyhow::Result<Vec<SessionRow>> {
             "SELECT id, cwd, title, model, created_at, updated_at, last_seen_at
              FROM sessions WHERE cwd = ? ORDER BY updated_at DESC",
         )?;
-        let rows = st.query_map([cwd], |r| {
+        let rows = st.query_map(js_params![cwd], |r| {
             let cell = |i| r.get_ref(i).map(Cell::read);
             Ok(SessionRow {
                 id: cell(0)?,
@@ -572,7 +652,7 @@ pub fn list_all_indexed_sessions(dir: Option<&str>) -> anyhow::Result<Vec<Sessio
     if let Some(dir) = dir.filter(|d| !d.is_empty()) {
         return list_indexed_sessions(dir);
     }
-    let workspaces = crate::active_cwd::list_workspaces_raw().unwrap_or_default();
+    let workspaces = crate::workspaces::list_raw().unwrap_or_default();
     let mut all = Vec::new();
     for ws in &workspaces {
         let root = match ws {
@@ -607,7 +687,7 @@ pub fn record_tagged_message(
         "INSERT INTO suggested_messages(session_id, message_uuid, suggestion_text, created_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(session_id, message_uuid) DO UPDATE SET suggestion_text = excluded.suggestion_text"
     };
-    db.with(|c| c.execute(sql, params![session_id, message_uuid, text, now_ms()]))?;
+    db.with(|c| c.execute(sql, js_params![session_id, message_uuid, text, now_ms()]))?;
     Ok(())
 }
 
@@ -624,7 +704,7 @@ pub fn set_prompt_draft(
         db.with(|c| {
             c.execute(
                 "DELETE FROM prompt_drafts WHERE session_id = ?",
-                [session_id],
+                js_params![session_id],
             )
         })?;
         return Ok(());
@@ -633,7 +713,7 @@ pub fn set_prompt_draft(
         c.execute(
             "INSERT INTO prompt_drafts(session_id, text, images, updated_at) VALUES (?, ?, ?, ?)
              ON CONFLICT(session_id) DO UPDATE SET text = excluded.text, images = excluded.images, updated_at = excluded.updated_at",
-            params![session_id, text, images.to_string(), now_ms()],
+            js_params![session_id, text, images.to_string(), now_ms()],
         )
     })?;
     Ok(())
@@ -647,8 +727,8 @@ pub fn get_prompt_draft(cwd: &str, session_id: &str) -> Option<Value> {
         .with(|c| {
             c.query_row(
                 "SELECT text, images, updated_at FROM prompt_drafts WHERE session_id = ?",
-                [session_id],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                js_params![session_id],
+                |r| Ok((sql_text::get(r, 0)?, sql_text::get(r, 1)?, r.get(2)?)),
             )
             .optional()
         })
@@ -676,7 +756,7 @@ pub fn clear_prompt_draft(cwd: &str, session_id: &str) {
         let _ = db.with(|c| {
             c.execute(
                 "DELETE FROM prompt_drafts WHERE session_id = ?",
-                [session_id],
+                js_params![session_id],
             )
         });
     }
@@ -694,7 +774,7 @@ pub fn list_tagged_message_uuids(cwd: &str, goal: bool, session_id: &str) -> Vec
     };
     db.with(|c| {
         let mut st = c.prepare(sql)?;
-        let rows = st.query_map([session_id], |r| r.get::<_, String>(0))?;
+        let rows = st.query_map(js_params![session_id], |r| sql_text::get::<String, _>(r, 0))?;
         rows.collect::<Result<Vec<_>, _>>()
     })
     .unwrap_or_default()
@@ -717,12 +797,17 @@ pub struct UsageTotals {
     pub model_usage: Option<Map<String, Value>>,
 }
 
-const ADDITIVE_MODEL_USAGE_FIELDS: [&str; 7] = [
+const ADDITIVE_MODEL_USAGE_FIELDS: [&str; 9] = [
     "inputTokens",
     "outputTokens",
     "thinkingTokens",
     "cacheReadInputTokens",
     "cacheCreationInputTokens",
+    // SDK 0.3.311 — the 5m / 1h split of `cacheCreationInputTokens` (both
+    // already counted inside it). Optional; accumulated like the parent so
+    // a resumed session's per-model breakdown doesn't go last-write-wins.
+    "cacheCreationEphemeral5mInputTokens",
+    "cacheCreationEphemeral1hInputTokens",
     "webSearchRequests",
     "costUSD",
 ];
@@ -936,9 +1021,9 @@ pub fn get_session_usage(cwd: &str, session_id: &str) -> Option<UsageTotals> {
                     input_tokens, output_tokens, cache_read_input_tokens,
                     cache_creation_input_tokens, model_usage_json
                FROM session_usage WHERE session_id = ?",
-            [session_id],
+            js_params![session_id],
             |r| {
-                let mu: Option<String> = r.get(8)?;
+                let mu: Option<String> = sql_text::get(r, 8)?;
                 Ok(UsageTotals {
                     total_cost_usd: r.get(0)?,
                     num_turns: r.get::<_, f64>(1)?,
@@ -989,7 +1074,7 @@ pub fn save_session_usage(cwd: &str, session_id: &str, u: &UsageTotals) -> anyho
                cache_creation_input_tokens = excluded.cache_creation_input_tokens,
                model_usage_json = excluded.model_usage_json,
                updated_at = excluded.updated_at",
-            params![
+            js_params![
                 session_id,
                 u.total_cost_usd,
                 r(u.num_turns),

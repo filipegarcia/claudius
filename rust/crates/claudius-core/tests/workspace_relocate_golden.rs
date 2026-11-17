@@ -28,8 +28,26 @@ use serde_json::{Value, json};
 fn call(w: &World, args: &[Value]) -> (&'static str, Value) {
     let arg = |i: usize| w.abs(str_of(&args[i]));
     let got = match str_of(&args[0]) {
-        "list" => reloc::list_workspace_session_ids(&arg(1))
-            .map(|ids| Value::Array(ids.iter().map(reloc::SessionKey::to_json).collect())),
+        "list" => {
+            // `{live: [...]}`: the recorder's `isLive`; `{live: null}` is
+            // `{}` (opts without `isLive`), and no third argument at all is
+            // the plain call.
+            let live: Option<Vec<String>> = args.get(2).map(|o| {
+                o["live"]
+                    .as_array()
+                    .map(|a| a.iter().map(|v| str_of(v).to_owned()).collect())
+                    .unwrap_or_default()
+            });
+            let is_live = move |id: &str| live.as_ref().is_some_and(|l| l.iter().any(|x| x == id));
+            // `{live: null}` is the TS `{}`: no `isLive`, so no filter —
+            // the same as no third argument at all.
+            let opts: Option<&dyn Fn(&str) -> bool> = match args.get(2) {
+                Some(o) if !o["live"].is_null() => Some(&is_live),
+                _ => None,
+            };
+            reloc::list_workspace_session_ids(&arg(1), opts)
+                .map(|ids| Value::Array(ids.iter().map(reloc::SessionKey::to_json).collect()))
+        }
         "relocate" => {
             reloc::relocate_workspace_sessions(&arg(1), &arg(2)).map(|r| Value::Object(r.to_json()))
         }
@@ -50,7 +68,8 @@ fn roots_of(w: &World, sc: &Value) -> Vec<String> {
     let mut roots = Vec::new();
     for st in sc["steps"].as_array().unwrap() {
         if let Some(args) = st["call"].as_array() {
-            roots.extend(args[1..].iter().map(|a| w.abs(str_of(a))));
+            // The call's roots; a `list`'s third argument is its options.
+            roots.extend(args[1..].iter().filter_map(Value::as_str).map(|a| w.abs(a)));
         }
         for op in st["setup"].as_array().into_iter().flatten() {
             if let Some(r) = op["root"].as_str() {

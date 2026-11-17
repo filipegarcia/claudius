@@ -45,9 +45,51 @@ fn num(v: Option<&Value>) -> Value {
     }
 }
 
-/// `extractWindow(raw)`: `{requestCount, sessionCount, behaviors}`, or
-/// `None` unless `raw` is an object or array (an array has none of the
-/// fields, so it's an empty window).
+/// `extractRecommendations(raw)` (SDK 0.3.305 `behaviors.{day,week}
+/// .recommendations`): the CLI's own wording for one recommended change.
+/// An entry needs a string `key`, a string `title` that isn't blank once
+/// trimmed and a finite number `pct`; `detail` rides along only when it is
+/// a string that isn't blank once trimmed.
+fn extract_recommendations(raw: Option<&Value>) -> Vec<Value> {
+    let Some(Value::Array(list)) = raw else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for r in list {
+        // An array entry has no `key`, so it's dropped like a primitive.
+        let Some(o) = r.as_object() else { continue };
+        let Some(key) = o.get("key").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(title) = o
+            .get("title")
+            .and_then(Value::as_str)
+            .filter(|t| !claudius_agent::js::trim(t).is_empty())
+        else {
+            continue;
+        };
+        let Some(pct @ Value::Number(_)) = o.get("pct") else {
+            continue;
+        };
+        let mut m = serde_json::Map::new();
+        m.insert("key".into(), json!(key));
+        m.insert("pct".into(), pct.clone());
+        m.insert("title".into(), json!(title));
+        if let Some(detail) = o
+            .get("detail")
+            .and_then(Value::as_str)
+            .filter(|d| !claudius_agent::js::trim(d).is_empty())
+        {
+            m.insert("detail".into(), json!(detail));
+        }
+        out.push(Value::Object(m));
+    }
+    out
+}
+
+/// `extractWindow(raw)`: `{requestCount, sessionCount, behaviors,
+/// recommendations}`, or `None` unless `raw` is an object or array (an
+/// array has none of the fields, so it's an empty window).
 fn extract_window(raw: Option<&Value>) -> Option<Value> {
     let w = raw.filter(|v| object_like(v))?;
     let mut behaviors = Vec::new();
@@ -72,6 +114,7 @@ fn extract_window(raw: Option<&Value>) -> Option<Value> {
         "requestCount": num(w.get("request_count")),
         "sessionCount": num(w.get("session_count")),
         "behaviors": behaviors,
+        "recommendations": extract_recommendations(w.get("recommendations")),
     }))
 }
 

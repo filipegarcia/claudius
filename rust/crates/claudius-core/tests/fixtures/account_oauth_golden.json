@@ -1,5 +1,1765 @@
 {
  "t0": 1790000000123,
+ "refusedCodes": [
+  [
+   400,
+   "{\"error\":\"invalid_grant\"}",
+   true
+  ],
+  [
+   400,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   true
+  ],
+  [
+   400,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   true
+  ],
+  [
+   400,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   true
+  ],
+  [
+   400,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   true
+  ],
+  [
+   400,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   true
+  ],
+  [
+   400,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   400,
+   "{}",
+   false
+  ],
+  [
+   400,
+   "null",
+   false
+  ],
+  [
+   400,
+   "[]",
+   false
+  ],
+  [
+   400,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   400,
+   "5",
+   false
+  ],
+  [
+   400,
+   "true",
+   false
+  ],
+  [
+   400,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   400,
+   "",
+   false
+  ],
+  [
+   400,
+   "   ",
+   false
+  ],
+  [
+   400,
+   "invalid_grant",
+   false
+  ],
+  [
+   400,
+   "{",
+   false
+  ],
+  [
+   400,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   400,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   true
+  ],
+  [
+   400,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   400,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   400,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   400,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   true
+  ],
+  [
+   400,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":\"invalid_grant\"}",
+   true
+  ],
+  [
+   401,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   true
+  ],
+  [
+   401,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   true
+  ],
+  [
+   401,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   true
+  ],
+  [
+   401,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   true
+  ],
+  [
+   401,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   true
+  ],
+  [
+   401,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   401,
+   "{}",
+   false
+  ],
+  [
+   401,
+   "null",
+   false
+  ],
+  [
+   401,
+   "[]",
+   false
+  ],
+  [
+   401,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   401,
+   "5",
+   false
+  ],
+  [
+   401,
+   "true",
+   false
+  ],
+  [
+   401,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   401,
+   "",
+   false
+  ],
+  [
+   401,
+   "   ",
+   false
+  ],
+  [
+   401,
+   "invalid_grant",
+   false
+  ],
+  [
+   401,
+   "{",
+   false
+  ],
+  [
+   401,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   401,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   true
+  ],
+  [
+   401,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   401,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   401,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   401,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   true
+  ],
+  [
+   401,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   403,
+   "{}",
+   false
+  ],
+  [
+   403,
+   "null",
+   false
+  ],
+  [
+   403,
+   "[]",
+   false
+  ],
+  [
+   403,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   403,
+   "5",
+   false
+  ],
+  [
+   403,
+   "true",
+   false
+  ],
+  [
+   403,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   403,
+   "",
+   false
+  ],
+  [
+   403,
+   "   ",
+   false
+  ],
+  [
+   403,
+   "invalid_grant",
+   false
+  ],
+  [
+   403,
+   "{",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   403,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   403,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   403,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   false
+  ],
+  [
+   403,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   500,
+   "{}",
+   false
+  ],
+  [
+   500,
+   "null",
+   false
+  ],
+  [
+   500,
+   "[]",
+   false
+  ],
+  [
+   500,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   500,
+   "5",
+   false
+  ],
+  [
+   500,
+   "true",
+   false
+  ],
+  [
+   500,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   500,
+   "",
+   false
+  ],
+  [
+   500,
+   "   ",
+   false
+  ],
+  [
+   500,
+   "invalid_grant",
+   false
+  ],
+  [
+   500,
+   "{",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   500,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   500,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   500,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   false
+  ],
+  [
+   500,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   200,
+   "{}",
+   false
+  ],
+  [
+   200,
+   "null",
+   false
+  ],
+  [
+   200,
+   "[]",
+   false
+  ],
+  [
+   200,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   200,
+   "5",
+   false
+  ],
+  [
+   200,
+   "true",
+   false
+  ],
+  [
+   200,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   200,
+   "",
+   false
+  ],
+  [
+   200,
+   "   ",
+   false
+  ],
+  [
+   200,
+   "invalid_grant",
+   false
+  ],
+  [
+   200,
+   "{",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   200,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   200,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   200,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   false
+  ],
+  [
+   200,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   0,
+   "{}",
+   false
+  ],
+  [
+   0,
+   "null",
+   false
+  ],
+  [
+   0,
+   "[]",
+   false
+  ],
+  [
+   0,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   0,
+   "5",
+   false
+  ],
+  [
+   0,
+   "true",
+   false
+  ],
+  [
+   0,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   0,
+   "",
+   false
+  ],
+  [
+   0,
+   "   ",
+   false
+  ],
+  [
+   0,
+   "invalid_grant",
+   false
+  ],
+  [
+   0,
+   "{",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   0,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   0,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   0,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   false
+  ],
+  [
+   0,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   -1,
+   "{}",
+   false
+  ],
+  [
+   -1,
+   "null",
+   false
+  ],
+  [
+   -1,
+   "[]",
+   false
+  ],
+  [
+   -1,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   -1,
+   "5",
+   false
+  ],
+  [
+   -1,
+   "true",
+   false
+  ],
+  [
+   -1,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   -1,
+   "",
+   false
+  ],
+  [
+   -1,
+   "   ",
+   false
+  ],
+  [
+   -1,
+   "invalid_grant",
+   false
+  ],
+  [
+   -1,
+   "{",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   -1,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   -1,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   false
+  ],
+  [
+   -1,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"invalid_grant\",\"error_description\":\"ACCOUNT_ON_HOLD\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"invalid_grant\",\"error_description\":null}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":{\"type\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":{\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":{\"type\":\"x\",\"code\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":{\"type\":\"other\"}}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":[\"invalid_grant\"]}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":[{\"type\":\"invalid_grant\"}]}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"Invalid_Grant\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\" invalid_grant\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":null}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":0}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":false}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":true}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":5}",
+   false
+  ],
+  [
+   1000,
+   "{}",
+   false
+  ],
+  [
+   1000,
+   "null",
+   false
+  ],
+  [
+   1000,
+   "[]",
+   false
+  ],
+  [
+   1000,
+   "[\"invalid_grant\"]",
+   false
+  ],
+  [
+   1000,
+   "5",
+   false
+  ],
+  [
+   1000,
+   "true",
+   false
+  ],
+  [
+   1000,
+   "\"invalid_grant\"",
+   false
+  ],
+  [
+   1000,
+   "",
+   false
+  ],
+  [
+   1000,
+   "   ",
+   false
+  ],
+  [
+   1000,
+   "invalid_grant",
+   false
+  ],
+  [
+   1000,
+   "{",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"invalid_grant\"",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"x\",\"error\":\"invalid_grant\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"error_description\":\"account_on_hold\"}",
+   false
+  ],
+  [
+   1000,
+   "{\"__proto__\":{\"error\":\"invalid_grant\"}}",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"invalid_grant\",\"error\":\"x\"}",
+   false
+  ],
+  [
+   1000,
+   " \t{\"error\":\"invalid_grant\"}\n",
+   false
+  ],
+  [
+   1000,
+   "{\"error\":\"invalid_grant\u0000\"}",
+   false
+  ]
+ ],
+ "certHints": [
+  [
+   null,
+   false,
+   null
+  ],
+  [
+   5,
+   false,
+   null
+  ],
+  [
+   true,
+   false,
+   null
+  ],
+  [
+   "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+   false,
+   null
+  ],
+  [
+   {},
+   false,
+   null
+  ],
+  [
+   [],
+   false,
+   null
+  ],
+  [
+   {
+    "code": "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "code": "SELF_SIGNED_CERT_IN_CHAIN"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "code": "DEPTH_ZERO_SELF_SIGNED_CERT"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "code": "UNABLE_TO_GET_ISSUER_CERT"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "code": "UNABLE_TO_GET_ISSUER_CERT_LOCALLY"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "code": "CERT_UNTRUSTED"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "code": "unable_to_verify_leaf_signature"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "code": "CERT_HAS_EXPIRED"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "code": "ERR_TLS_CERT_ALTNAME_INVALID"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "code": "ECONNREFUSED"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "code": 5
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "code": null
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "code": [
+     "CERT_UNTRUSTED"
+    ]
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "unable to verify the first certificate"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "UNABLE TO VERIFY THE FIRST CERTIFICATE"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "Unable To Verify Leaf Signature"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "x self signed certificate in certificate chain"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "self-signed certificate"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "unable to get issuer certificate"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "unable to get local issuer certificate"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "certificate trusted"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "certificate untrusted"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "certificate is trusted"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "certificate is not trusted"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "certificate is not untrusted"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "CERTIFICATE NOT TRUSTED!"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "message": "trusted certificate"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "certificate has expired"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "Hostname/IP does not match certificate's altnames: Host: x"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "fetch failed"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": 5
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "unable to verify the firſt certificate"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "certificate ıs not trusted"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "certificate not trustedK"
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "cause": {
+     "code": "SELF_SIGNED_CERT_IN_CHAIN"
+    }
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "cause": {
+     "cause": {
+      "code": "CERT_UNTRUSTED"
+     }
+    }
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "cause": {
+     "cause": {
+      "cause": {
+       "code": "CERT_UNTRUSTED"
+      }
+     }
+    }
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": "fetch failed",
+    "cause": {
+     "message": "self signed certificate"
+    }
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ],
+  [
+   {
+    "code": "ECONNRESET",
+    "cause": "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "cause": null
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "cause": 5
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "cause": [
+     {
+      "code": "CERT_UNTRUSTED"
+     }
+    ]
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "message": 5,
+    "cause": {
+     "code": "CERT_UNTRUSTED"
+    }
+   },
+   true,
+   "The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+  ]
+ ],
  "cases": [
   {
    "name": "start, then start again",
@@ -3635,7 +5395,7 @@
      "got": {
       "status": 400,
       "type": "application/json",
-      "body": "{\"error\":\"Invalid authorization code. The codes expire fast — try signing in again.\"}"
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
      },
      "fetches": [
       {
@@ -3841,7 +5601,7 @@
      "got": {
       "status": 400,
       "type": "application/json",
-      "body": "{\"error\":\"token exchange failed (400): {\\\"error\\\":\\\"invalid_grant\\\",\\\"error_description\\\":\\\"Invalid code\\\"}\"}"
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
      },
      "fetches": [
       {
@@ -5436,6 +7196,2465 @@
         ]
        ],
        "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 invalid_grant",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 25\r\nconnection: close\r\n\r\n{\"error\":\"invalid_grant\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a22696e76616c69645f6772616e74227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 invalid_grant on hold",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 63\r\nconnection: close\r\n\r\n{\"error\":\"invalid_grant\",\"error_description\":\"account_on_hold\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): {\\\"error\\\":\\\"invalid_grant\\\",\\\"error_description\\\":\\\"account_on_hold\\\"}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a22696e76616c69645f6772616e74222c226572726f725f6465736372697074696f6e223a226163636f756e745f6f6e5f686f6c64227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 invalid_grant nearly on hold",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 64\r\nconnection: close\r\n\r\n{\"error\":\"invalid_grant\",\"error_description\":\"account_on_holdx\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a22696e76616c69645f6772616e74222c226572726f725f6465736372697074696f6e223a226163636f756e745f6f6e5f686f6c6478227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 nested type",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 51\r\nconnection: close\r\n\r\n{\"error\":{\"type\":\"invalid_grant\",\"message\":\"nope\"}}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a7b2274797065223a22696e76616c69645f6772616e74222c226d657373616765223a226e6f7065227d7d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 nested code",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 34\r\nconnection: close\r\n\r\n{\"error\":{\"code\":\"invalid_grant\"}}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a7b22636f6465223a22696e76616c69645f6772616e74227d7d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 nested other",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 36\r\nconnection: close\r\n\r\n{\"error\":{\"type\":\"invalid_request\"}}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): {\\\"error\\\":{\\\"type\\\":\\\"invalid_request\\\"}}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a7b2274797065223a22696e76616c69645f72657175657374227d7d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 nested deeper",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 43\r\nconnection: close\r\n\r\n{\"error\":{\"type\":{\"type\":\"invalid_grant\"}}}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): {\\\"error\\\":{\\\"type\\\":{\\\"type\\\":\\\"invalid_grant\\\"}}}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a7b2274797065223a7b2274797065223a22696e76616c69645f6772616e74227d7d7d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 other error",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 27\r\nconnection: close\r\n\r\n{\"error\":\"invalid_request\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): {\\\"error\\\":\\\"invalid_request\\\"}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a22696e76616c69645f72657175657374227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 error true",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 14\r\nconnection: close\r\n\r\n{\"error\":true}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): {\\\"error\\\":true}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a747275657d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 error array",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 27\r\nconnection: close\r\n\r\n{\"error\":[\"invalid_grant\"]}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): {\\\"error\\\":[\\\"invalid_grant\\\"]}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a5b22696e76616c69645f6772616e74225d7d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 not JSON",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 13\r\nconnection: close\r\n\r\ninvalid_grant"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): invalid_grant\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "696e76616c69645f6772616e74"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 array body",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 17\r\nconnection: close\r\n\r\n[\"invalid_grant\"]"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): [\\\"invalid_grant\\\"]\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "5b22696e76616c69645f6772616e74225d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 null body",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 4\r\nconnection: close\r\n\r\nnull"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): null\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "6e756c6c"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 string body",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 15\r\nconnection: close\r\n\r\n\"invalid_grant\""
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): \\\"invalid_grant\\\"\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "22696e76616c69645f6772616e7422"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 padded body",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 27\r\nconnection: close\r\n\r\n {\"error\":\"invalid_grant\"}\n"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "207b226572726f72223a22696e76616c69645f6772616e74227d0a"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 duplicate error keys",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 37\r\nconnection: close\r\n\r\n{\"error\":\"x\",\"error\":\"invalid_grant\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f72223a2278222c226572726f72223a22696e76616c69645f6772616e74227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 body with a BOM",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wireHex": "485454502f312e31203430302042616420526571756573740d0a636f6e74656e742d747970653a206170706c69636174696f6e2f6a736f6e0d0a636f6e74656e742d6c656e6774683a2032380d0a636f6e6e656374696f6e3a20636c6f73650d0a0d0aefbbbf7b226572726f72223a22696e76616c69645f6772616e74227d"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "efbbbf7b226572726f72223a22696e76616c69645f6772616e74227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 400 on hold without invalid_grant",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: 39\r\nconnection: close\r\n\r\n{\"error_description\":\"account_on_hold\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (400): {\\\"error_description\\\":\\\"account_on_hold\\\"}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "hex": "7b226572726f725f6465736372697074696f6e223a226163636f756e745f6f6e5f686f6c64227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 401 invalid_grant",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 401 Unauthorized\r\ncontent-type: application/json\r\ncontent-length: 25\r\nconnection: close\r\n\r\n{\"error\":\"invalid_grant\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 401,
+        "statusText": "Unauthorized",
+        "hex": "7b226572726f72223a22696e76616c69645f6772616e74227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 401 other error",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 401 Unauthorized\r\ncontent-type: application/json\r\ncontent-length: 26\r\nconnection: close\r\n\r\n{\"error\":\"invalid_client\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"Invalid authorization code. The codes expire fast — try signing in again.\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 401,
+        "statusText": "Unauthorized",
+        "hex": "7b226572726f72223a22696e76616c69645f636c69656e74227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 403 invalid_grant",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 25\r\nconnection: close\r\n\r\n{\"error\":\"invalid_grant\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (403): {\\\"error\\\":\\\"invalid_grant\\\"}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 403,
+        "statusText": "Forbidden",
+        "hex": "7b226572726f72223a22696e76616c69645f6772616e74227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "refused code: 500 invalid_grant",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Refused\"}",
+     "responses": [
+      {
+       "wire": "HTTP/1.1 500 Internal Server Error\r\ncontent-type: application/json\r\ncontent-length: 25\r\nconnection: close\r\n\r\n{\"error\":\"invalid_grant\"}"
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"token exchange failed (500): {\\\"error\\\":\\\"invalid_grant\\\"}\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "status": 500,
+        "statusText": "Internal Server Error",
+        "hex": "7b226572726f72223a22696e76616c69645f6772616e74227d"
+       }
+      }
+     ],
+     "wire": [
+      {
+       "method": "POST",
+       "path": "/platform.claude.com/v1/oauth/token",
+       "headers": [
+        [
+         "host",
+         "127.0.0.1:$PORT"
+        ],
+        [
+         "connection",
+         "keep-alive"
+        ],
+        [
+         "Content-Type",
+         "application/json"
+        ],
+        [
+         "accept",
+         "*/*"
+        ],
+        [
+         "accept-language",
+         "*"
+        ],
+        [
+         "sec-fetch-mode",
+         "cors"
+        ],
+        [
+         "user-agent",
+         "node"
+        ],
+        [
+         "accept-encoding",
+         "gzip, deflate"
+        ],
+        [
+         "content-length",
+         "297"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}"
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "token endpoint: the certificate is not trusted",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Proxy\"}",
+     "responses": [
+      {
+       "throwCert": {
+        "code": "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+        "message": "unable to verify the first certificate"
+       }
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"Sign-in couldn't reach Anthropic. The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.\"}"
+     },
+     "warns": [
+      "[accounts] token exchange failed certificate verification — The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+     ],
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "throws": "fetch failed",
+        "cause": {
+         "code": "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+         "message": "unable to verify the first certificate"
+        }
+       }
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "token endpoint: a self-signed chain, by message alone",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"SelfSigned\"}",
+     "responses": [
+      {
+       "throwCert": {
+        "message": "self signed certificate in certificate chain"
+       }
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"Sign-in couldn't reach Anthropic. The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle.\"}"
+     },
+     "warns": [
+      "[accounts] token exchange failed certificate verification — The server's certificate isn't trusted, usually because a TLS-inspecting proxy is in the way. Start Claudius with NODE_EXTRA_CA_CERTS set to the proxy's CA bundle."
+     ],
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "throws": "fetch failed",
+        "cause": {
+         "message": "self signed certificate in certificate chain"
+        }
+       }
+      }
+     ],
+     "pending": 0
+    }
+   ]
+  },
+  {
+   "name": "token endpoint: a TLS failure a CA bundle cannot fix",
+   "env": {
+    "CLAUDIUS_ACCOUNTS_DIR": "$W/acc"
+   },
+   "files": {},
+   "start": {},
+   "steps": [
+    {
+     "op": "post",
+     "body": "{\"action\":\"start\"}",
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"flowId\":\"oauth_4f5a65707b86919c\",\"authUrl\":\"https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=user%3Ainference&code_challenge=_2T_t9d__ua9N76gyUFhqZavoJAKfB2tvj-EjZIBSv4&code_challenge_method=S256&state=KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\"}"
+     },
+     "rng": [
+      32,
+      24,
+      8
+     ],
+     "pending": 1
+    },
+    {
+     "op": "post",
+     "body": "{\"action\":\"complete\",\"flowId\":\"$FLOW0\",\"code\":\"fake-code#$STATE0\",\"label\":\"Expired\"}",
+     "responses": [
+      {
+       "throwCert": {
+        "code": "CERT_HAS_EXPIRED",
+        "message": "certificate has expired"
+       }
+      }
+     ],
+     "got": {
+      "status": 400,
+      "type": "application/json",
+      "body": "{\"error\":\"fetch failed\"}"
+     },
+     "fetches": [
+      {
+       "url": "https://platform.claude.com/v1/oauth/token",
+       "method": "POST",
+       "headers": [
+        [
+         "Content-Type",
+         "application/json"
+        ]
+       ],
+       "body": "{\"grant_type\":\"authorization_code\",\"code\":\"fake-code\",\"redirect_uri\":\"https://platform.claude.com/oauth/code/callback\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code_verifier\":\"BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o\",\"state\":\"KjVAS1ZhbHeCjZijrrnEz9rl8PsGERwn\",\"expires_in\":31536000}",
+       "res": {
+        "throws": "fetch failed",
+        "cause": {
+         "code": "CERT_HAS_EXPIRED",
+         "message": "certificate has expired"
+        }
+       }
       }
      ],
      "pending": 0

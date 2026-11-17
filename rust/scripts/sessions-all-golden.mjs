@@ -122,6 +122,12 @@ export async function resolve(spec, ctx, next) {
     if (e?.code === "ERR_MODULE_NOT_FOUND" && !s.includes(":") && !s.startsWith(".")) return next(s + ".js", ctx);
     throw e;
   }
+}
+export async function load(url, ctx, next) {
+  if (url.endsWith(".json")) {
+    return next(url, { ...ctx, importAttributes: { ...ctx.importAttributes, type: "json" } });
+  }
+  return next(url, ctx);
 }`;
 register(`data:text/javascript,${encodeURIComponent(hook)}`);
 

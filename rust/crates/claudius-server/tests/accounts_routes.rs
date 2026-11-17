@@ -45,6 +45,7 @@ use claudius_core::account_oauth::RouteAnswer;
 use claudius_core::account_profile::{FetchResponse, ProfileFetch, ProfileInfoResolver};
 use claudius_core::accounts::AccountsStore;
 use claudius_core::claude_global_config::ClaudeGlobalConfig;
+use claudius_core::fetch::FetchError;
 use claudius_core::now_ms;
 use claudius_core::paths;
 use claudius_core::session::{RuntimeOptions, SessionOptions, Subscription};
@@ -775,7 +776,7 @@ impl ProfileFetch for Scripted {
         &'a self,
         _url: &'a str,
         headers: &'a [(String, String)],
-    ) -> BoxFuture<'a, Result<FetchResponse, String>> {
+    ) -> BoxFuture<'a, Result<FetchResponse, FetchError>> {
         let bearer = headers
             .iter()
             .find(|(k, _)| k.eq_ignore_ascii_case("authorization"))

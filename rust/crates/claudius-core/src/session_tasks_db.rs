@@ -8,12 +8,13 @@
 //! replays them through `task_snapshot` on subscribe.
 
 use claudius_agent::js;
+use rusqlite::Row;
 use rusqlite::types::ValueRef;
-use rusqlite::{Row, params};
 use serde_json::{Map, Value, json};
 
 use crate::db::{Mode, open_db};
-use crate::{js_num, now_ms};
+use crate::sql_text::get;
+use crate::{js_num, js_params, now_ms};
 
 /// `TaskSnapshotEntry`: one task as the session tracks it and as
 /// `task_snapshot` carries it. Numbers are JS numbers; `None` is
@@ -121,7 +122,7 @@ pub fn save_session_task(cwd: &str, session_id: &str, task: &TaskEntry) -> anyho
                reason          = excluded.reason,
                output_file     = excluded.output_file,
                updated_at      = excluded.updated_at",
-            params![
+            js_params![
                 session_id,
                 task.task_id,
                 task.tool_use_id,
@@ -165,7 +166,7 @@ pub fn list_session_tasks(cwd: &str, session_id: &str) -> Vec<TaskEntry> {
               WHERE session_id = ?
               ORDER BY updated_at ASC",
         )?;
-        let rows = st.query_map(params![session_id], row_to_entry)?;
+        let rows = st.query_map(js_params![session_id], row_to_entry)?;
         rows.collect::<rusqlite::Result<Vec<_>>>()
     })
     .unwrap_or_default()
@@ -192,29 +193,25 @@ fn row_to_entry(r: &Row) -> rusqlite::Result<TaskEntry> {
         })
     };
     Ok(TaskEntry {
-        task_id: r.get(0)?,
-        tool_use_id: r.get(1)?,
-        subagent_type: r.get(2)?,
-        description: r.get(3)?,
-        task_type: r.get(4)?,
-        workflow_name: r.get(5)?,
-        status: r
-            .get::<_, Option<String>>(6)?
-            .unwrap_or_else(|| "completed".into()),
+        task_id: get(r, 0)?,
+        tool_use_id: get(r, 1)?,
+        subagent_type: get(r, 2)?,
+        description: get(r, 3)?,
+        task_type: get(r, 4)?,
+        workflow_name: get(r, 5)?,
+        status: get::<Option<String>, _>(r, 6)?.unwrap_or_else(|| "completed".into()),
         total_tokens: num(7)?,
         tool_uses: num(8)?,
         duration_ms: num(9)?,
-        summary: r.get(10)?,
-        error: r.get(11)?,
-        inner_messages: parse_inner_messages(&r.get::<_, String>(12)?),
+        summary: get(r, 10)?,
+        error: get(r, 11)?,
+        inner_messages: parse_inner_messages(&get::<String, _>(r, 12)?),
         is_backgrounded: flag(13)?,
         spawn_depth: num(14)?,
         ambient: flag(15)?,
-        resource_links: parse_resource_links(r.get(16)?),
-        reason: r
-            .get::<_, Option<String>>(17)?
-            .filter(|r| r == "worker_restart"),
-        output_file: r.get(18)?,
+        resource_links: parse_resource_links(get(r, 16)?),
+        reason: get::<Option<String>, _>(r, 17)?.filter(|r| r == "worker_restart"),
+        output_file: get(r, 18)?,
     })
 }
 

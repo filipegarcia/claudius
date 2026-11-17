@@ -65,3 +65,43 @@ pub fn fresh_title(cwd: &str, id: &str, current: Option<&str>) -> FreshTitle {
         },
     }
 }
+
+/// The pending transcript mirror `start()` seeds next to `title` (CC
+/// 2.1.309): on the fresh branch, the stored title it just adopted, since a
+/// rename made before the first turn of an earlier boot may never have
+/// reached the transcript (that boot's pending mirror died with it). Never
+/// on resume, where the transcript may hold a newer TUI rename.
+pub fn start_mirror(title: &str, resume: Option<&str>) -> Option<String> {
+    resume.is_none().then(|| title.to_owned())
+}
+
+/// What `flushPendingTitleMirror` does once its append of `appended` landed
+/// (CC 2.1.309): clear the pending mirror, or re-assert the session's own
+/// title when a newer rename replaced it while the append was in flight
+/// (that rename's append may have been written first, leaving ours as the
+/// last custom-title line).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MirrorAfterAppend {
+    /// `this.pendingTitleMirror = null`.
+    Cleared,
+    /// Append the session's current title too.
+    Reassert(String),
+    /// Nothing: a newer rename, but no current title to re-assert.
+    Kept,
+}
+
+/// The decision, for the pending mirror as it reads *after* the append, the
+/// name that was appended, and the session's current title.
+pub fn mirror_after_append(
+    pending: Option<&str>,
+    appended: &str,
+    title: Option<&str>,
+) -> MirrorAfterAppend {
+    if pending == Some(appended) {
+        return MirrorAfterAppend::Cleared;
+    }
+    match title.filter(|t| !t.is_empty() && *t != appended) {
+        Some(t) => MirrorAfterAppend::Reassert(t.to_owned()),
+        None => MirrorAfterAppend::Kept,
+    }
+}

@@ -29,7 +29,9 @@
 // `resolvePermission` / `submitAskAnswer` / `resolvePlan` /
 // `resolveElicitation` (`null` leaves it; `gate` writes that file in the cwd
 // so the script's `$wait_file` moves on, e.g. to cancel it; `env` sets cap
-// env vars first).
+// env vars first). `files` seeds the cwd before the session starts (`write`,
+// `mkdir`, `symlink`, each path relative to the cwd unless it holds `$ROOT`
+// or starts with `/`), for the CC 2.1.310 symlink lookup.
 // Records:
 // - `events`: every buffered event that isn't an `sdk` message, once the
 //   turn's `result` is in and the fire-and-forget writes are done;
@@ -48,7 +50,7 @@
 // Written to rust/crates/claudius-core/tests/fixtures/session_callbacks_golden.json
 // and replayed by crates/claudius-core/tests/session_callbacks_golden.rs.
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { register } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -482,6 +484,205 @@ const CASES = [
       answers: [{ perm: { kind: "allow_always_session" } }],
     },
   ],
+  // ---- CC 2.1.301: a hook's `ask` says so on the card ----
+  // `hookAsk(decisionReason, decisionReasonType)`: only a `"hook"` type
+  // reports; the reason is ANSI-stripped, trimmed and capped at 600 UTF-16
+  // units (the 600th becomes a horizontal ellipsis).
+  ...[
+    ["a plain reason", "blocked by the repo policy", "hook"],
+    ["no reason at all", undefined, "hook"],
+    ["an empty reason", "", "hook"],
+    ["a blank reason", " \t\n ", "hook"],
+    ["a JS-whitespace-only reason", " \u00a0\ufeff ", "hook"],
+    ["ANSI colours", "\u001b[31mdanger\u001b[0m", "hook"],
+    ["an OSC link", "see \u001b]8;;http://x\u0007here\u001b]8;;\u0007", "hook"],
+    ["a two-character escape", "a\u001bMb", "hook"],
+    ["only escapes", "\u001b[31m\u001b[0m", "hook"],
+    ["a cursor move around text", "\u001b[2Jwiped", "hook"],
+    ["a reason at the cap", "x".repeat(600), "hook"],
+    ["a reason past the cap", "y".repeat(601), "hook"],
+    ["a long reason well past the cap", "z".repeat(2000), "hook"],
+    ["a cap cut through an astral pair", `${"a".repeat(598)}${EMOJI}tail`, "hook"],
+    ["unicode and newlines", `  ${E_ACUTE}\u00e8 ${EMOJI}${LS}line two  `, "hook"],
+    ["a non-string reason", 5, "hook"],
+    ["a null reason", null, "hook"],
+    ["an object reason", { why: "x" }, "hook"],
+    ["a non-hook type", "a rule asked", "rule"],
+    ["no type at all", "asked", undefined],
+    ["a null type", "asked", null],
+    ["an uppercase type", "asked", "Hook"],
+    ["a numeric type", "asked", 5],
+  ].map(([label, decision_reason, decision_reason_type]) => [
+    `hook ask: ${label}`,
+    {
+      steps: [
+        canRaw({
+          tool_name: "Bash",
+          input: { command: "ls" },
+          tool_use_id: "tu_h",
+          ...(decision_reason === undefined ? {} : { decision_reason }),
+          ...(decision_reason_type === undefined ? {} : { decision_reason_type }),
+        }),
+      ],
+      answers: [ALLOW],
+    },
+  ]),
+  // A hook ask also rides the deny path.
+  [
+    "hook ask, denied",
+    {
+      steps: [canRaw({ tool_name: "Write", input: { file_path: "/tmp/nope", content: "x" }, tool_use_id: "tu_h", decision_reason: "policy", decision_reason_type: "hook" })],
+      answers: [DENY],
+    },
+  ],
+
+  // ---- CC 2.1.310: where a symlinked file leads ----
+  // Only Read / Edit / Write / NotebookEdit are checked, on the final path
+  // component (`lstat`), with the target compared against the cwd and every
+  // additional directory.
+  [
+    "symlink: a Read of a link inside the cwd",
+    {
+      files: [["write", "real.txt", "hello"], ["symlink", "real.txt", "link.txt"]],
+      steps: [can("Read", { file_path: "link.txt" }, { tool_use_id: "tu_s" })],
+      answers: [ALLOW],
+    },
+  ],
+  [
+    "symlink: an Edit of a link out of the cwd",
+    {
+      files: [["mkdir", "$ROOT/outside"], ["write", "$ROOT/outside/secret", "s"], ["symlink", "$ROOT/outside/secret", "notes.txt"]],
+      steps: [can("Edit", { file_path: "notes.txt", old_string: "a", new_string: "b" }, { tool_use_id: "tu_s" })],
+      answers: [ALLOW],
+    },
+  ],
+  [
+    "symlink: an additional directory covers the target",
+    {
+      options: { additionalDirectories: ["$ROOT/extra"] },
+      files: [["mkdir", "$ROOT/extra"], ["write", "$ROOT/extra/shared", "s"], ["symlink", "$ROOT/extra/shared", "shared.txt"]],
+      steps: [can("Read", { file_path: "shared.txt" }, { tool_use_id: "tu_s" })],
+      answers: [ALLOW],
+    },
+  ],
+  [
+    "symlink: an additional directory that doesn't cover it",
+    {
+      options: { additionalDirectories: ["$ROOT/extra"] },
+      files: [["mkdir", "$ROOT/extra"], ["mkdir", "$ROOT/other"], ["write", "$ROOT/other/f", "s"], ["symlink", "$ROOT/other/f", "f.txt"]],
+      steps: [can("Read", { file_path: "f.txt" }, { tool_use_id: "tu_s" })],
+      answers: [ALLOW],
+    },
+  ],
+  [
+    "symlink: a relative additional directory",
+    {
+      options: { additionalDirectories: ["sub"] },
+      files: [["mkdir", "sub"], ["write", "sub/f", "s"], ["symlink", "sub/f", "rel.txt"]],
+      steps: [can("Read", { file_path: "rel.txt" }, { tool_use_id: "tu_s" })],
+      answers: [ALLOW],
+    },
+  ],
+  [
+    "symlink: a Write to a link, and a NotebookEdit",
+    {
+      files: [
+        ["write", "w-real", "x"], ["symlink", "w-real", "w.txt"],
+        ["write", "n-real.ipynb", "{}"], ["symlink", "n-real.ipynb", "n.ipynb"],
+      ],
+      steps: [
+        can("Write", { file_path: "w.txt", content: "y" }, { tool_use_id: "tu_w" }),
+        can("NotebookEdit", { notebook_path: "n.ipynb", new_source: "x" }, { tool_use_id: "tu_n" }),
+      ],
+      answers: [ALLOW, ALLOW],
+    },
+  ],
+  [
+    "symlink: a chain of links, and a link to a directory",
+    {
+      files: [
+        ["write", "end.txt", "x"], ["symlink", "end.txt", "mid.txt"], ["symlink", "mid.txt", "head.txt"],
+        ["mkdir", "adir"], ["symlink", "adir", "dlink"],
+      ],
+      steps: [
+        can("Read", { file_path: "head.txt" }, { tool_use_id: "tu_1" }),
+        can("Read", { file_path: "dlink" }, { tool_use_id: "tu_2" }),
+      ],
+      answers: [ALLOW, ALLOW],
+    },
+  ],
+  [
+    "symlink: nothing to report",
+    {
+      files: [["write", "plain.txt", "x"], ["symlink", "gone", "dangling.txt"]],
+      steps: [
+        // A regular file, a missing one, a dangling link, a directory, a
+        // `..` path, and a tool the check doesn't cover.
+        can("Read", { file_path: "plain.txt" }, { tool_use_id: "tu_1" }),
+        can("Read", { file_path: "missing.txt" }, { tool_use_id: "tu_2" }),
+        can("Read", { file_path: "dangling.txt" }, { tool_use_id: "tu_3" }),
+        can("Read", { file_path: "$ROOT/cases" }, { tool_use_id: "tu_4" }),
+        can("Edit", { file_path: "../link.txt" }, { tool_use_id: "tu_5" }),
+        can("MultiEdit", { file_path: "link.txt" }, { tool_use_id: "tu_6" }),
+      ],
+      answers: [ALLOW, ALLOW, ALLOW, ALLOW, ALLOW, ALLOW],
+    },
+  ],
+  [
+    "symlink: odd path arguments",
+    {
+      files: [["write", "real.txt", "x"], ["symlink", "real.txt", "link.txt"]],
+      steps: [
+        // A non-string path, an empty one, the wrong field for the tool, and
+        // a `.`-prefixed relative path that does resolve to the link.
+        can("Read", { file_path: 5 }, { tool_use_id: "tu_1" }),
+        can("Read", { file_path: "" }, { tool_use_id: "tu_2" }),
+        can("Read", { notebook_path: "link.txt" }, { tool_use_id: "tu_3" }),
+        can("NotebookEdit", { file_path: "link.txt" }, { tool_use_id: "tu_4" }),
+        can("Read", { file_path: "./link.txt" }, { tool_use_id: "tu_5" }),
+        // (A `can_use_tool` with no `input` at all isn't listed here: the
+        // SDK hands TS `undefined`, which throws in `permissionFilePath`,
+        // while the Rust host's callback sees `{}` \u2014 a pre-existing,
+        // listed difference of the SDK host, not of this check.)
+      ],
+      answers: [ALLOW, ALLOW, ALLOW, ALLOW, ALLOW],
+    },
+  ],
+  [
+    "symlink: a link with a hook ask on the same card",
+    {
+      files: [["mkdir", "$ROOT/away"], ["write", "$ROOT/away/k", "s"], ["symlink", "$ROOT/away/k", "k.txt"]],
+      steps: [
+        canRaw({
+          tool_name: "Read",
+          input: { file_path: "k.txt" },
+          tool_use_id: "tu_s",
+          decision_reason: "a hook wants a look",
+          decision_reason_type: "hook",
+        }),
+      ],
+      answers: [ALLOW],
+    },
+  ],
+  [
+    "symlink: a unicode link name and target",
+    {
+      files: [
+        ["write", `${E_ACUTE}t${E_ACUTE} ${EMOJI}.txt`, "x"],
+        ["symlink", `${E_ACUTE}t${E_ACUTE} ${EMOJI}.txt`, `link ${EMOJI}.txt`],
+      ],
+      steps: [can("Read", { file_path: `link ${EMOJI}.txt` }, { tool_use_id: "tu_s" })],
+      answers: [ALLOW],
+    },
+  ],
+  [
+    "symlink: a link whose prompt is then cancelled",
+    {
+      files: [["write", "real.txt", "x"], ["symlink", "real.txt", "link.txt"]],
+      steps: [sendCan("Read", { file_path: "link.txt" }, { tool_use_id: "tu_s" }), ...cancelAfter("gate", 0)],
+      answers: [{ gate: "gate" }],
+    },
+  ],
   ["permission without tool_use_id", { steps: [can("Bash", { command: "ls" })], answers: [ALLOW] }],
   ["permission with a null tool_use_id", { steps: [can("Bash", { command: "ls" }, { tool_use_id: null })], answers: [ALLOW] }],
   ["permission with a numeric tool_use_id", { steps: [can("Bash", { command: "ls" }, { tool_use_id: 42 })], answers: [DENY] }],
@@ -538,9 +739,10 @@ const CASES = [
   [
     "two prompts at once",
     {
+      // No file tool: see "four prompts at once keep their order" below.
       steps: [
         sendCan("Bash", { command: "a" }, { tool_use_id: "tu_1" }),
-        sendCan("Read", { file_path: "/b" }, { tool_use_id: "tu_2" }),
+        sendCan("WebFetch", { url: "https://b.example/", prompt: "b" }, { tool_use_id: "tu_2" }),
         { $wait_file: "gate" },
         { $collect_ms: 3000 },
       ],
@@ -552,9 +754,13 @@ const CASES = [
   [
     "four prompts at once keep their order",
     {
+      // No file tool here: since CC 2.1.310 a Read / Edit / Write /
+      // NotebookEdit ask parks only after its symlink lookup (an fs hop), so
+      // where it lands among asks sent at once, and whether a subscriber
+      // joining meanwhile sees it, is a race in TS and in Rust alike.
       steps: [
         sendCan("Bash", { command: "a" }, { tool_use_id: "tu_1" }),
-        sendCan("Read", { file_path: "/b" }, { tool_use_id: "tu_2" }),
+        sendCan("WebFetch", { url: "https://b.example/", prompt: "b" }, { tool_use_id: "tu_2" }),
         sendCan("Grep", { pattern: "c" }, { tool_use_id: "tu_3" }),
         sendCan("Glob", { pattern: "d" }, { tool_use_id: "tu_4" }),
         { $wait_file: "gate" },
@@ -797,6 +1003,14 @@ for (const [i, [name, spec]] of CASES.entries()) {
   const id = `s27b-case-${i}`;
   const cwd = join(ROOT_DIR, "cases", String(i));
   mkdirSync(cwd, { recursive: true });
+  // `files`: the cwd's tree before `start()` (the symlink lookup reads it).
+  const abs = (p) => (p.includes("$ROOT") ? p.split("$ROOT").join(ROOT_DIR) : p.startsWith("/") ? p : join(cwd, p));
+  for (const op of spec.files ?? []) {
+    if (op[0] === "write") writeFileSync(abs(op[1]), op[2] ?? "");
+    else if (op[0] === "mkdir") mkdirSync(abs(op[1]), { recursive: true });
+    else if (op[0] === "symlink") symlinkSync(abs(op[1]), abs(op[2]));
+    else throw new Error(`unknown file op ${op[0]}`);
+  }
   const dir = join(ROOT_DIR, "io", String(i));
   mkdirSync(dir, { recursive: true });
   const log = join(dir, "stdin.log");
@@ -817,7 +1031,9 @@ for (const [i, [name, spec]] of CASES.entries()) {
   process.env.FAKE_CLAUDE_SCRIPT = script;
   process.env.FAKE_CLAUDE_LOG = log;
 
-  const s = new Session({ id, cwd, ...(spec.options ?? {}) });
+  // `$ROOT` in an option value (`additionalDirectories`) is the temp root.
+  const options = JSON.parse(JSON.stringify(spec.options ?? {}).split("$ROOT").join(ROOT_DIR));
+  const s = new Session({ id, cwd, ...options });
   await s.start();
   const live = [];
   s.subscribe((e) => {
@@ -868,6 +1084,7 @@ for (const [i, [name, spec]] of CASES.entries()) {
     id,
     options: spec.options ?? {},
     env: spec.env ?? {},
+    files: spec.files ?? [],
     limitsPath: limits === null ? null : normalize(limitsPath, []),
     limits,
     script,

@@ -6,7 +6,10 @@ pub mod agents;
 pub mod assets;
 pub mod body;
 pub mod community;
+pub mod cost;
 pub mod cost_prices;
+pub mod customization_actions;
+pub mod customization_preview;
 pub mod customizations;
 pub mod customize;
 pub mod dev;
@@ -17,6 +20,7 @@ pub mod files_preview;
 pub mod fs_routes;
 pub mod git;
 pub mod git_branches;
+pub mod git_commit;
 pub mod git_sync;
 pub mod heapdump;
 pub mod heartbeat;
@@ -40,9 +44,12 @@ pub mod session_search;
 pub mod session_transcript;
 pub mod sessions;
 pub mod sessions_collection;
+pub mod settings_bundle;
 pub mod settings_routes;
 pub mod skills_hooks;
 pub mod splash_examples;
+pub mod updater;
+pub mod voice;
 pub mod workspace_files;
 pub mod workspace_roots;
 pub mod workspaces;
@@ -130,17 +137,25 @@ pub fn app(state: AppState) -> Router {
         .merge(settings_routes::router())
         .merge(workspace_files::router())
         .merge(skills_hooks::router())
+        .merge(customization_actions::router())
         .merge(customizations::router())
         .merge(sessions_collection::router())
         .merge(worktrees::router())
-        .fallback(pages::handler)
         .merge(community::router())
         .merge(feedback::router())
         .merge(limits::router())
         .merge(cost_prices::router())
         .merge(customize::router())
         .merge(files_preview::router())
-        .fallback(proxy::handler)
+        .merge(voice::router())
+        .merge(settings_bundle::router())
+        .merge(updater::router())
+        .merge(git_commit::router())
+        .merge(cost::router())
+        .merge(customization_preview::router())
+        // The one fallback: page rules (N02), which pass everything else on to
+        // the Next proxy. A second `.fallback` would replace this one.
+        .fallback(pages::handler)
         .layer(DefaultBodyLimit::max(256 * 1024 * 1024))
         .with_state(state)
 }

@@ -21,19 +21,19 @@ use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use claudius_agent::js;
 use claudius_core::db::{Mode, open_path};
-use claudius_core::{js_num, paths};
-use claudius_server::open_tabs::parse_cookie_header;
+use claudius_core::{js_num, js_string, paths};
+use claudius_server::workspaces::parse_cookie_header;
 use common::{Server, World, http};
 use rusqlite::types::ValueRef;
 use serde_json::{Value, json};
 
-/// The fixture, parsed as `JSON.parse` would (lone surrogates → U+FFFD).
+/// The fixture, parsed as `JSON.parse` would: its lone-surrogate escapes
+/// are JS strings' lone surrogates ([`js_string`] stand-ins).
 fn fixture() -> Value {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../claudius-core/tests/fixtures/open_tabs_golden.json");
-    js::json_parse(&std::fs::read_to_string(path).unwrap()).unwrap()
+    js_string::parse(&std::fs::read_to_string(path).unwrap()).unwrap()
 }
 
 const URL: &str = "/api/sessions/open-tabs";
@@ -162,7 +162,8 @@ impl Replay<'_> {
         let method = if s["op"] == "get" { "GET" } else { "PUT" };
         let body = match (&s["hex"], &s["body"]) {
             (Value::String(h), _) => Some(unhex(h)),
-            (_, Value::String(b)) => Some(b.as_bytes().to_vec()),
+            // `new Request(_, {body})` sends a lone surrogate as U+FFFD.
+            (_, Value::String(b)) => Some(js_string::lossy(b).as_bytes().to_vec()),
             _ => None,
         };
         let (status, content_type, body) =
@@ -191,7 +192,8 @@ impl Replay<'_> {
                     } else if let Some(hex) = s["hex"].as_str() {
                         std::fs::write(&path, unhex(hex)).unwrap();
                     } else {
-                        std::fs::write(&path, s["text"].as_str().unwrap()).unwrap();
+                        let text = s["text"].as_str().unwrap();
+                        std::fs::write(&path, js_string::lossy(text).as_ref()).unwrap();
                     }
                 }
                 return None;
@@ -266,23 +268,16 @@ impl Replay<'_> {
     }
 }
 
-/// Where Rust is known to differ, and why (each one must still differ):
-/// * a body nested past serde_json's 127 levels, which V8 parses, is a 400
-///   "invalid JSON" here, so its tabs aren't written;
-/// * a lone surrogate in an id is U+FFFD here (a Rust string can't hold
-///   one), which the row and the GET body write as is, where JS writes the
-///   `\ud800` escape back.
+/// Where Rust is known to differ, and why (each one must still differ): a
+/// body nested past serde_json's 127 levels, which V8 parses, is a 400
+/// "invalid JSON" here, so its tabs aren't written until the next PUT.
 fn known_difference(s: &Value, tainted: &mut Option<&'static str>) -> Option<&'static str> {
     if s["op"] == "put" {
         let body = s["body"].as_str().unwrap_or_default();
-        *tainted = if body.contains(&"[".repeat(150)) {
-            Some("nesting past 127 levels")
-        } else if body.contains("\\ud800") {
-            Some("lone surrogate written as U+FFFD")
-        } else {
-            None
-        };
-        return tainted.filter(|why| why.starts_with("nesting"));
+        *tainted = body
+            .contains(&"[".repeat(150))
+            .then_some("nesting past 127 levels");
+        return *tainted;
     }
     if s["op"] == "rows" || s["op"] == "get" {
         return *tainted;
@@ -310,15 +305,18 @@ fn replays_the_ts_golden() {
             continue;
         };
         let what = json!({"op": s["op"], "cwd": s["cwd"], "cookie": s["cookie"], "body": s["body"], "hex": s["hex"]});
-        match (js::stringify(&want) == js::stringify(&got), why) {
+        match (
+            js_string::stringify(&want) == js_string::stringify(&got),
+            why,
+        ) {
             (true, None) => {}
             (false, Some(why)) => known.push(format!("#{i}: {why}")),
             (true, Some(why)) => failures.push(format!("#{i}: listed ({why}) but equal")),
             (false, None) => failures.push(format!(
                 "#{i} {}\n  want {}\n  got  {}",
-                js::stringify(&what),
-                js::stringify(&want),
-                js::stringify(&got)
+                js_string::stringify(&what),
+                js_string::stringify(&want),
+                js_string::stringify(&got)
             )),
         }
     }
@@ -329,7 +327,7 @@ fn replays_the_ts_golden() {
         steps.len(),
         failures.join("\n")
     );
-    assert_eq!(known.len(), 4, "{known:?}");
+    assert_eq!(known.len(), 2, "{known:?}");
     let requests = steps
         .iter()
         .filter(|s| s["op"] == "get" || s["op"] == "put")

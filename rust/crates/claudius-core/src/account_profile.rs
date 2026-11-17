@@ -10,6 +10,10 @@
 //! The HTTP call is a boundary ([`ProfileFetch`]): the port has no HTTPS
 //! client of its own yet, so whoever serves the route supplies one (and the
 //! tests a scripted one). The body is read the way `Response.json()` reads it.
+//!
+//! A failure whose certificate chain had no trusted root reports the CC
+//! 2.1.309 hint instead of the raw message, and logs one line
+//! ([`crate::tls_cert_hint`]).
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -23,6 +27,8 @@ use crate::accounts::{
     describe_bedrock_config,
 };
 use crate::claude_global_config::ClaudeGlobalConfig;
+use crate::fetch::FetchError;
+use crate::tls_cert_hint::own_request_hint_for;
 
 pub const PROFILE_URL: &str = "https://api.anthropic.com/api/oauth/profile";
 pub const CACHE_TTL_MS: i64 = 5 * 60 * 1000;
@@ -37,14 +43,15 @@ pub struct FetchResponse {
 }
 
 /// `fetch(url, { method: "GET", headers })`: the response, or the thrown
-/// error's `message` (undici's network failure is `"fetch failed"`).
-/// Redirects are the transport's business, as they are fetch's.
+/// error ([`FetchError`]: undici's network failure is `"fetch failed"`, with
+/// the certificate-trust verdict beside it). Redirects are the transport's
+/// business, as they are fetch's.
 pub trait ProfileFetch: Send + Sync {
     fn get<'a>(
         &'a self,
         url: &'a str,
         headers: &'a [(String, String)],
-    ) -> BoxFuture<'a, Result<FetchResponse, String>>;
+    ) -> BoxFuture<'a, Result<FetchResponse, FetchError>>;
 }
 
 /// `res.json()`: undici drops a leading UTF-8 BOM and its decoder another,
@@ -175,7 +182,21 @@ impl ProfileInfoResolver {
         ];
         let res = match self.fetch.get(PROFILE_URL, &headers).await {
             Ok(res) => res,
-            Err(message) => return with_error(from, message),
+            // CC 2.1.309: a certificate-verification failure (typically a
+            // TLS-inspecting proxy) says what to do instead of undici's bare
+            // "fetch failed".
+            Err(e) => {
+                return match own_request_hint_for(e.ca_trust) {
+                    Some(hint) => {
+                        tracing::warn!(
+                            target: crate::log::API,
+                            "[accounts] profile request failed certificate verification \u{2014} {hint}"
+                        );
+                        with_error(from, hint.to_owned())
+                    }
+                    None => with_error(from, e.message),
+                };
+            }
         };
         if !(200..=299).contains(&res.status) {
             let note = match res.status {

@@ -21,7 +21,8 @@
 //   afterwards (`row`; `seed` is the row the case started with).
 // - `start`: `start()`'s title statements (the `if (this.resumeFrom)` branch
 //   and its `else`), read out of session.ts as text and run with `this` set
-//   to a stand-in: the `title` they leave, and the row.
+//   to a stand-in: the `title` they leave, the `pendingTitleMirror` the fresh
+//   branch seeds (CC 2.1.309), and the row.
 // - `fresh`: the real `Session.prototype.sendFreshTitle` on a bare session:
 //   what it broadcast, what it sent the one subscriber, the `title` it left,
 //   and the row once its fire-and-forget `upsertSession` has landed.
@@ -531,7 +532,8 @@ for (const [name, c0] of START) {
   const t1 = Date.now();
   const row = await readRow(cwd, id, t0, t1);
   checkLegacy(c.legacy ?? {}, bytes);
-  startCases.push({ name, id, thisId: self.id, cwd: rel(cwd), resume: !!c.resume, ...spec(c), title: J(self.title), row });
+  // CC 2.1.309: the fresh branch also seeds the pending JSONL mirror.
+  startCases.push({ name, id, thisId: self.id, cwd: rel(cwd), resume: !!c.resume, ...spec(c), title: J(self.title), mirror: J(self.pendingTitleMirror), row });
 }
 
 // ---------------------------------- fresh ----------------------------------
@@ -633,7 +635,9 @@ for (const title of TITLES) {
   Object.assign(bare, { cwd, id: c.id, title: undefined });
   bare.broadcast = (ev) => broadcasts.push(ev);
   const result = await attempt(() => bare.rename(title));
-  renameCases.push({ name: J(title), id: c.id, cwd: rel(cwd), title, result, after: J(bare.title), broadcasts: J(broadcasts) });
+  // CC 2.1.309: with no transcript and no engine, the name waits in the
+  // pending mirror.
+  renameCases.push({ name: J(title), id: c.id, cwd: rel(cwd), title, result, after: J(bare.title), mirror: J(bare.pendingTitleMirror), broadcasts: J(broadcasts) });
 }
 
 writeFileSync(

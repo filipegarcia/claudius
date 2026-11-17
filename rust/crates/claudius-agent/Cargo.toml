@@ -27,5 +27,12 @@ path = "src/bin/fake_claude.rs"
 test = false
 doc = false
 
+[[bin]]
+# Scripted stand-in for `next dev` in the preview tests (see src/bin/fake_next.rs).
+name = "claudius-fake-next"
+path = "src/bin/fake_next.rs"
+test = false
+doc = false
+
 [dev-dependencies]
 tempfile.workspace = true

@@ -10,15 +10,15 @@ use std::time::Duration;
 
 use axum::Router;
 use axum::body::{Body, Bytes};
-use axum::extract::{Path, Query, State};
+use axum::extract::{Path, Query, RawQuery, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get, patch, post};
 use claudius_core::managed_settings;
-use claudius_core::queue_db::ImageInput;
+use claudius_core::session::create_options;
 use claudius_core::session::{
-    PermissionDecision, PlanDecision, SendOptions, Session, SessionOptions, TodoItemAction,
-    TodosClearReason, TurnStatus,
+    PermissionDecision, PlanDecision, SendOptions, Session, TodoItemAction, TodosClearReason,
+    TurnStatus,
 };
 use claudius_core::session_manager::last_recorded_permission_mode;
 use claudius_core::{is_uuid, sessions_db, sessions_store, settings, trusted_cwd, workspaces};
@@ -144,6 +144,16 @@ fn not_found() -> Response {
     err(StatusCode::NOT_FOUND, "session not found")
 }
 
+/// `deadSessionResponse(live)`: what the write routes answer when
+/// `restart_if_dead` couldn't hand back a live session (CC 2.1.311).
+fn dead_session(reason: &claudius_core::session_manager::DeadReason) -> Response {
+    let (message, status) = claudius_core::session_manager::dead_session_response(reason);
+    err(
+        StatusCode::from_u16(status).unwrap_or(StatusCode::SERVICE_UNAVAILABLE),
+        &message,
+    )
+}
+
 fn session(app: &AppState, id: &str) -> Option<Arc<Session>> {
     app.mgr.get(id)
 }
@@ -169,12 +179,15 @@ fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
 
 // ─────────────────────────────── list / create ───────────────────────────────
 
-async fn list(State(app): State<AppState>, Query(q): Query<HashMap<String, String>>) -> Response {
-    let filter: Option<String> = if let Some(c) = q.get("customizationId").filter(|s| !s.is_empty())
-    {
-        Some(claudius_core::customizations::customization_src_dir(c))
-    } else if let Some(w) = q.get("workspaceId").filter(|s| !s.is_empty()) {
-        workspaces::get(w).ok().flatten().map(|w| w.root_path)
+async fn list(State(app): State<AppState>, RawQuery(q): RawQuery) -> Response {
+    // `url.searchParams.get(…)`: the first pair of that name.
+    let param = |k: &str| {
+        crate::session_transcript::search_param(q.as_deref(), k).filter(|s| !s.is_empty())
+    };
+    let filter: Option<String> = if let Some(c) = param("customizationId") {
+        Some(claudius_core::customizations::customization_src_dir(&c))
+    } else if let Some(w) = param("workspaceId") {
+        workspaces::get(&w).ok().flatten().map(|w| w.root_path)
     } else {
         None
     };
@@ -184,14 +197,25 @@ async fn list(State(app): State<AppState>, Query(q): Query<HashMap<String, Strin
         .into_iter()
         .filter(|s| filter.as_ref().is_none_or(|f| *f == s.cwd))
         .map(|s| {
-            json!({
-                "id": s.id,
-                "cwd": s.cwd,
-                "model": s.model(),
-                "title": s.title(),
-                "createdAt": s.created_at,
-                "status": s.status().as_str(),
-            })
+            // `model: s.model` (left out while unset), then the account the
+            // session is pinned to, each only when it's a non-empty string.
+            let mut row = Map::new();
+            row.insert("id".into(), json!(s.id));
+            row.insert("cwd".into(), json!(s.cwd));
+            if let Some(m) = s.model() {
+                row.insert("model".into(), json!(m));
+            }
+            row.insert("title".into(), json!(s.title()));
+            row.insert("createdAt".into(), json!(s.created_at));
+            row.insert("status".into(), json!(s.status().as_str()));
+            let pin = s.account_pin();
+            if let Some(a) = pin.id.filter(|a| !a.is_empty()) {
+                row.insert("accountId".into(), json!(a));
+            }
+            if let Some(l) = pin.label.filter(|l| !l.is_empty()) {
+                row.insert("accountLabel".into(), json!(l));
+            }
+            Value::Object(row)
         })
         .collect();
     ok(Value::Array(out))
@@ -256,12 +280,11 @@ async fn create(State(app): State<AppState>, headers: HeaderMap, body: Bytes) ->
         return err(StatusCode::BAD_REQUEST, "invalid resume id");
     }
     let mut cwd: Option<String> = None;
-    if let Some(c) = body
-        .get("cwd")
-        .and_then(Value::as_str)
-        .filter(|c| !c.is_empty())
-    {
-        match trusted_cwd::resolve_trusted_cwd(Some(c)) {
+    // `if (body.cwd)`: a truthy non-string is resolved too, and resolving
+    // anything that isn't a non-blank string yields the first trusted root
+    // (`process.cwd()`), never a 400.
+    if let Some(c) = body.get("cwd").filter(|c| claudius_agent::js::truthy(c)) {
+        match trusted_cwd::resolve_trusted_cwd(c.as_str()) {
             Some(t) => cwd = Some(t),
             None => return err(StatusCode::BAD_REQUEST, "unknown cwd"),
         }
@@ -316,11 +339,11 @@ async fn create(State(app): State<AppState>, headers: HeaderMap, body: Bytes) ->
             .and_then(|w| w.defaults.clone())
             .unwrap_or_default()
     };
+    // TS hands every field to `new Session` untyped: each option has its own
+    // test there, and a wrong type is dropped, printed with `${}` or fails
+    // the start — never a 400 (S27d).
     let merged = merge_defaults(&body, &defaults);
-    let mut opts: SessionOptions = match serde_json::from_value(Value::Object(merged)) {
-        Ok(o) => o,
-        Err(e) => return err(StatusCode::BAD_REQUEST, &e.to_string()),
-    };
+    let mut opts = create_options::from_create_body(&merged, &body);
     if resume.is_some() && body.get("permissionMode").is_none_or(Value::is_null) && cwd.is_some() {
         let was = match app.mgr.get(resume.as_deref().unwrap()) {
             Some(s) => Some(s.permission_mode()),
@@ -334,10 +357,6 @@ async fn create(State(app): State<AppState>, headers: HeaderMap, body: Bytes) ->
     }
     opts.cwd = cwd;
     opts.resume = resume;
-    opts.resume_session_at = body
-        .get("resumeSessionAt")
-        .and_then(Value::as_str)
-        .map(str::to_owned);
     let effective_mode = opts.permission_mode.clone();
     let s = match app.mgr.create(opts).await {
         Ok(s) => s,
@@ -366,25 +385,45 @@ async fn create(State(app): State<AppState>, headers: HeaderMap, body: Bytes) ->
             tracing::error!(target: log::API, "[api/sessions] initialDraftText write failed: {e}");
         }
     }
-    ok(json!({"id": s.id, "cwd": s.cwd, "model": s.model()}))
+    let mut out = json!({"id": s.id, "cwd": s.cwd});
+    // `{ …, model: session.model }`: the body's own value, and no key at all
+    // when the session has no model (`undefined`).
+    let model = s.model_value();
+    if !model.is_null() {
+        out["model"] = model;
+    }
+    ok(out)
 }
 
 async fn rename(State(app): State<AppState>, body: Bytes) -> Response {
     let b = tri!(JsonBody::strict(&body));
-    let (Some(id), Some(title)) = (
+    // CC 2.1.309: the title is trimmed once here, so whitespace alone is the
+    // 400 and every write below gets the trimmed name.
+    let title = b["title"]
+        .as_str()
+        .map(claudius_agent::js::trim)
+        .unwrap_or("");
+    let (Some(id), false) = (
         b["sessionId"].as_str().filter(|s| !s.is_empty()),
-        b["title"].as_str().filter(|s| !s.is_empty()),
+        title.is_empty(),
     ) else {
         return err(StatusCode::BAD_REQUEST, "sessionId and title required");
     };
     if let Some(live) = app.mgr.get(id) {
-        return match live.rename(title) {
+        return match live.rename(title).await {
             Ok(()) => ok(json!({"ok": true})),
             Err(e) => err(StatusCode::INTERNAL_SERVER_ERROR, &e),
         };
     }
+    // CC 2.1.309: a rename must win over a generated name after a reload or
+    // resume, and every title reader prefers the sessions-index row over the
+    // transcript's `customTitle`. The row goes first (same order as
+    // `Session::rename`); the transcript write is then best effort when a row
+    // was updated and required when none was.
+    let indexed = sessions_db::retitle_indexed_session(id, title).unwrap_or(0);
     match sessions_store::rename(id, title, b["dir"].as_str()) {
         Ok(()) => ok(json!({"ok": true})),
+        Err(_) if indexed > 0 => ok(json!({"ok": true})),
         Err(e) => err(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     }
 }
@@ -411,7 +450,14 @@ async fn stream(
     });
     let tab_id = q.get("tabId").filter(|t| !t.is_empty()).cloned();
     s.resync_from_disk();
-    let sub = s.subscribe_with(tail, tab_id, &[json!({"type": "ready", "sessionId": id})]);
+    // The trailing `ready` lands AFTER the replay, so it carries the resumed
+    // transcript path too (CC 2.1.301). The client treats an absent field as
+    // "no news", so a `ready` without one must not wipe it.
+    let mut ready = json!({"type": "ready", "sessionId": id});
+    if let Some(p) = s.resumed_transcript_path() {
+        ready["transcriptPath"] = json!(p);
+    }
+    let sub = s.subscribe_with(tail, tab_id, &[ready]);
     let mut ping = tokio::time::interval_at(
         tokio::time::Instant::now() + Duration::from_secs(15),
         Duration::from_secs(15),
@@ -448,18 +494,28 @@ async fn stream(
 // ──────────────────────────────────── input ──────────────────────────────────
 
 async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes) -> Response {
-    let Some(s) = session(&app, &id) else {
-        return not_found();
-    };
-    let b = tri!(JsonBody::strict(&body));
+    // `req.json().catch(() => null)`, checked before any restart below, so an
+    // empty (or cross-origin) POST can't spawn a CLI just to be told 400.
+    let b = JsonBody::lenient(&body, Value::Null);
     let text = b["text"].as_str().unwrap_or("").to_owned();
-    let images: Vec<ImageInput> = b
-        .get("images")
-        .and_then(|i| serde_json::from_value(i.clone()).ok())
-        .unwrap_or_default();
-    if text.is_empty() && images.is_empty() {
+    // `body.images` goes on as posted; `hasImages` is a non-empty array.
+    let images = b.get("images");
+    let has_images = images
+        .and_then(Value::as_array)
+        .is_some_and(|a| !a.is_empty());
+    // `if (!body || (!hasText && !hasImages))`: a falsy body is a 400 too.
+    if !js_truthy(Some(&b)) || (text.is_empty() && !has_images) {
         return err(StatusCode::BAD_REQUEST, "text or images required");
     }
+    // CC 2.1.311 — the CLI ended on its own (a crash, a non-zero exit):
+    // `send_input` would silently drop this message while we answered `ok`.
+    // `restart_if_dead` hands back the live session unchanged, rebuilds a dead
+    // one from its transcript, or joins a rebuild another send started; if it
+    // can't, say so instead of pretending the message went through.
+    let s = match app.mgr.restart_if_dead(&id, false).await {
+        Ok(live) => live.session,
+        Err(reason) => return dead_session(&reason),
+    };
     let uuid = b["uuid"]
         .as_str()
         .map(str::to_owned)
@@ -477,10 +533,10 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
     {
         tracing::warn!(target: log::API, "[input] recordGoalMessage: {e}");
     }
-    if !images.is_empty() {
+    if let Some(Value::Array(imgs)) = images.filter(|_| has_images) {
         // `void recordSendUses(…)`: the images into the Files page's store,
         // off the request; it never fails the send.
-        let (cwd, sid, mid, imgs) = (s.cwd.clone(), s.id.clone(), uuid.clone(), images.clone());
+        let (cwd, sid, mid, imgs) = (s.cwd.clone(), s.id.clone(), uuid.clone(), imgs.clone());
         let now = claudius_core::now_ms() as f64;
         tokio::task::spawn_blocking(move || {
             claudius_core::asset_ingest::record_send_uses(&cwd, &sid, &mid, now, &imgs)
@@ -493,28 +549,30 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
     if force_queue || (wait && (!is_idle || queue_len > 0)) {
         return match s.enqueue_message(
             &text,
-            &images,
+            images,
             Some(uuid.clone()),
             truthy("slash"),
             truthy("fromSuggestion"),
             truthy("fromGoal"),
         ) {
             Ok(_) => ok(json!({"ok": true, "queued": true, "uuid": uuid})),
-            Err(e) => err(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
+            Err(_) => crate::body::thrown(),
         };
     }
     let inline_pastes: Vec<String> = b
         .get("inlinePastes")
         .and_then(Value::as_array)
+        // The body is untyped JSON: keep only real, non-empty strings.
         .map(|a| {
             a.iter()
-                .filter_map(|x| x.as_str().map(str::to_owned))
+                .filter_map(|x| x.as_str().filter(|p| !p.is_empty()).map(str::to_owned))
                 .collect()
         })
         .unwrap_or_default();
-    s.send_input(
+    // `sendInput` throws (V8's TypeError) on images it can't iterate.
+    let sent = s.send_input_value(
         &text,
-        &images,
+        images,
         SendOptions {
             uuid: Some(uuid.clone()),
             slash: truthy("slash"),
@@ -522,6 +580,10 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
             inline_pastes,
         },
     );
+    if let Err(e) = sent {
+        tracing::error!(target: log::API, "[input] {e}");
+        return crate::body::thrown();
+    }
     ok(json!({"ok": true, "queued": false, "uuid": uuid}))
 }
 
@@ -1286,16 +1348,26 @@ async fn queue_send_now(
     State(app): State<AppState>,
     Path((id, uuid)): Path<(String, String)>,
 ) -> Response {
-    let Some(s) = session(&app, &id) else {
-        return not_found();
+    // CC 2.1.311 — a session whose CLI died between turns would pop the row
+    // and drop it while we answered `ok`. Restart it first (or join a rebuild
+    // already under way); the rebuilt session drains the persisted queue on
+    // start, so a row it already sent reads as "already on its way".
+    let s = match app.mgr.restart_if_dead(&id, false).await {
+        Ok(live) => live.session,
+        Err(reason) => return dead_session(&reason),
     };
-    let dispatched = s.send_queued_now(&uuid, false).unwrap_or(false);
+    // `sendQueuedNow` throws on a database error or images it can't send.
+    let Ok(dispatched) = s.send_queued_now(&uuid, false) else {
+        return crate::body::thrown();
+    };
     ok(json!({"ok": true, "dispatched": dispatched}))
 }
 
 async fn queue_send_all(State(app): State<AppState>, Path(id): Path<String>) -> Response {
-    let Some(s) = session(&app, &id) else {
-        return not_found();
+    // CC 2.1.311, as `queue_send_now` above.
+    let s = match app.mgr.restart_if_dead(&id, false).await {
+        Ok(live) => live.session,
+        Err(reason) => return dead_session(&reason),
     };
     let mut dispatched = vec![];
     let mut join_running_turn = true;
@@ -1304,8 +1376,10 @@ async fn queue_send_all(State(app): State<AppState>, Path(id): Path<String>) -> 
             join_running_turn = false;
         }
         let uuid = item["uuid"].as_str().unwrap_or("").to_owned();
-        if s.send_queued_now(&uuid, join_running_turn).unwrap_or(false) {
-            dispatched.push(uuid);
+        match s.send_queued_now(&uuid, join_running_turn) {
+            Ok(true) => dispatched.push(uuid),
+            Ok(false) => {}
+            Err(_) => return crate::body::thrown(),
         }
     }
     ok(json!({"ok": true, "dispatched": dispatched}))

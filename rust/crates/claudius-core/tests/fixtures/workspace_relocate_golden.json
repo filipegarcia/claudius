@@ -9452,25 +9452,7 @@
       "/wsrel/ids/foreign"
      ],
      "result": [
-      "aaaaaaa1-0000-4000-8000-000000000001",
-      5,
-      "5",
-      null,
-      {
-       "type": "Buffer",
-       "data": [
-        1
-       ]
-      },
-      {
-       "type": "Buffer",
-       "data": [
-        1
-       ]
-      },
-      0,
-      9007199254740992,
-      1.5
+      "aaaaaaa1-0000-4000-8000-000000000001"
      ],
      "changes": []
     },
@@ -9512,6 +9494,1825 @@
      "result": [
       "ddddddd9-0000-4000-8000-000000000009"
      ],
+     "changes": []
+    }
+   ]
+  },
+  {
+   "name": "the history filter on database rows (CC 2.1.309)",
+   "needs": [],
+   "steps": [
+    {
+     "setup": [
+      {
+       "op": "write",
+       "path": "home/.claude/projects/-wsrel-hist-a/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/a\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/a\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+      },
+      {
+       "op": "sql",
+       "root": "/wsrel/hist/a",
+       "sql": "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa1-0000-4000-8000-000000000001', '/wsrel/hist/a', 'A transcript row', NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('ddddddd9-0000-4000-8000-000000000009', '/wsrel/hist/a', 'Renamed before first turn', NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa2-0000-4000-8000-000000000002', '/wsrel/hist/a', NULL, NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa3-0000-4000-8000-000000000003', '/wsrel/hist/a', '   ', NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa4-0000-4000-8000-000000000004', '/wsrel/hist/a', '﻿', NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa5-0000-4000-8000-000000000005', '/wsrel/hist/a', '🦀 crab', NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, created_at, updated_at, last_seen_at) VALUES (X'0001', '/wsrel/hist/a', 1, 1, 1), (7, '/wsrel/hist/a', 1, 1, 1), (NULL, '/wsrel/hist/a', 1, 1, 1);"
+      },
+      {
+       "op": "write",
+       "path": "home/.claude/projects/-wsrel-hist-num/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/num\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/num\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+      },
+      {
+       "op": "sql",
+       "root": "/wsrel/hist/num",
+       "sql": "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('ddddddd9-0000-4000-8000-000000000009', '/wsrel/hist/num', 'Kept before the throw', NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa2-0000-4000-8000-000000000002', '/wsrel/hist/num', 5, 1, 1, 1);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa3-0000-4000-8000-000000000003', '/wsrel/hist/num', 'After the throw', NULL, 1, 2, 3);"
+      },
+      {
+       "op": "write",
+       "path": "home/.claude/projects/-wsrel-hist-dup/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/dup\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/dup\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+      },
+      {
+       "op": "sql",
+       "root": "/wsrel/hist/dup",
+       "sql": "INSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa1-0000-4000-8000-000000000001', '/wsrel/hist/dup', 5, 1, 1, 1);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('ddddddd9-0000-4000-8000-000000000009', '/wsrel/hist/dup', 'After the duplicate', NULL, 1, 2, 3);"
+      },
+      {
+       "op": "write",
+       "path": "home/.claude/projects/-wsrel-hist-blob/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/blob\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/blob\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+      },
+      {
+       "op": "sql",
+       "root": "/wsrel/hist/blob",
+       "sql": "INSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES ('aaaaaaa2-0000-4000-8000-000000000002', '/wsrel/hist/blob', X'6869', 1, 1, 1);"
+      }
+     ]
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/a"
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009",
+      "aaaaaaa2-0000-4000-8000-000000000002",
+      "aaaaaaa3-0000-4000-8000-000000000003",
+      "aaaaaaa4-0000-4000-8000-000000000004",
+      "aaaaaaa5-0000-4000-8000-000000000005",
+      {
+       "type": "Buffer",
+       "data": [
+        0,
+        1
+       ]
+      },
+      "7",
+      null
+     ],
+     "changes": [
+      [
+       "home/.claude/projects",
+       {
+        "kind": "dir",
+        "mode": 493
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-a",
+       {
+        "kind": "dir",
+        "mode": 493
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-a/.claudius.db",
+       {
+        "kind": "db",
+        "mode": 420,
+        "db": {
+         "tables": [
+          {
+           "name": "asset_uses",
+           "cols": [
+            "asset_hash",
+            "session_id",
+            "message_uuid",
+            "ordinal",
+            "occurred_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "assets",
+           "cols": [
+            "hash",
+            "media_type",
+            "size_bytes",
+            "width",
+            "height",
+            "first_seen_ms",
+            "last_seen_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "commit_drafts",
+           "cols": [
+            "cwd",
+            "message",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "db_agents",
+           "cols": [
+            "name",
+            "definition_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "feedback",
+           "cols": [
+            "id",
+            "session_id",
+            "cwd",
+            "rating",
+            "comment",
+            "surface",
+            "forwarded",
+            "created_at",
+            "attach_transcript"
+           ],
+           "rows": []
+          },
+          {
+           "name": "goal_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "goal_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "loop_ticks",
+           "cols": [
+            "id",
+            "session_id",
+            "session_title",
+            "tool_use_id",
+            "prompt",
+            "fired_at",
+            "tokens",
+            "noop",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_disconnected_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_needs_auth_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "notifications",
+           "cols": [
+            "id",
+            "session_id",
+            "run_id",
+            "job_id",
+            "kind",
+            "title",
+            "body",
+            "payload",
+            "request_id",
+            "created_at",
+            "read_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "prompt_drafts",
+           "cols": [
+            "session_id",
+            "text",
+            "images",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "queued_messages",
+           "cols": [
+            "uuid",
+            "session_id",
+            "position",
+            "text",
+            "images_json",
+            "slash",
+            "from_suggestion",
+            "from_goal",
+            "created_at_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "schema_meta",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": [
+            [
+             "text",
+             "version",
+             "text",
+             "25"
+            ],
+            [
+             "text",
+             "notifications_abort_cleanup_v1",
+             "text",
+             "1"
+            ]
+           ]
+          },
+          {
+           "name": "session_notification_prefs",
+           "cols": [
+            "session_id",
+            "blocked",
+            "snooze_until"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_tasks",
+           "cols": [
+            "session_id",
+            "task_id",
+            "tool_use_id",
+            "subagent_type",
+            "description",
+            "task_type",
+            "workflow_name",
+            "status",
+            "total_tokens",
+            "tool_uses",
+            "duration_ms",
+            "summary",
+            "error",
+            "inner_messages",
+            "updated_at",
+            "is_backgrounded",
+            "spawn_depth",
+            "ambient",
+            "resource_links",
+            "reason",
+            "output_file"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_usage",
+           "cols": [
+            "session_id",
+            "total_cost_usd",
+            "num_turns",
+            "duration_ms",
+            "duration_api_ms",
+            "input_tokens",
+            "output_tokens",
+            "cache_read_input_tokens",
+            "cache_creation_input_tokens",
+            "model_usage_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "sessions",
+           "cols": [
+            "id",
+            "cwd",
+            "title",
+            "model",
+            "created_at",
+            "updated_at",
+            "last_seen_at",
+            "goal",
+            "goal_achieved",
+            "goal_summary",
+            "goal_set_at",
+            "goal_achieved_at",
+            "state"
+           ],
+           "rows": [
+            [
+             "text",
+             "aaaaaaa1-0000-4000-8000-000000000001",
+             "text",
+             "/wsrel/hist/a",
+             "text",
+             "A transcript row",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "ddddddd9-0000-4000-8000-000000000009",
+             "text",
+             "/wsrel/hist/a",
+             "text",
+             "Renamed before first turn",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "aaaaaaa2-0000-4000-8000-000000000002",
+             "text",
+             "/wsrel/hist/a",
+             "null",
+             null,
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "aaaaaaa3-0000-4000-8000-000000000003",
+             "text",
+             "/wsrel/hist/a",
+             "text",
+             "   ",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "aaaaaaa4-0000-4000-8000-000000000004",
+             "text",
+             "/wsrel/hist/a",
+             "text",
+             "﻿",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "aaaaaaa5-0000-4000-8000-000000000005",
+             "text",
+             "/wsrel/hist/a",
+             "text",
+             "🦀 crab",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "blob",
+             "0001",
+             "text",
+             "/wsrel/hist/a",
+             "null",
+             null,
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "7",
+             "text",
+             "/wsrel/hist/a",
+             "null",
+             null,
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "null",
+             null,
+             "text",
+             "/wsrel/hist/a",
+             "null",
+             null,
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ]
+           ]
+          },
+          {
+           "name": "sqlite_sequence",
+           "cols": [
+            "name",
+            "seq"
+           ],
+           "rows": []
+          },
+          {
+           "name": "suggested_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "suggestion_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "ui_state",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": []
+          }
+         ]
+        }
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-a/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       {
+        "kind": "file",
+        "mode": 420,
+        "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/a\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/a\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-blob",
+       {
+        "kind": "dir",
+        "mode": 493
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-blob/.claudius.db",
+       {
+        "kind": "db",
+        "mode": 420,
+        "db": {
+         "tables": [
+          {
+           "name": "asset_uses",
+           "cols": [
+            "asset_hash",
+            "session_id",
+            "message_uuid",
+            "ordinal",
+            "occurred_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "assets",
+           "cols": [
+            "hash",
+            "media_type",
+            "size_bytes",
+            "width",
+            "height",
+            "first_seen_ms",
+            "last_seen_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "commit_drafts",
+           "cols": [
+            "cwd",
+            "message",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "db_agents",
+           "cols": [
+            "name",
+            "definition_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "feedback",
+           "cols": [
+            "id",
+            "session_id",
+            "cwd",
+            "rating",
+            "comment",
+            "surface",
+            "forwarded",
+            "created_at",
+            "attach_transcript"
+           ],
+           "rows": []
+          },
+          {
+           "name": "goal_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "goal_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "loop_ticks",
+           "cols": [
+            "id",
+            "session_id",
+            "session_title",
+            "tool_use_id",
+            "prompt",
+            "fired_at",
+            "tokens",
+            "noop",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_disconnected_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_needs_auth_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "notifications",
+           "cols": [
+            "id",
+            "session_id",
+            "run_id",
+            "job_id",
+            "kind",
+            "title",
+            "body",
+            "payload",
+            "request_id",
+            "created_at",
+            "read_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "prompt_drafts",
+           "cols": [
+            "session_id",
+            "text",
+            "images",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "queued_messages",
+           "cols": [
+            "uuid",
+            "session_id",
+            "position",
+            "text",
+            "images_json",
+            "slash",
+            "from_suggestion",
+            "from_goal",
+            "created_at_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "schema_meta",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": [
+            [
+             "text",
+             "version",
+             "text",
+             "25"
+            ],
+            [
+             "text",
+             "notifications_abort_cleanup_v1",
+             "text",
+             "1"
+            ]
+           ]
+          },
+          {
+           "name": "session_notification_prefs",
+           "cols": [
+            "session_id",
+            "blocked",
+            "snooze_until"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_tasks",
+           "cols": [
+            "session_id",
+            "task_id",
+            "tool_use_id",
+            "subagent_type",
+            "description",
+            "task_type",
+            "workflow_name",
+            "status",
+            "total_tokens",
+            "tool_uses",
+            "duration_ms",
+            "summary",
+            "error",
+            "inner_messages",
+            "updated_at",
+            "is_backgrounded",
+            "spawn_depth",
+            "ambient",
+            "resource_links",
+            "reason",
+            "output_file"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_usage",
+           "cols": [
+            "session_id",
+            "total_cost_usd",
+            "num_turns",
+            "duration_ms",
+            "duration_api_ms",
+            "input_tokens",
+            "output_tokens",
+            "cache_read_input_tokens",
+            "cache_creation_input_tokens",
+            "model_usage_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "sessions",
+           "cols": [
+            "id",
+            "cwd",
+            "title",
+            "model",
+            "created_at",
+            "updated_at",
+            "last_seen_at",
+            "goal",
+            "goal_achieved",
+            "goal_summary",
+            "goal_set_at",
+            "goal_achieved_at",
+            "state"
+           ],
+           "rows": [
+            [
+             "text",
+             "aaaaaaa2-0000-4000-8000-000000000002",
+             "text",
+             "/wsrel/hist/blob",
+             "blob",
+             "6869",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ]
+           ]
+          },
+          {
+           "name": "sqlite_sequence",
+           "cols": [
+            "name",
+            "seq"
+           ],
+           "rows": []
+          },
+          {
+           "name": "suggested_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "suggestion_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "ui_state",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": []
+          }
+         ]
+        }
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-blob/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       {
+        "kind": "file",
+        "mode": 420,
+        "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/blob\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/blob\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-dup",
+       {
+        "kind": "dir",
+        "mode": 493
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-dup/.claudius.db",
+       {
+        "kind": "db",
+        "mode": 420,
+        "db": {
+         "tables": [
+          {
+           "name": "asset_uses",
+           "cols": [
+            "asset_hash",
+            "session_id",
+            "message_uuid",
+            "ordinal",
+            "occurred_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "assets",
+           "cols": [
+            "hash",
+            "media_type",
+            "size_bytes",
+            "width",
+            "height",
+            "first_seen_ms",
+            "last_seen_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "commit_drafts",
+           "cols": [
+            "cwd",
+            "message",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "db_agents",
+           "cols": [
+            "name",
+            "definition_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "feedback",
+           "cols": [
+            "id",
+            "session_id",
+            "cwd",
+            "rating",
+            "comment",
+            "surface",
+            "forwarded",
+            "created_at",
+            "attach_transcript"
+           ],
+           "rows": []
+          },
+          {
+           "name": "goal_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "goal_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "loop_ticks",
+           "cols": [
+            "id",
+            "session_id",
+            "session_title",
+            "tool_use_id",
+            "prompt",
+            "fired_at",
+            "tokens",
+            "noop",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_disconnected_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_needs_auth_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "notifications",
+           "cols": [
+            "id",
+            "session_id",
+            "run_id",
+            "job_id",
+            "kind",
+            "title",
+            "body",
+            "payload",
+            "request_id",
+            "created_at",
+            "read_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "prompt_drafts",
+           "cols": [
+            "session_id",
+            "text",
+            "images",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "queued_messages",
+           "cols": [
+            "uuid",
+            "session_id",
+            "position",
+            "text",
+            "images_json",
+            "slash",
+            "from_suggestion",
+            "from_goal",
+            "created_at_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "schema_meta",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": [
+            [
+             "text",
+             "version",
+             "text",
+             "25"
+            ],
+            [
+             "text",
+             "notifications_abort_cleanup_v1",
+             "text",
+             "1"
+            ]
+           ]
+          },
+          {
+           "name": "session_notification_prefs",
+           "cols": [
+            "session_id",
+            "blocked",
+            "snooze_until"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_tasks",
+           "cols": [
+            "session_id",
+            "task_id",
+            "tool_use_id",
+            "subagent_type",
+            "description",
+            "task_type",
+            "workflow_name",
+            "status",
+            "total_tokens",
+            "tool_uses",
+            "duration_ms",
+            "summary",
+            "error",
+            "inner_messages",
+            "updated_at",
+            "is_backgrounded",
+            "spawn_depth",
+            "ambient",
+            "resource_links",
+            "reason",
+            "output_file"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_usage",
+           "cols": [
+            "session_id",
+            "total_cost_usd",
+            "num_turns",
+            "duration_ms",
+            "duration_api_ms",
+            "input_tokens",
+            "output_tokens",
+            "cache_read_input_tokens",
+            "cache_creation_input_tokens",
+            "model_usage_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "sessions",
+           "cols": [
+            "id",
+            "cwd",
+            "title",
+            "model",
+            "created_at",
+            "updated_at",
+            "last_seen_at",
+            "goal",
+            "goal_achieved",
+            "goal_summary",
+            "goal_set_at",
+            "goal_achieved_at",
+            "state"
+           ],
+           "rows": [
+            [
+             "text",
+             "aaaaaaa1-0000-4000-8000-000000000001",
+             "text",
+             "/wsrel/hist/dup",
+             "text",
+             "5",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "ddddddd9-0000-4000-8000-000000000009",
+             "text",
+             "/wsrel/hist/dup",
+             "text",
+             "After the duplicate",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ]
+           ]
+          },
+          {
+           "name": "sqlite_sequence",
+           "cols": [
+            "name",
+            "seq"
+           ],
+           "rows": []
+          },
+          {
+           "name": "suggested_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "suggestion_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "ui_state",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": []
+          }
+         ]
+        }
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-dup/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       {
+        "kind": "file",
+        "mode": 420,
+        "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/dup\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/dup\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-num",
+       {
+        "kind": "dir",
+        "mode": 493
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-num/.claudius.db",
+       {
+        "kind": "db",
+        "mode": 420,
+        "db": {
+         "tables": [
+          {
+           "name": "asset_uses",
+           "cols": [
+            "asset_hash",
+            "session_id",
+            "message_uuid",
+            "ordinal",
+            "occurred_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "assets",
+           "cols": [
+            "hash",
+            "media_type",
+            "size_bytes",
+            "width",
+            "height",
+            "first_seen_ms",
+            "last_seen_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "commit_drafts",
+           "cols": [
+            "cwd",
+            "message",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "db_agents",
+           "cols": [
+            "name",
+            "definition_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "feedback",
+           "cols": [
+            "id",
+            "session_id",
+            "cwd",
+            "rating",
+            "comment",
+            "surface",
+            "forwarded",
+            "created_at",
+            "attach_transcript"
+           ],
+           "rows": []
+          },
+          {
+           "name": "goal_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "goal_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "loop_ticks",
+           "cols": [
+            "id",
+            "session_id",
+            "session_title",
+            "tool_use_id",
+            "prompt",
+            "fired_at",
+            "tokens",
+            "noop",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_disconnected_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "mcp_needs_auth_notified",
+           "cols": [
+            "server_name",
+            "notified_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "notifications",
+           "cols": [
+            "id",
+            "session_id",
+            "run_id",
+            "job_id",
+            "kind",
+            "title",
+            "body",
+            "payload",
+            "request_id",
+            "created_at",
+            "read_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "prompt_drafts",
+           "cols": [
+            "session_id",
+            "text",
+            "images",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "queued_messages",
+           "cols": [
+            "uuid",
+            "session_id",
+            "position",
+            "text",
+            "images_json",
+            "slash",
+            "from_suggestion",
+            "from_goal",
+            "created_at_ms"
+           ],
+           "rows": []
+          },
+          {
+           "name": "schema_meta",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": [
+            [
+             "text",
+             "version",
+             "text",
+             "25"
+            ],
+            [
+             "text",
+             "notifications_abort_cleanup_v1",
+             "text",
+             "1"
+            ]
+           ]
+          },
+          {
+           "name": "session_notification_prefs",
+           "cols": [
+            "session_id",
+            "blocked",
+            "snooze_until"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_tasks",
+           "cols": [
+            "session_id",
+            "task_id",
+            "tool_use_id",
+            "subagent_type",
+            "description",
+            "task_type",
+            "workflow_name",
+            "status",
+            "total_tokens",
+            "tool_uses",
+            "duration_ms",
+            "summary",
+            "error",
+            "inner_messages",
+            "updated_at",
+            "is_backgrounded",
+            "spawn_depth",
+            "ambient",
+            "resource_links",
+            "reason",
+            "output_file"
+           ],
+           "rows": []
+          },
+          {
+           "name": "session_usage",
+           "cols": [
+            "session_id",
+            "total_cost_usd",
+            "num_turns",
+            "duration_ms",
+            "duration_api_ms",
+            "input_tokens",
+            "output_tokens",
+            "cache_read_input_tokens",
+            "cache_creation_input_tokens",
+            "model_usage_json",
+            "updated_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "sessions",
+           "cols": [
+            "id",
+            "cwd",
+            "title",
+            "model",
+            "created_at",
+            "updated_at",
+            "last_seen_at",
+            "goal",
+            "goal_achieved",
+            "goal_summary",
+            "goal_set_at",
+            "goal_achieved_at",
+            "state"
+           ],
+           "rows": [
+            [
+             "text",
+             "ddddddd9-0000-4000-8000-000000000009",
+             "text",
+             "/wsrel/hist/num",
+             "text",
+             "Kept before the throw",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "aaaaaaa2-0000-4000-8000-000000000002",
+             "text",
+             "/wsrel/hist/num",
+             "text",
+             "5",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "integer",
+             "1",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "aaaaaaa3-0000-4000-8000-000000000003",
+             "text",
+             "/wsrel/hist/num",
+             "text",
+             "After the throw",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ]
+           ]
+          },
+          {
+           "name": "sqlite_sequence",
+           "cols": [
+            "name",
+            "seq"
+           ],
+           "rows": []
+          },
+          {
+           "name": "suggested_messages",
+           "cols": [
+            "session_id",
+            "message_uuid",
+            "suggestion_text",
+            "created_at"
+           ],
+           "rows": []
+          },
+          {
+           "name": "ui_state",
+           "cols": [
+            "key",
+            "value"
+           ],
+           "rows": []
+          }
+         ]
+        }
+       }
+      ],
+      [
+       "home/.claude/projects/-wsrel-hist-num/aaaaaaa1-0000-4000-8000-000000000001.jsonl",
+       {
+        "kind": "file",
+        "mode": 420,
+        "text": "{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"hello\"},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-01T10:00:00.000Z\",\"cwd\":\"/wsrel/hist/num\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"uuid\":\"aaaaaaa1-0000-4000-8000-000000000002\",\"timestamp\":\"2026-10-01T10:00:01.000Z\",\"cwd\":\"/wsrel/hist/num\",\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\"}\n"
+       }
+      ]
+     ]
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/a",
+      {
+       "live": null
+      }
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009",
+      "aaaaaaa2-0000-4000-8000-000000000002",
+      "aaaaaaa3-0000-4000-8000-000000000003",
+      "aaaaaaa4-0000-4000-8000-000000000004",
+      "aaaaaaa5-0000-4000-8000-000000000005",
+      {
+       "type": "Buffer",
+       "data": [
+        0,
+        1
+       ]
+      },
+      "7",
+      null
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/a",
+      {
+       "live": []
+      }
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009",
+      "aaaaaaa5-0000-4000-8000-000000000005"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/a",
+      {
+       "live": [
+        "aaaaaaa2-0000-4000-8000-000000000002",
+        "7",
+        "nope"
+       ]
+      }
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009",
+      "aaaaaaa2-0000-4000-8000-000000000002",
+      "aaaaaaa5-0000-4000-8000-000000000005",
+      "7"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/a",
+      {
+       "live": [
+        "ddddddd9-0000-4000-8000-000000000009",
+        "aaaaaaa3-0000-4000-8000-000000000003",
+        "aaaaaaa4-0000-4000-8000-000000000004"
+       ]
+      }
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009",
+      "aaaaaaa3-0000-4000-8000-000000000003",
+      "aaaaaaa4-0000-4000-8000-000000000004",
+      "aaaaaaa5-0000-4000-8000-000000000005"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/num"
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009",
+      "aaaaaaa2-0000-4000-8000-000000000002",
+      "aaaaaaa3-0000-4000-8000-000000000003"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/num",
+      {
+       "live": []
+      }
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009",
+      "aaaaaaa2-0000-4000-8000-000000000002",
+      "aaaaaaa3-0000-4000-8000-000000000003"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/dup"
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/dup",
+      {
+       "live": []
+      }
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "ddddddd9-0000-4000-8000-000000000009"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/blob"
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001",
+      "aaaaaaa2-0000-4000-8000-000000000002"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/blob",
+      {
+       "live": []
+      }
+     ],
+     "result": [
+      "aaaaaaa1-0000-4000-8000-000000000001"
+     ],
+     "changes": []
+    },
+    {
+     "call": [
+      "list",
+      "/wsrel/hist/missing",
+      {
+       "live": []
+      }
+     ],
+     "result": [],
      "changes": []
     }
    ]
@@ -10136,7 +11937,7 @@
       "method": "GET",
       "id": "wks_missing"
      },
-     "now": 978307270070,
+     "now": 978307282082,
      "got": {
       "status": 404,
       "type": "application/json",
@@ -10149,11 +11950,11 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307271071,
+     "now": 978307283083,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/old\",\"count\":3,\"busy\":0,\"sharedWith\":[\"Beta\",null,\"numeric id\"]}"
+      "body": "{\"rootPath\":\"$ROOT/r/old\",\"count\":2,\"busy\":0,\"sharedWith\":[\"Beta\",null,\"numeric id\"]}"
      },
      "changes": []
     },
@@ -10162,11 +11963,11 @@
       "method": "GET",
       "id": "wks_b"
      },
-     "now": 978307272072,
+     "now": 978307284084,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/old\",\"count\":3,\"busy\":0,\"sharedWith\":[\"Alpha\",null,\"numeric id\"]}"
+      "body": "{\"rootPath\":\"$ROOT/r/old\",\"count\":2,\"busy\":0,\"sharedWith\":[\"Alpha\",null,\"numeric id\"]}"
      },
      "changes": []
     },
@@ -10175,7 +11976,7 @@
       "method": "GET",
       "id": "wks_e"
      },
-     "now": 978307273073,
+     "now": 978307285085,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -10189,7 +11990,7 @@
       "id": "wks_missing",
       "body": "{}"
      },
-     "now": 978307274074,
+     "now": 978307286086,
      "got": {
       "status": 404,
       "type": "application/json",
@@ -10203,7 +12004,7 @@
       "id": "wks_missing",
       "body": "{"
      },
-     "now": 978307275075,
+     "now": 978307287087,
      "got": {
       "status": 404,
       "type": "application/json",
@@ -10216,7 +12017,7 @@
       "method": "POST",
       "id": "wks_a"
      },
-     "now": 978307276076,
+     "now": 978307288088,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10230,7 +12031,7 @@
       "id": "wks_a",
       "body": ""
      },
-     "now": 978307277077,
+     "now": 978307289089,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10244,7 +12045,7 @@
       "id": "wks_a",
       "body": "{"
      },
-     "now": 978307278078,
+     "now": 978307290090,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10258,7 +12059,7 @@
       "id": "wks_a",
       "body": "null"
      },
-     "now": 978307279079,
+     "now": 978307291091,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10272,7 +12073,7 @@
       "id": "wks_a",
       "body": "[]"
      },
-     "now": 978307280080,
+     "now": 978307292092,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10286,7 +12087,7 @@
       "id": "wks_a",
       "body": "5"
      },
-     "now": 978307281081,
+     "now": 978307293093,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10300,7 +12101,7 @@
       "id": "wks_a",
       "body": "\"/x\""
      },
-     "now": 978307282082,
+     "now": 978307294094,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10314,7 +12115,7 @@
       "id": "wks_a",
       "body": "true"
      },
-     "now": 978307283083,
+     "now": 978307295095,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10328,7 +12129,7 @@
       "id": "wks_a",
       "body": "{}"
      },
-     "now": 978307284084,
+     "now": 978307296096,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10342,7 +12143,7 @@
       "id": "wks_a",
       "body": "{\"TO\":\"$ROOT/r/new\"}"
      },
-     "now": 978307285085,
+     "now": 978307297097,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10356,7 +12157,7 @@
       "id": "wks_a",
       "body": "{\"to\":5}"
      },
-     "now": 978307286086,
+     "now": 978307298098,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10370,7 +12171,7 @@
       "id": "wks_a",
       "body": "{\"to\":null}"
      },
-     "now": 978307287087,
+     "now": 978307299099,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10384,7 +12185,7 @@
       "id": "wks_a",
       "body": "{\"to\":[\"$ROOT/r/new\"]}"
      },
-     "now": 978307288088,
+     "now": 978307300100,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10398,7 +12199,7 @@
       "id": "wks_a",
       "body": "{\"to\":{\"path\":\"$ROOT/r/new\"}}"
      },
-     "now": 978307289089,
+     "now": 978307301101,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10412,7 +12213,7 @@
       "id": "wks_a",
       "body": "{\"to\":1e400}"
      },
-     "now": 978307290090,
+     "now": 978307302102,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10426,7 +12227,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"\"}"
      },
-     "now": 978307291091,
+     "now": 978307303103,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10440,7 +12241,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"r/new\"}"
      },
-     "now": 978307292092,
+     "now": 978307304104,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10454,7 +12255,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"./r/new\"}"
      },
-     "now": 978307293093,
+     "now": 978307305105,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10468,7 +12269,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\\u0000x\"}"
      },
-     "now": 978307294094,
+     "now": 978307306106,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10482,7 +12283,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"\\u0000\"}"
      },
-     "now": 978307295095,
+     "now": 978307307107,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10496,7 +12297,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/missing\"}"
      },
-     "now": 978307296096,
+     "now": 978307308108,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10510,7 +12311,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/file\"}"
      },
-     "now": 978307297097,
+     "now": 978307309109,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10524,7 +12325,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/filelink\"}"
      },
-     "now": 978307298098,
+     "now": 978307310110,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10538,7 +12339,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/dangling\"}"
      },
-     "now": 978307299099,
+     "now": 978307311111,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10552,7 +12353,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/old\"}"
      },
-     "now": 978307300100,
+     "now": 978307312112,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -10566,7 +12367,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/old/\"}"
      },
-     "now": 978307301101,
+     "now": 978307313113,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -10580,7 +12381,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/./x/../old//\"}"
      },
-     "now": 978307302102,
+     "now": 978307314114,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -10594,7 +12395,7 @@
       "id": "wks_a",
       "body": "{\"to\":5,\"to\":\"$ROOT/r/old\"}"
      },
-     "now": 978307303103,
+     "now": 978307315115,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -10608,7 +12409,7 @@
       "id": "wks_a",
       "body": "﻿ \n {\"to\" : \"$ROOT/r/old\"} \n"
      },
-     "now": 978307304104,
+     "now": 978307316116,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -10622,7 +12423,7 @@
       "id": "wks_a",
       "body": "﻿﻿{\"to\":\"$ROOT/r/old\"}"
      },
-     "now": 978307305105,
+     "now": 978307317117,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -10636,7 +12437,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/old\"} trailing"
      },
-     "now": 978307306106,
+     "now": 978307318118,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10661,7 +12462,7 @@
        125
       ]
      },
-     "now": 978307307107,
+     "now": 978307319119,
      "got": {
       "status": 400,
       "type": "application/json",
@@ -10674,11 +12475,11 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307308108,
+     "now": 978307320120,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/old\",\"count\":3,\"busy\":0,\"sharedWith\":[\"Beta\",null,\"numeric id\"]}"
+      "body": "{\"rootPath\":\"$ROOT/r/old\",\"count\":2,\"busy\":0,\"sharedWith\":[\"Beta\",null,\"numeric id\"]}"
      },
      "changes": []
     },
@@ -10688,11 +12489,11 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\",\"extra\":true}"
      },
-     "now": 978307309109,
+     "now": 978307321121,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307309109,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307321121,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
      },
      "changes": [
       [
@@ -10700,7 +12501,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307309109,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307321121,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -11191,11 +12992,11 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307310110,
+     "now": 978307322122,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/new\",\"count\":4,\"busy\":0,\"sharedWith\":[]}"
+      "body": "{\"rootPath\":\"$ROOT/r/new\",\"count\":2,\"busy\":0,\"sharedWith\":[]}"
      },
      "changes": []
     },
@@ -11204,7 +13005,7 @@
       "method": "GET",
       "id": "wks_b"
      },
-     "now": 978307311111,
+     "now": 978307323123,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -11217,7 +13018,7 @@
       "method": "GET",
       "id": "wks_d"
      },
-     "now": 978307312112,
+     "now": 978307324124,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -11231,11 +13032,11 @@
       "id": "wks_b",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307313113,
+     "now": 978307325125,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_b\",\"name\":\"Beta\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307313113,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":0,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_b\",\"name\":\"Beta\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307325125,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":0,\"failed\":[]}"
      },
      "changes": [
       [
@@ -11243,7 +13044,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307309109,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307313113,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307321121,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307325125,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
        }
       ]
      ]
@@ -11253,11 +13054,11 @@
       "method": "GET",
       "id": "wks_b"
      },
-     "now": 978307314114,
+     "now": 978307326126,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/new\",\"count\":4,\"busy\":0,\"sharedWith\":[\"Alpha\"]}"
+      "body": "{\"rootPath\":\"$ROOT/r/new\",\"count\":2,\"busy\":0,\"sharedWith\":[\"Alpha\"]}"
      },
      "changes": []
     },
@@ -11267,11 +13068,11 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/link\"}"
      },
-     "now": 978307315115,
+     "now": 978307327127,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/link\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307315115,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/link\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307327127,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
      },
      "changes": [
       [
@@ -11279,7 +13080,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/link\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307315115,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307313113,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/link\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307327127,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307325125,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -11774,11 +13575,11 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307316116,
+     "now": 978307328128,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/link\",\"count\":4,\"busy\":0,\"sharedWith\":[]}"
+      "body": "{\"rootPath\":\"$ROOT/r/link\",\"count\":2,\"busy\":0,\"sharedWith\":[]}"
      },
      "changes": []
     },
@@ -11788,11 +13589,11 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/café 😀\"}"
      },
-     "now": 978307317117,
+     "now": 978307329129,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/café 😀\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307317117,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/café 😀\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307329129,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
      },
      "changes": [
       [
@@ -11800,7 +13601,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/café 😀\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307317117,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307313113,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/café 😀\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307329129,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307325125,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old/\"\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -12295,11 +14096,11 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307318118,
+     "now": 978307330130,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/café 😀\",\"count\":4,\"busy\":0,\"sharedWith\":[]}"
+      "body": "{\"rootPath\":\"$ROOT/r/café 😀\",\"count\":2,\"busy\":0,\"sharedWith\":[]}"
      },
      "changes": []
     },
@@ -12309,11 +14110,11 @@
       "id": "wks_e",
       "body": "{\"to\":\"$ROOT/r/old\"}"
      },
-     "now": 978307319119,
+     "now": 978307331131,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_e\",\"name\":\"Echo\",\"rootPath\":\"$ROOT/r/old\",\"updatedAt\":978307319119},\"moved\":0,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_e\",\"name\":\"Echo\",\"rootPath\":\"$ROOT/r/old\",\"updatedAt\":978307331131},\"moved\":0,\"failed\":[]}"
      },
      "changes": [
       [
@@ -12321,7 +14122,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/café 😀\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307317117,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307313113,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"updatedAt\": 978307319119\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/café 😀\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307329129,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307325125,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"updatedAt\": 978307331131\n    }\n  ]\n}\n"
        }
       ]
      ]
@@ -12332,11 +14133,11 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/lone\\ud800\"}"
      },
-     "now": 978307320120,
+     "now": 978307332132,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/lone\\ud800\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307320120,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/lone\\ud800\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307332132,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":2,\"failed\":[]}"
      },
      "changes": [
       [
@@ -12344,7 +14145,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/lone\\ud800\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307320120,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307313113,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"updatedAt\": 978307319119\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/lone\\ud800\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307332132,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307325125,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_c\",\n      \"name\": \"Gamma\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_d\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    5,\n    \"str\",\n    [],\n    {},\n    {\n      \"id\": 5,\n      \"rootPath\": \"$ROOT/r/old\",\n      \"name\": \"numeric id\"\n    },\n    {\n      \"id\": \"wks_e\",\n      \"name\": \"Echo\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"updatedAt\": 978307331131\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -12839,11 +14640,11 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307321121,
+     "now": 978307333133,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/lone\\ud800\",\"count\":4,\"busy\":0,\"sharedWith\":[]}"
+      "body": "{\"rootPath\":\"$ROOT/r/lone\\ud800\",\"count\":2,\"busy\":0,\"sharedWith\":[]}"
      },
      "changes": []
     }
@@ -12886,7 +14687,7 @@
       "method": "GET",
       "id": "wks_empty"
      },
-     "now": 978307322122,
+     "now": 978307334134,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12899,7 +14700,7 @@
       "method": "GET",
       "id": "wks_num"
      },
-     "now": 978307323123,
+     "now": 978307335135,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12912,7 +14713,7 @@
       "method": "GET",
       "id": "wks_null"
      },
-     "now": 978307324124,
+     "now": 978307336136,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12925,7 +14726,7 @@
       "method": "GET",
       "id": "wks_true"
      },
-     "now": 978307325125,
+     "now": 978307337137,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12938,7 +14739,7 @@
       "method": "GET",
       "id": "wks_false"
      },
-     "now": 978307326126,
+     "now": 978307338138,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12951,7 +14752,7 @@
       "method": "GET",
       "id": "wks_none"
      },
-     "now": 978307327127,
+     "now": 978307339139,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12964,7 +14765,7 @@
       "method": "GET",
       "id": "wks_obj"
      },
-     "now": 978307328128,
+     "now": 978307340140,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12977,7 +14778,7 @@
       "method": "GET",
       "id": "wks_rel"
      },
-     "now": 978307329129,
+     "now": 978307341141,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -12990,7 +14791,7 @@
       "method": "GET",
       "id": "wks k"
      },
-     "now": 978307330130,
+     "now": 978307342142,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -13003,7 +14804,7 @@
       "method": "GET",
       "id": "wks_noname"
      },
-     "now": 978307331131,
+     "now": 978307343143,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -13017,7 +14818,7 @@
       "id": "wks_empty",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307332132,
+     "now": 978307344144,
      "got": {
       "status": 500,
       "type": "application/json",
@@ -13031,7 +14832,7 @@
       "id": "wks_num",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307333133,
+     "now": 978307345145,
      "got": {
       "status": 500,
       "type": "application/json",
@@ -13045,7 +14846,7 @@
       "id": "wks_null",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307334134,
+     "now": 978307346146,
      "got": {
       "status": 500,
       "type": "application/json",
@@ -13059,7 +14860,7 @@
       "id": "wks_true",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307335135,
+     "now": 978307347147,
      "got": {
       "status": 500,
       "type": "application/json",
@@ -13073,7 +14874,7 @@
       "id": "wks_none",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307336136,
+     "now": 978307348148,
      "got": {
       "status": 500,
       "type": "application/json",
@@ -13087,7 +14888,7 @@
       "id": "wks_obj",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307337137,
+     "now": 978307349149,
      "got": {
       "status": 500,
       "type": "application/json",
@@ -13101,11 +14902,11 @@
       "id": "wks_rel",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307338138,
+     "now": 978307350150,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_rel\",\"name\":\"Relative root\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307338138,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_rel\",\"name\":\"Relative root\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307350150,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
      },
      "changes": [
       [
@@ -13113,7 +14914,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_empty\",\n      \"name\": \"Empty root\",\n      \"rootPath\": \"\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num\",\n      \"name\": \"Number root\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num2\",\n      \"name\": \"Number root too\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null\",\n      \"name\": \"Null root\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null2\",\n      \"name\": \"Null root too\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true\",\n      \"name\": \"True root\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true2\",\n      \"name\": \"True root too\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_false\",\n      \"name\": \"False root\",\n      \"rootPath\": false,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_none\",\n      \"name\": \"No root\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_obj\",\n      \"name\": \"Object root\",\n      \"rootPath\": {\n        \"path\": \"$ROOT/r/old\"\n      },\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Relative root\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307338138,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks k\",\n      \"name\": \"Spaced id\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_noname\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    7,\n    \"s\",\n    [],\n    {},\n    {\n      \"id\": null\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Duplicate id\",\n      \"rootPath\": \"$ROOT/r/old\"\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_empty\",\n      \"name\": \"Empty root\",\n      \"rootPath\": \"\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num\",\n      \"name\": \"Number root\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num2\",\n      \"name\": \"Number root too\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null\",\n      \"name\": \"Null root\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null2\",\n      \"name\": \"Null root too\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true\",\n      \"name\": \"True root\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true2\",\n      \"name\": \"True root too\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_false\",\n      \"name\": \"False root\",\n      \"rootPath\": false,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_none\",\n      \"name\": \"No root\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_obj\",\n      \"name\": \"Object root\",\n      \"rootPath\": {\n        \"path\": \"$ROOT/r/old\"\n      },\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Relative root\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307350150,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks k\",\n      \"name\": \"Spaced id\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_noname\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    7,\n    \"s\",\n    [],\n    {},\n    {\n      \"id\": null\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Duplicate id\",\n      \"rootPath\": \"$ROOT/r/old\"\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -13169,7 +14970,7 @@
       "method": "GET",
       "id": "wks_rel"
      },
-     "now": 978307339139,
+     "now": 978307351151,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -13183,11 +14984,11 @@
       "id": "wks k",
       "body": "{\"to\":\"$ROOT/r/new2\"}"
      },
-     "now": 978307340140,
+     "now": 978307352152,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks k\",\"name\":\"Spaced id\",\"rootPath\":\"$ROOT/r/new2\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307340140,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks k\",\"name\":\"Spaced id\",\"rootPath\":\"$ROOT/r/new2\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307352152,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
      },
      "changes": [
       [
@@ -13195,7 +14996,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_empty\",\n      \"name\": \"Empty root\",\n      \"rootPath\": \"\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num\",\n      \"name\": \"Number root\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num2\",\n      \"name\": \"Number root too\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null\",\n      \"name\": \"Null root\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null2\",\n      \"name\": \"Null root too\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true\",\n      \"name\": \"True root\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true2\",\n      \"name\": \"True root too\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_false\",\n      \"name\": \"False root\",\n      \"rootPath\": false,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_none\",\n      \"name\": \"No root\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_obj\",\n      \"name\": \"Object root\",\n      \"rootPath\": {\n        \"path\": \"$ROOT/r/old\"\n      },\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Relative root\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307338138,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks k\",\n      \"name\": \"Spaced id\",\n      \"rootPath\": \"$ROOT/r/new2\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307340140,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_noname\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    7,\n    \"s\",\n    [],\n    {},\n    {\n      \"id\": null\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Duplicate id\",\n      \"rootPath\": \"$ROOT/r/old\"\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_empty\",\n      \"name\": \"Empty root\",\n      \"rootPath\": \"\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num\",\n      \"name\": \"Number root\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_num2\",\n      \"name\": \"Number root too\",\n      \"rootPath\": 5,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null\",\n      \"name\": \"Null root\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_null2\",\n      \"name\": \"Null root too\",\n      \"rootPath\": null,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true\",\n      \"name\": \"True root\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_true2\",\n      \"name\": \"True root too\",\n      \"rootPath\": true,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_false\",\n      \"name\": \"False root\",\n      \"rootPath\": false,\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_none\",\n      \"name\": \"No root\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_obj\",\n      \"name\": \"Object root\",\n      \"rootPath\": {\n        \"path\": \"$ROOT/r/old\"\n      },\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Relative root\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307350150,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks k\",\n      \"name\": \"Spaced id\",\n      \"rootPath\": \"$ROOT/r/new2\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307352152,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_noname\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    7,\n    \"s\",\n    [],\n    {},\n    {\n      \"id\": null\n    },\n    {\n      \"id\": \"wks_rel\",\n      \"name\": \"Duplicate id\",\n      \"rootPath\": \"$ROOT/r/old\"\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -13228,7 +15029,7 @@
       "method": "GET",
       "id": "wks k"
      },
-     "now": 978307341141,
+     "now": 978307353153,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -13265,7 +15066,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307342142,
+     "now": 978307354154,
      "got": {
       "threw": "TypeError: Cannot read properties of null (reading 'id')"
      },
@@ -13276,7 +15077,7 @@
       "method": "GET",
       "id": "wks_b"
      },
-     "now": 978307343143,
+     "now": 978307355155,
      "got": {
       "threw": "TypeError: Cannot read properties of null (reading 'id')"
      },
@@ -13288,7 +15089,7 @@
       "id": "wks_b",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307344144,
+     "now": 978307356156,
      "got": {
       "threw": "TypeError: Cannot read properties of null (reading 'id')"
      },
@@ -13300,11 +15101,11 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307345145,
+     "now": 978307357157,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307345145,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307357157,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
      },
      "changes": [
       [
@@ -13312,7 +15113,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307345145,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    null,\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307357157,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    null,\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"Beta\",\n      \"rootPath\": \"$ROOT/r/old\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -13345,7 +15146,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307346146,
+     "now": 978307358158,
      "got": {
       "threw": "TypeError: Cannot read properties of null (reading 'id')"
      },
@@ -13374,7 +15175,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307347147,
+     "now": 978307359159,
      "got": {
       "threw": "SyntaxError: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
      },
@@ -13386,7 +15187,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307348148,
+     "now": 978307360160,
      "got": {
       "threw": "SyntaxError: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
      },
@@ -13406,7 +15207,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307349149,
+     "now": 978307361161,
      "got": {
       "threw": "TypeError: Cannot read properties of null (reading 'version')"
      },
@@ -13427,7 +15228,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307350150,
+     "now": 978307362162,
      "got": {
       "threw": "TypeError: Cannot read properties of null (reading 'version')"
      },
@@ -13447,7 +15248,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307351151,
+     "now": 978307363163,
      "got": {
       "status": 404,
       "type": "application/json",
@@ -13470,7 +15271,7 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307352152,
+     "now": 978307364164,
      "got": {
       "status": 404,
       "type": "application/json",
@@ -13546,7 +15347,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307353153,
+     "now": 978307365165,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -13560,11 +15361,11 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307354154,
+     "now": 978307366166,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307354154,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[{\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"error\":\"a transcript with this id already exists in the new folder\"},{\"sessionId\":\"aaaaaaa3-0000-4000-8000-000000000003\",\"error\":\"Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory $ROOT/home/.claude/projects/$EROOT-r-new/aaaaaaa3-0000-4000-8000-000000000003 with directory $ROOT/home/.claude/projects/$EROOT-r-old/aaaaaaa3-0000-4000-8000-000000000003) $ROOT/home/.claude/projects/$EROOT-r-new/aaaaaaa3-0000-4000-8000-000000000003\"}],\"dataError\":\"assets: Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory $ROOT/home/.claude/projects/$EROOT-r-new/assets with non-directory $ROOT/home/.claude/projects/$EROOT-r-old/assets) $ROOT/home/.claude/projects/$EROOT-r-new/assets; database: file is not a database\"}"
+      "body": "{\"workspace\":{\"id\":\"wks_a\",\"name\":\"Alpha\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307366166,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[{\"sessionId\":\"aaaaaaa1-0000-4000-8000-000000000001\",\"error\":\"a transcript with this id already exists in the new folder\"},{\"sessionId\":\"aaaaaaa3-0000-4000-8000-000000000003\",\"error\":\"Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory $ROOT/home/.claude/projects/$EROOT-r-new/aaaaaaa3-0000-4000-8000-000000000003 with directory $ROOT/home/.claude/projects/$EROOT-r-old/aaaaaaa3-0000-4000-8000-000000000003) $ROOT/home/.claude/projects/$EROOT-r-new/aaaaaaa3-0000-4000-8000-000000000003\"}],\"dataError\":\"assets: Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory $ROOT/home/.claude/projects/$EROOT-r-new/assets with non-directory $ROOT/home/.claude/projects/$EROOT-r-old/assets) $ROOT/home/.claude/projects/$EROOT-r-new/assets; database: file is not a database\"}"
      },
      "changes": [
       [
@@ -13572,7 +15373,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307354154,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"Alpha\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307366166,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -13606,7 +15407,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307355155,
+     "now": 978307367167,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -13676,9 +15477,9 @@
       "id": "wks_a",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307356156,
+     "now": 978307368168,
      "got": {
-      "threw": "Error: EACCES: permission denied, open '$ROOT/home/.claude/.claudius/workspaces.json.$PID.978307356156.tmp'"
+      "threw": "Error: EACCES: permission denied, open '$ROOT/home/.claude/.claudius/workspaces.json.$PID.978307368168.tmp'"
      },
      "changes": [
       [
@@ -14178,7 +15979,7 @@
       "method": "GET",
       "id": "wks_a"
      },
-     "now": 978307357157,
+     "now": 978307369169,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -14240,7 +16041,7 @@
       "method": "GET",
       "id": "wks_live"
      },
-     "now": 978307358158,
+     "now": 978307370170,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -14260,7 +16061,7 @@
       "method": "GET",
       "id": "wks_other"
      },
-     "now": 978307359159,
+     "now": 978307371171,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -14281,7 +16082,7 @@
       "id": "wks_live",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307360160,
+     "now": 978307372172,
      "got": {
       "status": 409,
       "type": "application/json",
@@ -14301,7 +16102,7 @@
       "method": "GET",
       "id": "wks_live"
      },
-     "now": 978307361161,
+     "now": 978307373173,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -14352,7 +16153,7 @@
       "method": "GET",
       "id": "wks_live"
      },
-     "now": 978307362162,
+     "now": 978307374174,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -14371,7 +16172,7 @@
       "id": "wks_live",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307363163,
+     "now": 978307375175,
      "got": {
       "status": 409,
       "type": "application/json",
@@ -14390,7 +16191,7 @@
       "id": "wks_live",
       "body": "{\"to\":\"$ROOT/r/live\"}"
      },
-     "now": 978307364164,
+     "now": 978307376176,
      "got": {
       "status": 200,
       "type": "application/json",
@@ -14428,6 +16229,11 @@
      "op": "write",
      "path": "home/.claude/projects/$EROOT-r-live/aaaaaaa1-0000-4000-8000-000000000001/a.txt",
      "text": "a\n"
+    },
+    {
+     "op": "sql",
+     "root": "$ROOT/r/live",
+     "sql": "INSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('ddddddd9-0000-4000-8000-000000000009', '$ROOT/r/live', 'Renamed before first turn', NULL, 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, model, created_at, updated_at, last_seen_at) VALUES ('eeeeeeea-0000-4000-8000-00000000000a', '$ROOT/r/live', NULL, NULL, 1, 2, 3);"
     }
    ],
    "sessions": [
@@ -14456,11 +16262,11 @@
       "method": "GET",
       "id": "wks_live"
      },
-     "now": 978307365165,
+     "now": 978307377177,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/live\",\"count\":3,\"busy\":0,\"sharedWith\":[]}"
+      "body": "{\"rootPath\":\"$ROOT/r/live\",\"count\":4,\"busy\":0,\"sharedWith\":[]}"
      },
      "changes": [],
      "live": [
@@ -14476,11 +16282,11 @@
       "id": "wks_live",
       "body": "{\"to\":\"$ROOT/r/new\"}"
      },
-     "now": 978307366166,
+     "now": 978307378178,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"workspace\":{\"id\":\"wks_live\",\"name\":\"Live\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307366166,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
+      "body": "{\"workspace\":{\"id\":\"wks_live\",\"name\":\"Live\",\"rootPath\":\"$ROOT/r/new\",\"icon\":{\"kind\":\"letter\",\"letter\":\"W\",\"color\":\"#d97757\"},\"createdAt\":1,\"updatedAt\":978307378178,\"lastOpenedAt\":1,\"defaults\":{\"permissionMode\":\"auto\"}},\"moved\":1,\"failed\":[]}"
      },
      "changes": [
       [
@@ -14488,7 +16294,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_live\",\n      \"name\": \"Live\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307366166,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_other\",\n      \"name\": \"Other\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n"
+        "text": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_live\",\n      \"name\": \"Live\",\n      \"rootPath\": \"$ROOT/r/new\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 978307378178,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    },\n    {\n      \"id\": \"wks_other\",\n      \"name\": \"Other\",\n      \"rootPath\": \"$ROOT/r/other\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1,\n      \"lastOpenedAt\": 1,\n      \"defaults\": {\n        \"permissionMode\": \"auto\"\n      }\n    }\n  ]\n}\n"
        }
       ],
       [
@@ -14759,6 +16565,62 @@
            "rows": [
             [
              "text",
+             "ddddddd9-0000-4000-8000-000000000009",
+             "text",
+             "$ROOT/r/new",
+             "text",
+             "Renamed before first turn",
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
+             "eeeeeeea-0000-4000-8000-00000000000a",
+             "text",
+             "$ROOT/r/new",
+             "null",
+             null,
+             "null",
+             null,
+             "integer",
+             "1",
+             "integer",
+             "2",
+             "integer",
+             "3",
+             "null",
+             null,
+             "integer",
+             "0",
+             "null",
+             null,
+             "null",
+             null,
+             "null",
+             null,
+             "text",
+             "{}"
+            ],
+            [
+             "text",
              "cccccc15-0000-4000-8000-000000000015",
              "text",
              "$ROOT/r/new",
@@ -14767,11 +16629,11 @@
              "null",
              null,
              "integer",
-             "978307364164",
+             "978307376176",
              "integer",
-             "978307364164",
+             "978307376176",
              "integer",
-             "978307364164",
+             "978307376176",
              "null",
              null,
              "integer",
@@ -14795,11 +16657,11 @@
              "null",
              null,
              "integer",
-             "978307364164",
+             "978307376176",
              "integer",
-             "978307364164",
+             "978307376176",
              "integer",
-             "978307364164",
+             "978307376176",
              "null",
              null,
              "integer",
@@ -14889,11 +16751,11 @@
       "method": "GET",
       "id": "wks_live"
      },
-     "now": 978307367167,
+     "now": 978307379179,
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"rootPath\":\"$ROOT/r/new\",\"count\":3,\"busy\":0,\"sharedWith\":[]}"
+      "body": "{\"rootPath\":\"$ROOT/r/new\",\"count\":2,\"busy\":0,\"sharedWith\":[]}"
      },
      "changes": [],
      "live": [
@@ -14909,7 +16771,7 @@
       "method": "GET",
       "id": "wks_other"
      },
-     "now": 978307368168,
+     "now": 978307380180,
      "got": {
       "status": 200,
       "type": "application/json",

@@ -491,8 +491,25 @@ mod tests {
         );
         assert_eq!(encode_uri_component(&lone(0xD800).to_string()), None);
         assert_eq!(decode_uri_component("%C3%A9%41").as_deref(), Some("éA"));
-        assert_eq!(decode_uri_component("%ED%A0%80"), None);
-        assert_eq!(decode_uri_component("%"), None);
-        assert_eq!(decode_uri_component("%C0%80"), None);
+        assert_eq!(decode_uri_component("a%20b").as_deref(), Some("a b"));
+        assert_eq!(decode_uri_component("%F0%9F%98%80").as_deref(), Some("😀"));
+        assert_eq!(decode_uri_component("%2F%3b").as_deref(), Some("/;"));
+        assert_eq!(decode_uri_component("ÿ%41").as_deref(), Some("ÿA"));
+        for bad in [
+            "%",
+            "%4",
+            "%zz",
+            "%C3",
+            "%C3x",
+            "%C3%41",
+            "%C0%80",
+            "%ED%A0%80",
+            "%80",
+            "%FF",
+            "a%F4%90%80%80",
+            "%é1",
+        ] {
+            assert_eq!(decode_uri_component(bad), None, "{bad}");
+        }
     }
 }

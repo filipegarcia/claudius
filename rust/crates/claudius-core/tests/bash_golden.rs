@@ -2,8 +2,11 @@
 //! `rust/scripts/bash-golden.mjs` from the TS `BashSession`) against
 //! [`BashSession`]: the same steps on one shell each, with the same env, and
 //! every command must settle the same way (`$TMP` for the cwd, outputs over
-//! 1000 UTF-16 units summarized as {len, head, tail}). The route half of the
-//! fixture is replayed by `claudius-server/tests/bash.rs`.
+//! 1000 UTF-16 units summarized as {len, head, tail}). A `gone` step polls
+//! the pids its command printed, which is how the SIGKILL escalation shows
+//! (CC 2.1.300): a background job that ignores SIGTERM is gone anyway, and
+//! the pids are rewritten to `<pid>` because they aren't deterministic. The
+//! route half of the fixture is replayed by `claudius-server/tests/bash.rs`.
 #![cfg(unix)]
 
 use std::collections::HashMap;
@@ -60,6 +63,41 @@ fn timeout_of(step: &Value, i: usize) -> Duration {
     )
 }
 
+/// The recorder's `gone` step: read the pids `from`'s stdout printed, blank
+/// them out of that recorded result, then poll until none is alive or the
+/// time is up.
+async fn gone(results: &mut [Value], from: &str, within: Duration) -> Value {
+    let src = results
+        .iter_mut()
+        .find(|r| r["label"] == from)
+        .expect("a result to read pids from");
+    let stdout = src["result"]["stdout"].as_str().expect("text").to_owned();
+    let pids: Vec<u32> = stdout
+        .split_whitespace()
+        .map(|p| p.parse().expect("a pid"))
+        .collect();
+    assert!(!pids.is_empty(), "no pids in {stdout:?}");
+    // One `<pid>` per run of digits, as the recorder's `/\d+/g`.
+    let mut blanked = String::new();
+    let mut digits = false;
+    for c in stdout.chars() {
+        if c.is_ascii_digit() {
+            if !digits {
+                blanked.push_str("<pid>");
+            }
+        } else {
+            blanked.push(c);
+        }
+        digits = c.is_ascii_digit();
+    }
+    src["result"]["stdout"] = json!(blanked);
+    let deadline = std::time::Instant::now() + within;
+    while pids.iter().any(|&p| alive(p)) && std::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    json!({"gone": !pids.iter().any(|&p| alive(p)), "pids": pids.len()})
+}
+
 async fn replay(sc: Value) -> (String, Vec<Value>) {
     let name = sc["name"].as_str().unwrap().to_owned();
     let tmp = tempfile::tempdir().unwrap();
@@ -105,6 +143,12 @@ async fn replay(sc: Value) -> (String, Vec<Value>) {
             }
             "sleep" => tokio::time::sleep(Duration::from_millis(step[1].as_u64().unwrap())).await,
             "dispose" => bash.dispose(),
+            "gone" => {
+                let from = step[2].as_str().unwrap().to_owned();
+                let within = Duration::from_millis(step[3].as_u64().unwrap());
+                let result = gone(&mut results, &from, within).await;
+                results.push(json!({"label": label.unwrap(), "result": result}));
+            }
             _ => panic!("{name}: unknown step {op}"),
         }
     }

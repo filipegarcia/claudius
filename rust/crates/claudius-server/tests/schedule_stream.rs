@@ -14,7 +14,8 @@
 //!   what it had then (it may be further along, never off the recorded
 //!   text). A recorded run id `00000000-0000-4000-8000-<n>` is the `n`th run
 //!   started, wherever it shows up.
-//! - `loops`: one server without the scheduler (and `CLAUDIUS_DEV=1` for
+//! - `loops`: one server without the scheduler (`CLAUDIUS_SCHEDULER=0`, as
+//!   it is on by default since G07d; and `CLAUDIUS_DEV=1` for
 //!   `dev-reap`, the recorder's `sessionManager.remove`), with live fake-CLI
 //!   sessions made over `/api/sessions` (fresh, or resuming the recorded
 //!   transcripts). Each step's answer (status, content type, body; a throw is
@@ -908,8 +909,9 @@ fn the_session_loops_replay_the_ts_handlers() {
         )
         .unwrap();
     }
-    // No scheduler: the loops are answered all the same.
-    let server = world.spawn(&[("CLAUDIUS_DEV", "1")]);
+    // No scheduler (on by default since G07d): the loops are answered all
+    // the same.
+    let server = world.spawn(&[("CLAUDIUS_DEV", "1"), ("CLAUDIUS_SCHEDULER", "0")]);
     let mut rp = LoopReplay {
         world: &world,
         port: server.port,

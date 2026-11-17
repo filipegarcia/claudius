@@ -48,11 +48,11 @@
   },
   {
    "text": "(ultrathink)",
-   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+   "body": null
   },
   {
    "text": "ultrathink-mode",
-   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+   "body": null
   },
   {
    "text": "say ultrathink\nthen stop",
@@ -136,6 +136,298 @@
   },
   {
    "text": "",
+   "body": null
+  },
+  {
+   "text": "`ultrathink`",
+   "body": null
+  },
+  {
+   "text": "\"ultrathink\"",
+   "body": null
+  },
+  {
+   "text": "[ultrathink]",
+   "body": null
+  },
+  {
+   "text": "{ultrathink}",
+   "body": null
+  },
+  {
+   "text": "<ultrathink>",
+   "body": null
+  },
+  {
+   "text": "<b>ultrathink</b>",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "</b> ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "< ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "1 < 2 ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "(quoted) ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "(ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "`ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "[[ultrathink]]",
+   "body": null
+  },
+  {
+   "text": "[a[ultrathink]]",
+   "body": null
+  },
+  {
+   "text": "[a]ultrathink[b]",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "'ultrathink'",
+   "body": null
+  },
+  {
+   "text": "don't ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "it's ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "x'ultrathink'y",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "o'ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "'ultrathink'x",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "docs/ultrathink.md",
+   "body": null
+  },
+  {
+   "text": "ultrathink/x",
+   "body": null
+  },
+  {
+   "text": "C:\\ultrathink\\x",
+   "body": null
+  },
+  {
+   "text": "--ultrathink-mode",
+   "body": null
+  },
+  {
+   "text": "ultrathink-",
+   "body": null
+  },
+  {
+   "text": "-ultrathink",
+   "body": null
+  },
+  {
+   "text": "ultrathink?",
+   "body": null
+  },
+  {
+   "text": "ultrathink.md",
+   "body": null
+  },
+  {
+   "text": "ultrathink. md",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink.é",
+   "body": null
+  },
+  {
+   "text": "ultrathink.٣",
+   "body": null
+  },
+  {
+   "text": "ultrathink._",
+   "body": null
+  },
+  {
+   "text": "/compact ultrathink",
+   "body": null
+  },
+  {
+   "text": "/ultrathink",
+   "body": null
+  },
+  {
+   "text": "`ultrathink` and ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink and `ultrathink`",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "😀ultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink😀",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "\ud83dultrathink",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink\ud83d",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink.😀",
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  }
+ ],
+ "ultrathinkPastes": [
+  {
+   "text": "look: ultrathink",
+   "pastes": [
+    "ultrathink"
+   ],
+   "body": null
+  },
+  {
+   "text": "ultrathink and look: paste",
+   "pastes": [
+    "paste"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "(x) ultrathink",
+   "pastes": [
+    "(x)"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "pasted ultrathink twice ultrathink",
+   "pastes": [
+    "ultrathink twice ultrathink"
+   ],
+   "body": null
+  },
+  {
+   "text": "a ultrathink b ultrathink c",
+   "pastes": [
+    "ultrathink b"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "x",
+   "pastes": [
+    ""
+   ],
+   "body": null
+  },
+  {
+   "text": "ultrathink",
+   "pastes": [
+    ""
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink",
+   "pastes": [
+    5,
+    null,
+    {},
+    [],
+    true
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink",
+   "pastes": [
+    "nope"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "/x ultrathink",
+   "pastes": [
+    "/x"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink",
+   "pastes": [
+    "ultrathink",
+    "ultrathink"
+   ],
+   "body": null
+  },
+  {
+   "text": "say `ultrathink`",
+   "pastes": [
+    "`"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "😀 ultrathink",
+   "pastes": [
+    "😀"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "😀ultrathink",
+   "pastes": [
+    "\ude00ultrathink"
+   ],
+   "body": null
+  },
+  {
+   "text": "😀 ultrathink",
+   "pastes": [
+    "\ud83d"
+   ],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "ultrathink",
+   "pastes": [],
+   "body": "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants."
+  },
+  {
+   "text": "none here",
+   "pastes": [
+    "x"
+   ],
    "body": null
   }
  ],

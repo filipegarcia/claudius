@@ -8,16 +8,23 @@
 //! The callbacks here mirror the recorder's `wiredOptions()`: they echo what
 //! they were handed in the shape the TS callbacks see it, so a field the Rust
 //! context drops or renames shows up as a mismatch.
+//!
+//! The fixture's `redelivery` cases (R12) run one fake CLI each, whose
+//! `initialize` reply lists `pending_permission_requests` /
+//! `pending_user_dialog_requests`: each run must match the SDK's
+//! `initializationResult()`, host request, `canUseTool` calls, replies and
+//! the error the stream ended with.
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
 use claudius_agent::{
-    CanUseTool, ElicitationRequest, HookCallback, HookMatcher, McpServerConfig, OnElicitation,
-    Options, PermissionResult, Query, ToolDef, ToolOutput, ToolPermissionContext, ToolServer, js,
+    AgentError, CanUseTool, ElicitationRequest, HookCallback, HookMatcher, McpServerConfig,
+    OnElicitation, Options, PermissionResult, Query, ToolDef, ToolOutput, ToolPermissionContext,
+    ToolServer, js,
 };
 use indexmap::IndexMap;
 use serde_json::{Map, Value, json};
@@ -69,6 +76,7 @@ fn ctx_json(ctx: &ToolPermissionContext) -> Value {
     put(&mut m, "decisionReason", s(&ctx.decision_reason));
     put(&mut m, "decisionReasonType", s(&ctx.decision_reason_type));
     put(&mut m, "decisionReasonCode", s(&ctx.decision_reason_code));
+    put(&mut m, "serverPolicyAskOnly", b(ctx.server_policy_ask_only));
     put(&mut m, "title", s(&ctx.title));
     put(&mut m, "displayName", s(&ctx.display_name));
     put(&mut m, "description", s(&ctx.description));
@@ -115,7 +123,14 @@ fn elicitation_json(req: &ElicitationRequest) -> Value {
     Value::Object(m)
 }
 
-struct EchoPermission;
+/// The recorder's `canUseTool`. `calls` gets each call as the TS one logs
+/// it (`{requestId, toolName, input}`), and `{aborted: requestId}` once a
+/// `hold` call (which waits for its cancel) is aborted. `hold_slow` then
+/// takes another 100 ms to settle.
+#[derive(Default)]
+struct EchoPermission {
+    calls: Arc<Mutex<Vec<Value>>>,
+}
 
 #[async_trait]
 impl CanUseTool for EchoPermission {
@@ -125,7 +140,25 @@ impl CanUseTool for EchoPermission {
         input: Value,
         ctx: ToolPermissionContext,
     ) -> Option<PermissionResult> {
+        self.calls.lock().unwrap().push(
+            json!({"requestId": ctx.request_id, "toolName": tool_name, "input": input.clone()}),
+        );
         Some(match tool_name {
+            "hold" | "hold_slow" => {
+                ctx.cancel.cancelled().await;
+                self.calls
+                    .lock()
+                    .unwrap()
+                    .push(json!({"aborted": ctx.request_id}));
+                if tool_name == "hold_slow" {
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+                PermissionResult::allow(json!({
+                    "input": input,
+                    "ctx": ctx_json(&ctx),
+                    "aborted": ctx.cancel.is_cancelled(),
+                }))
+            }
             "silent" => return None,
             "deny" => PermissionResult::Deny {
                 message: format!("no {}", ctx.tool_use_id.as_deref().unwrap_or("undefined")),
@@ -204,21 +237,28 @@ fn echo_server() -> ToolServer {
     )
 }
 
-/// Runs the fixture script through the Rust `Query`; returns the replies by
-/// request id, as the fake CLI logged them.
-async fn replay(script: &Value, wired: bool) -> BTreeMap<String, Value> {
-    let tmp = tempfile::tempdir().unwrap();
-    let log = tmp.path().join("stdin.log");
+/// The recorder's `query()` options: the fake CLI on `script`, logging its
+/// stdin to `log`, plus `wiredOptions()` when `calls` is given.
+fn options(
+    dir: &Path,
+    log: &Path,
+    script: &Value,
+    calls: Option<Arc<Mutex<Vec<Value>>>>,
+) -> Options {
     let mut opts = Options {
         path_to_claude_code_executable: Some(PathBuf::from(env!(
             "CARGO_BIN_EXE_claudius-fake-claude"
         ))),
-        cwd: Some(tmp.path().to_path_buf()),
+        cwd: Some(dir.to_path_buf()),
         env: Some(
             [
                 ("PATH", "/usr/bin:/bin".to_owned()),
-                ("HOME", tmp.path().display().to_string()),
+                ("HOME", dir.display().to_string()),
                 ("FAKE_CLAUDE_LOG", log.display().to_string()),
+                (
+                    "FAKE_CLAUDE_EVENTS",
+                    dir.join("events.log").display().to_string(),
+                ),
                 ("FAKE_CLAUDE_SCRIPT", script.to_string()),
             ]
             .into_iter()
@@ -227,8 +267,8 @@ async fn replay(script: &Value, wired: bool) -> BTreeMap<String, Value> {
         ),
         ..Default::default()
     };
-    if wired {
-        opts.can_use_tool = Some(Arc::new(EchoPermission));
+    if let Some(calls) = calls {
+        opts.can_use_tool = Some(Arc::new(EchoPermission { calls }));
         opts.on_elicitation = Some(Arc::new(EchoElicitation));
         opts.hooks = IndexMap::from([(
             "PreToolUse".to_owned(),
@@ -237,6 +277,15 @@ async fn replay(script: &Value, wired: bool) -> BTreeMap<String, Value> {
         opts.mcp_servers
             .insert("srv".into(), McpServerConfig::Sdk(Arc::new(echo_server())));
     }
+    opts
+}
+
+/// Runs the fixture script through the Rust `Query`; returns the replies by
+/// request id, as the fake CLI logged them.
+async fn replay(script: &Value, wired: bool) -> BTreeMap<String, Value> {
+    let tmp = tempfile::tempdir().unwrap();
+    let log = tmp.path().join("stdin.log");
+    let opts = options(tmp.path(), &log, script, wired.then(Default::default));
     let mut q = Query::spawn(opts).await.unwrap();
     // The fake exits 0 once it has collected the replies.
     loop {
@@ -327,4 +376,254 @@ fn fixture_covers_every_sdk_subtype() {
     assert!(expected.len() >= 17, "snapshot lists only {expected:?}");
     let missing: Vec<&str> = expected.into_iter().filter(|s| !sent.contains(s)).collect();
     assert!(missing.is_empty(), "not recorded: {missing:?}");
+}
+
+/// Redelivery cases the Rust `Query` must still get wrong, with why. A
+/// `control_request` without a string `request_id` is dropped (PORT_PLAN
+/// "SDK host gaps"), where the SDK answers it with that id, or none.
+const REDELIVERY_GAPS: &[(&str, &str)] = &[(
+    "odd_request_ids",
+    "a redelivered request whose request_id isn't a string is dropped",
+)];
+
+/// `e`'s message. A V8 `TypeError` message (the reader threw walking the
+/// lists) must come as [`AgentError::TypeError`], to the stream and to
+/// every waiter, not as a CLI error reply.
+fn error_text(e: &AgentError) -> String {
+    let text = e.to_string();
+    if text.starts_with("Cannot read properties of ") || text.ends_with(" is not iterable") {
+        assert!(
+            matches!(e, AgentError::TypeError(_)),
+            "{text:?} isn't a TypeError: {e:?}"
+        );
+    }
+    text
+}
+
+/// One redelivery run in the fixture's shape: `{init, host?, messages,
+/// calls?, replies, end, eof}`. `calls` waits for `want_aborts` aborts, as a `hold` call
+/// logs its abort from its own task.
+async fn replay_redelivery(case: &Value, wired: bool, want_aborts: usize) -> Value {
+    let tmp = tempfile::tempdir().unwrap();
+    let log = tmp.path().join("stdin.log");
+    let calls: Arc<Mutex<Vec<Value>>> = Default::default();
+    let opts = options(
+        tmp.path(),
+        &log,
+        &case["script"],
+        wired.then(|| calls.clone()),
+    );
+    let mut q = Query::spawn(opts).await.unwrap();
+    let h = q.handle();
+    let host = match case["host"].as_str() {
+        None => None,
+        // Sent right away: polled once here, so it's waiting before the
+        // `initialize` reply can be read (`request()` registers it
+        // synchronously).
+        Some("set_permission_mode_early") => {
+            let h = h.clone();
+            let mut fut = Box::pin(async move { h.set_permission_mode("default").await });
+            let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+            Some(match fut.as_mut().poll(&mut cx) {
+                std::task::Poll::Ready(r) => tokio::spawn(async move { r }),
+                std::task::Poll::Pending => tokio::spawn(fut),
+            })
+        }
+        Some("set_permission_mode") => {
+            let h = h.clone();
+            Some(tokio::spawn(async move {
+                h.initialization_result().await?;
+                h.set_permission_mode("default").await
+            }))
+        }
+        Some("set_permission_mode_after") => None,
+        Some(other) => panic!("unknown host request {other}"),
+    };
+    let mut end = Value::Null;
+    let mut messages = Vec::new();
+    loop {
+        match tokio::time::timeout(Duration::from_secs(30), q.next())
+            .await
+            .expect("the stream never ended")
+        {
+            None => break,
+            Some(Ok(msg)) => {
+                let ty = js::to_string(msg.get("type"));
+                messages.push(match msg.get("subtype") {
+                    Some(st) => json!(format!("{ty}/{}", js::to_string(Some(st)))),
+                    None => json!(ty),
+                });
+            }
+            Some(Err(e)) => {
+                assert!(end.is_null(), "two stream errors: {end} and {e}");
+                end = json!(error_text(&e));
+            }
+        }
+    }
+    let outcome = |r: Result<(), AgentError>| match r {
+        Ok(()) => json!("ok"),
+        Err(e) => json!({"error": error_text(&e)}),
+    };
+    let init = outcome(
+        tokio::time::timeout(Duration::from_secs(30), h.initialization_result())
+            .await
+            .expect("initialize never settled")
+            .map(|_| ()),
+    );
+    let host = match (host, case["host"].as_str()) {
+        (None, Some("set_permission_mode_after")) => {
+            let r = tokio::time::timeout(Duration::from_secs(30), h.set_permission_mode("default"))
+                .await
+                .expect("the host request never settled");
+            Some(outcome(r))
+        }
+        (Some(task), _) => Some(outcome(
+            tokio::time::timeout(Duration::from_secs(30), task)
+                .await
+                .expect("the host request never settled")
+                .unwrap(),
+        )),
+        (None, _) => None,
+    };
+    tokio::time::timeout(Duration::from_secs(30), h.wait_exit())
+        .await
+        .expect("the fake CLI never exited");
+    let eof = std::fs::read_to_string(tmp.path().join("events.log"))
+        .is_ok_and(|events| events.contains("\"eof\""));
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+    let aborts = || {
+        calls
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|c| c.get("aborted").is_some())
+            .count()
+    };
+    while aborts() < want_aborts && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let mut replies: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    for line in std::fs::read_to_string(&log).unwrap().lines() {
+        let msg: Value = serde_json::from_str(line).unwrap();
+        if msg["type"] != "control_response" {
+            continue;
+        }
+        let key = match msg["response"].get("request_id") {
+            Some(Value::String(id)) => id.clone(),
+            Some(id) => format!("#{}", js::stringify(id)),
+            None => "#undefined".to_owned(),
+        };
+        replies
+            .entry(key)
+            .or_default()
+            .push(msg["response"].clone());
+    }
+    let mut run = Map::new();
+    run.insert("init".into(), init);
+    if let Some(host) = host {
+        run.insert("host".into(), host);
+    }
+    run.insert("messages".into(), Value::Array(messages));
+    if wired {
+        run.insert("calls".into(), Value::Array(calls.lock().unwrap().clone()));
+    }
+    run.insert("replies".into(), json!(replies));
+    run.insert("end".into(), end);
+    run.insert("eof".into(), json!(eof));
+    Value::Object(run)
+}
+
+/// A run with what's ordered only by scheduling put in a fixed order: each
+/// request's replies, and the `hold` aborts (each is logged by the woken
+/// callback's own task). The other calls keep their order, which is the
+/// order the requests were read in.
+fn normalize(run: &Value) -> Value {
+    let sorted = |mut v: Vec<Value>| {
+        v.sort_by_key(js::stringify);
+        Value::Array(v)
+    };
+    let mut run = run.clone();
+    if let Some(Value::Array(calls)) = run.get("calls").cloned() {
+        let (aborts, calls): (Vec<Value>, Vec<Value>) =
+            calls.into_iter().partition(|c| c.get("aborted").is_some());
+        run["calls"] = Value::Array(calls);
+        run["aborts"] = sorted(aborts);
+    }
+    if let Some(Value::Object(replies)) = run.get("replies").cloned() {
+        run["replies"] = Value::Object(
+            replies
+                .into_iter()
+                .map(|(k, v)| (k, sorted(v.as_array().cloned().unwrap_or_default())))
+                .collect(),
+        );
+    }
+    run
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn redelivered_prompts_match_the_sdk() {
+    use futures::StreamExt;
+    let fx = fixture();
+    let cases = fx["redelivery"].as_array().unwrap();
+    let runs: Vec<(&Value, &str, &Value)> = cases
+        .iter()
+        .flat_map(|case| {
+            case["recorded"]
+                .as_object()
+                .unwrap()
+                .iter()
+                .map(move |(setup, want)| (case, setup.as_str(), want))
+        })
+        .collect();
+    let results: Vec<_> =
+        futures::stream::iter(runs.iter().map(|&(case, setup, want)| async move {
+            let want_aborts = want.get("calls").and_then(Value::as_array).map_or(0, |c| {
+                c.iter().filter(|c| c.get("aborted").is_some()).count()
+            });
+            let got = replay_redelivery(case, setup == "wired", want_aborts).await;
+            (case["name"].as_str().unwrap(), setup, want, got)
+        }))
+        .buffer_unordered(8)
+        .collect()
+        .await;
+    let mut failures = Vec::new();
+    let mut gaps_seen = Vec::new();
+    for (name, setup, want, got) in results {
+        let (want, got) = (
+            js::stringify(&normalize(want)),
+            js::stringify(&normalize(&got)),
+        );
+        if REDELIVERY_GAPS.iter().any(|(g, _)| *g == name) {
+            assert_ne!(
+                want, got,
+                "{name}/{setup} now matches the SDK: drop it from REDELIVERY_GAPS"
+            );
+            gaps_seen.push(name);
+        } else if want != got {
+            failures.push(format!("{name}/{setup}:\n  sdk:  {want}\n  rust: {got}"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    for (gap, _) in REDELIVERY_GAPS {
+        assert!(
+            gaps_seen.contains(gap),
+            "REDELIVERY_GAPS entry {gap} isn't in the fixture"
+        );
+    }
+    assert!(
+        runs.len() >= 40,
+        "fixture has only {} redelivery runs",
+        runs.len()
+    );
+    let threw = cases
+        .iter()
+        .filter(|c| {
+            c["recorded"]
+                .as_object()
+                .unwrap()
+                .values()
+                .any(|r| r["end"].is_string())
+        })
+        .count();
+    assert!(threw >= 10, "only {threw} redelivery cases end the stream");
 }

@@ -1,0 +1,1332 @@
+{
+ "sdkVersion": "0.3.312",
+ "cases": [
+  {
+   "name": "typed options",
+   "body": {
+    "cwd": "$CASE",
+    "model": "claude-opus-4-5",
+    "maxTurns": 3,
+    "maxBudgetUsd": 1.5,
+    "taskBudgetTokens": 2048,
+    "agent": "builder"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/0",
+    "model": "claude-opus-4-5"
+   },
+   "flags": [
+    "--max-turns=3",
+    "--max-budget-usd=1.5",
+    "--task-budget=2048",
+    "--model=claude-opus-4-5",
+    "--agent=builder",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID",
+     "agent": "builder"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID",
+     "agent": "builder"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "string numbers are dropped",
+   "body": {
+    "cwd": "$CASE",
+    "maxTurns": "5",
+    "maxBudgetUsd": "1.5",
+    "taskBudgetTokens": "2048"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/1"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "bool and null numbers are dropped",
+   "body": {
+    "cwd": "$CASE",
+    "maxTurns": true,
+    "maxBudgetUsd": null,
+    "taskBudgetTokens": [
+     8
+    ]
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/2"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "huge and negative numbers",
+   "body": {
+    "cwd": "$CASE",
+    "maxTurns": 1e+21,
+    "maxBudgetUsd": -1,
+    "taskBudgetTokens": 0.5
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/3"
+   },
+   "flags": [
+    "--max-turns=1e+21",
+    "--task-budget=0.5",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number model",
+   "body": {
+    "cwd": "$CASE",
+    "model": 5
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/4",
+    "model": 5
+   },
+   "flags": [
+    "--model=5",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "falsy number model",
+   "body": {
+    "cwd": "$CASE",
+    "model": 0
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/5",
+    "model": 0
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "array model",
+   "body": {
+    "cwd": "$CASE",
+    "model": [
+     "claude-opus-4-5",
+     null,
+     5
+    ]
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/6",
+    "model": [
+     "claude-opus-4-5",
+     null,
+     5
+    ]
+   },
+   "flags": [
+    "--model=claude-opus-4-5,,5",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "object model",
+   "body": {
+    "cwd": "$CASE",
+    "model": {
+     "a": 1
+    }
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/7",
+    "model": {
+     "a": 1
+    }
+   },
+   "flags": [
+    "--model=[object Object]",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number agent and fallback",
+   "body": {
+    "cwd": "$CASE",
+    "agent": 7,
+    "fallbackModel": 7
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/8"
+   },
+   "flags": [
+    "--agent=7",
+    "--permission-mode=default",
+    "--fallback-model=7",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID",
+     "agent": 7,
+     "fallbackModel": 7
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID",
+     "agent": 7,
+     "fallbackModel": 7
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "fallback equal to the model",
+   "body": {
+    "cwd": "$CASE",
+    "model": "m",
+    "fallbackModel": "m"
+   },
+   "status": 500,
+   "response": {
+    "error": "Fallback model cannot be the same as the main model. Please specify a different model for fallbackModel option.",
+    "name": "Error"
+   },
+   "flags": null,
+   "initConfig": null,
+   "restrictedEnv": null,
+   "ready": [],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "fallback equal as text",
+   "body": {
+    "cwd": "$CASE",
+    "model": 5,
+    "fallbackModel": "5"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/10",
+    "model": 5
+   },
+   "flags": [
+    "--model=5",
+    "--permission-mode=default",
+    "--fallback-model=5",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID",
+     "fallbackModel": "5"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID",
+     "fallbackModel": "5"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number plan instructions",
+   "body": {
+    "cwd": "$CASE",
+    "planModeInstructions": 5
+   },
+   "status": 500,
+   "response": {
+    "error": "this.planModeInstructions.trim is not a function",
+    "name": "TypeError"
+   },
+   "flags": null,
+   "initConfig": null,
+   "restrictedEnv": null,
+   "ready": [],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "blank plan instructions",
+   "body": {
+    "cwd": "$CASE",
+    "planModeInstructions": " \t\n"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/12"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number prompt append",
+   "body": {
+    "cwd": "$CASE",
+    "systemPromptAppend": 5
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/13"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "padded prompt append",
+   "body": {
+    "cwd": "$CASE",
+    "systemPromptAppend": "  house style  "
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/14"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": null,
+    "appendSystemPrompt": "house style",
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "string additional directories",
+   "body": {
+    "cwd": "$CASE",
+    "additionalDirectories": "a😀b"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/15"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--add-dir=a",
+    "--add-dir=😀",
+    "--add-dir=b",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number additional directories",
+   "body": {
+    "cwd": "$CASE",
+    "additionalDirectories": 5
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/16"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "object additional directories",
+   "body": {
+    "cwd": "$CASE",
+    "additionalDirectories": {
+     "a": "/tmp"
+    }
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/17"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "empty additional directories",
+   "body": {
+    "cwd": "$CASE",
+    "additionalDirectories": []
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/18"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "truthy sandbox strings",
+   "body": {
+    "cwd": "$CASE",
+    "sandboxEnabled": "yes",
+    "sandboxFilesystemDisabled": "x",
+    "sandboxNetworkAllowedDomains": "abc",
+    "sandboxNetworkStrictAllowlist": 0
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/19"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID",
+    "--settings",
+    "{\"sandbox\":{\"enabled\":true,\"autoAllowBashIfSandboxed\":true,\"failIfUnavailable\":false,\"filesystem\":{\"disabled\":true},\"network\":{\"allowedDomains\":\"abc\"}}}"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "sandbox with a strict empty list",
+   "body": {
+    "cwd": "$CASE",
+    "sandboxEnabled": 1,
+    "sandboxNetworkAllowedDomains": [],
+    "sandboxNetworkStrictAllowlist": "y"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/20"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID",
+    "--settings",
+    "{\"sandbox\":{\"enabled\":true,\"autoAllowBashIfSandboxed\":true,\"failIfUnavailable\":false,\"network\":{\"strictAllowlist\":true}}}"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "falsy sandbox",
+   "body": {
+    "cwd": "$CASE",
+    "sandboxEnabled": 0,
+    "sandboxFilesystemDisabled": true,
+    "sandboxNetworkStrictAllowlist": true
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/21"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "persist session zero",
+   "body": {
+    "cwd": "$CASE",
+    "persistSession": 0,
+    "enable1mContext": "x"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/22"
+   },
+   "flags": [
+    "--betas=context-1m-2025-08-07",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "persist session false",
+   "body": {
+    "cwd": "$CASE",
+    "persistSession": false,
+    "enable1mContext": 0
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/23"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID",
+    "--no-session-persistence"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "restricted mode one",
+   "body": {
+    "cwd": "$CASE",
+    "restrictedMode": 1,
+    "permissionMode": "bypassPermissions"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/24"
+   },
+   "flags": [
+    "--disallowedTools=Bash,BashOutput,Monitor,TaskStop,WebFetch",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": "1",
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number permission mode",
+   "body": {
+    "cwd": "$CASE",
+    "permissionMode": 5,
+    "restrictedMode": ""
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/25"
+   },
+   "flags": [
+    "--permission-mode=5",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number resume session at",
+   "body": {
+    "cwd": "$CASE",
+    "resumeSessionAt": 5
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/26"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--resume-session-at=5",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number cwd",
+   "body": {
+    "cwd": 5
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$PROC"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "blank cwd",
+   "body": {
+    "cwd": " "
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$PROC"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "empty cwd",
+   "body": {
+    "cwd": ""
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/0"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "object cwd",
+   "body": {
+    "cwd": {
+     "path": "/tmp"
+    }
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$PROC"
+   },
+   "flags": [
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "unknown cwd",
+   "body": {
+    "cwd": "/nope/nowhere"
+   },
+   "status": 400,
+   "response": {
+    "error": "unknown cwd"
+   },
+   "flags": null,
+   "initConfig": null,
+   "restrictedEnv": null,
+   "ready": [],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "model without a primitive",
+   "body": {
+    "cwd": "$CASE",
+    "model": {
+     "toString": 1
+    }
+   },
+   "status": 500,
+   "response": {
+    "error": "Cannot convert object to primitive value",
+    "name": "TypeError"
+   },
+   "flags": null,
+   "initConfig": null,
+   "restrictedEnv": null,
+   "ready": [],
+   "rejections": [],
+   "settings": null,
+   "settingsAfter": null
+  },
+  {
+   "name": "number model with an advisor",
+   "body": {
+    "cwd": "$CASE",
+    "model": 5
+   },
+   "status": 500,
+   "response": {
+    "error": "this.model?.includes is not a function",
+    "name": "TypeError"
+   },
+   "flags": null,
+   "initConfig": null,
+   "restrictedEnv": null,
+   "ready": [],
+   "rejections": [],
+   "settings": "{\n  \"advisorModel\": \"opus\"\n}\n",
+   "settingsAfter": "{\n  \"advisorModel\": \"opus\"\n}\n"
+  },
+  {
+   "name": "array model with an advisor",
+   "body": {
+    "cwd": "$CASE",
+    "model": [
+     "fable"
+    ]
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/34",
+    "model": [
+     "fable"
+    ]
+   },
+   "flags": [
+    "--model=fable",
+    "--permission-mode=default",
+    "--session-id=$ID"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": "{\n  \"advisorModel\": \"opus\"\n}\n",
+   "settingsAfter": "{}\n"
+  },
+  {
+   "name": "other model keeps the advisor",
+   "body": {
+    "cwd": "$CASE",
+    "model": "claude-opus-4-5"
+   },
+   "status": 200,
+   "response": {
+    "id": "$ID",
+    "cwd": "$ROOT/cases/35",
+    "model": "claude-opus-4-5"
+   },
+   "flags": [
+    "--model=claude-opus-4-5",
+    "--permission-mode=default",
+    "--session-id=$ID",
+    "--settings",
+    "{\"advisorModel\":\"opus\"}"
+   ],
+   "initConfig": {
+    "systemPrompt": [
+     ""
+    ],
+    "appendSystemPrompt": null,
+    "planModeInstructions": null
+   },
+   "restrictedEnv": null,
+   "ready": [
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    },
+    {
+     "type": "ready",
+     "sessionId": "$ID"
+    }
+   ],
+   "rejections": [],
+   "settings": "{\n  \"advisorModel\": \"opus\"\n}\n",
+   "settingsAfter": "{\n  \"advisorModel\": \"opus\"\n}\n"
+  }
+ ]
+}

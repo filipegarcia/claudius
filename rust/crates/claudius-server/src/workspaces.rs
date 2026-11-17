@@ -135,13 +135,20 @@ pub fn parse_cookie_header(header: &str) -> Vec<(String, String)> {
     out
 }
 
+/// `cookies().get(name)?.value` on [`request_cookies`]' entries (each name
+/// is there once, with its last value).
+pub fn cookie<'a>(cookies: &'a [(String, String)], name: &str) -> Option<&'a str> {
+    cookies
+        .iter()
+        .find(|(n, _)| n == name)
+        .map(|(_, v)| v.as_str())
+}
+
 /// `readActiveCookie`: the `claudius.workspace` value, unless empty.
 pub fn read_active_cookie(headers: &HeaderMap) -> Option<String> {
-    request_cookies(headers)
-        .into_iter()
-        .find(|(n, _)| n == COOKIE)
-        .map(|(_, v)| v)
+    cookie(&request_cookies(headers), COOKIE)
         .filter(|v| !v.is_empty())
+        .map(str::to_owned)
 }
 
 /// `Date.prototype.toUTCString`: `Thu, 01 Jan 1970 00:00:00 GMT`.
@@ -624,6 +631,54 @@ mod tests {
         );
         assert_eq!(utc_string(951_782_400_000), "Tue, 29 Feb 2000 00:00:00 GMT");
         assert_eq!(utc_string(-1), "Wed, 31 Dec 1969 23:59:59 GMT");
+    }
+
+    #[test]
+    fn repeated_cookie_headers_join_and_read_as_latin1() {
+        let mut h = HeaderMap::new();
+        h.append(header::COOKIE, HeaderValue::from_static("a=1"));
+        h.append(
+            header::COOKIE,
+            HeaderValue::from_bytes(b"b=\xe9%C3%A9; a=2").unwrap(),
+        );
+        let cookies = request_cookies(&h);
+        assert_eq!(
+            cookies,
+            [
+                ("a".to_owned(), "2".to_owned()),
+                ("b".to_owned(), "\u{e9}\u{e9}".to_owned()),
+            ]
+        );
+        assert_eq!(cookie(&cookies, "a"), Some("2"));
+        assert_eq!(cookie(&cookies, "c"), None);
+        assert!(request_cookies(&HeaderMap::new()).is_empty());
+    }
+
+    #[test]
+    fn cookie_pairs_keep_first_place_and_last_value() {
+        assert_eq!(
+            parse_cookie_header(" a=1;b;  a=%32 ;; c=%zz; d= x"),
+            [
+                ("a".to_owned(), "2 ".to_owned()),
+                ("b".to_owned(), "true".to_owned()),
+                ("d".to_owned(), " x".to_owned()),
+            ]
+        );
+        assert!(parse_cookie_header(" \t").is_empty());
+    }
+
+    #[test]
+    fn active_cookie_skips_an_empty_value() {
+        let mut h = HeaderMap::new();
+        h.insert(header::COOKIE, "claudius.workspace=; x=1".parse().unwrap());
+        assert_eq!(read_active_cookie(&h), None);
+        h.insert(
+            header::COOKIE,
+            "claudius.workspace=w; claudius.workspace=%77s"
+                .parse()
+                .unwrap(),
+        );
+        assert_eq!(read_active_cookie(&h).as_deref(), Some("ws"));
     }
 
     #[test]

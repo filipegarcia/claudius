@@ -1,7 +1,8 @@
 //! The disk-only session routes beside `/api/sessions/:id/*` (D19), ports
 //! of `app/api/sessions/`:
 //!
-//! - `GET all` (`all/route.ts`): the SDK's listing plus the DB-only rows,
+//! - `GET all` (`all/route.ts`): the SDK's listing plus the DB-only rows
+//!   history shows (CC 2.1.309: an untitled one only while it is live),
 //!   with Claudius titles and account pins ([`sessions_all::list_all`]);
 //!   `?dir=` scopes it, `?limit=` is `Number(…) || 200`. A throw from the
 //!   rows or titles is `500 {error}`.
@@ -26,7 +27,7 @@
 //! its disk and database work off the async runtime.
 
 use axum::Router;
-use axum::extract::{Path, RawQuery};
+use axum::extract::{Path, RawQuery, State};
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get};
@@ -66,10 +67,14 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> 
     tokio::task::spawn_blocking(f).await.ok()
 }
 
-async fn all(RawQuery(query): RawQuery) -> Response {
+async fn all(State(app): State<AppState>, RawQuery(query): RawQuery) -> Response {
     let dir = dir_param(query.as_deref());
     let limit = sessions_all::limit_param(search_param(query.as_deref(), "limit").as_deref());
-    match blocking(move || sessions_all::list_all(dir.as_deref(), limit)).await {
+    // CC 2.1.309: `(id) => sessionManager.get(id) !== undefined` keeps an
+    // untitled DB-only row out of history unless its tab is still open.
+    let mgr = app.mgr.clone();
+    let live = move |id: &str| mgr.get(id).is_some();
+    match blocking(move || sessions_all::list_all(dir.as_deref(), limit, &live)).await {
         Some(Ok(body)) => json_text(StatusCode::OK, &body),
         Some(Err(error)) => json_text(
             StatusCode::INTERNAL_SERVER_ERROR,

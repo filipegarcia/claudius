@@ -14,8 +14,8 @@
 // - `Session.trackScheduledLoops` (the real prototype method on a bare
 //   session object, `Date.now` stubbed) over scripted SDK messages: after
 //   each step, `getScheduledLoops()`, the pending CronCreate entries, the
-//   in-flight CronList ids, the applied wake-up stops, the tick ids awaiting
-//   their turn's usage, and the session's `loop_ticks` rows.
+//   applied wake-up stops, the tick ids awaiting their turn's usage, and the
+//   session's `loop_ticks` rows.
 //
 // Written to rust/crates/claudius-core/tests/fixtures/loops_golden.json and
 // replayed by crates/claudius-core/tests/loops_golden.rs (the database half)
@@ -172,7 +172,6 @@ function bareSession(id, title) {
     title,
     scheduledLoops: new Map(),
     pendingScheduledLoops: new Map(),
-    pendingCronListIds: new Set(),
     appliedWakeupStops: new Set(),
     pendingLoopTickAttribution: [],
   });
@@ -342,6 +341,48 @@ const SCENARIOS = [
     ],
   },
   {
+    // SDK 0.3.299 / CC 2.1.311 \u2014 `nextFireAt` comes from the CronCreate
+    // result's own `tool_use_result` only (the CronList refresh is gone).
+    name: "cron-next-fire",
+    title: "Next fire",
+    steps: [
+      {
+        clock: 900,
+        message: assistant(
+          tu("n1", "CronCreate", { cron: "1 * * * *", prompt: "a" }),
+          tu("n2", "CronCreate", { cron: "2 * * * *", prompt: "b" }),
+          tu("n3", "CronCreate", { cron: "3 * * * *", prompt: "c" }),
+          tu("n4", "CronCreate", { cron: "4 * * * *", prompt: "d" }),
+          tu("n5", "CronCreate", { cron: "5 * * * *", prompt: "e" }),
+          tu("n6", "CronCreate", { cron: "6 * * * *", prompt: "f" }),
+          tu("n7", "CronCreate", { cron: "7 * * * *", prompt: "g" }),
+        ),
+      },
+      // A positive finite number is taken; 0, negative, non-numeric,
+      // Infinity and NaN are not. One `tool_use_result` serves every
+      // tool_result in the message, as on the wire.
+      { clock: 910, message: user([tr("n1", "job nf1 (hourly)")], { nextFireAt: 1700000000000 }) },
+      { clock: 920, message: user([tr("n2", "job nf2 (hourly)")], { nextFireAt: 0 }) },
+      { clock: 930, message: user([tr("n3", "job nf3 (hourly)")], { nextFireAt: 1e400 }) },
+      { clock: 940, message: user([tr("n4", "job nf4 (hourly)")], { nextFireAt: NaN }) },
+      { clock: 950, message: user([tr("n5", "job nf5 (hourly)")], { nextFireAt: null }) },
+      // A non-object `tool_use_result`, and one with no such key.
+      { clock: 960, message: user([tr("n6", "job nf6 (hourly)")], "text") },
+      { clock: 970, message: user([tr("n7", "job nf7 (hourly)")], { other: 5 }) },
+      // A CronList afterwards changes nothing now.
+      { clock: 980, message: assistant(tu("n_list", "CronList", {})) },
+      {
+        clock: 990,
+        message: user([tr("n_list", "7 jobs")], {
+          jobs: [
+            { id: "nf1", nextFireAt: 42 },
+            { id: "nf2", nextFireAt: 99 },
+          ],
+        }),
+      },
+    ],
+  },
+  {
     name: "wakeup-chain",
     title: "Chain",
     steps: [
@@ -438,7 +479,6 @@ for (const sc of SCENARIOS) {
     after.push({
       loops: copy(s.getScheduledLoops()),
       pending: copy([...s.pendingScheduledLoops.values()]),
-      cronLists: [...s.pendingCronListIds],
       stops: [...s.appliedWakeupStops],
       attribution: [...s.pendingLoopTickAttribution],
       ticks: storedRows(sid),

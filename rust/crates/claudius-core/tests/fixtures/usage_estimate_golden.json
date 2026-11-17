@@ -7196,6 +7196,255 @@
    ]
   },
   {
+   "name": "the 5m / 1h cache-creation split accumulates",
+   "totals": {
+    "totalCostUsd": 0,
+    "numTurns": 0,
+    "durationMs": 0,
+    "durationApiMs": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0
+   },
+   "last": {
+    "totalCostUsd": 0,
+    "durationApiMs": 0
+   },
+   "messages": [
+    {
+     "type": "result",
+     "subtype": "success",
+     "total_cost_usd": 1,
+     "num_turns": 1,
+     "duration_ms": 0,
+     "duration_api_ms": 0,
+     "modelUsage": {
+      "m": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 100,
+       "webSearchRequests": 0,
+       "costUSD": 1,
+       "contextWindow": 200000,
+       "cacheCreationEphemeral5mInputTokens": 60,
+       "cacheCreationEphemeral1hInputTokens": 40
+      }
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "success",
+     "total_cost_usd": 2,
+     "num_turns": 1,
+     "duration_ms": 0,
+     "duration_api_ms": 0,
+     "modelUsage": {
+      "m": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 250,
+       "webSearchRequests": 0,
+       "costUSD": 2,
+       "contextWindow": 200000,
+       "cacheCreationEphemeral5mInputTokens": 150,
+       "cacheCreationEphemeral1hInputTokens": 100
+      }
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "success",
+     "total_cost_usd": 3,
+     "num_turns": 1,
+     "duration_ms": 0,
+     "duration_api_ms": 0,
+     "modelUsage": {
+      "m": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 300,
+       "webSearchRequests": 0,
+       "costUSD": 3,
+       "contextWindow": 200000,
+       "cacheCreationEphemeral5mInputTokens": 10,
+       "cacheCreationEphemeral1hInputTokens": 500
+      }
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "success",
+     "total_cost_usd": 4,
+     "num_turns": 1,
+     "duration_ms": 0,
+     "duration_api_ms": 0,
+     "modelUsage": {
+      "m": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 400,
+       "webSearchRequests": 0,
+       "costUSD": 4,
+       "contextWindow": 200000,
+       "cacheCreationEphemeral5mInputTokens": "20",
+       "cacheCreationEphemeral1hInputTokens": null
+      }
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "success",
+     "total_cost_usd": 5,
+     "num_turns": 1,
+     "duration_ms": 0,
+     "duration_api_ms": 0,
+     "modelUsage": {
+      "m": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 500,
+       "webSearchRequests": 0,
+       "costUSD": 5,
+       "contextWindow": 200000
+      }
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "success",
+     "total_cost_usd": 6,
+     "num_turns": 1,
+     "duration_ms": 0,
+     "duration_api_ms": 0,
+     "modelUsage": {
+      "m": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 500,
+       "webSearchRequests": 0,
+       "costUSD": 5,
+       "contextWindow": 200000
+      },
+      "h": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 7,
+       "webSearchRequests": 0,
+       "costUSD": 1,
+       "contextWindow": 200000,
+       "cacheCreationEphemeral1hInputTokens": 7
+      }
+     }
+    }
+   ],
+   "steps": [
+    {
+     "totals": "{\"totalCostUsd\":1,\"numTurns\":1,\"durationMs\":0,\"durationApiMs\":0,\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":100,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":100,\"webSearchRequests\":0,\"costUSD\":1,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":60,\"cacheCreationEphemeral1hInputTokens\":40}}}",
+     "last": "{\"totalCostUsd\":1,\"durationApiMs\":0,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":100,\"webSearchRequests\":0,\"costUSD\":1,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":60,\"cacheCreationEphemeral1hInputTokens\":40}}}"
+    },
+    {
+     "totals": "{\"totalCostUsd\":2,\"numTurns\":2,\"durationMs\":0,\"durationApiMs\":0,\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":250,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":250,\"webSearchRequests\":0,\"costUSD\":2,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":150,\"cacheCreationEphemeral1hInputTokens\":100}}}",
+     "last": "{\"totalCostUsd\":2,\"durationApiMs\":0,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":250,\"webSearchRequests\":0,\"costUSD\":2,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":150,\"cacheCreationEphemeral1hInputTokens\":100}}}"
+    },
+    {
+     "totals": "{\"totalCostUsd\":3,\"numTurns\":3,\"durationMs\":0,\"durationApiMs\":0,\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":300,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":300,\"webSearchRequests\":0,\"costUSD\":3,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":160,\"cacheCreationEphemeral1hInputTokens\":500}}}",
+     "last": "{\"totalCostUsd\":3,\"durationApiMs\":0,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":300,\"webSearchRequests\":0,\"costUSD\":3,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":10,\"cacheCreationEphemeral1hInputTokens\":500}}}"
+    },
+    {
+     "totals": "{\"totalCostUsd\":4,\"numTurns\":4,\"durationMs\":0,\"durationApiMs\":0,\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":400,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":400,\"webSearchRequests\":0,\"costUSD\":4,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":\"20\",\"cacheCreationEphemeral1hInputTokens\":null}}}",
+     "last": "{\"totalCostUsd\":4,\"durationApiMs\":0,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":400,\"webSearchRequests\":0,\"costUSD\":4,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":\"20\",\"cacheCreationEphemeral1hInputTokens\":null}}}"
+    },
+    {
+     "totals": "{\"totalCostUsd\":5,\"numTurns\":5,\"durationMs\":0,\"durationApiMs\":0,\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":500,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":500,\"webSearchRequests\":0,\"costUSD\":5,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":\"20\",\"cacheCreationEphemeral1hInputTokens\":null}}}",
+     "last": "{\"totalCostUsd\":5,\"durationApiMs\":0,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":500,\"webSearchRequests\":0,\"costUSD\":5,\"contextWindow\":200000}}}"
+    },
+    {
+     "totals": "{\"totalCostUsd\":6,\"numTurns\":6,\"durationMs\":0,\"durationApiMs\":0,\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":507,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":500,\"webSearchRequests\":0,\"costUSD\":5,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":\"20\",\"cacheCreationEphemeral1hInputTokens\":null},\"h\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":7,\"webSearchRequests\":0,\"costUSD\":1,\"contextWindow\":200000,\"cacheCreationEphemeral1hInputTokens\":7}}}",
+     "last": "{\"totalCostUsd\":6,\"durationApiMs\":0,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":500,\"webSearchRequests\":0,\"costUSD\":5,\"contextWindow\":200000},\"h\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":7,\"webSearchRequests\":0,\"costUSD\":1,\"contextWindow\":200000,\"cacheCreationEphemeral1hInputTokens\":7}}}"
+    }
+   ]
+  },
+  {
+   "name": "the split over a resumed checkpoint",
+   "totals": {
+    "totalCostUsd": 2,
+    "numTurns": 0,
+    "durationMs": 0,
+    "durationApiMs": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 100,
+    "modelUsage": {
+     "m": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 100,
+      "webSearchRequests": 0,
+      "costUSD": 2,
+      "contextWindow": 200000,
+      "cacheCreationEphemeral5mInputTokens": 60,
+      "cacheCreationEphemeral1hInputTokens": 40
+     }
+    }
+   },
+   "last": {
+    "totalCostUsd": 2,
+    "durationApiMs": 0,
+    "modelUsage": {
+     "m": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 100,
+      "webSearchRequests": 0,
+      "costUSD": 2,
+      "contextWindow": 200000,
+      "cacheCreationEphemeral5mInputTokens": 60,
+      "cacheCreationEphemeral1hInputTokens": 40
+     }
+    }
+   },
+   "messages": [
+    {
+     "type": "result",
+     "subtype": "success",
+     "total_cost_usd": 3,
+     "num_turns": 1,
+     "duration_ms": 0,
+     "duration_api_ms": 0,
+     "modelUsage": {
+      "m": {
+       "inputTokens": 0,
+       "outputTokens": 0,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 180,
+       "webSearchRequests": 0,
+       "costUSD": 3,
+       "contextWindow": 200000,
+       "cacheCreationEphemeral5mInputTokens": 100,
+       "cacheCreationEphemeral1hInputTokens": 80
+      }
+     }
+    }
+   ],
+   "steps": [
+    {
+     "totals": "{\"totalCostUsd\":3,\"numTurns\":1,\"durationMs\":0,\"durationApiMs\":0,\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":180,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":180,\"webSearchRequests\":0,\"costUSD\":3,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":100,\"cacheCreationEphemeral1hInputTokens\":80}}}",
+     "last": "{\"totalCostUsd\":3,\"durationApiMs\":0,\"modelUsage\":{\"m\":{\"inputTokens\":0,\"outputTokens\":0,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":180,\"webSearchRequests\":0,\"costUSD\":3,\"contextWindow\":200000,\"cacheCreationEphemeral5mInputTokens\":100,\"cacheCreationEphemeral1hInputTokens\":80}}}"
+    }
+   ]
+  },
+  {
    "name": "string and array messages carry nothing",
    "totals": {
     "totalCostUsd": 0,

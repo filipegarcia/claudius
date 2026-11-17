@@ -21,6 +21,8 @@ use serde_json::{Value, json};
 
 use crate::accounts::AccountsStore;
 use crate::db::{Mode, open_db};
+use crate::sessions_db::js_string;
+use crate::sql_text::{self, JsText};
 
 /// `SessionAccountRef`: `{ accountId, accountLabel }`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -65,7 +67,7 @@ pub fn get_session_accounts_by_cwd(
         probe_accounts(cwd, ids, &mut out, false);
     }
     if !no_cwd.is_empty() {
-        let workspaces = crate::active_cwd::list_workspaces_raw().unwrap_or_default();
+        let workspaces = crate::workspaces::list_raw().unwrap_or_default();
         for ws in &workspaces {
             let root = match ws {
                 Value::Null => anyhow::bail!("Cannot read properties of null (reading 'rootPath')"),
@@ -106,9 +108,18 @@ fn probe_accounts(cwd: &str, ids: &[&str], out: &mut IndexMap<String, String>, u
         );
         let rows = db.with(|c| {
             let mut stmt = c.prepare(&sql)?;
-            let rows = stmt.query_map(rusqlite::params_from_iter(chunk.iter()), |r| {
-                // `id` is the TEXT primary key the ids were matched against.
-                Ok((r.get::<_, String>(0)?, text_pin(r.get_ref(1)?)))
+            let ids = rusqlite::params_from_iter(chunk.iter().map(JsText::new));
+            let rows = stmt.query_map(ids, |r| {
+                // The key holds `String(r.id)`. In a foreign table whose `id`
+                // column is numeric, `IN` matches the text ids by affinity,
+                // and better-sqlite3 reads the id back as a double, printed
+                // as JS does (`7`, `2.5`, `1e+21`; `07` finds the row but
+                // keys it as `7`). TEXT decodes as better-sqlite3 reads it.
+                let id = match r.get_ref(0)? {
+                    ValueRef::Text(_) => sql_text::get::<String, _>(r, 0)?,
+                    v => js_string(v),
+                };
+                Ok((id, text_pin(r.get_ref(1)?)))
             })?;
             rows.collect::<rusqlite::Result<Vec<_>>>()
         });

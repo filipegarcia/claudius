@@ -1,9 +1,11 @@
 //! A `null` user settings.json on the real binary and fake CLI: `start()`
 //! throws reading `spinnerTipsEnabled`, so `POST /api/sessions` answers
 //! the create route's 500 with the `TypeError`; on a live session,
-//! `setPermissionMode("auto")` throws reading `disableAutoMode` (Next's
-//! bare 500, the mode unchanged), and the advisor route spreads the file
-//! to `{}` and writes it (`settings_errors_golden.rs` replays the TS).
+//! `setPermissionMode("auto")` reads the gate through `isAutoModeDisabled`,
+//! which reports `false` for a `null` file instead of throwing on its
+//! property read (SDK 0.3.312), so the mode is set; and the advisor route
+//! spreads the file to `{}` and writes it (`settings_errors_golden.rs`
+//! replays the TS).
 #![cfg(unix)]
 
 mod common;
@@ -47,8 +49,14 @@ fn a_null_user_settings_file() {
         )
     };
     let get_mode = || http(server.port, "GET", &format!("/api/sessions/{id}/mode"), "");
-    assert_eq!(mode("auto"), (500, String::new()));
-    assert_eq!(get_mode(), (200, r#"{"mode":"default"}"#.to_owned()));
+    // SDK 0.3.312 — `isAutoModeDisabled(null)` is `false`, so this no
+    // longer throws the `disableAutoMode` TypeError (recorded in
+    // `settings_errors_golden.json`).
+    assert_eq!(
+        mode("auto"),
+        (200, r#"{"ok":true,"mode":"auto"}"#.to_owned())
+    );
+    assert_eq!(get_mode(), (200, r#"{"mode":"auto"}"#.to_owned()));
     assert_eq!(
         mode("plan"),
         (200, r#"{"ok":true,"mode":"plan"}"#.to_owned())

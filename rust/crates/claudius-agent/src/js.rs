@@ -462,6 +462,15 @@ pub fn json_parse(text: &str) -> Result<Value, String> {
         .map_err(|e| e.to_string())
 }
 
+/// `JSON.parse(line)` for one stream-json line, as the SDK reads the CLI's
+/// stdout (and the CLI its stdin): serde_json, else [`json_parse`] for what
+/// only V8 reads. So a line holding a lone-surrogate escape (`"\ud800"`,
+/// which `JSON.stringify` writes for a lone surrogate) is read, with U+FFFD
+/// in its place, instead of being dropped.
+pub fn parse_line(line: &str) -> Result<Value, String> {
+    serde_json::from_str(line).or_else(|_| json_parse(line))
+}
+
 /// The `message` of the `SyntaxError` node 22's `JSON.parse(text)` throws, or
 /// `None` when V8 parses `text`. Positions and the source window around an
 /// unexpected token count UTF-16 code units, like JS indices. Where V8's
@@ -984,6 +993,22 @@ mod tests {
                 "{raw}"
             );
         }
+    }
+
+    #[test]
+    fn parse_line_reads_what_only_v8_reads() {
+        assert_eq!(
+            parse_line(r#"{"type":"user","t":"a\ud800b","n":1e400}"#).unwrap(),
+            json!({"type": "user", "t": "a\u{fffd}b", "n": null})
+        );
+        assert_eq!(
+            parse_line(r#"["\ud83d\ude00"]"#).unwrap(),
+            json!(["\u{1f600}"])
+        );
+        assert_eq!(
+            parse_line("{x").unwrap_err(),
+            "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+        );
     }
 
     #[test]

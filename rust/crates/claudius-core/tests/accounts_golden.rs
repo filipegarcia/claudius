@@ -25,6 +25,8 @@ use claudius_core::accounts::{
     self, AccountKind, AccountMetadata, AccountProfile, AccountsStore, NewAccount,
 };
 use claudius_core::claude_global_config::{ClaudeGlobalConfig, config_path_for};
+use claudius_core::fetch::FetchError;
+use claudius_core::tls_cert_hint;
 use futures::future::BoxFuture;
 use serde_json::{Map, Value, json};
 
@@ -266,7 +268,7 @@ impl ProfileFetch for Scripted {
         &'a self,
         url: &'a str,
         headers: &'a [(String, String)],
-    ) -> BoxFuture<'a, Result<FetchResponse, String>> {
+    ) -> BoxFuture<'a, Result<FetchResponse, FetchError>> {
         let h: Map<String, Value> = headers
             .iter()
             .map(|(k, v)| (k.clone(), Value::String(v.clone())))
@@ -282,8 +284,19 @@ impl ProfileFetch for Scripted {
             .pop_front()
             .expect("unscripted fetch");
         Box::pin(async move {
+            // A rejected handshake: `throwCert` is the recorder's undici
+            // shape (`TypeError("fetch failed")` with the OpenSSL code on
+            // `cause`), which the real client reads as a trust verdict.
+            if let Some(cert) = next.get("throwCert") {
+                let err = json!({"message": "fetch failed", "cause": cert.clone()});
+                return Err(if tls_cert_hint::is_ca_trust_failure(&err) {
+                    FetchError::ca_trust("fetch failed")
+                } else {
+                    FetchError::new("fetch failed")
+                });
+            }
             if let Some(m) = next["throws"].as_str() {
-                return Err(m.to_owned());
+                return Err(FetchError::new(m));
             }
             let body = match (next["hex"].as_str(), next["body"].as_str()) {
                 (Some(h), _) => hex(h),
@@ -607,6 +620,17 @@ fn store_cases_match_the_ts() {
                 expected(step)
             };
             assert_eq!(got.out, want, "{name} #{i} {op}");
+            // The CC 2.1.309 log line, pinned as text (no subscriber here).
+            for warn in step["warns"].as_array().into_iter().flatten() {
+                assert_eq!(
+                    warn.as_str().unwrap(),
+                    format!(
+                        "[accounts] profile request failed certificate verification \u{2014} {}",
+                        claudius_core::tls_cert_hint::OWN_REQUEST_HINT
+                    ),
+                    "{name} #{i}: the warning"
+                );
+            }
             if let Some((calls, unused)) = got.fetches {
                 assert_eq!(calls, step["fetches"], "{name} #{i}: fetches");
                 assert_eq!(

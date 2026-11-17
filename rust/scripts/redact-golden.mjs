@@ -5,14 +5,17 @@
 //
 //   node rust/scripts/redact-golden.mjs
 //
-// `up()` and its pattern list (`[...pVe, ...fVe]`) are module-private in
-// sdk.mjs, so this evaluates the slice of the bundle that defines them, from
-// `aVe=` (the Slack webhook pattern) to `function mVe(` (just past the
-// helpers `cp`, `dc` and `Ew`). It records each pattern's source, flags and
-// replacement (the Rust port keeps them verbatim, and the replay fails when
-// they drift), then hand-written and seeded-random inputs with `up()`'s
-// output. Written to rust/crates/claudius-agent/tests/fixtures/redact_golden.json
-// and replayed by crates/claudius-agent/tests/redact_golden.rs.
+// The redaction function (0.3.299 `up`, 0.3.312 `Qp`) and its two pattern
+// lists are module-private in sdk.mjs, so this evaluates the slice of the
+// bundle that defines them: from the Slack webhook pattern to the sandbox
+// settings-JSON check just past the pattern-building helpers. Minification
+// renames all of it on an SDK bump, so both ends and the three names are
+// derived from the code's shape, not hard-coded. It records each pattern's
+// source, flags and replacement (the Rust port keeps them verbatim, and the
+// replay fails when they drift), then hand-written and seeded-random inputs
+// with the function's output. Written to
+// rust/crates/claudius-agent/tests/fixtures/redact_golden.json and replayed
+// by crates/claudius-agent/tests/redact_golden.rs.
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,14 +28,22 @@ const sdkVersion = JSON.parse(readFileSync(join(sdkPath, "package.json"), "utf8"
 const bundle = readFileSync(join(sdkPath, "sdk.mjs"), "utf8");
 
 function extract() {
-  const start = bundle.indexOf("aVe=/hooks");
-  const end = bundle.indexOf("function mVe(");
-  if (start < 0 || end < start) throw new Error("redaction code moved in sdk.mjs: update the anchors");
-  const slice = bundle.slice(start, end);
-  for (const name of ["pVe=", "fVe=", "function up(", "function cp(", "function dc(", "function Ew("]) {
-    if (!slice.includes(name)) throw new Error(`${name} is not in the extracted slice: update the anchors`);
+  // `function <up>(e){return[...<first>,...<second>].reduce((t,[n,r])=>t.replace(n,r),String(e))}`
+  const applier = /function ([\w$]+)\(e\)\{return\[\.\.\.([\w$]+),\.\.\.([\w$]+)\]\.reduce\(\(t,\[n,r\]\)=>t\.replace\(n,r\),String\(e\)\)\}/.exec(bundle);
+  if (!applier) throw new Error("the redaction applier moved in sdk.mjs: re-derive the extraction");
+  const [, up, first, second] = applier;
+  // The slice runs from the Slack webhook pattern (the first declaration the
+  // lists need) to the sandbox settings-JSON check that follows the helpers.
+  const start = bundle.lastIndexOf("var ", bundle.indexOf("=/hooks\\.slack"));
+  const sandboxJson = /function ([\w$]+)\(e\)\{let t=e\.trim\(\);return t\.startsWith\("\{"\)&&t\.endsWith\("\}"\)\}/.exec(bundle);
+  if (start < 0 || !sandboxJson || sandboxJson.index < start) {
+    throw new Error("redaction code moved in sdk.mjs: re-derive the extraction");
   }
-  return new Function(`var ${slice};return {list: [...pVe, ...fVe], up};`)();
+  const slice = bundle.slice(start, sandboxJson.index);
+  if (slice.length > 8000 || !slice.includes(`function ${up}(`)) {
+    throw new Error(`the ${up} slice is ${slice.length} bytes: re-derive the extraction`);
+  }
+  return new Function(`${slice};return {list: [...${first}, ...${second}], up: ${up}};`)();
 }
 
 const { list, up } = extract();
@@ -148,8 +159,8 @@ const HAND = [
   `Authorization: Bearer sk-ant-${alnum(30)}`,
   `Basic sk-${alnum(30)}`,
   // Neighbours outside ASCII and the BMP.
-  `😀sk-ant-${alnum(12)}😀`,
-  `😀AKIA${upper(16)}😀`,
+  `\u{1F600}sk-ant-${alnum(12)}\u{1F600}`,
+  `\u{1F600}AKIA${upper(16)}\u{1F600}`,
   `\u212aBearer ${alnum(10)}`,
   `Bearer \u212a${alnum(10)}`,
   `xox\u017f-${alnum(12)}`,
@@ -170,7 +181,7 @@ function mulberry32(a) {
 const FRAGMENTS = [
   "sk-", "ant-", "proj-", "Bearer ", "bearer\t", "Basic ", ": ", ":", "eyJ", "ey", ".", "-", "_", "=", "+", "/", "%", "%20", "%2f",
   "AKIA", "A3T", "gh", "p_", "github_pat_", "sq0atp-", "EAAA", "glpat-", "xox", "b-", "c-", "xapp-", "hooks.slack.com/services/",
-  "AIza", "GOCSPX-", "sk_live_", "rk_test_", " ", "\n", "\r\n", "\u00a0", "\u0085", "\ufeff", "\u017f", "\u212a", "😀", "\u00e9", "0", "9",
+  "AIza", "GOCSPX-", "sk_live_", "rk_test_", " ", "\n", "\r\n", "\u00a0", "\u0085", "\ufeff", "\u017f", "\u212a", "\u{1F600}", "\u00e9", "0", "9",
 ];
 const ALNUM = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 function fuzz(seed, count) {

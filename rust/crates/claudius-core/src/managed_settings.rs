@@ -1,28 +1,29 @@
 //! The managed (policy) settings source, as far as Claudius reads it: SDK
-//! 0.3.299 `resolveSettings()`'s `managed` source (`Zq` → `Vq` → `ac`),
+//! 0.3.312 `resolveSettings()`'s `managed` source (`M9` → `iv` → `Bc`),
 //! consumed by `lib/server/managed-model-policy.ts` (`deniedModels`,
 //! `availableModelsMatch`) and `lib/server/model-pricing-override.ts`
 //! (`modelPricing`).
 //!
 //! **Tiers ported:**
-//! - The managed-settings **file tier** (A05a, `rw`):
+//! - The managed-settings **file tier** (A05a, `Bp`):
 //!   `<managed dir>/managed-settings.json`, then `managed-settings.d/*.json`
 //!   (files or symlinks, not dot-files, sorted), merged in order (lodash
-//!   `mergeWith` + `xr`).
-//! - The macOS **MDM tier** (A05b, `gw` + `WWe`): the per-user, then the
+//!   `mergeWith` + `Hr`).
+//! - The macOS **MDM tier** (A05b, `lv` + `uv`): the per-user, then the
 //!   device managed-preferences plist, converted by `/usr/bin/plutil`. Only
 //!   plists up to the first readable one count, so an empty or garbage
 //!   per-user plist hides the device plist. The plists are read once per
 //!   process, like the SDK; the files are re-read on every call.
-//! - The Windows **registry** (A05d, `WWe`'s win32 branch): `reg query` of
+//! - The Windows **registry** (A05d, `uv`'s win32 branch): `reg query` of
 //!   `HKLM\SOFTWARE\Policies\ClaudeCode` and `HKCU\…` value `Settings`
 //!   (`REG_SZ` or `REG_EXPAND_SZ`). HKLM is the MDM tier (`policyOrigin`
 //!   `"hklm"`) when its document has policy content. If it overflows or
 //!   doesn't parse, the registry stops there. HKCU, being user-writable, is
-//!   the last resort: it loses the admin-only keys and the composition keys,
-//!   isn't loaded at all when the file tier binds (`VWe`), and is used only
-//!   when no tier has policy content (`kt`).
-//! - **WSL** (A05e, `Yd()`: Linux with `WSL_DISTRO_NAME` or a Microsoft/WSL
+//!   the last resort: it loses the admin-only keys (`Oy` + `V4e`) and the
+//!   composition keys, isn't loaded at all when the file tier binds
+//!   (`r9e`), and is used only when no tier has policy content (`ki`).
+//! - **WSL** (A05e, `$p()`: Linux with `WSL_DISTRO_NAME`, unless
+//!   `CLAUDE_CODE_ENTRYPOINT` is a cowork cloud one, or a Microsoft/WSL
 //!   `/proc/version`): the same registry through `/mnt/c/.../reg.exe`, plus
 //!   the Windows managed folder `/mnt/c/Program Files/ClaudeCode`. None of it
 //!   counts until an admin source arms `wslInheritsWindowsSettings` (HKLM's
@@ -30,13 +31,13 @@
 //!   fail-closed with nothing in it). Armed, the Windows folder replaces
 //!   `/etc/claude-code` as the file tier whenever it or the MDM tier binds,
 //!   and HKCU must arm the flag itself. Unarmed, a Windows source that
-//!   failed to load still shuts `/etc/claude-code` out (`vq`).
+//!   failed to load still shuts `/etc/claude-code` out (`$4`).
 //!
 //! Files (managed-settings and HKCU-suppression reads alike) go through the
-//! SDK's reader (`i0e`): regular files only, up to 2 MiB, UTF-16LE after an
+//! SDK's reader (`kje`): regular files only, up to 2 MiB, UTF-16LE after an
 //! `FF FE` BOM, else lossy UTF-8, CRLF folded to LF.
 //!
-//! **Tier selection** (`ac` + `XGe` + `Eq`): each tier is ranked: authored
+//! **Tier selection** (`Bc` + `by` + `Q4`): each tier is ranked: authored
 //! content 2, only fail-closed substitutes 1, only void values (`{}`) 0. The
 //! MDM tier wins on a tie. With `managedSourcesBehavior: "first-wins"` (the
 //! default) the winner is the managed source alone, except that a losing MDM
@@ -56,14 +57,26 @@
 //! `tests/managed_settings_golden.rs`.
 //!
 //! **Never read, as in the SDK host:**
-//! - The server-managed **remote** tier (A05c). `pw` → `L2` → `D2` reads
-//!   `<config dir>/remote-settings.json` only when `zo().eligible === true`.
+//! - The server-managed **remote** tier (A05c). `nv` → `o4` → `r4` reads
+//!   `<config dir>/remote-settings.json` only when `Ro().eligible === true`.
 //!   Only the CLI records eligibility; the SDK library never does
 //!   (`recordEligibility` and `replaceSessionCache` have no callers). The
 //!   other way in, the `serverManagedSettings` option, isn't passed by
 //!   Claudius.
 //! - The `parentManaged` (`managedSettings` option) and `flag` tiers, because
 //!   Claudius calls `resolveSettings({ cwd })` with neither.
+//!
+//! **Not modelled: a cowork cloud host.** With `CLAUDE_CODE_ENTRYPOINT`
+//! `remote_cowork` / `remote_cowork_trigger` in the host's own env, the SDK
+//! asks the organization (`h_()`). A managed document the process can write
+//! (`ev()`: by owner, mode, `access(W_OK)` and a walk of its folders) is then
+//! "held" (`Xx`): it may only restrict (`XZ`), so `modelPricing` goes and
+//! `availableModelsMatch: "prefix"` is dropped, and tier selection weighs it
+//! as held content. The registry read can also be withheld (`uv`'s
+//! `whereAsked` and `heldDocuments`), though not on a real WSL host, where
+//! the registry tool under `/mnt/c` is never held. Only the WSL check's part
+//! (`WSL_DISTRO_NAME` doesn't count) is ported; Claudius doesn't run as a
+//! cowork cloud session. The recorder's control pair pins the gate.
 //!
 //! On plain Linux the OS policy is empty and only `/etc/claude-code` is read.
 
@@ -79,11 +92,11 @@ use serde_json::{Map, Value, json};
 /// The keys this module validates and returns.
 pub const MANAGED_KEYS: [&str; 3] = ["availableModelsMatch", "deniedModels", "modelPricing"];
 
-/// `Qi`: keys that steer how tiers compose but aren't policy content.
+/// `Ai`: keys that steer how tiers compose but aren't policy content.
 const COMPOSITION_KEYS: [&str; 2] = ["managedSourcesBehavior", "wslInheritsWindowsSettings"];
 
-/// `k0e()`: the platform's managed-settings directory. The SDK's override
-/// hook (`P0e`) is compiled out in this build, so there's no env override.
+/// `tBe()`: the platform's managed-settings directory. The SDK's override
+/// hook (`nBe`) is compiled out in this build, so there's no env override.
 pub fn managed_dir() -> PathBuf {
     if cfg!(target_os = "macos") {
         PathBuf::from("/Library/Application Support/ClaudeCode")
@@ -94,10 +107,10 @@ pub fn managed_dir() -> PathBuf {
     }
 }
 
-/// The root of `tq()`'s plist paths.
+/// The root of `O4()`'s plist paths.
 pub const MANAGED_PREFERENCES_DIR: &str = "/Library/Managed Preferences";
 
-/// `tq()`: `<root>/<user>/com.anthropic.claudecode.plist` (when the user name
+/// `O4()`: `<root>/<user>/com.anthropic.claudecode.plist` (when the user name
 /// is known), then `<root>/com.anthropic.claudecode.plist`.
 pub fn mdm_plist_paths(root: &Path, user: Option<&str>) -> Vec<PathBuf> {
     const PLIST: &str = "com.anthropic.claudecode.plist";
@@ -145,7 +158,7 @@ fn number_in(v: &Value, ok: impl Fn(f64) -> bool) -> Option<Value> {
     v.as_f64().filter(|n| ok(*n)).map(|_| v.clone())
 }
 
-/// `NT`: an override row needs all four rates, each in 0..=10000. Extra keys
+/// `sx`: an override row needs all four rates, each in 0..=10000. Extra keys
 /// are stripped and the schema's key order is used.
 fn pricing_row(v: &Value) -> Option<Value> {
     let row = v.as_object()?;
@@ -198,26 +211,26 @@ fn validate(key: &str, v: &Value) -> Option<Value> {
     }
 }
 
-/// `Vd`: a plain object whose values are all void (`{}`, `{"a": {}}`).
+/// `Mp`: a plain object whose values are all void (`{}`, `{"a": {}}`).
 fn is_void(v: &Value) -> bool {
     v.as_object().is_some_and(|o| o.values().all(is_void))
 }
 
-/// `cc`: any key besides the composition keys.
+/// `Kc`: any key besides the composition keys.
 fn has_content(settings: &Map<String, Value>) -> bool {
     settings
         .keys()
         .any(|k| !COMPOSITION_KEYS.contains(&k.as_str()))
 }
 
-/// `sp`: any non-composition key with a non-void value.
+/// `Gc`: any non-composition key with a non-void value.
 fn has_non_void_content(settings: &Map<String, Value>) -> bool {
     settings
         .iter()
         .any(|(k, v)| !COMPOSITION_KEYS.contains(&k.as_str()) && !is_void(v))
 }
 
-/// One parsed managed document (`vGe` / `b_`), as tier selection needs it.
+/// One parsed managed document (`IZe` / `Ay`), as tier selection needs it.
 #[derive(Debug, Clone)]
 struct Doc {
     /// Validated consumer keys, `managedSourcesBehavior` if valid, and every
@@ -225,7 +238,7 @@ struct Doc {
     settings: Map<String, Value>,
     /// Its only non-void content is fail-closed substitutes (`onlySubstitutes`).
     only_substitutes: bool,
-    /// `Fq`: any non-null raw value outside the composition keys, or content.
+    /// `b9`: any non-null raw value outside the composition keys, or content.
     has_policy_content: bool,
 }
 
@@ -270,7 +283,7 @@ fn validate_document(raw: &Map<String, Value>) -> Doc {
 }
 
 /// lodash `mergeWith(dest, src, customizer)` for one value. Both arrays →
-/// union (`cn`): `xr` puts the destination's entries first, `lw`/`Hq` (tier
+/// union (`zt`): `Hr` puts the destination's entries first, `Zx`/`T9` (tier
 /// merge) the source's. Both objects → recursive merge. Otherwise `src`
 /// replaces (the returned value).
 fn merge_value(dest: Option<&mut Value>, src: Value, src_first: bool) -> Option<Value> {
@@ -300,15 +313,15 @@ fn merge_map(dest: &mut Map<String, Value>, src: Map<String, Value>, src_first: 
     }
 }
 
-/// A managed tier as `ac` sees it.
+/// A managed tier as `Bc` sees it.
 #[derive(Debug, Clone, Default)]
 pub struct Tier {
     /// The tier's settings, `None` when absent.
     settings: Option<Map<String, Value>>,
     /// Present, but its only non-void content is fail-closed substitutes.
     only_substitutes: bool,
-    /// `rp`: some document in it has policy content, even if none of it
-    /// survived validation. With no admin tier this shuts HKCU out (`kt`).
+    /// `zc`: some document in it has policy content, even if none of it
+    /// survived validation. With no admin tier this shuts HKCU out (`ki`).
     policy_content: bool,
     /// `loadState: "didNotLoad"`: a document in it couldn't be read or
     /// parsed.
@@ -324,7 +337,7 @@ impl Tier {
         }
     }
 
-    /// `lc`: the tier binds (has policy content or failed to load), which
+    /// `Ta`: the tier binds (has policy content or failed to load), which
     /// shuts out the user-writable sources beneath it.
     pub fn binds(&self) -> bool {
         self.policy_content || self.did_not_load
@@ -335,7 +348,7 @@ impl Tier {
         self.settings.as_ref().is_some_and(has_non_void_content) && !self.only_substitutes
     }
 
-    /// `sw(settings)`: the settings, if they hold any content.
+    /// `Cy(settings)`: the settings, if they hold any content.
     fn content(&self) -> Option<&Map<String, Value>> {
         self.settings.as_ref().filter(|s| has_content(s))
     }
@@ -348,7 +361,7 @@ impl Tier {
     }
 }
 
-/// `iw`: -1 absent, 2 authored, 1 only substitutes, 0 only void values.
+/// `qx`: -1 absent, 2 authored, 1 only substitutes, 0 only void values.
 fn rank(tier: &Tier) -> i8 {
     match tier.content() {
         None => -1,
@@ -358,14 +371,14 @@ fn rank(tier: &Tier) -> i8 {
     }
 }
 
-/// `rw`: the managed-settings file tier under `dir` (normally
+/// `Bp`: the managed-settings file tier under `dir` (normally
 /// [`managed_dir`]).
 pub fn read_file_tier(dir: &Path) -> Tier {
     let mut docs = vec![dir.join("managed-settings.json")];
     let drop_in = dir.join("managed-settings.d");
     let mut did_not_load = false;
     match std::fs::read_dir(&drop_in) {
-        // A missing or non-directory drop-in folder is fine (`_w`).
+        // A missing or non-directory drop-in folder is fine (`dv`).
         Err(e) => did_not_load = !is_missing(&e),
         Ok(rd) => {
             let mut names: Vec<String> = rd
@@ -384,13 +397,13 @@ pub fn read_file_tier(dir: &Path) -> Tier {
     for path in docs {
         let text = match read_managed_file(&path) {
             Ok(text) => text,
-            // `DGe`: only ENOENT reads as absent (ENOTDIR doesn't).
+            // `jZe`: only ENOENT reads as absent (ENOTDIR doesn't).
             Err(e) => {
                 did_not_load |= e.raw_os_error() != Some(libc_enoent());
                 continue;
             }
         };
-        // `b_`: blank text loads as `{}`.
+        // `Ay`: blank text loads as `{}`.
         if claudius_agent::js::trim(&text).is_empty() {
             continue;
         }
@@ -398,7 +411,7 @@ pub fn read_file_tier(dir: &Path) -> Tier {
             did_not_load = true;
             continue;
         };
-        // `cq`: an empty document doesn't count.
+        // `Wx`: an empty document doesn't count.
         let doc = validate_document(&raw);
         policy_content |= doc.has_policy_content;
         if doc.settings.is_empty() {
@@ -420,10 +433,10 @@ pub fn read_file_tier(dir: &Path) -> Tier {
     }
 }
 
-/// The SDK's cap on a managed file (`np`, `Zs(path, np)`).
+/// The SDK's cap on a managed file (`Wp`, `gi(path, Wp)`).
 pub const MANAGED_FILE_MAX_BYTES: u64 = 2 * 1024 * 1024;
 
-/// `Zs(path, np)` / `i0e`: read a managed file the way the SDK does. It must
+/// `gi(path, Wp)` / `kje`: read a managed file the way the SDK does. It must
 /// be a regular file (after symlinks) of at most 2 MiB. An `FF FE` BOM means
 /// UTF-16LE (an odd trailing byte is dropped), anything else is lossy UTF-8.
 /// CRLF becomes LF. A lone surrogate in UTF-16 text decodes to U+FFFD here,
@@ -456,15 +469,15 @@ fn read_managed_file(path: &Path) -> std::io::Result<String> {
     Ok(text.replace("\r\n", "\n"))
 }
 
-/// `yw(dir)`, which `VWe` asks before reading HKCU: does the file tier under
-/// `dir` bind (`lc(rw(dir))`)? A document with policy content, one that
+/// `pv(dir)`, which `r9e` asks before reading HKCU: does the file tier under
+/// `dir` bind (`Ta(Bp(dir))`)? A document with policy content, one that
 /// doesn't parse, or one that can't be read for any reason but ENOENT
-/// (`tt`) binds. A missing or non-directory drop-in folder doesn't (`_w`).
+/// (`at`) binds. A missing or non-directory drop-in folder doesn't (`dv`).
 pub fn file_tier_blocks_hkcu(dir: &Path) -> bool {
     read_file_tier(dir).binds()
 }
 
-/// How an `execFile` run ended (`mw` + `Xq`).
+/// How an `execFile` run ended (`av` + `F9`).
 enum Run {
     Ok(String),
     /// Exited with a non-zero code.
@@ -584,14 +597,14 @@ fn access_readable(path: &Path) -> std::io::Result<()> {
     }
 }
 
-/// `LWe`: open the file and read one byte.
+/// `B4e`: open the file and read one byte.
 fn probe_read(path: &Path) -> std::io::Result<()> {
     let mut f = std::fs::File::open(path)?;
     let mut byte = [0u8; 1];
     f.read(&mut byte).map(|_| ())
 }
 
-/// `gw()` for one plist: `None` = missing (skipped), `Some(None)` =
+/// `lv()` for one plist: `None` = missing (skipped), `Some(None)` =
 /// unreadable, `Some(Some(json))` = readable (`""` when `plutil` can neither
 /// convert nor lint it).
 fn read_plist(path: &Path) -> Option<Option<String>> {
@@ -632,8 +645,8 @@ fn read_plist(path: &Path) -> Option<Option<String>> {
 }
 
 /// The macOS MDM tier read from `root` (normally
-/// [`MANAGED_PREFERENCES_DIR`]): `gw()` keeps the plists up to the first
-/// readable one, and `WWe` takes that one if it has policy content (the
+/// [`MANAGED_PREFERENCES_DIR`]): `lv()` keeps the plists up to the first
+/// readable one, and `uv` takes that one if it has policy content (the
 /// unreadable ones before it carry none). Other platforms have no plist
 /// tier.
 pub fn read_mdm_tier(root: &Path, user: Option<&str>) -> Tier {
@@ -652,7 +665,7 @@ pub fn read_mdm_tier(root: &Path, user: Option<&str>) -> Tier {
     else {
         return Tier::default();
     };
-    // `dw`: empty settings are no settings.
+    // `tv`: empty settings are no settings.
     Tier {
         settings: (!doc.settings.is_empty()).then_some(doc.settings),
         only_substitutes: doc.only_substitutes,
@@ -661,7 +674,7 @@ pub fn read_mdm_tier(root: &Path, user: Option<&str>) -> Tier {
     }
 }
 
-/// One `reg query` result (`mw` in `Qq`).
+/// One `reg query` result (`av` in `$9`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegRead {
     /// Exit 0, with its stdout.
@@ -672,19 +685,19 @@ pub enum RegRead {
     Failed,
 }
 
-/// The policy keys `Qq` queries (`g_` / `h_`) and the value name (`Zd`).
+/// The policy keys `$9` queries (`hy` / `_y`) and the value name (`Fp`).
 pub const HKLM_POLICY_KEY: &str = r"HKLM\SOFTWARE\Policies\ClaudeCode";
 pub const HKCU_POLICY_KEY: &str = r"HKCU\SOFTWARE\Policies\ClaudeCode";
 pub const REG_VALUE_NAME: &str = "Settings";
-/// `__`: the `maxBuffer` for both queries.
+/// `yy`: the `maxBuffer` for both queries.
 pub const REG_MAX_BUFFER: usize = 2 * 1024 * 1024;
 
-/// The argv `Qq` passes to `reg.exe` for one key.
+/// The argv `$9` passes to `reg.exe` for one key.
 pub fn reg_query_args(key: &str) -> [&str; 4] {
     ["query", key, "/v", REG_VALUE_NAME]
 }
 
-/// `oZ(stdout)`: the `Settings` value's data from `reg query` output. It
+/// `xy(stdout)`: the `Settings` value's data from `reg query` output. It
 /// matches `/^[ \t]+Settings[ \t]+REG_(?:EXPAND_)?SZ[ \t]+([\s\S]*)/im`.
 /// The first line (JS line terminators: LF, CR, U+2028, U+2029) that starts
 /// with spaces/tabs, the value name and type (ASCII case-insensitive), then
@@ -726,14 +739,16 @@ pub fn reg_value(stdout: &str) -> Option<String> {
     None
 }
 
-/// `hw(value, …, {userWritable: true})` for HKCU: keys only honored from
-/// admin-controlled sources are dropped (`managedMcpServers`, `isolation`,
+/// `Yp(value, …, {userWritable: true})` for HKCU: keys only honored from
+/// admin-controlled sources are dropped (`Oy`: `managedMcpServers`,
+/// `isolation`, `attributionProjectPolicy` (new in 0.3.312); `V4e`:
 /// `prependPlugins`, `appendPlugins`), and `enabledPlugins` keeps only
 /// entries that disable a non-built-in plugin.
 fn strip_user_writable(raw: &mut Map<String, Value>) {
     for key in [
         "managedMcpServers",
         "isolation",
+        "attributionProjectPolicy",
         "prependPlugins",
         "appendPlugins",
     ] {
@@ -749,12 +764,12 @@ fn strip_user_writable(raw: &mut Map<String, Value>) {
     }
 }
 
-/// The OS policy sources (`WWe`), read once per process.
+/// The OS policy sources (`uv`), read once per process.
 #[derive(Debug, Clone, Default)]
 pub struct OsPolicy {
     /// The MDM tier: the macOS plist, or the Windows HKLM value.
     pub mdm: Tier,
-    /// What `policyOrigin` calls the MDM tier (`ra()`): `"plist"` or `"hklm"`.
+    /// What `policyOrigin` calls the MDM tier (`Ra()`): `"plist"` or `"hklm"`.
     pub mdm_origin: &'static str,
     /// HKCU's settings (Windows), the last-resort source. `None` when it
     /// wasn't read or was shut out at load time.
@@ -777,7 +792,7 @@ impl OsPolicy {
     }
 }
 
-/// `BT`: what a document says about `wslInheritsWindowsSettings`. `true`
+/// `px`: what a document says about `wslInheritsWindowsSettings`. `true`
 /// and `"true"` arm, `false`, `"false"`, `null` and no value don't, and
 /// anything else can't be read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -798,10 +813,10 @@ fn wsl_flag(raw: &Map<String, Value>) -> WslFlag {
     }
 }
 
-/// `qWe`: the flag in the Windows managed-settings folder (seen from WSL),
+/// `o9e`: the flag in the Windows managed-settings folder (seen from WSL),
 /// and whether a document there failed to load. Any armed document arms it;
 /// otherwise any unreadable flag makes it unreadable. Missing files and a
-/// missing or non-directory drop-in folder are skipped silently (`_w`).
+/// missing or non-directory drop-in folder are skipped silently (`dv`).
 fn windows_flag(dir: &Path) -> (WslFlag, bool) {
     let mut failed = false;
     let mut read = |path: &Path| match read_managed_file(path) {
@@ -849,7 +864,7 @@ fn windows_flag(dir: &Path) -> (WslFlag, bool) {
     (flag, failed)
 }
 
-/// `WWe` from the two `reg query` results: the Windows branch, or the WSL
+/// `uv` from the two `reg query` results: the Windows branch, or the WSL
 /// one when `windows_dir` (the Windows managed folder under `/mnt/c`) is
 /// given.
 /// - Under WSL nothing Windows-side counts unless an admin source arms
@@ -860,7 +875,7 @@ fn windows_flag(dir: &Path) -> (WslFlag, bool) {
 ///   output over 2 MiB), is the MDM tier, and HKCU isn't read.
 /// - An unreadable flag binds with nothing in it.
 /// - Otherwise HKCU is read, unless the file tier in `file_dir` (or, when
-///   inheriting, in `windows_dir`) already binds (`VWe`), minus the
+///   inheriting, in `windows_dir`) already binds (`r9e`), minus the
 ///   admin-only and composition keys. Under WSL HKCU must also arm the flag
 ///   itself.
 pub fn registry_policy(
@@ -873,7 +888,7 @@ pub fn registry_policy(
         mdm_origin: "hklm",
         ..OsPolicy::default()
     };
-    // `i` (HKLM's document) and `a` (its flag).
+    // `a` (HKLM's document) and `l` (its flag).
     let mut flag = WslFlag::Disarmed;
     let hklm_tier = match hklm {
         RegRead::Ok(stdout) => Some(
@@ -944,7 +959,7 @@ pub fn registry_policy(
     out
 }
 
-/// `vq`: the managed-settings file tier. Outside WSL (`windows_dir` is
+/// `$4`: the managed-settings file tier. Outside WSL (`windows_dir` is
 /// `None`) it's [`read_file_tier`] of `managed`. Under WSL:
 /// - inheriting, the Windows folder's tier stands in when it or the MDM tier
 ///   binds, and `managed` (`/etc/claude-code`) is read only when neither
@@ -965,7 +980,7 @@ pub fn file_tier(os: &OsPolicy, managed: &Path, windows_dir: Option<&Path>) -> T
     read_file_tier(managed)
 }
 
-/// `Qq(reg)`: query both keys.
+/// `$9(reg)`: query both keys.
 fn read_registry(reg: &str) -> (RegRead, RegRead) {
     let query = |key: &str| {
         let argv = reg_query_args(key);
@@ -979,23 +994,32 @@ fn read_registry(reg: &str) -> (RegRead, RegRead) {
     (query(HKLM_POLICY_KEY), query(HKCU_POLICY_KEY))
 }
 
-/// `reg.exe` as WSL sees it (`eq`).
+/// `reg.exe` as WSL sees it (`Ti`).
 pub const WSL_REG_EXE: &str = "/mnt/c/Windows/System32/reg.exe";
 
-/// The Windows managed-settings folder as WSL sees it (`Jn`).
+/// The Windows managed-settings folder as WSL sees it (`xn`).
 pub const WSL_WINDOWS_MANAGED_DIR: &str = "/mnt/c/Program Files/ClaudeCode";
 
-/// `Yd()`: Linux with a non-empty `WSL_DISTRO_NAME`, or a `/proc/version`
-/// that mentions Microsoft or WSL (in any case).
-fn detect_wsl(
+/// `d_`: the `CLAUDE_CODE_ENTRYPOINT` values of a cowork cloud session.
+pub const COWORK_CLOUD_ENTRYPOINTS: [&str; 2] = ["remote_cowork", "remote_cowork_trigger"];
+
+/// `$p()`: Linux with a non-empty `WSL_DISTRO_NAME`, unless `entrypoint`
+/// (the host's `CLAUDE_CODE_ENTRYPOINT`) is exactly a cowork cloud one
+/// (`Kx()`), or a `/proc/version` that mentions Microsoft or WSL (in any
+/// case). `WSL_INTEROP` doesn't count here.
+pub fn detect_wsl(
     linux: bool,
     distro: Option<&OsStr>,
+    entrypoint: Option<&OsStr>,
     proc_version: impl FnOnce() -> Option<String>,
 ) -> bool {
     if !linux {
         return false;
     }
-    if distro.is_some_and(|d| !d.is_empty()) {
+    let cowork_cloud = entrypoint
+        .and_then(OsStr::to_str)
+        .is_some_and(|e| COWORK_CLOUD_ENTRYPOINTS.contains(&e));
+    if distro.is_some_and(|d| !d.is_empty()) && !cowork_cloud {
         return true;
     }
     proc_version().is_some_and(|v| {
@@ -1011,6 +1035,7 @@ fn wsl_windows_dir() -> Option<&'static Path> {
         detect_wsl(
             cfg!(target_os = "linux"),
             std::env::var_os("WSL_DISTRO_NAME").as_deref(),
+            std::env::var_os("CLAUDE_CODE_ENTRYPOINT").as_deref(),
             || {
                 std::fs::read("/proc/version")
                     .ok()
@@ -1021,7 +1046,7 @@ fn wsl_windows_dir() -> Option<&'static Path> {
     wsl.then(|| Path::new(WSL_WINDOWS_MANAGED_DIR))
 }
 
-/// The real OS policy, read once per process like the SDK's `lZ()`: the
+/// The real OS policy, read once per process like the SDK's `W9()`: the
 /// plists on macOS, the registry on Windows, and the Windows registry
 /// through `/mnt/c` under WSL.
 fn os_policy() -> &'static OsPolicy {
@@ -1068,7 +1093,7 @@ fn project(settings: &Map<String, Value>) -> Map<String, Value> {
         .collect()
 }
 
-/// `Eq` for the one restrictive consumer key: `"exact"` from any tier binds.
+/// `Q4` for the one restrictive consumer key: `"exact"` from any tier binds.
 /// Otherwise a value only lower tiers supplied is removed.
 fn bind_restrictive(admin: &mut Map<String, Value>, tiers: &[Map<String, Value>]) {
     const KEY: &str = "availableModelsMatch";
@@ -1079,9 +1104,9 @@ fn bind_restrictive(admin: &mut Map<String, Value>, tiers: &[Map<String, Value>]
     }
 }
 
-/// `Vq`: the admin tier from `ac` + `XGe` over the MDM and file tiers. With
+/// `iv`: the admin tier from `Bc` + `by` over the MDM and file tiers. With
 /// no admin tier, HKCU stands in, unless some tier had policy content that
-/// didn't survive (`kt`: the admin is then `{}`, an empty source).
+/// didn't survive (`ki`: the admin is then `{}`, an empty source).
 pub fn resolve(os: &OsPolicy, file: &Tier) -> Option<ManagedSource> {
     if let Some(admin) = resolve_tiers(&os.mdm, os.mdm_origin, file) {
         return Some(admin);
@@ -1096,17 +1121,17 @@ pub fn resolve(os: &OsPolicy, file: &Tier) -> Option<ManagedSource> {
     })
 }
 
-/// `ac` + `XGe` over the MDM and file tiers: `None` when neither has content.
+/// `Bc` + `by` over the MDM and file tiers: `None` when neither has content.
 fn resolve_tiers(mdm: &Tier, mdm_origin: &'static str, file: &Tier) -> Option<ManagedSource> {
     let mdm_content = mdm.content();
     let file_content = file.content();
     let mdm_primary = mdm_content.is_some() && rank(mdm) >= rank(file);
-    // `L`: the first tier that is primary or declares a behavior.
+    // `me`: the first tier that is primary or declares a behavior.
     let behavior = [(mdm, mdm_primary), (file, file_content.is_some())]
         .into_iter()
         .find(|(t, primary)| t.settings.is_some() && (t.behavior().is_some() || *primary))
         .and_then(|(t, _)| t.behavior());
-    // A losing MDM tier binds beside the winner (`T`).
+    // A losing MDM tier binds beside the winner (`Q`).
     let loser = mdm_content.filter(|_| !mdm_primary);
     let tiers: Vec<Map<String, Value>> = [mdm_content.filter(|_| mdm_primary), file_content, loser]
         .into_iter()
@@ -1137,7 +1162,7 @@ fn resolve_tiers(mdm: &Tier, mdm_origin: &'static str, file: &Tier) -> Option<Ma
     })
 }
 
-/// `xGe`/`b_` text → document. A leading BOM is stripped. Text that isn't a
+/// `UZe`/`Ay` text → document. A leading BOM is stripped. Text that isn't a
 /// JSON object (including blank text, comments, or trailing commas) gives
 /// `None`. `JSON.parse` reads out-of-range literals (`1e400`) as ±Infinity,
 /// while serde_json rejects the whole text. On that error they're rewritten
@@ -1403,7 +1428,7 @@ mod tests {
         assert_eq!(resolve(&OsPolicy::default(), &Tier::default()), None);
     }
 
-    /// `oZ` on captured `reg query` output shapes.
+    /// `xy` on captured `reg query` output shapes.
     #[test]
     fn reg_value_parsing() {
         let out = |line: &str| {
@@ -1443,14 +1468,40 @@ mod tests {
         );
     }
 
-    /// `Yd()`: Linux only; a non-empty `WSL_DISTRO_NAME` is enough, else
-    /// `/proc/version` must mention Microsoft or WSL in any case.
+    /// `$p()`: Linux only; a non-empty `WSL_DISTRO_NAME` is enough unless
+    /// the entrypoint is a cowork cloud one, else `/proc/version` must
+    /// mention Microsoft or WSL in any case.
     #[test]
     fn wsl_detection() {
         let distro = |s: &str| Some(OsStr::new(s).to_owned());
         let never = || -> Option<String> { panic!("/proc/version read") };
-        assert!(!detect_wsl(false, distro("Ubuntu").as_deref(), never));
-        assert!(detect_wsl(true, distro("Ubuntu").as_deref(), never));
+        assert!(!detect_wsl(false, distro("Ubuntu").as_deref(), None, never));
+        assert!(detect_wsl(true, distro("Ubuntu").as_deref(), None, never));
+        for other in ["sdk-ts", "Remote_Cowork", "remote_cowork ", ""] {
+            let e = OsStr::new(other);
+            assert!(
+                detect_wsl(true, distro("Ubuntu").as_deref(), Some(e), never),
+                "{other:?}"
+            );
+        }
+        let plain = || Some("Linux version 6.1.0-18-amd64 (debian)".to_owned());
+        let wsl2 = || Some("Linux version 5.15.153.1-microsoft-standard-WSL2".to_owned());
+        for cowork in COWORK_CLOUD_ENTRYPOINTS {
+            let e = Some(OsStr::new(cowork));
+            assert!(
+                !detect_wsl(true, distro("Ubuntu").as_deref(), e, plain),
+                "{cowork}"
+            );
+            assert!(
+                !detect_wsl(true, distro("Ubuntu").as_deref(), e, || None),
+                "{cowork}"
+            );
+            assert!(
+                detect_wsl(true, distro("Ubuntu").as_deref(), e, wsl2),
+                "{cowork}"
+            );
+            assert!(detect_wsl(true, None, e, wsl2), "{cowork}");
+        }
         let proc = |v: &'static str| move || Some(v.to_owned());
         for (version, want) in [
             (
@@ -1468,13 +1519,17 @@ mod tests {
             ),
         ] {
             assert_eq!(
-                detect_wsl(true, distro("").as_deref(), proc(version)),
+                detect_wsl(true, distro("").as_deref(), None, proc(version)),
                 want,
                 "{version}"
             );
-            assert_eq!(detect_wsl(true, None, proc(version)), want, "{version}");
+            assert_eq!(
+                detect_wsl(true, None, None, proc(version)),
+                want,
+                "{version}"
+            );
         }
-        assert!(!detect_wsl(true, None, || None));
+        assert!(!detect_wsl(true, None, None, || None));
     }
 
     #[test]
@@ -1487,12 +1542,13 @@ mod tests {
         assert_eq!(
             strip(json!({
                 "managedMcpServers": {}, "isolation": 1, "prependPlugins": [], "appendPlugins": [],
+                "attributionProjectPolicy": {"commit": "x"},
                 "enabledPlugins": {"a@m": false, "b@m": true, "c@builtin": false}, "deniedModels": ["x"]
             })),
             json!({"enabledPlugins": {"a@m": false}, "deniedModels": ["x"]})
         );
         assert_eq!(strip(json!({"enabledPlugins": {"b@m": true}})), json!({}));
-        // `hw` rewrites the map only when an entry goes.
+        // `Yp` rewrites the map only when an entry goes.
         assert_eq!(
             strip(json!({"enabledPlugins": {}})),
             json!({"enabledPlugins": {}})
@@ -1504,7 +1560,7 @@ mod tests {
     }
 
     /// An MDM tier with policy content shuts HKCU out even when none of its
-    /// settings survive validation (`kt` in `Vq`, and `WWe`'s early return).
+    /// settings survive validation (`ki` in `iv`, and `uv`'s early return).
     #[test]
     fn policy_content_without_settings_shuts_out_hkcu() {
         let hkcu: Map<String, Value> = json!({"deniedModels": ["x"]}).as_object().unwrap().clone();

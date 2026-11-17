@@ -28,7 +28,13 @@ use serde_json::{Map, Value, json};
 
 fn fixture() -> &'static Value {
     static F: OnceLock<Value> = OnceLock::new();
-    F.get_or_init(|| serde_json::from_str(include_str!("fixtures/reminders_golden.json")).unwrap())
+    // `js_string::parse`, not serde: a lone-surrogate escape (half an
+    // astral character around the keyword) is valid for `JSON.parse` and
+    // reads here as its stand-in char, which `js_string::units` maps back
+    // to the surrogate unit.
+    F.get_or_init(|| {
+        claudius_core::js_string::parse(include_str!("fixtures/reminders_golden.json")).unwrap()
+    })
 }
 
 fn cases(key: &str, min: usize) -> &'static [Value] {
@@ -51,13 +57,36 @@ fn the_wrapper_matches() {
 #[test]
 fn the_ultrathink_scan_matches() {
     let mut matched = 0;
-    for c in cases("ultrathink", 20) {
+    for c in cases("ultrathink", 60) {
         let text = str_of(&c["text"]);
-        let got = session::ultrathink_reminder_body(text);
+        let got = session::ultrathink_reminder_body(text, &[]);
         matched += usize::from(got.is_some());
         assert_eq!(got, c["body"].as_str(), "{text:?}");
     }
-    assert!(matched >= 10, "{matched}");
+    assert!(matched >= 20, "{matched}");
+}
+
+/// CC 2.1.311 — the same scan with `inlinePastes`. Non-string entries never
+/// reach the session (the route keeps strings only), so they are dropped
+/// here as the route drops them.
+#[test]
+fn the_ultrathink_scan_with_pastes_matches() {
+    let mut matched = 0;
+    for c in cases("ultrathinkPastes", 12) {
+        let text = str_of(&c["text"]);
+        let pastes: Vec<String> = c["pastes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .collect();
+        let got = session::ultrathink_reminder_body(text, &pastes);
+        matched += usize::from(got.is_some());
+        assert_eq!(got, c["body"].as_str(), "{text:?} + {:?}", c["pastes"]);
+    }
+    assert!(matched >= 6, "{matched}");
 }
 
 /// A recorded `[year, month, day]`.

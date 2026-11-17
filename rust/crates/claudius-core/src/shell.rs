@@ -6,8 +6,10 @@
 //! As in Node's `spawn(SHELL_PATH, ["-c", command], {cwd, env: process.env,
 //! detached: true})`:
 //! - the shell inherits the server's environment and leads its own session
-//!   (`setsid`), so the timeout's `SIGTERM` reaches the whole process group;
-//!   it is sent once, never escalated;
+//!   (`setsid`), so the timeout's signals reach the whole process group:
+//!   `SIGTERM`, then `SIGKILL` 1.5 s later for anything that ignored it
+//!   (CC 2.1.300, [`crate::process_group`]), so a `&` job that traps TERM
+//!   can't hold the stdio pipes — and the answer — open for ever;
 //! - stdin, stdout and stderr are `AF_UNIX` socket pairs, as libuv makes
 //!   them (not pipes); stdin stays open until the shell exits (or is fed
 //!   `stdin` and shut), the outputs are decoded like `setEncoding("utf8")`;
@@ -481,14 +483,12 @@ where
     }
 }
 
-/// `process.kill(-child.pid, "SIGTERM")`, ESRCH ignored.
+/// `killProcessGroup(child.pid)`: SIGTERM the group, then SIGKILL whatever
+/// ignored it 1.5 s later ([`crate::process_group`]); ESRCH ignored.
 #[cfg(unix)]
 fn terminate_group(_child: &mut tokio::process::Child, pid: Option<u32>) {
     if let Some(pid) = pid {
-        // SAFETY: kill(2) on the process group our child leads.
-        unsafe {
-            libc::kill(-(pid as libc::pid_t), libc::SIGTERM);
-        }
+        crate::process_group::kill_process_group(pid);
     }
 }
 

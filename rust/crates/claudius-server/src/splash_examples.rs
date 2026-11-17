@@ -29,8 +29,6 @@
 //! OPTIONS is 204 with `Allow`, POST/PATCH an empty 405 and any other method
 //! an empty 400 ([`crate::heartbeat`]).
 
-use std::borrow::Cow;
-
 use axum::Router;
 use axum::body::Bytes;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -47,10 +45,10 @@ use claudius_core::{js_string, log};
 use serde_json::{Value, json};
 
 use crate::AppState;
-use crate::body::{JsonBody, js_member, replace_overflowing_numbers, thrown};
+use crate::body::{JsonBody, js_member, thrown};
 use crate::heartbeat::{VARY, other_method};
 use crate::tri;
-use crate::workspaces::request_cookies;
+use crate::workspaces::{COOKIE, COOKIE_CUST, cookie, request_cookies};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -64,9 +62,6 @@ pub fn router() -> Router<AppState> {
         )
         .layer(map_response(with_vary))
 }
-
-const COOKIE_CUST: &str = "claudius.customization";
-const COOKIE_WS: &str = "claudius.workspace";
 
 /// What Next's `setVaryHeader` puts on every app route answer, thrown 500s
 /// included.
@@ -108,13 +103,7 @@ fn failed(e: &anyhow::Error) -> Response {
 /// `resolveActiveCwd().cwd` for this request; `openDb` takes only a string.
 fn active_cwd(headers: &HeaderMap) -> Option<Value> {
     let cookies = request_cookies(headers);
-    let cookie = |name: &str| {
-        cookies
-            .iter()
-            .find(|(n, _)| n == name)
-            .map(|(_, v)| v.as_str())
-    };
-    resolve_active_cwd(cookie(COOKIE_CUST), cookie(COOKIE_WS)).cwd
+    resolve_active_cwd(cookie(&cookies, COOKIE_CUST), cookie(&cookies, COOKIE)).cwd
 }
 
 /// `openDb(cwd)` on a cwd that isn't a string rejects (uncaught in TS).
@@ -151,14 +140,7 @@ fn display_name(over: Option<&JsString>) -> Value {
 /// null, not a string). Nesting past serde_json's 127 levels is `None`
 /// where V8 parses it.
 fn parse_body(bytes: &[u8]) -> Option<Value> {
-    let text = JsonBody::text(bytes);
-    // Only a valid number literal is replaced, so the text stays as valid
-    // (or not) as V8 finds it; `js_string::parse` runs V8's check.
-    let text = match replace_overflowing_numbers(&text, "false") {
-        Some(replaced) => Cow::Owned(replaced),
-        None => text,
-    };
-    js_string::parse(&text).ok()
+    JsonBody::parse_js_overflow(bytes, &Value::Bool(false)).ok()
 }
 
 async fn get_examples(headers: HeaderMap) -> Response {

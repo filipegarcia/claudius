@@ -23272,6 +23272,412 @@
    3
   ]
  ],
+ "handlers": [
+  [
+   null,
+   false,
+   null
+  ],
+  [
+   5,
+   false,
+   null
+  ],
+  [
+   true,
+   false,
+   null
+  ],
+  [
+   "agent",
+   false,
+   null
+  ],
+  [
+   [],
+   false,
+   null
+  ],
+  [
+   [
+    {
+     "type": "agent"
+    }
+   ],
+   false,
+   null
+  ],
+  [
+   {},
+   false,
+   null
+  ],
+  [
+   {
+    "type": "agent"
+   },
+   true,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "agent": "my-subagent"
+   },
+   true,
+   "my-subagent"
+  ],
+  [
+   {
+    "type": "agent",
+    "agent": "  spaced  "
+   },
+   true,
+   "  spaced  "
+  ],
+  [
+   {
+    "type": "agent",
+    "agent": "   "
+   },
+   true,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "agent": ""
+   },
+   true,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "agent": 5
+   },
+   true,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "agent": null
+   },
+   true,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "agent": [
+     "a"
+    ]
+   },
+   true,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": "verify the tests ran"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": ""
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": "   "
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": "x",
+    "agent": "both"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": 5,
+    "agent": "numeric prompt"
+   },
+   true,
+   "numeric prompt"
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": null,
+    "agent": "null prompt"
+   },
+   true,
+   "null prompt"
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": [
+     "x"
+    ],
+    "agent": "array prompt"
+   },
+   true,
+   "array prompt"
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": "x",
+    "model": "haiku"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": "x",
+    "model": "",
+    "timeout": 30
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "agent",
+    "prompt": "x",
+    "timeout": 0,
+    "once": true,
+    "if": "a"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "AGENT",
+    "prompt": "x"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": " agent",
+    "agent": "padded type"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "prompt",
+    "prompt": "x",
+    "model": "haiku",
+    "timeout": 5
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "prompt",
+    "agent": "old prompt hook"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "command",
+    "command": "echo",
+    "timeout": 1
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "http",
+    "url": "https://x",
+    "method": "GET"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "type": "mcp_tool",
+    "tool": "t"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "agent": "no type"
+   },
+   false,
+   null
+  ],
+  [
+   {
+    "prompt": "no type"
+   },
+   false,
+   null
+  ]
+ ],
+ "agentEvents": [
+  [
+   "PreToolUse",
+   true
+  ],
+  [
+   "PostToolUse",
+   true
+  ],
+  [
+   "PostToolUseFailure",
+   true
+  ],
+  [
+   "PostToolBatch",
+   true
+  ],
+  [
+   "Notification",
+   true
+  ],
+  [
+   "UserPromptSubmit",
+   true
+  ],
+  [
+   "UserPromptExpansion",
+   true
+  ],
+  [
+   "SessionStart",
+   true
+  ],
+  [
+   "SessionEnd",
+   true
+  ],
+  [
+   "Stop",
+   true
+  ],
+  [
+   "StopFailure",
+   true
+  ],
+  [
+   "SubagentStart",
+   true
+  ],
+  [
+   "SubagentStop",
+   true
+  ],
+  [
+   "PreCompact",
+   true
+  ],
+  [
+   "PostCompact",
+   true
+  ],
+  [
+   "PreModelSwitch",
+   true
+  ],
+  [
+   "PostModelSwitch",
+   true
+  ],
+  [
+   "PermissionRequest",
+   false
+  ],
+  [
+   "PermissionDenied",
+   true
+  ],
+  [
+   "Setup",
+   true
+  ],
+  [
+   "TeammateIdle",
+   true
+  ],
+  [
+   "TaskCreated",
+   true
+  ],
+  [
+   "TaskCompleted",
+   true
+  ],
+  [
+   "Elicitation",
+   true
+  ],
+  [
+   "ElicitationResult",
+   true
+  ],
+  [
+   "ConfigChange",
+   true
+  ],
+  [
+   "WorktreeCreate",
+   true
+  ],
+  [
+   "WorktreeRemove",
+   true
+  ],
+  [
+   "InstructionsLoaded",
+   true
+  ],
+  [
+   "CwdChanged",
+   true
+  ],
+  [
+   "FileChanged",
+   true
+  ],
+  [
+   "DirectoryAdded",
+   true
+  ],
+  [
+   "MessageDisplay",
+   true
+  ]
+ ],
  "modules": [
   {
    "name": "skills write, read and list",
@@ -31481,13 +31887,79 @@
     },
     {
      "request": {
+      "method": "POST",
+      "url": "/api/hooks",
+      "body": "{\"scope\":\"user\",\"event\":\"Stop\",\"group\":{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"Verify the tests ran.\",\"model\":\"claude-haiku-4-5\",\"timeout\":60}]}}"
+     },
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "changes": [
+      [
+       "home/.claude/settings.json",
+       {
+        "kind": "file",
+        "mode": 420,
+        "text": "{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo user\"\n          }\n        ]\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo second\"\n          }\n        ]\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": \"str\"\n      },\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+       }
+      ]
+     ]
+    },
+    {
+     "request": {
+      "method": "POST",
+      "url": "/api/hooks",
+      "body": "{\"scope\":\"user\",\"event\":\"SubagentStop\",\"group\":{\"matcher\":\"\",\"hooks\":[{\"type\":\"prompt\",\"prompt\":\"ok?\",\"model\":\"\",\"timeout\":0.5,\"continueOnBlock\":true},{\"type\":\"agent\",\"agent\":\"legacy-subagent\"},{\"type\":\"agent\",\"prompt\":\"\",\"once\":true,\"if\":\"Bash(git *)\"}]}}"
+     },
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "changes": [
+      [
+       "home/.claude/settings.json",
+       {
+        "kind": "file",
+        "mode": 420,
+        "text": "{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo user\"\n          }\n        ]\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo second\"\n          }\n        ]\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": \"str\"\n      },\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+       }
+      ]
+     ]
+    },
+    {
+     "request": {
+      "method": "POST",
+      "url": "/api/hooks",
+      "body": "{\"scope\":\"user\",\"event\":\"PermissionRequest\",\"group\":{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"x\"}]}}"
+     },
+     "got": {
+      "status": 200,
+      "type": "application/json",
+      "body": "{\"ok\":true}"
+     },
+     "changes": [
+      [
+       "home/.claude/settings.json",
+       {
+        "kind": "file",
+        "mode": 420,
+        "text": "{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo user\"\n          }\n        ]\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo second\"\n          }\n        ]\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": \"str\"\n      },\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ],\n    \"PermissionRequest\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"x\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+       }
+      ]
+     ]
+    },
+    {
+     "request": {
       "method": "GET",
       "url": "/api/hooks"
      },
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"cwd\":\"$ROOT/project\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"echo user\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"echo second\"}]}],\"Stop\":[{\"hooks\":\"str\"},{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/project/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"echo 😀\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/project/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{\"Notification\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"say hi\"}]}]}}]}"
+      "body": "{\"cwd\":\"$ROOT/project\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"echo user\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"echo second\"}]}],\"Stop\":[{\"hooks\":\"str\"},{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}},{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"Verify the tests ran.\",\"model\":\"claude-haiku-4-5\",\"timeout\":60}]}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}],\"SubagentStop\":[{\"matcher\":\"\",\"hooks\":[{\"type\":\"prompt\",\"prompt\":\"ok?\",\"model\":\"\",\"timeout\":0.5,\"continueOnBlock\":true},{\"type\":\"agent\",\"agent\":\"legacy-subagent\"},{\"type\":\"agent\",\"prompt\":\"\",\"once\":true,\"if\":\"Bash(git *)\"}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"x\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/project/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"echo 😀\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/project/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{\"Notification\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"say hi\"}]}]}}]}"
      },
      "changes": []
     },
@@ -31499,7 +31971,7 @@
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"cwd\":\"$ROOT/ws\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"echo user\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"echo second\"}]}],\"Stop\":[{\"hooks\":\"str\"},{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/ws/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PostToolUse\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"ws\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/ws/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{}}]}"
+      "body": "{\"cwd\":\"$ROOT/ws\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"echo user\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"echo second\"}]}],\"Stop\":[{\"hooks\":\"str\"},{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}},{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"Verify the tests ran.\",\"model\":\"claude-haiku-4-5\",\"timeout\":60}]}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}],\"SubagentStop\":[{\"matcher\":\"\",\"hooks\":[{\"type\":\"prompt\",\"prompt\":\"ok?\",\"model\":\"\",\"timeout\":0.5,\"continueOnBlock\":true},{\"type\":\"agent\",\"agent\":\"legacy-subagent\"},{\"type\":\"agent\",\"prompt\":\"\",\"once\":true,\"if\":\"Bash(git *)\"}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"x\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/ws/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PostToolUse\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"ws\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/ws/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{}}]}"
      },
      "changes": []
     },
@@ -31511,7 +31983,7 @@
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"cwd\":\"$ROOT/café x😀\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"echo user\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"echo second\"}]}],\"Stop\":[{\"hooks\":\"str\"},{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/café x😀/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"MessageDisplay\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"uni\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/café x😀/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{}}]}"
+      "body": "{\"cwd\":\"$ROOT/café x😀\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"echo user\"}]},{\"hooks\":[{\"type\":\"command\",\"command\":\"echo second\"}]}],\"Stop\":[{\"hooks\":\"str\"},{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}},{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"Verify the tests ran.\",\"model\":\"claude-haiku-4-5\",\"timeout\":60}]}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}],\"SubagentStop\":[{\"matcher\":\"\",\"hooks\":[{\"type\":\"prompt\",\"prompt\":\"ok?\",\"model\":\"\",\"timeout\":0.5,\"continueOnBlock\":true},{\"type\":\"agent\",\"agent\":\"legacy-subagent\"},{\"type\":\"agent\",\"prompt\":\"\",\"once\":true,\"if\":\"Bash(git *)\"}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"x\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/café x😀/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"MessageDisplay\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"uni\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/café x😀/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{}}]}"
      },
      "changes": []
     },
@@ -31698,7 +32170,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo user\"\n          }\n        ]\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": \"str\"\n      },\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        "text": "{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo user\"\n          }\n        ]\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": \"str\"\n      },\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ],\n    \"PermissionRequest\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"x\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
        }
       ]
      ]
@@ -31720,7 +32192,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": \"str\"\n      },\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": \"str\"\n      },\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ],\n    \"PermissionRequest\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"x\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
        }
       ]
      ]
@@ -31768,7 +32240,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ],\n    \"PermissionRequest\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"x\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
        }
       ]
      ]
@@ -31874,7 +32346,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ]\n  },\n  \"disableAllHooks\": true\n}\n"
+        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ],\n    \"PermissionRequest\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"x\"\n          }\n        ]\n      }\n    ]\n  },\n  \"disableAllHooks\": true\n}\n"
        }
       ]
      ]
@@ -31931,7 +32403,7 @@
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"cwd\":\"$ROOT/project\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":true,\"hooks\":{\"Stop\":[{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/project/.claude/settings.json\",\"disableAllHooks\":true,\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"echo 😀\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/project/.claude/settings.local.json\",\"disableAllHooks\":true,\"hooks\":{}}]}"
+      "body": "{\"cwd\":\"$ROOT/project\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":true,\"hooks\":{\"Stop\":[{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}},{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"Verify the tests ran.\",\"model\":\"claude-haiku-4-5\",\"timeout\":60}]}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}],\"SubagentStop\":[{\"matcher\":\"\",\"hooks\":[{\"type\":\"prompt\",\"prompt\":\"ok?\",\"model\":\"\",\"timeout\":0.5,\"continueOnBlock\":true},{\"type\":\"agent\",\"agent\":\"legacy-subagent\"},{\"type\":\"agent\",\"prompt\":\"\",\"once\":true,\"if\":\"Bash(git *)\"}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"x\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/project/.claude/settings.json\",\"disableAllHooks\":true,\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"echo 😀\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/project/.claude/settings.local.json\",\"disableAllHooks\":true,\"hooks\":{}}]}"
      },
      "changes": []
     },
@@ -31952,7 +32424,7 @@
        {
         "kind": "file",
         "mode": 420,
-        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ],\n    \"PermissionRequest\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"x\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
        }
       ]
      ]
@@ -32031,7 +32503,7 @@
      "got": {
       "status": 200,
       "type": "application/json",
-      "body": "{\"cwd\":\"$ROOT/project\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"Stop\":[{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/project/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"echo 😀\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/project/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{}}]}"
+      "body": "{\"cwd\":\"$ROOT/project\",\"scopes\":[{\"scope\":\"user\",\"path\":\"$ROOT/home/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"Stop\":[{\"hooks\":{\"length\":1}},{\"hooks\":[{\"type\":\"command\",\"command\":\"inf\",\"timeout\":null}],\"n\":{\"length\":null}},{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"Verify the tests ran.\",\"model\":\"claude-haiku-4-5\",\"timeout\":60}]}],\"DirectoryAdded\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"cwd 5\"}]}],\"SubagentStop\":[{\"matcher\":\"\",\"hooks\":[{\"type\":\"prompt\",\"prompt\":\"ok?\",\"model\":\"\",\"timeout\":0.5,\"continueOnBlock\":true},{\"type\":\"agent\",\"agent\":\"legacy-subagent\"},{\"type\":\"agent\",\"prompt\":\"\",\"once\":true,\"if\":\"Bash(git *)\"}]}],\"PermissionRequest\":[{\"hooks\":[{\"type\":\"agent\",\"prompt\":\"x\"}]}]}},{\"scope\":\"project\",\"path\":\"$ROOT/project/.claude/settings.json\",\"disableAllHooks\":false,\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"echo 😀\"}]}]}},{\"scope\":\"local\",\"path\":\"$ROOT/project/.claude/settings.local.json\",\"disableAllHooks\":false,\"hooks\":{}}]}"
      },
      "changes": []
     }
@@ -32098,7 +32570,7 @@
     "home/.claude/settings.json": {
      "kind": "file",
      "mode": 420,
-     "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+     "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": {\n          \"length\": 1\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"inf\",\n            \"timeout\": null\n          }\n        ],\n        \"n\": {\n          \"length\": null\n        }\n      },\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"Verify the tests ran.\",\n            \"model\": \"claude-haiku-4-5\",\n            \"timeout\": 60\n          }\n        ]\n      }\n    ],\n    \"DirectoryAdded\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"cwd 5\"\n          }\n        ]\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"\",\n        \"hooks\": [\n          {\n            \"type\": \"prompt\",\n            \"prompt\": \"ok?\",\n            \"model\": \"\",\n            \"timeout\": 0.5,\n            \"continueOnBlock\": true\n          },\n          {\n            \"type\": \"agent\",\n            \"agent\": \"legacy-subagent\"\n          },\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"\",\n            \"once\": true,\n            \"if\": \"Bash(git *)\"\n          }\n        ]\n      }\n    ],\n    \"PermissionRequest\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"agent\",\n            \"prompt\": \"x\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
     },
     "outside": {
      "kind": "dir",

@@ -32,6 +32,9 @@
 //   0), `isEngineShownName` (1), `isEngineOfferableName` (2) and
 //   `visualizeHiddenNameUnicode`, over hand-picked names and every pair /
 //   triple of a set of interesting code points.
+// - `handlers`: `[handler, isLegacyAgentHook, legacyAgentHookName]` over
+//   handler shapes, and `agentEvents`: `[event, agentHandlerAllowed]` -- the
+//   CC 2.1.300 agent-hook rules of `lib/shared/hook-events.ts`.
 // - `modules`: scenarios of direct calls to the exported module functions
 //   (`call`, `args` as JSON text where `1e400` is Infinity), interleaved
 //   with `setup` file operations (`write` text or `bytes`, `mkdir`, `rm`,
@@ -140,7 +143,9 @@ if (!process.env.SKILLS_HOOKS_GOLDEN_ROOT) {
   const calls = fixture.modules.reduce((n, s) => n + (s.steps ?? []).filter((x) => x.call).length, 0);
   const requests = fixture.routes.reduce((n, g) => n + (g.steps ?? []).filter((x) => x.request).length, 0);
   console.log(
-    `wrote ${out.slice(repo.length + 1)}: ${fixture.props.split(",").length} property runs, ${fixture.names.length} names, ${fixture.modules.length} module scenarios (${calls} calls), ${fixture.routes.length} route groups (${requests} requests)`,
+    `wrote ${out.slice(repo.length + 1)}: ${fixture.props.split(",").length} property runs, ${fixture.names.length} names, ` +
+      `${fixture.handlers.length} handler shapes, ${fixture.modules.length} module scenarios (${calls} calls), ` +
+      `${fixture.routes.length} route groups (${requests} requests)`,
   );
   process.exit(0);
 }
@@ -186,6 +191,7 @@ const kb = await import(join(repo, "lib/server/keybindings.ts"));
 const cmd = await import(join(repo, "lib/server/claudemd.ts"));
 const skillNames = await import(join(repo, "lib/shared/skill-names.ts"));
 const invisible = await import(join(repo, "lib/shared/invisible-unicode.ts"));
+const hookEvents = await import(join(repo, "lib/shared/hook-events.ts"));
 const R = {
   skills: await import(join(repo, "app/api/skills/route.ts")),
   skill: await import(join(repo, "app/api/skills/[name]/route.ts")),
@@ -1332,6 +1338,29 @@ const ROUTES = [
       HK("POST", undefined, { scope: "project", event: "PostToolUse", group: GROUP("ws"), cwd: WSC }),
       HK("POST", undefined, { scope: "project", event: "MessageDisplay", group: GROUP("uni"), cwd: UNIC }),
       HK("POST", undefined, { scope: "user", event: "DirectoryAdded", group: GROUP("cwd 5"), cwd: 5 }),
+      // CC 2.1.300: the editor saves an agent hook as {prompt, model} with a
+      // timeout, and a prompt hook can carry both too. The route stores a
+      // group as given, so the legacy {agent} shape (which only the editor
+      // flags) and an agent hook on PermissionRequest (which only the editor
+      // refuses) are stored as well.
+      HK("POST", undefined, {
+        scope: "user",
+        event: "Stop",
+        group: { hooks: [{ type: "agent", prompt: "Verify the tests ran.", model: "claude-haiku-4-5", timeout: 60 }] },
+      }),
+      HK("POST", undefined, {
+        scope: "user",
+        event: "SubagentStop",
+        group: {
+          matcher: "",
+          hooks: [
+            { type: "prompt", prompt: "ok?", model: "", timeout: 0.5, continueOnBlock: true },
+            { type: "agent", agent: "legacy-subagent" },
+            { type: "agent", prompt: "", once: true, if: "Bash(git *)" },
+          ],
+        },
+      }),
+      HK("POST", undefined, { scope: "user", event: "PermissionRequest", group: { hooks: [{ type: "agent", prompt: "x" }] } }),
       HK("GET"),
       HK("GET", CWD(WSC)),
       HK("GET", CWD(UNIC)),
@@ -1617,6 +1646,57 @@ for (const g of ROUTES) {
   routes.push(await runGroup(g));
 }
 
+/**
+ * CC 2.1.300 (`lib/shared/hook-events.ts`): an agent hook is
+ * `{type:"agent", prompt, model?}`, and the editor flags the old
+ * `{type:"agent", agent:"<name>"}` shape, which the engine skips at load
+ * because it has no `prompt`. Only a missing / non-string prompt is flagged
+ * (the 2.1.300 review); an empty one still loads.
+ */
+const HANDLERS = [
+  null,
+  5,
+  true,
+  "agent",
+  [],
+  [{ type: "agent" }],
+  {},
+  { type: "agent" },
+  { type: "agent", agent: "my-subagent" },
+  { type: "agent", agent: "  spaced  " },
+  { type: "agent", agent: "   " },
+  { type: "agent", agent: "" },
+  { type: "agent", agent: 5 },
+  { type: "agent", agent: null },
+  { type: "agent", agent: ["a"] },
+  { type: "agent", prompt: "verify the tests ran" },
+  { type: "agent", prompt: "" },
+  { type: "agent", prompt: "   " },
+  { type: "agent", prompt: "x", agent: "both" },
+  { type: "agent", prompt: 5, agent: "numeric prompt" },
+  { type: "agent", prompt: null, agent: "null prompt" },
+  { type: "agent", prompt: ["x"], agent: "array prompt" },
+  { type: "agent", prompt: "x", model: "haiku" },
+  { type: "agent", prompt: "x", model: "", timeout: 30 },
+  { type: "agent", prompt: "x", timeout: 0, once: true, if: "a" },
+  { type: "AGENT", prompt: "x" },
+  { type: " agent", agent: "padded type" },
+  { type: "prompt", prompt: "x", model: "haiku", timeout: 5 },
+  { type: "prompt", agent: "old prompt hook" },
+  { type: "command", command: "echo", timeout: 1 },
+  { type: "http", url: "https://x", method: "GET" },
+  { type: "mcp_tool", tool: "t" },
+  { agent: "no type" },
+  { prompt: "no type" },
+];
+const handlers = HANDLERS.map((h) => [
+  h === undefined ? null : h,
+  hookEvents.isLegacyAgentHook(h),
+  hookEvents.legacyAgentHookName(h),
+]);
+/** `agentHandlerAllowed(event)` over every event name. */
+const agentEvents = hookEvents.HOOK_EVENT_NAMES.map((e) => [e, hookEvents.agentHandlerAllowed(e)]);
+
 const fixture = {
   node: process.version,
   platform: process.platform,
@@ -1625,6 +1705,8 @@ const fixture = {
   world: WORLD,
   props: runs.join(","),
   names,
+  handlers,
+  agentEvents,
   modules,
   routes,
 };

@@ -26,7 +26,9 @@
 //   bytes as `requestHex`; both null for a request without a body), the
 //   response's `status` and `body` as sent, and the `wire`. Groups:
 //   validation on the fake's canned reply, CLI replies scripted per group, a
-//   session without a query, and one whose CLI exited.
+//   session without a query, one whose CLI exited, and `userMessageId`s with
+//   lone-surrogate escapes (the SDK writes each back as `\udXXX`; the fake
+//   reads it as U+FFFD and answers, I17).
 // - `resume`: the real `new Session({cwd, resume, resumeSessionAt}).start()`
 //   over a recorded transcript (`transcript`, JSONL lines): the uuids of the
 //   transcript messages in the replay buffer, in order, and the CLI's
@@ -393,6 +395,29 @@ const ROUTE_SCRIPTED = [
 const SCRIPTED_BODIES = ['{"userMessageId":"u1","dryRun":true}', '{"userMessageId":"u2"}', "{}"];
 // The CLI exits once it has answered `initialize`.
 const EXIT_SCRIPT = { on_init: [{ $stderr: "boom" }, { $exit: 3 }] };
+// Lone-surrogate escapes, on the fake's canned reply. `JSON.parse` keeps each
+// as a lone surrogate and the SDK writes it back as the escape (lower-case
+// hex). The last five put none on the wire.
+const LONE_SURROGATE_BODIES = [
+  `{"userMessageId":"${ju("d800")}"}`,
+  `{"userMessageId":"${ju("dc00")}","dryRun":true}`,
+  `{"userMessageId":"a${ju("d800")}b${ju("dfff")}c"}`,
+  // A pair, then half of one; a pair's halves the wrong way round.
+  `{"userMessageId":"${ju("d83d")}${ju("de00")}${ju("d83d")}"}`,
+  `{"userMessageId":"${ju("de00")}${ju("d83d")}","dryRun":false}`,
+  `{"userMessageId":"${ju("d800")}${ju("d800")}"}`,
+  // Upper-case hex; an escaped backslash before one and before `ud800` text.
+  `{"userMessageId":"${ju("DBFF")}x"}`,
+  `{"userMessageId":"\\\\${ju("d800")}\\\\ud800"}`,
+  // A pair written as escapes (U+10000); one in a key that isn't read, in
+  // `dryRun`, under a repeated key; the surrogate's own three bytes
+  // (`ED A0 80`), which decode to three U+FFFD.
+  `{"userMessageId":"${ju("d800")}${ju("dc00")}"}`,
+  `{"${ju("d800")}":1,"userMessageId":"u1"}`,
+  `{"userMessageId":"u1","dryRun":"${ju("d800")}"}`,
+  `{"userMessageId":"${ju("d800")}","userMessageId":"u2"}`,
+  { hex: "7b22757365724d6573736167654964223a22eda080227d" },
+];
 
 async function routeCall(host, log, id, body) {
   const from = log ? readLines(log).length : 0;
@@ -444,6 +469,7 @@ const route = [await routeGroup("validation", null, ROUTE_BODIES)];
 for (const [name, script] of ROUTE_SCRIPTED) route.push(await routeGroup(name, script, SCRIPTED_BODIES));
 route.push(await routeGroup("no query", "none", ['{"userMessageId":"u1","dryRun":true}', "{}", "{", "null"]));
 route.push(await routeGroup("exited", EXIT_SCRIPT, ['{"userMessageId":"u1","dryRun":true}', '{"userMessageId":"u1"}', "{}", "{"]));
+route.push(await routeGroup("lone surrogates", null, LONE_SURROGATE_BODIES));
 
 // ----------------------------------- resume -----------------------------------
 

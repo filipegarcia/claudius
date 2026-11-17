@@ -1,14 +1,14 @@
-//! `lib/shared/feedback-refusal.ts` (CC 2.1.309) and the `stripAnsi` of
-//! `lib/shared/hook-ask.ts` it runs on: what the feedback survey's forward
-//! (`Session::submit_feedback`, the CLI's `submit_feedback` control
-//! request) resolved with, and the display-safe refusal reason the banner
-//! shows.
+//! `lib/shared/feedback-refusal.ts` (CC 2.1.309): what the feedback
+//! survey's forward (`Session::submit_feedback`, the CLI's
+//! `submit_feedback` control request) resolved with, and the display-safe
+//! refusal reason the banner shows.
 //!
 //! The CLI answers a refusal (an organization that doesn't accept feedback)
 //! as a *successful* control response, `{feedback_id: null,
 //! unavailable_reason, failure_reason?}`, so the reply has to be read:
 //! [`interpret_feedback_response`]. The reason goes through
-//! [`feedback_refusal_reason`]: ANSI escapes stripped, C0 / DEL / C1 runs
+//! [`feedback_refusal_reason`]: ANSI escapes stripped (hook-ask's
+//! `stripAnsi`, [`crate::hook_ask::strip_ansi`]), C0 / DEL / C1 runs
 //! and JS whitespace runs collapsed to one space, the CLI's trailing "Report
 //! issues at <url>" pointer dropped, JS `trim`, then capped at 200 code
 //! points (199 and `…`). The regexes are ported by hand. Replayed against
@@ -16,6 +16,8 @@
 
 use claudius_agent::js;
 use serde_json::Value;
+
+use crate::hook_ask::strip_ansi;
 
 /// `FEEDBACK_REASON_MAX`: the reason's cap, in code points.
 pub const FEEDBACK_REASON_MAX: usize = 200;
@@ -163,57 +165,6 @@ fn strip_report_pointer(s: &str) -> &str {
     s
 }
 
-/// `stripAnsi(text)`: `text.replace(ANSI_RE, "")` with
-/// `/\u001b\[[0-?]*[ -/]*[@-~]|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)|\u001b[@-Z\\-_]/g`
-/// (CSI sequences, OSC sequences ended by BEL or ST, two-character escapes).
-pub fn strip_ansi(text: &str) -> String {
-    let chars: Vec<char> = text.chars().collect();
-    let mut out = String::with_capacity(text.len());
-    let mut i = 0;
-    while i < chars.len() {
-        if chars[i] == '\u{1b}'
-            && let Some(end) = ansi_end(&chars, i)
-        {
-            i = end;
-            continue;
-        }
-        out.push(chars[i]);
-        i += 1;
-    }
-    out
-}
-
-/// Where an `ANSI_RE` match starting at the ESC at `i` ends, trying the
-/// alternatives in order. The classes of each are disjoint, so the greedy
-/// runs never need to give anything back.
-fn ansi_end(c: &[char], i: usize) -> Option<usize> {
-    let at = |j: usize| c.get(j).copied();
-    if at(i + 1) == Some('[') {
-        let mut j = i + 2;
-        while matches!(at(j), Some('0'..='?')) {
-            j += 1;
-        }
-        while matches!(at(j), Some(' '..='/')) {
-            j += 1;
-        }
-        if matches!(at(j), Some('@'..='~')) {
-            return Some(j + 1);
-        }
-    }
-    if at(i + 1) == Some(']') {
-        let mut j = i + 2;
-        while at(j).is_some_and(|ch| ch != '\u{7}' && ch != '\u{1b}') {
-            j += 1;
-        }
-        match at(j) {
-            Some('\u{7}') => return Some(j + 1),
-            Some('\u{1b}') if at(j + 1) == Some('\\') => return Some(j + 2),
-            _ => {}
-        }
-    }
-    matches!(at(i + 1), Some('@'..='Z' | '\\'..='_')).then_some(i + 2)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,10 +190,11 @@ mod tests {
 
     #[test]
     fn strips_escapes_and_caps() {
-        assert_eq!(strip_ansi("\u{1b}[1;31mred\u{1b}[0m"), "red");
-        assert_eq!(strip_ansi("\u{1b}]8;;u\u{7}l\u{1b}]8;;\u{1b}\\"), "l");
-        assert_eq!(strip_ansi("\u{1b}]x\u{1b}y"), "x\u{1b}y");
-        assert_eq!(strip_ansi("\u{1b}[\u{1b}M"), "\u{1b}[");
+        // The escapes go before the collapse (`hook_ask::strip_ansi`).
+        assert_eq!(
+            sanitize_reason("\u{1b}[1;31mNot\u{1b}[0m \u{1b}]8;;u\u{7}accepted\u{1b}]8;;\u{1b}\\"),
+            Some("Not accepted".to_owned())
+        );
         let long = "a".repeat(250);
         let got = sanitize_reason(&long).unwrap();
         assert_eq!(got.chars().count(), FEEDBACK_REASON_MAX);

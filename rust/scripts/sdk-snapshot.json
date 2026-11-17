@@ -1,5 +1,5 @@
 {
-  "sdkVersion": "0.3.299",
+  "sdkVersion": "0.3.312",
   "controlRequests": {
     "declared": [
       "apply_flag_settings",
@@ -97,6 +97,7 @@
       "side_question",
       "stop_task",
       "submit_feedback",
+      "submit_survey_feedback",
       "ultrareview_launch",
       "update_settings"
     ],
@@ -111,6 +112,7 @@
       "request_user_dialog",
       "ui_copy",
       "ui_prompt_fill",
+      "ui_prompt_paint",
       "ui_prompt_read",
       "ui_prompt_suggest",
       "ui_read_selection"
@@ -285,6 +287,7 @@
     "plugins",
     "projectConfigRoot",
     "rapidFollowupPreempt",
+    "readsStartupMarks",
     "resume",
     "resumeConfigDir",
     "resumeDropsTurn",
@@ -328,6 +331,7 @@
       "CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH": "set",
       "CLAUDE_CODE_SDK_HAS_OAUTH_REFRESH": "set",
       "CLAUDE_CODE_SDK_READS_SESSION_STATE": "key,set",
+      "CLAUDE_CODE_SDK_READS_STARTUP_MARKS": "key,set",
       "CLAUDE_CONFIG_DIR": "read,set",
       "CLAUDE_SECURESTORAGE_CONFIG_DIR": "set",
       "TRACEPARENT": "key",

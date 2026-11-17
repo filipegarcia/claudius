@@ -17,6 +17,19 @@
 // of every expected `eof`. Also recorded: the user line(s) written, and the
 // `type/subtype` of every message the SDK yielded.
 //
+// Those margins are the SDK's, not the fake's: the SDK has to read each
+// message within them. When it reads one late (this process busy, the
+// machine loaded), it closes stdin after the fake has already exited, and
+// that run simply has no `eof`. Reading the events log later can't bring it
+// back: the SDK ends the stream only once the CLI has exited, so the log is
+// complete by then. Starting all the cases at once made that likely (the
+// synchronous spawns and SDK setup kept node from reading the first cases'
+// stdout until their delays were over), so the cases run one at a time. A
+// run is thrown away when this process's event loop stalled for more than
+// STALL_MS while the CLI ran, or when the events log ends mid-line (the
+// fake exited while writing `eof`), and a case is kept only once AGREE runs
+// in a row give the same record.
+//
 // `ceilingTable` is the SDK's own env parser (`Ic`, extracted from sdk.mjs
 // and evaluated) over a set of raw values: the ceiling in ms it derives.
 //
@@ -38,6 +51,10 @@ const { query, createSdkMcpServer, tool } = await import(pathToFileURL(sdkFile).
 const { z } = await import(pathToFileURL(join(repo, "node_modules/zod/index.js")).href);
 const sdkVersion = JSON.parse(readFileSync(join(sdkPath, "package.json"), "utf8")).version;
 const CEILING_ENV = "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS";
+// A third of the smallest margin; see the header.
+const STALL_MS = 100;
+const AGREE = 3;
+const MAX_RUNS = 15;
 
 const RESULT = { type: "result", subtype: "success", is_error: false, result: "ok", num_turns: 1, duration_ms: 1, duration_api_ms: 1, total_cost_usd: 0, usage: { input_tokens: 1, output_tokens: 1 } };
 const state = (s) => ({ type: "system", subtype: "session_state_changed", state: s });
@@ -101,22 +118,29 @@ function buildFake() {
   return join(rustDir, "target/debug/claudius-fake-claude");
 }
 
-/** The SDK's `Ic` and the `V4` ceiling rule, lifted out of sdk.mjs. */
+/**
+ * The SDK's env integer parser (0.3.299 `Ic`, 0.3.312 `fu`) and the run-end
+ * ceiling rule, lifted out of sdk.mjs. Minification renames them on every
+ * bump, so anchor on the code's shape instead: the parser is the function
+ * that trims `String(e)` and falls back to `parseInt(t, 10)`, sitting right
+ * after its helper and the three regexes that helper tests.
+ */
 function sdkCeiling() {
   const src = readFileSync(sdkFile, "utf8");
-  const slice = (from, to) => {
-    const a = src.indexOf(from);
-    const b = src.indexOf(to, a);
-    if (a < 0 || b < 0) throw new Error(`can't find ${from}…${to} in sdk.mjs; re-derive the extraction`);
-    return src.slice(a, b);
-  };
-  const regexes = slice("c6=/", ";function dS(");
-  if (regexes.length > 300) throw new Error("the dS regexes moved in sdk.mjs; re-derive the extraction");
-  const fns = slice("function dS(", "function Dc(");
-  if (!src.includes("V4=Number.isFinite(z_)&&z_>=0?z_:O_") || !src.includes("O_=600000;")) {
+  const parser = /function ([\w$]+)\(e\)\{let t=String\(e\)\.trim\(\);return ([\w$]+)\(t\)\?\?parseInt\(t,10\)\}/.exec(src);
+  if (!parser) throw new Error("the env integer parser moved in sdk.mjs; re-derive the extraction");
+  const [tail, outer, inner] = parser;
+  const start = src.lastIndexOf("var ", src.indexOf(`function ${inner}(e){`));
+  const code = src.slice(start, parser.index + tail.length);
+  if (start < 0 || code.length > 600 || !/\[eE\]\[\+-\]\?/.test(code) || !code.includes("\\u202F")) {
+    throw new Error(`the ${outer}/${inner} parser's regexes moved in sdk.mjs; re-derive the extraction`);
+  }
+  // `<ceiling> = Number.isFinite(<parsed>) && <parsed> >= 0 ? <parsed> : <default>`.
+  const rule = /=Number\.isFinite\(([\w$]+)\)&&\1>=0\?\1:([\w$]+)/.exec(src);
+  if (!rule || !src.includes(`var ${rule[2]}=600000;`)) {
     throw new Error("the ceiling rule in sdk.mjs changed; re-derive the extraction");
   }
-  const Ic = new Function(`const ${regexes};${fns};return Ic;`)();
+  const Ic = new Function(`${code};return ${outer};`)();
   return (raw) => {
     const z = Ic(raw === null ? undefined : raw);
     return Number.isFinite(z) && z >= 0 ? z : 600000;
@@ -142,7 +166,30 @@ function options(spec) {
 /** The follow-up prompt, as streamed by both sides. */
 const followUpMessage = (text) => ({ type: "user", session_id: "", message: { role: "user", content: text }, parent_tool_use_id: null });
 
-async function record(fake, [name, spec, script]) {
+/**
+ * Starts timing the event loop: the returned function stops and gives the
+ * longest the loop went without a turn, in ms. A plain interval, because
+ * `monitorEventLoopDelay` misses a stall that starts right after `reset()`.
+ */
+function stallProbe() {
+  const tick = 10;
+  let last = performance.now();
+  let worst = 0;
+  const gap = () => {
+    const now = performance.now();
+    worst = Math.max(worst, now - last - tick);
+    last = now;
+  };
+  const timer = setInterval(gap, tick);
+  return () => {
+    clearInterval(timer);
+    gap();
+    return worst;
+  };
+}
+
+/** One run of a case: its record, or why the run doesn't count. */
+async function recordOnce(fake, [name, spec, script]) {
   const tmp = realpathSync(mkdtempSync(join(tmpdir(), "run-end-golden-")));
   const log = join(tmp, "stdin.log");
   const events = join(tmp, "events.log");
@@ -155,33 +202,65 @@ async function record(fake, [name, spec, script]) {
       ...options(spec),
     },
   });
+  // `query()` has spawned the CLI; time the event loop from here.
+  const stopProbe = stallProbe();
   const yielded = [];
   let followedUp = false;
-  for await (const msg of q) {
-    yielded.push(msg.subtype ? `${msg.type}/${msg.subtype}` : msg.type);
-    if (spec.followUp && msg.type === "result" && !followedUp) {
-      followedUp = true;
-      q.streamInput((async function* () {
-        yield followUpMessage(spec.followUp);
-      })());
+  let stall;
+  try {
+    for await (const msg of q) {
+      yielded.push(msg.subtype ? `${msg.type}/${msg.subtype}` : msg.type);
+      if (spec.followUp && msg.type === "result" && !followedUp) {
+        followedUp = true;
+        q.streamInput((async function* () {
+          yield followUpMessage(spec.followUp);
+        })());
+      }
     }
+  } finally {
+    stall = stopProbe();
   }
-  const lines = (f) => readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const text = (f) => readFileSync(f, "utf8");
+  const lines = (t) => t.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const eventsText = text(events);
   const out = {
     name,
     spec,
     script,
-    events: lines(events).map((e) => (e.eof ? "eof" : e.mark)),
-    userLines: lines(log).filter((m) => m.type === "user"),
+    events: eventsText.endsWith("\n") ? lines(eventsText).map((e) => (e.eof ? "eof" : e.mark)) : null,
+    userLines: lines(text(log)).filter((m) => m.type === "user"),
     yielded,
   };
   rmSync(tmp, { recursive: true, force: true });
-  return out;
+  if (stall > STALL_MS) return { skip: `the event loop stalled ${Math.round(stall)} ms` };
+  if (!out.events) return { skip: "the events log ends mid-line" };
+  return { out };
+}
+
+/** A case's record, once AGREE runs in a row match. */
+async function record(fake, c) {
+  let last;
+  let streak = 0;
+  for (let run = 1; run <= MAX_RUNS; run++) {
+    const { out, skip } = await recordOnce(fake, c);
+    if (skip) {
+      console.error(`${c[0]}: run ${run} doesn't count: ${skip}`);
+      [last, streak] = [undefined, 0];
+      continue;
+    }
+    const json = JSON.stringify(out);
+    if (last !== undefined && json !== last) console.error(`${c[0]}: run ${run} differs from the run before`);
+    streak = json === last ? streak + 1 : 1;
+    last = json;
+    if (streak === AGREE) return out;
+  }
+  throw new Error(`${c[0]}: no ${AGREE} matching runs in a row out of ${MAX_RUNS}; is the machine too loaded?`);
 }
 
 const fake = buildFake();
 const ceiling = sdkCeiling();
-const cases = await Promise.all(CASES.map((c) => record(fake, c)));
+const cases = [];
+for (const c of CASES) cases.push(await record(fake, c));
 const ceilingTable = CEILING_INPUTS.map((raw) => ({ raw, ceiling: ceiling(raw) }));
 const file = join(rustDir, "crates/claudius-agent/tests/fixtures/run_end_golden.json");
 writeFileSync(file, `${JSON.stringify({ sdkVersion, cases, ceilingTable }, null, 2)}\n`);

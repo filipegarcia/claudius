@@ -49,6 +49,13 @@ use crate::todos;
 use crate::user_prompt::extract_user_prompt_text;
 use crate::{log, now_ms, paths, sessions_store, transcript};
 
+/// The create route's untyped option reads (S27d).
+pub mod create_options;
+/// `sendInput`'s reads of the raw input: slash parts, image blocks (S29).
+mod input;
+/// The live-`system/init` hooks behind [`Session::broadcast`] (S28a).
+mod live_init;
+
 pub const BUFFER_CAP: usize = 1000;
 /// `recentDenials` keeps the last 20 permission denials (`/permissions` → Recent Denials).
 pub const RECENT_DENIALS_CAP: usize = 20;
@@ -77,7 +84,9 @@ pub struct SessionOptions {
     pub fallback_model: Option<String>,
     pub sandbox_enabled: Option<bool>,
     pub sandbox_filesystem_disabled: Option<bool>,
-    pub sandbox_network_allowed_domains: Option<Vec<String>>,
+    /// Forwarded to the CLI's settings as it came, so a string stays a
+    /// string ([`create_options`]).
+    pub sandbox_network_allowed_domains: Option<Value>,
     pub sandbox_network_strict_allowlist: Option<bool>,
     #[serde(rename = "enable1mContext")]
     pub enable_1m_context: Option<bool>,
@@ -89,6 +98,10 @@ pub struct SessionOptions {
     pub restricted_mode: Option<bool>,
     pub resume: Option<String>,
     pub resume_session_at: Option<String>,
+    /// What the create route's untyped body held where a typed option
+    /// couldn't ([`create_options::OddTypes`]).
+    #[serde(skip)]
+    pub odd: create_options::OddTypes,
     #[serde(skip)]
     pub runtime: RuntimeOptions,
 }
@@ -202,10 +215,20 @@ struct State {
     has_query: bool,
     done: bool,
     is_replaying: bool,
+    /// CC 2.1.301 — the resumed transcript's JSONL, as found on disk by
+    /// [`crate::resumed_transcript::find_resumed_transcript_path`] during
+    /// `start()`. `None` for fresh sessions and when no candidate exists.
+    resumed_transcript_file: Option<String>,
     turn_in_flight: bool,
     last_status: Option<(TurnStatus, usize)>,
 
     title: Option<String>,
+    /// CC 2.1.309 — a title set through `rename()` whose SDK `renameSession`
+    /// failed (no transcript yet) and that the engine didn't take either.
+    /// Re-sent at the next turn boundary so the CLI, `--resume` and other
+    /// sessions see the user's name instead of a generated one
+    /// (`flushPendingTitleMirror`).
+    pending_title_mirror: Option<String>,
     model: Option<String>,
     sdk_model: Option<String>,
     permission_mode: String,
@@ -336,12 +359,30 @@ struct State {
     /// What `start()` threw (the JS error's `name` and `message`), for
     /// `SessionManager::create` to fail with ([`Session::take_start_error`]).
     start_error: Option<(&'static str, String)>,
+    /// The session's notification-bus calls, queued in order
+    /// ([`crate::session_notify`]); a bare state has none.
+    bus: crate::session_notify::BusFeed,
+    /// `diedOnItsOwn`: set by [`Session::end`] when the CLI had already gone
+    /// on its own, so [`Session::is_dead`] stays true past the abort
+    /// (CC 2.1.311).
+    died_on_its_own: bool,
+    /// `sawLiveInit`: this instance's CLI sent a live (not replayed)
+    /// `system/init`, i.e. it came up ([`Session::came_up_live`]).
+    saw_live_init: bool,
 }
 
 impl State {
     /// `this.agent ? { agent } : {}`: an empty name counts as none.
     fn truthy_agent(&self) -> Option<&str> {
         self.agent.as_deref().filter(|a| !a.is_empty())
+    }
+
+    /// `resumedTranscriptPath()`: the file `start()` found on disk, with the
+    /// home shortened to `~`, for display only.
+    fn resumed_transcript_path(&self) -> Option<String> {
+        self.resumed_transcript_file
+            .as_deref()
+            .map(crate::resumed_transcript::display_path)
     }
 
     fn status(&self) -> TurnStatus {
@@ -364,6 +405,13 @@ impl State {
         } else {
             TurnStatus::Idle
         }
+    }
+
+    /// `hasActiveSubagents() || countActiveBackgroundTasks() > 0`.
+    fn has_active_background_work(&self) -> bool {
+        self.task_meta
+            .values()
+            .any(|m| m.ambient != Some(true) && task_is_live(m))
     }
 
     fn background_tasks(&self) -> usize {
@@ -483,6 +531,10 @@ impl State {
             }
         }
         self.fan_out(&ev);
+        // `notificationBus.recordSessionEvent`, once the subscribers have it.
+        let bg = || self.has_active_background_work();
+        self.bus
+            .record(&ev, self.subs.len(), self.title.as_deref(), bg);
     }
 
     /// `captureSnapshotState`: derived state a late subscriber needs even
@@ -1155,18 +1207,22 @@ impl State {
     /// `drainPendingDecisions(reason)`.
     fn drain_pending_decisions(&mut self, reason: &str) {
         for (id, p) in std::mem::take(&mut self.pending_permissions) {
+            self.bus.mark_read(&id);
             let _ = p.tx.send(PermissionResult::deny(reason));
             self.prompt_settled("permission", &id);
         }
         for (id, p) in std::mem::take(&mut self.pending_asks) {
+            self.bus.mark_read(&id);
             let _ = p.tx.send(PermissionResult::deny(reason));
             self.prompt_settled("ask", &id);
         }
         for (id, p) in std::mem::take(&mut self.pending_elicitations) {
+            self.bus.mark_read(&id);
             let _ = p.tx.send(json!({"action": "cancel"}));
             self.prompt_settled("elicitation", &id);
         }
-        for (_, p) in std::mem::take(&mut self.pending_plans) {
+        for (id, p) in std::mem::take(&mut self.pending_plans) {
+            self.bus.mark_read(&id);
             let _ = p.tx.send(PermissionResult::deny(reason));
         }
     }
@@ -1278,10 +1334,13 @@ pub fn plan_mode_reentry_reminder_body(prior: &str) -> String {
         "## Re-entering Plan Mode\nYou are returning to plan mode after having previously exited it. A plan from your previous planning session is reproduced below — treat this as a fresh planning round rather than assuming the prior plan still applies.\n\nPrevious plan:\n{prior}"
     )
 }
-// ASCII `\b` and case folding, like JS `/\bultrathink\b/i` (no `u` flag).
-static ULTRATHINK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i-u)\bultrathink\b").unwrap());
-pub fn ultrathink_reminder_body(text: &str) -> Option<&'static str> {
-    ULTRATHINK.is_match(text).then_some(
+/// `ultrathinkReminderBody(text, inlinePastes)`. CC 2.1.311 — the keyword
+/// only counts where the engine's quote- and path-aware finder sees it
+/// ([`crate::ultrathink_keyword`]): not inside backticks, quotes or
+/// brackets, not as part of a file path or flag, and not inside a large
+/// paste.
+pub fn ultrathink_reminder_body(text: &str, inline_pastes: &[String]) -> Option<&'static str> {
+    crate::ultrathink_keyword::has_ultrathink_keyword(text, inline_pastes).then_some(
         "The user included the keyword \"ultrathink\", requesting deeper reasoning on this turn. Reason as thoroughly as the task warrants.",
     )
 }
@@ -1440,6 +1499,7 @@ impl Session {
             latest_user_prompt_at: f64::NEG_INFINITY,
             latest_todos_at: f64::NEG_INFINITY,
             state_key: Some((cwd.clone(), id.clone())),
+            bus: crate::session_notify::BusFeed::new(&cwd, &id),
             ..Default::default()
         };
         Ok(Arc::new_cyclic(|weak| Session {
@@ -1479,11 +1539,21 @@ impl Session {
 
     pub fn broadcast(&self, ev: Value) {
         let model_changed = ev_type(&ev) == "model_changed";
+        let live_init = self.before_live_init(&ev);
+        // CC 2.1.300 — a live credits-rejected notice turns fast mode off.
+        let fast_off =
+            crate::fast_mode::is_credits_rejected_event(&ev) && !self.with(|st| st.is_replaying);
         self.with(|st| st.broadcast(ev));
+        if fast_off {
+            self.spawn_fast_off();
+        }
         // A model switch (picker, `/model`, auto-fallback, resume) can change
         // the applied effort: each model has its own default and levels.
         if model_changed {
             self.refresh_applied_effort();
+        }
+        if let Some(model) = live_init {
+            self.after_live_init(model);
         }
     }
 
@@ -1501,6 +1571,11 @@ impl Session {
     }
     pub fn title(&self) -> Option<String> {
         self.with(|st| st.title.clone())
+    }
+    /// `pendingTitleMirror`: a rename still waiting for a transcript to
+    /// append it to (CC 2.1.309). Read by the tests.
+    pub fn pending_title_mirror(&self) -> Option<String> {
+        self.with(|st| st.pending_title_mirror.clone())
     }
     /// The cached advisor (`GET /advisor` falls back to settings.json on `None`).
     pub fn advisor_model(&self) -> Option<String> {
@@ -1532,6 +1607,12 @@ impl Session {
     }
     pub fn recent_denials(&self) -> Vec<Value> {
         self.with(|st| st.recent_denials.clone())
+    }
+    /// Wait until the notification-bus calls made so far have run
+    /// ([`crate::session_notify`]).
+    pub async fn notifications_settled(&self) {
+        let feed = self.with(|st| st.bus.clone());
+        feed.settled().await;
     }
     /// `injectDenialForTesting` (the dev-only `dev-inject-denial` route): seed
     /// the denial ring without a real `permission_denied` event.
@@ -1659,6 +1740,8 @@ impl Session {
             return;
         }
         *self.tool_budget_limits.lock().unwrap() = read_tool_budget_limits(&self.cwd);
+        // `sweepOrphanedActionableForSession`: an earlier life's prompts are unanswerable.
+        self.with(|st| st.bus.sweep());
 
         // Seed the to-do cutoff from the durable clear marker before the
         // replay, so pre-clear TodoWrite / TaskCreate entries bounce
@@ -1688,7 +1771,14 @@ impl Session {
         }
         let resume = self.opts.resume.as_deref();
         if let Some(t) = session_titles::start_title(&self.cwd, &self.id, resume) {
-            self.with(|st| st.title = Some(t));
+            // CC 2.1.309 — the fresh branch also seeds the pending mirror.
+            let mirror = session_titles::start_mirror(&t, resume);
+            self.with(|st| {
+                st.title = Some(t);
+                if let Some(m) = mirror {
+                    st.pending_title_mirror = Some(m);
+                }
+            });
         }
         // `seedUsageBaseline`, before the first subscriber's echo: the
         // checkpoint the resumed CLI restores, then the persisted row or a
@@ -1768,16 +1858,28 @@ impl Session {
         // Fable-class request models reject any advisor tool (API 400), so an
         // advisor re-armed from settings.json against a fable model is dropped
         // before `build_options` forwards it to the flag layer.
-        let advisor_cleared = self.with(|st| {
+        // `this.advisorModel && this.model?.includes("fable")`: an empty
+        // advisor is no advisor, and a model with no `includes` throws there
+        // (S27d), so the start rejects before anything is written.
+        let armed = self.with(|st| {
             st.advisor_model = user_settings
                 .get("advisorModel")
                 .and_then(Value::as_str)
                 .map(str::to_owned);
-            // `this.advisorModel && …`: an empty advisor is no advisor.
-            let fable = st.model.as_deref().is_some_and(|m| m.contains("fable"))
-                && st.advisor_model.as_deref().is_some_and(|a| !a.is_empty());
-            if fable { st.advisor_model.take() } else { None }
+            st.advisor_model.as_deref().is_some_and(|a| !a.is_empty())
         });
+        let fable = if armed {
+            match self.model_includes_fable() {
+                Ok(f) => f,
+                Err(e) => {
+                    self.with(|st| st.start_error = Some(e));
+                    return;
+                }
+            }
+        } else {
+            false
+        };
+        let advisor_cleared = self.with(|st| if fable { st.advisor_model.take() } else { None });
         if advisor_cleared.is_some() {
             user_settings.shift_remove("advisorModel");
             if let Err(e) = settings::write_settings(Scope::User, &self.cwd, &user_settings) {
@@ -1798,8 +1900,27 @@ impl Session {
                 == Some("asap");
         });
 
+        // An option `start()` can't read: TS throws while it builds the
+        // options (`planModeInstructions.trim()`) or where the SDK prints
+        // them, so `create` answers 500 with the error's name (S27d).
+        if let Some(e) = self.opts.odd.start_error.clone() {
+            self.with(|st| st.start_error = Some(e));
+            return;
+        }
         let mut options = self.build_options(&user_settings);
         options.agents = crate::db_agents::load_db_agents_for_options(&self.cwd); // A-P3.8
+        // Resolve the resumed JSONL before anything can read it: `subscribe()`
+        // and the stream route echo it on every `ready`. Synchronous, like
+        // the worktree probe above (TS awaits its `stat`s).
+        if let Some(resume) = self.opts.resume.as_deref() {
+            let base = crate::resumed_transcript::default_projects_base();
+            let found = crate::resumed_transcript::find_resumed_transcript_path(
+                resume,
+                &self.cwd,
+                &base.to_string_lossy(),
+            );
+            self.with(|st| st.resumed_transcript_file = found.clone());
+        }
         let spawned = match Query::spawn(options).await {
             Ok(q) => Ok(q.into_parts()),
             // `query()` throws while it builds the argv (a fallback model
@@ -1816,12 +1937,9 @@ impl Session {
         self.with(|st| {
             // TS `this.query` is set even when the CLI then fails to spawn.
             st.has_query = true;
-            let mut ready = json!({"type": "ready", "sessionId": self.id});
-            if let Some(a) = st.truthy_agent() {
-                ready["agent"] = json!(a);
-            }
-            if let Some(f) = self.opts.fallback_model.as_ref().filter(|f| !f.is_empty()) {
-                ready["fallbackModel"] = json!(f);
+            let mut ready = self.ready_event(st);
+            if let Some(p) = st.resumed_transcript_path() {
+                ready["transcriptPath"] = json!(p);
             }
             if let Some(account) = st.account_pin.account_json() {
                 ready["account"] = account;
@@ -1904,7 +2022,8 @@ impl Session {
     fn spawn_failed(&self, message: String) {
         self.with(|st| {
             if !self.abort.is_cancelled() {
-                st.broadcast(json!({"type": "error", "message": message}));
+                // As on the stream's error (CC 2.1.311): the CLI is gone.
+                st.broadcast(json!({"type": "error", "message": message, "sessionEnded": true}));
             }
             st.done = true;
             st.drain_pending_decisions("Aborted");
@@ -2135,28 +2254,7 @@ impl Session {
         if let Some(t) = o.max_turns.filter(|t| *t > 0.0) {
             opts.max_turns = Some(t);
         }
-        if o.sandbox_enabled == Some(true) {
-            let mut sb = json!({"enabled": true, "autoAllowBashIfSandboxed": true, "failIfUnavailable": false});
-            if o.sandbox_filesystem_disabled == Some(true) {
-                sb["filesystem"] = json!({"disabled": true});
-            }
-            let domains = o
-                .sandbox_network_allowed_domains
-                .clone()
-                .unwrap_or_default();
-            let strict = o.sandbox_network_strict_allowlist == Some(true);
-            if !domains.is_empty() || strict {
-                let mut net = Map::new();
-                if !domains.is_empty() {
-                    net.insert("allowedDomains".into(), json!(domains));
-                }
-                if strict {
-                    net.insert("strictAllowlist".into(), json!(true));
-                }
-                sb["network"] = Value::Object(net);
-            }
-            opts.sandbox = Some(sb);
-        }
+        opts.sandbox = create_options::sandbox(o);
         if o.enable_1m_context == Some(true) {
             opts.betas = vec!["context-1m-2025-08-07".into()];
         }
@@ -2580,6 +2678,16 @@ impl Session {
         let _ = h.apply_flag_settings(json!({"fastMode": enabled})).await;
     }
 
+    /// `void this.setFast(false)` from `broadcast()` (CC 2.1.300): the
+    /// engine retries a credits-refused fast request without fast but leaves
+    /// the flag on, so every later request would be refused and re-sent.
+    fn spawn_fast_off(&self) {
+        if let Ok(rt) = tokio::runtime::Handle::try_current() {
+            let me = self.arc();
+            rt.spawn(async move { me.set_fast(false).await });
+        }
+    }
+
     /// `setUltracode(enabled)`: ultracode (Dynamic Workflows: `xhigh` plus
     /// standing workflow orchestration) through `applyFlagSettings`. The CLI
     /// owns the preconditions (Workflows enabled, an `xhigh`-capable model).
@@ -2660,13 +2768,23 @@ impl Session {
         mut messages: mpsc::UnboundedReceiver<Result<Value, claudius_agent::AgentError>>,
     ) {
         let mut saw_error = false;
+        let mut saw_result = false;
         while let Some(item) = messages.recv().await {
             match item {
-                Ok(msg) => self.on_message(msg).await,
+                Ok(msg) => {
+                    saw_result |= msg.get("type").and_then(Value::as_str) == Some("result");
+                    self.on_message(msg).await
+                }
                 Err(e) => {
                     if !self.abort.is_cancelled() {
                         let message = e.to_string();
-                        self.broadcast(json!({"type": "error", "message": message}));
+                        // CC 2.1.311 — the stream ended, so the CLI is gone
+                        // (`done` follows below). The flag tells the client to
+                        // send a message to restart it instead of leaving a
+                        // bare "process exited" line.
+                        self.broadcast(
+                            json!({"type": "error", "message": message, "sessionEnded": true}),
+                        );
                         saw_error = true;
                         // A thrown 529 / 401 counts like the synthetic message.
                         self.with(|st| {
@@ -2679,12 +2797,15 @@ impl Session {
                 }
             }
         }
-        let _ = saw_error;
         self.with(|st| {
             st.done = true;
             st.drain_pending_decisions("Aborted");
             st.turn_in_flight = false;
             st.broadcast_turn_status_if_changed();
+            // The synthetic `session_idle`: no `result`, no error, no abort.
+            if !saw_result && !saw_error && !self.abort.is_cancelled() {
+                st.bus.synthetic_idle(st.subs.len(), st.title.as_deref());
+            }
         });
     }
 
@@ -2704,10 +2825,6 @@ impl Session {
             .then(|| crate::session_consume::set_model_target(msg.get("content")))
             .flatten();
         let result_msg = (mtype == "result").then(|| msg.clone());
-        let is_init = mtype == "system" && subtype == "init";
-        let init_model = is_init
-            .then(|| msg.get("model").and_then(Value::as_str).map(str::to_owned))
-            .flatten();
         // The loop tracker and the Read-path tracking read the message on
         // their own (TS runs them right after the broadcast); here first, so
         // the message can move.
@@ -2720,11 +2837,7 @@ impl Session {
             st.track_scheduled_loops(&msg, None);
             st.recent_read_paths.extend(read_paths);
         });
-        // The MCP needs-auth / disconnected startup notices. TS starts them
-        // inside `broadcast()`, before subscribers see the init.
-        if is_init {
-            crate::mcp_notices::note_at_startup(self.arc());
-        }
+        // A live `system/init` runs its hooks inside the broadcast (S28a).
         self.broadcast(json!({"type": "sdk", "message": msg}));
         // The thinking-block replay 400 arrives as a synthetic assistant
         // "API Error: …" message, then the turn ends with the poisoned turn
@@ -2751,18 +2864,6 @@ impl Session {
             let me = self.arc();
             tokio::spawn(async move { me.reseed_read_paths_after_compact().await });
         }
-        // `init` carries the model the SDK actually resolved (on resume: from
-        // the transcript) — re-run the advisor guard against the real value.
-        if init_model.is_some() {
-            self.enforce_advisor_model_compatibility(init_model.as_deref())
-                .await;
-        }
-        // Seed the effort pill with the level actually in force (model
-        // default / saved level) instead of leaving it on "auto".
-        if is_init {
-            self.refresh_applied_effort();
-        }
-
         if let Some(new_model) = chat_model
             && self.model().as_deref() != Some(new_model.as_str())
         {
@@ -2787,6 +2888,12 @@ impl Session {
         }
 
         if let Some(result) = result_msg {
+            // CC 2.1.309 — the turn's transcript now exists; land a rename
+            // that couldn't reach it earlier (fire and forget).
+            {
+                let me = self.arc();
+                tokio::spawn(async move { me.flush_pending_title_mirror().await });
+            }
             // The turn boundary is the mid-session MCP poll point
             // (`recheckMcpStatusMidSession`, throttled).
             crate::mcp_notices::recheck_mid_session(self.arc());
@@ -2869,6 +2976,14 @@ impl Session {
         self.subscribe_with(tail, tab_id, &[])
     }
 
+    /// `resumedTranscriptPath()`: for a resumed session, the engine
+    /// transcript holding the turns from before its last compaction, home
+    /// shortened to `~`. Display only; the stream route echoes it on its
+    /// trailing `ready` (CC 2.1.301).
+    pub fn resumed_transcript_path(&self) -> Option<String> {
+        self.with(|st| st.resumed_transcript_path())
+    }
+
     /// `subscribe` plus events delivered right after the synchronous replay
     /// and before the async extras (the stream route's trailing `ready`).
     pub fn subscribe_with(
@@ -2911,12 +3026,9 @@ impl Session {
                 let _ = tx.send(snap);
             }
             if st.has_query {
-                let mut ready = json!({"type": "ready", "sessionId": self.id});
-                if let Some(a) = st.truthy_agent() {
-                    ready["agent"] = json!(a);
-                }
-                if let Some(f) = self.opts.fallback_model.as_ref().filter(|f| !f.is_empty()) {
-                    ready["fallbackModel"] = json!(f);
+                let mut ready = self.ready_event(st);
+                if let Some(p) = st.resumed_transcript_path() {
+                    ready["transcriptPath"] = json!(p);
                 }
                 let _ = tx.send(ready);
             }
@@ -3050,15 +3162,27 @@ impl Session {
 
     /// `sendInput(text, images?, opts?)`.
     pub fn send_input(&self, text: &str, images: &[ImageInput], opts: SendOptions) {
+        let _ = self.send_input_value(text, input::image_values(images).as_ref(), opts);
+    }
+
+    /// `sendInput` with `images` as the route's body holds them. `Err` is
+    /// the TypeError TS throws, after the turn was marked running.
+    pub fn send_input_value(
+        &self,
+        text: &str,
+        images: Option<&Value>,
+        opts: SendOptions,
+    ) -> Result<(), String> {
         let uuid = opts
             .uuid
             .clone()
             .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        let queued = self.with(|st| {
+        let queued = self.with(|st| -> Result<Option<Value>, String> {
             if st.done {
-                return None;
+                return Ok(None);
             }
             let was_mid_turn = st.turn_in_flight;
+            st.bus.mark_user_input();
             st.saw_user_input = true;
             st.turn_in_flight = true;
             st.broadcast_turn_status_if_changed();
@@ -3067,22 +3191,18 @@ impl Session {
                 recap.cancel();
             }
             if opts.slash {
-                let trimmed = text.trim();
-                let command = trimmed.split_whitespace().next().unwrap_or("/").to_owned();
-                let args = trimmed[command.len().min(trimmed.len())..]
-                    .trim()
-                    .to_owned();
+                let (command, args) = input::slash_parts(text);
                 st.broadcast(json!({"type": "sdk", "message": {
                     "type": "system", "subtype": "slash_invoked", "command": command, "args": args,
                     "session_id": self.id, "uuid": uuid,
                 }}));
-                return Some(json!({
+                return Ok(Some(json!({
                     "type": "user",
                     "message": {"role": "user", "content": text},
                     "parent_tool_use_id": null,
                     "session_id": self.id,
                     "uuid": uuid,
-                }));
+                })));
             }
             let today = local_date_key();
             match &st.last_seen_local_date {
@@ -3096,7 +3216,7 @@ impl Session {
                 }
                 _ => {}
             }
-            if let Some(b) = ultrathink_reminder_body(text) {
+            if let Some(b) = ultrathink_reminder_body(text, &opts.inline_pastes) {
                 st.queue_reminder(b);
             }
             if was_mid_turn {
@@ -3121,10 +3241,9 @@ impl Session {
             st.tool_uses_since_todo_touch = 0;
             st.fired_mid_turn_todo_reminder_this_turn = false;
 
-            let (display_content, model_content) = if images.is_empty() {
-                (json!(text), None)
-            } else {
-                (Value::Array(interleave_images(text, images)), Some(()))
+            let (display_content, model_content) = match input::image_content(text, images)? {
+                None => (json!(text), None),
+                Some(blocks) => (Value::Array(blocks), Some(())),
             };
             st.broadcast(json!({"type": "sdk", "message": {
                 "type": "user",
@@ -3165,17 +3284,18 @@ impl Session {
             if !opts.inline_pastes.is_empty() {
                 msg["inline_pastes"] = json!(opts.inline_pastes);
             }
-            Some(msg)
-        });
+            Ok(Some(msg))
+        })?;
         if let Some(m) = queued {
             let _ = self.input_tx.send(m);
         }
+        Ok(())
     }
 
     pub fn enqueue_message(
         &self,
         text: &str,
-        images: &[ImageInput],
+        images: Option<&Value>,
         uuid: Option<String>,
         slash: bool,
         from_suggestion: bool,
@@ -3189,7 +3309,7 @@ impl Session {
                 session_id: &self.id,
                 uuid: &uuid,
                 text,
-                images: (!images.is_empty()).then_some(images),
+                images,
                 slash,
                 from_suggestion,
                 from_goal,
@@ -3236,22 +3356,28 @@ impl Session {
     }
 
     pub fn send_queued_now(&self, uuid: &str, priority_now: bool) -> anyhow::Result<bool> {
+        // CC 2.1.311 — `send_input` drops input once the CLI has ended, so a
+        // dead session leaves the row queued for its restart to drain.
+        if self.with(|st| st.done) {
+            return Ok(false);
+        }
         self.load_queue_if_needed();
         let Some(row) = queue_db::pop_by_uuid(&self.cwd, &self.id, uuid)? else {
             return Ok(false);
         };
         self.with(|st| st.queue.retain(|r| r.uuid != row.uuid));
         self.broadcast_queue();
-        self.send_input(
+        self.send_input_value(
             &row.text,
-            row.images.as_deref().unwrap_or(&[]),
+            row.images.map(Value::Array).as_ref(),
             SendOptions {
                 uuid: Some(row.uuid),
                 slash: row.slash,
                 priority_now,
                 ..Default::default()
             },
-        );
+        )
+        .map_err(anyhow::Error::msg)?;
         Ok(true)
     }
 
@@ -3366,15 +3492,18 @@ impl Session {
         };
         self.with(|st| st.queue.retain(|r| r.uuid != head.uuid));
         self.broadcast_queue();
-        self.send_input(
+        let sent = self.send_input_value(
             &head.text,
-            head.images.as_deref().unwrap_or(&[]),
+            head.images.map(Value::Array).as_ref(),
             SendOptions {
                 uuid: Some(head.uuid),
                 slash: head.slash,
                 ..Default::default()
             },
         );
+        if let Err(e) = sent {
+            tracing::warn!(target: log::API, id = %self.id, "[queue] flushQueueIfIdle: {e}");
+        }
     }
 
     // ─────────────────────────── permissions ─────────────────────────────
@@ -3408,6 +3537,19 @@ impl Session {
             }
         }
 
+        // CC 2.1.309: a dangerous rm/rmdir safety check in Bypass
+        // permissions mode is denied at once with a rewrite hint instead of
+        // parking a card, so an unattended session keeps going. Decided on
+        // the session's mode: `ctx` doesn't carry a subagent's own.
+        if let Some(msg) = crate::dangerous_rm_deny::bypass_dangerous_rm_denial(
+            &self.permission_mode(),
+            ctx.decision_reason.as_deref(),
+            ctx.decision_reason_type.as_deref(),
+            ctx.matched_ask_rule.is_some(),
+        ) {
+            return PermissionResult::deny(msg);
+        }
+
         // The request's own `tool_use_id`, any type; `None` drops the key.
         let tool_use_id = prompt_events::tool_use_id(&ctx.raw);
         let (tx, rx) = oneshot::channel::<PermissionResult>();
@@ -3428,6 +3570,29 @@ impl Session {
             Kind::Ask
         } else {
             Kind::Perm
+        };
+        // CC 2.1.310 — show where a symlinked file leads. The engine
+        // resolves it for its own terminal card but doesn't forward it
+        // through `canUseTool`, so resolve it here before the card goes out.
+        // Only the file tools pay the hop; everything else parks as before.
+        // Aborted during the lookup: settle here rather than park a card
+        // nobody can answer.
+        let symlink = if kind == Kind::Perm
+            && crate::permission_symlink::permission_file_path(tool_name, &input).is_some()
+        {
+            let (tool, inp, cwd) = (tool_name.to_owned(), input.clone(), self.cwd.clone());
+            let dirs = self.opts.additional_directories.clone().unwrap_or_default();
+            let found = tokio::task::spawn_blocking(move || {
+                crate::permission_symlink::resolve_permission_symlink(&tool, &inp, &cwd, &dirs)
+            })
+            .await
+            .unwrap_or(None);
+            if ctx.cancel.is_cancelled() {
+                return PermissionResult::deny("Aborted");
+            }
+            found
+        } else {
+            None
         };
         self.with(|st| {
             match kind {
@@ -3464,12 +3629,19 @@ impl Session {
                     st.broadcast(ev);
                 }
                 Kind::Perm => {
-                    let meta = prompt_events::permission_event(
+                    let mut meta = prompt_events::permission_event(
                         &request_id,
                         tool_name,
                         &ctx.raw,
                         ctx.mcp_server.clone(),
+                        crate::hook_ask::hook_ask(
+                            ctx.decision_reason.as_deref(),
+                            ctx.decision_reason_type.as_deref(),
+                        ),
                     );
+                    if let Some(s) = &symlink {
+                        meta["symlink"] = s.to_json();
+                    }
                     st.pending_permissions.insert(
                         request_id.clone(),
                         PendingPermission {
@@ -3496,6 +3668,7 @@ impl Session {
                         Kind::Perm => st.pending_permissions.shift_remove(&request_id).map(|_| Some("permission")),
                     };
                     if let Some(settle) = removed {
+                        st.bus.mark_read(&request_id);
                         if let Some(k) = settle {
                             st.prompt_settled(k, &request_id);
                         }
@@ -3511,6 +3684,7 @@ impl Session {
     pub fn resolve_permission(&self, request_id: &str, decision: PermissionDecision) -> bool {
         let ok = self.with(|st| {
             let Some(p) = st.pending_permissions.shift_remove(request_id) else { return false };
+            st.bus.mark_read(request_id);
             st.prompt_settled("permission", request_id);
             if let PermissionDecision::Deny { message } = &decision {
                 let _ = p.tx.send(PermissionResult::deny(message.clone().unwrap_or_else(|| "User denied".into())));
@@ -3549,6 +3723,7 @@ impl Session {
             let Some(p) = st.pending_asks.shift_remove(request_id) else {
                 return false;
             };
+            st.bus.mark_read(request_id);
             st.prompt_settled("ask", request_id);
             let result = if events::ask_answers_have_content(answers) {
                 PermissionResult::allow(events::build_ask_updated_input(&p.questions, answers))
@@ -3570,6 +3745,7 @@ impl Session {
         let Some(p) = self.with(|st| st.pending_plans.shift_remove(request_id)) else {
             return false;
         };
+        self.with(|st| st.bus.mark_read(request_id));
         match decision {
             PlanDecision::Reject { message } => {
                 let deny = PermissionResult::deny(
@@ -3643,6 +3819,7 @@ impl Session {
             _ = req.cancel.cancelled() => {
                 self.with(|st| {
                     if st.pending_elicitations.shift_remove(&request_id).is_some() {
+                        st.bus.mark_read(&request_id);
                         st.prompt_settled("elicitation", &request_id);
                         st.broadcast_turn_status_if_changed();
                     }
@@ -3663,6 +3840,7 @@ impl Session {
             let Some(p) = st.pending_elicitations.shift_remove(request_id) else {
                 return false;
             };
+            st.bus.mark_read(request_id);
             let result = if action == "accept" {
                 let mut r = json!({"action": "accept"});
                 if let Some(c) = content.filter(|c| !c.is_null()) {
@@ -3764,10 +3942,13 @@ impl Session {
             mode = "default".into();
         }
         if mode == "auto" {
+            // SDK 0.3.312 — `isAutoModeDisabled` reads both the top-level
+            // and the `permissions.` spelling, and reports `false` for a
+            // `null` file instead of throwing on its property read.
             let gate = settings::read_settings_js(Scope::User, &self.cwd)
                 .unwrap_or_else(|_| Some(Map::new()))
-                .ok_or_else(|| settings::null_property_error("disableAutoMode"))?;
-            if gate.get("disableAutoMode").and_then(Value::as_str) == Some("disable") {
+                .map(Value::Object);
+            if crate::auto_mode_disabled::is_auto_mode_disabled(gate.as_ref()) {
                 mode = "default".into();
             }
         }
@@ -3905,29 +4086,79 @@ impl Session {
         if !model.is_some_and(|m| m.contains("fable")) {
             return;
         }
-        if let Err(e) = settings::clear_user_advisor_model(&self.cwd) {
-            tracing::error!(target: log::SESSION, "[session.advisor-compat] settings write failed: {e}");
-        }
-        self.set_advisor_model(None).await;
-        self.broadcast(json!({
-            "type": "advisor_disabled_on_model_change",
-            "previousAdvisor": previous_advisor,
-            "newModel": model,
-        }));
+        self.clear_incompatible_advisor(previous_advisor, json!(model))
+            .await;
     }
 
-    pub fn rename(&self, title: &str) -> Result<(), String> {
-        let trimmed = js::trim(title);
+    pub async fn rename(&self, title: &str) -> Result<(), String> {
+        let trimmed = js::trim(title).to_owned();
         if trimmed.is_empty() {
             return Err("title required".into());
         }
-        sessions_db::set_session_title(&self.cwd, &self.id, trimmed).map_err(|e| e.to_string())?;
-        let _ = sessions_store::rename(&self.id, trimmed, Some(&self.cwd));
+        sessions_db::set_session_title(&self.cwd, &self.id, &trimmed).map_err(|e| e.to_string())?;
+        // CC 2.1.309 — tell the running engine too, the way an IDE host does
+        // (`rename_session`, source "host", which the CLI counts as a user
+        // rename). Without it the live process keeps its generated name, and
+        // that is what other sessions see.
+        let told_engine = self.rename_in_engine(&trimmed).await;
+        match sessions_store::rename(&self.id, &trimmed, Some(&self.cwd)) {
+            Ok(()) => self.with(|st| st.pending_title_mirror = None),
+            // Usually "no JSONL yet" for a session that hasn't completed a
+            // turn. Unless the engine took the name (it then persists it
+            // itself), remember it and re-mirror at the next turn boundary.
+            Err(_) => self.with(|st| {
+                st.pending_title_mirror = (!told_engine).then(|| trimmed.clone());
+            }),
+        }
         self.with(|st| {
-            st.title = Some(trimmed.to_owned());
+            st.title = Some(trimmed.clone());
             st.broadcast(json!({"type": "session_title", "title": trimmed}));
         });
         Ok(())
+    }
+
+    /// `renameInEngine(title)`: the SDK's `rename_session` control request,
+    /// best effort and bounded at 5 s so a wedged control channel can't hang
+    /// the rename route. Whether the engine accepted it.
+    async fn rename_in_engine(&self, title: &str) -> bool {
+        let Some(h) = self.handle() else {
+            return false;
+        };
+        let request = h.rename_session(title, Some(&self.id));
+        matches!(
+            tokio::time::timeout(std::time::Duration::from_secs(5), request).await,
+            Ok(Ok(_))
+        )
+    }
+
+    /// `flushPendingTitleMirror()`: a rename whose transcript write failed
+    /// (made before the first turn flushed) is re-sent once a turn has
+    /// completed, and retried at each turn boundary until it lands or the
+    /// user renames again. A newer rename that landed while this append was
+    /// in flight is re-asserted, because its own append may have been
+    /// written first.
+    async fn flush_pending_title_mirror(&self) {
+        let Some(title) = self.with(|st| st.pending_title_mirror.clone()) else {
+            return;
+        };
+        if sessions_store::rename(&self.id, &title, Some(&self.cwd)).is_err() {
+            // Still no transcript (or a transient write error) — next turn.
+            return;
+        }
+        let next = self.with(|st| {
+            let next = session_titles::mirror_after_append(
+                st.pending_title_mirror.as_deref(),
+                &title,
+                st.title.as_deref(),
+            );
+            if next == session_titles::MirrorAfterAppend::Cleared {
+                st.pending_title_mirror = None;
+            }
+            next
+        });
+        if let session_titles::MirrorAfterAppend::Reassert(current) = next {
+            let _ = sessions_store::rename(&self.id, &current, Some(&self.cwd));
+        }
     }
 
     pub fn goal(&self) -> SessionGoal {
@@ -4262,7 +4493,49 @@ impl Session {
     /// reaper keeps the session). Evaluated outside the state lock: a
     /// one-shot cron's first fire runs the cron iterator.
     pub fn has_armed_loops(&self, now: i64) -> bool {
+        // CC 2.1.311 — a dead CLI took the loop timers with it, so an ended
+        // session has nothing to keep alive; without this the reaper re-armed
+        // forever and pinned the dead session in memory.
+        if self.with(|st| st.done) {
+            return false;
+        }
         crate::loop_keepalive::has_armed_loop(&self.scheduled_loops(), now)
+    }
+
+    /// `isDead()` (CC 2.1.311): the CLI ended on its own (a crash, a non-zero
+    /// exit, a stream error) rather than through [`Session::end`], which the
+    /// reaper, a rebuild and a delete all call first. [`Session::send_input`]
+    /// drops every message once `done`, so a dead session silently swallows
+    /// them until
+    /// [`SessionManager::restart_if_dead`](crate::session_manager::SessionManager::restart_if_dead)
+    /// rebuilds it.
+    pub fn is_dead(&self) -> bool {
+        self.with(|st| st.done && (st.died_on_its_own || !self.abort.is_cancelled()))
+    }
+
+    /// `cameUpLive()`: this instance's CLI sent a live `system/init`, so it
+    /// did come up. Passive callers of `restart_if_dead` (a stream connect, a
+    /// poller) only restart such a session — the "crashed between turns"
+    /// case; one that dies on boot would only die again, while the rebuild
+    /// unbinds the id and swaps the instance under its open tabs.
+    pub fn came_up_live(&self) -> bool {
+        self.with(|st| st.saw_live_init)
+    }
+
+    /// `closeStreams()`: drop every open subscriber so its SSE stream ends
+    /// and the tab's `EventSource` reconnects — the session has been rebuilt
+    /// under the same id, so the stream route resolves the new one and
+    /// replays into it.
+    ///
+    /// TS closes only the streams the stream route registered an `onClose`
+    /// for; Rust has one subscriber kind, so every subscription ends (the
+    /// holder slot is released as each is dropped).
+    pub fn close_streams(&self) {
+        let count = self.with(|st| {
+            st.subs.clear();
+            st.subs.len()
+        });
+        self.sub_count.send_replace(count);
     }
 
     /// `requestRecap(origin)`: generate the "where were we?" recap and
@@ -4388,6 +4661,14 @@ impl Session {
 
     /// `end()` — close input, abort the CLI, settle every open prompt.
     pub async fn end(&self) {
+        // A death that predates this call is remembered, because the abort
+        // below would otherwise make `is_dead()` read false for a session
+        // `restart_if_dead` removed and had to put back (CC 2.1.311).
+        self.with(|st| {
+            if st.done && !self.abort.is_cancelled() {
+                st.died_on_its_own = true;
+            }
+        });
         self.abort.cancel();
         self.with(|st| st.done = true);
         self.stop_jsonl_watcher();
@@ -4490,41 +4771,6 @@ pub fn join_system_prompt_appends(parts: &[&str]) -> String {
         .filter(|p| !p.is_empty())
         .collect::<Vec<_>>()
         .join("\n\n")
-}
-
-static IMAGE_TOKEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[Image #(\d+)\]").unwrap());
-
-/// Split `[Image #N]` tokens into interleaved text / image blocks; images
-/// without an ordinal are appended at the end.
-pub fn interleave_images(text: &str, images: &[ImageInput]) -> Vec<Value> {
-    let block = |img: &ImageInput| json!({"type": "image", "source": {"type": "base64", "media_type": img.media_type, "data": img.data}});
-    let by_ord: HashMap<i64, &ImageInput> = images
-        .iter()
-        .filter_map(|i| i.ordinal.map(|o| (o as i64, i)))
-        .filter(|(o, _)| *o as f64 >= 0.0)
-        .collect();
-    let mut content = Vec::new();
-    let mut cursor = 0usize;
-    for m in IMAGE_TOKEN.captures_iter(text) {
-        let whole = m.get(0).unwrap();
-        let Some(img) = m[1].parse::<i64>().ok().and_then(|n| by_ord.get(&n)) else {
-            continue;
-        };
-        let before = &text[cursor..whole.start()];
-        if !before.is_empty() {
-            content.push(json!({"type": "text", "text": before}));
-        }
-        content.push(block(img));
-        cursor = whole.end();
-    }
-    let tail = &text[cursor..];
-    if !tail.is_empty() {
-        content.push(json!({"type": "text", "text": tail}));
-    }
-    for img in images.iter().filter(|i| i.ordinal.is_none()) {
-        content.push(block(img));
-    }
-    content
 }
 
 struct ScopeGuard<F: FnMut()>(F);
@@ -5337,28 +5583,6 @@ mod tests {
 
         drop(s);
         assert_eq!(Session::fire_jsonl_resync(&weak), Fired::Gone);
-    }
-
-    #[test]
-    fn images_interleave_like_ts() {
-        let imgs = vec![
-            ImageInput {
-                data: "A".into(),
-                media_type: "image/png".into(),
-                ordinal: Some(1.0),
-            },
-            ImageInput {
-                data: "B".into(),
-                media_type: "image/png".into(),
-                ordinal: None,
-            },
-        ];
-        let c = interleave_images("see [Image #1] and [Image #9] end", &imgs);
-        assert_eq!(c.len(), 4);
-        assert_eq!(c[0], json!({"type":"text","text":"see "}));
-        assert_eq!(c[1]["source"]["data"], json!("A"));
-        assert_eq!(c[2], json!({"type":"text","text":" and [Image #9] end"}));
-        assert_eq!(c[3]["source"]["data"], json!("B"));
     }
 
     #[test]

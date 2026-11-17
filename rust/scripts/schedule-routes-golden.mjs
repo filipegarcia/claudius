@@ -23,7 +23,13 @@
 // reads a virtual clock, scheduler.ts's `setTimeout` / `clearTimeout` go to
 // a virtual timer queue that never fires (no step moves the clock past a
 // timer), and `randomUUID()` (the POST route's job id, scheduler.ts's run
-// id) counts `00000000-0000-4000-8000-<n>`. Each step runs at its own clock,
+// id) counts `00000000-0000-4000-8000-<n>`. scheduler.ts's `process.pid`
+// reads PID (777001), so a run's recorded pid is the same in both
+// recordings and the replay can map it to its server's; `process.uptime()`
+// is stubbed so the interrupted-run recovery's `processStartedAt` is
+// `<t0> - 60000`. Only runs stamped with a pid (999999, past any pid, and
+// 1, alive and not ours) are seeded as `running`, plus unstamped ones from
+// well before either process started, so the replay recovers the same ones. Each step runs at its own clock,
 // `<t0> + 1000 * <step>` (boot is step 0), so every time a step writes is
 // distinct and never a cron slot. Armed jobs use crons whose next slot is
 // years away (`0 0 29 2 *`), so a timer is always the 24 h cap and a replay
@@ -177,6 +183,8 @@ const REWRITES = {
   "/app/api/schedule/[id]/route.ts": [["Date.now()", NOW, 1]],
   "/lib/server/scheduler.ts": [
     ["Date.now()", NOW, 6],
+    ["process.uptime()", "globalThis.__g.uptime()", 1],
+    ["process.pid", "globalThis.__g.PID", 2],
     ["setTimeout(", "globalThis.__g.setTimeout(", 2],
     ["clearTimeout(", "globalThis.__g.clearTimeout(", 1],
     ["randomUUID()", UUID, 1],
@@ -231,14 +239,22 @@ register(`data:text/javascript,${encodeURIComponent(hook)}`);
 
 // ---- the virtual clock, timers, ids and settle tracking ------------------------
 
+// scheduler.ts's `process.pid` under the stub: a value no real process has,
+// so the replay can map it to its server's without matching a timestamp.
+const PID = 777001;
+
 const G = (globalThis.__g = {
   t: 0,
+  procStart: 0,
+  PID,
   seq: 0,
   n: 0,
   timers: new Set(),
   ops: 0,
   fires: 0,
   now: () => G.t,
+  // `Date.now() - Math.round(uptime * 1000)` is then `procStart`.
+  uptime: () => (G.t - G.procStart) / 1000,
   setTimeout(cb, delay) {
     let d = Number(delay);
     if (!(d >= 1 && d <= 2147483647)) d = 1;
@@ -487,6 +503,16 @@ const job = (id, extra = {}) => ({
   ...extra,
 });
 const jobsText = (jobs) => `${JSON.stringify({ jobs }, null, 2)}\n`;
+const runLines = (runs) => `${runs.map((r) => JSON.stringify(r)).join("\n")}\n`;
+/** A run an earlier process left `running`; `pid` undefined leaves it unstamped. */
+const running = (id, jobId, startedAt, pid) => ({
+  id,
+  jobId,
+  startedAt,
+  status: "running",
+  ...(pid === undefined ? {} : { pid }),
+  transcript: [],
+});
 const ok = (extra = {}) => ({ name: "n", cron: FAR, prompt: "p", ...extra });
 
 const GROUPS = [
@@ -590,6 +616,25 @@ const GROUPS = [
       // A lone surrogate in a field nothing reads.
       post(`{"name":"lone","cron":"0 0 29 2 *","prompt":"p","x":"${esc("d800")}"}`),
       post('{"name":"a","name":"dup","cron":"x","cron":"0 0 29 2 *","prompt":"p","prompt":"[plain] dup"}'),
+      // CC 2.1.312 -- `effort`: a known level, an explicit clear, else a 400.
+      post(ok({ name: "effort high", effort: "high" })),
+      post(ok({ name: "effort max", effort: "max", model: "claude-x" })),
+      post(ok({ name: "effort null", effort: null })),
+      post(ok({ name: "effort empty", effort: "" })),
+      post(ok({ name: "effort unknown", effort: "ultra" })),
+      post(ok({ name: "effort case", effort: "HIGH" })),
+      post(ok({ name: "effort pad", effort: " high" })),
+      post(ok({ name: "effort auto", effort: "auto" })),
+      post(ok({ name: "effort number", effort: 5 })),
+      post(ok({ name: "effort bool", effort: true })),
+      post(ok({ name: "effort array", effort: ["high"] })),
+      post(ok({ name: "effort object", effort: { level: "high" } })),
+      post(ok({ name: "effort proto", effort: "toString" })),
+      post('{"name":"effort inf","cron":"0 0 29 2 *","prompt":"p","effort":1e400}'),
+      post('{"name":"effort dup","cron":"0 0 29 2 *","prompt":"p","effort":"max","effort":"low"}'),
+      // Checked after the cron, before the cwd.
+      post(ok({ name: "effort after cron", cron: "61 * * * *", effort: "ultra" })),
+      post(ok({ name: "effort before cwd", effort: "ultra", cwd: "$ROOT/untrusted" })),
       get("/api/schedule"),
       get(`/api/schedule/${ID(1)}`),
       get("/api/schedule/nope"),
@@ -617,6 +662,9 @@ const GROUPS = [
           job("p-L", { cron: FAR2 }),
           job("p-keep", { enabled: false }),
           job("p-str", { enabled: "yes" }),
+          job("p-skip", { lastRunAt: 3000, lastStatus: "skipped", lastSkipReason: "workspace_folder_missing", lastSkipAt: 4000 }),
+          job("p-skip2", { lastSkipReason: "previous_run_in_progress", lastSkipAt: 4000, effort: "high" }),
+          job("p-skip3", { enabled: false, lastSkipReason: "workspace_folder_missing", lastSkipAt: 4000 }),
           { id: "p-bare", cron: FAR, prompt: "[plain] bare", enabled: false },
           "junk",
           7,
@@ -671,6 +719,29 @@ const GROUPS = [
       // Only a boolean is read: a truthy number leaves it disabled.
       patch("p-keep", { enabled: 1 }),
       patch("p-keep", `{"prompt":"[plain] lone","x":"${esc("d800")}"}`),
+      // CC 2.1.312 -- the job's effort, validated as POST's.
+      patch("p-on", { effort: "low" }),
+      patch("p-on", { effort: "max" }),
+      patch("p-on", { effort: "ultra" }),
+      patch("p-on", { effort: 5 }),
+      patch("p-on", { effort: ["low"] }),
+      patch("p-on", '{"effort":1e400}'),
+      patch("p-on", { effort: "" }),
+      patch("p-on", { effort: "xhigh" }),
+      patch("p-on", { effort: null }),
+      patch("p-on", { effort: null }),
+      // The cron's 400 comes first; the effort's before the cwd's.
+      patch("p-on", { cron: "bad", effort: "low" }),
+      patch("p-on", { effort: "ultra", cwd: "$ROOT/untrusted" }),
+      patch("p-bare", { effort: "high" }),
+      // CC 2.1.302 -- a cwd or enabled patch clears the skip reason.
+      patch("p-skip", { name: "still skipped" }),
+      patch("p-skip", { effort: "low" }),
+      patch("p-skip", { enabled: true }),
+      patch("p-skip2", { cwd: "$ROOT/ws1" }),
+      patch("p-skip3", { enabled: 1 }),
+      patch("p-skip3", { cwd: "nope" }),
+      patch("p-skip3", { enabled: false }),
       patch("p-bad", {}),
       patch("p-bad", { cron: FAR }),
       // A cron with no slot: the old timer goes, its `nextRunAt` stays.
@@ -702,6 +773,7 @@ const GROUPS = [
           job("r-gate", { prompt: "[gate] G", cwd: "$ROOT/ws2", enabled: false }),
           job("r-gate2", { prompt: "[gate] H", cwd: "$ROOT/ws3" }),
           job("r-model", { prompt: "[plain] model", model: "claude-golden-1", enabled: false }),
+          job("r-effort", { prompt: "[plain] effort", cwd: "$ROOT/ws4", effort: "xhigh", enabled: false }),
         ]),
       ],
       [
@@ -735,7 +807,12 @@ const GROUPS = [
       runNow("r-err"),
       runNow("r-nocwd"),
       runNow("r-model"),
+      runNow("r-effort"),
       runs("r-err"),
+      // CC 2.1.302 -- the folder is gone: the fire doesn't start, and says so.
+      runNow("r-nocwd"),
+      runs("r-nocwd"),
+      get("/api/schedule/r-nocwd"),
       // One run at a time: a second one while it's in flight is `skipped`.
       start("r-gate", "ws2"),
       runs("r-gate"),
@@ -833,6 +910,40 @@ const GROUPS = [
       get("/api/schedule/x"),
       patch("x", {}),
       get("/api/schedule"),
+    ],
+  },
+  {
+    // CC 2.1.302 -- the runs an earlier Claudius left `running`, recovered
+    // before the server listens.
+    name: "boot recovery",
+    seed: [
+      [
+        "jobs.json",
+        jobsText([
+          job("b-dead", { lastRunAt: 1_000_000, lastStatus: "running" }),
+          job("b-alive", { lastRunAt: 1_000_000, lastStatus: "running", enabled: false }),
+          job("b-old", { lastRunAt: 1_000_000, lastStatus: "running", enabled: false }),
+          job("b-mismatch", { lastRunAt: 999, lastStatus: "running", enabled: false }),
+          job("b-done", { lastRunAt: 1_000_000, lastStatus: "success", enabled: false }),
+        ]),
+      ],
+      ["jobs/b-dead/runs.jsonl", runLines([running("d0", "b-dead", 1, 999999), running("d1", "b-dead", 1_000_000, 999999)])],
+      ["jobs/b-alive/runs.jsonl", runLines([running("a1", "b-alive", 1_000_000, 1)])],
+      ["jobs/b-old/runs.jsonl", runLines([running("o1", "b-old", 1_000_000)])],
+      ["jobs/b-mismatch/runs.jsonl", runLines([running("m1", "b-mismatch", 1_000_000, 999999)])],
+      ["jobs/b-done/runs.jsonl", runLines([running("x1", "b-done", 1_000_000, 999999)])],
+    ],
+    steps: [
+      get("/api/schedule"),
+      runs("b-dead"),
+      runs("b-alive"),
+      runs("b-old"),
+      runs("b-mismatch"),
+      runs("b-done"),
+      // A run started now stamps this process and clears nothing else.
+      runNow("b-dead"),
+      runs("b-dead"),
+      get("/api/schedule/b-dead"),
     ],
   },
   {
@@ -957,10 +1068,10 @@ function resetScheduler() {
   scheduler.timers = new Map();
   scheduler.inFlight = new Set();
   scheduler.liveRuns = new Map();
-  scheduler.booted = false;
   G.timers.clear();
   G.seq = 0;
   G.n = 0;
+  scheduler.bootPromise = null;
   __resetTrustedCwdCache();
 }
 
@@ -988,6 +1099,7 @@ for (const g of GROUPS) {
   const prevFiles = new Map();
   const prevCli = new Map();
   G.t = T0;
+  G.procStart = T0 - 60_000;
   let boot;
   try {
     await scheduler.boot();
@@ -1016,6 +1128,8 @@ writeFileSync(
     sdkVersion,
     tz: TZ,
     t0: T0,
+    pid: PID,
+    procStart: T0 - 60_000,
     world: { dirs: DIRS, files: WORLD_FILES },
     script: SCRIPT_BODY,
     groups,

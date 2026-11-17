@@ -4,10 +4,10 @@
 //!   rows (values and SQLite types) after each step;
 //! - `listLoopBreakdown` over hand-written rows, and without a database;
 //! - `trackScheduledLoops` over scripted SDK messages: after each step, the
-//!   loops, the pending CronCreate entries, the in-flight CronList ids, the
-//!   applied stops, the ticks awaiting usage and the session's tick rows
-//!   (the tracker's effects run against the database as the session runs
-//!   them).
+//!   loops, the pending CronCreate entries (`nextFireAt` comes from the
+//!   CronCreate result only, SDK 0.3.299), the applied stops, the ticks
+//!   awaiting usage and the session's tick rows (the tracker's effects run
+//!   against the database as the session runs them).
 
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -211,7 +211,6 @@ fn the_tracker_follows_track_scheduled_loops() {
             let got = json!({
                 "loops": loops_json(t.loops()),
                 "pending": loops_json(t.pending()),
-                "cronLists": t.pending_cron_lists(),
                 "stops": t.applied_wakeup_stops(),
                 "attribution": t.pending_tick_attribution(),
                 "ticks": stored_rows(&dir, sid),

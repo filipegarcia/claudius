@@ -18,19 +18,18 @@
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-use claudius_agent::js;
 use claudius_core::active_cwd::resolve_active_cwd;
 use claudius_core::db::{Mode, open_db};
-use claudius_core::{js_num, open_tabs, paths, sessions_db};
+use claudius_core::{js_num, js_string, open_tabs, paths, sessions_db};
 use rusqlite::types::ValueRef;
 use serde_json::{Value, json};
 
-/// The fixture, parsed as `JSON.parse` would (it holds lone-surrogate
-/// escapes, which become U+FFFD).
+/// The fixture, parsed as `JSON.parse` would: its lone-surrogate escapes
+/// are JS strings' lone surrogates ([`js_string`] stand-ins).
 fn fixture() -> Value {
     let path =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/open_tabs_golden.json");
-    js::json_parse(&std::fs::read_to_string(path).unwrap()).unwrap()
+    js_string::parse(&std::fs::read_to_string(path).unwrap()).unwrap()
 }
 
 /// A private home (where the per-project databases and the stores live).
@@ -144,7 +143,12 @@ fn world(s: &Value) -> bool {
             } else if let Some(hex) = s["hex"].as_str() {
                 std::fs::write(&path, unhex(hex)).unwrap();
             } else {
-                std::fs::write(&path, s["text"].as_str().unwrap()).unwrap();
+                // `writeFileSync` writes a lone surrogate as U+FFFD.
+                std::fs::write(
+                    &path,
+                    js_string::lossy(s["text"].as_str().unwrap()).as_ref(),
+                )
+                .unwrap();
             }
             true
         }
@@ -219,24 +223,12 @@ fn ids(arg: &Value) -> Vec<&str> {
 
 /// Where Rust is known to differ, and why. Each one must still differ, so
 /// the list can't go stale.
-fn known_difference(s: &Value, previous: &[Value]) -> Option<&'static str> {
+fn known_difference(s: &Value) -> Option<&'static str> {
     let lit = s["lit"].as_str().unwrap_or_default();
     if s["fn"] == "lit" && lit.contains(&"[".repeat(150)) && lit.contains("\"x\"") {
         // serde_json stops at 127 levels: the deep array doesn't parse, so
         // the "x" beside it isn't read either.
         return Some("nesting past 127 levels");
-    }
-    // A lone surrogate in the id: JS's `JSON.stringify` writes it as a
-    // `\ud800` escape; a Rust string holds U+FFFD, which is written as is.
-    let after_lone_active = previous
-        .iter()
-        .rev()
-        .find(|p| p["fn"] != "readAll")
-        .is_some_and(|p| {
-            p["fn"] == "setActiveTab" && p["arg"].as_str().is_some_and(|a| a.contains('\u{fffd}'))
-        });
-    if s["fn"] == "rows" && after_lone_active {
-        return Some("lone surrogate written as U+FFFD");
     }
     None
 }
@@ -248,14 +240,14 @@ fn module_parts_replay_the_ts_in_order() {
     let mut failures = vec![];
     let mut known = vec![];
     let mut check = |part: &str, i: usize, s: &Value, got: Value, why: Option<&str>| {
-        let (want, got) = (js::stringify(&s["got"]), js::stringify(&got));
+        let (want, got) = (js_string::stringify(&s["got"]), js_string::stringify(&got));
         match (want == got, why) {
             (true, None) => {}
             (false, Some(why)) => known.push(format!("{part} #{i}: {why}")),
             (true, Some(why)) => failures.push(format!("{part} #{i}: listed ({why}) but equal")),
             (false, None) => failures.push(format!(
                 "{part} #{i} {}\n  want {want}\n  got  {got}",
-                js::stringify(&json!({"fn": s["fn"], "op": s["op"], "cwd": s["cwd"], "arg": s["arg"], "lit": s["lit"], "pairs": s["pairs"], "cust": s["cust"], "ws": s["ws"]}))
+                js_string::stringify(&json!({"fn": s["fn"], "op": s["op"], "cwd": s["cwd"], "arg": s["arg"], "lit": s["lit"], "pairs": s["pairs"], "cust": s["cust"], "ws": s["ws"]}))
             )),
         }
     };
@@ -286,7 +278,7 @@ fn module_parts_replay_the_ts_in_order() {
             ),
             other => panic!("fn {other}"),
         };
-        check("db", i, s, got, known_difference(s, &steps[..i]));
+        check("db", i, s, got, known_difference(s));
     }
 
     // ---- clamp ----
@@ -357,7 +349,7 @@ fn module_parts_replay_the_ts_in_order() {
         let r = resolve_active_cwd(s["cust"].as_str(), s["ws"].as_str());
         let cwd = match &r.cwd {
             Some(Value::String(c)) => json!(sym(c)),
-            Some(v) => json!({"nonString": js::stringify(v)}),
+            Some(v) => json!({"nonString": js_string::stringify(v)}),
             None => json!({"nonString": "undefined"}),
         };
         let got = json!({"cwd": cwd, "customizationId": r.customization_id, "ws": r.workspace});
@@ -371,5 +363,5 @@ fn module_parts_replay_the_ts_in_order() {
         failures.len(),
         failures.join("\n")
     );
-    assert_eq!(known.len(), 2, "{known:?}");
+    assert_eq!(known.len(), 1, "{known:?}");
 }

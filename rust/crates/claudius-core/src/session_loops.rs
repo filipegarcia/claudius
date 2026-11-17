@@ -49,7 +49,9 @@ pub struct SessionLoop {
     pub durable: bool,
     /// When it was armed (the transcript's timestamp on a replay).
     pub started_at: i64,
-    /// The job's next run from the structured CronCreate / CronList output.
+    /// Epoch ms of the cron's next run, from the structured `CronCreate`
+    /// result (SDK 0.3.299 `CronCreateOutput.nextFireAt`). A snapshot taken
+    /// when the job was created: it is not updated after the job fires.
     pub next_fire_at: Option<f64>,
     /// `noop: true` on the ScheduleWakeup call; `noop_streak` counts this
     /// quiet tick and the quiet ones it superseded (0 when not `noop`).
@@ -113,31 +115,12 @@ fn finite_ms(v: Option<&Value>) -> Option<f64> {
         .filter(|f| f.is_finite() && *f > 0.0)
 }
 
-/// `readCronCreateNextFireAt` (a non-object has no `nextFireAt`).
-pub fn read_cron_create_next_fire_at(tool_use_result: Option<&Value>) -> Option<f64> {
+/// `readCronNextFireAt(toolUseResult)` (SDK 0.3.299): the `nextFireAt` on
+/// the `tool_use_result` riding the user message that carries a
+/// `CronCreate` tool_result. A non-object, a missing field and anything
+/// but a finite positive number read as none.
+pub fn read_cron_next_fire_at(tool_use_result: Option<&Value>) -> Option<f64> {
     finite_ms(tool_use_result?.get("nextFireAt"))
-}
-
-/// `readCronListNextFireAt`: job id → `nextFireAt`, first-seen order, the
-/// last value for a repeated id.
-pub fn read_cron_list_next_fire_at(tool_use_result: Option<&Value>) -> IndexMap<String, f64> {
-    let mut out = IndexMap::new();
-    let Some(jobs) = tool_use_result
-        .and_then(|r| r.get("jobs"))
-        .and_then(Value::as_array)
-    else {
-        return out;
-    };
-    for j in jobs {
-        let id = j
-            .get("id")
-            .and_then(Value::as_str)
-            .filter(|s| !s.is_empty());
-        if let (Some(id), Some(ms)) = (id, finite_ms(j.get("nextFireAt"))) {
-            out.insert(id.to_owned(), ms);
-        }
-    }
-    out
 }
 
 /// `isScheduleWakeupStop`: a strict `stop: true`.
@@ -218,8 +201,6 @@ pub struct LoopTracker {
     loops: IndexMap<String, SessionLoop>,
     /// CronCreate calls awaiting their result, by tool_use id.
     pending: IndexMap<String, SessionLoop>,
-    /// In-flight CronList calls: their result refreshes `nextFireAt`.
-    pending_cron_lists: IndexSet<String>,
     /// `ScheduleWakeup { stop: true }` calls already applied.
     applied_wakeup_stops: IndexSet<String>,
     /// Ticks armed this turn, awaiting the turn's `result`.
@@ -235,10 +216,6 @@ impl LoopTracker {
     /// CronCreate calls still waiting for their result.
     pub fn pending(&self) -> Vec<SessionLoop> {
         self.pending.values().cloned().collect()
-    }
-
-    pub fn pending_cron_lists(&self) -> Vec<String> {
-        self.pending_cron_lists.iter().cloned().collect()
     }
 
     pub fn applied_wakeup_stops(&self) -> Vec<String> {
@@ -329,9 +306,6 @@ impl LoopTracker {
                                     cancelled: false,
                                 },
                             );
-                        }
-                        Some("CronList") => {
-                            self.pending_cron_lists.insert(id.to_owned());
                         }
                         Some("CronDelete") => {
                             if let Some(target) = str_prop("id").filter(|s| !s.is_empty())
@@ -425,16 +399,6 @@ impl LoopTracker {
                         continue;
                     };
                     let is_error = block.get("is_error").is_some_and(js::truthy);
-                    if self.pending_cron_lists.shift_remove(tid) {
-                        if !is_error {
-                            for (id, ms) in read_cron_list_next_fire_at(tool_use_result) {
-                                if let Some(entry) = self.loops.get_mut(&id) {
-                                    entry.next_fire_at = Some(ms);
-                                }
-                            }
-                        }
-                        continue;
-                    }
                     let Some(pending) = self.pending.shift_remove(tid) else {
                         continue;
                     };
@@ -448,7 +412,7 @@ impl LoopTracker {
                         .map_or_else(|| pending.tool_use_id.clone(), |c| c[1].to_owned());
                     let human_schedule = caps.as_ref().map(|c| c[2].to_owned());
                     let durable = !says_session_only(&text);
-                    let next_fire_at = read_cron_create_next_fire_at(tool_use_result);
+                    let next_fire_at = read_cron_next_fire_at(tool_use_result);
                     self.loops.insert(
                         cron_id.clone(),
                         SessionLoop {

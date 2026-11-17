@@ -56,6 +56,12 @@ pub enum AgentError {
     #[error("ProcessTransport is not ready for writing")]
     Closed,
 
+    /// The SDK's reader threw a JS `TypeError` (V8's message), e.g. walking
+    /// a malformed `pending_permission_requests` list on the `initialize`
+    /// reply. The stream ends with it and every waiting request fails.
+    #[error("{0}")]
+    TypeError(String),
+
     /// A control request made once the reader ended (`cleanupPerformed`), or
     /// still waiting when the CLI went away cleanly (`ww()`).
     #[error("Query closed before response received")]
@@ -82,6 +88,7 @@ impl AgentError {
                 stderr: stderr.clone(),
             },
             Self::ErrorResult(text) => Self::ErrorResult(text.clone()),
+            Self::TypeError(message) => Self::TypeError(message.clone()),
             Self::Aborted => Self::Aborted,
             Self::Closed => Self::Closed,
             Self::QueryClosed => Self::QueryClosed,

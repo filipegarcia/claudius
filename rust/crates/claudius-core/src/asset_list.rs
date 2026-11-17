@@ -26,7 +26,8 @@ use rusqlite::{Connection, OpenFlags, ToSql};
 use serde_json::{Map, Value, json};
 
 use crate::db::{Mode, open_db};
-use crate::{js_num, node_path, paths};
+use crate::sql_text::JsText;
+use crate::{js_num, js_params, node_path, paths};
 
 /// A column value as better-sqlite3 reads it into JS.
 #[derive(Clone, Debug, PartialEq)]
@@ -202,8 +203,8 @@ fn query_rows(
     cwd: &str,
 ) -> rusqlite::Result<Vec<AssetRow>> {
     let mut st = conn.prepare(sql)?;
-    let refs: Vec<&dyn ToSql> = params.iter().map(|p| p as &dyn ToSql).collect();
-    st.query_map(refs.as_slice(), |r| {
+    let params = rusqlite::params_from_iter(params.iter().map(JsText::new));
+    st.query_map(params, |r| {
         Ok(AssetRow {
             hash: Cell::read(r.get_ref(0)?),
             media_type: Cell::read(r.get_ref(1)?),
@@ -461,7 +462,7 @@ pub fn list_uses(cwd: &str, hash: &str) -> anyhow::Result<Vec<UseRow>> {
             "SELECT session_id, message_uuid, ordinal, occurred_ms
        FROM asset_uses WHERE asset_hash = ? ORDER BY occurred_ms DESC",
         )?;
-        st.query_map([hash], |r| {
+        st.query_map(js_params![hash], |r| {
             Ok(UseRow {
                 session_id: Cell::read(r.get_ref(0)?),
                 message_uuid: Cell::read(r.get_ref(1)?),
@@ -489,7 +490,7 @@ pub fn delete_asset_row(cwd: &str, hash: &str) -> anyhow::Result<bool> {
     let Ok(db) = open_db(cwd, Mode::ReadWrite) else {
         return Ok(false);
     };
-    Ok(db.with(|c| c.execute("DELETE FROM assets WHERE hash = ?", [hash]))? > 0)
+    Ok(db.with(|c| c.execute("DELETE FROM assets WHERE hash = ?", js_params![hash]))? > 0)
 }
 
 #[cfg(test)]

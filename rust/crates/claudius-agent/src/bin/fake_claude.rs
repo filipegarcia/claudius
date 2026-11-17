@@ -41,6 +41,8 @@
 //!     "<subtype>": { "$error": "message" },
 //!     "<subtype>": { "$response": {}, "$emit": ["step"], "$delay_ms": 0 },
 //!     "<subtype>": { "$no_reply": true, "$emit": [{ "$exit": 3 }] },
+//!     "<subtype>": { "$before": ["step"], "$envelope": { "...": "..." } },
+//!     "<subtype>": { "$same_write": [{ "type": "..." }] },
 //!     "<subtype>": { "$sequence": ["<entry>", "..."] }
 //!   },
 //!   "turns": [
@@ -53,7 +55,13 @@
 //!   `$emit`, the steps run *after* the response is sent (e.g. `interrupt` →
 //!   emit the `error_during_execution` result a real CLI sends). With
 //!   `$no_reply`, no response is sent at all (the request stays pending), so
-//!   `$emit` can end the process with the host still waiting. With
+//!   `$emit` can end the process with the host still waiting. `$before`
+//!   steps run before the response is sent (e.g. a live `control_request`
+//!   ahead of the `initialize` reply). `$envelope`'s keys are merged into
+//!   the reply's `response` envelope, next to `subtype` / `request_id` (e.g.
+//!   `pending_permission_requests`), `$error` replies too. `$same_write`
+//!   messages are written as-is right after the reply, in the same write,
+//!   so the host reads them in the same chunk. With
 //!   `$sequence`, the n-th request of that subtype is answered by the n-th
 //!   entry (any of the forms above), and the last one repeats.
 //! * For each user prompt, the first unconsumed turn whose `match` (if any)
@@ -71,9 +79,14 @@
 //! * `{"$control": {request}}` — a CLI→host control request; waits for the
 //!   response, which becomes `$LAST`.
 //! * `{"$send": {request}}` — the same, without waiting (for requests the
-//!   host may leave unanswered).
+//!   host may leave unanswered). Both take an optional `"$id"`, the request
+//!   id to use instead of `cli_<turn>_s<step>`.
+//! * `{"$expect": ["id", …]}` — have the next `$collect_ms` also wait for a
+//!   response to each of these ids (once per listing), e.g. requests the
+//!   host was handed some other way.
 //! * `{"$collect_ms": n}` — read inbound lines (so `$FAKE_CLAUDE_LOG` gets
-//!   them) until every `$send` request is answered or `n` ms pass.
+//!   them) until every `$send` (and `$expect`) request is answered or `n` ms
+//!   pass.
 //! * `{"$mark": "label"}` — append `{"mark": label}` to `$FAKE_CLAUDE_EVENTS`.
 //! * `{"$delay_ms": n}`, `{"$stderr": "…"}`, `{"$exit": n}`.
 //! * `{"$wait_file": "path"}` — block until `path` (relative to the cwd)
@@ -110,8 +123,14 @@ struct Io {
 
 impl Io {
     fn emit(&self, v: &Value) {
+        self.emit_all(std::slice::from_ref(v));
+    }
+
+    /// Lines written with one `write` (then flushed).
+    fn emit_all(&self, vs: &[Value]) {
+        let text: String = vs.iter().map(|v| format!("{v}\n")).collect();
         let mut out = std::io::stdout().lock();
-        let _ = writeln!(out, "{v}");
+        let _ = out.write_all(text.as_bytes());
         let _ = out.flush();
     }
 
@@ -148,11 +167,15 @@ impl Io {
         }
     }
 
+    /// A stdin line, logged as is, then read as the CLI's `JSON.parse` reads
+    /// it: a lone-surrogate escape the SDK wrote (`JSON.stringify` of a JS
+    /// string holding one) becomes U+FFFD, where serde_json alone would drop
+    /// the line and leave its request unanswered.
     fn parse_logged(&mut self, line: String) -> Option<Value> {
         if let Some(f) = &mut self.log {
-            let _ = writeln!(f, "{line}");
+            append_line(f, &line);
         }
-        serde_json::from_str::<Value>(&line).ok()
+        claudius_agent::js::parse_line(&line).ok()
     }
 
     /// Send a control request and block until its response arrives
@@ -267,6 +290,26 @@ fn hold_stdout(ms: u64) {
         .unwrap_or_else(|e| fail(&format!("spawn sleep: {e}")));
 }
 
+/// A `$send` / `$control` step's request id: its `$id`, else
+/// `cli_<turn>_s<step>`.
+fn step_id(step: &Value, turn: u32, i: usize) -> String {
+    step.get("$id")
+        .and_then(Value::as_str)
+        .map_or_else(|| format!("cli_{turn}_s{i}"), str::to_owned)
+}
+
+/// Takes one `id` off the ids `$collect_ms` waits for; `false` if it isn't
+/// one of them.
+fn take(sent: &mut Vec<String>, id: &str) -> bool {
+    match sent.iter().position(|s| s == id) {
+        Some(i) => {
+            sent.remove(i);
+            true
+        }
+        None => false,
+    }
+}
+
 fn fail(msg: &str) -> ! {
     eprintln!("claudius-fake-claude: {msg}");
     std::process::exit(2)
@@ -334,8 +377,9 @@ struct Fake {
     last: Value,
     /// Last assistant text emitted in the current turn.
     last_text: String,
-    /// `$send` request ids still waiting for a response.
-    sent: BTreeSet<String>,
+    /// `$send` / `$expect` request ids still waiting for a response, once
+    /// per expected response.
+    sent: Vec<String>,
 }
 
 impl Fake {
@@ -413,26 +457,32 @@ impl Fake {
                 let text = t.as_str().map_or_else(|| t.to_string(), str::to_owned);
                 self.assistant(&text);
             } else if let Some(req) = step.get("$control") {
-                let id = format!("cli_{}_s{i}", self.n);
+                let id = step_id(&step, self.n, i);
                 self.last = self.io.ask(&id, req.clone())["response"].clone();
             } else if let Some(req) = step.get("$send") {
-                let id = format!("cli_{}_s{i}", self.n);
+                let id = step_id(&step, self.n, i);
                 self.io
                     .emit(&json!({"type": "control_request", "request_id": id, "request": req}));
-                self.sent.insert(id);
+                self.sent.push(id);
+            } else if let Some(ids) = step.get("$expect").and_then(Value::as_array) {
+                self.sent
+                    .extend(ids.iter().filter_map(Value::as_str).map(str::to_owned));
             } else if let Some(ms) = step.get("$collect_ms").and_then(Value::as_u64) {
                 let deadline = std::time::Instant::now() + std::time::Duration::from_millis(ms);
                 // Responses an earlier `$control` wait stashed count too.
                 let sent = &mut self.sent;
                 self.io.stash.retain(|v| {
                     v["type"] != "control_response"
-                        || !sent.remove(v["response"]["request_id"].as_str().unwrap_or_default())
+                        || !take(
+                            sent,
+                            v["response"]["request_id"].as_str().unwrap_or_default(),
+                        )
                 });
                 while !self.sent.is_empty() {
                     match self.io.read_until(deadline) {
                         Ok(Some(v)) => {
                             let id = v["response"]["request_id"].as_str().unwrap_or_default();
-                            if v["type"] != "control_response" || !self.sent.remove(id) {
+                            if v["type"] != "control_response" || !take(&mut self.sent, id) {
                                 self.io.stash.push_back(v);
                             }
                         }
@@ -442,7 +492,7 @@ impl Fake {
                 }
             } else if let Some(label) = step.get("$mark") {
                 if let Some(f) = &mut self.events {
-                    let _ = writeln!(f, "{}", json!({"mark": label}));
+                    append_line(f, &json!({"mark": label}).to_string());
                 }
             } else if let Some(ms) = step.get("$delay_ms").and_then(Value::as_u64) {
                 std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -535,7 +585,7 @@ impl Fake {
 
     fn log_control(&mut self, msg: &Value) {
         if let Some(f) = &mut self.control_log {
-            let _ = writeln!(f, "{msg}");
+            append_line(f, &msg.to_string());
         }
     }
 
@@ -656,9 +706,17 @@ impl Fake {
         let default = self.default_response(req);
         let entry = self.control_entry(&subtype);
         let directive = entry.as_ref().and_then(Value::as_object).filter(|o| {
-            ["$error", "$response", "$emit", "$no_reply"]
-                .iter()
-                .any(|k| o.contains_key(*k))
+            [
+                "$error",
+                "$response",
+                "$emit",
+                "$no_reply",
+                "$before",
+                "$envelope",
+                "$same_write",
+            ]
+            .iter()
+            .any(|k| o.contains_key(*k))
         });
         if let Some(ms) = directive
             .and_then(|o| o.get("$delay_ms"))
@@ -666,20 +724,42 @@ impl Fake {
         {
             std::thread::sleep(std::time::Duration::from_millis(ms));
         }
+        if let Some(before) = directive
+            .and_then(|o| o.get("$before"))
+            .and_then(Value::as_array)
+        {
+            self.run_steps(before);
+        }
+        let envelope = directive
+            .and_then(|o| o.get("$envelope"))
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default();
+        let same_write: Vec<Value> = directive
+            .and_then(|o| o.get("$same_write"))
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
         if directive.is_some_and(|o| o.get("$no_reply") == Some(&Value::Bool(true))) {
             // Left unanswered.
         } else if let Some(err) = directive.and_then(|o| o.get("$error")) {
             let err = err.as_str().map_or_else(|| err.to_string(), str::to_owned);
-            self.io.emit(&json!({"type": "control_response",
-                                 "response": {"subtype": "error", "request_id": id, "error": err}}));
+            let mut reply = json!({"subtype": "error", "request_id": id, "error": err});
+            merge(&mut reply, &envelope);
+            let mut lines = vec![json!({"type": "control_response", "response": reply})];
+            lines.extend(same_write);
+            self.io.emit_all(&lines);
         } else {
             let response = match (directive, entry.as_ref()) {
                 (Some(o), _) => o.get("$response").map(|r| self.subst(r)).unwrap_or(default),
                 (None, Some(literal)) => self.subst(literal),
                 (None, None) => default,
             };
-            self.io.emit(&json!({"type": "control_response",
-                                 "response": {"subtype": "success", "request_id": id, "response": response}}));
+            let mut reply = json!({"subtype": "success", "request_id": id, "response": response});
+            merge(&mut reply, &envelope);
+            let mut lines = vec![json!({"type": "control_response", "response": reply})];
+            lines.extend(same_write);
+            self.io.emit_all(&lines);
         }
         if subtype == "initialize" {
             let steps = std::mem::take(&mut self.script.on_init);
@@ -787,6 +867,20 @@ impl Fake {
     }
 }
 
+/// Append `line` and its newline to a log in ONE `write(2)`, which
+/// `O_APPEND` makes atomic. `writeln!` on an unbuffered `File` makes a write
+/// per formatted piece (the text, then the `\n`; a `Value`, one per token),
+/// so another writer appending in between (every fake CLI a server spawns
+/// shares `$FAKE_CLAUDE_LOG`; the stdin thread's `eof` and the main thread's
+/// marks share `$FAKE_CLAUDE_EVENTS`) spliced its line into this one, and a
+/// test lost both to a line it couldn't parse (TODO I22).
+fn append_line(f: &mut std::fs::File, line: &str) {
+    let mut buf = Vec::with_capacity(line.len() + 1);
+    buf.extend_from_slice(line.as_bytes());
+    buf.push(b'\n');
+    let _ = f.write_all(&buf);
+}
+
 fn append_file(var: &str) -> Option<std::fs::File> {
     let p = std::env::var(var).ok()?;
     std::fs::OpenOptions::new()
@@ -833,7 +927,7 @@ fn main() {
                         }
                     }
                     if let Some(mut f) = append_file("FAKE_CLAUDE_EVENTS") {
-                        let _ = writeln!(f, "{}", json!({"eof": true}));
+                        append_line(&mut f, &json!({"eof": true}).to_string());
                     }
                 });
                 rx
@@ -856,7 +950,7 @@ fn main() {
         prompt: String::new(),
         last: Value::Null,
         last_text: String::new(),
-        sent: BTreeSet::new(),
+        sent: Vec::new(),
     };
 
     while let Some(msg) = fake.io.read() {

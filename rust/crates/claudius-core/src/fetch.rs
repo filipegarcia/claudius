@@ -34,18 +34,26 @@
 //! `CONNECT` the proxy drops); reqwest also reads `ALL_PROXY`.
 //!
 //! Certificates are checked against the OS trust store
-//! (rustls-platform-verifier). Node checks its bundled Mozilla list (plus
-//! `NODE_EXTRA_CA_CERTS`), so a chain only one of them trusts fails on the
-//! other.
+//! (rustls-platform-verifier) plus, as in Node, the roots a process-env
+//! `NODE_EXTRA_CA_CERTS` names ([`crate::extra_ca_env`], I19): read once per
+//! process, by the first client built, and the same for every client. Node's
+//! default roots are its bundled Mozilla list instead of the OS store, so a
+//! chain only one of those trusts fails on the other.
+//!
+//! A rejection is a [`FetchError`]: the `message` TS sees, plus whether the
+//! handshake failed for want of a trusted root ([`crate::tls_cert_hint`]),
+//! which the account callers turn into their CC 2.1.309 hint.
 //!
 //! Secrets: request bodies and header values never reach a log or a `Debug`
 //! print from here.
 
-use std::sync::OnceLock;
+use std::ffi::OsStr;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use claudius_agent::js;
 use futures::future::BoxFuture;
+use rustls::pki_types::CertificateDer;
 use serde_json::Value;
 
 use crate::account_profile::{FetchResponse, ProfileFetch};
@@ -93,6 +101,53 @@ impl std::fmt::Debug for Request {
     }
 }
 
+/// A rejected `fetch`: the `TypeError`'s `message` (`fetch failed` for every
+/// network failure, as undici), and whether it was a certificate-trust
+/// failure, which only the client can tell (`err.cause.code` in Node).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FetchError {
+    /// The rejection's `message`.
+    pub message: String,
+    /// `isCaTrustFailure(err)` (`lib/shared/tls-cert-hint.ts`).
+    pub ca_trust: bool,
+}
+
+impl FetchError {
+    /// A failure that isn't about certificate trust.
+    pub fn new(message: impl Into<String>) -> FetchError {
+        FetchError {
+            message: message.into(),
+            ca_trust: false,
+        }
+    }
+
+    /// A chain the verifier refused for want of a trusted root.
+    pub fn ca_trust(message: impl Into<String>) -> FetchError {
+        FetchError {
+            message: message.into(),
+            ca_trust: true,
+        }
+    }
+}
+
+impl std::fmt::Display for FetchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl From<String> for FetchError {
+    fn from(message: String) -> FetchError {
+        FetchError::new(message)
+    }
+}
+
+impl From<&str> for FetchError {
+    fn from(message: &str) -> FetchError {
+        FetchError::new(message)
+    }
+}
+
 /// A settled `fetch`: the status line, and the body as reading it ends.
 #[derive(Clone)]
 pub struct Response {
@@ -137,7 +192,7 @@ impl Response {
 
 /// The global `fetch`: the settled response, or the rejection's message.
 pub trait Fetch: Send + Sync {
-    fn fetch<'a>(&'a self, req: &'a Request) -> BoxFuture<'a, Result<Response, String>>;
+    fn fetch<'a>(&'a self, req: &'a Request) -> BoxFuture<'a, Result<Response, FetchError>>;
 }
 
 /// The production [`Fetch`] (see the module docs). The reqwest client is
@@ -146,6 +201,8 @@ pub struct HttpsClient {
     client: OnceLock<Option<reqwest::Client>>,
     base: Option<String>,
     timeouts: (Duration, Duration),
+    /// The `NODE_EXTRA_CA_CERTS` roots, trusted besides the OS store.
+    extra_roots: Arc<[CertificateDer<'static>]>,
 }
 
 impl Default for HttpsClient {
@@ -155,12 +212,29 @@ impl Default for HttpsClient {
 }
 
 impl HttpsClient {
+    /// A client trusting the process's `NODE_EXTRA_CA_CERTS` bundle besides
+    /// the OS store (the first client reads it).
     pub fn new() -> HttpsClient {
         HttpsClient {
             client: OnceLock::new(),
             base: None,
             timeouts: (CONNECT_TIMEOUT, READ_TIMEOUT),
+            extra_roots: crate::extra_ca_env::process_roots(),
         }
+    }
+
+    /// For tests only: the roots of a process started with
+    /// `NODE_EXTRA_CA_CERTS` set to `value` (`None`: unset) instead, read
+    /// now, the warning logged.
+    pub fn with_node_extra_ca_certs(mut self, value: Option<&str>) -> HttpsClient {
+        self.extra_roots = crate::extra_ca_env::load_logged(value.map(OsStr::new));
+        self
+    }
+
+    /// The `NODE_EXTRA_CA_CERTS` roots this client trusts besides the OS
+    /// store.
+    pub fn extra_roots(&self) -> &[CertificateDer<'static>] {
+        &self.extra_roots
     }
 
     /// For tests only: other connect / read timeouts than undici's
@@ -185,7 +259,7 @@ impl HttpsClient {
 
     fn client(&self) -> Option<&reqwest::Client> {
         self.client
-            .get_or_init(|| build_client(self.timeouts))
+            .get_or_init(|| build_client(self.timeouts, &self.extra_roots))
             .as_ref()
     }
 
@@ -215,18 +289,21 @@ impl HttpsClient {
     pub async fn fetch_with_headers(
         &self,
         req: &Request,
-    ) -> Result<(Response, ResponseHeaders), String> {
+    ) -> Result<(Response, ResponseHeaders), FetchError> {
         self.send_full(req).await
     }
 
-    async fn send(&self, req: &Request) -> Result<Response, String> {
+    async fn send(&self, req: &Request) -> Result<Response, FetchError> {
         self.send_full(req).await.map(|(res, _)| res)
     }
 
-    async fn send_full(&self, req: &Request) -> Result<(Response, ResponseHeaders), String> {
-        let failed = || FETCH_FAILED.to_owned();
+    async fn send_full(&self, req: &Request) -> Result<(Response, ResponseHeaders), FetchError> {
+        let failed = || FetchError::new(FETCH_FAILED);
         if url::Url::parse(&req.url).is_err() {
-            return Err(format!("Failed to parse URL from {}", req.url));
+            return Err(FetchError::new(format!(
+                "Failed to parse URL from {}",
+                req.url
+            )));
         }
         let method = fetch_method(&req.method)?;
         let client = self.client().ok_or_else(failed)?;
@@ -248,7 +325,15 @@ impl HttpsClient {
         } else if empty_upload {
             rb = rb.header("content-length", "0");
         }
-        let res = rb.send().await.map_err(|_| failed())?;
+        let res = rb.send().await.map_err(|e| {
+            // Only the client knows whether the handshake failed for want of
+            // a trusted root; the message stays undici's either way.
+            if crate::tls_cert_hint::is_ca_trust_failure_native(&e) {
+                FetchError::ca_trust(FETCH_FAILED)
+            } else {
+                failed()
+            }
+        })?;
         let status = res.status();
         let status_text = match res.extensions().get::<hyper::ext::ReasonPhrase>() {
             Some(reason) => String::from_utf8_lossy(reason.as_bytes()).into_owned(),
@@ -300,12 +385,14 @@ impl ResponseHeaders {
 /// (`Method::from_bytes` takes exactly the RFC 9110 token characters, so a
 /// name that isn't one fails there with undici's words, after the forbidden
 /// check as in undici, which no non-token can match).
-fn fetch_method(m: &str) -> Result<reqwest::Method, String> {
+fn fetch_method(m: &str) -> Result<reqwest::Method, FetchError> {
     if ["CONNECT", "TRACE", "TRACK"]
         .iter()
         .any(|f| f.eq_ignore_ascii_case(m))
     {
-        return Err(format!("'{m}' HTTP method is unsupported."));
+        return Err(FetchError::new(format!(
+            "'{m}' HTTP method is unsupported."
+        )));
     }
     let m = match ["DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT"]
         .iter()
@@ -315,7 +402,7 @@ fn fetch_method(m: &str) -> Result<reqwest::Method, String> {
         None => m,
     };
     reqwest::Method::from_bytes(m.as_bytes())
-        .map_err(|_| format!("'{m}' is not a valid HTTP method."))
+        .map_err(|_| FetchError::new(format!("'{m}' is not a valid HTTP method.")))
 }
 
 /// Node 22 uses `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` for fetch only
@@ -338,12 +425,35 @@ fn client_builder((connect, read): (Duration, Duration), proxy: bool) -> reqwest
     if proxy { b } else { b.no_proxy() }
 }
 
-fn build_client(timeouts: (Duration, Duration)) -> Option<reqwest::Client> {
+fn build_client(
+    timeouts: (Duration, Duration),
+    extra_roots: &[CertificateDer<'static>],
+) -> Option<reqwest::Client> {
     // reqwest is built without a default crypto provider; another one
     // installed first is fine too.
     let _ = rustls::crypto::ring::default_provider().install_default();
     let proxy = env_proxy_enabled(std::env::var("NODE_USE_ENV_PROXY").ok().as_deref());
-    match client_builder(timeouts, proxy).build() {
+    // `tls_certs_merge`: the platform verifier with these as extra anchors
+    // (`Verifier::new_with_extra_roots`), the OS store kept.
+    let roots = extra_roots
+        .iter()
+        .filter_map(|c| reqwest::Certificate::from_der(c).ok());
+    let built = match client_builder(timeouts, proxy)
+        .tls_certs_merge(roots)
+        .build()
+    {
+        // Roots the platform refuses (each one parsed as a certificate)
+        // mustn't cost every fetch: Node would still have its defaults.
+        Err(e) if !extra_roots.is_empty() => {
+            tracing::error!(
+                target: crate::log::API,
+                "[fetch] the NODE_EXTRA_CA_CERTS roots were refused ({e}); using the default roots only"
+            );
+            client_builder(timeouts, proxy).build()
+        }
+        built => built,
+    };
+    match built {
         Ok(c) => Some(c),
         Err(e) => {
             tracing::error!(target: crate::log::API, "[fetch] client setup failed: {e}");
@@ -353,7 +463,7 @@ fn build_client(timeouts: (Duration, Duration)) -> Option<reqwest::Client> {
 }
 
 impl Fetch for HttpsClient {
-    fn fetch<'a>(&'a self, req: &'a Request) -> BoxFuture<'a, Result<Response, String>> {
+    fn fetch<'a>(&'a self, req: &'a Request) -> BoxFuture<'a, Result<Response, FetchError>> {
         Box::pin(self.send(req))
     }
 }
@@ -365,7 +475,7 @@ impl ProfileFetch for HttpsClient {
         &'a self,
         url: &'a str,
         headers: &'a [(String, String)],
-    ) -> BoxFuture<'a, Result<FetchResponse, String>> {
+    ) -> BoxFuture<'a, Result<FetchResponse, FetchError>> {
         Box::pin(async move {
             let req = Request {
                 method: "GET".into(),
@@ -380,7 +490,7 @@ impl ProfileFetch for HttpsClient {
                     status: res.status,
                     body,
                 }),
-                Err(e) if ok => Err(e),
+                Err(e) if ok => Err(FetchError::new(e)),
                 Err(_) => Ok(FetchResponse {
                     status: res.status,
                     body: Vec::new(),
@@ -403,5 +513,16 @@ mod tests {
         let b = format!("{:?}", client_builder(t, false));
         assert!(b.contains("http1_only: true"), "{b}");
         assert!(b.contains("connect_timeout: 1.234s"), "{b}");
+    }
+
+    /// Extra roots the platform verifier refuses (the loader only keeps
+    /// ones that parse, so this is a safety net) cost the extra roots, not
+    /// the client.
+    #[test]
+    fn refused_extra_roots_fall_back_to_the_default_roots() {
+        let t = (CONNECT_TIMEOUT, READ_TIMEOUT);
+        assert!(build_client(t, &[]).is_some());
+        let junk = [CertificateDer::from(vec![1, 2, 3])];
+        assert!(build_client(t, &junk).is_some());
     }
 }

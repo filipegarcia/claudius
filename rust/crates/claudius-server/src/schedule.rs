@@ -3,37 +3,45 @@
 //! (POST) and `[id]/runs/route.ts` (GET), over the process-wide
 //! [`claudius_core::scheduler`] and its store.
 //!
-//! **One scheduler.** Next boots its own scheduler on the same `jobs.json`
-//! whenever it starts (`instrumentation.ts`), and these routes are where a
-//! job is armed, re-armed, disarmed and run: they have to reach the
-//! scheduler that is running. So Rust answers them only when it runs the
-//! scheduler itself (`--scheduler` / `CLAUDIUS_SCHEDULER=1`:
-//! [`scheduler::enabled`]); otherwise each request goes to Next unchanged
-//! (or, without a Next, gets the proxy's 404 as before). Answered here while
-//! Next's scheduler runs, a create would save a job no timer fires, an edit
-//! would leave Next's timer on the old cron (and an enabled-again job with
-//! none), a run-now would run beside Next's run of the same job instead of
-//! being `skipped`, and every run would read `attached: false`. The run's
-//! live stream follows the same switch ([`crate::schedule_live`], G07c).
+//! **One scheduler.** These routes are where a job is armed, re-armed,
+//! disarmed and run, so they have to reach the scheduler that is running.
+//! Rust answers them whenever it runs the scheduler itself
+//! ([`scheduler::enabled`], on unless `--no-scheduler` /
+//! `CLAUDIUS_SCHEDULER=0`), which is the default since G07d: the Next behind
+//! the front door is started with `CLAUDIUS_RUST_SCHEDULER=1` and boots no
+//! scheduler of its own. With the scheduler off, each request goes to Next
+//! unchanged (or, without a Next, gets the proxy's 404). Answered here while
+//! Next's scheduler runs instead, a create would save a job no timer fires,
+//! an edit would leave Next's timer on the old cron (and an enabled-again
+//! job with none), a run-now would run beside Next's run of the same job
+//! instead of being `skipped`, and every run would read `attached: false`.
+//! The run's live stream follows the same switch ([`crate::schedule_live`],
+//! G07c).
 //!
 //! * `GET /api/schedule`: `{jobs}` as stored (a store that doesn't read is
 //!   Next's empty 500).
-//! * `POST /api/schedule {name, cron, prompt, model?, cwd?, enabled?}`: in
-//!   this order, a blank or nullish `name` is 400 `name required`, a falsy
-//!   `cron` `cron required`, a blank or nullish `prompt` `prompt required`
-//!   (a `name` or `prompt` that isn't a string, or a truthy `cron` that isn't
-//!   one, throws), then `validateCron`'s error, then `unknown cwd` unless the
-//!   cwd is a registered one (no string: the first trusted root). The job
-//!   (`id`, the trimmed `name`, the trimmed `cron`, the raw `prompt`, a
-//!   truthy `model` as given, `cwd`, `enabled` unless it's `false`,
+//! * `POST /api/schedule {name, cron, prompt, model?, effort?, cwd?,
+//!   enabled?}`: in this order, a blank or nullish `name` is 400 `name
+//!   required`, a falsy `cron` `cron required`, a blank or nullish `prompt`
+//!   `prompt required` (a `name` or `prompt` that isn't a string, or a truthy
+//!   `cron` that isn't one, throws), then `validateCron`'s error, then
+//!   `unknown effort` for an `effort` that isn't a known level or an explicit
+//!   clear (`null` / `""`), then `unknown cwd` unless the cwd is a registered
+//!   one (no string: the first trusted root). The job (`id`, the trimmed
+//!   `name`, the trimmed `cron`, the raw `prompt`, a truthy `model` as given,
+//!   the `effort` when one was picked, `cwd`, `enabled` unless it's `false`,
 //!   `createdAt` and `updatedAt`) is saved and, when enabled, armed; the 201
 //!   body is the job as built, without the `nextRunAt` arming wrote.
 //! * `GET /api/schedule/:id`: the job, or 404 `not found`.
 //! * `PATCH /api/schedule/:id`: `updatedAt`, then each known field of the
-//!   right type (a `cron` validated, `model: null` or `""` dropping it, a
-//!   `cwd` resolved like POST's), merged into the job as stored; 404 when
-//!   there's no such job (after the 400s). The result is armed if enabled
-//!   (truthy), else disarmed.
+//!   right type (a `cron` validated, `model: null` or `""` dropping it, an
+//!   `effort` validated as POST's with `null` / `""` dropping it, a `cwd`
+//!   resolved like POST's), merged into the job as stored; 404 when there's
+//!   no such job (after the 400s). A patch that sets `cwd` or `enabled`
+//!   also clears `lastSkipReason` / `lastSkipAt`: what the next fire will do
+//!   has changed, so the Schedule page's "last run didn't start" banner no
+//!   longer applies (CC 2.1.302). The result is armed if enabled (truthy),
+//!   else disarmed.
 //! * `DELETE /api/schedule/:id`: disarm, then delete the job and its run
 //!   files: `{ok: true}`, or 404.
 //! * `POST /api/schedule/:id/run-now`: run the job now (enabled or not, no
@@ -63,6 +71,7 @@ use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use claudius_agent::js;
+use claudius_core::schedule_form::{ScheduleEffort, parse_schedule_effort};
 use claudius_core::scheduler::{self, Scheduler};
 use claudius_core::scheduler_store::{JobPatch, JsValue, StoreError};
 use claudius_core::{cron, js_num, log, now_ms, trusted_cwd};
@@ -227,6 +236,16 @@ async fn create(body: Bytes) -> Response {
         Ok(c) => c,
         Err(e) => return error(StatusCode::BAD_REQUEST, &e),
     };
+    // The body is untrusted: only a known level is stored. An absent
+    // `effort` reads as the explicit clear, so it is no 400.
+    let effort = match checked.get("effort") {
+        None => None,
+        Some(v) => match parse_schedule_effort(Some(v)) {
+            ScheduleEffort::Clear => None,
+            ScheduleEffort::Level(level) => Some(level.to_owned()),
+            ScheduleEffort::Unknown => return error(StatusCode::BAD_REQUEST, "unknown effort"),
+        },
+    };
     // The agent spawns here: only a registered directory.
     let Some(cwd) = trusted_cwd::resolve_trusted_cwd(b["cwd"].as_str()) else {
         return error(StatusCode::BAD_REQUEST, "unknown cwd");
@@ -241,6 +260,9 @@ async fn create(body: Bytes) -> Response {
     // `body.model || undefined`: any truthy value, as given.
     if js::truthy(&checked["model"]) {
         job.insert("model".into(), b["model"].clone());
+    }
+    if let Some(effort) = effort {
+        job.insert("effort".into(), json!(effort));
     }
     job.insert("cwd".into(), json!(cwd));
     job.insert("enabled".into(), json!(enabled));
@@ -309,12 +331,28 @@ async fn job_patch(Path(id): Path<String>, body: Bytes) -> Response {
         Some(Value::String(m)) => patch.push(("model".into(), (!m.is_empty()).then(|| json!(m)))),
         _ => {}
     }
+    // `body.effort !== undefined`: a level, or `null` / `""` to go back to
+    // the model's default.
+    if let Some(v) = b.get("effort") {
+        match parse_schedule_effort(Some(v)) {
+            ScheduleEffort::Unknown => return error(StatusCode::BAD_REQUEST, "unknown effort"),
+            ScheduleEffort::Clear => patch.push(("effort".into(), None)),
+            ScheduleEffort::Level(level) => patch.push(("effort".into(), Some(json!(level)))),
+        }
+    }
     if let Value::String(c) = &b["cwd"] {
         // Same rule as POST: the agent spawns here.
         let Some(cwd) = trusted_cwd::resolve_trusted_cwd(Some(c)) else {
             return error(StatusCode::BAD_REQUEST, "unknown cwd");
         };
         patch.push(("cwd".into(), Some(json!(cwd))));
+    }
+    // CC 2.1.302 — pointing the job at a folder, or switching it off and on,
+    // changes what the next fire will do, so a past skip's reason (the
+    // Schedule page's banner) no longer applies.
+    if patch.iter().any(|(k, _)| k == "cwd" || k == "enabled") {
+        patch.push(("lastSkipReason".into(), None));
+        patch.push(("lastSkipAt".into(), None));
     }
     let id = key(id);
     let next = match sched.store().patch_job(&id, &patch) {

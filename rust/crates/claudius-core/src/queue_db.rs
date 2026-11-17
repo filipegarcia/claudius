@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::db::{Mode, open_db};
-use crate::now_ms;
+use crate::sql_text::get;
+use crate::{js_params, now_ms};
 
 /// `{data, mediaType, ordinal?}` — an inline image attached to a prompt.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -35,7 +36,9 @@ pub struct QueuedRow {
     pub session_id: String,
     pub position: i64,
     pub text: String,
-    pub images: Option<Vec<ImageInput>>,
+    /// `JSON.parse(images_json)` when that is an array, its elements as
+    /// stored (whatever the sender put in them).
+    pub images: Option<Vec<Value>>,
     pub slash: bool,
     pub from_suggestion: bool,
     pub from_goal: bool,
@@ -68,18 +71,51 @@ impl QueuedRow {
 const COLS: &str = "uuid, session_id, position, text, images_json, slash, from_suggestion, from_goal, created_at_ms";
 
 fn to_row(r: &Row) -> rusqlite::Result<QueuedRow> {
-    let images_json: Option<String> = r.get(4)?;
+    let images_json: Option<String> = get(r, 4)?;
     Ok(QueuedRow {
-        uuid: r.get(0)?,
-        session_id: r.get(1)?,
+        uuid: get(r, 0)?,
+        session_id: get(r, 1)?,
         position: r.get(2)?,
-        text: r.get(3)?,
-        images: images_json.and_then(|s| serde_json::from_str::<Vec<ImageInput>>(&s).ok()),
+        text: get(r, 3)?,
+        images: images_json.as_deref().and_then(parse_images),
         slash: r.get::<_, i64>(5)? == 1,
         from_suggestion: r.get::<_, i64>(6)? == 1,
         from_goal: r.get::<_, i64>(7)? == 1,
         created_at_ms: r.get(8)?,
     })
+}
+
+/// `toRow`'s images: `if (r.images_json)`, then `JSON.parse`, kept when it
+/// is an array.
+fn parse_images(images_json: &str) -> Option<Vec<Value>> {
+    if images_json.is_empty() {
+        return None;
+    }
+    match claudius_agent::js::json_parse(images_json) {
+        Ok(Value::Array(a)) => Some(a),
+        _ => None,
+    }
+}
+
+/// `input.images && input.images.length > 0 ? JSON.stringify(input.images)
+/// : null`, on the value the sender posted.
+fn raw_images_json(images: Option<&Value>) -> Option<String> {
+    use claudius_agent::js;
+    let v = images?;
+    let length_positive = match v {
+        Value::Array(a) => !a.is_empty(),
+        Value::String(s) => !s.is_empty(),
+        // `obj.length > 0`: the comparison converts the property to a number.
+        Value::Object(o) => match o.get("length") {
+            None | Some(Value::Null) => false,
+            Some(Value::Number(n)) => n.as_f64().is_some_and(|n| n > 0.0),
+            Some(Value::Bool(b)) => *b,
+            Some(l) => js::to_number(&js::to_string(Some(l))) > 0.0,
+        },
+        // A primitive's `length` is `undefined` (and `false`, `0`, `null` are falsy).
+        _ => false,
+    };
+    length_positive.then(|| js::stringify(v))
 }
 
 fn images_json(images: Option<&[ImageInput]>) -> Option<String> {
@@ -96,7 +132,7 @@ pub fn list_queue(cwd: &str, session_id: &str) -> Vec<QueuedRow> {
         let mut st = c.prepare(&format!(
             "SELECT {COLS} FROM queued_messages WHERE session_id = ? ORDER BY position ASC"
         ))?;
-        let rows = st.query_map([session_id], to_row)?;
+        let rows = st.query_map(js_params![session_id], to_row)?;
         rows.collect()
     })
     .unwrap_or_default()
@@ -107,7 +143,8 @@ pub struct NewQueued<'a> {
     pub session_id: &'a str,
     pub uuid: &'a str,
     pub text: &'a str,
-    pub images: Option<&'a [ImageInput]>,
+    /// The images as posted (`JSON.stringify`ed as they are).
+    pub images: Option<&'a Value>,
     pub slash: bool,
     pub from_suggestion: bool,
     pub from_goal: bool,
@@ -115,19 +152,19 @@ pub struct NewQueued<'a> {
 
 pub fn enqueue_tail(cwd: &str, input: NewQueued) -> anyhow::Result<QueuedRow> {
     let db = open_db(cwd, Mode::ReadWrite)?;
-    let ij = images_json(input.images);
+    let ij = raw_images_json(input.images);
     Ok(db.with_mut(|c| {
         let tx = c.transaction()?;
         let position: i64 = tx.query_row(
             "SELECT COALESCE(MAX(position) + 1, 0) FROM queued_messages WHERE session_id = ?",
-            [input.session_id],
+            js_params![input.session_id],
             |r| r.get(0),
         )?;
         let created = now_ms();
         tx.execute(
             "INSERT INTO queued_messages (uuid, session_id, position, text, images_json, slash, from_suggestion, from_goal, created_at_ms)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            params![
+            js_params![
                 input.uuid,
                 input.session_id,
                 position,
@@ -145,7 +182,7 @@ pub fn enqueue_tail(cwd: &str, input: NewQueued) -> anyhow::Result<QueuedRow> {
             session_id: input.session_id.to_owned(),
             position,
             text: input.text.to_owned(),
-            images: input.images.filter(|i| !i.is_empty()).map(<[ImageInput]>::to_vec),
+            images: ij.as_deref().and_then(parse_images),
             slash: input.slash,
             from_suggestion: input.from_suggestion,
             from_goal: input.from_goal,
@@ -162,14 +199,14 @@ fn pop_where(cwd: &str, session_id: &str, uuid: Option<&str>) -> anyhow::Result<
             None => tx
                 .query_row(
                     &format!("SELECT {COLS} FROM queued_messages WHERE session_id = ? ORDER BY position ASC LIMIT 1"),
-                    [session_id],
+                    js_params![session_id],
                     to_row,
                 )
                 .optional()?,
             Some(u) => tx
                 .query_row(
                     &format!("SELECT {COLS} FROM queued_messages WHERE session_id = ? AND uuid = ?"),
-                    [session_id, u],
+                    js_params![session_id, u],
                     to_row,
                 )
                 .optional()?,
@@ -195,7 +232,7 @@ pub fn remove_by_uuid(cwd: &str, session_id: &str, uuid: &str) -> anyhow::Result
     Ok(db.with(|c| {
         c.execute(
             "DELETE FROM queued_messages WHERE session_id = ? AND uuid = ?",
-            [session_id, uuid],
+            js_params![session_id, uuid],
         )
     })? > 0)
 }
@@ -215,14 +252,14 @@ pub fn update_by_uuid(
     let n = db.with(|c| match (text, images) {
         (Some(t), Some(i)) => c.execute(
             "UPDATE queued_messages SET text = ?, images_json = ? WHERE session_id = ? AND uuid = ?",
-            params![t, images_json(i), session_id, uuid],
+            js_params![t, images_json(i), session_id, uuid],
         ),
         (Some(t), None) => {
-            c.execute("UPDATE queued_messages SET text = ? WHERE session_id = ? AND uuid = ?", params![t, session_id, uuid])
+            c.execute("UPDATE queued_messages SET text = ? WHERE session_id = ? AND uuid = ?", js_params![t, session_id, uuid])
         }
         (None, Some(i)) => c.execute(
             "UPDATE queued_messages SET images_json = ? WHERE session_id = ? AND uuid = ?",
-            params![images_json(i), session_id, uuid],
+            js_params![images_json(i), session_id, uuid],
         ),
         (None, None) => Ok(0),
     })?;
@@ -236,8 +273,8 @@ pub fn move_by_uuid(cwd: &str, session_id: &str, uuid: &str, up: bool) -> anyhow
         let me: Option<(String, i64)> = tx
             .query_row(
                 "SELECT uuid, position FROM queued_messages WHERE session_id = ? AND uuid = ?",
-                [session_id, uuid],
-                |r| Ok((r.get(0)?, r.get(1)?)),
+                js_params![session_id, uuid],
+                |r| Ok((get(r, 0)?, r.get(1)?)),
             )
             .optional()?;
         let Some((me_uuid, me_pos)) = me else { return Ok(false) };
@@ -247,7 +284,7 @@ pub fn move_by_uuid(cwd: &str, session_id: &str, uuid: &str, up: bool) -> anyhow
             "SELECT uuid, position FROM queued_messages WHERE session_id = ? AND position > ? ORDER BY position ASC LIMIT 1"
         };
         let nb: Option<(String, i64)> =
-            tx.query_row(sql, params![session_id, me_pos], |r| Ok((r.get(0)?, r.get(1)?))).optional()?;
+            tx.query_row(sql, js_params![session_id, me_pos], |r| Ok((get(r, 0)?, r.get(1)?))).optional()?;
         let Some((nb_uuid, nb_pos)) = nb else { return Ok(false) };
         tx.execute("UPDATE queued_messages SET position = -1 WHERE uuid = ?", [&me_uuid])?;
         tx.execute("UPDATE queued_messages SET position = ? WHERE uuid = ?", params![me_pos, nb_uuid])?;
@@ -262,7 +299,7 @@ pub fn clear_all(cwd: &str, session_id: &str) -> anyhow::Result<()> {
     db.with(|c| {
         c.execute(
             "DELETE FROM queued_messages WHERE session_id = ?",
-            [session_id],
+            js_params![session_id],
         )
     })?;
     Ok(())

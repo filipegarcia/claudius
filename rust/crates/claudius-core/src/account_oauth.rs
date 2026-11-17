@@ -31,6 +31,7 @@ use sha2::{Digest, Sha256};
 use crate::account_profile::ProfileInfoResolver;
 use crate::accounts::{AccountsStore, Clock, NewAccount};
 use crate::fetch::{Fetch, Request};
+use crate::tls_cert_hint::own_request_hint_for;
 
 pub const OAUTH_AUTHORIZE_URL: &str = "https://claude.com/cai/oauth/authorize";
 pub const OAUTH_TOKEN_URL: &str = "https://platform.claude.com/v1/oauth/token";
@@ -42,6 +43,16 @@ pub const OAUTH_SCOPES: [&str; 1] = ["user:inference"];
 pub const FLOW_TTL_MS: i64 = 10 * 60 * 1000;
 /// The token lifetime asked for (`setup-token`'s one year).
 pub const TOKEN_EXPIRES_IN_S: i64 = 365 * 24 * 60 * 60;
+
+/// CC 2.1.311 parity, verbatim from the bundled CLI's
+/// `AuthCodeRefusedError`: what a refused pasted code says.
+pub const REFUSED_AUTH_CODE_MESSAGE: &str = "That code wasn't accepted. It may be incomplete, expired, already used, or from an earlier sign-in attempt. Sign in again to get a new code.";
+
+/// What a sign-in that couldn't verify the server's certificate says
+/// (CC 2.1.309); the hint itself is [`crate::tls_cert_hint`]'s.
+pub fn unreachable_message(hint: &str) -> String {
+    format!("Sign-in couldn't reach Anthropic. {hint}")
+}
 
 const FLOW_UNKNOWN: &str = "flow expired or unknown \u{2014} please restart sign-in";
 const STATE_MISMATCH: &str = "OAuth state mismatch \u{2014} please restart sign-in";
@@ -78,6 +89,44 @@ pub fn code_challenge(verifier: &str) -> String {
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// `isRefusedAuthCode(status, bodyText)`: the engine's predicate for a
+/// refused pasted code — a 400 or 401 whose body is an object carrying the
+/// OAuth `invalid_grant` error (RFC 6749 §5.2), directly or in the Anthropic
+/// API's nested envelope. An on-hold account is excluded, as in the engine:
+/// signing in again can't fix it, so it keeps its own message. A body that
+/// doesn't parse, or isn't an object, is not a refusal.
+pub fn is_refused_auth_code(status: u16, body_text: &str) -> bool {
+    if status != 400 && status != 401 {
+        return false;
+    }
+    let Ok(body) = js::json_parse(body_text) else {
+        return false;
+    };
+    // `!body || typeof body !== "object"`: an array passes (it is an object),
+    // a primitive or `null` doesn't.
+    let frame = match &body {
+        Value::Object(_) | Value::Array(_) => &body,
+        _ => return false,
+    };
+    if frame.get("error_description").and_then(Value::as_str) == Some("account_on_hold") {
+        return false;
+    }
+    let Some(err) = frame.get("error") else {
+        return false;
+    };
+    if err.as_str() == Some("invalid_grant") {
+        return true;
+    }
+    // `!!err && typeof err === "object"` and then `.type` / `.code`.
+    match err {
+        Value::Object(_) | Value::Array(_) => {
+            err.get("type").and_then(Value::as_str) == Some("invalid_grant")
+                || err.get("code").and_then(Value::as_str) == Some("invalid_grant")
+        }
+        _ => false,
+    }
 }
 
 struct PendingFlow {
@@ -304,9 +353,28 @@ impl OAuthFlows {
             headers: vec![("Content-Type".into(), "application/json".into())],
             body: Some(js::stringify(&body)),
         };
-        let res = fetch.fetch(&req).await?;
+        let res = fetch.fetch(&req).await.map_err(|e| {
+            // CC 2.1.309: behind a TLS-inspecting proxy the exchange fails
+            // certificate verification; say what to do instead of
+            // "fetch failed".
+            match own_request_hint_for(e.ca_trust) {
+                Some(hint) => {
+                    tracing::warn!(
+                        target: crate::log::API,
+                        "[accounts] token exchange failed certificate verification \u{2014} {hint}"
+                    );
+                    unreachable_message(hint)
+                }
+                None => e.message,
+            }
+        })?;
         if !res.ok() {
             let text = res.text().unwrap_or_default();
+            // CC 2.1.311: a refused code says to sign in again, before the
+            // old 401-only branch (an OAuth refusal is a 400).
+            if is_refused_auth_code(res.status, &text) {
+                return Err(REFUSED_AUTH_CODE_MESSAGE.into());
+            }
             if res.status == 401 {
                 return Err(INVALID_CODE.into());
             }

@@ -1,0 +1,1232 @@
+{
+ "sdkVersion": "0.3.312",
+ "cases": [
+  {
+   "name": "notices and effort",
+   "kind": "broadcast",
+   "settings": null,
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    },
+    "control": {
+     "mcp_status": {
+      "mcpServers": [
+       {
+        "name": "linear",
+        "status": "needs-auth"
+       },
+       {
+        "name": "pg",
+        "status": "failed"
+       },
+       {
+        "name": "ok",
+        "status": "connected"
+       },
+       {
+        "status": "needs-auth"
+       },
+       {
+        "name": 5,
+        "status": "failed"
+       }
+      ]
+     },
+     "get_settings": {
+      "applied": {
+       "effort": "high"
+      }
+     }
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-opus-4-5",
+       "session_id": "x"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/0",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-opus-4-5",
+        "session_id": "x"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": "high"
+      },
+      {
+       "type": "mcp_disconnected_notice",
+       "servers": [
+        "pg",
+        "unknown"
+       ]
+      },
+      {
+       "type": "mcp_needs_auth_notice",
+       "servers": [
+        "linear",
+        "unknown"
+       ]
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-opus-4-5"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/0",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-opus-4-5"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": "high"
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "status"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/0",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "status"
+       }
+      }
+     ],
+     "wire": [],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "assistant",
+       "subtype": "init"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/0",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "assistant",
+        "subtype": "init"
+       }
+      }
+     ],
+     "wire": [],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "subtype": "init"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/0",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "subtype": "init"
+       }
+      }
+     ],
+     "wire": [],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "model_changed",
+      "model": "claude-haiku-4-5"
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/0",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "model_changed",
+       "model": "claude-haiku-4-5"
+      },
+      {
+       "type": "effort_applied",
+       "effort": "high"
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": null
+  },
+  {
+   "name": "notices on a later init",
+   "kind": "broadcast",
+   "settings": null,
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    },
+    "control": {
+     "mcp_status": {
+      "mcpServers": [
+       {
+        "name": "linear",
+        "status": "needs-auth"
+       },
+       {
+        "name": "pg",
+        "status": "failed"
+       },
+       {
+        "name": "ok",
+        "status": "connected"
+       },
+       {
+        "status": "needs-auth"
+       },
+       {
+        "name": 5,
+        "status": "failed"
+       }
+      ]
+     }
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "status"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/1",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "status"
+       }
+      }
+     ],
+     "wire": [],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/1",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      },
+      {
+       "type": "mcp_disconnected_notice",
+       "servers": [
+        "pg",
+        "unknown"
+       ]
+      },
+      {
+       "type": "mcp_needs_auth_notice",
+       "servers": [
+        "linear",
+        "unknown"
+       ]
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/1",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": null
+  },
+  {
+   "name": "status without servers",
+   "kind": "broadcast",
+   "settings": null,
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    },
+    "control": {
+     "mcp_status": {
+      "mcpServers": "none"
+     }
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-opus-4-5"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/2",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-opus-4-5"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": null
+  },
+  {
+   "name": "fable init clears the advisor",
+   "kind": "broadcast",
+   "settings": "{\n  \"x\": 1,\n  \"advisorModel\": \"opus\",\n  \"y\": [1.0, 1e2]\n}\n",
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-fable-5"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/3",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-fable-5"
+       }
+      },
+      {
+       "type": "advisor_disabled_on_model_change",
+       "previousAdvisor": "opus",
+       "newModel": "claude-fable-5"
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      },
+      {
+       "subtype": "apply_flag_settings",
+       "settings": {
+        "advisorModel": null
+       }
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-fable-5"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/3",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-fable-5"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": "{\n  \"x\": 1,\n  \"y\": [\n    1,\n    100\n  ]\n}\n"
+  },
+  {
+   "name": "fable init, no advisor",
+   "kind": "broadcast",
+   "settings": "{\"x\":1}",
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-fable-5"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/4",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-fable-5"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": "{\"x\":1}"
+  },
+  {
+   "name": "fable init, empty advisor",
+   "kind": "broadcast",
+   "settings": "{\"advisorModel\":\"\"}",
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-fable-5"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/5",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-fable-5"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": "{\"advisorModel\":\"\"}"
+  },
+  {
+   "name": "other init keeps the advisor",
+   "kind": "broadcast",
+   "settings": "{\"advisorModel\":\"opus\"}",
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "claude-opus-4-5"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/6",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-opus-4-5"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/6",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init"
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": ""
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/6",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": ""
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": "{\"advisorModel\":\"opus\"}"
+  },
+  {
+   "name": "array model with fable",
+   "kind": "broadcast",
+   "settings": "{\"advisorModel\":\"opus\"}",
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": [
+        "claude-fable-5"
+       ]
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/7",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": [
+         "claude-fable-5"
+        ]
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": [
+        "fable"
+       ]
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/7",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": [
+         "fable"
+        ]
+       }
+      },
+      {
+       "type": "advisor_disabled_on_model_change",
+       "previousAdvisor": "opus",
+       "newModel": [
+        "fable"
+       ]
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      },
+      {
+       "subtype": "apply_flag_settings",
+       "settings": {
+        "advisorModel": null
+       }
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": "{}\n"
+  },
+  {
+   "name": "number model",
+   "kind": "broadcast",
+   "settings": "{\"advisorModel\":\"opus\"}",
+   "script": {
+    "init": {
+     "subtype": "init_held"
+    }
+   },
+   "steps": [
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": 5
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/8",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": 5
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "mcp_status"
+      },
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": [
+      "TypeError: model.includes is not a function"
+     ]
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": 0
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/8",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": 0
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": []
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": {
+        "fable": true
+       }
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/8",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": {
+         "fable": true
+        }
+       }
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      }
+     ],
+     "rejections": [
+      "TypeError: model.includes is not a function"
+     ]
+    },
+    {
+     "event": {
+      "type": "sdk",
+      "message": {
+       "type": "system",
+       "subtype": "init",
+       "model": "x-fable"
+      }
+     },
+     "status": 200,
+     "body": {
+      "ok": true,
+      "sessionCwd": "$ROOT/cases/8",
+      "sessionId": "$ID"
+     },
+     "events": [
+      {
+       "type": "sdk",
+       "message": {
+        "type": "system",
+        "subtype": "init",
+        "model": "x-fable"
+       }
+      },
+      {
+       "type": "advisor_disabled_on_model_change",
+       "previousAdvisor": "opus",
+       "newModel": "x-fable"
+      },
+      {
+       "type": "effort_applied",
+       "effort": null
+      }
+     ],
+     "wire": [
+      {
+       "subtype": "get_settings"
+      },
+      {
+       "subtype": "apply_flag_settings",
+       "settings": {
+        "advisorModel": null
+       }
+      }
+     ],
+     "rejections": []
+    }
+   ],
+   "settingsAfter": "{}\n"
+  },
+  {
+   "name": "delayed advisor reply",
+   "kind": "consume",
+   "settings": "{\"advisorModel\":\"opus\"}",
+   "script": {
+    "init": {
+     "model": "claude-fable-5"
+    },
+    "on_init": [
+     {
+      "type": "system",
+      "subtype": "probe_one"
+     },
+     {
+      "type": "system",
+      "subtype": "probe_two"
+     }
+    ],
+    "control": {
+     "apply_flag_settings": {
+      "$response": {},
+      "$delay_ms": 1500
+     }
+    }
+   },
+   "order": [
+    "sdk:init",
+    "sdk:probe_one",
+    "sdk:probe_two",
+    "advisor_disabled_on_model_change"
+   ],
+   "notice": {
+    "type": "advisor_disabled_on_model_change",
+    "previousAdvisor": "opus",
+    "newModel": "claude-fable-5"
+   },
+   "wire": [
+    {
+     "subtype": "initialize",
+     "hooks": {
+      "PreToolUse": [
+       {
+        "hookCallbackIds": [
+         "hook_0"
+        ]
+       }
+      ],
+      "PostToolUse": [
+       {
+        "hookCallbackIds": [
+         "hook_1"
+        ]
+       }
+      ],
+      "CwdChanged": [
+       {
+        "hookCallbackIds": [
+         "hook_2"
+        ]
+       }
+      ],
+      "PostModelSwitch": [
+       {
+        "hookCallbackIds": [
+         "hook_3"
+        ]
+       }
+      ]
+     },
+     "sdkMcpServers": [
+      "claudius_goal"
+     ],
+     "sdkMcpServerConfigs": {
+      "claudius_goal": {
+       "timeout": 10000
+      }
+     },
+     "sdkMcpServerManifests": {
+      "claudius_goal": {
+       "initializeResult": {
+        "protocolVersion": "2025-11-25",
+        "capabilities": {
+         "tools": {
+          "listChanged": true
+         }
+        },
+        "serverInfo": {
+         "name": "claudius_goal",
+         "version": "1.0.0"
+        }
+       },
+       "toolsListResult": {
+        "tools": [
+         {
+          "name": "report_goal_achieved",
+          "description": "Report that the user's stated session goal has been fully accomplished. Only call this when the goal is genuinely complete — never for partial progress or intermediate steps. Calling it marks the goal as done in the UI.",
+          "inputSchema": {
+           "$schema": "http://json-schema.org/draft-07/schema#",
+           "type": "object",
+           "properties": {
+            "summary": {
+             "type": "string",
+             "description": "One sentence summarizing what was accomplished."
+            }
+           },
+           "required": [
+            "summary"
+           ]
+          },
+          "execution": {
+           "taskSupport": "forbidden"
+          }
+         }
+        ]
+       }
+      }
+     },
+     "systemPrompt": [
+      ""
+     ],
+     "promptSuggestions": true,
+     "agentProgressSummaries": true,
+     "forwardSubagentText": true,
+     "perTaskStopAffordance": true
+    },
+    {
+     "subtype": "mcp_status"
+    },
+    {
+     "subtype": "mcp_status"
+    },
+    {
+     "subtype": "get_settings"
+    },
+    {
+     "subtype": "apply_flag_settings",
+     "settings": {
+      "advisorModel": null
+     }
+    }
+   ],
+   "settingsAfter": "{}\n"
+  }
+ ]
+}

@@ -1,0 +1,7323 @@
+{
+ "gitVersion": "git version 2.54.0 (Apple Git-157)",
+ "sdkVersion": "0.3.312",
+ "platform": "darwin",
+ "env": {
+  "HOME": "$ROOT/home",
+  "XDG_CONFIG_HOME": "$ROOT/home/.config",
+  "CLAUDE_CONFIG_DIR": "$ROOT/config",
+  "GIT_CONFIG_NOSYSTEM": "1",
+  "GIT_CEILING_DIRECTORIES": "$ROOT",
+  "GIT_ALLOW_PROTOCOL": "file",
+  "GIT_AUTHOR_NAME": "Golden",
+  "GIT_AUTHOR_EMAIL": "golden@example.com",
+  "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z",
+  "GIT_COMMITTER_NAME": "Golden",
+  "GIT_COMMITTER_EMAIL": "golden@example.com",
+  "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z",
+  "LANG": "C",
+  "LC_ALL": "C",
+  "TZ": "UTC",
+  "FAKE_CLAUDE_SCRIPT": "$ROOT/fakeclaude/script.json",
+  "FAKE_CLAUDE_ARGV": "$ROOT/fakeclaude/argv.json",
+  "FAKE_CLAUDE_ENV": "$ROOT/fakeclaude/env.json",
+  "FAKE_CLAUDE_LOG": "$ROOT/fakeclaude/stdin.log"
+ },
+ "fakeGit": "#!/bin/sh\ncwd=$(pwd -P)\nrec=\"git$(printf '\\037')$cwd\"\nfor a in \"$@\"; do rec=\"$rec$(printf '\\037')$a\"; done\nprintf '%s\\036' \"$rec\" >> '@ROOT@/fakelog'\nexec '@GIT@' \"$@\"\n",
+ "sysTools": [
+  "sh",
+  "cat",
+  "rm",
+  "sleep"
+ ],
+ "stateCmds": [
+  [
+   "for-each-ref",
+   "--format=%(refname) %(objectname)"
+  ],
+  [
+   "symbolic-ref",
+   "-q",
+   "HEAD"
+  ],
+  [
+   "--no-optional-locks",
+   "status",
+   "--porcelain=v1",
+   "-b",
+   "-uall",
+   "-z"
+  ],
+  [
+   "log",
+   "-1",
+   "--format=%B"
+  ]
+ ],
+ "steps": [
+  {
+   "op": "write",
+   "path": "home/.gitconfig",
+   "text": "[init]\n\tdefaultBranch = main\n[protocol]\n\tallow = never\n[protocol \"file\"]\n\tallow = always\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "emptybin"
+  },
+  {
+   "op": "mkdir",
+   "path": "plain"
+  },
+  {
+   "op": "write",
+   "path": "plain/f.txt",
+   "text": "outside the repos\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "servercwd"
+  },
+  {
+   "op": "git",
+   "cwd": "servercwd",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "servercwd/server-cwd.txt",
+   "text": "the server's cwd\n"
+  },
+  {
+   "op": "git",
+   "cwd": "servercwd",
+   "args": [
+    "add",
+    "-A"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "servercwd",
+   "args": [
+    "commit",
+    "-qm",
+    "server cwd"
+   ]
+  },
+  {
+   "op": "sysbin"
+  },
+  {
+   "op": "fakes"
+  },
+  {
+   "op": "mkdir",
+   "path": "fakeclaude"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/a"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep.txt",
+   "text": "keep\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep2.txt",
+   "text": "keep two\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/mod.txt",
+   "text": "mod\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/del.txt",
+   "text": "del\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/staged.txt",
+   "text": "staged\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/dir/nested.txt",
+   "text": "nested\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/space name.txt",
+   "text": "space\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/café.txt",
+   "text": "cafe\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "add",
+    "-A"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "commit",
+    "-qm",
+    "base"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/empty"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/empty",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/nohead"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/nohead",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/hook"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/hook",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/hook/h.txt",
+   "text": "h\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/hook",
+   "args": [
+    "add",
+    "-A"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/hook",
+   "args": [
+    "commit",
+    "-qm",
+    "base"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/m"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/m",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/m/app.js",
+   "text": "export const a = 1;\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/m/clean.txt",
+   "text": "clean\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/m/bin.dat",
+   "text": "x\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/m",
+   "args": [
+    "add",
+    "-A"
+   ]
+  },
+  {
+   "op": "git",
+   "cwd": "repos/m",
+   "args": [
+    "commit",
+    "-qm",
+    "base"
+   ]
+  },
+  {
+   "op": "mkdir",
+   "path": "drafts/one"
+  },
+  {
+   "op": "mkdir",
+   "path": "drafts/two"
+  },
+  {
+   "op": "mkdir",
+   "path": "drafts/lone"
+  },
+  {
+   "op": "mkdir",
+   "path": "drafts/foreign"
+  },
+  {
+   "op": "mkdir",
+   "path": "drafts/notable"
+  },
+  {
+   "op": "mkdir",
+   "path": "drafts/blocked"
+  },
+  {
+   "op": "mkdir",
+   "path": "drafts/fresh"
+  },
+  {
+   "op": "workspaces",
+   "list": [
+    {
+     "id": "wks_a",
+     "root": "repos/a"
+    },
+    {
+     "id": "wks_e",
+     "root": "repos/empty"
+    },
+    {
+     "id": "wks_n",
+     "root": "repos/nohead"
+    },
+    {
+     "id": "wks_h",
+     "root": "repos/hook"
+    },
+    {
+     "id": "wks_m",
+     "root": "repos/m"
+    },
+    {
+     "id": "wks_p",
+     "root": "plain"
+    },
+    {
+     "id": "wks_x",
+     "root": "missing"
+    },
+    {
+     "id": "wks_r",
+     "raw": ""
+    },
+    {
+     "id": "wks_d1",
+     "root": "drafts/one"
+    },
+    {
+     "id": "wks_d2",
+     "root": "drafts/two"
+    },
+    {
+     "id": "wks_dl",
+     "root": "drafts/lone"
+    },
+    {
+     "id": "wks_df",
+     "root": "drafts/foreign"
+    },
+    {
+     "id": "wks_dn",
+     "root": "drafts/notable"
+    },
+    {
+     "id": "wks_db",
+     "root": "drafts/blocked"
+    },
+    {
+     "id": "wks_dz",
+     "root": "drafts/fresh"
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/mod.txt",
+   "text": "mod changed\n"
+  },
+  {
+   "op": "rm",
+   "path": "repos/a/del.txt"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/new.txt",
+   "text": "new\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/dir/new2.txt",
+   "text": "new two\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/staged.txt",
+   "text": "staged two\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "add",
+    "staged.txt"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/café.txt",
+   "text": "cafe changed\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/space name.txt",
+   "text": "space changed\n"
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000 M café.txt\u0000 D del.txt\u0000 M mod.txt\u0000 M space name.txt\u0000M  staged.txt\u0000?? dir/new2.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "no body",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "null body",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "null",
+   "got": {
+    "threw": "Cannot read properties of null (reading 'op')",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "malformed body",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "array body",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "[]",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "string body",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "\"stage\"",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "number body",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "7",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "op missing",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"paths\":[\"mod.txt\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "op wrong case",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"Stage\",\"paths\":[\"mod.txt\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "op number",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":5,\"paths\":[\"mod.txt\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "op array",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":[\"stage\"],\"paths\":[\"mod.txt\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "op padded",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\" stage\",\"paths\":[\"mod.txt\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "op bad before paths bad",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"nope\",\"paths\":\"x\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"op must be one of stage, unstage, discard, remove\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths missing",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths null",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":null}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths string",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":\"mod.txt\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths object",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":{\"0\":\"mod.txt\"}}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths with a number",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"mod.txt\",1]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths with null",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[null]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths with infinity",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[1e400]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "dotdot path",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"mod.txt\",\"../x\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid path\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "dotdot prefix",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"unstage\",\"paths\":[\"..x\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid path\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "nul path",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"discard\",\"paths\":[\"a\\u0000b\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"invalid path\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "dot slash dotdot passes",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"./../x\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000 M café.txt\u0000 D del.txt\u0000 M mod.txt\u0000 M space name.txt\u0000M  staged.txt\u0000?? dir/new2.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_nope",
+   "body": "{\"op\":\"stage\",\"paths\":[\"x\"]}",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "customization id",
+   "method": "POST",
+   "route": "stage",
+   "id": "cust_x",
+   "body": "{\"op\":\"stage\",\"paths\":[\"x\"]}",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty paths outside a repo",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_p",
+   "body": "{\"op\":\"stage\",\"paths\":[]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty paths, missing dir",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_x",
+   "body": "{\"op\":\"remove\",\"paths\":[]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "not a repo",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_p",
+   "body": "{\"op\":\"stage\",\"paths\":[\"f.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/plain",
+      "rev-parse",
+      "--show-toplevel"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "req",
+   "label": "missing dir",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_x",
+   "body": "{\"op\":\"unstage\",\"paths\":[\"f.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"mod.txt\"]}",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "bom body",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "null",
+   "bodyHex": "efbbbf7b226f70223a227374616765222c227061746873223a5b227374616765642e747874225d7d",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "req",
+   "label": "fully staged only",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"staged.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000 M café.txt\u0000 D del.txt\u0000 M mod.txt\u0000 M space name.txt\u0000M  staged.txt\u0000?? dir/new2.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "unknown path only",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"ghost.txt\",\"dir\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000 M café.txt\u0000 D del.txt\u0000 M mod.txt\u0000 M space name.txt\u0000M  staged.txt\u0000?? dir/new2.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "stage a mix",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"mod.txt\",\"new.txt\",\"del.txt\",\"staged.txt\",\"ghost.txt\",\"mod.txt\",\"café.txt\",\"space name.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "mod.txt",
+      "new.txt",
+      "del.txt",
+      "mod.txt",
+      "café.txt",
+      "space name.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000D  del.txt\u0000M  mod.txt\u0000A  new.txt\u0000M  space name.txt\u0000M  staged.txt\u0000?? dir/new2.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "unstage some",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"unstage\",\"paths\":[\"mod.txt\",\"new.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "restore",
+      "--staged",
+      "--",
+      "mod.txt",
+      "new.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000D  del.txt\u0000 M mod.txt\u0000M  space name.txt\u0000M  staged.txt\u0000?? dir/new2.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "unstage unknown",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"unstage\",\"paths\":[\"ghost.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git restore exited 1: error: pathspec 'ghost.txt' did not match any file(s) known to git\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "restore",
+      "--staged",
+      "--",
+      "ghost.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000D  del.txt\u0000 M mod.txt\u0000M  space name.txt\u0000M  staged.txt\u0000?? dir/new2.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "stage nested untracked",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"dir/new2.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "dir/new2.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000D  del.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000M  staged.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/.git/index.lock",
+   "text": ""
+  },
+  {
+   "op": "req",
+   "label": "stage with index.lock",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"stage\",\"paths\":[\"mod.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git add exited 128: fatal: Unable to create '$ROOT/repos/a/.git/index.lock': File exists.\\n\\nAnother git process seems to be running in this repository, or the lock file may be stale\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "mod.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000D  del.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000M  staged.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "discard with index.lock",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"discard\",\"paths\":[\"staged.txt\",\"mod.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git reset exited 128: fatal: Unable to create '$ROOT/repos/a/.git/index.lock': File exists.\\n\\nAnother git process seems to be running in this repository, or the lock file may be stale; git checkout exited 128: fatal: Unable to create '$ROOT/repos/a/.git/index.lock': File exists.\\n\\nAnother git process seems to be running in this repository, or the lock file may be stale\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "reset",
+      "HEAD",
+      "--",
+      "staged.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "checkout",
+      "--",
+      "staged.txt",
+      "mod.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "clean",
+      "-fd",
+      "--",
+      "staged.txt",
+      "mod.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000D  del.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000M  staged.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "rm",
+   "path": "repos/a/.git/index.lock"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep.txt",
+   "text": "keep changed\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/a/added.txt",
+   "text": "added\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a",
+   "args": [
+    "add",
+    "added.txt"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/junk.txt",
+   "text": "junk\n"
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000A  added.txt\u0000M  café.txt\u0000D  del.txt\u0000A  dir/new2.txt\u0000 M keep.txt\u0000 M mod.txt\u0000M  space name.txt\u0000M  staged.txt\u0000?? junk.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "discard a mix",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"discard\",\"paths\":[\"keep.txt\",\"added.txt\",\"junk.txt\",\"staged.txt\",\"ghost.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "reset",
+      "HEAD",
+      "--",
+      "added.txt",
+      "staged.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "checkout",
+      "--",
+      "keep.txt",
+      "staged.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "clean",
+      "-fd",
+      "--",
+      "keep.txt",
+      "added.txt",
+      "junk.txt",
+      "staged.txt",
+      "ghost.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000D  del.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "ls",
+   "path": "repos/a",
+   "got": [
+    ".git",
+    "café.txt",
+    "dir",
+    "keep.txt",
+    "keep2.txt",
+    "mod.txt",
+    "new.txt",
+    "space name.txt",
+    "staged.txt"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "discard a deletion",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"discard\",\"paths\":[\"del.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "reset",
+      "HEAD",
+      "--",
+      "del.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "checkout",
+      "--",
+      "del.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "clean",
+      "-fd",
+      "--",
+      "del.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000?? new.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/rmme.txt",
+   "text": "remove me\n"
+  },
+  {
+   "op": "mkdir",
+   "path": "repos/a/sub"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/a/sub",
+   "args": [
+    "init",
+    "-q"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/sub/inner.txt",
+   "text": "inner\n"
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000?? new.txt\u0000?? rmme.txt\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "remove tracked and untracked",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"remove\",\"paths\":[\"keep2.txt\",\"rmme.txt\",\"ghost.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000?? new.txt\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "ls",
+   "path": "repos/a",
+   "got": [
+    ".git",
+    "café.txt",
+    "del.txt",
+    "dir",
+    "keep.txt",
+    "keep2.txt",
+    "mod.txt",
+    "new.txt",
+    "space name.txt",
+    "staged.txt",
+    "sub"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "remove a nested repo",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"remove\",\"paths\":[\"sub/\"]}",
+   "os": "darwin",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"EPERM: operation not permitted, unlink '$ROOT/repos/a/sub/'\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000A  dir/new2.txt\u0000 M mod.txt\u0000M  space name.txt\u0000?? new.txt\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "remove a modified tracked file",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_a",
+   "body": "{\"op\":\"remove\",\"paths\":[\"mod.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rm",
+      "-f",
+      "--",
+      "mod.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000A  dir/new2.txt\u0000D  mod.txt\u0000M  space name.txt\u0000?? new.txt\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/empty/x.txt",
+   "text": "x\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/empty/y.txt",
+   "text": "y\n"
+  },
+  {
+   "op": "req",
+   "label": "stage in an empty repo",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_e",
+   "body": "{\"op\":\"stage\",\"paths\":[\"x.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "add",
+      "-A",
+      "--",
+      "x.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/empty",
+   "got": [
+    {
+     "code": 0,
+     "out": "",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## No commits yet on main\u0000A  x.txt\u0000?? y.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 128,
+     "out": "",
+     "err": "fatal: your current branch 'main' does not have any commits yet\n"
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "discard in an empty repo",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_e",
+   "body": "{\"op\":\"discard\",\"paths\":[\"x.txt\",\"y.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "reset",
+      "HEAD",
+      "--",
+      "x.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "clean",
+      "-fd",
+      "--",
+      "x.txt",
+      "y.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/empty",
+   "got": [
+    {
+     "code": 0,
+     "out": "",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## No commits yet on main\u0000",
+     "err": ""
+    },
+    {
+     "code": 128,
+     "out": "",
+     "err": "fatal: your current branch 'main' does not have any commits yet\n"
+    }
+   ]
+  },
+  {
+   "op": "ls",
+   "path": "repos/empty",
+   "got": [
+    ".git"
+   ]
+  },
+  {
+   "op": "write",
+   "path": "servercwd/server-cwd.txt",
+   "text": "changed\n"
+  },
+  {
+   "op": "req",
+   "label": "empty root path",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_r",
+   "body": "{\"op\":\"stage\",\"paths\":[\"server-cwd.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/servercwd",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "add",
+      "-A",
+      "--",
+      "server-cwd.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "servercwd",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 38f7550abe1dac59b31fd7e4d8715f3f937e5d74\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  server-cwd.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "server cwd\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "empty root path, unstage",
+   "method": "POST",
+   "route": "stage",
+   "id": "wks_r",
+   "body": "{\"op\":\"unstage\",\"paths\":[\"server-cwd.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/servercwd",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "restore",
+      "--staged",
+      "--",
+      "server-cwd.txt"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "servercwd",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 38f7550abe1dac59b31fd7e4d8715f3f937e5d74\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000 M server-cwd.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "server cwd\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "no body",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message required\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "null body",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "null",
+   "got": {
+    "threw": "Cannot read properties of null (reading 'message')",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "array body",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "[]",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message required\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "message missing",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"stagePaths\":[]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message required\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "message number",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":5}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message required\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "message blank",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\" \\n\\t \"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message required\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "message nbsp and bom",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\" ﻿\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message required\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "stagePaths null",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"m\",\"stagePaths\":null}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"stagePaths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "stagePaths string",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"m\",\"stagePaths\":\"mod.txt\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"stagePaths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "stagePaths with a number",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"m\",\"stagePaths\":[1]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"stagePaths must be string[]\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_nope",
+   "body": "{\"message\":\"m\"}",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "not a repo",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_p",
+   "body": "{\"message\":\"m\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/plain",
+      "rev-parse",
+      "--show-toplevel"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "req",
+   "label": "not a repo, stagePaths",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_p",
+   "body": "{\"message\":\"m\",\"stagePaths\":[\"f.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/plain",
+      "rev-parse",
+      "--show-toplevel"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "req",
+   "label": "not a repo, empty stagePaths",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_p",
+   "body": "{\"message\":\"m\",\"stagePaths\":[]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/plain",
+      "rev-parse",
+      "--show-toplevel"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"m\"}",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 8989195645db924a1578642690beeff0369f3791\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  café.txt\u0000A  dir/new2.txt\u0000D  mod.txt\u0000M  space name.txt\u0000?? new.txt\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "stage then commit",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"fix: the thing\\n\\nbody line\\n# a comment\\n\",\"stagePaths\":[\"new.txt\",\"ghost.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"sha\":\"4d8e00a940b387372011cae7132c8c283b1d9616\",\"subject\":\"fix: the thing\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "new.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "log",
+      "-1",
+      "--pretty=%H%n%s"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 4d8e00a940b387372011cae7132c8c283b1d9616\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "fix: the thing\n\nbody line\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "nothing staged",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"nothing\"}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git commit exited 1: On branch main\\nUntracked files:\\n  (use \\\"git add <file>...\\\" to include in what will be committed)\\n\\tsub/\\n\\nnothing added to commit but untracked files present (use \\\"git add\\\" to track)\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 4d8e00a940b387372011cae7132c8c283b1d9616\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "fix: the thing\n\nbody line\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "unknown stagePaths only",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"nothing\",\"stagePaths\":[\"ghost.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git commit exited 1: On branch main\\nUntracked files:\\n  (use \\\"git add <file>...\\\" to include in what will be committed)\\n\\tsub/\\n\\nnothing added to commit but untracked files present (use \\\"git add\\\" to track)\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 4d8e00a940b387372011cae7132c8c283b1d9616\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "fix: the thing\n\nbody line\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep.txt",
+   "text": "keep 3\n"
+  },
+  {
+   "op": "req",
+   "label": "leading comment and blanks",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"\\n\\n# only a comment\\n  real subject  \\n\\n\\nbody\\n\",\"stagePaths\":[\"keep.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"sha\":\"d6f460452c317807e1e00232f143e5a4d6b01cc0\",\"subject\":\"real subject\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "keep.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "log",
+      "-1",
+      "--pretty=%H%n%s"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main d6f460452c317807e1e00232f143e5a4d6b01cc0\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "  real subject\n\nbody\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep.txt",
+   "text": "keep 4\n"
+  },
+  {
+   "op": "req",
+   "label": "only comments",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"# x\\n# y\",\"stagePaths\":[\"keep.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git commit exited 1: Aborting commit due to empty commit message.\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "keep.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main d6f460452c317807e1e00232f143e5a4d6b01cc0\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  keep.txt\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "  real subject\n\nbody\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "nel subject",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"nel\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"sha\":\"73be15174741552af1af6600ec1e0863d6ec14e2\",\"subject\":\"nel\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "log",
+      "-1",
+      "--pretty=%H%n%s"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 73be15174741552af1af6600ec1e0863d6ec14e2\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "nel\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep.txt",
+   "text": "keep 5\n"
+  },
+  {
+   "op": "req",
+   "label": "unicode subject",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"café.txt 😀\\r\\n\\r\\nbody\",\"stagePaths\":[\"keep.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"sha\":\"296b22ff29d95c8609595089292bafc8289ca1af\",\"subject\":\"café.txt 😀\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "keep.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "log",
+      "-1",
+      "--pretty=%H%n%s"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 296b22ff29d95c8609595089292bafc8289ca1af\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "café.txt 😀\n\nbody\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep.txt",
+   "text": "keep 6\n"
+  },
+  {
+   "op": "req",
+   "label": "lone surrogate subject",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"\\ud800 lone\",\"stagePaths\":[\"keep.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"sha\":\"eca0e7f38695cd0ccde868f64711a1e4cd6300a6\",\"subject\":\"� lone\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "keep.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "log",
+      "-1",
+      "--pretty=%H%n%s"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main eca0e7f38695cd0ccde868f64711a1e4cd6300a6\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "� lone\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/a/keep.txt",
+   "text": "keep 7\n"
+  },
+  {
+   "op": "req",
+   "label": "nul in message",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_a",
+   "body": "{\"message\":\"a\\u0000b\",\"stagePaths\":[\"keep.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git commit exited 128: error: a NUL byte in commit log message not allowed.\\nfatal: failed to write commit object\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "add",
+      "-A",
+      "--",
+      "keep.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/a",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/a",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main eca0e7f38695cd0ccde868f64711a1e4cd6300a6\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  keep.txt\u0000?? sub/\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "� lone\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/empty/root.txt",
+   "text": "root\n"
+  },
+  {
+   "op": "req",
+   "label": "first commit in an empty repo",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_e",
+   "body": "{\"message\":\"root commit\",\"stagePaths\":[\"root.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"sha\":\"b0a1a2dcfa7a919b4e0ad0e6507042f4fe541118\",\"subject\":\"root commit\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "add",
+      "-A",
+      "--",
+      "root.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ],
+     [
+      "git",
+      "$ROOT/repos/empty",
+      "log",
+      "-1",
+      "--pretty=%H%n%s"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/empty",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main b0a1a2dcfa7a919b4e0ad0e6507042f4fe541118\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "root commit\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/hook/.git/hooks/pre-commit",
+   "text": "#!/bin/sh\necho \"lint: 1 problem\"\necho \"hook stderr\" >&2\nexit 1\n"
+  },
+  {
+   "op": "chmod",
+   "path": "repos/hook/.git/hooks/pre-commit",
+   "mode": "755"
+  },
+  {
+   "op": "write",
+   "path": "repos/hook/h.txt",
+   "text": "h2\n"
+  },
+  {
+   "op": "req",
+   "label": "a failing hook",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_h",
+   "body": "{\"message\":\"hooked\",\"stagePaths\":[\"h.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git commit exited 1: lint: 1 problem\\nhook stderr\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "add",
+      "-A",
+      "--",
+      "h.txt"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/hook",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 99131a7aa7d34003e3852e21c08bff5a9f855383\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000M  h.txt\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "base\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/hook/.git/hooks/pre-commit",
+   "text": "#!/bin/sh\necho \"hook ok\"\nexit 0\n"
+  },
+  {
+   "op": "req",
+   "label": "a passing hook",
+   "method": "POST",
+   "route": "commit",
+   "id": "wks_h",
+   "body": "{\"message\":\"hooked\",\"stagePaths\":[\"h.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true,\"sha\":\"2ee8c973c61e56d082364575c67a10709b3a91b4\",\"subject\":\"hooked\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "commit",
+      "-F",
+      "-",
+      "--cleanup=strip"
+     ],
+     [
+      "git",
+      "$ROOT/repos/hook",
+      "log",
+      "-1",
+      "--pretty=%H%n%s"
+     ]
+    ]
+   }
+  },
+  {
+   "op": "state",
+   "cwd": "repos/hook",
+   "got": [
+    {
+     "code": 0,
+     "out": "refs/heads/main 2ee8c973c61e56d082364575c67a10709b3a91b4\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "refs/heads/main\n",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "## main\u0000",
+     "err": ""
+    },
+    {
+     "code": 0,
+     "out": "hooked\n\n",
+     "err": ""
+    }
+   ]
+  },
+  {
+   "op": "dbs",
+   "got": null
+  },
+  {
+   "op": "req",
+   "label": "no database yet",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":null}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "dir"
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_nope",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_nope",
+   "body": "{\"message\":\"m\"}",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "method": "DELETE",
+   "route": "commit-draft",
+   "id": "wks_nope",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "customization id",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "cust_x",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "no body",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message must be a string\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "null body",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "null",
+   "got": {
+    "threw": "Cannot read properties of null (reading 'message')",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "malformed",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message must be a string\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "array body",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "[]",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message must be a string\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "message number",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":5}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message must be a string\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "message null",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":null}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message must be a string\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "message array",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":[\"m\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"message must be a string\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "dir"
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "a draft",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":\"  draft one \\n\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/drafts/one",
+       "text",
+       "6472616674206F6E65",
+       "integer"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "the draft",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"draft one\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "overwrite",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":\"second é 😀\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/drafts/one",
+       "text",
+       "7365636F6E6420C3A920F09F9880",
+       "integer"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "overwritten",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"second é 😀\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "js whitespace only deletes",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":\"  ﻿ \\n\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": []
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "deleted",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":null}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "nel kept",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":\" nel \"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "nel draft",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\" nel \"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty string deletes",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "body": "{\"message\":\"\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "deleted again",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d1",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":null}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "multi-line",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_d2",
+   "body": "{\"message\":\"subject\\n\\nbody line 1\\nbody line 2\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "multi-line",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d2",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"subject\\n\\nbody line 1\\nbody line 2\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "delete",
+   "method": "DELETE",
+   "route": "commit-draft",
+   "id": "wks_d2",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "after delete",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_d2",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":null}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "delete again",
+   "method": "DELETE",
+   "route": "commit-draft",
+   "id": "wks_d2",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "delete with no database",
+   "method": "DELETE",
+   "route": "commit-draft",
+   "id": "wks_dz",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-fresh",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-two",
+     "kind": "db",
+     "rows": []
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "lone surrogate",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_dl",
+   "body": "{\"message\":\"\\ud800x\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "lone surrogate",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_dl",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"���x\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty root path",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_r",
+   "body": "{\"message\":\"root draft\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "empty root path",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_r",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"root draft\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "missing dir",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_x",
+   "body": "{\"message\":\"missing dir draft\"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "missing dir",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_x",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"missing dir draft\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-fresh",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-lone",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/drafts/lone",
+       "text",
+       "EDA08078",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-two",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-missing",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/missing",
+       "text",
+       "6D697373696E6720646972206472616674",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": ".claudius.db",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-shm",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-wal",
+     "kind": "file"
+    }
+   ]
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);INSERT INTO schema_meta VALUES ('version', '999');CREATE TABLE commit_drafts (cwd, message, updated_at);INSERT INTO commit_drafts VALUES ('$CWD', 42, 1);"
+  },
+  {
+   "op": "req",
+   "label": "foreign integer",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":42}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "UPDATE commit_drafts SET message = 1.5;"
+  },
+  {
+   "op": "req",
+   "label": "foreign real",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":1.5}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "UPDATE commit_drafts SET message = 9007199254740993;"
+  },
+  {
+   "op": "req",
+   "label": "foreign big integer",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":9007199254740992}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "UPDATE commit_drafts SET message = x'00ff41';"
+  },
+  {
+   "op": "req",
+   "label": "foreign blob",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":{\"type\":\"Buffer\",\"data\":[0,255,65]}}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "UPDATE commit_drafts SET message = NULL;"
+  },
+  {
+   "op": "req",
+   "label": "foreign null",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":null}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "UPDATE commit_drafts SET message = '';"
+  },
+  {
+   "op": "req",
+   "label": "foreign empty text",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "UPDATE commit_drafts SET message = CAST(x'61ff62' AS TEXT);"
+  },
+  {
+   "op": "req",
+   "label": "foreign invalid utf-8",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"a�b\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "INSERT INTO commit_drafts VALUES ('other', 'not ours', 2);"
+  },
+  {
+   "op": "req",
+   "label": "foreign upsert has no key",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "body": "{\"message\":\"m\"}",
+   "got": {
+    "threw": "ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "foreign delete through post",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "body": "{\"message\":\"  \"}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-foreign",
+     "kind": "db",
+     "rows": [
+      [
+       "other",
+       "text",
+       "6E6F74206F757273",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": "$ENCROOT-drafts-fresh",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-lone",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/drafts/lone",
+       "text",
+       "EDA08078",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-two",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-missing",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/missing",
+       "text",
+       "6D697373696E6720646972206472616674",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": ".claudius.db",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-shm",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-wal",
+     "kind": "file"
+    }
+   ]
+  },
+  {
+   "op": "req",
+   "label": "foreign after delete",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":null}",
+    "calls": []
+   }
+  },
+  {
+   "op": "sql",
+   "root": "drafts/foreign",
+   "sql": "INSERT INTO commit_drafts VALUES ('$CWD', 'first', 3); INSERT INTO commit_drafts VALUES ('$CWD', 'second', 4);"
+  },
+  {
+   "op": "req",
+   "label": "foreign duplicate rows",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"first\"}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "foreign delete",
+   "method": "DELETE",
+   "route": "commit-draft",
+   "id": "wks_df",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-foreign",
+     "kind": "db",
+     "rows": [
+      [
+       "other",
+       "text",
+       "6E6F74206F757273",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": "$ENCROOT-drafts-fresh",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-lone",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/drafts/lone",
+       "text",
+       "EDA08078",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-two",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-missing",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/missing",
+       "text",
+       "6D697373696E6720646972206472616674",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": ".claudius.db",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-shm",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-wal",
+     "kind": "file"
+    }
+   ]
+  },
+  {
+   "op": "sql",
+   "root": "drafts/notable",
+   "sql": "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);INSERT INTO schema_meta VALUES ('version', '999');"
+  },
+  {
+   "op": "req",
+   "label": "no table",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_dn",
+   "got": {
+    "threw": "no such table: commit_drafts",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "no table",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_dn",
+   "body": "{\"message\":\"m\"}",
+   "got": {
+    "threw": "no such table: commit_drafts",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "no table",
+   "method": "DELETE",
+   "route": "commit-draft",
+   "id": "wks_dn",
+   "got": {
+    "threw": "no such table: commit_drafts",
+    "calls": []
+   }
+  },
+  {
+   "op": "block",
+   "root": "drafts/blocked"
+  },
+  {
+   "op": "req",
+   "label": "blocked project dir",
+   "method": "GET",
+   "route": "commit-draft",
+   "id": "wks_db",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":null}",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "blocked project dir",
+   "method": "POST",
+   "route": "commit-draft",
+   "id": "wks_db",
+   "body": "{\"message\":\"m\"}",
+   "got": {
+    "threw": "EEXIST: file already exists, mkdir '$ROOT/home/.claude/projects/$ENCROOT-drafts-blocked'",
+    "calls": []
+   }
+  },
+  {
+   "op": "req",
+   "label": "blocked project dir",
+   "method": "DELETE",
+   "route": "commit-draft",
+   "id": "wks_db",
+   "got": {
+    "threw": "EEXIST: file already exists, mkdir '$ROOT/home/.claude/projects/$ENCROOT-drafts-blocked'",
+    "calls": []
+   }
+  },
+  {
+   "op": "dbs",
+   "got": [
+    {
+     "name": "$ENCROOT-drafts-blocked",
+     "kind": "file"
+    },
+    {
+     "name": "$ENCROOT-drafts-foreign",
+     "kind": "db",
+     "rows": [
+      [
+       "other",
+       "text",
+       "6E6F74206F757273",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": "$ENCROOT-drafts-fresh",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-lone",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/drafts/lone",
+       "text",
+       "EDA08078",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": "$ENCROOT-drafts-notable",
+     "kind": "db",
+     "rows": null
+    },
+    {
+     "name": "$ENCROOT-drafts-one",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-drafts-two",
+     "kind": "db",
+     "rows": []
+    },
+    {
+     "name": "$ENCROOT-missing",
+     "kind": "db",
+     "rows": [
+      [
+       "$ROOT/missing",
+       "text",
+       "6D697373696E6720646972206472616674",
+       "integer"
+      ]
+     ]
+    },
+    {
+     "name": ".claudius.db",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-shm",
+     "kind": "file"
+    },
+    {
+     "name": ".claudius.db-wal",
+     "kind": "file"
+    }
+   ]
+  },
+  {
+   "op": "write",
+   "path": "repos/m/app.js",
+   "text": "export const a = 2;\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/m/new.js",
+   "text": "export const b = 1;\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/m/bin.dat",
+   "text": "\u0000\u0001binary\n"
+  },
+  {
+   "op": "write",
+   "path": "repos/m/blob.bin",
+   "text": "\u0000\u0002\u0003"
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"Add the thing\\n\"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "no body",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "null body",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "null",
+   "got": {
+    "threw": "Cannot read properties of null (reading 'paths')",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths missing",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths string",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":\"app.js\"}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "paths with a number",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\",2]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"paths must be string[]\"}",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "no files",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"no files selected\"}",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "unknown workspace",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_nope",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 404,
+    "type": "application/json",
+    "body": "{\"error\":\"workspace not found\"}",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "not a repo",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_p",
+   "body": "{\"paths\":[\"f.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/plain",
+      "rev-parse",
+      "--show-toplevel"
+     ]
+    ],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "no git",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "nogit": true,
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"not a git repository\",\"code\":\"not-a-repo\"}",
+    "calls": [],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "a clean file",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"clean.txt\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"no diff to summarise\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "clean.txt"
+     ]
+    ],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "an unknown file",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"ghost.js\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"no diff to summarise\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "ghost.js"
+     ]
+    ],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "outside the repo",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"../outside.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git diff exited 128: fatal: ../outside.js: '../outside.js' is outside repository at '$ROOT/repos/m'\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "../outside.js"
+     ]
+    ],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "nul path",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"a\\u0000b\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"The argument 'args[5]' must be a string without null bytes. Received 'a\\\\x00b'\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ]
+    ],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "dash path",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"--output=x\"]}",
+   "got": {
+    "status": 400,
+    "type": "application/json",
+    "body": "{\"error\":\"no diff to summarise\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "--output=x"
+     ]
+    ],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "repos/nohead/z.txt",
+   "text": "z\n"
+  },
+  {
+   "op": "git",
+   "cwd": "repos/nohead",
+   "args": [
+    "add",
+    "z.txt"
+   ]
+  },
+  {
+   "op": "req",
+   "label": "no HEAD yet",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_n",
+   "body": "{\"paths\":[\"z.txt\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"git diff exited 128: fatal: bad revision 'HEAD'\",\"code\":\"git-failed\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/nohead",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/nohead",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/nohead",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/nohead",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "z.txt"
+     ]
+    ],
+    "cli": {
+     "argv": null,
+     "stdin": null,
+     "sdkEnv": null
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "tracked and untracked",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\",\"new.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"Add the thing\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "--no-index",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "/dev/null",
+      "new.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\ndiff --git a/new.js b/new.js\nnew file mode 100644\nindex 0000000..b85663f\n--- /dev/null\n+++ b/new.js\n@@ -0,0 +1 @@\n+export const b = 1;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "req",
+   "label": "binary files",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"bin.dat\",\"blob.bin\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"Add the thing\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "bin.dat"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "--no-index",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "/dev/null",
+      "blob.bin"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/bin.dat b/bin.dat\nindex 587be6b..d997920 100644\nBinary files a/bin.dat and b/bin.dat differ\n\ndiff --git a/blob.bin b/blob.bin\nnew file mode 100644\nindex 0000000..350ed01\nBinary files /dev/null and b/blob.bin differ\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"```text\\nfeat: fenced\\n\\nbody\\n```\"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "fenced",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"feat: fenced\\n\\nbody\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"  ```DIFF\\nx\\n```  \"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "upper-case fence",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"x\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"```js2\\nx\\n```\"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "fence with a digit",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"```js2\\nx\\n```\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"```\\n\\n```\"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "empty fence",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"```\\nx\\n```\\n```\"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "two fences",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"x\\n```\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\" \\n  \"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "blank answer",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"ignored\"}],\"result\":{\"subtype\":\"error_max_turns\",\"is_error\":true,\"errors\":[\"Reached max turns\"]}}]}"
+  },
+  {
+   "op": "req",
+   "label": "error result",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"claude returned error_max_turns\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"x\"},{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"is_error\":false,\"num_turns\":1,\"session_id\":\"$SESSION_ID\",\"total_cost_usd\":0,\"usage\":{},\"subtype\":\"success\",\"result\":null}],\"result\":false}]}"
+  },
+  {
+   "op": "req",
+   "label": "null result",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Cannot read properties of null (reading 'trim')\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"x\"},{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"is_error\":false,\"num_turns\":1,\"session_id\":\"$SESSION_ID\",\"total_cost_usd\":0,\"usage\":{},\"subtype\":\"success\",\"result\":5}],\"result\":false}]}"
+  },
+  {
+   "op": "req",
+   "label": "number result",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"msg.result.trim is not a function\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"x\"},{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"is_error\":false,\"num_turns\":1,\"session_id\":\"$SESSION_ID\",\"total_cost_usd\":0,\"usage\":{},\"subtype\":\"success\"}],\"result\":false}]}"
+  },
+  {
+   "op": "req",
+   "label": "no result field",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Cannot read properties of undefined (reading 'trim')\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"x\"},{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"is_error\":false,\"num_turns\":1,\"session_id\":\"$SESSION_ID\",\"total_cost_usd\":0,\"usage\":{},\"subtype\":{\"a\":1}}],\"result\":false}]}"
+  },
+  {
+   "op": "req",
+   "label": "object subtype",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"claude returned [object Object]\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"x\"},{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"is_error\":false,\"num_turns\":1,\"session_id\":\"$SESSION_ID\",\"total_cost_usd\":0,\"usage\":{}}],\"result\":false}]}"
+  },
+  {
+   "op": "req",
+   "label": "no subtype",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"claude returned undefined\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"x\"},{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"is_error\":false,\"num_turns\":1,\"session_id\":\"$SESSION_ID\",\"total_cost_usd\":0,\"usage\":{},\"subtype\":\"success\",\"result\":\"first\"},{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"is_error\":false,\"num_turns\":1,\"session_id\":\"$SESSION_ID\",\"total_cost_usd\":0,\"usage\":{},\"subtype\":\"success\",\"result\":\"second\"}],\"result\":false}]}"
+  },
+  {
+   "op": "req",
+   "label": "two results",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"first\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$stderr\":\"boom\"},{\"$exit\":3}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "the CLI exits",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"Claude Code process exited with code 3. stderr: boom\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"no result\"},{\"$exit\":0}],\"result\":false}]}"
+  },
+  {
+   "op": "req",
+   "label": "no result",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"app.js\"]}",
+   "got": {
+    "status": 500,
+    "type": "application/json",
+    "body": "{\"error\":\"no result from claude\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\n```"
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "big",
+   "path": "repos/m/big.txt",
+   "head": "start\n",
+   "n": 210000,
+   "tail": "\nend\n"
+  },
+  {
+   "op": "write",
+   "path": "fakeclaude/script.json",
+   "text": "{\"turns\":[{\"match\":\"Generate a commit message\",\"steps\":[{\"$text\":\"Add a big file\"}]}]}"
+  },
+  {
+   "op": "req",
+   "label": "a diff past the cap",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"big.txt\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"Add a big file\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "--no-index",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "/dev/null",
+      "big.txt"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": {
+           "$big": 200072,
+           "fnv": 3898216910,
+           "head": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/big.txt b/big.txt\nnew file mode 100644\nindex 0000000..46ef120\n--- /dev/null\n+++ b/big.txt\n@@ -0,0 +1,3 @@\n+start\n+xxxxxxxxxxxxxxxxxxxxxxx",
+           "tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n[diff truncated]\n```"
+          }
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "big",
+   "path": "repos/m/big.txt",
+   "head": "",
+   "n": 199900,
+   "tail": ""
+  },
+  {
+   "op": "req",
+   "label": "a diff near the cap",
+   "method": "POST",
+   "route": "commit-message",
+   "id": "wks_m",
+   "body": "{\"paths\":[\"big.txt\",\"app.js\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"message\":\"Add a big file\"}",
+    "calls": [
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/servercwd",
+      "--version"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "rev-parse",
+      "--show-toplevel"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "-uall",
+      "-z"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "HEAD",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "app.js"
+     ],
+     [
+      "git",
+      "$ROOT/repos/m",
+      "diff",
+      "--no-index",
+      "--no-color",
+      "--no-textconv",
+      "--",
+      "/dev/null",
+      "big.txt"
+     ]
+    ],
+    "cli": {
+     "argv": [
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--max-turns=1",
+      "--tools=",
+      "--permission-mode=bypassPermissions"
+     ],
+     "stdin": [
+      {
+       "request_id": "$ID0",
+       "type": "control_request",
+       "request": {
+        "subtype": "initialize",
+        "systemPrompt": [
+         "You write concise git commit messages from a unified diff.\n\nRules:\n- Output ONLY the commit message. No preamble, no quotes, no code fences.\n- Imperative mood (\"add X\", not \"added X\").\n- Subject line under 72 characters.\n- If the change spans multiple distinct concerns, add a short body separated from the subject by one blank line. Skip the body for trivial changes.\n- Focus on what changed and why, not a file-by-file rundown."
+        ]
+       }
+      },
+      {
+       "type": "user",
+       "session_id": "",
+       "message": {
+        "role": "user",
+        "content": [
+         {
+          "type": "text",
+          "text": {
+           "$big": 200072,
+           "fnv": 1329018842,
+           "head": "Generate a commit message for this diff:\n\n```diff\ndiff --git a/app.js b/app.js\nindex cc798ff..66d48fc 100644\n--- a/app.js\n+++ b/app.js\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;\n\ndiff --git",
+           "tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n[diff truncated]\n```"
+          }
+         }
+        ]
+       },
+       "parent_tool_use_id": null,
+       "client_composed": true
+      }
+     ],
+     "sdkEnv": {
+      "CLAUDE_AGENT_SDK_VERSION": "$SDK_VERSION",
+      "CLAUDE_CODE_ENTRYPOINT": "sdk-ts",
+      "CLAUDE_CODE_SDK_READS_SESSION_STATE": "1",
+      "NoDefaultCurrentDirectoryInExePath": "1"
+     }
+    }
+   }
+  },
+  {
+   "op": "ls",
+   "path": "fakeclaude",
+   "got": [
+    "script.json"
+   ]
+  }
+ ]
+}

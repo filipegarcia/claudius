@@ -177,6 +177,8 @@ const REWRITES = {
   ],
   "/lib/server/scheduler.ts": [
     ["Date.now()", NOW, 6],
+    // A run's pid would otherwise differ between the two recordings.
+    ["process.pid", "777001", 2],
     ["setTimeout(", "globalThis.__g.setTimeout(", 2],
     ["clearTimeout(", "globalThis.__g.clearTimeout(", 1],
     ["randomUUID()", UUID, 1],
@@ -363,11 +365,17 @@ const SCRIPT_BODY = {
       ],
     },
     {
+      // Since 68548d17 (SDK 0.3.301) `nextFireAt` comes from the CronCreate
+      // result only, so this CronList refresh leaves the loop's value alone.
       match: "[list]",
       steps: [
         msg("assistant", [tu("toolu_live_l1", "CronList", {})], { n: 4 }),
         msg("user", [tr("toolu_live_l1", [text("abc123 */5 * * * *")])], {
-          toolUseResult: { jobs: [{ id: "abc123", nextFireAt: FAR_FIRE + 300000 }, { id: "zzz", nextFireAt: 5 }] },
+          // The same `nextFireAt` the CronCreate reported: the current TS
+          // reads one only off a CronCreate (CC 2.1.301 dropped the CronList
+          // refresh, which is R04's port), so this step pins that a listing
+          // leaves the loop alone either way.
+          toolUseResult: { jobs: [{ id: "abc123", nextFireAt: FAR_FIRE }, { id: "zzz", nextFireAt: 5 }] },
         }),
       ],
     },
@@ -397,6 +405,18 @@ const SCRIPT_BODY = {
         msg("user", [tr(`toolu_del_${i}`, `Cancelled job ${id}.`)]),
       ],
     })),
+    // CC 2.1.311 -- a session whose CLI ends on its own, loop and all.
+    {
+      match: "[arm-die]",
+      steps: [
+        msg("assistant", [tu("toolu_die_c1", "CronCreate", { cron: "*/5 * * * *", prompt: "check", recurring: true })], { n: 30 }),
+        msg("user", [tr("toolu_die_c1", "Scheduled recurring job die1 (Every 5 minutes).")], {
+          toolUseResult: { id: "die1" },
+        }),
+        { $exit: 0 },
+      ],
+      result: false,
+    },
     {
       match: "Please stop the self-paced loop",
       repeat: true,
@@ -408,7 +428,7 @@ writeFileSync(SCRIPT, JSON.stringify(SCRIPT_BODY));
 
 // ---- the world ------------------------------------------------------------------------
 
-const DIRS = ["home/.claude/.claudius", "config", "jobs2", "ws1", "ws2", "ws3", "ws4", "ws5"];
+const DIRS = ["home/.claude/.claudius", "config", "jobs2", "ws1", "ws2", "ws3", "ws4", "ws5", "ws6"];
 const ws = (n) => ({
   id: `wks_golden0000${n}`,
   name: `ws${n}`,
@@ -420,7 +440,7 @@ const ws = (n) => ({
 const WORLD_FILES = [
   [
     "home/.claude/.claudius/workspaces.json",
-    `${JSON.stringify({ version: 1, workspaces: [1, 2, 3, 4, 5].map(ws) }, null, 2)}\n`,
+    `${JSON.stringify({ version: 1, workspaces: [1, 2, 3, 4, 5, 6].map(ws) }, null, 2)}\n`,
   ],
 ];
 for (const d of DIRS) mkdirSync(join(ROOT, d), { recursive: true });
@@ -838,6 +858,14 @@ const LOOP_STEPS = [
   get,
   cancel({ sessionId: "$S4", loopId: "fw1" }),
   { op: "reap", session: "$S2" },
+  get,
+  // CC 2.1.311 -- the CLI ended on its own: its loops no longer run, so a
+  // cancel is 410 before the loop is even looked up, and no prompt is sent.
+  { op: "create", cwd: "ws6" },
+  { op: "input", session: "$S6", text: "[arm-die]" },
+  get,
+  cancel({ sessionId: "$S6", loopId: "die1" }),
+  cancel({ sessionId: "$S6", loopId: "nope" }),
   get,
 ];
 

@@ -1,20 +1,24 @@
 #!/usr/bin/env node
-// Golden fixture for the managed settings source (the file tier and the
-// macOS MDM plist tier), as read by the SDK's `resolveSettings()`.
+// Golden fixture for the managed settings source (the file tier, the macOS
+// MDM plist tier, the Windows registry and the WSL chain), as read by the
+// SDK's `resolveSettings()`.
 //
 //   node rust/scripts/managed-settings-golden.mjs     (macOS: needs plutil)
 //
-// The SDK's paths can't be redirected. `k0e()` (the managed dir) asks a hook
-// that is compiled out (`function P0e(){return}`), and `tq()` hardcodes
-// "/Library/Managed Preferences/". This script copies the installed sdk.mjs
-// to a temp dir and patches both: the hook returns
-// $CLAUDIUS_GOLDEN_MANAGED_DIR and the plist root becomes
-// $CLAUDIUS_GOLDEN_MDM_DIR.
+// The SDK's paths can't be redirected. The managed dir (`tBe()` in 0.3.312)
+// asks a hook that is compiled out (`function nBe(){return}`), and the plist
+// paths (`O4()`) hardcode "/Library/Managed Preferences/". This script
+// copies the installed sdk.mjs to a temp dir and patches both: the hook
+// returns $CLAUDIUS_GOLDEN_MANAGED_DIR and the plist root becomes
+// $CLAUDIUS_GOLDEN_MDM_DIR. Every patch site is found by its shape, not by
+// its minified name, and must match exactly once, so an SDK bump that moves
+// one fails here instead of recording the wrong thing.
 //
 // Each case runs in a fresh node process, because the SDK caches the managed
-// path, the parsed files and the plist read per process. The process gets a
-// temp managed dir, a temp plist root (with the per-user `<user>/` dir) and
-// a temp CLAUDE_CONFIG_DIR, then runs
+// path, the parsed files, the OS read and the platform per process. The
+// process gets a temp managed dir, a temp plist root (with the per-user
+// `<user>/` dir) and a temp CLAUDE_CONFIG_DIR, and an env holding only PATH,
+// HOME and TMPDIR plus what the case sets. Then it runs
 // `resolveSettings({cwd, settingSources: []})`. The managed source's
 // settings are projected to the three keys Claudius reads (`deniedModels`,
 // `availableModelsMatch`, `modelPricing`) and written with `policyOrigin` and
@@ -25,24 +29,42 @@
 // Plists are stored in the fixture as XML text (or base64 for binary
 // plists), so the replay writes the same bytes.
 //
-// Windows registry cases run the SDK's win32 branch on macOS: a third patch
-// makes `gw()` call `Qq($CLAUDIUS_GOLDEN_REG)` (a fake reg.exe script that
-// prints the case's captured `reg query` output and exit code, and logs its
-// argv), and `ra()` name the tier "hklm". Everything after the two
-// `reg query` results is the SDK's own code.
+// Windows registry cases run the SDK's win32 branch on macOS: the MDM
+// loader's darwin branch (`lv()`) calls the registry reader (`$9`) on
+// $CLAUDIUS_GOLDEN_REG (a fake reg.exe script that prints the case's
+// captured `reg query` output and exit code, and logs its argv), and the
+// tier name (`Ra()`) is "hklm". Everything after the two `reg query`
+// results is the SDK's own code.
 //
-// WSL cases (`wsl: true`) also make `Yd()` and `vq()`'s platform check
-// report WSL, and point `Jn` (the Windows managed folder, normally
-// "/mnt/c/Program Files/ClaudeCode") at a temp dir staged from the case's
-// `win` tree. With the fake reg.exe that's the SDK's whole WSL chain: the
-// `wslInheritsWindowsSettings` walk, HKLM/HKCU, and the file tier choice.
+// Linux cases (`linux: {env, procVersion}`) emulate the OS facts instead of
+// the SDK's answers: `process.platform` reads as "linux" in the WSL check
+// (`$p()`), the loader and the platform class (`dD`, behind `kt()`);
+// /proc/version is the case's `procVersion` text (absent if not given); the
+// case's env vars (WSL_DISTRO_NAME, WSL_INTEROP, CLAUDE_CODE_ENTRYPOINT) are
+// set; reg.exe is the fake one; and `xn` (the Windows managed folder,
+// normally "/mnt/c/Program Files/ClaudeCode") is a temp dir staged from the
+// case's `win` tree. So the SDK's own `$p()` decides whether this is WSL
+// (recorded as `wsl`), and with the fake reg.exe that's its whole WSL chain:
+// the `wslInheritsWindowsSettings` walk, HKLM/HKCU, and the file tier choice
+// (`r9()` in `$4`).
+//
+// CLAUDE_CODE_ENTRYPOINT "remote_cowork" / "remote_cowork_trigger" (a cowork
+// cloud session) also makes the SDK ask the organization (`h_()`): a managed
+// document the process can write is then "held" and may only restrict, and
+// the WSL registry read can be withheld (`whereAsked`). Claudius doesn't
+// model that, so the cowork cases stage no /etc/claude-code files (nothing
+// to hold); the Windows side under /mnt/c is never held, and they pin that.
+// A control pair checks that the gate is the entrypoint: the same writable
+// managed file reads differently with it set.
 //
 // Nothing outside the temp dirs is written, and the real system dirs are
 // never touched. The recorder fails if any `policyOrigin` other than
-// "file" / "plist" shows up (e.g. a remote tier leaking in).
+// "file" / "plist" (or "hklm" / "hkcu" for registry cases) shows up (e.g. a
+// remote tier leaking in).
 import { execFileSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -117,10 +139,17 @@ async function worker(sdkFile, caseJson) {
     if (c.remote !== undefined) writeFileSync(join(cfg, "remote-settings.json"), c.remote);
     const win = join(root, "win");
     stageTree(win, c.win);
-    if (c.wsl) {
-      process.env.CLAUDIUS_GOLDEN_WSL = "1";
+    if (c.linux) {
+      process.env.CLAUDIUS_GOLDEN_LINUX = "1";
       process.env.CLAUDIUS_GOLDEN_WIN_DIR = win;
+      const proc = join(root, "proc-version");
+      const pv = c.linux.procVersion;
+      if (typeof pv === "string") writeFileSync(proc, pv);
+      else if (pv?.dir) mkdirSync(proc);
+      process.env.CLAUDIUS_GOLDEN_PROC_VERSION = proc;
+      for (const [k, v] of Object.entries(c.linux.env ?? {})) process.env[k] = v;
     }
+    for (const [k, v] of Object.entries(c.env ?? {})) process.env[k] = v;
     const reg = join(root, "reg");
     if (c.registry) {
       mkdirSync(reg);
@@ -153,13 +182,16 @@ async function worker(sdkFile, caseJson) {
     const src = r.sources.find((s) => s.source === "managed");
     let calls = null;
     if (c.registry) {
-      calls = readFileSync(join(reg, "calls"), "utf8")
+      const log = join(reg, "calls");
+      calls = (existsSync(log) ? readFileSync(log, "utf8") : "")
         .split("\n")
         .filter(Boolean)
         .map((line) => line.split("\x1f").slice(0, -1))
         .sort();
     }
-    process.stdout.write(JSON.stringify({ src: src ?? null, calls }));
+    // What the SDK's own WSL check (`$p()`) answered; see the patch below.
+    const wsl = c.linux ? (globalThis.__claudiusGoldenWsl ?? null) : undefined;
+    process.stdout.write(JSON.stringify({ src: src ?? null, calls, wsl }));
   } finally {
     for (const p of [join(root, "mdm", userInfo().username), join(root, "mdm")]) {
       try {
@@ -184,65 +216,112 @@ const sdkPath = join(repo, "node_modules/@anthropic-ai/claude-agent-sdk");
 const sdkVersion = JSON.parse(readFileSync(join(sdkPath, "package.json"), "utf8")).version;
 const bundle = readFileSync(join(sdkPath, "sdk.mjs"), "utf8");
 
-// Find the override hook by its caller's shape, not by its minified name.
-const hookCall = bundle.match(
-  /function \w+\(\)\{let e=(\w+)\(\);if\(e!==void 0\)return e;switch\(\w+\(\)\)\{case"macos":return"\/Library\/Application Support\/ClaudeCode"/,
+/** The one match of `re` (global) in the bundle; anything else fails. */
+const shape = (re, what) => {
+  const all = [...bundle.matchAll(re)];
+  if (all.length !== 1) throw new Error(`${what} matched ${all.length} times in sdk.mjs ${sdkVersion}; re-derive the anchors`);
+  return all[0];
+};
+const once = (text, what) => {
+  if (bundle.split(text).length !== 2) throw new Error(`${what} (${text}) not found exactly once in sdk.mjs ${sdkVersion}`);
+  return text;
+};
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const id = "[\\w$]+";
+
+// The managed-dir function and its compiled-out override hook.
+const hookCall = shape(
+  new RegExp(`function ${id}\\(\\)\\{let (${id})=(${id})\\(\\);if\\(\\1!==void 0\\)return \\1;switch\\(${id}\\(\\)\\)\\{case"macos":return"/Library/Application Support/ClaudeCode"`, "g"),
+  "the managed-dir function",
 );
-if (!hookCall) throw new Error(`managed-dir function not found in sdk.mjs ${sdkVersion}`);
-const stub = `function ${hookCall[1]}(){return}`;
-if (bundle.split(stub).length !== 2) {
-  throw new Error(`override hook ${stub} not found exactly once in sdk.mjs ${sdkVersion}`);
-}
+const stub = once(`function ${hookCall[2]}(){return}`, "the managed-dir override hook");
+// The plist paths (per-user, then device).
 const plistRoot = "`/Library/Managed Preferences/";
 if (bundle.split(plistRoot).length !== 3) {
-  throw new Error(`expected the two tq() plist paths in sdk.mjs ${sdkVersion}`);
+  throw new Error(`expected the two plist paths in sdk.mjs ${sdkVersion}`);
 }
-const darwinBranch = 'if(process.platform==="darwin"){let e=tq()';
-const tierName = 'function ra(){return wt()==="macos"?"plist":"hklm"}';
-const wslWindowsDir = ',Jn="/mnt/c/Program Files/ClaudeCode"';
-for (const anchor of [darwinBranch, tierName, wslWindowsDir]) {
-  if (bundle.split(anchor).length !== 2) {
-    throw new Error(`anchor ${anchor} not found exactly once in sdk.mjs ${sdkVersion}; re-derive gw()/ra()`);
-  }
-}
-// `Yd()` (WSL detection for the registry read and the flag walk) and
-// `vq()`'s platform check (the file tier choice), found by shape.
-const wslDetect = /function \w+\(\)\{if\(process\.platform!=="linux"\)return!1;if\(process\.env\.WSL_DISTRO_NAME\)return!0;/g;
-const fileTierWsl = /(function \w+\(e\)\{if\()(\w+\(\)==="wsl"\)\{let t=\w+\(\w+\(e\)\);if\(e\.wslInherits\?\.\(\)\))/g;
-for (const re of [wslDetect, fileTierWsl]) {
-  if ((bundle.match(re) ?? []).length !== 1) {
-    throw new Error(`${re} not found exactly once in sdk.mjs ${sdkVersion}; re-derive Yd()/vq()`);
-  }
-}
+// The MDM loader (`lv()`): its darwin branch, and its WSL branch, which
+// queries reg.exe through /mnt/c when the WSL check passes.
+const darwinBranch = shape(new RegExp(`if\\(process\\.platform==="darwin"\\)\\{let ${id}=${id}\\(\\)`, "g"), "the MDM darwin branch")[0];
+const wslRegExe = shape(new RegExp(`(${id})="/mnt/c/Windows/System32/reg\\.exe"`, "g"), "the WSL reg.exe path")[1];
+const wslRead = shape(new RegExp(`if\\((${id})\\(\\)\\)return (${id})\\(${esc(wslRegExe)}\\);`, "g"), "the MDM WSL branch");
+const [, wslCheck, regQuery] = wslRead;
+// The registry reader, named by its `reg query <key> /v <value>` call.
+shape(new RegExp(`async function ${esc(regQuery)}\\(${id}\\)\\{let ${id}=\\(${id}\\)=>${id}\\(${id},\\["query",${id},"/v",${id}\\],${id}\\)`, "g"), "the registry reader");
+// The tier name.
+const tierMatch = shape(new RegExp(`function (${id})\\(\\)\\{return (${id})\\(\\)==="macos"\\?"plist":"hklm"\\}`, "g"), "the managed tier name");
+// The Windows managed folder seen from WSL.
+const wslMatch = shape(new RegExp(`,(${id})="/mnt/c/Program Files/ClaudeCode"`, "g"), "the WSL Windows dir");
+// The WSL check itself (`$p()`): Linux, then WSL_DISTRO_NAME unless the
+// entrypoint is a cowork cloud one, then /proc/version.
+const wslDetect = shape(
+  new RegExp(
+    `function ${esc(wslCheck)}\\(\\)\\{if\\(process\\.platform!=="linux"\\)return!1;let (${id})=(${id})\\(\\);if\\(process\\.env\\.WSL_DISTRO_NAME&&!\\1\\)return!0;try\\{let (${id})=${id}\\("fs"\\)\\.readFileSync\\("/proc/version","utf8"\\)\\.toLowerCase\\(\\);return ${id}\\(\\3\\)\\}catch\\{return!1\\}\\}`,
+    "g",
+  ),
+  "the WSL check",
+);
+// Its cowork-cloud test (cached per process) and the entrypoint list.
+const cowork = shape(
+  new RegExp(`function ${esc(wslDetect[2])}\\(\\)\\{if\\((${id})\\.isCoworkCloud===void 0\\)\\{let ${id}=process\\.env\\.CLAUDE_CODE_ENTRYPOINT;\\1\\.isCoworkCloud=(${id})\\.some\\(`, "g"),
+  "the cowork-cloud check",
+);
+const coworkEntrypoints = JSON.parse(shape(new RegExp(`(?:var |,)${esc(cowork[2])}=(\\[[^\\]]*\\])`, "g"), "the cowork-cloud entrypoints")[1]);
+// The platform class's sources (`kt()` is `dD.getPlatform()`) and the sync
+// /proc/version read it falls back to (`tm()`).
+const platformSources = shape(
+  new RegExp(`new ${id}\\(\\{platform:process\\.platform,env:process\\.env,readProcVersionSync:(${id}),readProcVersion:\\(\\)=>${id}\\("/proc/version",`, "g"),
+  "the platform sources",
+);
+const procSync = shape(
+  new RegExp(`function ${esc(platformSources[1])}\\(\\)\\{if\\(${id}\\(\\)\\)return;try\\{return ${id}\\(\\)\\.readFileSync\\("/proc/version",`, "g"),
+  "the /proc/version reader",
+)[0];
+// The file tier's WSL choice still asks the platform class (`r9()`), so the
+// emulated platform reaches it without a patch of its own.
+shape(new RegExp(`function ${id}\\(e\\)\\{return ${esc(tierMatch[2])}\\(\\)==="wsl"&&\\(!e\\|\\|${id}\\(\\)\\)\\}`, "g"), "the file tier's WSL check");
+
+const linuxPlatform = '(process.env.CLAUDIUS_GOLDEN_LINUX?"linux":process.platform)';
+const procVersion = '(process.env.CLAUDIUS_GOLDEN_PROC_VERSION??"/proc/version")';
 const work = mkdtempSync(join(tmpdir(), "claudius-managed-sdk-"));
 const sdkFile = join(work, "sdk.mjs");
+const wslBody = wslDetect[0]
+  .slice(wslDetect[0].indexOf("{") + 1, -1)
+  .replace('process.platform!=="linux"', `${linuxPlatform}!=="linux"`)
+  .replace('"/proc/version"', procVersion);
 writeFileSync(
   sdkFile,
   bundle
-    .replace(stub, `function ${hookCall[1]}(){return process.env.CLAUDIUS_GOLDEN_MANAGED_DIR}`)
-    .replaceAll(plistRoot, "`${process.env.CLAUDIUS_GOLDEN_MDM_DIR}/")
-    .replace(darwinBranch, `if(process.env.CLAUDIUS_GOLDEN_REG)return Qq(process.env.CLAUDIUS_GOLDEN_REG);${darwinBranch}`)
-    .replace(tierName, 'function ra(){return process.env.CLAUDIUS_GOLDEN_REG?"hklm":wt()==="macos"?"plist":"hklm"}')
-    .replace(wslDetect, (m) => `${m.slice(0, m.indexOf("{") + 1)}if(process.env.CLAUDIUS_GOLDEN_WSL)return!0;${m.slice(m.indexOf("{") + 1)}`)
-    .replace(fileTierWsl, "$1process.env.CLAUDIUS_GOLDEN_WSL||$2")
-    .replace(wslWindowsDir, ',Jn=process.env.CLAUDIUS_GOLDEN_WIN_DIR??"/mnt/c/Program Files/ClaudeCode"'),
+    .replace(stub, () => `function ${hookCall[2]}(){return process.env.CLAUDIUS_GOLDEN_MANAGED_DIR}`)
+    .replaceAll(plistRoot, () => "`${process.env.CLAUDIUS_GOLDEN_MDM_DIR}/")
+    .replace(
+      darwinBranch,
+      () => `if(process.env.CLAUDIUS_GOLDEN_REG&&!process.env.CLAUDIUS_GOLDEN_LINUX)return ${regQuery}(process.env.CLAUDIUS_GOLDEN_REG);${darwinBranch.replace("process.platform", linuxPlatform)}`,
+    )
+    .replace(wslRead[0], () => `if(${wslCheck}())return ${regQuery}(process.env.CLAUDIUS_GOLDEN_REG??${wslRegExe});`)
+    // Record the WSL check's answer (it's called the same way every time).
+    .replace(wslDetect[0], () => `function ${wslCheck}(){return globalThis.__claudiusGoldenWsl=(()=>{${wslBody}})()}`)
+    .replace(platformSources[0], () => platformSources[0].replace("platform:process.platform", `platform:${linuxPlatform}`).replace('"/proc/version"', procVersion))
+    .replace(procSync, () => procSync.replace('"/proc/version"', procVersion))
+    .replace(tierMatch[0], () => `function ${tierMatch[1]}(){return process.env.CLAUDIUS_GOLDEN_REG?"hklm":${tierMatch[2]}()==="macos"?"plist":"hklm"}`)
+    .replace(wslMatch[0], () => `,${wslMatch[1]}=process.env.CLAUDIUS_GOLDEN_WIN_DIR??"/mnt/c/Program Files/ClaudeCode"`),
 );
 
 // Control copy for the remote cases: the same patches, with the remote
-// cache's eligibility gate (`D2`) removed. The recorder runs one control
+// cache's eligibility gate (`r4()`) removed. The recorder runs one control
 // case on it and expects the seeded cache to become the managed source,
 // which proves the "ignored" cases seed the right file and only the gate
 // keeps it out.
-const eligibilityGate = /if\(!\w+\(\)&&e\.eligible!==!0\)return null;/g;
+const eligibilityGate = new RegExp(`if\\(!${id}\\(\\)&&e\\.eligible!==!0\\)return e\\.heldSoFar\\(null\\);`, "g");
 const patched = readFileSync(sdkFile, "utf8");
 if ((patched.match(eligibilityGate) ?? []).length !== 1) {
-  throw new Error(`remote-cache eligibility gate not found exactly once in sdk.mjs ${sdkVersion}; re-derive D2()`);
+  throw new Error(`remote-cache eligibility gate not found exactly once in sdk.mjs ${sdkVersion}; re-derive r4()`);
 }
 const sdkEligibleFile = join(work, "sdk-eligible.mjs");
-writeFileSync(sdkEligibleFile, patched.replace(eligibilityGate, ""));
+writeFileSync(sdkEligibleFile, patched.replace(eligibilityGate, () => ""));
 
-// Plist specs: {json} → XML via plutil, {binary} → binary1 (base64),
-// {xml}/{raw} → as written; `mode` chmods it, `dir` makes a directory.
+// Plist specs: {json} -> XML via plutil, {binary} -> binary1 (base64),
+// {xml}/{raw} -> as written; `mode` chmods it, `dir` makes a directory.
 function plistFile(spec) {
   const { json, binary, xml, raw, ...rest } = spec;
   if (xml !== undefined || raw !== undefined) return { xml: xml ?? raw, ...rest };
@@ -336,7 +415,7 @@ const cases = [
       [D("Z.json")]: J({ availableModelsMatch: "exact" }),
       [D("10.json")]: J({ deniedModels: ["ten"] }),
       [D("9.json")]: J({ deniedModels: ["nine"] }),
-      [D("é.json")]: J({ deniedModels: ["accent"] }),
+      [D("\u00e9.json")]: J({ deniedModels: ["accent"] }),
       [D("y.json")]: J({ deniedModels: ["y"] }),
     },
   }],
@@ -357,16 +436,16 @@ const cases = [
   ["comments_not_allowed", { files: { [M]: '{"deniedModels":["c"] // x\n}' } }],
   ["trailing_comma_not_allowed", { files: { [M]: '{"deniedModels":["c"],}' } }],
   ["non_object_roots_skipped", { files: { [M]: '["a"]', [D("a.json")]: '"x"', [D("b.json")]: "null", [D("c.json")]: "5", [D("d.json")]: J({ deniedModels: ["d"] }) } }],
-  ["empty_and_blank_files", { files: { [M]: "", [D("a.json")]: " \n\t", [D("b.json")]: "﻿", [D("c.json")]: J({ deniedModels: ["c"] }) } }],
-  ["bom_stripped", { files: { [M]: '﻿{"deniedModels":["bom"]}' } }],
+  ["empty_and_blank_files", { files: { [M]: "", [D("a.json")]: " \n\t", [D("b.json")]: "\ufeff", [D("c.json")]: J({ deniedModels: ["c"] }) } }],
+  ["bom_stripped", { files: { [M]: '\ufeff{"deniedModels":["bom"]}' } }],
   ["leading_whitespace_ok", { files: { [M]: '\n  {"deniedModels":["ws"]}  \n' } }],
   ["duplicate_keys_last_wins", { files: { [M]: '{"deniedModels":["first"],"deniedModels":["second"]}' } }],
   ["huge_number_is_infinity", { files: { [M]: '{"deniedModels":["x",1e400],"availableModelsMatch":-1e400,"modelPricing":{"multiplier":1e400,"overrides":{"r":{"input":1,"output":1,"cacheRead":1,"cacheWrite":1e999}}},"other":1e309}' } }],
   ["huge_number_elsewhere_keeps_doc", { files: { [M]: '{"deniedModels":["kept"],"cleanupPeriodDays":1e400}' } }],
   ["tiny_number_underflows_to_zero", { files: { [M]: '{"modelPricing":{"overrides":{"r":{"input":1e-400,"output":0,"cacheRead":0,"cacheWrite":0}}}}' } }],
   ["js_number_forms_and_integer_keys", { files: { [M]: '{"modelPricing":{"multiplier":2.0,"overrides":{"b":{"input":1e2,"output":1,"cacheRead":1,"cacheWrite":1},"10":{"input":1.0,"output":0.0,"cacheRead":-0,"cacheWrite":1.50},"2":{"input":1,"output":1,"cacheRead":1,"cacheWrite":1}}}}' } }],
-  ["unicode_model_names", { files: { [M]: J({ deniedModels: ["clåude-ø", "\u0000", "😀"] }) } }],
-  // MDM plist tier (macOS). `user` is <root>/<user>/…, `device` <root>/….
+  ["unicode_model_names", { files: { [M]: J({ deniedModels: ["cl\u00e5ude-\u00f8", "\u0000", "\ud83d\ude00"] }) } }],
+  // MDM plist tier (macOS). `user` is <root>/<user>/..., `device` <root>/....
   ["mdm_device_only", { plists: { device: { json: { deniedModels: ["d"], availableModelsMatch: "exact" } } } }],
   ["mdm_binary_plist", { plists: { device: { binary: { deniedModels: ["bin"], modelPricing: { multiplier: 2.5 } } } } }],
   ["mdm_user_over_device", { plists: { user: { json: { deniedModels: ["u"] } }, device: { json: { deniedModels: ["d"] } } } }],
@@ -412,7 +491,7 @@ const cases = [
   ["file_merge_with_losing_mdm", { plists: { device: { json: { availableModelsMatch: "bogus", modelPricing: {} } } }, files: { [M]: J({ managedSourcesBehavior: "merge", deniedModels: ["f"], modelPricing: { multiplier: 3 } }) } }],
   // The SDK's managed-file reader (`i0e`): encoding sniffing, lossy UTF-8,
   // the 2 MiB cap.
-  ["file_utf16le_bom_decoded", { files: { [M]: { base64: Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(J({ deniedModels: ["wide", "ü"] }), "utf16le")]).toString("base64") } } }],
+  ["file_utf16le_bom_decoded", { files: { [M]: { base64: Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(J({ deniedModels: ["wide", "\u00fc"] }), "utf16le")]).toString("base64") } } }],
   ["file_utf16le_odd_trailing_byte_dropped", { files: { [M]: { base64: Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(J({ deniedModels: ["odd"] }), "utf16le"), Buffer.from([0x41])]).toString("base64") } } }],
   ["file_utf16be_bom_not_decoded", { files: { [M]: { base64: Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(J({ deniedModels: ["be"] }), "utf16le").swap16()]).toString("base64") }, [D("a.json")]: J({ deniedModels: ["fallback"] }) } }],
   ["file_invalid_utf8_read_lossily", { files: { [M]: { base64: Buffer.concat([Buffer.from('{"deniedModels":["a'), Buffer.from([0xff, 0xc3]), Buffer.from('","b"]}')]).toString("base64") } } }],
@@ -422,6 +501,8 @@ const cases = [
   ...registryCases(),
   // WSL: Windows policy read through /mnt/c (emulated; see the header).
   ...wslCases(),
+  // The WSL check itself, cowork cloud entrypoints included.
+  ...wslDetectionCases(),
   // Remote (server-managed) tier: the SDK reads <config>/remote-settings.json
   // only when `zo().eligible === true`, and nothing in the SDK library ever
   // sets it (only the CLI does). So a seeded, well-formed cache is ignored
@@ -475,6 +556,11 @@ function registryCases() {
     ["reg_hkcu_substitute", { registry: { hklm: missing, hkcu: v({ availableModelsMatch: "bogus" }) } }],
     ["reg_hkcu_admin_only_keys_dropped", { registry: { hklm: missing, hkcu: v({ managedMcpServers: { a: { command: "x" } }, isolation: {}, prependPlugins: ["p"], enabledPlugins: { "a@m": true, "b@builtin": false } }) } }],
     ["reg_hkcu_disabling_plugin_kept", { registry: { hklm: missing, hkcu: v({ enabledPlugins: { "c@m": false }, deniedModels: ["u"] }) } }],
+    // 0.3.312 adds `attributionProjectPolicy` to the admin-only keys, so an
+    // HKCU value holding only that is no managed source at all.
+    ["reg_hkcu_attribution_project_policy_dropped", { registry: { hklm: missing, hkcu: v({ attributionProjectPolicy: { default: "claude_proj_x" } }) } }],
+    ["reg_hkcu_admin_only_keys_only_dropped", { registry: { hklm: missing, hkcu: v({ managedMcpServers: {}, isolation: {}, appendPlugins: ["p"] }) } }],
+    ["reg_hklm_attribution_project_policy_kept", { registry: { hklm: v({ attributionProjectPolicy: { default: "claude_proj_x" } }), hkcu: v({ deniedModels: ["u"] }) } }],
     // VWe: a file tier that binds shuts HKCU out at load time.
     ["reg_file_bad_json_shuts_hkcu", { registry: { hklm: missing, hkcu: v({ deniedModels: ["u"] }) }, files: { [M]: "{bad" } }],
     ["reg_file_blank_keeps_hkcu", { registry: { hklm: missing, hkcu: v({ deniedModels: ["u"] }) }, files: { [M]: " \n" } }],
@@ -498,10 +584,11 @@ function registryCases() {
 
 // Under WSL the SDK reads the Windows policy only once an admin source arms
 // `wslInheritsWindowsSettings`. `local` is /etc/claude-code (the managed
-// dir); `win` is the Windows managed folder under /mnt/c.
+// dir); `win` is the Windows managed folder under /mnt/c. These run on
+// emulated Linux with WSL_DISTRO_NAME set, so the SDK's own check says WSL.
 function wslCases() {
   const { value, v, big } = regHelpers();
-  const W = (spec) => ({ wsl: true, registry: {}, ...spec });
+  const W = (spec) => ({ linux: { env: { WSL_DISTRO_NAME: "Ubuntu" } }, registry: {}, ...spec });
   const arm = { wslInheritsWindowsSettings: true };
   const local = { [M]: J({ deniedModels: ["l"] }) };
   const winDenied = (o = {}) => ({ files: { [M]: J({ deniedModels: ["w"], ...o }) } });
@@ -563,6 +650,56 @@ function wslCases() {
     ["wsl_windows_dot_drop_in_doesnt_arm_hkcu", W({ registry: { hkcu: v({ ...arm, deniedModels: ["u"] }) }, win: { files: { [D(".a.json")]: J(arm), [D("a.txt")]: J(arm) } } })],
     ["wsl_windows_drop_in_dir_loop_shuts_local", W({ win: { symlinks: { "managed-settings.d": "managed-settings.d" } }, files: local })],
     ["wsl_hkcu_drops_composition_keys", W({ registry: { hklm: v(arm), hkcu: v({ ...arm, managedSourcesBehavior: "merge", deniedModels: ["u"] }) } })],
+    ["wsl_hkcu_attribution_project_policy_dropped", W({ registry: { hklm: v(arm), hkcu: v({ ...arm, attributionProjectPolicy: { default: "claude_proj_x" } }) } })],
+  ];
+}
+
+// The WSL check (`$p()`) on emulated Linux: a non-empty WSL_DISTRO_NAME,
+// unless CLAUDE_CODE_ENTRYPOINT is a cowork cloud one, else a /proc/version
+// that mentions Microsoft or WSL in any case. WSL_INTEROP alone doesn't
+// count here (the platform class behind the file tier's choice takes it,
+// which changes nothing when no registry was read). HKLM arms the flag and
+// denies "h", so a passing check shows as `hklm`. The cowork cases stage no
+// /etc/claude-code files: the SDK would hold those (see the header).
+function wslDetectionCases() {
+  const { v } = regHelpers();
+  const arm = { wslInheritsWindowsSettings: true };
+  const L = (env, procVersion, extra = {}) => ({
+    linux: { env, ...(procVersion !== undefined && { procVersion }) },
+    registry: { hklm: v({ ...arm, deniedModels: ["h"] }) },
+    ...extra,
+  });
+  const local = { files: { [M]: J({ deniedModels: ["l"] }) } };
+  const wsl2 = "Linux version 5.15.153.1-microsoft-standard-WSL2 (root@x) (gcc) #1 SMP\n";
+  const wsl1 = "Linux version 4.4.0-19041-Microsoft (Microsoft@Microsoft.com) (gcc version 5.4.0) #1-Microsoft\n";
+  const plain = "Linux version 6.1.0-18-amd64 (debian-kernel@lists.debian.org) (gcc-12) #1 SMP\n";
+  const cowork = "remote_cowork";
+  return [
+    ["linux_distro_name_is_wsl", L({ WSL_DISTRO_NAME: "Ubuntu" })],
+    ["linux_distro_name_with_plain_proc_is_wsl", L({ WSL_DISTRO_NAME: "Ubuntu" }, plain)],
+    ["linux_proc_wsl2_is_wsl", L({}, wsl2)],
+    ["linux_proc_wsl1_is_wsl", L({}, wsl1)],
+    ["linux_proc_uppercase_wsl_is_wsl", L({}, "Linux version 6.6.0-WSL (gcc)")],
+    ["linux_plain_proc_not_wsl", L({}, plain, local)],
+    ["linux_empty_distro_name_not_wsl", L({ WSL_DISTRO_NAME: "" }, plain, local)],
+    ["linux_no_proc_version_not_wsl", L({}, undefined, local)],
+    ["linux_proc_version_directory_not_wsl", L({}, { dir: true }, local)],
+    ["linux_wsl_interop_alone_not_wsl", L({ WSL_INTEROP: "/run/WSL/1_interop" }, plain, local)],
+    ["linux_other_entrypoint_distro_name_counts", L({ WSL_DISTRO_NAME: "Ubuntu", CLAUDE_CODE_ENTRYPOINT: "sdk-ts" })],
+    ["linux_entrypoint_match_is_case_sensitive", L({ WSL_DISTRO_NAME: "Ubuntu", CLAUDE_CODE_ENTRYPOINT: "Remote_Cowork" })],
+    ["linux_entrypoint_match_is_exact", L({ WSL_DISTRO_NAME: "Ubuntu", CLAUDE_CODE_ENTRYPOINT: "remote_cowork " })],
+    // A cowork cloud entrypoint: WSL_DISTRO_NAME no longer counts, /proc/version still does.
+    ["cowork_distro_name_not_wsl", L({ WSL_DISTRO_NAME: "Ubuntu", CLAUDE_CODE_ENTRYPOINT: cowork })],
+    ["cowork_trigger_distro_name_not_wsl", L({ WSL_DISTRO_NAME: "Ubuntu", CLAUDE_CODE_ENTRYPOINT: "remote_cowork_trigger" })],
+    ["cowork_distro_name_plain_proc_not_wsl", L({ WSL_DISTRO_NAME: "Ubuntu", CLAUDE_CODE_ENTRYPOINT: cowork }, plain)],
+    ["cowork_proc_is_wsl", L({ CLAUDE_CODE_ENTRYPOINT: cowork }, wsl2)],
+    ["cowork_trigger_proc_is_wsl", L({ CLAUDE_CODE_ENTRYPOINT: "remote_cowork_trigger" }, wsl1)],
+    ["cowork_proc_and_distro_name_is_wsl", L({ WSL_DISTRO_NAME: "Ubuntu", CLAUDE_CODE_ENTRYPOINT: cowork }, wsl1)],
+    // Nothing is withheld on a real WSL host (`whereAsked` needs the
+    // registry tool to be held, and /mnt/c never is): HKCU and the Windows
+    // folder still count.
+    ["cowork_proc_hkcu_armed", { ...L({ CLAUDE_CODE_ENTRYPOINT: cowork }, wsl2), registry: { hklm: v(arm), hkcu: v({ ...arm, deniedModels: ["u"] }) } }],
+    ["cowork_proc_windows_file", { ...L({ CLAUDE_CODE_ENTRYPOINT: cowork }, wsl2), registry: { hklm: v(arm) }, win: { files: { [M]: J({ deniedModels: ["w"], modelPricing: { multiplier: 2 } }) } } }],
   ];
 }
 
@@ -602,12 +739,27 @@ try {
   if (control?.policyOrigin !== "remote" || J(control.settings.deniedModels) !== J(["r"])) {
     throw new Error(`remote control case didn't read the seeded cache: ${J(control)}`);
   }
+  // Control: with a cowork cloud entrypoint the SDK asks the organization,
+  // and holds a managed document this process can write (every one the
+  // recorder stages): it may only restrict, so `modelPricing` goes and the
+  // default `availableModelsMatch` is dropped. Without the entrypoint the
+  // same file reads as written, which is what every case below relies on.
+  const writable = { deniedModels: ["l"], availableModelsMatch: "prefix", modelPricing: { multiplier: 2 } };
+  const project = (settings) => Object.fromEntries(KEYS.filter((k) => Object.hasOwn(settings ?? {}, k)).map((k) => [k, settings[k]]));
+  const asWritten = runWorker(sdkFile, { files: { [M]: J(writable) } });
+  const held = runWorker(sdkFile, { files: { [M]: J(writable) }, env: { CLAUDE_CODE_ENTRYPOINT: coworkEntrypoints[0] } });
+  if (J(project(asWritten?.settings)) !== J(project(writable)) || J(project(held?.settings)) !== J({ deniedModels: ["l"] })) {
+    throw new Error(`cowork control: ${J(asWritten)} / ${J(held)}; re-derive the held-document path`);
+  }
   for (const [name, spec] of cases) {
-    const { src, calls } = runWorkerFull(sdkFile, spec);
+    const { src, calls, wsl } = runWorkerFull(sdkFile, spec);
+    if (spec.linux && typeof wsl !== "boolean") throw new Error(`${name}: the WSL check never ran`);
     if (calls) {
-      const want = J([["query", "HKCU\\SOFTWARE\\Policies\\ClaudeCode", "/v", "Settings"], ["query", "HKLM\\SOFTWARE\\Policies\\ClaudeCode", "/v", "Settings"]]);
-      regCalls ??= calls;
-      if (J(calls) !== J(regCalls) || J(calls) !== want) throw new Error(`${name}: unexpected reg.exe calls ${J(calls)}`);
+      const both = J([["query", "HKCU\\SOFTWARE\\Policies\\ClaudeCode", "/v", "Settings"], ["query", "HKLM\\SOFTWARE\\Policies\\ClaudeCode", "/v", "Settings"]]);
+      // Off WSL the Linux loader never runs reg.exe.
+      const want = spec.linux && !wsl ? "[]" : both;
+      if (want === both) regCalls ??= calls;
+      if (J(calls) !== want || (want === both && J(calls) !== J(regCalls))) throw new Error(`${name}: unexpected reg.exe calls ${J(calls)}`);
     }
     const origins = spec.registry ? ["file", "hklm", "hkcu"] : ["file", "plist"];
     if (src && !origins.includes(src.policyOrigin)) {
@@ -621,6 +773,7 @@ try {
     out.push({
       name,
       ...spec,
+      ...(spec.linux && { wsl }),
       managed,
       origin: src?.policyOrigin ?? null,
       policy: policyOf(settings),
@@ -632,5 +785,5 @@ try {
 }
 
 const file = join(rustDir, "crates/claudius-core/tests/fixtures/managed_settings_golden.json");
-writeFileSync(file, JSON.stringify({ sdkVersion, regCalls, cases: out }, null, 2) + "\n");
+writeFileSync(file, JSON.stringify({ sdkVersion, regCalls, coworkEntrypoints, cases: out }, null, 2) + "\n");
 console.log(`wrote ${out.length} cases to ${file}`);

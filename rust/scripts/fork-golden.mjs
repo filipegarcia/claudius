@@ -11,7 +11,7 @@
 //
 // Forks are random (new uuids, `new Date()`), so the output is normalized:
 // the new session id becomes `$FORK`, every other uuid that isn't in the
-// source becomes `$U1`, `$U2`, … by first appearance, and every ISO timestamp
+// source becomes `$U1`, `$U2`, ... by first appearance, and every ISO timestamp
 // that isn't in the source becomes `$NOW`. `crates/claudius-core/tests/fork_golden.rs`
 // runs `sessions_store::fork_file` on the same inputs, normalizes the same
 // way, and compares byte for byte. Re-run after bumping the SDK.
@@ -170,7 +170,27 @@ const cases = [
       { type: "relocated", sessionId: SID, relocatedCwd: "/first" },
       { type: "relocated", sessionId: SID, relocatedCwd: "/second" },
       { type: "relocated", sessionId: SID, relocatedCwd: "" },
+      // SDK 0.3.312: the `tools-used` trailer, kept to non-empty strings.
+      { type: "tools-used", sessionId: SID, tools: ["Bash", "", "Read", 5, null, "Bash"] },
+      { type: "tools-used", sessionId: OTHER, tools: ["Ignored"] },
     ],
+    {},
+  ],
+  [
+    // The last trailer for this session wins, a non-array is no trailer at
+    // all, and an all-blank array still forks an (empty) list on.
+    "tools_used_last_wins",
+    [
+      ...linear(),
+      { type: "tools-used", sessionId: SID, tools: ["First"] },
+      { type: "tools-used", sessionId: SID, tools: "Edit" },
+      { type: "tools-used", sessionId: SID, tools: ["", ""] },
+    ],
+    {},
+  ],
+  [
+    "tools_used_only_trailer",
+    [...linear(), { type: "tools-used", sessionId: SID, tools: ["Write"] }],
     {},
   ],
   [
@@ -184,6 +204,7 @@ const cases = [
         sourceToolAssistantUUID: U(9),
         summarizedTurnPromptUuids: [U(9)],
         droppedPromptUuids: [],
+        turnAttributionKey: "turn-1",
         forkedFrom: { sessionId: OTHER, messageUuid: U(9) },
       }),
       asst(2, U(1), "b"),

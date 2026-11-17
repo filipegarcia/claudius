@@ -1,4 +1,5 @@
-//! `listSessions` (SDK 0.3.299 `LMt` → `wU`), without a `sessionStore`.
+//! `listSessions` (SDK 0.3.299 `LMt` → `wU`, plus 0.3.312's git-stub guard;
+//! the golden is recorded on 0.3.312), without a `sessionStore`.
 //!
 //! - **Scan** (`dRe` / `uRe` / `RU` / `Hn` / `xm`): with no `dir`, every
 //!   directory in `<config>/projects`. With a `dir`, only the project dir of
@@ -473,10 +474,16 @@ pub(crate) fn resolved(p: &str) -> String {
 
 /// `So`: `git worktree list --porcelain` paths from `cwd` (NFC on macOS),
 /// with the hooks and fsmonitor off and a 5 s timeout; empty on any
-/// failure, empty output, or past `execFile`'s 1 MiB stdout cap.
+/// failure, empty output, or past `execFile`'s 1 MiB stdout cap, and
+/// without running git at all when it's only the macOS stub
+/// ([`crate::git_stub`]).
 pub(crate) fn git_worktrees(cwd: &str) -> Vec<String> {
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant};
+    // SDK 0.3.312: never run the macOS developer-tools stub.
+    if crate::git_stub::is_git_stub() {
+        return vec![];
+    }
     let child = Command::new("git")
         .args([
             "-c",

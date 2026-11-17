@@ -21,6 +21,8 @@ use rusqlite::types::ValueRef;
 use serde_json::Value;
 
 use crate::db::{self, Mode};
+use crate::js_params;
+use crate::sql_text::JsText;
 
 const KEY: &str = "splash_examples";
 const NAME_KEY: &str = "splash_display_name";
@@ -151,9 +153,11 @@ impl SplashExamples {
 fn read_value(cwd: &str, key: &str) -> Option<Option<String>> {
     let db = db::open_db(cwd, Mode::ReadOnly).ok()?;
     db.with(|c| {
-        c.query_row("SELECT value FROM ui_state WHERE key = ?", [key], |r| {
-            Ok(parse_input(r.get_ref(0)?))
-        })
+        c.query_row(
+            "SELECT value FROM ui_state WHERE key = ?",
+            js_params![key],
+            |r| Ok(parse_input(r.get_ref(0)?)),
+        )
         .optional()
     })
     .ok()?
@@ -219,6 +223,7 @@ const DELETE: &str = "DELETE FROM ui_state WHERE key = ?";
 /// One statement on the read-write handle; its error reads as better-sqlite3's.
 fn write(cwd: &str, sql: &str, params: &[&str]) -> anyhow::Result<()> {
     let db = db::open_db(cwd, Mode::ReadWrite)?;
+    let params = params.iter().map(JsText::new);
     db.with(|c| c.execute(sql, rusqlite::params_from_iter(params)))
         .map_err(|e| anyhow::anyhow!(db::sqlite_message(&e)))?;
     Ok(())

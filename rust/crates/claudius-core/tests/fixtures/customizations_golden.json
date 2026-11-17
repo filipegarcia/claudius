@@ -213,8 +213,8 @@
     }
    ],
    "clock": 1700014000042,
-   "result": "{\"id\":\"cust_8668622c3136\",\"name\":\"First\",\"createdAt\":1700014000042,\"updatedAt\":1700014000042,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "result": "{\"id\":\"cust_8668622c3136\",\"name\":\"First\",\"createdAt\":1700014000042,\"updatedAt\":1700014000042,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
    "tree": {
     "customizations": {
      "index.json": "index"
@@ -230,8 +230,8 @@
     }
    ],
    "clock": 1700015000045,
-   "result": "{\"id\":\"cust_f3938142ca3b\",\"name\":\"Padded\",\"createdAt\":1700015000045,\"updatedAt\":1700015000045,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_f3938142ca3b\",\"name\":\"Padded\",\"createdAt\":1700015000045,\"updatedAt\":1700015000045,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "call",
@@ -242,8 +242,8 @@
     }
    ],
    "clock": 1700016000048,
-   "result": "{\"id\":\"cust_347479a4d8cc\",\"name\":\"Untitled\",\"createdAt\":1700016000048,\"updatedAt\":1700016000048,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_347479a4d8cc\",\"name\":\"Untitled\",\"createdAt\":1700016000048,\"updatedAt\":1700016000048,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "call",
@@ -254,8 +254,8 @@
     }
    ],
    "clock": 1700017000051,
-   "result": "{\"id\":\"cust_9323ec35aba1\",\"name\":\"Untitled\",\"createdAt\":1700017000051,\"updatedAt\":1700017000051,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_9323ec35aba1\",\"name\":\"Untitled\",\"createdAt\":1700017000051,\"updatedAt\":1700017000051,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "call",
@@ -266,8 +266,8 @@
     }
    ],
    "clock": 1700018000054,
-   "result": "{\"id\":\"cust_993e9230292c\",\"name\":\"Untitled\",\"createdAt\":1700018000054,\"updatedAt\":1700018000054,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_993e9230292c\",\"name\":\"Untitled\",\"createdAt\":1700018000054,\"updatedAt\":1700018000054,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "call",
@@ -278,8 +278,8 @@
     }
    ],
    "clock": 1700019000057,
-   "result": "{\"id\":\"cust_2d2af117a622\",\"name\":\"nel᠎\",\"createdAt\":1700019000057,\"updatedAt\":1700019000057,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_2d2af117a622\",\n      \"name\": \"nel᠎\",\n      \"createdAt\": 1700019000057,\n      \"updatedAt\": 1700019000057,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_2d2af117a622\",\"name\":\"nel᠎\",\"createdAt\":1700019000057,\"updatedAt\":1700019000057,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_2d2af117a622\",\n      \"name\": \"nel᠎\",\n      \"createdAt\": 1700019000057,\n      \"updatedAt\": 1700019000057,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "call",
@@ -290,8 +290,8 @@
     }
    ],
    "clock": 1700020000060,
-   "result": "{\"id\":\"cust_ab58bb687ce9\",\"name\":\"😀 rocket\",\"createdAt\":1700020000060,\"updatedAt\":1700020000060,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_2d2af117a622\",\n      \"name\": \"nel᠎\",\n      \"createdAt\": 1700019000057,\n      \"updatedAt\": 1700019000057,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_ab58bb687ce9\",\n      \"name\": \"😀 rocket\",\n      \"createdAt\": 1700020000060,\n      \"updatedAt\": 1700020000060,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_ab58bb687ce9\",\"name\":\"😀 rocket\",\"createdAt\":1700020000060,\"updatedAt\":1700020000060,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_2d2af117a622\",\n      \"name\": \"nel᠎\",\n      \"createdAt\": 1700019000057,\n      \"updatedAt\": 1700019000057,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_ab58bb687ce9\",\n      \"name\": \"😀 rocket\",\n      \"createdAt\": 1700020000060,\n      \"updatedAt\": 1700020000060,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "call",
@@ -302,15 +302,15 @@
     }
    ],
    "clock": 1700021000063,
-   "result": "{\"id\":\"cust_e43898d4b33a\",\"name\":\"\\ud800lone\\udc00\",\"createdAt\":1700021000063,\"updatedAt\":1700021000063,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_2d2af117a622\",\n      \"name\": \"nel᠎\",\n      \"createdAt\": 1700019000057,\n      \"updatedAt\": 1700019000057,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_ab58bb687ce9\",\n      \"name\": \"😀 rocket\",\n      \"createdAt\": 1700020000060,\n      \"updatedAt\": 1700020000060,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_e43898d4b33a\",\n      \"name\": \"\\ud800lone\\udc00\",\n      \"createdAt\": 1700021000063,\n      \"updatedAt\": 1700021000063,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_e43898d4b33a\",\"name\":\"\\ud800lone\\udc00\",\"createdAt\":1700021000063,\"updatedAt\":1700021000063,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_8668622c3136\",\n      \"name\": \"First\",\n      \"createdAt\": 1700014000042,\n      \"updatedAt\": 1700014000042,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_f3938142ca3b\",\n      \"name\": \"Padded\",\n      \"createdAt\": 1700015000045,\n      \"updatedAt\": 1700015000045,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_347479a4d8cc\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700016000048,\n      \"updatedAt\": 1700016000048,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_9323ec35aba1\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700017000051,\n      \"updatedAt\": 1700017000051,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_993e9230292c\",\n      \"name\": \"Untitled\",\n      \"createdAt\": 1700018000054,\n      \"updatedAt\": 1700018000054,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_2d2af117a622\",\n      \"name\": \"nel᠎\",\n      \"createdAt\": 1700019000057,\n      \"updatedAt\": 1700019000057,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_ab58bb687ce9\",\n      \"name\": \"😀 rocket\",\n      \"createdAt\": 1700020000060,\n      \"updatedAt\": 1700020000060,\n      \"baseVersion\": \"0.3.312.0\"\n    },\n    {\n      \"id\": \"cust_e43898d4b33a\",\n      \"name\": \"\\ud800lone\\udc00\",\n      \"createdAt\": 1700021000063,\n      \"updatedAt\": 1700021000063,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "call",
    "fn": "listCustomizations",
    "args": [],
    "clock": 1700022000066,
-   "result": "[{\"id\":\"cust_8668622c3136\",\"name\":\"First\",\"createdAt\":1700014000042,\"updatedAt\":1700014000042,\"baseVersion\":\"0.3.299.0\"},{\"id\":\"cust_f3938142ca3b\",\"name\":\"Padded\",\"createdAt\":1700015000045,\"updatedAt\":1700015000045,\"baseVersion\":\"0.3.299.0\"},{\"id\":\"cust_347479a4d8cc\",\"name\":\"Untitled\",\"createdAt\":1700016000048,\"updatedAt\":1700016000048,\"baseVersion\":\"0.3.299.0\"},{\"id\":\"cust_9323ec35aba1\",\"name\":\"Untitled\",\"createdAt\":1700017000051,\"updatedAt\":1700017000051,\"baseVersion\":\"0.3.299.0\"},{\"id\":\"cust_993e9230292c\",\"name\":\"Untitled\",\"createdAt\":1700018000054,\"updatedAt\":1700018000054,\"baseVersion\":\"0.3.299.0\"},{\"id\":\"cust_2d2af117a622\",\"name\":\"nel᠎\",\"createdAt\":1700019000057,\"updatedAt\":1700019000057,\"baseVersion\":\"0.3.299.0\"},{\"id\":\"cust_ab58bb687ce9\",\"name\":\"😀 rocket\",\"createdAt\":1700020000060,\"updatedAt\":1700020000060,\"baseVersion\":\"0.3.299.0\"},{\"id\":\"cust_e43898d4b33a\",\"name\":\"\\ud800lone\\udc00\",\"createdAt\":1700021000063,\"updatedAt\":1700021000063,\"baseVersion\":\"0.3.299.0\"}]"
+   "result": "[{\"id\":\"cust_8668622c3136\",\"name\":\"First\",\"createdAt\":1700014000042,\"updatedAt\":1700014000042,\"baseVersion\":\"0.3.312.0\"},{\"id\":\"cust_f3938142ca3b\",\"name\":\"Padded\",\"createdAt\":1700015000045,\"updatedAt\":1700015000045,\"baseVersion\":\"0.3.312.0\"},{\"id\":\"cust_347479a4d8cc\",\"name\":\"Untitled\",\"createdAt\":1700016000048,\"updatedAt\":1700016000048,\"baseVersion\":\"0.3.312.0\"},{\"id\":\"cust_9323ec35aba1\",\"name\":\"Untitled\",\"createdAt\":1700017000051,\"updatedAt\":1700017000051,\"baseVersion\":\"0.3.312.0\"},{\"id\":\"cust_993e9230292c\",\"name\":\"Untitled\",\"createdAt\":1700018000054,\"updatedAt\":1700018000054,\"baseVersion\":\"0.3.312.0\"},{\"id\":\"cust_2d2af117a622\",\"name\":\"nel᠎\",\"createdAt\":1700019000057,\"updatedAt\":1700019000057,\"baseVersion\":\"0.3.312.0\"},{\"id\":\"cust_ab58bb687ce9\",\"name\":\"😀 rocket\",\"createdAt\":1700020000060,\"updatedAt\":1700020000060,\"baseVersion\":\"0.3.312.0\"},{\"id\":\"cust_e43898d4b33a\",\"name\":\"\\ud800lone\\udc00\",\"createdAt\":1700021000063,\"updatedAt\":1700021000063,\"baseVersion\":\"0.3.312.0\"}]"
   },
   {
    "op": "call",
@@ -1723,8 +1723,8 @@
     }
    ],
    "clock": 1700143000429,
-   "result": "{\"id\":\"cust_1a3fc8716f92\",\"name\":\"over a newer version\",\"createdAt\":1700143000429,\"updatedAt\":1700143000429,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_1a3fc8716f92\",\n      \"name\": \"over a newer version\",\n      \"createdAt\": 1700143000429,\n      \"updatedAt\": 1700143000429,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "result": "{\"id\":\"cust_1a3fc8716f92\",\"name\":\"over a newer version\",\"createdAt\":1700143000429,\"updatedAt\":1700143000429,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_1a3fc8716f92\",\n      \"name\": \"over a newer version\",\n      \"createdAt\": 1700143000429,\n      \"updatedAt\": 1700143000429,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "fs",
@@ -1841,8 +1841,8 @@
     }
    ],
    "clock": 1700151000453,
-   "result": "{\"id\":\"cust_bb3d87e7695b\",\"name\":\"via a dangling link\",\"createdAt\":1700151000453,\"updatedAt\":1700151000453,\"baseVersion\":\"0.3.299.0\"}",
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_bb3d87e7695b\",\n      \"name\": \"via a dangling link\",\n      \"createdAt\": 1700151000453,\n      \"updatedAt\": 1700151000453,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "result": "{\"id\":\"cust_bb3d87e7695b\",\"name\":\"via a dangling link\",\"createdAt\":1700151000453,\"updatedAt\":1700151000453,\"baseVersion\":\"0.3.312.0\"}",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_bb3d87e7695b\",\n      \"name\": \"via a dangling link\",\n      \"createdAt\": 1700151000453,\n      \"updatedAt\": 1700151000453,\n      \"baseVersion\": \"0.3.312.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
    "tree": {
     "customizations": {
      "index.json": "index"

@@ -267,6 +267,11 @@ impl Store {
         &self.root
     }
 
+    /// The store's clock (`Date.now()`).
+    pub fn now(&self) -> i64 {
+        (self.now)()
+    }
+
     /// `customizationDir(id)`.
     pub fn customization_dir(&self, id: &str) -> String {
         node_path::join(&[&self.root, id])
@@ -690,6 +695,19 @@ pub fn hash_file_or_null(path: &str) -> Result<Option<String>, FsError> {
         Err(e) if e.is_not_found() => Ok(None),
         Err(e) => Err(e),
     }
+}
+
+/// `hashTree(root)`: one SHA-1 over `path \0 sha1 \n` for each file of
+/// [`list_source_files`], in its order (D14).
+pub fn hash_tree(root: &str) -> Result<String, FsError> {
+    let mut ctx = ring::digest::Context::new(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY);
+    for rel in list_source_files(root)? {
+        let sha = hash_file(&node_path::join(&[root, &rel]))?;
+        for part in [rel.as_bytes(), b"\0", sha.as_bytes(), b"\n"] {
+            ctx.update(part);
+        }
+    }
+    Ok(hex(ctx.finish().as_ref()))
 }
 
 /// `listSourceFiles(root)` (`walkFiles`): the regular files under `root`,

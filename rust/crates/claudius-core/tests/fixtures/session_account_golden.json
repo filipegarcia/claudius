@@ -1,5 +1,5 @@
 {
- "sdkVersion": "0.3.299",
+ "sdkVersion": "0.3.312",
  "envKeys": [
   "ANTHROPIC_API_KEY",
   "ANTHROPIC_AUTH_TOKEN",
@@ -14828,6 +14828,211 @@
    "lookups": [
     null,
     null
+   ]
+  },
+  {
+   "name": "cwd-less, found before a null entry",
+   "store": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_alpha\",\n      \"label\": \"Alpha\",\n      \"kind\": \"api-key\",\n      \"secret\": \"sk-ant-api03-FAKE-s30r-alpha\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"activeProfileId\": \"acc_alpha\",\n  \"autoRotateOnRateLimit\": false\n}",
+   "workspaces": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_$CWD:a\",\n      \"name\": \"w\",\n      \"rootPath\": \"$CWD:a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1\n    },\n    {\n      \"id\": \"wks_$CWD:b\",\n      \"name\": \"w\",\n      \"rootPath\": \"$CWD:b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1\n    },\n    null\n  ]\n}\n",
+   "dbs": {
+    "a": [
+     [
+      "s1",
+      "{\"accountProfileId\":\"acc_alpha\"}"
+     ]
+    ]
+   },
+   "pairs": [
+    [
+     null,
+     "s1"
+    ]
+   ],
+   "entries": [
+    [
+     "*:s1",
+     {
+      "accountId": "acc_alpha",
+      "accountLabel": "Alpha"
+     }
+    ]
+   ],
+   "accountsConfigured": 1,
+   "lookups": [
+    {
+     "accountId": "acc_alpha",
+     "accountLabel": "Alpha"
+    }
+   ]
+  },
+  {
+   "name": "a foreign sessions table",
+   "store": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_alpha\",\n      \"label\": \"Alpha\",\n      \"kind\": \"api-key\",\n      \"secret\": \"sk-ant-api03-FAKE-s30r-alpha\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_bravo\",\n      \"label\": \"Bravo\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-s30r-bravo\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\",\n      \"accountUuid\": \"11111111-2222-4333-8444-555555555555\",\n      \"emailAddress\": \"bravo@example.com\",\n      \"organizationUuid\": \"66666666-7777-4888-9999-000000000000\"\n    }\n  ],\n  \"activeProfileId\": \"acc_alpha\",\n  \"autoRotateOnRateLimit\": false\n}",
+   "workspaces": null,
+   "dbs": {
+    "a": {
+     "sql": "PRAGMA journal_mode=WAL; CREATE TABLE sessions(id TEXT, state TEXT); INSERT INTO sessions VALUES ('s1', '{\"accountProfileId\":\"acc_alpha\"}'), ('s1', '{\"accountProfileId\":\"acc_bravo\"}'), ('s2', '{\"accountProfileId\":\"acc_bravo\"}');"
+    },
+    "n": {
+     "sql": "PRAGMA journal_mode=WAL; CREATE TABLE sessions(id INTEGER, state TEXT); INSERT INTO sessions VALUES (7, '{\"accountProfileId\":\"acc_bravo\"}'), (2.5, '{\"accountProfileId\":\"acc_alpha\"}'), (9007199254740993, '{\"accountProfileId\":\"acc_alpha\"}'), (1e21, '{\"accountProfileId\":\"acc_bravo\"}'), (1e999, '{\"accountProfileId\":\"acc_alpha\"}');"
+    }
+   },
+   "pairs": [
+    [
+     "a",
+     "s1"
+    ],
+    [
+     "a",
+     "s2"
+    ],
+    [
+     "n",
+     "7"
+    ],
+    [
+     "n",
+     "2.5"
+    ],
+    [
+     "n",
+     "07"
+    ],
+    [
+     "n",
+     "9007199254740993"
+    ],
+    [
+     "n",
+     "1e21"
+    ],
+    [
+     "n",
+     "1e+21"
+    ],
+    [
+     "n",
+     "1e999"
+    ]
+   ],
+   "entries": [
+    [
+     "$ROOT/list/17/a:s1",
+     {
+      "accountId": "acc_alpha",
+      "accountLabel": "Alpha"
+     }
+    ],
+    [
+     "$ROOT/list/17/a:s2",
+     {
+      "accountId": "acc_bravo",
+      "accountLabel": "Bravo"
+     }
+    ],
+    [
+     "$ROOT/list/17/n:7",
+     {
+      "accountId": "acc_bravo",
+      "accountLabel": "Bravo"
+     }
+    ],
+    [
+     "$ROOT/list/17/n:2.5",
+     {
+      "accountId": "acc_alpha",
+      "accountLabel": "Alpha"
+     }
+    ],
+    [
+     "$ROOT/list/17/n:9007199254740992",
+     {
+      "accountId": "acc_alpha",
+      "accountLabel": "Alpha"
+     }
+    ],
+    [
+     "$ROOT/list/17/n:1e+21",
+     {
+      "accountId": "acc_bravo",
+      "accountLabel": "Bravo"
+     }
+    ],
+    [
+     "$ROOT/list/17/n:Infinity",
+     {
+      "accountId": "acc_alpha",
+      "accountLabel": "Alpha"
+     }
+    ]
+   ],
+   "accountsConfigured": 2,
+   "lookups": [
+    {
+     "accountId": "acc_alpha",
+     "accountLabel": "Alpha"
+    },
+    {
+     "accountId": "acc_bravo",
+     "accountLabel": "Bravo"
+    },
+    {
+     "accountId": "acc_bravo",
+     "accountLabel": "Bravo"
+    },
+    {
+     "accountId": "acc_alpha",
+     "accountLabel": "Alpha"
+    },
+    null,
+    null,
+    null,
+    {
+     "accountId": "acc_bravo",
+     "accountLabel": "Bravo"
+    },
+    null
+   ]
+  },
+  {
+   "name": "an empty workspace root with a database",
+   "store": "{\n  \"profiles\": [\n    {\n      \"id\": \"acc_alpha\",\n      \"label\": \"Alpha\",\n      \"kind\": \"api-key\",\n      \"secret\": \"sk-ant-api03-FAKE-s30r-alpha\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"acc_bravo\",\n      \"label\": \"Bravo\",\n      \"kind\": \"oauth-token\",\n      \"secret\": \"sk-ant-oat01-FAKE-s30r-bravo\",\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\",\n      \"accountUuid\": \"11111111-2222-4333-8444-555555555555\",\n      \"emailAddress\": \"bravo@example.com\",\n      \"organizationUuid\": \"66666666-7777-4888-9999-000000000000\"\n    }\n  ],\n  \"activeProfileId\": \"acc_alpha\",\n  \"autoRotateOnRateLimit\": false\n}",
+   "workspaces": "{\n  \"version\": 1,\n  \"workspaces\": [\n    {\n      \"id\": \"wks_\",\n      \"name\": \"w\",\n      \"rootPath\": \"\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1\n    },\n    {\n      \"id\": \"wks_$CWD:a\",\n      \"name\": \"w\",\n      \"rootPath\": \"$CWD:a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#d97757\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 1\n    }\n  ]\n}\n",
+   "dbs": {
+    "": [
+     [
+      "s1",
+      "{\"accountProfileId\":\"acc_bravo\"}"
+     ]
+    ],
+    "a": [
+     [
+      "s1",
+      "{\"accountProfileId\":\"acc_alpha\"}"
+     ]
+    ]
+   },
+   "pairs": [
+    [
+     null,
+     "s1"
+    ]
+   ],
+   "entries": [
+    [
+     "*:s1",
+     {
+      "accountId": "acc_alpha",
+      "accountLabel": "Alpha"
+     }
+    ]
+   ],
+   "accountsConfigured": 2,
+   "lookups": [
+    {
+     "accountId": "acc_alpha",
+     "accountLabel": "Alpha"
+    }
    ]
   }
  ]

@@ -27,7 +27,7 @@ use claudius_agent::{
 use serde_json::{Value, json};
 
 /// Known, tracked differences: (case, JSON path prefix, TODO id). Empty
-/// since A03 (2026-10-26): every case matches SDK 0.3.299 exactly. Add an
+/// since A03 (2026-10-26): every case matches SDK 0.3.312 exactly. Add an
 /// entry only with the TODO id that will remove it.
 const ALLOWED: &[(&str, &str, &str)] = &[];
 

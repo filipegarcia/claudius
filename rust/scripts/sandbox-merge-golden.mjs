@@ -11,10 +11,13 @@
 // `crates/claudius-agent/tests/sandbox_merge.rs` replays every case against
 // `claudius_agent::sandbox::merge_into_args` and compares byte for byte.
 //
-// The bundle is minified, so the functions are found by their minified names
-// (true for SDK 0.3.299). After an SDK bump, re-derive the names from the
-// function holding "Cannot use both a settings file path and the sandbox
-// option" if the anchors below stop matching.
+// The bundle is minified and renamed on every SDK bump, so the merge and its
+// helpers are found by the shape of their code, not by name: the merge is the
+// `(options, sandbox)` function that throws "Cannot use both a settings file
+// path and the sandbox option", and the slice around it runs from the
+// settings-JSON braces check through the deep merge and the key sets it
+// reads. `JSON.parse` / `JSON.stringify` sit behind the bundle's tracing
+// wrappers, so those two names are stubbed out.
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,34 +29,52 @@ const sdkPath = join(repo, "node_modules/@anthropic-ai/claude-agent-sdk");
 const bundle = readFileSync(join(sdkPath, "sdk.mjs"), "utf8");
 const sdkVersion = JSON.parse(readFileSync(join(sdkPath, "package.json"), "utf8")).version;
 
-function slice(startAnchor, endAnchor) {
-  const start = bundle.indexOf(startAnchor);
-  const end = bundle.indexOf(endAnchor, start);
-  if (start < 0 || end < 0) {
-    throw new Error(`anchor ${JSON.stringify(startAnchor)} not found in sdk.mjs ${sdkVersion}`);
-  }
-  return bundle.slice(start, end);
+function shape(re, what, haystack = bundle) {
+  const m = re.exec(haystack);
+  if (!m) throw new Error(`${what} moved in sdk.mjs ${sdkVersion}: re-derive the extraction`);
+  return m;
 }
 function oneLiner(name) {
   const m = bundle.match(new RegExp(`function ${name}\\([^)]*\\)\\{[^}]*\\}`));
-  if (!m) throw new Error(`function ${name} not found in sdk.mjs ${sdkVersion}`);
+  if (!m) throw new Error(`function ${name} is not a one-liner in sdk.mjs ${sdkVersion}`);
   return m[0];
 }
-
-// mVe, gVe, hVe, _Ve, yVe, bZ, CZ in one block; io (plain object) and cn
-// (dedupe) are small helpers. Fe/se are JSON.parse/stringify behind the
-// bundle's tracing wrappers.
-const source = [
-  slice("function mVe(", "function Be("),
-  oneLiner("io"),
-  oneLiner("cn"),
-  "const Fe = (s) => JSON.parse(s); const se = (v) => JSON.stringify(v);",
-  "return CZ;",
-].join("\n");
-if (!source.includes("Cannot use both a settings file path and the sandbox option")) {
-  throw new Error("lifted code isn't CZ; re-derive the anchors");
+/** The end of the function starting at `from`, by matching its braces. */
+function functionEnd(from) {
+  let depth = 0;
+  for (let i = bundle.indexOf("{", from); i < bundle.length; i++) {
+    if (bundle[i] === "{") depth++;
+    else if (bundle[i] === "}" && --depth === 0) return i + 1;
+  }
+  throw new Error(`unbalanced braces from ${from} in sdk.mjs ${sdkVersion}`);
 }
-const CZ = new Function(source)();
+
+// `(settings) => settings.trim()` is braced-JSON is the first declaration the merge
+// needs; the merge itself is the last. Everything between (the deep merge and
+// the four key sets it reads) comes along in one slice.
+const braces = shape(/function ([\w$]+)\(e\)\{let t=e\.trim\(\);return t\.startsWith\("\{"\)&&t\.endsWith\("\}"\)\}/, "the settings-JSON check");
+const mergeIntoArgs = shape(/function ([\w$]+)\(e,t\)\{let n=\{\.\.\.e\};if\(!t\)return n;/, "the sandbox merge");
+const lifted = bundle.slice(braces.index, functionEnd(mergeIntoArgs.index));
+if (!lifted.includes("Cannot use both a settings file path and the sandbox option")) {
+  throw new Error(`lifted code isn't the sandbox merge in sdk.mjs ${sdkVersion}; re-derive the extraction`);
+}
+// The helpers the lifted code calls, named inside it: a plain-object test, a
+// `[...new Set]` dedupe, and the two JSON wrappers (stubbed). Each name is
+// read out of the slice, not the whole bundle, so an identical shape
+// elsewhere can't win.
+const isPlainObject = shape(/([\w$]+)\(e\)\?\{\.\.\.e\}:\{\}/, "the plain-object test", lifted)[1];
+const dedupe = shape(/=([\w$]+)\(\[\.\.\.[\w$]+,\.\.\.[\w$]+\]\)/, "the array-union dedupe", lifted)[1];
+const jsonParse = shape(/try\{[\w$]+=([\w$]+)\([\w$]+\)\}catch\{\}/, "the settings JSON.parse", lifted)[1];
+const jsonStringify = shape(/\.settings=([\w$]+)\(\{\.\.\.[\w$]+,sandbox:[\w$]+\}\)/, "the settings JSON.stringify", lifted)[1];
+const CZ = new Function(
+  [
+    lifted,
+    oneLiner(isPlainObject),
+    oneLiner(dedupe),
+    `const ${jsonParse} = (s) => JSON.parse(s); const ${jsonStringify} = (v) => JSON.stringify(v);`,
+    `return ${mergeIntoArgs[1]};`,
+  ].join("\n"),
+)();
 
 // Inputs are JSON text so `__proto__` keys become own properties, the way
 // they do when JSON reaches the SDK. `args` is `{...extraArgs, settings?}`;
@@ -77,7 +98,7 @@ const cases = [
   ["settings_path_not_closed", { settings: "{ not closed" }, S({ enabled: true })],
   ["settings_empty_string", { settings: "" }, S({ enabled: true })],
   ["settings_unparseable", { settings: "  {bad json}  " }, S({ enabled: true })],
-  ["settings_nbsp_trimmed_but_invalid_json", { settings: " {\"a\":1}" }, S({ enabled: true })],
+  ["settings_nbsp_trimmed_but_invalid_json", { settings: "\u00a0{\"a\":1}" }, S({ enabled: true })],
   ["settings_json_whitespace", { settings: "\n {\"a\":1} \n" }, S({ enabled: true })],
   ["settings_null_extra_arg", { foo: "1", settings: null, bar: null }, S({ enabled: true })],
   ["extra_args_keep_settings_position", { foo: "1", settings: S({ a: 1 }), bar: null }, S({ enabled: true })],
@@ -215,7 +236,7 @@ const cases = [
   ["option_true", {}, "true"],
   ["option_string", {}, '"ab"'],
   ["option_array", {}, S([{ enabled: true }])],
-  ["unicode_and_escapes", { settings: S({ s: "é\n\u001f\" " }) }, S({ enabled: true })],
+  ["unicode_and_escapes", { settings: S({ s: "\u00e9\n\u001f\"\u2028" }) }, S({ enabled: true })],
 ];
 
 const out = cases.map(([name, args, sandboxJson]) => {

@@ -174,11 +174,23 @@ async fn the_listing_join_matches_ts() {
             }
         }
         for (db_name, rows) in sc["dbs"].as_object().unwrap() {
-            let cwd = format!("{base}/{db_name}");
+            // The empty name is the empty cwd, whose database sits at
+            // `~/.claude/projects/.claudius.db`.
+            let cwd = cwd_of(&json!(db_name)).unwrap();
             if let Some(bytes) = rows.as_str() {
                 let file = paths::db_path(&cwd);
                 std::fs::create_dir_all(file.parent().unwrap()).unwrap();
                 std::fs::write(&file, bytes).unwrap();
+                continue;
+            }
+            // `{sql}`: a foreign database, that SQL on a new file.
+            if let Some(sql) = rows["sql"].as_str() {
+                let file = paths::db_path(&cwd);
+                std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+                rusqlite::Connection::open(&file)
+                    .unwrap()
+                    .execute_batch(sql)
+                    .unwrap();
                 continue;
             }
             let db = db::open_db(&cwd, Mode::ReadWrite).unwrap();

@@ -23,7 +23,7 @@ use std::time::{Duration, SystemTime};
 
 use claudius_core::db::{Mode, open_path};
 use claudius_core::paths::{encode_project_dir, sdk_project_dir_name};
-use common::{Server, World, http};
+use common::{Server, World, http, wait_until};
 use serde_json::{Value, json};
 
 fn fixture() -> Value {
@@ -725,4 +725,78 @@ fn sits_beside_the_session_routes() {
     let (st, _) = http(server.port, "POST", "/api/sessions/fork", "{}");
     assert_ne!(st, 405);
     assert_ne!(st, 501);
+}
+
+/// CC 2.1.309 (R05): history keeps an untitled DB-only row only while its
+/// session is live (`isHistoryWorthyDbRow(row, (id) =>
+/// sessionManager.get(id) !== undefined)`), here wired to the real manager.
+/// A fresh session upserts its row at once, so it lists until it is reaped;
+/// a titled one stays. The move-sessions preview counts the same way. The
+/// filter's own branches are pinned by `claudius-core/tests/cc2309_golden.rs`.
+#[test]
+fn untitled_db_only_rows_list_only_while_live() {
+    let world = World::new();
+    let dir = world.project.display().to_string();
+    let store = world.home.join(".claude/.claudius/workspaces.json");
+    std::fs::create_dir_all(store.parent().unwrap()).unwrap();
+    let ws = json!({"version": 1, "workspaces": [{
+        "id": "wks_live", "name": "Live", "rootPath": dir,
+        "icon": {"kind": "letter", "letter": "L", "color": "#d97757"},
+        "createdAt": 1, "updatedAt": 1, "lastOpenedAt": 1,
+        "defaults": {"permissionMode": "default"},
+    }]});
+    std::fs::write(&store, serde_json::to_string_pretty(&ws).unwrap()).unwrap();
+    let server = Server::spawn(&world, &[]);
+    let port = server.port;
+    let listed = || -> Vec<(String, String)> {
+        let path = format!("/api/sessions/all?dir={}", encode_uri_component(&dir));
+        let (st, body) = http(port, "GET", &path, "");
+        assert_eq!(st, 200, "{body}");
+        let v: Value = serde_json::from_str(&body).unwrap();
+        let mut got: Vec<(String, String)> = v["sessions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| {
+                let id = s["sessionId"].as_str().unwrap().to_owned();
+                (id, s["summary"].as_str().unwrap_or_default().to_owned())
+            })
+            .collect();
+        got.sort();
+        got
+    };
+    let count = || -> Value {
+        let (st, body) = http(port, "GET", "/api/workspaces/wks_live/move-sessions", "");
+        assert_eq!(st, 200, "{body}");
+        serde_json::from_str::<Value>(&body).unwrap()["count"].clone()
+    };
+    let reap = |id: &str| {
+        let (st, body) = http(port, "POST", &format!("/api/sessions/{id}/dev-reap"), "{}");
+        assert_eq!((st, body.as_str()), (200, r#"{"ok":true,"reaped":true}"#));
+    };
+
+    let untitled = server.create_session(&world);
+    let named = server.create_session(&world);
+    let (st, body) = http(
+        port,
+        "POST",
+        "/api/sessions/rename",
+        &json!({"sessionId": named, "title": "Named"}).to_string(),
+    );
+    assert_eq!((st, body.as_str()), (200, r#"{"ok":true}"#));
+    let mut both = vec![
+        (untitled.clone(), String::new()),
+        (named.clone(), "Named".into()),
+    ];
+    both.sort();
+    wait_until("both rows listed", Duration::from_secs(20), || {
+        listed() == both
+    });
+    assert_eq!(count(), json!(2));
+
+    // Reaped: the untitled row is an abandoned tab now, the named one stays.
+    reap(&untitled);
+    reap(&named);
+    assert_eq!(listed(), [(named.clone(), "Named".to_owned())]);
+    assert_eq!(count(), json!(1));
 }

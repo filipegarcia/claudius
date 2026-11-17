@@ -1,0 +1,572 @@
+{
+ "sdkVersion": "0.3.312",
+ "cases": [
+  {
+   "name": "origin_task_kind",
+   "sessionId": "00000000-0000-4000-8000-000000000001",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"first\"},\"origin\":{\"kind\":\"task-notification\",\"subkind\":\"s\",\"fireReason\":\"f\",\"producer\":\"p\",\"runId\":\"run-1\",\"taskKind\":\"mcp-task\",\"extra\":1},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"a\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"shell\"},\"origin\":{\"kind\":\"task-notification\",\"taskKind\":\"shell\"},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u4\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"b\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u4\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u5\",\"timestamp\":\"2026-01-01T00:00:05.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"upper\"},\"origin\":{\"kind\":\"task-notification\",\"taskKind\":\"MCP-TASK\",\"runId\":\"bad run id\"},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u5\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u6\",\"timestamp\":\"2026-01-01T00:00:06.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u6\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"c\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u6\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u7\",\"timestamp\":\"2026-01-01T00:00:07.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"null\"},\"origin\":{\"kind\":\"task-notification\",\"taskKind\":null,\"subkind\":null},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u7\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u8\",\"timestamp\":\"2026-01-01T00:00:08.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u8\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"d\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u8\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u9\",\"timestamp\":\"2026-01-01T00:00:09.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"number\"},\"origin\":{\"kind\":\"task-notification\",\"taskKind\":7},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u9\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u10\",\"timestamp\":\"2026-01-01T00:00:10.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u10\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"e\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u10\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u11\",\"timestamp\":\"2026-01-01T00:00:11.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"other kind\"},\"origin\":{\"kind\":\"human\",\"taskKind\":\"mcp-task\"},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u11\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u12\",\"timestamp\":\"2026-01-01T00:00:12.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u12\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"f\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u12\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u13\",\"timestamp\":\"2026-01-01T00:00:13.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"string origin\"},\"origin\":\"mcp-task\",\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n{\"parentUuid\":\"u13\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u14\",\"timestamp\":\"2026-01-01T00:00:14.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u14\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"g\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000001\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"first\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"origin\":{\"kind\":\"task-notification\",\"subkind\":\"s\",\"fireReason\":\"f\",\"producer\":\"p\",\"runId\":\"run-1\",\"taskKind\":\"mcp-task\"}},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"a\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"shell\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"assistant\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u4\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"b\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"},{\"type\":\"user\",\"uuid\":\"u5\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"upper\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:05.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"assistant\",\"uuid\":\"u6\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u6\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"c\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:06.000Z\"},{\"type\":\"user\",\"uuid\":\"u7\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"null\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:07.000Z\",\"origin\":{\"kind\":\"task-notification\",\"subkind\":null}},{\"type\":\"assistant\",\"uuid\":\"u8\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u8\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"d\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:08.000Z\"},{\"type\":\"user\",\"uuid\":\"u9\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"number\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:09.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"assistant\",\"uuid\":\"u10\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u10\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"e\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:10.000Z\"},{\"type\":\"user\",\"uuid\":\"u11\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"other kind\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:11.000Z\",\"origin\":{\"kind\":\"human\",\"taskKind\":\"mcp-task\"}},{\"type\":\"assistant\",\"uuid\":\"u12\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u12\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"f\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:12.000Z\"},{\"type\":\"user\",\"uuid\":\"u13\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"string origin\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:13.000Z\",\"origin\":\"mcp-task\"},{\"type\":\"assistant\",\"uuid\":\"u14\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u14\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"g\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:14.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"first\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"origin\":{\"kind\":\"task-notification\",\"subkind\":\"s\",\"fireReason\":\"f\",\"producer\":\"p\",\"runId\":\"run-1\",\"taskKind\":\"mcp-task\"}},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"a\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"shell\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"assistant\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u4\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"b\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"},{\"type\":\"user\",\"uuid\":\"u5\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"upper\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:05.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"assistant\",\"uuid\":\"u6\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u6\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"c\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:06.000Z\"},{\"type\":\"user\",\"uuid\":\"u7\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"null\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:07.000Z\",\"origin\":{\"kind\":\"task-notification\",\"subkind\":null}},{\"type\":\"assistant\",\"uuid\":\"u8\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u8\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"d\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:08.000Z\"},{\"type\":\"user\",\"uuid\":\"u9\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"number\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:09.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"assistant\",\"uuid\":\"u10\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u10\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"e\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:10.000Z\"},{\"type\":\"user\",\"uuid\":\"u11\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"other kind\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:11.000Z\",\"origin\":{\"kind\":\"human\",\"taskKind\":\"mcp-task\"}},{\"type\":\"assistant\",\"uuid\":\"u12\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u12\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"f\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:12.000Z\"},{\"type\":\"user\",\"uuid\":\"u13\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"role\":\"user\",\"content\":\"string origin\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:13.000Z\",\"origin\":\"mcp-task\"},{\"type\":\"assistant\",\"uuid\":\"u14\",\"session_id\":\"00000000-0000-4000-8000-000000000001\",\"message\":{\"id\":\"msg_u14\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"g\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:14.000Z\"}]"
+  },
+  {
+   "name": "queued_origin_task_kind",
+   "sessionId": "00000000-0000-4000-8000-000000000002",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000002\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"from mcp\",\"origin\":{\"kind\":\"task-notification\",\"taskKind\":\"mcp-task\",\"runId\":\"r2\"}},\"sessionId\":\"00000000-0000-4000-8000-000000000002\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"from shell\",\"origin\":{\"kind\":\"task-notification\",\"taskKind\":\"shell\"}},\"sessionId\":\"00000000-0000-4000-8000-000000000002\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"by mode\",\"commandMode\":\"task-notification\",\"runId\":\"r4\"},\"sessionId\":\"00000000-0000-4000-8000-000000000002\"}\n{\"parentUuid\":\"u4\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u5\",\"timestamp\":\"2026-01-01T00:00:05.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u5\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000002\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"user\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"from mcp\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"origin\":{\"kind\":\"task-notification\",\"runId\":\"r2\",\"taskKind\":\"mcp-task\"}},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"from shell\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"by mode\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"origin\":{\"kind\":\"task-notification\",\"runId\":\"r4\"}},{\"type\":\"assistant\",\"uuid\":\"u5\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"id\":\"msg_u5\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:05.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"user\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"from mcp\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"origin\":{\"kind\":\"task-notification\",\"runId\":\"r2\",\"taskKind\":\"mcp-task\"}},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"from shell\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"origin\":{\"kind\":\"task-notification\"}},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"role\":\"user\",\"content\":\"by mode\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"origin\":{\"kind\":\"task-notification\",\"runId\":\"r4\"}},{\"type\":\"assistant\",\"uuid\":\"u5\",\"session_id\":\"00000000-0000-4000-8000-000000000002\",\"message\":{\"id\":\"msg_u5\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:05.000Z\"}]"
+  },
+  {
+   "name": "session_ended_string_is_a_reply",
+   "sessionId": "00000000-0000-4000-8000-000000000003",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000003\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000003\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000003\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},\"sessionId\":\"00000000-0000-4000-8000-000000000003\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000003\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "session_ended_with_more_text_is_a_reply",
+   "sessionId": "00000000-0000-4000-8000-000000000004",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.] (and then some)\"},\"sessionId\":\"00000000-0000-4000-8000-000000000004\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.] (and then some)\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000004\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.] (and then some)\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "session_ended_text_block_is_a_reply",
+   "sessionId": "00000000-0000-4000-8000-000000000005",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000005\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000005\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000005\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000005\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000005\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "session_ended_error_tool_result_is_a_reply",
+   "sessionId": "00000000-0000-4000-8000-000000000006",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000006\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000006\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000006\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"is_error\":true,\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000006\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"is_error\":true,\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000006\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"is_error\":true,\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "session_ended_non_error_tool_result_is_a_tool_reply",
+   "sessionId": "00000000-0000-4000-8000-000000000007",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000007\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000007\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000007\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000007\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000007\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_1\",\"content\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "session_ended_mixed_blocks_is_a_prompt",
+   "sessionId": "00000000-0000-4000-8000-000000000008",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000008\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000008\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000008\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},{\"type\":\"text\",\"text\":\"hi\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000008\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000008\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000008\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000008\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},{\"type\":\"text\",\"text\":\"hi\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000008\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000008\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000008\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"[Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},{\"type\":\"text\",\"text\":\"hi\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "session_ended_leading_space_is_a_prompt",
+   "sessionId": "00000000-0000-4000-8000-000000000009",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000009\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000009\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000009\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\" [Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},\"sessionId\":\"00000000-0000-4000-8000-000000000009\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000009\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000009\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000009\",\"message\":{\"role\":\"user\",\"content\":\" [Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000009\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000009\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000009\",\"message\":{\"role\":\"user\",\"content\":\" [Request interrupted: the session ended before this agent finished. Nobody asked it to stop.]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "other_interrupted_text_is_a_prompt",
+   "sessionId": "00000000-0000-4000-8000-000000000010",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000010\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000010\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000010\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: something else]\"},\"sessionId\":\"00000000-0000-4000-8000-000000000010\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000010\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000010\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000010\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: something else]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000010\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000010\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000010\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted: something else]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "user_interrupt_is_a_reply",
+   "sessionId": "00000000-0000-4000-8000-000000000011",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000011\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000011\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000011\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted by user]\"},\"sessionId\":\"00000000-0000-4000-8000-000000000011\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted by user]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000011\",\"message\":{\"role\":\"user\",\"content\":\"[Request interrupted by user]\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "plain_prompt_after_queued",
+   "sessionId": "00000000-0000-4000-8000-000000000012",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000012\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000012\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000012\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"a new prompt\"},\"sessionId\":\"00000000-0000-4000-8000-000000000012\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000012\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000012\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000012\",\"message\":{\"role\":\"user\",\"content\":\"a new prompt\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000012\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000012\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000012\",\"message\":{\"role\":\"user\",\"content\":\"a new prompt\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  },
+  {
+   "name": "assistant_after_queued",
+   "sessionId": "00000000-0000-4000-8000-000000000013",
+   "transcript": "{\"parentUuid\":null,\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u1\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"sessionId\":\"00000000-0000-4000-8000-000000000013\"}\n{\"parentUuid\":\"u1\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u2\",\"timestamp\":\"2026-01-01T00:00:02.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000013\"}\n{\"parentUuid\":\"u2\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u3\",\"timestamp\":\"2026-01-01T00:00:03.000Z\",\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":\"also this\"},\"sessionId\":\"00000000-0000-4000-8000-000000000013\"}\n{\"parentUuid\":\"u3\",\"isSidechain\":false,\"cwd\":\"/golden/project\",\"version\":\"2.1.312\",\"uuid\":\"u4\",\"timestamp\":\"2026-01-01T00:00:04.000Z\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_u4\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"sessionId\":\"00000000-0000-4000-8000-000000000013\"}\n",
+   "withoutSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"id\":\"msg_u4\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]",
+   "withSystem": "[{\"type\":\"user\",\"uuid\":\"u1\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"role\":\"user\",\"content\":\"go\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:01.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u2\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"id\":\"msg_u2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"on it\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:02.000Z\"},{\"type\":\"user\",\"uuid\":\"u3\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"role\":\"user\",\"content\":\"also this\"},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"isQueuedCommand\":true,\"timestamp\":\"2026-01-01T00:00:03.000Z\"},{\"type\":\"assistant\",\"uuid\":\"u4\",\"session_id\":\"00000000-0000-4000-8000-000000000013\",\"message\":{\"id\":\"msg_u4\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"done\"}]},\"parent_tool_use_id\":null,\"parent_agent_id\":null,\"timestamp\":\"2026-01-01T00:00:04.000Z\"}]"
+  }
+ ],
+ "gitStub": [
+  {
+   "name": "stub",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "linux",
+   "platform": "linux",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "win32",
+   "platform": "win32",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "developer_dir",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "developer_dir_empty",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+    "DEVELOPER_DIR": ""
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "command_line_tools",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stat": {
+    "/Library/Developer/CommandLineTools": "present"
+   },
+   "stub": false
+  },
+  {
+   "name": "command_line_tools_unreadable",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stat": {
+    "/Library/Developer/CommandLineTools": "error"
+   },
+   "stub": false
+  },
+  {
+   "name": "xcode_select_link",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "lstat": {
+    "/var/db/xcode_select_link": "present"
+   },
+   "stub": false
+  },
+  {
+   "name": "xcode_select_link_unreadable",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "lstat": {
+    "/var/db/xcode_select_link": "error"
+   },
+   "stub": false
+  },
+  {
+   "name": "xcode_app",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app",
+    "Xcode.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "xcode_beta_app",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Xcode-beta.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "xcode_lowercase",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "xcode.APP"
+   ],
+   "stub": false
+  },
+  {
+   "name": "xcode_no_suffix",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Xcode"
+   ],
+   "stub": true
+  },
+  {
+   "name": "xcode_not_first",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "MyXcode.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "xcode_app_bak",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Xcode.app.bak"
+   ],
+   "stub": true
+  },
+  {
+   "name": "xcode_newline",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Xcode\n.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "xcode_line_separator",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Xcode .app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "xcode_tab",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Xcode\t.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "xcode_non_ascii_fold",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Kcode.app",
+    "Xcodé.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "applications_unreadable",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": "error",
+   "stub": false
+  },
+  {
+   "name": "applications_empty",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [],
+   "stub": true
+  },
+  {
+   "name": "homebrew_git_first",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/opt/homebrew/bin:/usr/bin"
+   },
+   "exists": [
+    "/opt/homebrew/bin/git",
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "homebrew_dir_without_git",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/opt/homebrew/bin:/usr/bin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "no_git_anywhere",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "exists": [],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "no_path",
+   "platform": "darwin",
+   "env": {},
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "empty_path",
+   "platform": "darwin",
+   "env": {
+    "PATH": ""
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "relative_entries_skipped",
+   "platform": "darwin",
+   "env": {
+    "PATH": "bin:.:/usr/bin"
+   },
+   "exists": [
+    "bin/git",
+    "git",
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "trailing_slash",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/bin/"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "double_slash",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr//bin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "dot_dot",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/local/../bin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "dot_segment",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/./bin"
+   },
+   "exists": [
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": true
+  },
+  {
+   "name": "root_git",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/:/usr/bin"
+   },
+   "exists": [
+    "/git",
+    "/usr/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  },
+  {
+   "name": "other_git",
+   "platform": "darwin",
+   "env": {
+    "PATH": "/usr/local/bin"
+   },
+   "exists": [
+    "/usr/local/bin/git"
+   ],
+   "apps": [
+    "Safari.app"
+   ],
+   "stub": false
+  }
+ ]
+}

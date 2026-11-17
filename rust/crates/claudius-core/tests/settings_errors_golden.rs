@@ -668,6 +668,31 @@ impl Drop for Frozen {
     }
 }
 
+// --------------------------- isAutoModeDisabled ---------------------------
+
+/// SDK 0.3.312 — the auto-mode gate `Session::try_set_permission_mode` reads,
+/// over the settings shapes a hand-edited file can hold. `"undefined"` is no
+/// value at all, which TS reports `false` for (it no longer throws on the
+/// property read).
+#[test]
+fn the_auto_mode_gate_matches_ts() {
+    let cases = fixture()["autoMode"].as_array().unwrap();
+    assert!(cases.len() >= 30, "{}", cases.len());
+    let mut disabled = 0;
+    for c in cases {
+        let text = c["text"].as_str().unwrap();
+        let value: Option<Value> = if text == "undefined" {
+            None
+        } else {
+            Some(js::json_parse(text).unwrap_or_else(|_| panic!("{text} parses")))
+        };
+        let got = claudius_core::auto_mode_disabled::is_auto_mode_disabled(value.as_ref());
+        assert_eq!(got, c["disabled"] == true, "{text}");
+        disabled += usize::from(got);
+    }
+    assert!(disabled >= 5, "{disabled}");
+}
+
 // ------------------------------- sanitize -------------------------------
 
 #[test]

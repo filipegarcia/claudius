@@ -11,8 +11,11 @@
 //   on one shell each, with a fixed env. Steps: ["start", label, command,
 //   timeoutMs?] (no await), ["await", label, withinMs] (its result, or
 //   "pending"), ["exec", label, command, timeoutMs?] (start + await),
-//   ["sleep", ms], ["dispose"]. `$TMP` stands for the shell's cwd, and an
-//   output over 1000 chars is summarized as {len, head, tail}.
+//   ["sleep", ms], ["dispose"], ["gone", label, fromLabel, withinMs] (poll
+//   `kill -0` on the pids that `fromLabel`'s stdout printed until they are
+//   all gone or the time is up: {gone, pids}). `$TMP` stands for the
+//   shell's cwd, and an output over 1000 chars is summarized as
+//   {len, head, tail}.
 // - `route`: the real `POST /api/sessions/:id/bash` handler, in order on one
 //   live session (a bare `Session` whose `runBashCommand` is the real one,
 //   on a real shell), with a fake `sudo` first on PATH that prints its args
@@ -169,6 +172,21 @@ const SCENARIOS = [
     ["await", "b", 800],
     ["exec", "after", "echo after"],
   ]],
+  // CC 2.1.300: the timeout SIGTERMs the group, then SIGKILLs the survivors
+  // 1.5 s later, so a background job that ignores TERM cannot outlive it.
+  // (`trap '' TERM` in a subshell is inherited by its children, so the
+  // `sleep`s ignore TERM too.)
+  ["kill_escalation", "tmp", [
+    ["exec", "bg", "(trap '' TERM; while :; do /bin/sleep 1; done) >/dev/null 2>&1 & echo $!; /bin/sleep 30", 300],
+    ["gone", "bg_gone", "bg", 6000],
+    ["exec", "after", "echo alive"],
+  ]],
+  // The same escalation on dispose (session end).
+  ["dispose_escalation", "tmp", [
+    ["exec", "bg", "(trap '' TERM; while :; do /bin/sleep 1; done) >/dev/null 2>&1 & echo $!"],
+    ["dispose"],
+    ["gone", "bg_gone", "bg", 6000],
+  ]],
   ["missing_cwd", "missing", [
     ["exec", "first", "echo hi"],
     ["exec", "again", "echo again"],
@@ -180,6 +198,34 @@ const SCENARIOS = [
 ];
 
 const summarize = (s) => (s.length > 1000 ? { len: s.length, head: s.slice(0, 20), tail: s.slice(-20) } : s);
+
+/** `kill -0`: a live process (a reaped child is gone, a zombie is not). */
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Poll the pids `fromLabel`'s stdout printed until none is alive or
+ * `withinMs` is up. Without the SIGKILL escalation a TERM-ignoring job
+ * stays alive and this records `gone: false`. The pids themselves are
+ * nondeterministic, so the source result's stdout is rewritten to
+ * `<pid>` once they have been read (the Rust replay does the same).
+ */
+async function gone(results, fromLabel, withinMs) {
+  const src = results.find((r) => r.label === fromLabel);
+  if (!src || src.result === "pending") throw new Error(`gone: no result for ${fromLabel}`);
+  const pids = String(src.result.stdout).trim().split(/\s+/).map(Number);
+  if (!pids.length || pids.some((p) => !Number.isInteger(p) || p <= 1)) throw new Error(`gone: bad pids ${pids}`);
+  src.result.stdout = String(src.result.stdout).replace(/\d+/g, "<pid>");
+  const t0 = Date.now();
+  while (pids.some(alive) && Date.now() - t0 < withinMs) await sleep(50);
+  return { gone: !pids.some(alive), pids: pids.length };
+}
 
 async function scenario([, where, steps], root) {
   const base = realpathSync(mkdtempSync(join(root, "s-")));
@@ -196,6 +242,7 @@ async function scenario([, where, steps], root) {
     else if (op === "exec") record(a, await bash.exec(b, c ? { timeoutMs: c } : undefined));
     else if (op === "sleep") await sleep(a);
     else if (op === "dispose") bash.dispose();
+    else if (op === "gone") results.push({ label: a, result: await gone(results, b, c) });
     else throw new Error(`unknown step ${op}`);
   }
   bash.dispose();
@@ -280,7 +327,11 @@ try {
   for (const s of SCENARIOS) {
     const results = await scenario(s, root);
     scenarios.push({ name: s[0], cwd: s[1], steps: s[2], results });
-    console.log(`${s[0]}: ${results.map((r) => `${r.label}=${r.result === "pending" ? "pending" : r.result.exitCode}`).join(" ")}`);
+    console.log(
+      `${s[0]}: ${results
+        .map((r) => `${r.label}=${r.result === "pending" ? "pending" : (r.result.gone ?? r.result.exitCode)}`)
+        .join(" ")}`,
+    );
   }
   const routeOut = await route(root);
   console.log(`route: ${routeOut.cases.length} cases, ${routeOut.events.length} events`);

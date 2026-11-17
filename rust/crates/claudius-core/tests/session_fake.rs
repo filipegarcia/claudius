@@ -360,7 +360,7 @@ async fn queue_drains_after_turn_ends() {
         .pop()
         .unwrap();
     let uuid = s
-        .enqueue_message("second", &[], None, false, false, false)
+        .enqueue_message("second", None, None, false, false, false)
         .unwrap();
     let q = until(&mut sub, is("queue:updated")).await.pop().unwrap();
     assert_eq!(q["queue"][0]["uuid"], uuid.as_str());
@@ -629,7 +629,7 @@ async fn rename_matches_the_recorded_ts() {
     for c in cases {
         let title = c["title"].as_str().unwrap();
         let before = s.title();
-        let got = match s.rename(title) {
+        let got = match s.rename(title).await {
             Ok(()) => json!({"ok": true}),
             Err(e) => json!({"ok": false, "error": e}),
         };
@@ -650,6 +650,24 @@ async fn rename_matches_the_recorded_ts() {
         }
     }
     f.mgr.remove(id).await;
+    // CC 2.1.309 (R05): the recorder's bare session has no query and no
+    // transcript, so a rename that lands leaves its name in the pending
+    // mirror (and a refused one leaves none); a session that never started
+    // is the same here.
+    for c in cases {
+        let title = c["title"].as_str().unwrap();
+        let idle = Session::new(SessionOptions {
+            cwd: Some(f.cwd()),
+            ..Default::default()
+        })
+        .unwrap();
+        let _ = idle.rename(title).await;
+        assert_eq!(
+            claudius_agent::js::stringify(&json!(idle.pending_title_mirror())),
+            c["mirror"].as_str().unwrap(),
+            "{title:?}: the pending mirror"
+        );
+    }
 }
 
 /// S02: the live `init` seeds the applied effort from `get_settings`;
@@ -2388,7 +2406,7 @@ async fn the_live_stream_arms_and_cancels_loops() {
         }
     };
     // The tick rows carry the session's title at the time.
-    s.rename("Loop session").unwrap();
+    s.rename("Loop session").await.unwrap();
     s.send_input("arm", &[], SendOptions::default());
     until(&mut sub, result_of("armed")).await;
     let after = claudius_core::now_ms();
@@ -2899,11 +2917,15 @@ async fn usage_extras_share_one_full_scan() {
     let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
     let s = f.create(SessionOptions::default()).await;
     let (behaviors, skills) = tokio::join!(s.get_usage_behaviors(), s.get_weekly_used_skills());
+    // SDK 0.3.305: every window carries `recommendations` (empty when the
+    // CLI sends none).
     let want = json!({
         "day": {"requestCount": 10, "sessionCount": 1,
-                "behaviors": [{"key": "max_effort", "pct": 40, "count": 4}]},
+                "behaviors": [{"key": "max_effort", "pct": 40, "count": 4}],
+                "recommendations": []},
         "week": {"requestCount": 50, "sessionCount": 3,
-                 "behaviors": [{"key": "workflow", "pct": 25.5, "count": 12}]},
+                 "behaviors": [{"key": "workflow", "pct": 25.5, "count": 12}],
+                 "recommendations": []},
     });
     assert_eq!(behaviors, Some(want.clone()));
     assert_eq!(skills, Some(vec!["pdf".to_owned()]));
@@ -3769,4 +3791,441 @@ async fn no_token_nudge_without_an_account_profile() {
     assert_eq!(nudges_in(&seen), Vec::<Value>::new());
     assert_eq!(nudges_in(&s.buffer_snapshot()), Vec::<Value>::new());
     f.mgr.remove(&s.id).await;
+}
+
+/// R04 (CC 2.1.300): fast mode is refused because usage credits ran out. The
+/// engine retries that request without fast but leaves the flag on, so the
+/// host turns it off on the `fast-mode-overage-rejected` notice, once. Other
+/// notices leave it alone. (A replayed notice is skipped by the
+/// `is_replaying` gate; transcripts don't carry `system` notices, so that
+/// branch isn't driven here.)
+#[tokio::test]
+async fn a_credits_rejected_notice_turns_fast_mode_off() {
+    let control_log = tempfile::NamedTempFile::new().unwrap();
+    let notice = |key: &str| {
+        json!({"type": "system", "subtype": "notification", "key": key,
+               "text": "Fast mode is unavailable: out of credits",
+               "priority": "high", "color": "red", "session_id": "$SESSION_ID",
+               "uuid": "$UUID"})
+    };
+    let script = json!({
+        "turns": [
+            // An unrelated notice first: nothing is turned off.
+            {"match": "other", "result": "ok", "steps": [notice("some-other-notice")]},
+            {"match": "credits", "result": "ok", "steps": [notice("fast-mode-overage-rejected")]},
+        ],
+    });
+    let f = fixture_with(&[
+        ("FAKE_CLAUDE_SCRIPT", script.to_string()),
+        (
+            "FAKE_CLAUDE_CONTROL_LOG",
+            control_log.path().display().to_string(),
+        ),
+    ]);
+    let s = f.create(SessionOptions::default()).await;
+    let mut sub = s.subscribe(None, None);
+    until(&mut sub, is("tips")).await;
+    // The user turns fast mode on, then a turn carries an unrelated notice.
+    s.set_fast(true).await;
+    let flags = || -> Vec<Value> {
+        std::fs::read_to_string(control_log.path())
+            .unwrap()
+            .lines()
+            .filter_map(|l| serde_json::from_str::<Value>(l).ok())
+            .map(|m| m["request"].clone())
+            .filter(|r| r["subtype"] == "apply_flag_settings")
+            .map(|r| r["settings"].clone())
+            .collect()
+    };
+    turn(&s, &mut sub, "other notice").await;
+    assert_eq!(flags(), [json!({"fastMode": true})]);
+
+    turn(&s, &mut sub, "credits are gone").await;
+    // The notice's `setFast(false)` runs off the consume loop, so wait for it.
+    for _ in 0..200 {
+        if flags().len() > 1 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+    }
+    assert_eq!(
+        flags(),
+        [json!({"fastMode": true}), json!({"fastMode": false})],
+        "the credits notice must turn fast mode off, once"
+    );
+    f.mgr.remove(&s.id).await;
+}
+
+/// R04 (CC 2.1.301): a resumed session's `ready` names the engine transcript
+/// holding the turns before its last compaction, home shortened to `~`, both
+/// on the start broadcast and on every later subscribe. A fresh session has
+/// none, and neither has a resumed one whose file isn't under the home's
+/// `.claude/projects`.
+#[tokio::test]
+async fn a_resumed_session_names_its_transcript_on_ready() {
+    let f = fixture();
+    let cwd = f.cwd();
+    let id = "4ac19b7e-51f1-4e55-9b61-2b0f0a0c1d22";
+    // The CLI's own copy, which the replay reads (the config dir).
+    let sdk_dir = env()
+        .config
+        .join("projects")
+        .join(paths::sdk_project_dir_name(&cwd));
+    std::fs::create_dir_all(&sdk_dir).unwrap();
+    let line = json!({"type":"user","uuid":"u1","parentUuid":null,"sessionId":id,"cwd":cwd,
+                      "timestamp":"2026-01-02T03:04:05.000Z",
+                      "message":{"role":"user","content":"earlier question"}});
+    std::fs::write(sdk_dir.join(format!("{id}.jsonl")), format!("{line}\n")).unwrap();
+
+    // A fresh session names nothing.
+    let fresh = f.create(SessionOptions::default()).await;
+    let mut fsub = fresh.subscribe(None, None);
+    let seen = until(&mut fsub, is("tips")).await;
+    for ev in seen.iter().filter(|e| is("ready")(e)) {
+        assert!(ev.get("transcriptPath").is_none(), "{ev}");
+    }
+    assert_eq!(fresh.resumed_transcript_path(), None);
+    f.mgr.remove(&fresh.id).await;
+
+    // A resumed session whose transcript is only in the config dir: TS looks
+    // under `homedir()/.claude/projects`, so there is nothing to name.
+    let s = f.mgr.get_or_resume(id).await.expect("resumed from disk");
+    assert_eq!(s.resumed_transcript_path(), None);
+    f.mgr.remove(id).await;
+
+    // The same transcript under the home's `.claude/projects`: named, with
+    // the home shortened.
+    let home = paths::home_dir();
+    let home_dir = home
+        .join(".claude")
+        .join("projects")
+        .join(paths::encode_project_dir(&cwd));
+    std::fs::create_dir_all(&home_dir).unwrap();
+    std::fs::write(home_dir.join(format!("{id}.jsonl")), format!("{line}\n")).unwrap();
+    let want = format!(
+        "~/.claude/projects/{}/{id}.jsonl",
+        paths::encode_project_dir(&cwd)
+    );
+    let s = f.mgr.get_or_resume(id).await.expect("resumed from disk");
+    assert_eq!(s.resumed_transcript_path().as_deref(), Some(want.as_str()));
+    let mut sub = s.subscribe(None, None);
+    let seen = until(&mut sub, is("tips")).await;
+    let readys: Vec<&Value> = seen.iter().filter(|e| is("ready")(e)).collect();
+    assert!(!readys.is_empty(), "{:?}", types(&seen));
+    for ev in &readys {
+        assert_eq!(ev["transcriptPath"], json!(want), "{ev}");
+    }
+    // A late subscriber's re-emitted `ready` carries it too.
+    let mut late = s.subscribe(None, None);
+    let seen = until(&mut late, is("mode_changed")).await;
+    let ready = seen.iter().rfind(|e| is("ready")(e)).unwrap();
+    assert_eq!(ready["transcriptPath"], json!(want), "{ready}");
+    f.mgr.remove(id).await;
+}
+
+// ────────── CC 2.1.309: the rename mirror and the dangerous-rm deny (R05) ──────────
+
+/// The cases `rust/scripts/cc2309-golden.mjs` recorded from the real TS.
+fn cc2309() -> &'static Value {
+    static F: OnceLock<Value> = OnceLock::new();
+    F.get_or_init(|| {
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cc2309_golden.json");
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    })
+}
+
+/// One recorded `session` case by name.
+fn cc2309_case(name: &str) -> Value {
+    cc2309()["session"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["name"] == name)
+        .unwrap_or_else(|| panic!("no cc2309 session case {name}"))
+        .clone()
+}
+
+/// The `rename_session` control requests the CLI got, raw.
+fn rename_requests(f: &Fixture) -> Vec<String> {
+    std::fs::read_to_string(&f.log)
+        .unwrap_or_default()
+        .lines()
+        .filter(|l| l.contains(r#""subtype":"rename_session""#))
+        .map(|l| {
+            let m: Value = serde_json::from_str(l).unwrap();
+            m["request"].to_string()
+        })
+        .collect()
+}
+
+/// The transcript of `id` under `cwd` (the SDK's project dir).
+fn transcript_path(cwd: &str, id: &str) -> PathBuf {
+    paths::sdk_projects_dir()
+        .join(paths::sdk_project_dir_name(cwd))
+        .join(format!("{id}.jsonl"))
+}
+
+/// A one-line transcript for `id`, as the CLI would have left it.
+fn write_transcript(cwd: &str, id: &str) -> PathBuf {
+    let file = transcript_path(cwd, id);
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    std::fs::write(
+        &file,
+        format!(
+            "{}\n",
+            json!({"parentUuid": null, "isSidechain": false, "type": "user",
+                   "message": {"role": "user", "content": "hello"},
+                   "uuid": "00000000-0000-4000-8000-000000000001",
+                   "timestamp": "2026-10-01T10:00:00.000Z", "cwd": cwd, "sessionId": id})
+        ),
+    )
+    .unwrap();
+    file
+}
+
+/// Every `customTitle` the transcript records, in order.
+fn custom_titles(file: &Path) -> Vec<String> {
+    std::fs::read_to_string(file)
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|l| serde_json::from_str::<Value>(l).ok())
+        .filter(|m| m["type"] == "custom-title")
+        .map(|m| m["customTitle"].as_str().unwrap_or_default().to_owned())
+        .collect()
+}
+
+/// R05: `rename()` tells the running engine (`rename_session`, source
+/// "host") and, when the transcript write fails, keeps the name in the
+/// pending mirror unless the engine took it — the cases
+/// `cc2309-golden.mjs` recorded (`session`).
+#[tokio::test]
+async fn rename_tells_the_engine_and_keeps_the_pending_mirror() {
+    // "a rename with no transcript, the engine takes it": the CLI acks, so
+    // nothing is left pending.
+    let case = cc2309_case("a rename with no transcript, the engine takes it");
+    let f = fixture();
+    let s = f.create(SessionOptions::default()).await;
+    let mut sub = s.subscribe(None, None);
+    until(&mut sub, is("ready")).await;
+    s.rename("New name").await.unwrap();
+    assert_eq!(
+        rename_requests(&f),
+        [format!(
+            r#"{{"subtype":"rename_session","title":"New name","source":"host","session_id":"{}"}}"#,
+            s.id
+        )]
+    );
+    assert_eq!(s.pending_title_mirror(), None, "{}", case["name"]);
+    assert_eq!(s.title().as_deref(), Some("New name"));
+    assert_eq!(
+        until(&mut sub, is("session_title")).await.pop().unwrap(),
+        json!({"type": "session_title", "title": "New name"})
+    );
+    f.mgr.remove(&s.id).await;
+
+    // "a rename with a transcript and the engine": the append lands, so the
+    // mirror is clear either way.
+    let f = fixture();
+    let s = f.create(SessionOptions::default()).await;
+    let file = write_transcript(&f.cwd(), &s.id);
+    s.rename("  New name  ").await.unwrap();
+    assert_eq!(custom_titles(&file), ["New name"]);
+    assert_eq!(s.pending_title_mirror(), None);
+    f.mgr.remove(&s.id).await;
+
+    // "a rename with no transcript, the engine refuses": the name waits.
+    let script = json!({"control": {"rename_session": {"$error": "rename_session refused"}}});
+    let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+    let s = f.create(SessionOptions::default()).await;
+    s.rename("New name").await.unwrap();
+    assert_eq!(rename_requests(&f).len(), 1);
+    assert_eq!(s.pending_title_mirror().as_deref(), Some("New name"));
+    f.mgr.remove(&s.id).await;
+
+    // "a rename the engine never answers": bounded at 5 s, then the name
+    // waits as if the engine had refused.
+    let case = cc2309_case("a rename the engine never answers");
+    let script = json!({"control": {"rename_session": {"$no_reply": true}}});
+    let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+    let s = f.create(SessionOptions::default()).await;
+    let t0 = std::time::Instant::now();
+    s.rename("New name").await.unwrap();
+    let took = t0.elapsed();
+    assert!(
+        took >= Duration::from_secs(5) && took < Duration::from_secs(30),
+        "{took:?}"
+    );
+    assert_eq!(rename_requests(&f).len(), 1);
+    assert_eq!(
+        claudius_agent::js::stringify(&json!(s.pending_title_mirror())),
+        case["mirror"].as_str().unwrap(),
+        "{}",
+        case["name"]
+    );
+    assert_eq!(s.title().as_deref(), Some("New name"));
+    f.mgr.remove(&s.id).await;
+
+    // "a rename with no transcript and no query": a session that never
+    // started asks no engine and keeps the name.
+    let idle = Session::new(SessionOptions {
+        cwd: Some(f.cwd()),
+        ..Default::default()
+    })
+    .unwrap();
+    idle.rename("New name").await.unwrap();
+    assert_eq!(idle.pending_title_mirror().as_deref(), Some("New name"));
+    assert_eq!(idle.rename("   ").await, Err("title required".into()));
+    assert_eq!(idle.pending_title_mirror().as_deref(), Some("New name"));
+    // The row is the one the recorder dumped: the trimmed title.
+    assert_eq!(
+        sessions_db::get_session_title(&f.cwd(), &idle.id).unwrap(),
+        Some("New name".into())
+    );
+}
+
+/// R05: `start()` seeds the pending mirror from the stored title on the
+/// fresh branch only — a rename from an earlier boot that may never have
+/// reached the transcript. On resume the transcript may hold a newer TUI
+/// rename, so nothing is re-sent (`session_titles_golden.json`, `start`).
+#[tokio::test]
+async fn start_seeds_the_pending_mirror_only_when_fresh() {
+    let f = fixture();
+    let id = "4d1d4f3a-5c8e-4c6f-9f21-4d1d4f3a5c8e";
+    sessions_db::set_session_title(&f.cwd(), id, "  Named in an earlier boot  ").unwrap();
+    let s = f
+        .create(SessionOptions {
+            id: Some(id.into()),
+            ..Default::default()
+        })
+        .await;
+    // The row as stored (`setSessionTitle` trimmed it), untrimmed by `start`.
+    assert_eq!(
+        s.pending_title_mirror().as_deref(),
+        Some("Named in an earlier boot")
+    );
+    assert_eq!(s.title().as_deref(), Some("Named in an earlier boot"));
+    f.mgr.remove(id).await;
+
+    let resumed = f
+        .create(SessionOptions {
+            id: Some("9e2b1c70-1111-4222-8333-9e2b1c701111".into()),
+            resume: Some(id.into()),
+            ..Default::default()
+        })
+        .await;
+    assert_eq!(resumed.pending_title_mirror(), None, "resume");
+    assert_eq!(resumed.title().as_deref(), Some("Named in an earlier boot"));
+    f.mgr.remove(&resumed.id).await;
+
+    let untitled = f.create(SessionOptions::default()).await;
+    assert_eq!(untitled.pending_title_mirror(), None, "no stored title");
+    f.mgr.remove(&untitled.id).await;
+}
+
+/// R05: the turn boundary re-sends a rename the transcript didn't have yet
+/// (`flushPendingTitleMirror`), and a rename that still can't reach it stays
+/// pending for the next turn.
+#[tokio::test]
+async fn a_turn_boundary_flushes_the_pending_title_mirror() {
+    let f = fixture();
+    let s = f.create(SessionOptions::default()).await;
+    let mut sub = s.subscribe(None, None);
+    until(&mut sub, is("ready")).await;
+    s.rename("Named early").await.unwrap();
+    assert_eq!(s.pending_title_mirror(), None, "the engine took it");
+
+    // With the engine refusing, the name waits for a transcript.
+    let script = json!({"control": {"rename_session": {"$error": "nope"}}});
+    let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+    let s = f.create(SessionOptions::default()).await;
+    let mut sub = s.subscribe(None, None);
+    until(&mut sub, is("ready")).await;
+    s.rename("Named early").await.unwrap();
+    assert_eq!(s.pending_title_mirror().as_deref(), Some("Named early"));
+
+    // A turn with no transcript on disk leaves it pending.
+    s.send_input("hello", &[], SendOptions::default());
+    until(&mut sub, |e| e["message"]["type"] == "result").await;
+    assert_eq!(s.pending_title_mirror().as_deref(), Some("Named early"));
+
+    // Once the CLI's transcript exists, the next turn lands the rename.
+    let file = write_transcript(&f.cwd(), &s.id);
+    s.send_input("hello again", &[], SendOptions::default());
+    until(&mut sub, |e| e["message"]["type"] == "result").await;
+    for _ in 0..200 {
+        if s.pending_title_mirror().is_none() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(25)).await;
+    }
+    assert_eq!(s.pending_title_mirror(), None);
+    assert_eq!(custom_titles(&file), ["Named early"]);
+    f.mgr.remove(&s.id).await;
+}
+
+/// R05: in Bypass permissions mode the engine's dangerous-rm safety check is
+/// answered with an immediate deny (the engine's reason plus the rewrite
+/// hint) instead of a permission card; every other mode still parks one.
+#[tokio::test]
+async fn a_dangerous_rm_in_bypass_mode_is_denied_at_once() {
+    let reason = "Dangerous rm operation on working directory or its ancestor: .";
+    let ask = |ty: &str| {
+        json!({"$control": {"subtype": "can_use_tool", "tool_name": "Bash",
+            "input": {"command": "rm -rf ."}, "tool_use_id": "toolu_rm",
+            "decision_reason": reason, "decision_reason_type": ty}})
+    };
+    let script = json!({"turns": [
+        {"match": "rm", "steps": [
+            ask("safetyCheck"),
+            {"$text": "$LAST:/behavior"},
+            {"$text": "$LAST:/message"},
+        ]},
+        {"match": "hook", "steps": [
+            ask("hook"),
+            {"$delay_ms": 50},
+            {"$text": "parked"},
+        ]},
+    ]});
+    let want = format!(
+        "{reason}\n\n{}",
+        claudius_core::dangerous_rm_deny::DANGEROUS_RM_REWRITE_HINT
+    );
+
+    for (mode, denied) in [("bypassPermissions", true), ("default", false)] {
+        let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+        let s = f
+            .create(SessionOptions {
+                permission_mode: Some(mode.into()),
+                ..Default::default()
+            })
+            .await;
+        let mut sub = s.subscribe(None, None);
+        until(&mut sub, is("ready")).await;
+        s.send_input("rm it", &[], SendOptions::default());
+        if denied {
+            let evs = until(&mut sub, |e| e["message"]["type"] == "result").await;
+            let texts: Vec<String> = evs
+                .iter()
+                .filter(|e| e["message"]["type"] == "assistant")
+                .filter_map(|e| e["message"]["message"]["content"][0]["text"].as_str())
+                .map(str::to_owned)
+                .collect();
+            assert_eq!(texts, ["deny".to_owned(), want.clone()], "{texts:?}");
+            assert!(
+                !evs.iter().any(is("permission_request")),
+                "no card: {:?}",
+                types(&evs)
+            );
+        } else {
+            let evs = until(&mut sub, is("permission_request")).await;
+            let req = evs.last().unwrap();
+            assert_eq!(req["toolName"], "Bash", "{req}");
+            s.resolve_permission(
+                req["requestId"].as_str().unwrap(),
+                PermissionDecision::Deny { message: None },
+            );
+        }
+        f.mgr.remove(&s.id).await;
+    }
 }

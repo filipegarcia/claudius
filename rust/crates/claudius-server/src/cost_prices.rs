@@ -12,8 +12,8 @@
 //!
 //! The fetch goes out through the server's client (`AppState::https`), so
 //! with the dev routes on `CLAUDIUS_DEV_FETCH_BASE` points it at a local
-//! fake. Until D18b ports `/api/cost*`, those routes run in Next, whose own
-//! in-memory table only sees a refresh made here after it restarts.
+//! fake. The Cost routes (`cost.rs`, D18b) price with the same state, so a
+//! refresh made here shows up there at once.
 
 use std::sync::{Arc, OnceLock};
 

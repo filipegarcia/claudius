@@ -1501,7 +1501,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1524,7 +1523,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1547,9 +1545,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [
-      "tu_l1"
-     ],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1568,11 +1563,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 1600000
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1591,14 +1585,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 1600000
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [
-      "tu_l2",
-      "tu_l3"
-     ],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1617,11 +1607,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1640,13 +1629,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [
-      "tu_l4"
-     ],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1665,11 +1651,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1688,13 +1673,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [
-      "tu_l5"
-     ],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1713,11 +1695,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1736,11 +1717,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": false,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1759,11 +1739,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": true,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -1782,11 +1761,10 @@
        "durable": false,
        "startedAt": 1000,
        "cancelled": true,
-       "nextFireAt": 42
+       "nextFireAt": 1300000
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -2319,7 +2297,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -2527,7 +2504,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -2735,7 +2711,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -2929,7 +2904,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3207,7 +3181,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3242,7 +3215,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3279,7 +3251,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3316,7 +3287,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3366,7 +3336,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3402,7 +3371,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3437,7 +3405,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3486,7 +3453,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3534,7 +3500,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3582,9 +3547,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [
-      "e_list"
-     ],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3632,7 +3594,1270 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    }
+   ]
+  },
+  {
+   "name": "cron-next-fire",
+   "sessionId": "golden-cron-next-fire",
+   "title": "Next fire",
+   "steps": [
+    {
+     "clock": 900,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "n1",
+         "name": "CronCreate",
+         "input": {
+          "cron": "1 * * * *",
+          "prompt": "a"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "n2",
+         "name": "CronCreate",
+         "input": {
+          "cron": "2 * * * *",
+          "prompt": "b"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "n3",
+         "name": "CronCreate",
+         "input": {
+          "cron": "3 * * * *",
+          "prompt": "c"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "n4",
+         "name": "CronCreate",
+         "input": {
+          "cron": "4 * * * *",
+          "prompt": "d"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "n5",
+         "name": "CronCreate",
+         "input": {
+          "cron": "5 * * * *",
+          "prompt": "e"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "n6",
+         "name": "CronCreate",
+         "input": {
+          "cron": "6 * * * *",
+          "prompt": "f"
+         }
+        },
+        {
+         "type": "tool_use",
+         "id": "n7",
+         "name": "CronCreate",
+         "input": {
+          "cron": "7 * * * *",
+          "prompt": "g"
+         }
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 910,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n1",
+         "content": "job nf1 (hourly)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": 1700000000000
+      }
+     }
+    },
+    {
+     "clock": 920,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n2",
+         "content": "job nf2 (hourly)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": 0
+      }
+     }
+    },
+    {
+     "clock": 930,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n3",
+         "content": "job nf3 (hourly)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": null
+      }
+     }
+    },
+    {
+     "clock": 940,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n4",
+         "content": "job nf4 (hourly)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": null
+      }
+     }
+    },
+    {
+     "clock": 950,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n5",
+         "content": "job nf5 (hourly)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "nextFireAt": null
+      }
+     }
+    },
+    {
+     "clock": 960,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n6",
+         "content": "job nf6 (hourly)"
+        }
+       ]
+      },
+      "tool_use_result": "text"
+     }
+    },
+    {
+     "clock": 970,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n7",
+         "content": "job nf7 (hourly)"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "other": 5
+      }
+     }
+    },
+    {
+     "clock": 980,
+     "message": {
+      "type": "assistant",
+      "message": {
+       "role": "assistant",
+       "content": [
+        {
+         "type": "tool_use",
+         "id": "n_list",
+         "name": "CronList",
+         "input": {}
+        }
+       ]
+      }
+     }
+    },
+    {
+     "clock": 990,
+     "message": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": [
+        {
+         "type": "tool_result",
+         "tool_use_id": "n_list",
+         "content": "7 jobs"
+        }
+       ]
+      },
+      "tool_use_result": {
+       "jobs": [
+        {
+         "id": "nf1",
+         "nextFireAt": 42
+        },
+        {
+         "id": "nf2",
+         "nextFireAt": 99
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "after": [
+    {
+     "loops": [],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "n1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "n2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "n3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "n4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "n5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "n6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "n7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [
+      {
+       "kind": "cron",
+       "id": "n7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": null,
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": false,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
+     "stops": [],
+     "attribution": [],
+     "ticks": []
+    },
+    {
+     "loops": [
+      {
+       "kind": "cron",
+       "id": "nf1",
+       "toolUseId": "n1",
+       "cron": "1 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "a",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false,
+       "nextFireAt": 1700000000000
+      },
+      {
+       "kind": "cron",
+       "id": "nf2",
+       "toolUseId": "n2",
+       "cron": "2 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "b",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf3",
+       "toolUseId": "n3",
+       "cron": "3 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "c",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf4",
+       "toolUseId": "n4",
+       "cron": "4 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "d",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf5",
+       "toolUseId": "n5",
+       "cron": "5 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "e",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf6",
+       "toolUseId": "n6",
+       "cron": "6 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "f",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      },
+      {
+       "kind": "cron",
+       "id": "nf7",
+       "toolUseId": "n7",
+       "cron": "7 * * * *",
+       "humanSchedule": "hourly",
+       "delaySeconds": null,
+       "prompt": "g",
+       "recurring": false,
+       "durable": true,
+       "startedAt": 900,
+       "cancelled": false
+      }
+     ],
+     "pending": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -3906,7 +5131,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "w1"
@@ -3950,7 +5174,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": [
@@ -3992,7 +5215,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": [
@@ -4036,7 +5258,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "w2"
@@ -4099,7 +5320,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "w2",
@@ -4181,7 +5401,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": [
@@ -4258,7 +5477,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "w4"
@@ -4355,7 +5573,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": [
@@ -4450,7 +5667,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": [
@@ -4548,7 +5764,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "w2"
@@ -4648,7 +5863,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": [
@@ -4745,7 +5959,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "w5",
@@ -4881,7 +6094,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": [
@@ -5012,7 +6224,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "w7"
@@ -5421,7 +6632,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "s_w1"
@@ -5480,7 +6690,6 @@
        "cancelled": false
       }
      ],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "s_w1"
@@ -5538,7 +6747,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [
       "s_w1"
@@ -5596,7 +6804,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0"
      ],
@@ -5656,7 +6863,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1"
@@ -5732,7 +6938,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1"
@@ -5827,7 +7032,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1"
@@ -5922,7 +7126,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1"
@@ -6015,7 +7218,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1"
@@ -6127,7 +7329,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1"
@@ -6254,7 +7455,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1"
@@ -6400,7 +7600,6 @@
       }
      ],
      "pending": [],
-     "cronLists": [],
      "stops": [
       "s_stop0",
       "s_stop1",
@@ -6629,7 +7828,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6637,7 +7835,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6645,7 +7842,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6653,7 +7849,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6661,7 +7856,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6669,7 +7863,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6677,7 +7870,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6685,7 +7877,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []
@@ -6693,7 +7884,6 @@
     {
      "loops": [],
      "pending": [],
-     "cronLists": [],
      "stops": [],
      "attribution": [],
      "ticks": []

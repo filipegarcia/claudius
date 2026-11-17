@@ -13,6 +13,9 @@
 //! | `try { … } catch { return 400 {error} }`        | [`JsonBody::or_bad_request`]      | 400 `{error: msg}`    |
 //! | `try { … } catch (e) { … e.message … }`         | [`JsonBody::parse_or_message`]    | `Err(V8's message)`   |
 //!
+//! A handler that hands the body's strings back (stored, then answered)
+//! keeps lone surrogates with [`JsonBody::parse_js_overflow`].
+//!
 //! Parsing follows `Body.json()`: UTF-8 decode (a BOM is stripped, invalid
 //! bytes become U+FFFD), then `JSON.parse`, so any JSON value is accepted,
 //! not only objects. What happens next with a non-object body depends on how
@@ -37,6 +40,7 @@ use std::borrow::Cow;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use claudius_core::js_string;
 use serde_json::{Value, json};
 
 /// What Next sends when a route handler throws: `new Response(null, {status: 500})`
@@ -125,6 +129,20 @@ impl JsonBody {
         match replace_overflowing_numbers(&text, &infinite.to_string()) {
             Some(replaced) => claudius_agent::js::json_parse(&replaced),
             None => claudius_agent::js::json_parse(&text),
+        }
+    }
+
+    /// [`JsonBody::parse_or_message_overflow`] into JS strings: a
+    /// lone-surrogate escape (`"\ud800"`) is kept as its [`js_string`]
+    /// stand-in, so `js_string::stringify` writes it back as the escape.
+    pub fn parse_js_overflow(bytes: &[u8], infinite: &Value) -> Result<Value, String> {
+        let text = Self::text(bytes);
+        if let Some(message) = claudius_agent::js::json_parse_error(&text) {
+            return Err(message);
+        }
+        match replace_overflowing_numbers(&text, &infinite.to_string()) {
+            Some(replaced) => js_string::parse(&replaced),
+            None => js_string::parse(&text),
         }
     }
 
@@ -372,6 +390,28 @@ mod tests {
         assert_eq!(read("[1e308]"), Ok(json!([1e308])));
         assert_eq!(read("\u{feff}\u{feff}7"), Ok(json!(7)));
         assert_eq!(read(""), Err("Unexpected end of JSON input".to_owned()));
+        assert_eq!(
+            read("[1e400,]"),
+            Err("Unexpected token ']', \"[1e400,]\" is not valid JSON".to_owned())
+        );
+    }
+
+    #[test]
+    fn parse_js_overflow_keeps_lone_surrogates() {
+        let read = |b: &str| JsonBody::parse_js_overflow(b.as_bytes(), &json!(false));
+        let lone = js_string::lone(0xD800).to_string();
+        assert_eq!(
+            read(r#"{"w":1e400,"s":"1e400","l":"\ud800"}"#),
+            Ok(json!({"w": false, "s": "1e400", "l": lone}))
+        );
+        assert_eq!(
+            read(r#"["\ud800x",-1e999]"#),
+            Ok(json!([format!("{lone}x"), false]))
+        );
+        assert_eq!(read(r#"["\ud83d\ude00"]"#), Ok(json!(["\u{1F600}"])));
+        assert_eq!(read("\u{feff}\u{feff}7"), Ok(json!(7)));
+        assert_eq!(read(""), Err("Unexpected end of JSON input".to_owned()));
+        // V8's message quotes the text as sent, not as the stand-in rewrote it.
         assert_eq!(
             read("[1e400,]"),
             Err("Unexpected token ']', \"[1e400,]\" is not valid JSON".to_owned())

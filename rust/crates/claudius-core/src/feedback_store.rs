@@ -9,10 +9,10 @@
 //! filled with foreign values, or a table it created with other column
 //! types, reads back as it does in TS.
 
-use rusqlite::params;
 use serde_json::{Map, Value, json};
 
 use crate::db::{Mode, open_db, sqlite_message};
+use crate::js_params;
 use crate::notifications_db::Cell;
 
 /// `FeedbackRecord` as `insertFeedback` binds it.
@@ -51,7 +51,7 @@ pub fn insert_feedback(cwd: &str, record: &FeedbackRecord) -> anyhow::Result<()>
     db.with(|c| {
         c.execute(
             INSERT,
-            params![
+            js_params![
                 record.id,
                 record.session_id,
                 cwd,
@@ -79,7 +79,7 @@ pub fn list_feedback(cwd: &str, limit: f64) -> anyhow::Result<Vec<Value>> {
     };
     db.with(|c| {
         let mut st = c.prepare(SELECT)?;
-        let rows = st.query_map(params![limit], |r| {
+        let rows = st.query_map(js_params![limit], |r| {
             let cells = (0..8)
                 .map(|i| r.get_ref(i).map(Cell::read))
                 .collect::<rusqlite::Result<Vec<Cell>>>()?;

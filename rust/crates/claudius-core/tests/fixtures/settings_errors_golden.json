@@ -21184,12 +21184,14 @@
     }
    ],
    "cwd": "$ROOT/project",
-   "mode": "default",
+   "mode": "auto",
    "logged": [],
-   "throws": {
-    "name": "TypeError",
-    "message": "Cannot read properties of null (reading 'disableAutoMode')"
-   },
+   "broadcasts": [
+    {
+     "type": "mode_changed",
+     "mode": "auto"
+    }
+   ],
    "after": [
     {
      "path": "home",
@@ -23233,6 +23235,160 @@
      "type": "dir"
     }
    ]
+  }
+ ],
+ "autoMode": [
+  {
+   "text": "undefined",
+   "disabled": false
+  },
+  {
+   "text": "null",
+   "disabled": false
+  },
+  {
+   "text": "{}",
+   "disabled": false
+  },
+  {
+   "text": "[]",
+   "disabled": false
+  },
+  {
+   "text": "0",
+   "disabled": false
+  },
+  {
+   "text": "5",
+   "disabled": false
+  },
+  {
+   "text": "true",
+   "disabled": false
+  },
+  {
+   "text": "false",
+   "disabled": false
+  },
+  {
+   "text": "\"\"",
+   "disabled": false
+  },
+  {
+   "text": "\"disable\"",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":\"disable\"}",
+   "disabled": true
+  },
+  {
+   "text": "{\"disableAutoMode\":\"Disable\"}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":\"disabled\"}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":\" disable\"}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":true}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":1}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":null}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":[\"disable\"]}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":{\"\":\"disable\"}}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":{\"disableAutoMode\":\"disable\"}}",
+   "disabled": true
+  },
+  {
+   "text": "{\"permissions\":{\"disableAutoMode\":\"Disable\"}}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":{\"disableAutoMode\":true}}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":{\"disableAutoMode\":null}}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":{}}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":null}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":\"disable\"}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":5}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":true}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":[]}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":[{\"disableAutoMode\":\"disable\"}]}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":{\"disableAutoMode\":\"disable\"},\"disableAutoMode\":\"disable\"}",
+   "disabled": true
+  },
+  {
+   "text": "{\"disableAutoMode\":\"disable\",\"permissions\":{\"disableAutoMode\":\"off\"}}",
+   "disabled": true
+  },
+  {
+   "text": "{\"disableAutoMode\":\"off\",\"permissions\":{\"disableAutoMode\":\"disable\"}}",
+   "disabled": true
+  },
+  {
+   "text": "{\"__proto__\":{\"disableAutoMode\":\"disable\"}}",
+   "disabled": false
+  },
+  {
+   "text": "{\"disableAutoMode\":\"off\",\"disableAutoMode\":\"disable\"}",
+   "disabled": true
+  },
+  {
+   "text": "{\"permissions\":{\"DISABLEAUTOMODE\":\"disable\"}}",
+   "disabled": false
+  },
+  {
+   "text": "{\"skipAutoPermissionPrompt\":true,\"useAutoModeDuringPlan\":false}",
+   "disabled": false
+  },
+  {
+   "text": "{\"permissions\":{\"classifyAllShell\":true}}",
+   "disabled": false
   }
  ]
 }

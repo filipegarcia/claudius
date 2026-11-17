@@ -17,7 +17,9 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use claudius_agent::js;
 use claudius_core::db::{self, Mode};
-use claudius_core::session_titles::{FreshTitle, fresh_title, resolve_session_title, start_title};
+use claudius_core::session_titles::{
+    FreshTitle, fresh_title, resolve_session_title, start_mirror, start_title,
+};
 use claudius_core::{now_ms, paths, sessions_db, sessions_store};
 use rusqlite::types::Value as Sql;
 use serde_json::{Map, Value, json};
@@ -483,7 +485,13 @@ fn start_title_matches_ts() {
         let t1 = now_ms();
         let row = read_row(w, &cwd, id, t0, t1);
         check_legacy(c["name"].as_str().unwrap(), &c["legacy"], bytes);
-        let got = [("title", text(title.as_deref())), ("row", row)];
+        // CC 2.1.309: the fresh branch seeds the pending mirror with it.
+        let mirror = title.as_deref().and_then(|t| start_mirror(t, resume));
+        let got = [
+            ("title", text(title.as_deref())),
+            ("mirror", text(mirror.as_deref())),
+            ("row", row),
+        ];
         compare("start", c, &got, &mut failures);
     }
     finish("start", cases.len(), failures);

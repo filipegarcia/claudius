@@ -12,6 +12,11 @@
 //! logs, and the scheduler's timers, which the server logs as it arms and
 //! disarms them (`claudius::scheduler=debug`) and the test replays.
 //!
+//! The recording stubbed `process.pid` as [`REC_PID`], so a `"pid"` of the
+//! server's process reads as that: a run it starts has to carry its own pid,
+//! and the interrupted-run recovery at boot has to leave the same seeded
+//! runs alone (one stamped with pid 1, alive and not ours).
+//!
 //! The recording ran on a virtual clock and counted ids; the server runs on
 //! the real ones. So a recorded time that is a step's clock (`<t0> + 1000 *
 //! k`, boot is k = 0) must be a whole number of ms within the time the
@@ -25,8 +30,9 @@
 //!
 //! The rest checks who answers: only a server that runs the scheduler (G07c's
 //! run stream too), so a job is armed, re-armed and run by the one scheduler
-//! that's running; else Next does (or, without one, nobody). G07c's
-//! `session-loops` (+ `cancel`) are answered here either way.
+//! that's running; else Next does (or, without one, nobody). Since G07d the
+//! scheduler is on unless `CLAUDIUS_SCHEDULER=0`, which those tests set.
+//! G07c's `session-loops` (+ `cancel`) are answered here either way.
 
 mod common;
 
@@ -47,6 +53,9 @@ use serde_json::{Value, json};
 const TZ: &str = "America/New_York";
 /// The recorder's ids: this, then the count as 12 digits.
 const PLACEHOLDER: &str = "00000000-0000-4000-8000-";
+/// `process.pid` as the recorder stubbed it; no process has it, so the
+/// mapping can't hit a timestamp.
+const REC_PID: u32 = 777_001;
 /// The recorder's armed crons (`FAR`, `FAR2`): next slots years away.
 const ARMED_CRONS: [&str; 2] = ["0 0 29 2 *", "15 3 29 2 *"];
 /// `MAX_TIMEOUT_MS`: how far out a timer is set.
@@ -197,7 +206,9 @@ impl World {
         self.root.join("server.out")
     }
 
-    /// `claudius` in this world, logging to `server.out`.
+    /// `claudius` in this world, logging to `server.out`. The scheduler is
+    /// on by default (G07d), so `scheduler: false` turns it off with
+    /// `CLAUDIUS_SCHEDULER=0`.
     fn spawn(&self, fake: &Path, scheduler: bool, next: Option<u16>) -> Server {
         let port = free_port();
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
@@ -224,9 +235,7 @@ impl World {
             .env("FAKE_CLAUDE_EVENTS", "events.jsonl")
             .stdout(std::fs::File::create(self.server_out()).unwrap())
             .stderr(Stdio::null());
-        if scheduler {
-            cmd.env("CLAUDIUS_SCHEDULER", "1");
-        }
+        cmd.env("CLAUDIUS_SCHEDULER", if scheduler { "1" } else { "0" });
         let mut child = cmd.spawn().unwrap();
         wait_until("health", Duration::from_secs(30), || {
             if let Ok(Some(st)) = child.try_wait() {
@@ -390,6 +399,8 @@ struct Replay {
     root: String,
     fake: String,
     t0: i64,
+    /// The server's pid, once it has one.
+    pid: Option<u32>,
     /// `[start, end]` of boot (0) and each step (k = step + 1), in ms.
     windows: Vec<(i64, i64)>,
     /// Recorded id → the server's.
@@ -426,6 +437,7 @@ impl Replay {
             root: world.root_text().to_owned(),
             fake: fake.to_str().unwrap().to_owned(),
             t0,
+            pid: None,
             windows: Vec::new(),
             ids: Vec::new(),
             next,
@@ -433,7 +445,13 @@ impl Replay {
     }
 
     fn norm(&self, s: &str) -> String {
-        s.replace(&self.fake, "$FAKE").replace(&self.root, "$ROOT")
+        let s = s.replace(&self.fake, "$FAKE").replace(&self.root, "$ROOT");
+        // A run's own pid, as the recording stubbed it. Keyed on the field,
+        // so no other number can match.
+        match self.pid {
+            Some(pid) => s.replace(&format!("\"pid\":{pid}"), &format!("\"pid\":{REC_PID}")),
+            None => s,
+        }
     }
 
     /// Recorded text with the ids bound so far, and `$ROOT`.
@@ -718,6 +736,7 @@ fn replay_group(fx: &Value, g: &Value, fake: &Path) {
 
     let start = now();
     let server = world.spawn(fake, true, None);
+    rp.pid = Some(server.child.id());
     rp.windows.push((start, now()));
     let log = world.log();
     match g["boot"]["result"].get("threw").and_then(Value::as_str) {
@@ -820,8 +839,9 @@ fn replay_group(fx: &Value, g: &Value, fake: &Path) {
 fn the_routes_replay_the_ts_handlers() {
     let fx = fixture();
     let fake = fake();
+    assert_eq!(fx["pid"].as_u64(), Some(u64::from(REC_PID)));
     let groups = fx["groups"].as_array().unwrap();
-    assert_eq!(groups.len(), 5);
+    assert_eq!(groups.len(), 6);
     for g in groups {
         replay_group(&fx, g, &fake);
     }
@@ -1032,6 +1052,7 @@ fn forwarded(up: &Upstream, port: u16, req: (&str, &str, &str)) {
     assert_eq!(up.seen.lock().unwrap().last(), Some(&text));
 }
 
+/// With `CLAUDIUS_SCHEDULER=0` (the Next upstream runs the jobs).
 #[test]
 fn next_answers_them_while_it_runs_the_scheduler() {
     let fx = fixture();

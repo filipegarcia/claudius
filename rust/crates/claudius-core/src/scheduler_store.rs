@@ -103,6 +103,35 @@ impl StoreError {
     fn is_not_found(&self) -> bool {
         self.code() == Some("ENOENT")
     }
+
+    /// A copy that reads the same (`name`, `message`, `code`), for an error
+    /// a caller has to hand out more than once: TS's `boot()` keeps the
+    /// rejected promise, so every later `boot()` rejects with it again.
+    /// The `io::Error` behind an fs failure isn't cloneable, so the copy
+    /// carries its message instead of the original errno.
+    pub fn duplicate(&self) -> StoreError {
+        match self {
+            StoreError::Js {
+                name,
+                message,
+                code,
+            } => StoreError::Js {
+                name,
+                message: message.clone(),
+                code: *code,
+            },
+            StoreError::Fs {
+                code,
+                message,
+                source: _,
+            } => StoreError::Fs {
+                code: code.clone(),
+                message: message.clone(),
+                source: std::io::Error::other(message.clone()),
+            },
+            StoreError::Escape(id) => StoreError::Escape(id.clone()),
+        }
+    }
 }
 
 /// Node's fs error: `<CODE>: <libuv description>, <syscall> '<path>'`

@@ -2852,6 +2852,114 @@
   {
    "op": "file",
    "path": ".claude/.claudius/workspaces.json",
+   "text": "{\n  \"version\": 1,\n  \"activeId\": \"\\ud800\",\n  \"workspaces\": [\n    {\n      \"id\": \"\\udc00\",\n      \"name\": \"ws \\udc00\",\n      \"rootPath\": \"/claudius-golden/ws-a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"\\ud800\",\n      \"name\": \"ws \\ud800\",\n      \"rootPath\": \"/claudius-golden/lone-\\ud800\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"tabs\":[],\"activeId\":null,\"labelMaxWidth\":180,\"titles\":{},\"pinned\":[]}"
+   }
+  },
+  {
+   "op": "put",
+   "body": "{\"tabs\":[\"l1\",\"\\ud800\",\"\\ud800x\",\"\\udc00\",\"l2\"],\"activeId\":\"\\ud800\",\"pinned\":[\"\\udc00\"]}",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"ok\":true}"
+   }
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/lone-\ud800",
+   "got": [
+    [
+     "text",
+     "open_tabs",
+     "text",
+     "[\"l1\",\"\\ud800\",\"\\ud800x\",\"\\udc00\",\"l2\"]"
+    ],
+    [
+     "text",
+     "active_tab",
+     "text",
+     "\"\\ud800\""
+    ],
+    [
+     "text",
+     "pinned_tabs",
+     "text",
+     "[\"\\udc00\"]"
+    ]
+   ]
+  },
+  {
+   "op": "rows",
+   "cwd": "/claudius-golden/ws-a",
+   "got": [
+    [
+     "text",
+     "open_tabs",
+     "text",
+     "[\"a1\"]"
+    ],
+    [
+     "text",
+     "tab_label_max_width",
+     "text",
+     "99"
+    ]
+   ]
+  },
+  {
+   "op": "sql",
+   "cwd": "/claudius-golden/lone-\ud800",
+   "sql": "INSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES ('l1', 'x', ' lone root ', 1, 2, 3);\nINSERT INTO sessions(id, cwd, title, created_at, updated_at, last_seen_at) VALUES (CAST(X'eda080' AS TEXT), 'x', 'lone id', 1, 2, 3);"
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"tabs\":[\"l1\",\"\\ud800\",\"\\ud800x\",\"\\udc00\",\"l2\"],\"activeId\":\"\\ud800\",\"labelMaxWidth\":180,\"titles\":{\"l1\":\"lone root\"},\"pinned\":[\"\\udc00\"]}"
+   }
+  },
+  {
+   "op": "get",
+   "cookie": "claudius.workspace=%EF%BF%BD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"tabs\":[\"l1\",\"\\ud800\",\"\\ud800x\",\"\\udc00\",\"l2\"],\"activeId\":\"\\ud800\",\"labelMaxWidth\":180,\"titles\":{\"l1\":\"lone root\"},\"pinned\":[\"\\udc00\"]}"
+   }
+  },
+  {
+   "op": "file",
+   "path": ".claude/.claudius/workspaces.json",
+   "text": "{\n  \"version\": 1,\n  \"activeId\": \"\\ud800\",\n  \"workspaces\": [\n    {\n      \"id\": \"�\",\n      \"name\": \"ws �\",\n      \"rootPath\": \"/claudius-golden/ws-a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"\\ud800\",\n      \"name\": \"ws \\ud800\",\n      \"rootPath\": \"/claudius-golden/lone-\\ud800\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+  },
+  {
+   "op": "get",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"tabs\":[\"l1\",\"\\ud800\",\"\\ud800x\",\"\\udc00\",\"l2\"],\"activeId\":\"\\ud800\",\"labelMaxWidth\":180,\"titles\":{\"l1\":\"lone root\"},\"pinned\":[\"\\udc00\"]}"
+   }
+  },
+  {
+   "op": "get",
+   "cookie": "claudius.workspace=%EF%BF%BD",
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"tabs\":[\"a1\"],\"activeId\":null,\"labelMaxWidth\":99,\"titles\":{},\"pinned\":[]}"
+   }
+  },
+  {
+   "op": "file",
+   "path": ".claude/.claudius/workspaces.json",
    "text": "{\n  \"version\": 1,\n  \"activeId\": \"wks_b\",\n  \"workspaces\": [\n    {\n      \"id\": \"wks_a\",\n      \"name\": \"ws wks_a\",\n      \"rootPath\": \"/claudius-golden/ws-a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"wks_b\",\n      \"name\": \"ws wks_b\",\n      \"rootPath\": \"/claudius-golden/ws-b\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
   },
   {
@@ -20704,6 +20812,139 @@
     "customizationId": null,
     "ws": null
    }
+  },
+  {
+   "op": "file",
+   "path": ".claude/.claudius/workspaces.json",
+   "text": "{\n  \"version\": 1,\n  \"activeId\": \"\\ud800\",\n  \"workspaces\": [\n    {\n      \"id\": \"\\udc00\",\n      \"name\": \"ws \\udc00\",\n      \"rootPath\": \"/claudius-golden/ws-a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"\\ud800\",\n      \"name\": \"ws \\ud800\",\n      \"rootPath\": \"/claudius-golden/lone-\\ud800\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+  },
+  {
+   "op": "active",
+   "got": {
+    "cwd": "/claudius-golden/lone-\ud800",
+    "customizationId": null,
+    "ws": {
+     "id": "\ud800",
+     "name": "ws \ud800",
+     "rootPath": "/claudius-golden/lone-\ud800",
+     "icon": {
+      "kind": "letter",
+      "letter": "W",
+      "color": "#5588dd"
+     },
+     "createdAt": 1,
+     "updatedAt": 2
+    }
+   }
+  },
+  {
+   "op": "active",
+   "ws": "�",
+   "got": {
+    "cwd": "/claudius-golden/lone-\ud800",
+    "customizationId": null,
+    "ws": {
+     "id": "\ud800",
+     "name": "ws \ud800",
+     "rootPath": "/claudius-golden/lone-\ud800",
+     "icon": {
+      "kind": "letter",
+      "letter": "W",
+      "color": "#5588dd"
+     },
+     "createdAt": 1,
+     "updatedAt": 2
+    }
+   }
+  },
+  {
+   "op": "file",
+   "path": ".claude/.claudius/workspaces.json",
+   "text": "{\n  \"version\": 1,\n  \"activeId\": \"\\ud800\",\n  \"workspaces\": [\n    {\n      \"id\": \"�\",\n      \"name\": \"ws �\",\n      \"rootPath\": \"/claudius-golden/ws-a\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    },\n    {\n      \"id\": \"\\ud800\",\n      \"name\": \"ws \\ud800\",\n      \"rootPath\": \"/claudius-golden/lone-\\ud800\",\n      \"icon\": {\n        \"kind\": \"letter\",\n        \"letter\": \"W\",\n        \"color\": \"#5588dd\"\n      },\n      \"createdAt\": 1,\n      \"updatedAt\": 2\n    }\n  ]\n}"
+  },
+  {
+   "op": "active",
+   "got": {
+    "cwd": "/claudius-golden/lone-\ud800",
+    "customizationId": null,
+    "ws": {
+     "id": "\ud800",
+     "name": "ws \ud800",
+     "rootPath": "/claudius-golden/lone-\ud800",
+     "icon": {
+      "kind": "letter",
+      "letter": "W",
+      "color": "#5588dd"
+     },
+     "createdAt": 1,
+     "updatedAt": 2
+    }
+   }
+  },
+  {
+   "op": "active",
+   "ws": "�",
+   "got": {
+    "cwd": "/claudius-golden/ws-a",
+    "customizationId": null,
+    "ws": {
+     "id": "�",
+     "name": "ws �",
+     "rootPath": "/claudius-golden/ws-a",
+     "icon": {
+      "kind": "letter",
+      "letter": "W",
+      "color": "#5588dd"
+     },
+     "createdAt": 1,
+     "updatedAt": 2
+    }
+   }
+  },
+  {
+   "op": "file",
+   "path": ".claude/.claudius/customizations/index.json",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"\\ud800\"},{\"id\":\"�\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "active",
+   "cust": "�",
+   "got": {
+    "cwd": "$HOME/.claude/.claudius/customizations/�/src",
+    "customizationId": "�",
+    "ws": null
+   }
+  },
+  {
+   "op": "file",
+   "path": ".claude/.claudius/customizations/index.json",
+   "text": "{\"version\":1,\"customizations\":[{\"id\":\"\\ud800\"}],\"publishes\":[]}"
+  },
+  {
+   "op": "active",
+   "cust": "�",
+   "ws": "wks_zz",
+   "got": {
+    "cwd": "/claudius-golden/lone-\ud800",
+    "customizationId": null,
+    "ws": {
+     "id": "\ud800",
+     "name": "ws \ud800",
+     "rootPath": "/claudius-golden/lone-\ud800",
+     "icon": {
+      "kind": "letter",
+      "letter": "W",
+      "color": "#5588dd"
+     },
+     "createdAt": 1,
+     "updatedAt": 2
+    }
+   }
+  },
+  {
+   "op": "file",
+   "path": ".claude/.claudius/customizations/index.json",
+   "rm": true
   },
   {
    "op": "file",

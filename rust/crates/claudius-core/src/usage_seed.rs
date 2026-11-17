@@ -29,7 +29,7 @@ const SUBAGENT_MAX_DEPTH: usize = 4;
 /// `subagentTranscripts(dir, id)`: every `*.jsonl` under `<dir>/<id>/subagents/`
 /// (plain files and directories only — symlinks are neither), sorted like
 /// JS `Array.prototype.sort` (UTF-16 code units).
-fn subagent_transcripts(dir: &Path, session_id: &str) -> Vec<String> {
+pub(crate) fn subagent_transcripts(dir: &Path, session_id: &str) -> Vec<String> {
     if !crate::is_safe_id(session_id) {
         return Vec::new();
     }

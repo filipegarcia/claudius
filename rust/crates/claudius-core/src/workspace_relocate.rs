@@ -38,12 +38,15 @@
 use std::io::{self, Write};
 
 use rusqlite::Connection;
-use rusqlite::types::{ToSqlOutput, ValueRef};
+use rusqlite::types::ValueRef;
 use serde_json::{Map, Value, json};
 
+use crate::asset_list::Cell;
 pub use crate::auto_memory::Thrown;
 use crate::db::{self, Mode};
 use crate::node_fs::{self, FsError};
+use crate::session_history;
+use crate::sql_text::JsText;
 use crate::{js_num, js_string, node_path, paths};
 
 const DB_FILE: &str = ".claudius.db";
@@ -115,46 +118,22 @@ impl SessionKey {
     }
 }
 
-/// `Set.prototype.add`.
-fn add(ids: &mut Vec<SessionKey>, key: SessionKey) {
-    let seen = match &key {
+/// `Set.prototype.has`: a `Buffer` is a fresh object every read, so it is
+/// never already in the set.
+fn has(ids: &[SessionKey], key: &SessionKey) -> bool {
+    match key {
         SessionKey::Blob(_) => false,
         SessionKey::Num(n) => ids
             .iter()
             .any(|k| matches!(k, SessionKey::Num(m) if m == n || (m.is_nan() && n.is_nan()))),
-        _ => ids.contains(&key),
-    };
-    if !seen {
+        _ => ids.contains(key),
+    }
+}
+
+/// `Set.prototype.add`.
+fn add(ids: &mut Vec<SessionKey>, key: SessionKey) {
+    if !has(ids, &key) {
         ids.push(key);
-    }
-}
-
-/// A JS string bound as SQLite text the way better-sqlite3 binds one (V8's
-/// `String::Utf8Value`): UTF-8, with a lone surrogate as its own 3-byte
-/// sequence rather than U+FFFD. A root with one matches, and is re-keyed to,
-/// the bytes the TS wrote; read back, each of those bytes is a U+FFFD.
-struct JsText(Vec<u8>);
-
-impl JsText {
-    fn new(s: &str) -> JsText {
-        let mut out = Vec::with_capacity(s.len());
-        for c in s.chars() {
-            match js_string::lone_unit(c) {
-                Some(u) => out.extend_from_slice(&[
-                    0xE0 | (u >> 12) as u8,
-                    0x80 | ((u >> 6) & 0x3F) as u8,
-                    0x80 | (u & 0x3F) as u8,
-                ]),
-                None => out.extend_from_slice(c.encode_utf8(&mut [0; 4]).as_bytes()),
-            }
-        }
-        JsText(out)
-    }
-}
-
-impl rusqlite::ToSql for JsText {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::Borrowed(ValueRef::Text(&self.0)))
     }
 }
 
@@ -182,11 +161,23 @@ fn is_enoent(e: &io::Error) -> bool {
     node_fs::code(e).as_deref() == Some("ENOENT")
 }
 
-/// `listWorkspaceSessionIds(root)`: every transcript id in the root's
+/// `listWorkspaceSessionIds(root, opts)`: every transcript id in the root's
 /// folder, then the `sessions` rows recorded for the root (read-only; a
-/// database that can't be opened or has no such table adds nothing). A
-/// missing folder is empty; any other `readdir` failure throws.
-pub fn list_workspace_session_ids(root: &str) -> Result<Vec<SessionKey>, Thrown> {
+/// database that can't be opened, has no such table or no `title` column
+/// adds nothing). A missing folder is empty; any other `readdir` failure
+/// throws.
+///
+/// With `is_live` (CC 2.1.309, the move-sessions preview) a row is counted
+/// only when history shows it
+/// ([`session_history::is_history_worthy_db_row`]); without it every row
+/// counts, as the move carries the whole database anyway. Like the TS, a
+/// row whose title has no `trim` (a number, a BLOB) ends the row loop
+/// inside the same `catch` a pre-v2 database lands in, so the rows already
+/// added stay.
+pub fn list_workspace_session_ids(
+    root: &str,
+    is_live: Option<&dyn Fn(&str) -> bool>,
+) -> Result<Vec<SessionKey>, Thrown> {
     let base = projects_base();
     let dir = node_path::resolve(&[&base, &paths::encode_project_dir(root)]);
     if !dir.starts_with(&format!("{base}/")) {
@@ -207,16 +198,36 @@ pub fn list_workspace_session_ids(root: &str) -> Result<Vec<SessionKey>, Thrown>
         && let Ok(db) = db::open_db(root, Mode::ReadOnly)
     {
         let rows = db.with(|conn| {
-            let mut st = conn.prepare("SELECT id FROM sessions WHERE cwd = ?")?;
+            let mut st = conn.prepare("SELECT id, title FROM sessions WHERE cwd = ?")?;
             let mut rows = st.query([JsText::new(root)])?;
             let mut out = Vec::new();
             while let Some(r) = rows.next()? {
-                out.push(SessionKey::of(r.get_ref(0)?));
+                out.push((SessionKey::of(r.get_ref(0)?), Cell::read(r.get_ref(1)?)));
             }
             Ok(out)
         });
-        // A pre-v2 database without the table: the transcripts are the set.
-        for key in rows.unwrap_or_default() {
+        // A pre-v2 database without the table (or without `title`): the
+        // transcripts are the set.
+        for (key, title) in rows.unwrap_or_default() {
+            if has(&ids, &key) {
+                continue;
+            }
+            if let Some(is_live) = is_live {
+                let live = || match &key {
+                    SessionKey::Str(s) => is_live(s),
+                    _ => false,
+                };
+                match session_history::is_history_worthy_db_row(
+                    session_history::title_of(&title),
+                    live,
+                ) {
+                    Ok(true) => {}
+                    // The `TypeError` lands in the same `catch`: the rows
+                    // read so far stay, the rest are dropped.
+                    Err(_) => break,
+                    Ok(false) => continue,
+                }
+            }
             add(&mut ids, key);
         }
     }

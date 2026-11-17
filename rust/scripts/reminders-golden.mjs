@@ -12,6 +12,8 @@
 //
 // - `wrap`: `wrapReminder(body)`.
 // - `ultrathink`: `ultrathinkReminderBody(text)` (null when it doesn't match).
+// - `ultrathinkPastes`: the same with `inlinePastes`, including non-string
+//   and empty entries.
 // - `dates`: `localDateKey(d)` and `dateChangeReminderBody(prev, d)` for `d`
 //   the local noon of `date` (`[year, month, day]`), against three previous
 //   keys.
@@ -223,8 +225,87 @@ const ULTRATHINK = [
   "ultrath\u0130nk",
   "\uff55ltrathink",
   "",
+  // CC 2.1.311 \u2014 the quote/path-aware finder (`ultrathink-keyword.ts`).
+  // Quoted and bracketed spans.
+  "`ultrathink`",
+  "\"ultrathink\"",
+  "[ultrathink]",
+  "{ultrathink}",
+  "<ultrathink>",
+  "<b>ultrathink</b>",
+  "</b> ultrathink",
+  "< ultrathink",
+  "1 < 2 ultrathink",
+  "(quoted) ultrathink",
+  "(ultrathink",
+  "`ultrathink",
+  "[[ultrathink]]",
+  "[a[ultrathink]]",
+  "[a]ultrathink[b]",
+  "'ultrathink'",
+  "don't ultrathink",
+  "it's ultrathink",
+  "x'ultrathink'y",
+  "o'ultrathink",
+  "'ultrathink'x",
+  // Paths, flags and file names.
+  "docs/ultrathink.md",
+  "ultrathink/x",
+  "C:\\ultrathink\\x",
+  "--ultrathink-mode",
+  "ultrathink-",
+  "-ultrathink",
+  "ultrathink?",
+  "ultrathink.md",
+  "ultrathink. md",
+  "ultrathink.\u00e9",
+  "ultrathink.\u0663",
+  "ultrathink._",
+  // A leading slash is a slash command or a bare path.
+  "/compact ultrathink",
+  "/ultrathink",
+  // Several occurrences: one live one is enough.
+  "`ultrathink` and ultrathink",
+  "ultrathink and `ultrathink`",
+  // Astral characters and lone surrogates around the keyword.
+  "\ud83d\ude00ultrathink",
+  "ultrathink\ud83d\ude00",
+  "\ud83dultrathink",
+  "ultrathink\ud83d",
+  "ultrathink.\ud83d\ude00",
 ];
 const ultrathink = ULTRATHINK.map((text) => ({ text, body: session.ultrathinkReminderBody(text) }));
+
+// `inlinePastes`: Claude Code scans the prompt BEFORE paste expansion, so a
+// keyword only inside pasted text doesn't count \u2014 and a paste's own
+// quotes or leading `/` can't hide one the user typed. Non-string and empty
+// entries are ignored (a non-string made the search loop forever).
+const ULTRATHINK_PASTES = [
+  ["look: ultrathink", ["ultrathink"]],
+  ["ultrathink and look: paste", ["paste"]],
+  ["(x) ultrathink", ["(x)"]],
+  ["pasted ultrathink twice ultrathink", ["ultrathink twice ultrathink"]],
+  ["a ultrathink b ultrathink c", ["ultrathink b"]],
+  ["x", [""]],
+  ["ultrathink", [""]],
+  ["ultrathink", [5, null, {}, [], true]],
+  ["ultrathink", ["nope"]],
+  ["/x ultrathink", ["/x"]],
+  ["ultrathink", ["ultrathink", "ultrathink"]],
+  ["say `ultrathink`", ["`"]],
+  ["\ud83d\ude00 ultrathink", ["\ud83d\ude00"]],
+  // A paste that is half of a surrogate pair splits that pair (JS strings
+  // are UTF-16), so the keyword after it can go with it.
+  ["\ud83d\ude00ultrathink", ["\ude00ultrathink"]],
+  ["\ud83d\ude00 ultrathink", ["\ud83d"]],
+  ["ultrathink", []],
+  ["none here", ["x"]],
+];
+const ultrathinkPastes = ULTRATHINK_PASTES.map(([text, pastes]) => ({
+  text,
+  pastes,
+  body: session.ultrathinkReminderBody(text, pastes),
+}));
 
 // [year, month, day]: years past 9999, below 1000, 0 and negative too.
 const DATES = [
@@ -729,6 +810,6 @@ for (const [i, sc] of SCENARIOS.entries()) scenarios.push(await runScenario(sc, 
 // A file, not stdout: `process.exit` would cut a piped stdout short.
 writeFileSync(
   join(ROOT_DIR, "out.json"),
-  J({ wrap, ultrathink, dates, linter, constants, plans, queues, scenarios }),
+  J({ wrap, ultrathink, ultrathinkPastes, dates, linter, constants, plans, queues, scenarios }),
 );
 process.exit(0);

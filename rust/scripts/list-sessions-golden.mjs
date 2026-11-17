@@ -32,6 +32,7 @@
 // Written to rust/crates/claudius-core/tests/fixtures/list_sessions_golden.json
 // and replayed by crates/claudius-core/tests/list_sessions_golden.rs.
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import {
   chmodSync,
   mkdirSync,
@@ -103,49 +104,98 @@ if (!process.env.LIST_SESSIONS_GOLDEN_CHILD) {
 // ---- child ------------------------------------------------------------------
 
 const sdkVersion = JSON.parse(readFileSync(join(sdkPath, "package.json"), "utf8")).version;
+// TypeScript's parser (a devDependency) walks the lifted bundle slice.
+const tsc = createRequire(join(repo, "package.json"))("typescript");
 const { listSessions, forkSession } = await import(join(sdkPath, "sdk.mjs"));
 const { list: tsList } = await import(join(repo, "lib/server/sessions-store.ts"));
 
-// The SDK's private path predicates, sliced out of the bundle by name.
+// The SDK's private path predicates. They sit in one contiguous run in the
+// bundle, so this lifts that whole run and derives the handful of entry
+// names from the shape of their bodies: minification renames every one of
+// them on an SDK bump, and the run also carries the `??`-prefix regex, the
+// path-length limits and the realpath caches they read.
 function predicates() {
   const bundle = readFileSync(join(sdkPath, "sdk.mjs"), "utf8");
-  const fn = (name) => {
-    const at = bundle.indexOf(`function ${name}(`);
-    if (at < 0 || bundle.indexOf(`function ${name}(`, at + 1) >= 0) {
-      throw new Error(`function ${name} moved in sdk.mjs: update the names`);
-    }
-    let i = bundle.indexOf("{", at);
-    let depth = 0;
-    let prev = "{";
-    for (; i < bundle.length; i++) {
-      const c = bundle[i];
-      if (c === "{") depth++;
-      else if (c === "}" && --depth === 0) break;
-      else if (c === '"' || c === "'" || c === "`") {
-        for (i++; bundle[i] !== c; i++) if (bundle[i] === "\\") i++;
-      } else if (c === "/" && ("(,=:[!&|?{};".includes(prev) || /return$/.test(bundle.slice(at, i)))) {
-        // a regex literal: skip to its closing slash and flags
-        for (i++; bundle[i] !== "/"; i++) {
-          if (bundle[i] === "\\") i++;
-          else if (bundle[i] === "[") for (i++; bundle[i] !== "]"; i++) if (bundle[i] === "\\") i++;
-        }
-        while (/[a-z]/.test(bundle[i + 1])) i++;
-      }
-      if (!/\s/.test(bundle[i])) prev = bundle[i];
-    }
-    return bundle.slice(at, i + 1);
+  const shape = (re, what) => {
+    const m = re.exec(bundle);
+    if (!m) throw new Error(`${what} moved in sdk.mjs ${sdkVersion}: re-derive the extraction`);
+    return m;
   };
-  const names = ["vn", "Da", "mo", "ss", "MX", "pk", "Ly", "go", "wc", "tk", "is", "ho", "nk"];
-  const src = [
-    ...names.map(fn),
-    ...["tf", "ZX", "mr", "Oc", "xc", "$X"].map(fn),
-    "var lk=/^[\\\\/]\\?\\?[\\\\/]/;",
-    "var gk=1024,hk=4096,qp=new Map,Zp=new Map;",
-  ].join("\n");
-  if (!bundle.includes("var lk=/^[\\\\/]\\?\\?[\\\\/]/;") || !bundle.includes("gk=1024,hk=4096,qp=new Map,Zp=new Map")) {
-    throw new Error("lk / gk / hk moved in sdk.mjs: update the anchors");
+  // `(p) => /^[\\/]{2}/.test(p) || <isQQPrefixed>(p)` opens the run; the
+  // win32 normalize closes it (and names the `path` module it needs).
+  const first = shape(/function (\w+)\(e\)\{return\/\^\[\\\\\/\]\{2\}\/\.test\(e\)\|\|(\w+)\(e\)\}/, "the UNC-prefix predicate");
+  const normalize = shape(/function (\w+)\(e\)\{return (\w+)\.win32\?\2\.win32\.normalize\(e\):e\}/, "the win32 normalize helper");
+  const run = bundle.slice(first.index, normalize.index + normalize[0].length);
+  if (run.length > 16000) throw new Error(`the predicate run is ${run.length} bytes in sdk.mjs ${sdkVersion}; re-derive the extraction`);
+  // `<hasDotDot>(p) => /(^|[\\/])\.\.([\\/]|$)/.test(p)`.
+  const hasDotDot = shape(/function (\w+)\(e\)\{return\/\(\^\|\[\\\\\/\]\)\\\.\\\.\(\[\\\\\/\]\|\$\)\/\.test\(e\)\}/, "the ..-segment predicate")[1];
+  // `<suspicious>(p) => <any>(p) || <isVolfs>(p)`, then the seven-way `<any>`
+  // whose first three members are the lexical checks this recorder replays.
+  const chain = shape(/function (\w+)\(e\)\{return (\w+)\(e\)\|\|(\w+)\(e\)\}function \2\(e\)\{return (\w+)\(e\)\|\|(\w+)\(e\)\|\|(\w+)\(e\)\|\|(\w+)\(e\)\|\|(\w+)\(e\)\|\|(\w+)\(e\)\|\|(\w+)\(e\)\}/, "the suspicious-path chain");
+  const [, suspicious, , , unsafeUnc, hasTraversal, hasNullish] = chain;
+  const entries = [suspicious, hasDotDot, unsafeUnc, hasTraversal, hasNullish];
+  // Only what those five reach: the run also holds predicates whose own
+  // module-level state is built by calling a helper from outside it, which
+  // would throw as soon as the whole run is evaluated.
+  const src = closure(run, entries);
+  for (const [what, needle] of [["the ??-prefix regex", "/^[\\\\/]\\?\\?[\\\\/]/"], ["the short path limit", "=1024"], ["the long path limit", "=4096"], ["the realpath caches", "new Map"]]) {
+    if (!src.includes(needle)) throw new Error(`${what} is not reachable from the predicates in sdk.mjs ${sdkVersion}`);
   }
-  return new Function("Fy", `${src}\nreturn { xc, lexical: (e) => Da(e) || Oc(e) || go(e) || is(e) };`)(nodePath);
+  return new Function(
+    normalize[2],
+    `${src}\nreturn { xc: ${suspicious}, lexical: (e) => ${hasDotDot}(e) || ${unsafeUnc}(e) || ${hasTraversal}(e) || ${hasNullish}(e) };`,
+  )(nodePath);
+}
+
+/**
+ * The declarations of `run` that `entries` reach, in source order. Keeps the
+ * lift to pure functions and constants: a `var` whose initializer calls out
+ * of the run is only pulled in if something needed references it (and then
+ * the recorder fails loudly rather than silently stubbing it).
+ */
+function closure(run, entries) {
+  const file = tsc.createSourceFile("run.js", run, tsc.ScriptTarget.Latest, true, tsc.ScriptKind.JS);
+  const decls = new Map();
+  for (const st of file.statements) {
+    if (tsc.isFunctionDeclaration(st) && st.name) decls.set(st.name.text, { st, text: st.getText(file) });
+    else if (tsc.isVariableStatement(st)) {
+      for (const d of st.declarationList.declarations) {
+        if (tsc.isIdentifier(d.name)) decls.set(d.name.text, { st, text: `var ${d.getText(file)};` });
+      }
+    }
+  }
+  const refs = (node) => {
+    const names = new Set();
+    (function walk(n) {
+      if (tsc.isIdentifier(n)) {
+        const p = n.parent;
+        const isMember =
+          (tsc.isPropertyAccessExpression(p) && p.name === n) ||
+          ((tsc.isPropertyAssignment(p) || tsc.isMethodDeclaration(p)) && p.name === n) ||
+          (tsc.isBindingElement(p) && p.propertyName === n);
+        if (!isMember) names.add(n.text);
+      }
+      tsc.forEachChild(n, walk);
+    })(node);
+    return names;
+  };
+  const needed = new Set();
+  const queue = [...entries];
+  while (queue.length > 0) {
+    const name = queue.pop();
+    if (needed.has(name) || !decls.has(name)) continue;
+    needed.add(name);
+    for (const r of refs(decls.get(name).st)) if (decls.has(r) && !needed.has(r)) queue.push(r);
+  }
+  for (const e of entries) if (!needed.has(e)) throw new Error(`predicate ${e} is not a declaration of the run`);
+  const seen = new Set();
+  const out = [];
+  for (const [name, { text }] of decls) {
+    if (!needed.has(name) || seen.has(text)) continue;
+    seen.add(text);
+    out.push(text);
+  }
+  return out.join("\n");
 }
 
 const PATHS = [
