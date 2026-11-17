@@ -531,7 +531,7 @@ fn model_pricing_override_is_the_ts_layer() {
             settled(mpo::effective_multiplier(&p).map(|m| {
                 json!({
                     "type": type_of(m.as_ref()),
-                    "text": m.as_ref().map(|v| json!(db_agents::js_string(v))).unwrap_or(Value::Null),
+                    "text": m.as_ref().map(|v| json!(db_agents::js_string(v).ok())).unwrap_or(Value::Null),
                 })
             })),
         );

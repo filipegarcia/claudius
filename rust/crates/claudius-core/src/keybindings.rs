@@ -10,7 +10,7 @@ use std::path::Path;
 use serde_json::{Map, Value, json};
 
 use crate::js_string;
-use crate::node_err;
+use crate::node_fs;
 use crate::node_path;
 use crate::skills::Thrown;
 
@@ -33,7 +33,7 @@ pub fn read_keybindings(home: &str) -> Result<Value, Thrown> {
     if !target.starts_with(&format!("{base}/")) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    let bytes = match node_err::fs::read_file(Path::new(&target)) {
+    let bytes = match node_fs::sys::read_file(Path::new(&target)) {
         Ok(b) => b,
         Err(e) if e.code == "ENOENT" => {
             return Ok(json!({ "path": path, "exists": false, "data": Map::new() }));
@@ -56,12 +56,12 @@ pub fn write_keybindings(home: &str, data: &Value) -> Result<(), Thrown> {
     if dir != base {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    node_err::fs::mkdir_recursive(Path::new(&dir))?;
+    node_fs::sys::mkdir_recursive(Path::new(&dir))?;
     let mut body = js_string::stringify_pretty(data);
     body.push('\n');
     if !target.starts_with(&format!("{base}/")) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    node_err::fs::write_file(Path::new(&target), body.as_bytes())?;
+    node_fs::sys::write_file(Path::new(&target), body.as_bytes())?;
     Ok(())
 }

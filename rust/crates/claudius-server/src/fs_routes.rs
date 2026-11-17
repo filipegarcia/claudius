@@ -34,7 +34,7 @@ use claudius_agent::js;
 use claudius_core::fs_list::{self, DirentKind, error_code};
 use claudius_core::node_path::{dirname, is_absolute, join, relative, resolve};
 use claudius_core::tcc_protected::{categorize_tcc_path, is_hidden_home_subpath, platform};
-use claudius_core::{log, node_err, paths, trusted_cwd};
+use claudius_core::{log, node_fs, paths, trusted_cwd};
 use serde_json::{Value, json};
 
 use crate::AppState;
@@ -318,8 +318,7 @@ pub fn search_failed(e: &std::io::Error, path: &str) -> Response {
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Search failed: {}",
-                node_err::uv_exception(e, "scandir", Some(std::path::Path::new(path)), None)
-                    .message
+                node_fs::uv_exception(e, "scandir", Some(std::path::Path::new(path)), None).message
             ),
         ),
     }

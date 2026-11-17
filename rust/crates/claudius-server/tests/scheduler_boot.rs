@@ -206,7 +206,9 @@ fn its_runs_use_the_given_cli_and_a_stop_ends_them() {
     assert_eq!(lines.len(), 1, "{runs}");
     let run: Value = serde_json::from_str(lines[0]).unwrap();
     assert_eq!(run["status"], "error", "{run}");
-    assert_eq!(run["note"], "Operation aborted", "{run}");
+    // The CLI is held mid-turn, so the shutdown's close SIGTERMs it at once
+    // (R13), and the SDK's forwarded abort ends the stream with its wording.
+    assert_eq!(run["note"], "Claude Code process aborted by user", "{run}");
     // Stamped with the server's own pid (CC 2.1.302's recovery reads it).
     assert_eq!(run["pid"], json!(pid), "{run}");
     let stored: Value =

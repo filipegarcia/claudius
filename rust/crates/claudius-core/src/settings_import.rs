@@ -36,7 +36,7 @@ use crate::skills::Thrown;
 use crate::updater::settings::SettingsPatch;
 use crate::workspaces::CreateInputJs;
 use crate::{asset_ingest, customizations, customize_settings, js_string, keybindings};
-use crate::{node_err, node_path, now_ms, paths, safe_path, updater, workspaces};
+use crate::{node_fs, node_path, now_ms, paths, safe_path, updater, workspaces};
 
 use claudius_agent::js;
 
@@ -64,7 +64,7 @@ fn read_session(import_id: &str) -> Result<Option<Value>, Thrown> {
     let Some(path) = session_path(import_id) else {
         return Ok(None);
     };
-    let bytes = match node_err::fs::read_file(Path::new(&path)) {
+    let bytes = match node_fs::sys::read_file(Path::new(&path)) {
         Ok(b) => b,
         Err(e) if e.code == "ENOENT" => return Ok(None),
         Err(e) => return Err(e.into()),
@@ -84,7 +84,7 @@ fn write_session(session: &Value) -> Result<(), Thrown> {
         .and_then(Value::as_str)
         .unwrap_or_default();
     let dir = imports_dir();
-    node_err::fs::mkdir_recursive(Path::new(&dir))?;
+    node_fs::sys::mkdir_recursive(Path::new(&dir))?;
     let Some(file) = session_path(import_id) else {
         return Err(Thrown::path_injection("path escapes base directory"));
     };
@@ -94,8 +94,8 @@ fn write_session(session: &Value) -> Result<(), Thrown> {
     if !tmp.starts_with(&format!("{dir}/")) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    node_err::fs::write_file(Path::new(&tmp), body.as_bytes())?;
-    node_err::fs::rename(Path::new(&tmp), Path::new(&file))?;
+    node_fs::sys::write_file(Path::new(&tmp), body.as_bytes())?;
+    node_fs::sys::rename(Path::new(&tmp), Path::new(&file))?;
     Ok(())
 }
 
@@ -187,21 +187,13 @@ fn strict_eq(a: Option<&Value>, b: Option<&Value>) -> bool {
     }
 }
 
-/// `assertAbsoluteUserPath(input)`.
+/// `assertAbsoluteUserPath(input)` ([`safe_path`]); a non-string is
+/// `typeof input !== "string"`'s "invalid path".
 fn assert_absolute_user_path(input: Option<&Value>) -> Result<String, &'static str> {
-    let Some(Value::String(s)) = input else {
-        return Err("invalid path");
-    };
-    if s.is_empty() {
-        return Err("invalid path");
+    match input {
+        Some(Value::String(s)) => safe_path::assert_absolute_user_path(s),
+        _ => Err("invalid path"),
     }
-    if s.contains('\0') {
-        return Err("null byte in path");
-    }
-    if !node_path::is_absolute(s) {
-        return Err("path must be absolute");
-    }
-    Ok(node_path::resolve(&[s]))
 }
 
 // ── validation ───────────────────────────────────────────────────────────
@@ -465,7 +457,7 @@ fn restore_customizations(list: Option<&Value>) -> Result<(), Thrown> {
             let joined = node_path::join(&[&src_dir, rel]);
             let target =
                 safe_path::assert_within(&src_dir, &joined).map_err(Thrown::path_injection)?;
-            node_err::fs::mkdir_recursive(Path::new(&node_path::dirname(&target)))?;
+            node_fs::sys::mkdir_recursive(Path::new(&node_path::dirname(&target)))?;
             // `writeFile(target, content, "utf-8")` takes a string or any
             // iterable (an array: each chunk through `Buffer.from`); the
             // rest is refused before the file is opened.
@@ -487,7 +479,7 @@ fn restore_customizations(list: Option<&Value>) -> Result<(), Thrown> {
                 if std::fs::metadata(&src_dir).is_ok_and(|m| m.is_dir()) {
                     let e = std::io::Error::from_raw_os_error(libc::EISDIR);
                     return Err(
-                        node_err::uv_exception(&e, "open", Some(Path::new(&sink)), None).into(),
+                        node_fs::uv_exception(&e, "open", Some(Path::new(&sink)), None).into(),
                     );
                 }
                 return Err(Thrown::path_injection("path escapes base directory"));
@@ -509,11 +501,11 @@ fn restore_customizations(list: Option<&Value>) -> Result<(), Thrown> {
 fn write_chunks(path: &Path, chunks: &[&Value]) -> Result<(), Thrown> {
     use std::io::Write as _;
     let mut file = std::fs::File::create(path)
-        .map_err(|e| node_err::uv_exception(&e, "open", Some(path), None))?;
+        .map_err(|e| node_fs::uv_exception(&e, "open", Some(path), None))?;
     for chunk in chunks {
         let bytes = buffer_from(chunk)?;
         file.write_all(&bytes)
-            .map_err(|e| node_err::uv_exception(&e, "write", None, None))?;
+            .map_err(|e| node_fs::uv_exception(&e, "write", None, None))?;
     }
     Ok(())
 }
@@ -619,10 +611,7 @@ fn detect_hazard(
         Ok(_) => Ok(None),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Some(Hazard::MissingRoot)),
         Err(e) => {
-            Err(
-                node_err::uv_exception(&e, "stat", Some(Path::new(resolved_root_path)), None)
-                    .into(),
-            )
+            Err(node_fs::uv_exception(&e, "stat", Some(Path::new(resolved_root_path)), None).into())
         }
     }
 }

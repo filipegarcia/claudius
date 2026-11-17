@@ -29,6 +29,10 @@
 //!   a test can tell when the host closed stdin relative to the script.
 //! * `$FAKE_CLAUDE_SCRIPT` — a script: inline JSON (starts with `{`) or a
 //!   path to a JSON file.
+//! * `$FAKE_CLAUDE_TIMES` — file that gets `{"event": "eof", "ms": t}` the
+//!   moment stdin closes and `{"event": "SIGTERM", "ms": t}` for each SIGTERM
+//!   an `on_sigterm` trap catches (`t`: Unix time in ms), so a test can tell
+//!   when the host ended stdin and signalled (R13).
 //!
 //! # Scripts
 //! ```json
@@ -36,6 +40,8 @@
 //!   "init":       { "...": "merged over the default system/init message" },
 //!   "initialize": { "...": "merged over the default initialize response" },
 //!   "on_init":    [ "step", "..." ],
+//!   "on_eof":     [ "step", "..." ],
+//!   "on_sigterm": "ignore" | "die" | { "exit": 0, "after_ms": 3500 },
 //!   "control": {
 //!     "<subtype>": "<literal response value>",
 //!     "<subtype>": { "$error": "message" },
@@ -51,6 +57,13 @@
 //! }
 //! ```
 //! * `on_init` runs right after the initialize response.
+//! * `on_eof` runs when the main loop reads stdin's EOF, instead of exiting
+//!   at once (it exits 0 after them): `[{"$delay_ms": 60000}]` is a CLI that
+//!   ignores EOF. (A `$control` / `$collect_ms` wait still exits at EOF.)
+//! * `on_sigterm` traps SIGTERM and logs it to `$FAKE_CLAUDE_TIMES`, then
+//!   `"ignore"` carries on, `"die"` dies by it as if untrapped, and
+//!   `{"exit", "after_ms"}` exits with that code that long after the first
+//!   one. Without it SIGTERM just kills the process.
 //! * `control` overrides the canned response for a control subtype. With
 //!   `$emit`, the steps run *after* the response is sent (e.g. `interrupt` →
 //!   emit the `error_during_execution` result a real CLI sends). With
@@ -199,6 +212,8 @@ struct Script {
     init: Map<String, Value>,
     initialize: Map<String, Value>,
     on_init: Vec<Value>,
+    on_eof: Vec<Value>,
+    on_sigterm: Value,
     control: Map<String, Value>,
     turns: Vec<Value>,
 }
@@ -222,6 +237,8 @@ impl Script {
             init: obj("init"),
             initialize: obj("initialize"),
             on_init: arr("on_init"),
+            on_eof: arr("on_eof"),
+            on_sigterm: v["on_sigterm"].clone(),
             control: obj("control"),
             turns: arr("turns"),
         }
@@ -264,6 +281,70 @@ fn kill_self(name: &Value) -> ! {
 #[cfg(not(unix))]
 fn kill_self(name: &Value) -> ! {
     fail(&format!("$kill {name} needs Unix signals"))
+}
+
+/// Append `{"event": event, "ms": <Unix ms>}` to `$FAKE_CLAUDE_TIMES`, in
+/// one write: the stdin thread's `eof` can race a SIGTERM's line, and a
+/// `die` ends the process right after its own.
+fn log_time(event: &str) {
+    if let Some(mut f) = append_file("FAKE_CLAUDE_TIMES") {
+        let ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_millis() as u64);
+        append_line(&mut f, &json!({"event": event, "ms": ms}).to_string());
+    }
+}
+
+/// `on_sigterm`: block SIGTERM before any other thread starts (they inherit
+/// the mask), and take it on a thread of its own with `sigwait`, where
+/// logging and exiting are safe.
+#[cfg(unix)]
+fn trap_sigterm(mode: Value) {
+    // SAFETY: a zeroed `sigset_t` is valid input to `sigemptyset`; the mask
+    // only changes for this (still single-threaded) process.
+    let set = unsafe {
+        let mut set: libc::sigset_t = std::mem::zeroed();
+        libc::sigemptyset(&mut set);
+        libc::sigaddset(&mut set, libc::SIGTERM);
+        libc::pthread_sigmask(libc::SIG_BLOCK, &set, std::ptr::null_mut());
+        set
+    };
+    std::thread::spawn(move || {
+        loop {
+            let mut sig = 0;
+            // SAFETY: `set` holds SIGTERM, which every thread blocks.
+            if unsafe { libc::sigwait(&set, &mut sig) } != 0 {
+                continue;
+            }
+            log_time("SIGTERM");
+            match &mode {
+                Value::String(m) if m == "die" => {
+                    // SAFETY: back to the default action, unblocked here, so
+                    // the re-sent signal ends the process like an untrapped one.
+                    unsafe {
+                        libc::signal(libc::SIGTERM, libc::SIG_DFL);
+                        libc::pthread_sigmask(libc::SIG_UNBLOCK, &set, std::ptr::null_mut());
+                        libc::kill(libc::getpid(), libc::SIGTERM);
+                    }
+                }
+                // The first SIGTERM's exit comes first: later ones are moot.
+                Value::Object(o) => {
+                    let code = o.get("exit").and_then(Value::as_i64).unwrap_or(0) as i32;
+                    let ms = o.get("after_ms").and_then(Value::as_u64).unwrap_or(0);
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(ms));
+                        std::process::exit(code);
+                    });
+                }
+                _ => {}
+            }
+        }
+    });
+}
+
+#[cfg(not(unix))]
+fn trap_sigterm(_mode: Value) {
+    fail("on_sigterm needs Unix signals")
 }
 
 /// A `$stdout_bytes` / `$stderr_bytes` payload: an array of byte values.
@@ -911,6 +992,10 @@ fn main() {
         let _ = std::fs::write(p, serde_json::to_string(&open).unwrap());
     }
     let flag = |prefix: &str| argv.iter().find_map(|a| a.strip_prefix(prefix));
+    let script = Script::load();
+    if !script.on_sigterm.is_null() {
+        trap_sigterm(script.on_sigterm.clone());
+    }
     let session_id = flag("--session-id=")
         .or_else(|| flag("--resume="))
         .map(str::to_owned)
@@ -929,13 +1014,14 @@ fn main() {
                     if let Some(mut f) = append_file("FAKE_CLAUDE_EVENTS") {
                         append_line(&mut f, &json!({"eof": true}).to_string());
                     }
+                    log_time("eof");
                 });
                 rx
             },
             stash: VecDeque::new(),
             log: append_file("FAKE_CLAUDE_LOG"),
         },
-        script: Script::load(),
+        script,
         control_log: append_file("FAKE_CLAUDE_CONTROL_LOG"),
         events: append_file("FAKE_CLAUDE_EVENTS"),
         session_id,
@@ -961,4 +1047,6 @@ fn main() {
             _ => {}
         }
     }
+    let steps = std::mem::take(&mut fake.script.on_eof);
+    fake.run_steps(&steps);
 }

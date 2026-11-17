@@ -30,6 +30,7 @@ use axum::extract::{Path, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
+use claudius_core::safe_path::assert_absolute_user_path;
 use claudius_core::session::TurnStatus;
 use claudius_core::workspace_relocate as reloc;
 use claudius_core::workspaces as store;
@@ -38,7 +39,6 @@ use serde_json::{Map, Value, json};
 
 use crate::AppState;
 use crate::body::{JsonBody, thrown};
-use crate::workspaces::assert_absolute_user_path;
 
 pub fn router() -> Router<AppState> {
     Router::new().route(

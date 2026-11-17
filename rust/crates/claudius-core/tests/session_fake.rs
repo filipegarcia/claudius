@@ -360,10 +360,10 @@ async fn queue_drains_after_turn_ends() {
         .pop()
         .unwrap();
     let uuid = s
-        .enqueue_message("second", None, None, false, false, false)
+        .enqueue_message(&json!("second"), None, None, false, false, false)
         .unwrap();
     let q = until(&mut sub, is("queue:updated")).await.pop().unwrap();
-    assert_eq!(q["queue"][0]["uuid"], uuid.as_str());
+    assert_eq!(q["queue"][0]["uuid"], uuid);
     assert_eq!(s.queue_length(), 1);
     s.resolve_permission(
         req["requestId"].as_str().unwrap(),
@@ -377,6 +377,33 @@ async fn queue_drains_after_turn_ends() {
             .any(|e| e["type"] == "queue:updated" && e["queue"] == json!([]))
     );
     assert_eq!(s.queue_length(), 0);
+    f.mgr.remove(&s.id).await;
+}
+
+/// S29a: a `text` that isn't a string (the `input` route passes a posted
+/// one beside images) throws where V8 does, at its first string method
+/// (`trim` for a slash send, else the ultrathink scan's `toLowerCase`),
+/// after the turn was marked running.
+#[tokio::test]
+async fn a_text_that_isnt_a_string_throws_once_the_turn_runs() {
+    let f = fixture();
+    let s = f.create(SessionOptions::default()).await;
+    let mut sub = s.subscribe(None, None);
+    until(&mut sub, is("tips")).await;
+    let slash = SendOptions {
+        slash: true,
+        ..Default::default()
+    };
+    assert_eq!(
+        s.send_input_value(&json!(5), None, slash),
+        Err("TypeError: text.trim is not a function".into())
+    );
+    assert_eq!(s.status(), TurnStatus::Running);
+    let imgs = json!([{"data": "QQ==", "mediaType": "image/png"}]);
+    assert_eq!(
+        s.send_input_value(&json!(["a"]), Some(&imgs), SendOptions::default()),
+        Err("TypeError: text.toLowerCase is not a function".into())
+    );
     f.mgr.remove(&s.id).await;
 }
 
@@ -931,6 +958,51 @@ async fn external_transcript_writes_reach_subscribers() {
     let t = g.create(SessionOptions::default()).await;
     assert!(!t.wait_jsonl_watcher().await);
     g.mgr.remove(&t.id).await;
+}
+
+/// A resync reads the transcript as the SDK's `getSessionMessages` does:
+/// the whole file, each line decoded lossily, so a byte of invalid UTF-8
+/// reads as U+FFFD instead of failing the read (I14b: it added nothing).
+#[tokio::test]
+async fn a_resync_reads_a_transcript_holding_invalid_utf8() {
+    let f = fixture();
+    let cwd = f.cwd();
+    // No project dir at start: no watcher races the resync below.
+    let s = f.create(SessionOptions::default()).await;
+    assert!(!s.wait_jsonl_watcher().await);
+    let mut sub = s.subscribe(None, None);
+    until(&mut sub, |e| {
+        e["type"] == "sdk" && e["message"]["subtype"] == "init"
+    })
+    .await;
+    let dir = env()
+        .config
+        .join("projects")
+        .join(paths::sdk_project_dir_name(&cwd));
+    std::fs::create_dir_all(&dir).unwrap();
+    let id = s.id.clone();
+    let lines = [
+        json!({"type":"user","uuid":"y1","parentUuid":null,"sessionId":id,"cwd":cwd,"timestamp":"2026-03-04T05:06:07.000Z",
+               "message":{"role":"user","content":"bad @ byte"}}),
+        json!({"type":"assistant","uuid":"y2","parentUuid":"y1","sessionId":id,"cwd":cwd,"timestamp":"2026-03-04T05:06:08.000Z",
+               "message":{"role":"assistant","id":"msg_y2","content":[{"type":"text","text":"ok"}]}}),
+    ];
+    let mut bytes: Vec<u8> = lines
+        .iter()
+        .map(|l| format!("{l}\n"))
+        .collect::<String>()
+        .into_bytes();
+    let at = bytes.iter().position(|&b| b == b'@').unwrap();
+    bytes[at] = 0xff;
+    std::fs::write(dir.join(format!("{id}.jsonl")), bytes).unwrap();
+    assert_eq!(s.resync_from_disk(), 2);
+    let got = until(&mut sub, |e| {
+        e["type"] == "sdk" && e["message"]["uuid"] == "y2"
+    })
+    .await;
+    let user = got.iter().find(|e| e["message"]["uuid"] == "y1").unwrap();
+    assert_eq!(user["message"]["message"]["content"], "bad \u{fffd} byte");
+    f.mgr.remove(&id).await;
 }
 
 /// One assistant message carrying `blocks`.
@@ -3385,6 +3457,115 @@ async fn a_thinking_replay_error_without_a_safe_point_is_reported() {
     assert!(Arc::ptr_eq(&f.mgr.get(&s.id).unwrap(), &s), "not rebuilt");
     assert_eq!(initializes(&f), 1);
     f.mgr.remove(&s.id).await;
+}
+
+/// The recovery reads the transcript as the SDK does (whole, lossily), so a
+/// byte of invalid UTF-8 in an earlier turn doesn't stop the rebuild (I14b:
+/// it was "Auto-recovery failed: stream did not contain valid UTF-8").
+#[tokio::test]
+async fn a_thinking_replay_recovery_reads_invalid_utf8() {
+    let script = json!({"turns": [
+        {"match": "go deep", "steps": [{"$text": THINKING_400}],
+         "result": {"subtype": "error_during_execution", "is_error": true}},
+    ]});
+    let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+    let id = "4b2f7f3e-9c1d-4e5a-8b6c-1d2e3f4a5b6e";
+    poisoned_transcript(&f, id);
+    let file = env()
+        .config
+        .join("projects")
+        .join(paths::sdk_project_dir_name(&f.cwd()))
+        .join(format!("{id}.jsonl"));
+    let mut bytes = std::fs::read(&file).unwrap();
+    let at = bytes.windows(5).position(|w| w == b"first").unwrap() + 5;
+    bytes.insert(at, 0xff);
+    std::fs::write(&file, bytes).unwrap();
+    let s0 = f.mgr.get_or_resume(id).await.expect("resumed");
+    let mut sub = s0.subscribe(None, None);
+    until(&mut sub, is("ready")).await;
+    s0.send_input("go deep", &[], SendOptions::default());
+    eventually(20, "the rebuilt CLI", || initializes(&f) >= 2).await;
+    let argv: Vec<String> =
+        serde_json::from_str(&std::fs::read_to_string(&f.argv).unwrap()).unwrap();
+    assert!(
+        argv.contains(&"--resume-session-at=a0".to_owned()),
+        "{argv:?}"
+    );
+    let errors = replayed_errors(&s0).await;
+    assert!(
+        !errors.iter().any(|m| m.starts_with("Auto-recovery failed")),
+        "{errors:?}"
+    );
+    f.mgr.remove(id).await;
+}
+
+/// A transcript it can't read is none to the SDK's `getSessionMessages`
+/// (its read catches and returns []), so the recovery finds no rewind
+/// point rather than failing (I14b: it was "Auto-recovery failed:
+/// Permission denied").
+#[tokio::test]
+async fn a_thinking_replay_recovery_over_an_unreadable_transcript_finds_no_point() {
+    use std::os::unix::fs::PermissionsExt;
+    // SAFETY: geteuid has no preconditions.
+    if unsafe { libc::geteuid() } == 0 {
+        return; // root reads a mode-0 file
+    }
+    let script = json!({"turns": [
+        {"match": "go deep", "steps": [{"$text": THINKING_400}],
+         "result": {"subtype": "error_during_execution", "is_error": true}},
+    ]});
+    let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+    let id = "4b2f7f3e-9c1d-4e5a-8b6c-1d2e3f4a5b70";
+    poisoned_transcript(&f, id);
+    let file = env()
+        .config
+        .join("projects")
+        .join(paths::sdk_project_dir_name(&f.cwd()))
+        .join(format!("{id}.jsonl"));
+    let s0 = f.mgr.get_or_resume(id).await.expect("resumed");
+    let mut sub = s0.subscribe(None, None);
+    until(&mut sub, is("ready")).await;
+    std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o000)).unwrap();
+    s0.send_input("go deep", &[], SendOptions::default());
+    let starts = |e: &Value, p: &str| {
+        e["type"] == "error" && e["message"].as_str().is_some_and(|m| m.starts_with(p))
+    };
+    let evs = until(&mut sub, |e| starts(e, "Could not auto-recover")).await;
+    assert!(
+        !evs.iter().any(|e| starts(e, "Auto-recovery failed")),
+        "{evs:?}"
+    );
+    assert!(Arc::ptr_eq(&f.mgr.get(id).unwrap(), &s0), "not rebuilt");
+    assert_eq!(initializes(&f), 1);
+    f.mgr.remove(id).await;
+}
+
+/// A resume replays the transcript as the SDK's `getSessionMessages` reads
+/// it: a byte of invalid UTF-8 is U+FFFD, not an unreadable transcript and
+/// an empty replay.
+#[tokio::test]
+async fn a_resume_replays_a_transcript_holding_invalid_utf8() {
+    let f = fixture();
+    let id = "4b2f7f3e-9c1d-4e5a-8b6c-1d2e3f4a5b71";
+    poisoned_transcript(&f, id);
+    let file = env()
+        .config
+        .join("projects")
+        .join(paths::sdk_project_dir_name(&f.cwd()))
+        .join(format!("{id}.jsonl"));
+    let mut bytes = std::fs::read(&file).unwrap();
+    let at = bytes.windows(5).position(|w| w == b"first").unwrap() + 5;
+    bytes.insert(at, 0xff);
+    std::fs::write(&file, bytes).unwrap();
+    let s = f.mgr.get_or_resume(id).await.expect("resumed");
+    let mut sub = s.subscribe(None, None);
+    let replay = until(&mut sub, is("replay_done")).await;
+    let u0 = replay
+        .iter()
+        .find(|e| e["type"] == "sdk" && e["message"]["uuid"] == "u0")
+        .expect("u0 replayed");
+    assert_eq!(u0["message"]["message"]["content"], "first\u{fffd} prompt");
+    f.mgr.remove(id).await;
 }
 
 /// The manager's rebuilds: an unknown id is gone; `restart_in_place` keeps

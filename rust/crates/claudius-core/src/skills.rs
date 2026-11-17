@@ -24,7 +24,7 @@ use std::path::Path;
 use serde_json::{Map, Value, json};
 
 use crate::js_string::{self, NoPrimitive};
-use crate::node_err::{self, NodeError};
+use crate::node_fs::{self, NodeError};
 use crate::{agents, collate, db_agents, fs_list, node_path, safe_path, skill_names, yaml};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -209,7 +209,7 @@ pub fn list_skills(
         Ok(e) => e,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
         Err(e) => {
-            return Err(node_err::uv_exception(&e, "scandir", Some(Path::new(&dir)), None).into());
+            return Err(node_fs::uv_exception(&e, "scandir", Some(Path::new(&dir)), None).into());
         }
     };
     let mut out = Vec::new();
@@ -226,7 +226,7 @@ pub fn list_skills(
         if !inside(&base, &target) {
             continue;
         }
-        let Ok(bytes) = node_err::fs::read_file(Path::new(&target)) else {
+        let Ok(bytes) = node_fs::sys::read_file(Path::new(&target)) else {
             continue; // no readable SKILL.md: not a skill
         };
         let raw = String::from_utf8_lossy(&bytes).into_owned();
@@ -248,7 +248,7 @@ pub fn read_skill(
     if !inside(&base, &p) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    match node_err::fs::read_file(Path::new(&p)) {
+    match node_fs::sys::read_file(Path::new(&p)) {
         Ok(bytes) => {
             let raw = String::from_utf8_lossy(&bytes).into_owned();
             Ok(Some(SkillFile::read(scope, name, p, raw)))
@@ -333,7 +333,7 @@ pub fn write_skill(
             }
             Err(e) => {
                 return Err(
-                    node_err::uv_exception(&e, "stat", Some(Path::new(&skill_dir)), None).into(),
+                    node_fs::uv_exception(&e, "stat", Some(Path::new(&skill_dir)), None).into(),
                 );
             }
         }
@@ -342,11 +342,11 @@ pub fn write_skill(
     if !inside(&base, &folder) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    node_err::fs::mkdir_recursive(Path::new(&folder))?;
+    node_fs::sys::mkdir_recursive(Path::new(&folder))?;
     if !inside(&base, &p) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    node_err::fs::write_file(Path::new(&p), raw.as_bytes())?;
+    node_fs::sys::write_file(Path::new(&p), raw.as_bytes())?;
     Ok(())
 }
 

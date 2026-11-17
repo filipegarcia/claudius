@@ -7,12 +7,15 @@
 //!   only as `"mcp-task"`, and the "session ended" interrupt text is a reply.
 //! - The SDK's macOS git-stub check (`PD`, run on a fake fs) against
 //!   [`git_stub::is_git_stub_with`].
+//! - `getSessionMessages` over transcript files as written (I14b), against
+//!   [`sessions_store::messages`]: the lookup, [`transcript::read_file`]
+//!   (the whole file, decoded lossily) and the pipeline.
 
 use std::collections::HashMap;
 
 use claudius_agent::js;
 use claudius_core::git_stub::{self, Probe, StubFs};
-use claudius_core::transcript;
+use claudius_core::{paths, sessions_store, transcript};
 use serde_json::Value;
 
 fn fixture() -> Value {
@@ -104,4 +107,71 @@ fn git_stub_matches_the_sdk() {
     }
     // Both verdicts are exercised.
     assert!(seen.len() == 2, "{seen:?}");
+}
+
+fn unhex(hex: &str) -> Vec<u8> {
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+        .collect()
+}
+
+/// `getSessionMessages(id, {includeSystemMessages})` over each recorded
+/// transcript file, written as recorded under `<config>/projects/`: the SDK
+/// reads the whole file and decodes each `\n`-split line lossily (invalid
+/// UTF-8 is U+FFFD, a bad byte between tokens drops its line), skips bytes
+/// up to 0x20 before a record, and answers `[]` for an empty file, a
+/// directory, an unreadable file or a dangling link, never a throw.
+#[cfg(unix)]
+#[test]
+fn file_reads_match_the_sdk() {
+    use std::os::unix::fs::PermissionsExt;
+    let fx = fixture();
+    let files = fx["files"].as_array().unwrap();
+    assert!(files.len() >= 15, "{} files", files.len());
+    let root = tempfile::tempdir().unwrap();
+    assert!(paths::set_config_dir_override(root.path().join("config")));
+    let dir = root.path().join("config/projects/golden-files");
+    std::fs::create_dir_all(&dir).unwrap();
+    // SAFETY: geteuid has no preconditions.
+    let as_root = unsafe { libc::geteuid() } == 0;
+    let (mut diffs, mut empty) = (Vec::new(), 0);
+    for f in files {
+        let name = f["name"].as_str().unwrap();
+        let id = f["sessionId"].as_str().unwrap();
+        let path = dir.join(format!("{id}.jsonl"));
+        if let Some(hex) = f["hex"].as_str() {
+            std::fs::write(&path, unhex(hex)).unwrap();
+        } else if f["dir"] == true {
+            std::fs::create_dir(&path).unwrap();
+            std::fs::write(path.join("inside"), "x").unwrap();
+        } else {
+            let link = f["symlink"].as_str().unwrap();
+            if let Some(hex) = f["targetHex"].as_str() {
+                std::fs::write(dir.join(link), unhex(hex)).unwrap();
+            }
+            std::os::unix::fs::symlink(link, &path).unwrap();
+        }
+        if let Some(mode) = f["mode"].as_u64() {
+            if as_root {
+                continue; // root reads a mode-0 file
+            }
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode as u32)).unwrap();
+        }
+        for (field, include_system) in [("withoutSystem", false), ("withSystem", true)] {
+            let got = js::stringify(&Value::Array(sessions_store::messages(
+                id,
+                None,
+                include_system,
+            )));
+            let want = f[field].as_str().unwrap();
+            empty += usize::from(want == "[]");
+            if got != want {
+                diffs.push(format!("{name} {field}:\n  SDK:  {want}\n  Rust: {got}"));
+            }
+        }
+    }
+    assert!(diffs.is_empty(), "{}", diffs.join("\n"));
+    // Both outcomes are exercised: messages, and the failures read as none.
+    assert!(empty >= 8, "{empty}");
 }

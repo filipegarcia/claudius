@@ -343,8 +343,8 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
             &cwd,
             NewQueued {
                 session_id: id,
-                uuid,
-                text,
+                uuid: uuid.into(),
+                text: text.into(),
                 images: None,
                 slash: false,
                 from_suggestion: false,

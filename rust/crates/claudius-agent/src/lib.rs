@@ -56,6 +56,6 @@ pub use permission::{
 #[cfg(unix)]
 pub use query::close_leaked_fds;
 pub use query::{
-    ExitInfo, FeedbackOptions, Query, QueryHandle, QueryId, oneshot, run_end_ceiling_ms,
+    ExitInfo, FeedbackOptions, Query, QueryHandle, QueryId, begin_exit, oneshot, run_end_ceiling_ms,
 };
 pub use stream::Utf8Decoder;

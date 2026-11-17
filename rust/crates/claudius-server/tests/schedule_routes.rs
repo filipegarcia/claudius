@@ -47,7 +47,7 @@ use std::time::Duration;
 
 use claudius_agent::js;
 use claudius_core::cron::{Zone, next_fire_after_in};
-use common::{Server, fake_bin, free_port, wait_until};
+use common::{Payload, Server, fake_bin, free_port, wait_until};
 use serde_json::{Value, json};
 
 const TZ: &str = "America/New_York";
@@ -93,45 +93,18 @@ struct Got {
 }
 
 fn send(s: &mut TcpStream, method: &str, url: &str, body: Option<&[u8]>) {
-    let body = body.unwrap_or_default();
-    let head = format!(
-        "{method} {url} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        body.len()
-    );
-    s.write_all(head.as_bytes()).unwrap();
-    s.write_all(body).unwrap();
+    let req = common::request_bytes(method, url, Payload::Json(body.unwrap_or_default()));
+    s.write_all(&req).unwrap();
 }
 
 fn read_response(s: &mut TcpStream) -> Got {
-    let mut raw = Vec::new();
-    s.read_to_end(&mut raw).unwrap();
-    let text = String::from_utf8_lossy(&raw).into_owned();
-    let (head, body) = text.split_once("\r\n\r\n").unwrap();
-    let mut lines = head.split("\r\n");
-    let status = lines
-        .next()
-        .unwrap()
-        .split(' ')
-        .nth(1)
-        .unwrap()
-        .parse()
-        .unwrap();
-    let headers: Vec<(String, String)> = lines
-        .filter_map(|l| l.split_once(':'))
-        .map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_owned()))
-        .collect();
-    assert!(
-        !headers.iter().any(|(k, _)| k == "transfer-encoding"),
-        "{head}"
-    );
-    let ctype = headers
-        .iter()
-        .find(|(k, _)| k == "content-type")
-        .map(|(_, v)| v.clone());
+    let r = common::read_response(s);
+    assert!(r.status != 0, "{}", r.head);
+    assert!(r.header("transfer-encoding").is_none(), "{}", r.head);
     Got {
-        status,
-        ctype,
-        body: body.to_owned(),
+        status: r.status,
+        ctype: r.content_type(),
+        body: String::from_utf8_lossy(&r.body).into_owned(),
     }
 }
 
@@ -139,11 +112,6 @@ fn request(port: u16, method: &str, url: &str, body: Option<&[u8]>) -> Got {
     let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
     send(&mut s, method, url, body);
     read_response(&mut s)
-}
-
-fn healthy(port: u16) -> bool {
-    TcpStream::connect(("127.0.0.1", port)).is_ok()
-        && request(port, "GET", "/api/rust/health", None).status == 200
 }
 
 // ---- the world ---------------------------------------------------------------
@@ -237,12 +205,7 @@ impl World {
             .stderr(Stdio::null());
         cmd.env("CLAUDIUS_SCHEDULER", if scheduler { "1" } else { "0" });
         let mut child = cmd.spawn().unwrap();
-        wait_until("health", Duration::from_secs(30), || {
-            if let Ok(Some(st)) = child.try_wait() {
-                panic!("claudius exited ({st})");
-            }
-            healthy(port)
-        });
+        common::wait_healthy(&mut child, port, Duration::from_secs(30));
         Server { child, port }
     }
 

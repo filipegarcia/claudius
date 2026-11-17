@@ -19,8 +19,6 @@
 
 mod common;
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -119,7 +117,6 @@ impl Replay<'_> {
             (_, Value::String(b)) => Some(b.as_bytes().to_vec()),
             _ => None,
         };
-        let mut stream = TcpStream::connect(("127.0.0.1", self.port)).unwrap();
         let mut head = format!(
             "{method} {URL}{} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n",
             s["query"].as_str().unwrap_or_default()
@@ -134,15 +131,11 @@ impl Replay<'_> {
             ));
         }
         head.push_str("\r\n");
-        stream.write_all(head.as_bytes()).unwrap();
-        stream
-            .write_all(body.as_deref().unwrap_or_default())
-            .unwrap();
-        let mut out = Vec::new();
-        stream.read_to_end(&mut out).unwrap();
-        let at = out.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
-        let head = String::from_utf8(out[..at].to_vec()).unwrap();
-        let mut lines = head.split("\r\n");
+        let mut raw = head.into_bytes();
+        raw.extend_from_slice(body.as_deref().unwrap_or_default());
+        let out = common::exchange(self.port, &raw);
+        assert!(out.status != 0, "{}", out.head);
+        let mut lines = out.head.split("\r\n");
         let status: u16 = lines
             .next()
             .unwrap()
@@ -159,8 +152,7 @@ impl Replay<'_> {
             .filter(|(k, _)| !TRANSPORT.contains(&k.as_str()))
             .collect();
         headers.sort();
-        let body = String::from_utf8(out[at + 4..].to_vec()).unwrap();
-        json!({"status": status, "headers": headers, "body": self.sym(&body)})
+        json!({"status": status, "headers": headers, "body": self.sym(&out.text())})
     }
 
     /// Replays one step; `Some((want, got))` when it has an answer to check.

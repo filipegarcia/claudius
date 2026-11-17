@@ -319,28 +319,7 @@ fn store_files(home: &Path, cwd: &str) -> Value {
 
 /// Differences filed for later: (scenario, step, keys, why). Every listed
 /// key must differ (else the entry is stale) and nothing else may.
-fn known() -> Vec<(&'static str, usize, &'static [&'static str], &'static str)> {
-    const UUID: &str = "S29a: a non-string `uuid` is kept as posted in TS (the reply, the CLI line, \
-                        the echo; a number binds as REAL, so a queued row reads \"7.0\" and the cache keeps \
-                        a ghost; an object or boolean fails the provenance and asset-use binds). Rust \
-                        mints a fresh uuid";
-    const TEXT: &str = "S29a (after R04): a non-string `text` beside images reaches sendInput in TS, \
-                        which throws in R04's ultrathink scan (`text.toLowerCase is not a function`: \
-                        an empty 500, the turn left running), and an array is queued as its \
-                        better-sqlite3 spread. Rust reads `\"\"`";
-    let u = "a uuid that isn't a string";
-    let t = "text that isn't a string";
-    vec![
-        (u, 1, &["res", "wrote", "events"], UUID),
-        (u, 2, &["res", "wrote", "events", "tagged"], UUID),
-        (u, 3, &["res", "wrote", "events", "uses", "tagged"], UUID),
-        (u, 4, &["res", "events", "queue", "uses", "tagged"], UUID),
-        (u, 5, &["res", "wrote", "events", "uses", "tagged"], UUID),
-        (t, 1, &["res", "wrote", "events"], TEXT),
-        (t, 2, &["events", "queue"], TEXT),
-        (t, 3, &["list", "queue"], TEXT),
-    ]
-}
+const KNOWN: &[(&str, usize, &[&str], &str)] = &[];
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn session_input_matches_ts() {
@@ -449,7 +428,6 @@ async fn session_input_matches_ts() {
         ));
     }
 
-    let known = known();
     let mut seen_known = 0usize;
     for (ci, sc) in fx["scenarios"].as_array().unwrap().iter().enumerate() {
         let name = sc["name"].as_str().unwrap();
@@ -811,7 +789,7 @@ async fn session_input_matches_ts() {
             let text = |v: Option<&Value>| v.map_or_else(|| "<absent>".to_owned(), js::stringify);
             for k in keys {
                 let (w, g) = (text(want.get(&k)), text(got.get(&k)));
-                let why = known
+                let why = KNOWN
                     .iter()
                     .find(|(n, i, ks, _)| *n == name && *i == si && ks.contains(&k.as_str()))
                     .map(|(.., why)| *why);
@@ -835,7 +813,7 @@ async fn session_input_matches_ts() {
         }
         let _ = std::fs::remove_file(state_dir.join("accounts.json"));
     }
-    let listed: usize = known.iter().map(|(_, _, ks, _)| ks.len()).sum();
+    let listed: usize = KNOWN.iter().map(|(_, _, ks, _)| ks.len()).sum();
     assert_eq!(seen_known, listed, "a KNOWN difference wasn't seen");
     assert!(
         diffs.is_empty(),

@@ -18,8 +18,6 @@
 
 mod common;
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -27,7 +25,7 @@ use claudius_agent::js;
 use claudius_core::db::{Mode, open_path};
 use claudius_core::notifications_db::snooze_until;
 use claudius_core::{js_num, now_ms, paths};
-use common::{Server, World, http};
+use common::{Payload, Server, World, http};
 use rusqlite::types::ValueRef;
 use serde_json::{Value, json};
 
@@ -44,24 +42,8 @@ fn request(
     path: &str,
     body: Option<&str>,
 ) -> (u16, Option<String>, String) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    let body = body.unwrap_or("");
-    write!(
-        s,
-        "{method} {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-        body.len()
-    )
-    .unwrap();
-    let mut out = String::new();
-    s.read_to_string(&mut out).unwrap();
-    let (head, body) = out.split_once("\r\n\r\n").unwrap();
-    let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let content_type = head.split("\r\n").find_map(|l| {
-        let (k, v) = l.split_once(':')?;
-        k.eq_ignore_ascii_case("content-type")
-            .then(|| v.trim().to_owned())
-    });
-    (status, content_type, body.to_owned())
+    let body = body.unwrap_or("").as_bytes();
+    common::send(port, method, path, Payload::Json(body)).parts()
 }
 
 const ROWS_SQL: &str = "SELECT session_id,

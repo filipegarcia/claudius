@@ -16,8 +16,6 @@
 
 mod common;
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -25,7 +23,7 @@ use std::time::Instant;
 
 use claudius_core::now_ms;
 use claudius_core::reminders::sha256_hex;
-use common::{Server, World};
+use common::{Payload, Server, World};
 use serde_json::{Value, json};
 
 fn fixture() -> &'static Value {
@@ -39,23 +37,7 @@ fn fixture() -> &'static Value {
 
 /// `(status, content type, body)` of a plain GET.
 fn get(port: u16, path: &str) -> (u16, Option<String>, String) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    write!(
-        s,
-        "GET {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
-    )
-    .unwrap();
-    let mut out = vec![];
-    s.read_to_end(&mut out).unwrap();
-    let out = String::from_utf8(out).unwrap();
-    let (head, body) = out.split_once("\r\n\r\n").unwrap();
-    let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let content_type = head.split("\r\n").find_map(|l| {
-        let (k, v) = l.split_once(':')?;
-        k.eq_ignore_ascii_case("content-type")
-            .then(|| v.trim().to_owned())
-    });
-    (status, content_type, body.to_owned())
+    common::send(port, "GET", path, Payload::None).parts()
 }
 
 struct Rig {
@@ -84,9 +66,10 @@ impl Rig {
             bin,
             data,
         };
-        // `free_port` can give two servers that start at once the same port,
-        // and then the one that lost the bind exits while its health check
-        // passes on the other: make sure this server runs this rig's fake.
+        // Make sure this server runs this rig's fake, not another's that
+        // took its port (I24 traced the lost binds this guarded against to
+        // listeners leaked into child processes, which `free_port` now
+        // refuses).
         let probe = json!({"bin": "fake", "ps": {"sh": "exit 0"}, "stats": {"sh": "exit 0"}});
         for _ in 0..5 {
             rig.run(&probe);

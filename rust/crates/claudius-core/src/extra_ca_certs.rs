@@ -25,7 +25,7 @@
 use claudius_agent::js;
 
 use crate::settings::{self, Scope};
-use crate::{log, node_err, node_path, paths};
+use crate::{log, node_fs, node_path, paths};
 
 /// `EXTRA_CA_ENV`.
 pub const EXTRA_CA_ENV: &str = "NODE_EXTRA_CA_CERTS";
@@ -96,7 +96,7 @@ pub fn resolve_with(
         .get(EXTRA_CA_ENV)?;
     let raw = raw.as_str().filter(|r| !js::trim(r).is_empty())?;
     let path = expand_ca_path(raw, home);
-    let pem = match node_err::fs::read_file(std::path::Path::new(&path)) {
+    let pem = match node_fs::sys::read_file(std::path::Path::new(&path)) {
         Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
         Err(e) => {
             warn(format!(

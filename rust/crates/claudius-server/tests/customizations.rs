@@ -21,8 +21,8 @@
 //! Three recorded requests differ on purpose ([`expected_difference`]).
 //! [`delete_leaves_next_alone`] runs against a fake Next upstream: since D15
 //! the preview routes and the preview stop on `DELETE` are this server's
-//! own (replayed in `customization_preview.rs`), and only a route still
-//! Next-only goes there.
+//! own (replayed in `customization_preview.rs`), and only a page goes
+//! there (since D27b no `app/api` route is Next-only).
 #![cfg(unix)]
 
 mod common;
@@ -674,8 +674,8 @@ fn fake_next() -> (u16, Arc<Mutex<Vec<String>>>) {
 
 /// Since D15 the preview routes, and the preview stop on `DELETE`, are this
 /// server's own (`tests/customization_preview.rs`): with a Next upstream
-/// configured, only a route still Next-only (`updater/apply`) goes
-/// there, body and all.
+/// configured, only a page goes there (a server action's `POST
+/// /settings`: since D27b no `app/api` route is Next-only), body and all.
 #[test]
 fn delete_leaves_next_alone() {
     let w = World::new();
@@ -693,12 +693,7 @@ fn delete_leaves_next_alone() {
     });
     std::fs::write(w.index(), js_string::stringify_pretty(&index)).unwrap();
 
-    let (st, body) = http(
-        server.port,
-        "POST",
-        "/api/updater/apply",
-        r#"{"paths":["x"]}"#,
-    );
+    let (st, body) = http(server.port, "POST", "/settings", r#"{"paths":["x"]}"#);
     assert_eq!((st, body.as_str()), (200, r#"{"next":true}"#));
     // The port's own routes don't go there, the preview's included.
     let (st, _) = http(server.port, "GET", "/api/customizations", "");
@@ -740,10 +735,7 @@ fn delete_leaves_next_alone() {
             .unwrap()
             .contains("cust a/b")
     );
-    assert_eq!(
-        *log.lock().unwrap(),
-        ["POST /api/updater/apply {\"paths\":[\"x\"]}"]
-    );
+    assert_eq!(*log.lock().unwrap(), ["POST /settings {\"paths\":[\"x\"]}"]);
 }
 
 #[test]
@@ -756,8 +748,8 @@ fn without_next_the_delete_still_goes_through() {
     let (st, body) = http(server.port, "DELETE", "/api/customizations/c", "");
     assert_eq!((st, body.as_str()), (200, r#"{"ok":true}"#));
     assert!(!w.claudius().join("customizations/c").exists());
-    // A route still Next-only has nowhere to go.
-    let (st, body) = http(server.port, "POST", "/api/updater/apply", "");
+    // A page has nowhere to go.
+    let (st, body) = http(server.port, "POST", "/settings", "");
     assert_eq!(
         (st, body.as_str()),
         (404, "not found (no Next upstream configured)")

@@ -17,7 +17,7 @@ use claudius_agent::js;
 use serde_json::{Map, Value, json};
 
 use crate::js_string;
-use crate::node_err;
+use crate::node_fs;
 use crate::node_path;
 use crate::safe_path;
 use crate::skills::Thrown;
@@ -118,7 +118,7 @@ fn read_text(base: &str, path: &str) -> Result<Option<String>, Thrown> {
     if !inside(base, &target) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    match node_err::fs::read_file(Path::new(&target)) {
+    match node_fs::sys::read_file(Path::new(&target)) {
         Ok(bytes) => Ok(Some(String::from_utf8_lossy(&bytes).into_owned())),
         Err(e) if e.code == "ENOENT" => Ok(None),
         Err(e) => Err(e.into()),
@@ -217,8 +217,8 @@ pub fn write_scope(
     if !inside(&base, &path) {
         return Err(Thrown::path_injection("path escapes base directory"));
     }
-    node_err::fs::mkdir_recursive(Path::new(&node_path::dirname(&path)))?;
-    node_err::fs::write_file(Path::new(&path), content.as_bytes())?;
+    node_fs::sys::mkdir_recursive(Path::new(&node_path::dirname(&path)))?;
+    node_fs::sys::write_file(Path::new(&path), content.as_bytes())?;
     Ok(path)
 }
 
@@ -311,7 +311,7 @@ pub fn resolve_content(
             continue;
         }
         // Anywhere on disk, as in TS (see the module doc).
-        let Ok(bytes) = node_err::fs::read_file(Path::new(&abs)) else {
+        let Ok(bytes) = node_fs::sys::read_file(Path::new(&abs)) else {
             segments.push(marked(import_path, "missing"));
             continue;
         };

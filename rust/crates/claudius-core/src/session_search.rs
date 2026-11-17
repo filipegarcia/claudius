@@ -70,6 +70,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use claudius_agent::js;
 
+use crate::js_string::MAX_STRING_LENGTH;
+use crate::node_fs::IO_MAX_LENGTH;
 use crate::{node_fs, node_path, paths};
 
 /// UTF-16 units of context on each side of the match.
@@ -84,11 +86,6 @@ pub const CONCURRENCY: usize = 8;
 /// prefix covers `api-request-shape`, `api-request-blob` and `api-request`.
 /// A constant, never derived from the query.
 pub const API_REQUEST_LINE_MARKER: &str = "\"type\":\"api-request";
-/// Node's `kIoMaxLength`: `readFile` refuses a bigger regular file
-/// (`ERR_FS_FILE_TOO_LARGE`) before reading it.
-pub const IO_MAX_LENGTH: u64 = (1 << 31) - 1;
-/// V8's `String::kMaxLength` (64-bit): a longer decoded text throws.
-pub const MAX_STRING_LENGTH: usize = (1 << 29) - 24;
 
 /// What node can read into a string: `readFile`'s size refusal and V8's
 /// string length ([`Limits::NODE`]; tests shrink them).
@@ -103,7 +100,67 @@ impl Limits {
         io_max: IO_MAX_LENGTH,
         max_units: MAX_STRING_LENGTH,
     };
+
+    /// node 22's `readFileHandle(fd, { encoding: "utf8" })` on a file the
+    /// caller opened (the `open` stays at the caller's sink): `fstat`, a
+    /// regular file over `io_max` bytes refused unread, then the bytes
+    /// decoded with U+FFFD for invalid sequences (a BOM is kept), and a text
+    /// over `max_units` UTF-16 units refused (`result += chunk` throws).
+    /// `usage_seed`, `asset_ingest` and the search read through it (I27), and
+    /// `cost_aggregate` (I29).
+    pub fn read_utf8(self, file: std::fs::File) -> Result<String, ReadError> {
+        let meta = file
+            .metadata()
+            .map_err(|e| ReadError::Fs(node_fs::uv_exception(&e, "fstat", None, None)))?;
+        if meta.is_file() && meta.len() > self.io_max {
+            return Err(ReadError::TooLarge(meta.len()));
+        }
+        // Every 3 bytes decode to at least one unit, so a text cut at this
+        // many bytes is already too long for V8, as the whole one would be;
+        // the cap keeps an endless file (a link to a device) from being read
+        // forever, where node reads until the string overflows.
+        let cap = 3 * (self.max_units as u64 + 1);
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut std::io::Read::take(file, cap), &mut bytes)
+            .map_err(|e| ReadError::Fs(node_fs::uv_exception(&e, "read", None, None)))?;
+        let text = match String::from_utf8(bytes) {
+            Ok(s) => s,
+            Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
+        };
+        if text.chars().map(char::len_utf16).sum::<usize>() > self.max_units {
+            return Err(ReadError::TooLong);
+        }
+        Ok(text)
+    }
 }
+
+/// Why `fs.promises.readFile(path, "utf8")` rejects ([`Limits::read_utf8`]).
+/// `Display` is `String(err)`, the first line `console.warn` prints.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReadError {
+    /// `open`, `fstat` or `read` failed: `Error: EISDIR: illegal operation
+    /// on a directory, read`.
+    Fs(node_fs::NodeError),
+    /// `ERR_FS_FILE_TOO_LARGE`: a regular file of this many bytes.
+    TooLarge(u64),
+    /// V8's string-length `RangeError`.
+    TooLong,
+}
+
+impl std::fmt::Display for ReadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ReadError::Fs(e) => write!(f, "Error: {}", e.message),
+            ReadError::TooLarge(size) => write!(
+                f,
+                "RangeError [ERR_FS_FILE_TOO_LARGE]: File size ({size}) is greater than 2 GiB"
+            ),
+            ReadError::TooLong => f.write_str("RangeError: Invalid string length"),
+        }
+    }
+}
+
+impl std::error::Error for ReadError {}
 
 const ELLIPSIS: u16 = 0x2026;
 const NEWLINE: u16 = b'\n' as u16;
@@ -387,25 +444,9 @@ fn scan_file(base: &str, name: &str, query: &[u16], limits: Limits) -> Option<Ma
     if !target.starts_with(&format!("{base}/")) {
         return None;
     }
-    // `readFile(target, "utf8")`: open, fstat (a regular file over 2 GiB is
-    // refused unread), read, decode lossily (a BOM is kept).
+    // `readFile(target, "utf8")`: any rejection skips the file.
     let file = std::fs::File::open(&target).ok()?;
-    let meta = file.metadata().ok()?;
-    if meta.is_file() && meta.len() > limits.io_max {
-        return None;
-    }
-    // Every 3 bytes decode to at least one unit, so a text cut at this many
-    // bytes is already too long for V8, as the whole one would be; the cap
-    // keeps an endless file (a link to a device) from being read forever,
-    // where node reads until the string overflows.
-    let cap = 3 * (limits.max_units as u64 + 1);
-    let mut bytes = Vec::new();
-    std::io::Read::read_to_end(&mut std::io::Read::take(file, cap), &mut bytes).ok()?;
-    let text = String::from_utf8_lossy(&bytes);
-    let total: usize = text.chars().map(char::len_utf16).sum();
-    if total > limits.max_units {
-        return None;
-    }
+    let text = limits.read_utf8(file).ok()?;
     // The walk needs the line around each match, so the text is held as the
     // UTF-16 units V8 holds it as.
     let text: Vec<u16> = text.encode_utf16().collect();
@@ -700,6 +741,79 @@ mod tests {
         assert!(find(100, 4, "\0").is_empty());
         assert_eq!(Limits::NODE.max_units, 536_870_888);
         assert_eq!(Limits::NODE.io_max, 2_147_483_647);
+    }
+
+    /// `Limits::read_utf8` at both limits, on ASCII, multi-byte and invalid
+    /// UTF-8 (node 22 counts the same units: `Buffer#toString` gives 2, 4
+    /// and 9 for the three texts below).
+    #[test]
+    fn read_utf8_stops_where_node_does() {
+        let dir = tempfile::tempdir().unwrap();
+        let put = |name: &str, bytes: &[u8]| {
+            let p = dir.path().join(name);
+            std::fs::write(&p, bytes).unwrap();
+            p
+        };
+        let read = |p: &std::path::Path, io_max, max_units| {
+            Limits { io_max, max_units }.read_utf8(std::fs::File::open(p).unwrap())
+        };
+        // A BOM is kept and is one unit: 4 bytes, 2 units.
+        let bom = put("bom", b"\xef\xbb\xbfA");
+        assert_eq!(read(&bom, 4, 2).as_deref(), Ok("\u{feff}A"));
+        assert_eq!(read(&bom, 3, 2), Err(ReadError::TooLarge(4)));
+        assert_eq!(read(&bom, 4, 1), Err(ReadError::TooLong));
+        // 2-, 3- and 4-byte characters: 9 bytes, 4 units.
+        let wide = put("wide", "é€😀".as_bytes());
+        assert_eq!(read(&wide, 9, 4).as_deref(), Ok("é€😀"));
+        assert_eq!(read(&wide, 8, 4), Err(ReadError::TooLarge(9)));
+        assert_eq!(read(&wide, 9, 3), Err(ReadError::TooLong));
+        // One U+FFFD per maximal subpart (ff | e2 82 | ed | a0 | 80 | f0 |
+        // 80 | e2 82 at the end): 11 bytes, 9 units.
+        let bad = put("bad", b"\xff\xe2\x82a\xed\xa0\x80\xf0\x80\xe2\x82");
+        let want = "\u{fffd}\u{fffd}a\u{fffd}\u{fffd}\u{fffd}\u{fffd}\u{fffd}\u{fffd}";
+        assert_eq!(read(&bad, 11, 9).as_deref(), Ok(want));
+        assert_eq!(read(&bad, 10, 9), Err(ReadError::TooLarge(11)));
+        assert_eq!(read(&bad, 11, 8), Err(ReadError::TooLong));
+        // 13 bytes, 5 units: too long at 4, though its first 12 bytes (a
+        // `3 * max_units` cap) would pass.
+        let long = put("long", "€€€€x".as_bytes());
+        assert_eq!(read(&long, 100, 5).as_deref(), Ok("€€€€x"));
+        assert_eq!(read(&long, 100, 4), Err(ReadError::TooLong));
+        let empty = put("empty", b"");
+        assert_eq!(read(&empty, 0, 0).as_deref(), Ok(""));
+        // A directory opens and fails at `read`, without a path.
+        let e = read(dir.path(), 100, 100).unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "Error: EISDIR: illegal operation on a directory, read"
+        );
+        assert!(matches!(e, ReadError::Fs(ref n) if n.code == "EISDIR" && n.path.is_none()));
+        // Only a regular file's size is checked: a directory's isn't 0.
+        assert!(std::fs::metadata(dir.path()).unwrap().len() > 0);
+        assert_eq!(read(dir.path(), 0, 100), Err(e));
+        // node 22's own text for each limit (the I27 probe of the real
+        // `readFile`).
+        assert_eq!(
+            ReadError::TooLarge(2_147_483_648).to_string(),
+            "RangeError [ERR_FS_FILE_TOO_LARGE]: File size (2147483648) is greater than 2 GiB"
+        );
+        assert_eq!(
+            ReadError::TooLong.to_string(),
+            "RangeError: Invalid string length"
+        );
+    }
+
+    /// An endless file (no size) is read up to the cap, and that is too
+    /// long.
+    #[cfg(unix)]
+    #[test]
+    fn read_utf8_caps_an_endless_file() {
+        let zero = || std::fs::File::open("/dev/zero").unwrap();
+        let limits = Limits {
+            io_max: 0,
+            max_units: 4,
+        };
+        assert_eq!(limits.read_utf8(zero()), Err(ReadError::TooLong));
     }
 
     #[test]

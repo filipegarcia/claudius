@@ -774,12 +774,10 @@ pub fn messages(session_id: &str, dir: Option<&str>, include_system: bool) -> Ve
     let Some(found) = crate::session_file::find(session_id, dir, &env) else {
         return vec![];
     };
-    // The SDK decodes each line with `toString("utf-8")`: invalid bytes are
-    // U+FFFD, not a failed read.
-    let Ok(bytes) = std::fs::read(&found.file) else {
+    let Ok(text) = crate::transcript::read_file(&found.file) else {
         return vec![];
     };
-    crate::transcript::session_messages(&String::from_utf8_lossy(&bytes), include_system)
+    crate::transcript::session_messages(&text, include_system)
 }
 
 /// `remove(id, dir)` (`deleteSession`, [`crate::session_file::delete`]):

@@ -1,0 +1,40 @@
+# U00a confirming spike: a throwaway GPUI transcript + composer fed from
+# claudius-core in-process. Its own workspace (and target/) so the root
+# `cargo … --workspace` gate never builds gpui. Not shipped.
+[package]
+name = "gpui-transcript"
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[dependencies]
+# GPUI Kit pins the gpui-pre (Zed snapshot) crates it was built against.
+gpui-kit = { version = "=0.10.0", features = ["syntect"] }
+gpui-webview = "=0.10.0"
+wry = { package = "lb-wry", version = "0.53.3" }
+claudius-core = { path = "../../crates/claudius-core" }
+claudius-agent = { path = "../../crates/claudius-agent" }
+anyhow = "1"
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+libc = "0.2"
+# Math: RaTeX (KaTeX's layout rules and fonts, in Rust) to SVG.
+ratex-parser = "0.1.16"
+ratex-layout = "0.1.16"
+ratex-svg = { version = "0.1.16", features = ["embed-fonts"] }
+ratex-types = "0.1.16"
+# Already in the tree through gpui / gpui-component.
+similar = "2.7"
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["png"] }
+objc2 = "0.6"
+raw-window-handle = "0.6"
+
+[profile.release]
+lto = "thin"
+codegen-units = 16
+debug = false

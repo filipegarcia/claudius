@@ -1,0 +1,21 @@
+[package]
+name = "claudius-client"
+description = "The chat client's state machine over server events (lib/client/use-session.ts), with no UI or transport"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# JS value semantics (`js::trim`, `js::truthy`, number text).
+claudius-agent.workspace = true
+# The shared JS emulation the server side already pins against node:
+# `js_string` (lone surrogates, `String()`, `toLowerCase`), `js_date`
+# (`Date.parse`) and `slash_commands` (`findSlashCommand`). The native UI
+# links claudius-core in-process anyway (U02), so this adds no weight there.
+claudius-core.workspace = true
+indexmap.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true

@@ -1,5 +1,5 @@
-//! `/api/updater/{settings,status,log,check,changelog}`: port of the first
-//! half of `app/api/updater/*` (D27a) over [`claudius_core::updater`].
+//! `/api/updater/{settings,status,log,check,changelog,apply}`: port of
+//! `app/api/updater/*` (D27a, D27b) over [`claudius_core::updater`].
 //!
 //! - `GET /api/updater/settings`: the four settings from
 //!   `~/.claude/.claudius/updater.json` (defaults for a missing, unreadable
@@ -19,10 +19,16 @@
 //!   GitHub's compare API (through `AppState::https`, so with the dev routes
 //!   on `CLAUDIUS_DEV_FETCH_BASE` points it at a local fake); 400 for a bad
 //!   or equal pair, 502 with the failure.
-//!
-//! `apply` (D27b) stays on Next.
+//! - `POST /api/updater/apply`: one apply run (single flight; a second call
+//!   gets the first's outcome). Only a JSON object body with an own
+//!   `allowCcMerge: true` lets Claude merge or resolve outside cc-merge
+//!   mode; any other body (none, malformed, `null`, …) is no override. A
+//!   throw that escapes the run is Next's empty 500. A successful run in
+//!   daemon mode restarts this process (`claudius_core::updater::restart`);
+//!   with the dev routes on, `CLAUDIUS_DEV_RESTART_LOG=<file>` records what
+//!   that would run instead of running it.
 
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock, Once};
 
 use axum::Router;
 use axum::body::Bytes;
@@ -31,7 +37,9 @@ use axum::http::{StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use claudius_agent::js;
+use claudius_core::updater::apply::{self, ApplyOptions};
 use claudius_core::updater::release_changelog::{self, ChangelogCache};
+use claudius_core::updater::restart::{self, RecordingBoundary};
 use claudius_core::updater::settings::{self, SettingsPatch};
 use claudius_core::updater::{detect, git, root};
 use claudius_core::{js_num, js_string, log, node_path, now_ms};
@@ -49,6 +57,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/updater/log", get(log_tail))
         .route("/api/updater/check", post(check))
         .route("/api/updater/changelog", get(changelog))
+        .route("/api/updater/apply", post(apply_update))
 }
 
 /// `NextResponse.json(body, {status})`: `JSON.stringify`, lone surrogates
@@ -281,6 +290,41 @@ async fn changelog(State(app): State<AppState>, uri: Uri) -> Response {
     }
 }
 
+/// With the dev routes on, `CLAUDIUS_DEV_RESTART_LOG=<file>` swaps the
+/// restart for a [`RecordingBoundary`] on that file (once per process).
+fn dev_restart_boundary(dev_routes: bool) {
+    static ONCE: Once = Once::new();
+    if !dev_routes {
+        return;
+    }
+    ONCE.call_once(|| {
+        if let Some(path) = std::env::var_os("CLAUDIUS_DEV_RESTART_LOG").filter(|p| !p.is_empty()) {
+            restart::set_boundary(Some(Arc::new(RecordingBoundary { path: path.into() })));
+        }
+    });
+}
+
+/// `try { body = await req.json() } catch {}; body?.allowCcMerge === true`.
+fn allow_cc_merge(body: &[u8]) -> bool {
+    matches!(
+        js_string::parse(&JsonBody::text(body)),
+        Ok(Value::Object(m)) if m.get("allowCcMerge") == Some(&Value::Bool(true))
+    )
+}
+
+/// `POST /api/updater/apply`.
+async fn apply_update(State(app): State<AppState>, body: Bytes) -> Response {
+    dev_restart_boundary(app.dev_routes);
+    let opts = ApplyOptions {
+        allow_cc_merge: allow_cc_merge(&body),
+        claude_bin: app.mgr.runtime.lock().unwrap().claude_bin.clone(),
+    };
+    match apply::apply_update(opts).await {
+        Ok(outcome) => ok(&outcome.to_json()),
+        Err(message) => failed("apply", &message),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -293,5 +337,24 @@ mod tests {
         assert_eq!(arg_string(Some(&json!({}))), "[object Object]");
         assert_eq!(arg_string(Some(&json!({"toString": 1}))), "");
         assert_eq!(arg_string(Some(&json!(123))), "123");
+    }
+
+    #[test]
+    fn only_an_own_true_allows_the_merge() {
+        assert!(allow_cc_merge(br#"{"allowCcMerge":true}"#));
+        assert!(allow_cc_merge(b"\xEF\xBB\xBF{\"allowCcMerge\":true}"));
+        for body in [
+            &b""[..],
+            b"{",
+            b"null",
+            b"[]",
+            b"true",
+            br#"{"allowCcMerge":"true"}"#,
+            br#"{"allowCcMerge":1}"#,
+            br#"{"__proto__":{"allowCcMerge":true}}"#,
+            br#"[{"allowCcMerge":true}]"#,
+        ] {
+            assert!(!allow_cc_merge(body), "{}", String::from_utf8_lossy(body));
+        }
     }
 }

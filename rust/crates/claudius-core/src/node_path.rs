@@ -1,7 +1,9 @@
 //! Node's `path.posix` (`lib/path.js`, node 22) on JS strings: `resolve`,
 //! `normalize`, `join`, `relative`, `dirname`, `basename` and `isAbsolute`, step for
 //! step, so the routes that build and compare paths with them (`fs/dirs`,
-//! `fs-list.ts`) produce the same strings.
+//! `fs-list.ts`) produce the same strings. It is the one `path.posix` in
+//! the crate: G02a's `node_fs` and G05's `agents` copies were folded in
+//! (I14c; they agreed with it on every string of up to 10 of `/`, `.`, `a`).
 //!
 //! These only ever look at `/` and `.`, which are single bytes in UTF-8 and
 //! single units in UTF-16, so walking the UTF-8 bytes gives the same result
@@ -298,6 +300,62 @@ mod basename_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn join_matches_path_posix() {
+        // Recorded from node 22's path.posix.join (G02a's cases, from
+        // `node_fs`, I14c).
+        let cases: &[(&[&str], &str)] = &[
+            (&[], "."),
+            (&[""], "."),
+            (&["", ""], "."),
+            (&["/a", "b"], "/a/b"),
+            (&["/a/", "b/"], "/a/b/"),
+            (&["/a//b", "./c", "../d"], "/a/b/d"),
+            (&["/", ".."], "/"),
+            (&["/a/..", ".."], "/"),
+            (&["a", "..", ".."], ".."),
+            (&["../a", "../../b"], "../../b"),
+            (&["a/b", "../.."], "."),
+            (&["a/b", "../../"], "./"),
+            (&["./", "."], "."),
+            (&["x", "", "y"], "x/y"),
+            (&["/x/", "/", "/y"], "/x/y"),
+            (&["...", "..a"], ".../..a"),
+            (
+                &["/home/u/", ".claude", ".claudius"],
+                "/home/u/.claude/.claudius",
+            ),
+            (&["/acc", "profiles", ""], "/acc/profiles"),
+            (&["/acc", "profiles", ".."], "/acc"),
+        ];
+        for (parts, want) in cases {
+            assert_eq!(join(parts), *want, "{parts:?}");
+        }
+    }
+
+    #[test]
+    fn normalize_follows_path_posix() {
+        // G05's cases, from `agents` (I14c).
+        for (p, want) in [
+            ("", "."),
+            ("/", "/"),
+            ("//a//b/", "/a/b/"),
+            ("/a/../..", "/"),
+            ("a/../..", ".."),
+            ("./a/./b", "a/b"),
+            ("a/", "a/"),
+            ("./", "./"),
+            ("/x/.claude/agents", "/x/.claude/agents"),
+        ] {
+            assert_eq!(normalize(p), want, "{p:?}");
+        }
+        assert_eq!(join(&["/", ".claude", "agents"]), "/.claude/agents");
+        assert_eq!(
+            join(&["/home/u/", ".claude", "agents"]),
+            "/home/u/.claude/agents"
+        );
+    }
 
     #[test]
     fn matches_node_on_hand_picked_paths() {

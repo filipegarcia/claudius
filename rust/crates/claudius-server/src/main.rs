@@ -32,6 +32,15 @@ struct Args {
     next: Option<String>,
     claude_bin: Option<PathBuf>,
     scheduler: bool,
+    boot_tasks: bool,
+}
+
+/// `CLAUDIUS_BOOT_TASKS`: `1` / `true` / `yes` / `on` (trimmed, any case)
+/// runs `instrumentation.ts`'s boot tasks here; anything else, or unset,
+/// leaves them to Next.
+fn boot_tasks_by_env(raw: Option<&str>) -> bool {
+    raw.map(|v| claudius_agent::js::trim(v).to_ascii_lowercase())
+        .is_some_and(|v| matches!(v.as_str(), "1" | "true" | "yes" | "on"))
 }
 
 fn parse_args() -> anyhow::Result<Args> {
@@ -46,6 +55,7 @@ fn parse_args() -> anyhow::Result<Args> {
         ),
         claude_bin: std::env::var_os(claudius_agent::binary::ENV_OVERRIDE).map(PathBuf::from),
         scheduler: scheduler::enabled_by_env(std::env::var("CLAUDIUS_SCHEDULER").ok().as_deref()),
+        boot_tasks: boot_tasks_by_env(std::env::var("CLAUDIUS_BOOT_TASKS").ok().as_deref()),
     };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
@@ -61,9 +71,11 @@ fn parse_args() -> anyhow::Result<Args> {
             "--claude-bin" => a.claude_bin = Some(PathBuf::from(val("--claude-bin")?)),
             "--scheduler" => a.scheduler = true,
             "--no-scheduler" => a.scheduler = false,
+            "--boot-tasks" => a.boot_tasks = true,
+            "--no-boot-tasks" => a.boot_tasks = false,
             "-h" | "--help" => {
                 println!(
-                    "claudius [--host 127.0.0.1] [--port 3100] [--next http://127.0.0.1:3000 | --no-next] [--claude-bin PATH] [--no-scheduler]"
+                    "claudius [--host 127.0.0.1] [--port 3100] [--next http://127.0.0.1:3000 | --no-next] [--claude-bin PATH] [--no-scheduler] [--boot-tasks]"
                 );
                 std::process::exit(0);
             }
@@ -113,6 +125,36 @@ async fn main() -> anyhow::Result<()> {
             ),
         }
     }
+    // `instrumentation.ts`'s boot tasks after the scheduler (G12): the
+    // customization upgrade check (auto-revert stale publishes), the
+    // workspace reconcile, then `updaterScheduler.boot()`. Next runs them
+    // itself while it serves beside this binary; two upgrade checks would
+    // race on the same publishes and two updaters on one tree would stash it
+    // twice, so they're off unless asked for (`--boot-tasks` /
+    // `CLAUDIUS_BOOT_TASKS=1`) until Rust serves alone (N section). Awaited
+    // before the listener, as Next awaits `register()`, so a health check
+    // implies they ran.
+    if args.boot_tasks {
+        match claudius_core::customizations_startup::run_customizations_startup().await {
+            Ok(()) => {
+                // Its own gates: `CLAUDIUS_UPDATER_DISABLED=1` and a preview
+                // running inside a customization mirror. The first tick is
+                // 5 s out, on a tokio task.
+                let updater = claudius_core::updater::scheduler::updater_scheduler();
+                updater.set_apply_options(claudius_core::updater::apply::ApplyOptions {
+                    claude_bin: mgr.runtime.lock().unwrap().claude_bin.clone(),
+                    ..Default::default()
+                });
+                updater.boot();
+            }
+            // `register()` rejects at the first failed `await`, so the TS
+            // skips the reconcile and the updater boot with it.
+            Err(e) => tracing::warn!(
+                target: claudius_core::log::API,
+                "[customizations] boot tasks failed: {e:#}"
+            ),
+        }
+    }
     let proxy = args
         .next
         .as_deref()
@@ -143,13 +185,17 @@ async fn main() -> anyhow::Result<()> {
         res = &mut server => return res?.map_err(Into::into),
         sig = shutdown_signal() => tracing::info!("{sig}: shutting down"),
     }
+    // As a TS host's exit SIGTERMs its CLIs at once: from here on a closed
+    // CLI gets SIGTERM without the 2 s close grace, SIGKILL 2 s later.
+    claudius_agent::begin_exit();
     if args.scheduler {
         scheduler::scheduler().shutdown().await;
     }
     // Customization previews (`next dev` children) don't outlive the server.
     claudius_core::preview_server::shutdown().await;
     // End every session first, concurrently: each waits for its CLI to exit
-    // (SIGTERM → SIGKILL after the kill grace), so no child is orphaned.
+    // (SIGTERM at once → SIGKILL after the exit's kill grace), so no child
+    // is orphaned.
     let ids: Vec<String> = mgr.list().into_iter().map(|s| s.id.clone()).collect();
     futures::future::join_all(ids.iter().map(|id| mgr.remove(id))).await;
     // Then stop HTTP. Open SSE streams never finish on their own, so don't let
@@ -180,5 +226,28 @@ async fn shutdown_signal() -> &'static str {
     {
         let _ = tokio::signal::ctrl_c().await;
         "Ctrl-C"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::boot_tasks_by_env;
+
+    #[test]
+    fn boot_tasks_env_is_opt_in() {
+        for on in ["1", "true", "TRUE", " yes ", "On"] {
+            assert!(boot_tasks_by_env(Some(on)), "{on:?}");
+        }
+        for off in [
+            None,
+            Some(""),
+            Some("0"),
+            Some("false"),
+            Some("no"),
+            Some("off"),
+            Some("2"),
+        ] {
+            assert!(!boot_tasks_by_env(off), "{off:?}");
+        }
     }
 }

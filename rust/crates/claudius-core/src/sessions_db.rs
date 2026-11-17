@@ -668,15 +668,20 @@ pub fn list_all_indexed_sessions(dir: Option<&str>) -> anyhow::Result<Vec<Sessio
     Ok(all)
 }
 
-/// `recordSuggestedMessage` / `recordGoalMessage`.
+/// `recordSuggestedMessage` / `recordGoalMessage`. `message_uuid` and
+/// `text` are the JS values the `input` route got (any type): a falsy uuid
+/// records nothing, and the row binds as better-sqlite3 binds them
+/// ([`sql_text::js_args`]: a number a REAL, so `7` is stored as `"7.0"`, an
+/// array spread, an object as no values, so too few, and a boolean a
+/// `TypeError`; S29a).
 pub fn record_tagged_message(
     cwd: &str,
     goal: bool,
     session_id: &str,
-    message_uuid: &str,
-    text: &str,
+    message_uuid: &Value,
+    text: &Value,
 ) -> anyhow::Result<()> {
-    if session_id.is_empty() || message_uuid.is_empty() {
+    if session_id.is_empty() || !js::truthy(message_uuid) {
         return Ok(());
     }
     let db = open_db(cwd, Mode::ReadWrite)?;
@@ -687,7 +692,22 @@ pub fn record_tagged_message(
         "INSERT INTO suggested_messages(session_id, message_uuid, suggestion_text, created_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(session_id, message_uuid) DO UPDATE SET suggestion_text = excluded.suggestion_text"
     };
-    db.with(|c| c.execute(sql, js_params![session_id, message_uuid, text, now_ms()]))?;
+    // `text ?? ""`
+    let text = if text.is_null() {
+        json!("")
+    } else {
+        text.clone()
+    };
+    let args = [
+        json!(session_id),
+        message_uuid.clone(),
+        text,
+        json!(now_ms()),
+    ];
+    db.with(|c| {
+        let mut st = c.prepare(sql)?;
+        st.execute(sql_text::js_args(&st, &args)?)
+    })?;
     Ok(())
 }
 

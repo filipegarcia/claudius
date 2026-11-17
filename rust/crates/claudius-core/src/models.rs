@@ -373,7 +373,10 @@ pub fn probe_result(c: &ProbeCandidate, ok: bool, error: Option<Value>) -> Value
 /// the first message [`probe_verdict`] decides on (a stream that ends
 /// without one is `ok`). An error is `ok: false` with its message, or
 /// `timed out` once `timeout` passes. The query is closed afterwards either
-/// way, which stops its CLI.
+/// way, which stops its CLI, and the probe waits for it to exit, at most 2 s
+/// ([`QueryHandle::finish`](claudius_agent::QueryHandle::finish)): the TS
+/// `return` out of `for await` awaits the SDK's cleanup, and after the
+/// timeout's abort its stream ends then too.
 pub async fn probe_one(
     c: &ProbeCandidate,
     claude_bin: Option<PathBuf>,
@@ -395,7 +398,7 @@ pub async fn probe_one(
     };
     let outcome = tokio::time::timeout(timeout, run).await;
     if let Some(q) = query {
-        q.handle().close().await;
+        q.handle().finish().await;
     }
     match outcome {
         Ok(Ok((ok, error))) => probe_result(c, ok, error),

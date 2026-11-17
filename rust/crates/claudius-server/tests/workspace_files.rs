@@ -25,8 +25,6 @@ mod common;
 
 use std::collections::BTreeMap;
 use std::ffi::CString;
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -35,7 +33,7 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use claudius_core::js_string;
-use common::{Server, fake_bin, free_port, http, wait_until};
+use common::{Server, fake_bin, free_port};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
@@ -413,7 +411,7 @@ fn set_mtime(p: &Path, ns: i128) {
 fn spawn(world: &World) -> Server {
     let port = free_port();
     let home = world.path("home");
-    let child = Command::new(env!("CARGO_BIN_EXE_claudius"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_claudius"))
         .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(fake_bin())
         .current_dir(world.path("project"))
@@ -426,15 +424,11 @@ fn spawn(world: &World) -> Server {
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    let server = Server { child, port };
-    wait_until("health", Duration::from_secs(30), || {
-        TcpStream::connect(("127.0.0.1", port)).is_ok()
-            && http(port, "GET", "/api/rust/health", "").0 == 200
-    });
-    server
+    common::wait_healthy(&mut child, port, Duration::from_secs(30));
+    Server { child, port }
 }
 
 /// A response: status, the two headers the recorder kept, the body.
@@ -446,34 +440,20 @@ struct Got {
 }
 
 fn request(port: u16, method: &str, target: &str, body: &[u8]) -> Got {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    s.set_read_timeout(Some(Duration::from_secs(300))).unwrap();
-    write!(
-        s,
+    let mut raw = format!(
         "{method} {target} HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         body.len()
     )
-    .unwrap();
-    s.write_all(body).unwrap();
-    let mut raw = Vec::new();
-    s.read_to_end(&mut raw).unwrap();
-    let split = raw
-        .windows(4)
-        .position(|w| w == b"\r\n\r\n")
-        .expect("a header block");
-    let head = String::from_utf8_lossy(&raw[..split]).into_owned();
-    let mut rest = raw[split + 4..].to_vec();
-    let mut lines = head.split("\r\n");
-    let status = lines
-        .next()
-        .unwrap()
-        .split(' ')
-        .nth(1)
-        .unwrap()
-        .parse()
-        .unwrap();
+    .into_bytes();
+    raw.extend_from_slice(body);
+    let common::Response {
+        status,
+        head,
+        body: mut rest,
+    } = common::exchange(port, &raw);
+    assert!(status != 0, "no header block: {head}");
     let mut headers = BTreeMap::new();
-    for l in lines {
+    for l in head.split("\r\n").skip(1) {
         let (k, v) = l.split_once(':').unwrap();
         headers.insert(k.trim().to_ascii_lowercase(), v.trim().to_owned());
     }

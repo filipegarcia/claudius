@@ -39,7 +39,7 @@ use claudius_core::session_manager::SessionManager;
 use serde_json::{Value, json};
 
 use crate::AppState;
-use crate::body::{JsonBody, thrown};
+use crate::body::{JsonBody, js_truthy, thrown};
 use crate::session_transcript::search_param;
 
 pub fn router() -> Router<AppState> {
@@ -92,10 +92,6 @@ fn member<'a>(body: &'a Value, key: &str) -> Option<&'a Value> {
     body.as_object().and_then(|o| o.get(key))
 }
 
-fn truthy(v: Option<&Value>) -> bool {
-    v.is_some_and(js::truthy)
-}
-
 // ---- GET /api/accounts -----------------------------------------------------------
 
 /// `GET /api/accounts`: `readAccountsPublic()` (secrets as 4-char previews).
@@ -134,11 +130,11 @@ pub fn post_accounts(
         member(&b, "kind"),
         member(&b, "secret"),
     );
-    if !truthy(label) || !truthy(kind) {
+    if !js_truthy(label) || !js_truthy(kind) {
         return error(400, "label, kind required");
     }
     let bedrock = kind.and_then(Value::as_str) == Some("bedrock");
-    if !bedrock && !truthy(secret) {
+    if !bedrock && !js_truthy(secret) {
         return error(400, "label, kind, secret required");
     }
     let input = NewAccount {

@@ -79,7 +79,6 @@ pub mod mcp_delta;
 pub mod mcp_notices;
 pub mod model_pricing_override;
 pub mod models;
-pub mod node_err;
 pub mod node_fs;
 pub mod node_path;
 pub mod notification_bus;

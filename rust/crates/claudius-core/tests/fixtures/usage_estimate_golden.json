@@ -7545,5 +7545,313 @@
     "checkpoint": "null"
    }
   ]
+ },
+ "costStateEdges": {
+  "files": [
+   {
+    "rel": "e-crlf.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-crlf\",\"totalCostUSD\":1,\"totalAPIDuration\":1000,\"totalAPIDurationWithoutRetries\":1000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}},\"hasUnknownModelCost\":false}\r\n{\"type\":\"cost-state\",\"sessionId\":\"e-crlf\",\"totalCostUSD\":2,\"totalAPIDuration\":2000,\"totalAPIDurationWithoutRetries\":2000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":2}},\"hasUnknownModelCost\":false}\r\n"
+   },
+   {
+    "rel": "e-cr.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-cr\",\"totalCostUSD\":3,\"totalAPIDuration\":3000,\"totalAPIDurationWithoutRetries\":3000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":3}},\"hasUnknownModelCost\":false}\r\r\n{\"type\":\"cost-state\",\"sessionId\":\"e-cr\",\"totalCostUSD\":4,\"totalAPIDuration\":4000,\"totalAPIDurationWithoutRetries\":4000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":4}},\"hasUnknownModelCost\":false}\r{\"type\":\"cost-state\",\"sessionId\":\"e-cr\",\"totalCostUSD\":5,\"totalAPIDuration\":5000,\"totalAPIDurationWithoutRetries\":5000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":5}},\"hasUnknownModelCost\":false}\n"
+   },
+   {
+    "rel": "e-cr-tail.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-cr-tail\",\"totalCostUSD\":6,\"totalAPIDuration\":6000,\"totalAPIDurationWithoutRetries\":6000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":6}},\"hasUnknownModelCost\":false}\r"
+   },
+   {
+    "rel": "e-sep.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-sep\",\"totalCostUSD\":7,\"totalAPIDuration\":7000,\"totalAPIDurationWithoutRetries\":7000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":7}},\"hasUnknownModelCost\":false}\n{\"type\":\"cost-state\",\"sessionId\":\"e-sep\",\"totalCostUSD\":8,\"totalAPIDuration\":8000,\"totalAPIDurationWithoutRetries\":8000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":8}},\"hasUnknownModelCost\":false,\"note\":\"a b c\"}\n{\"type\":\"cost-state\",\"sessionId\":\"e-sep\",\"totalCostUSD\":9,\"totalAPIDuration\":9000,\"totalAPIDurationWithoutRetries\":9000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":9}},\"hasUnknownModelCost\":false} \n"
+   },
+   {
+    "rel": "e-utf8.jsonl",
+    "hex": "7b2274797065223a22636f73742d7374617465222c2273657373696f6e4964223a22652d75746638222c22746f74616c436f7374555344223a31302c22746f74616c4150494475726174696f6e223a31303030302c22746f74616c4150494475726174696f6e576974686f757452657472696573223a31303030302c22746f74616c546f6f6c4475726174696f6e223a302c22746f74616c4c696e65734164646564223a302c22746f74616c4c696e657352656d6f766564223a302c22746f74616c4475726174696f6e223a302c22737461727454696d65223a312c226d6f64656c5573616765223a7b226261642dfffec3223a7b22696e707574546f6b656e73223a312c226f7574707574546f6b656e73223a322c22636163686552656164496e707574546f6b656e73223a332c2263616368654372656174696f6e496e707574546f6b656e73223a342c227765625365617263685265717565737473223a302c22636f7374555344223a317d7d2c22686173556e6b6e6f776e4d6f64656c436f7374223a66616c73657d0a"
+   },
+   {
+    "rel": "e-chunk-4.jsonl",
+    "parts": [
+     {
+      "text": "{\"pad\":\""
+     },
+     {
+      "repeat": "a",
+      "count": 65283
+     },
+     {
+      "text": "\"}\n{\"type\":\"cost-state\",\"sessionId\":\"e-chunk-4\",\"totalCostUSD\":11,\"totalAPIDuration\":11000,\"totalAPIDurationWithoutRetries\":11000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"m-"
+     },
+     {
+      "hex": "f09f9880"
+     },
+     {
+      "text": "\":{\"inputTokens\":1,\"outputTokens\":2,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}},\"hasUnknownModelCost\":false}\n"
+     }
+    ]
+   },
+   {
+    "rel": "e-chunk-3.jsonl",
+    "parts": [
+     {
+      "text": "{\"pad\":\""
+     },
+     {
+      "repeat": "a",
+      "count": 65284
+     },
+     {
+      "text": "\"}\n{\"type\":\"cost-state\",\"sessionId\":\"e-chunk-3\",\"totalCostUSD\":12,\"totalAPIDuration\":12000,\"totalAPIDurationWithoutRetries\":12000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"m-"
+     },
+     {
+      "hex": "e282ac"
+     },
+     {
+      "text": "\":{\"inputTokens\":1,\"outputTokens\":2,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}},\"hasUnknownModelCost\":false}\n"
+     }
+    ]
+   },
+   {
+    "rel": "e-chunk-bad.jsonl",
+    "parts": [
+     {
+      "text": "{\"pad\":\""
+     },
+     {
+      "repeat": "a",
+      "count": 65281
+     },
+     {
+      "text": "\"}\n{\"type\":\"cost-state\",\"sessionId\":\"e-chunk-bad\",\"totalCostUSD\":13,\"totalAPIDuration\":13000,\"totalAPIDurationWithoutRetries\":13000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"m-"
+     },
+     {
+      "hex": "e28278"
+     },
+     {
+      "text": "\":{\"inputTokens\":1,\"outputTokens\":2,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}},\"hasUnknownModelCost\":false}\n"
+     }
+    ]
+   },
+   {
+    "rel": "e-chunk-mark.jsonl",
+    "parts": [
+     {
+      "text": "{\"pad\":\""
+     },
+     {
+      "repeat": "a",
+      "count": 65511
+     },
+     {
+      "text": "\"}\n{\"type\":\""
+     },
+     {
+      "hex": "636f73742d7374617465"
+     },
+     {
+      "text": "\",\"sessionId\":\"e-chunk-mark\",\"totalCostUSD\":14,\"totalAPIDuration\":14000,\"totalAPIDurationWithoutRetries\":14000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":14}},\"hasUnknownModelCost\":false}\n"
+     }
+    ]
+   },
+   {
+    "rel": "e-long.jsonl",
+    "parts": [
+     {
+      "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-long\",\"totalCostUSD\":15,\"totalAPIDuration\":15000,\"totalAPIDurationWithoutRetries\":15000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":15}},\"hasUnknownModelCost\":false,\"pad\":\""
+     },
+     {
+      "repeat": "a",
+      "count": 150000
+     },
+     {
+      "repeat": "€",
+      "count": 30000
+     },
+     {
+      "text": "\"}\n"
+     },
+     {
+      "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-long\",\"totalCostUSD\":16,\"totalAPIDuration\":16000,\"totalAPIDurationWithoutRetries\":16000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":16}},\"hasUnknownModelCost\":false,\"pad\":\""
+     },
+     {
+      "repeat": "b",
+      "count": 70000
+     },
+     {
+      "text": "\"}"
+     }
+    ]
+   },
+   {
+    "rel": "e-many.jsonl",
+    "parts": [
+     {
+      "repeat": "{\"type\":\"cost-state\",\"sessionId\":\"e-many\",\"totalCostUSD\":17,\"totalAPIDuration\":17000,\"totalAPIDurationWithoutRetries\":17000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":17}},\"hasUnknownModelCost\":false}\n",
+      "count": 600
+     },
+     {
+      "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-many\",\"totalCostUSD\":18,\"totalAPIDuration\":18000,\"totalAPIDurationWithoutRetries\":18000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":18}},\"hasUnknownModelCost\":false}\n"
+     }
+    ]
+   },
+   {
+    "rel": "e-torn.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-torn\",\"totalCostUSD\":19,\"totalAPIDuration\":19000,\"totalAPIDurationWithoutRetries\":19000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":19}},\"hasUnknownModelCost\":false}\n{\"type\":\"cost-state\",\"sessionId\":\"e-torn\",\"totalCostUSD\":20,"
+   },
+   {
+    "rel": "e-bom.jsonl",
+    "text": "﻿{\"type\":\"cost-state\",\"sessionId\":\"e-bom\",\"totalCostUSD\":21,\"totalAPIDuration\":21000,\"totalAPIDurationWithoutRetries\":21000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":21}},\"hasUnknownModelCost\":false}\n"
+   },
+   {
+    "rel": "e-space.jsonl",
+    "text": " \t{\"type\":\"cost-state\",\"sessionId\":\"e-space\",\"totalCostUSD\":22,\"totalAPIDuration\":22000,\"totalAPIDurationWithoutRetries\":22000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":22}},\"hasUnknownModelCost\":false} \n"
+   },
+   {
+    "rel": "e-surrogate.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-surrogate\",\"totalCostUSD\":23,\"totalAPIDuration\":23000,\"totalAPIDurationWithoutRetries\":23000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":23}},\"hasUnknownModelCost\":false,\"note\":\"\\ud800\"}\n"
+   },
+   {
+    "rel": "e-escaped.jsonl",
+    "text": "{\"type\":\"cost\\u002dstate\",\"sessionId\":\"e-escaped\",\"totalCostUSD\":28,\"totalAPIDuration\":28000,\"totalAPIDurationWithoutRetries\":28000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":28}},\"hasUnknownModelCost\":false}\n"
+   },
+   {
+    "rel": "e-escaped-note.jsonl",
+    "text": "{\"type\":\"cost\\u002dstate\",\"sessionId\":\"e-escaped-note\",\"totalCostUSD\":29,\"totalAPIDuration\":29000,\"totalAPIDurationWithoutRetries\":29000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":29}},\"hasUnknownModelCost\":false,\"note\":\"cost-state\"}\n"
+   },
+   {
+    "rel": "e-dup.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"other\",\"sessionId\":\"e-dup\",\"totalCostUSD\":24,\"totalAPIDuration\":24000,\"totalAPIDurationWithoutRetries\":24000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":24}},\"hasUnknownModelCost\":false}\n{\"type\":\"cost-state\",\"sessionId\":\"e-dup\",\"sessionId\":\"other\",\"totalCostUSD\":25,\"totalAPIDuration\":25000,\"totalAPIDurationWithoutRetries\":25000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":25}},\"hasUnknownModelCost\":false}\n"
+   },
+   {
+    "rel": "e-empty.jsonl",
+    "text": ""
+   },
+   {
+    "rel": "e-blank.jsonl",
+    "text": "\n\n\r\n \n"
+   },
+   {
+    "rel": "e-dir.jsonl",
+    "dir": true
+   },
+   {
+    "rel": "e-link.target",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-link\",\"totalCostUSD\":26,\"totalAPIDuration\":26000,\"totalAPIDurationWithoutRetries\":26000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":26}},\"hasUnknownModelCost\":false}\n"
+   },
+   {
+    "rel": "e-link.jsonl",
+    "symlink": "e-link.target"
+   },
+   {
+    "rel": "e-dangling.jsonl",
+    "symlink": "nowhere.jsonl"
+   },
+   {
+    "rel": "e-noperm.jsonl",
+    "text": "{\"type\":\"cost-state\",\"sessionId\":\"e-noperm\",\"totalCostUSD\":27,\"totalAPIDuration\":27000,\"totalAPIDurationWithoutRetries\":27000,\"totalToolDuration\":0,\"totalLinesAdded\":0,\"totalLinesRemoved\":0,\"totalDuration\":0,\"startTime\":1,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":27}},\"hasUnknownModelCost\":false}\n",
+    "mode": 0
+   }
+  ],
+  "cases": [
+   {
+    "id": "e-crlf",
+    "checkpoint": "{\"totalCostUsd\":2,\"durationApiMs\":2000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":2}}}"
+   },
+   {
+    "id": "e-cr",
+    "checkpoint": "{\"totalCostUsd\":3,\"durationApiMs\":3000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":3}}}"
+   },
+   {
+    "id": "e-cr-tail",
+    "checkpoint": "{\"totalCostUsd\":6,\"durationApiMs\":6000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":6}}}"
+   },
+   {
+    "id": "e-sep",
+    "checkpoint": "{\"totalCostUsd\":8,\"durationApiMs\":8000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":8}}}"
+   },
+   {
+    "id": "e-utf8",
+    "checkpoint": "{\"totalCostUsd\":10,\"durationApiMs\":10000,\"modelUsage\":{\"bad-���\":{\"inputTokens\":1,\"outputTokens\":2,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}}}"
+   },
+   {
+    "id": "e-chunk-4",
+    "checkpoint": "{\"totalCostUsd\":11,\"durationApiMs\":11000,\"modelUsage\":{\"m-😀\":{\"inputTokens\":1,\"outputTokens\":2,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}}}"
+   },
+   {
+    "id": "e-chunk-3",
+    "checkpoint": "{\"totalCostUsd\":12,\"durationApiMs\":12000,\"modelUsage\":{\"m-€\":{\"inputTokens\":1,\"outputTokens\":2,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}}}"
+   },
+   {
+    "id": "e-chunk-bad",
+    "checkpoint": "{\"totalCostUsd\":13,\"durationApiMs\":13000,\"modelUsage\":{\"m-�x\":{\"inputTokens\":1,\"outputTokens\":2,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":1}}}"
+   },
+   {
+    "id": "e-chunk-mark",
+    "checkpoint": "{\"totalCostUsd\":14,\"durationApiMs\":14000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":14}}}"
+   },
+   {
+    "id": "e-long",
+    "checkpoint": "{\"totalCostUsd\":16,\"durationApiMs\":16000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":16}}}"
+   },
+   {
+    "id": "e-many",
+    "checkpoint": "{\"totalCostUsd\":18,\"durationApiMs\":18000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":18}}}"
+   },
+   {
+    "id": "e-torn",
+    "checkpoint": "{\"totalCostUsd\":19,\"durationApiMs\":19000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":19}}}"
+   },
+   {
+    "id": "e-bom",
+    "checkpoint": "null"
+   },
+   {
+    "id": "e-space",
+    "checkpoint": "{\"totalCostUsd\":22,\"durationApiMs\":22000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":22}}}"
+   },
+   {
+    "id": "e-surrogate",
+    "checkpoint": "{\"totalCostUsd\":23,\"durationApiMs\":23000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":23}}}"
+   },
+   {
+    "id": "e-escaped",
+    "checkpoint": "null"
+   },
+   {
+    "id": "e-escaped-note",
+    "checkpoint": "{\"totalCostUsd\":29,\"durationApiMs\":29000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":29}}}"
+   },
+   {
+    "id": "e-dup",
+    "checkpoint": "{\"totalCostUsd\":24,\"durationApiMs\":24000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":24}}}"
+   },
+   {
+    "id": "e-empty",
+    "checkpoint": "null"
+   },
+   {
+    "id": "e-blank",
+    "checkpoint": "null"
+   },
+   {
+    "id": "e-dir",
+    "checkpoint": "null"
+   },
+   {
+    "id": "e-link",
+    "checkpoint": "{\"totalCostUsd\":26,\"durationApiMs\":26000,\"modelUsage\":{\"claude-opus-5-5\":{\"inputTokens\":1,\"outputTokens\":2,\"thinkingTokens\":1,\"cacheReadInputTokens\":3,\"cacheCreationInputTokens\":4,\"webSearchRequests\":0,\"costUSD\":26}}}"
+   },
+   {
+    "id": "e-dangling",
+    "checkpoint": "null"
+   },
+   {
+    "id": "e-noperm",
+    "checkpoint": "null"
+   },
+   {
+    "id": "e-missing",
+    "checkpoint": "null"
+   }
+  ]
  }
 }

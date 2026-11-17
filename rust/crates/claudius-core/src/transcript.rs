@@ -52,13 +52,7 @@ fn is_true(o: &Obj, k: &str) -> bool {
 }
 /// JS truthiness for a field.
 fn truthy(o: &Obj, k: &str) -> bool {
-    match o.get(k) {
-        None | Some(Value::Null) => false,
-        Some(Value::Bool(b)) => *b,
-        Some(Value::Number(n)) => n.as_f64().is_some_and(|f| f != 0.0),
-        Some(Value::String(s)) => !s.is_empty(),
-        Some(_) => true,
-    }
+    o.get(k).is_some_and(claudius_agent::js::truthy)
 }
 fn parent(o: &Obj) -> Option<&str> {
     s(o, "parentUuid").filter(|p| !p.is_empty())
@@ -927,6 +921,17 @@ fn synthesize_queued(
 }
 
 // ---------- public pipeline ----------
+
+/// The text [`session_messages`] reads, as the SDK reads it: the whole file
+/// at once (`readFile` into a Buffer, not a line stream; [`parse`] then
+/// splits it at `\n` like `parseTranscriptEntries`), each line decoded with
+/// `toString("utf-8")`. Invalid UTF-8 is U+FFFD, never a failed read; a
+/// line break is ASCII, so decoding the whole file first changes nothing.
+/// A read that fails (a directory, an unreadable file) is `[]` to the SDK,
+/// whose read catches: callers take an `Err` as no messages.
+pub fn read_file(path: &std::path::Path) -> std::io::Result<String> {
+    Ok(String::from_utf8_lossy(&std::fs::read(path)?).into_owned())
+}
 
 /// Full `getSessionMessages` pipeline over raw JSONL text.
 pub fn session_messages(text: &str, include_system: bool) -> Vec<Value> {

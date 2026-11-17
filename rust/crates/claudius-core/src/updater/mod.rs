@@ -1,7 +1,7 @@
-//! The updater (`lib/server/updater/*`), first half (D27a): the settings
-//! file, the install root, the `git` wrapper these need, the background
-//! check and the release changelog. `apply`, `restart` and the scheduler
-//! stay on Next until D27b.
+//! The updater (`lib/server/updater/*`): the settings file, the install
+//! root, the `git` wrapper, the background check and the release changelog
+//! (D27a); the apply pipeline, the restart and the background scheduler
+//! (D27b).
 //!
 //! The settings file is read and written as `JSON.parse` / `JSON.stringify`
 //! see it, so a hand-written `~/.claude/.claudius/updater.json` round trips:
@@ -11,10 +11,13 @@
 //! (`pending`, `conflicts`, `recovery`, `status`) are carried through
 //! whatever shape they have.
 
+pub mod apply;
 pub mod detect;
 pub mod git;
 pub mod release_changelog;
+pub mod restart;
 pub mod root;
+pub mod scheduler;
 pub mod settings;
 pub mod spawn_env;
 

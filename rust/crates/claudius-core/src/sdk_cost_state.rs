@@ -12,6 +12,7 @@
 use claudius_agent::js;
 use serde_json::{Map, Value};
 
+use crate::jsonl_lines::JsonlLines;
 use crate::paths;
 use crate::sessions_db::SdkCumulative;
 
@@ -69,17 +70,25 @@ pub fn last_recorded_cost_state(id: &str, cwd: &str) -> Option<SdkCumulative> {
     }
     let dir = paths::project_root(cwd);
     let file = paths::within(&dir, &format!("{id}.jsonl"))?;
-    let bytes = std::fs::read(&file).ok()?;
-    // `jsonlLines` over a utf8 stream: split on `\n` only, one trailing `\r`
-    // stripped, invalid UTF-8 as U+FFFD.
-    let text = String::from_utf8_lossy(&bytes);
+    let f = std::fs::File::open(&file).ok()?;
+    last_in(JsonlLines::new(f), id)
+}
+
+/// The loop over `jsonlLines(createReadStream(file, "utf8"))` (see
+/// [`crate::jsonl_lines`]). It sits in one `try`, so a read that fails
+/// part-way (a directory's `EISDIR`, V8's string limit on one line) is
+/// `null`, even after a valid checkpoint.
+fn last_in(
+    lines: impl Iterator<Item = std::io::Result<String>>,
+    id: &str,
+) -> Option<SdkCumulative> {
     let mut last = None;
-    for line in text.split('\n') {
-        let line = line.strip_suffix('\r').unwrap_or(line);
+    for line in lines {
+        let line = line.ok()?;
         if !line.contains("\"cost-state\"") {
             continue;
         }
-        let Ok(Value::Object(entry)) = js::json_parse(line) else {
+        let Ok(Value::Object(entry)) = js::json_parse(&line) else {
             continue; // torn trailing line mid-write, or not a record
         };
         if entry.get("type").and_then(Value::as_str) != Some("cost-state")
@@ -92,4 +101,46 @@ pub fn last_recorded_cost_state(id: &str, cwd: &str) -> Option<SdkCumulative> {
         }
     }
     last
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn checkpoint(id: &str, cost: u32) -> String {
+        format!(
+            r#"{{"type":"cost-state","sessionId":"{id}","totalCostUSD":{cost},"totalAPIDuration":1,"modelUsage":{{}}}}"#
+        )
+    }
+
+    fn cost(lines: impl Iterator<Item = std::io::Result<String>>) -> Option<f64> {
+        last_in(lines, "s-1").map(|c| c.total_cost_usd)
+    }
+
+    #[test]
+    fn a_line_past_the_string_limit_reads_as_no_checkpoint() {
+        let (one, two) = (checkpoint("s-1", 1), checkpoint("s-1", 2));
+        let limit = one.len().max(two.len());
+        // Every line fits: the last checkpoint wins.
+        let fits = format!("{one}\n{two}\n");
+        assert_eq!(
+            cost(JsonlLines::with_limit(fits.as_bytes(), limit)),
+            Some(2.0)
+        );
+        // A later line past the limit throws out of the loop (`RangeError`)
+        // into the `catch`: `null`, not the checkpoint read before it.
+        let long = format!("{one}\n{}\n{two}\n", "x".repeat(limit + 1));
+        assert_eq!(cost(JsonlLines::with_limit(long.as_bytes(), limit)), None);
+    }
+
+    #[test]
+    fn a_read_error_part_way_reads_as_no_checkpoint() {
+        let failing = [
+            Ok(checkpoint("s-1", 3)),
+            Err(std::io::Error::other("EIO")),
+            Ok(checkpoint("s-1", 4)),
+        ];
+        assert_eq!(cost(failing.into_iter()), None);
+        assert_eq!(cost([Ok(checkpoint("s-1", 3))].into_iter()), Some(3.0));
+    }
 }

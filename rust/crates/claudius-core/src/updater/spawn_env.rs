@@ -59,3 +59,10 @@ pub fn extended_path(current_path: Option<&str>, home: &str) -> String {
         .collect::<Vec<_>>()
         .join(":")
 }
+
+/// `extendedPath(process.env.PATH)` for this process's `PATH` and home
+/// (`withExtendedPath(process.env).PATH`).
+pub fn process_extended_path() -> String {
+    let path = std::env::var_os("PATH").map(|p| p.to_string_lossy().into_owned());
+    extended_path(path.as_deref(), &crate::paths::home_dir().to_string_lossy())
+}

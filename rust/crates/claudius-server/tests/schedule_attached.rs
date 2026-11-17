@@ -8,8 +8,6 @@
 mod common;
 
 use std::collections::HashMap;
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -19,21 +17,14 @@ use claudius_core::paths;
 use claudius_core::scheduler::{self, RunnerOptions};
 use claudius_core::session_manager::SessionManager;
 use claudius_server::{AppState, app};
+use common::Payload;
 use serde_json::{Value, json};
 
 /// One blocking HTTP/1.1 request → (status, body).
 fn request(port: u16, method: &str, url: &str) -> (u16, String) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    write!(
-        s,
-        "{method} {url} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-    )
-    .unwrap();
-    let mut out = String::new();
-    s.read_to_string(&mut out).unwrap();
-    let (head, body) = out.split_once("\r\n\r\n").unwrap();
-    let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    (status, body.to_owned())
+    let r = common::send(port, method, url, Payload::Bytes(b""));
+    assert!(r.status != 0, "{}", r.head);
+    (r.status, r.text())
 }
 
 async fn get(port: u16, url: &'static str) -> (u16, String) {

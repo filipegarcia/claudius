@@ -114,33 +114,31 @@ pub fn number_json(v: &Value) -> Value {
     }
 }
 
-/// `String(v)`.
-pub fn js_string(v: &Value) -> String {
+/// `String(v)`: [`js_string::to_js_string`], with the sentinels (also as
+/// array items) as the infinities they stand for. An object with an own
+/// `toString` key throws (`NoPrimitive`), also as an array item.
+pub fn js_string(v: &Value) -> Result<String, js_string::NoPrimitive> {
     if let Some(f) = infinity(v) {
-        return if f > 0.0 {
+        return Ok(if f > 0.0 {
             "Infinity".into()
         } else {
             "-Infinity".into()
-        };
+        });
     }
     match v {
-        Value::Null => "null".into(),
-        Value::Bool(b) => b.to_string(),
-        Value::Number(n) => js::number_to_string(n.as_f64().unwrap_or(f64::NAN)),
-        Value::String(s) => s.clone(),
         // `Array.prototype.join`: `null` items are empty.
-        Value::Array(items) => items
+        Value::Array(items) => Ok(items
             .iter()
             .map(|i| {
                 if i.is_null() {
-                    String::new()
+                    Ok(String::new())
                 } else {
                     js_string(i)
                 }
             })
-            .collect::<Vec<_>>()
-            .join(","),
-        Value::Object(_) => "[object Object]".into(),
+            .collect::<Result<Vec<_>, _>>()?
+            .join(",")),
+        v => js_string::to_js_string(v),
     }
 }
 
@@ -156,18 +154,16 @@ static SKILL_NAME_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("skill regex")
 });
 
-fn utf16_len(s: &str) -> usize {
-    s.encode_utf16().count()
-}
-
-/// `isValidAgentName(name)`: a string of `[\w.-]`, at most 256 long.
+/// `isValidAgentName(name)`: a string of `[\w.-]`, at most 256 long
+/// (`.length`: the names are plain strings, so not `js_string::len16`).
 pub fn is_valid_agent_name(name: &Value) -> bool {
-    as_str(name).is_some_and(|s| utf16_len(s) <= MAX_AGENT_NAME_LENGTH && NAME_RE.is_match(s))
+    as_str(name)
+        .is_some_and(|s| s.encode_utf16().count() <= MAX_AGENT_NAME_LENGTH && NAME_RE.is_match(s))
 }
 
 /// `assertValidAgentName(name)`: the thrown message.
 pub fn assert_valid_agent_name(name: &Value) -> Result<(), String> {
-    if as_str(name).is_some_and(|s| utf16_len(s) > MAX_AGENT_NAME_LENGTH) {
+    if as_str(name).is_some_and(|s| s.encode_utf16().count() > MAX_AGENT_NAME_LENGTH) {
         return Err(format!(
             "agent name too long (max {MAX_AGENT_NAME_LENGTH} characters)"
         ));
@@ -393,7 +389,7 @@ mod tests {
         assert_eq!(number(&v["a"]), Some(f64::INFINITY));
         assert_eq!(number(&v["b"][0]), Some(f64::NEG_INFINITY));
         assert!(is_string(&v["b"][1]));
-        assert_eq!(js_string(&v["b"]), "-Infinity,1e400");
+        assert_eq!(js_string(&v["b"]).unwrap(), "-Infinity,1e400");
         let v = json_parse(r#"{"a":1e400,"b":"\u0000Infinity","c":"\u0000js:Infinity"}"#).unwrap();
         assert_eq!(number(&v["a"]), Some(f64::INFINITY));
         assert!(is_string(&v["b"]));
@@ -418,7 +414,11 @@ mod tests {
             (json!([null, [1, [2]], "x"]), ",1,2,x"),
             (json!({}), "[object Object]"),
         ] {
-            assert_eq!(js_string(&v), s);
+            assert_eq!(js_string(&v).as_deref(), Ok(s));
+        }
+        // `String({toString: 1})` throws, also inside `Array.prototype.join`.
+        for v in [json!({"toString": 1}), json!([1, [{"toString": null}]])] {
+            assert_eq!(js_string(&v), Err(js_string::NoPrimitive));
         }
     }
 }

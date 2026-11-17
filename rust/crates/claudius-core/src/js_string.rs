@@ -25,6 +25,10 @@ use serde_json::{Map, Value};
 
 const LONE_BASE: u32 = 0x10_F800;
 
+/// V8's `String::kMaxLength` on 64-bit hosts (node 22): `(1 << 29) - 24`
+/// UTF-16 units; a longer string throws `RangeError: Invalid string length`.
+pub const MAX_STRING_LENGTH: usize = (1 << 29) - 24;
+
 /// The char standing in for the lone surrogate `unit` (`0xD800..=0xDFFF`).
 pub fn lone(unit: u16) -> char {
     debug_assert!((0xD800..=0xDFFF).contains(&unit));
@@ -60,7 +64,10 @@ pub fn from_units(units: &[u16]) -> String {
         .collect()
 }
 
-/// `s.length`: UTF-16 code units.
+/// `s.length`: UTF-16 code units, a stand-in counting as its one unit. A
+/// plain string (from `js::json_parse`, a file, a URL) has no stand-ins,
+/// and its `.length` is `s.encode_utf16().count()`: there a U+10F800–
+/// U+10FFFF character is the two units it is in JS.
 pub fn len16(s: &str) -> usize {
     s.chars()
         .map(|c| {
@@ -243,65 +250,13 @@ pub fn to_js_number(v: Option<&Value>) -> Result<f64, NoPrimitive> {
 // ---- JSON --------------------------------------------------------------------
 
 /// `JSON.parse(text)`, lone-surrogate escapes kept as their stand-ins, or
-/// the message of V8's `SyntaxError`. As with
-/// [`claudius_agent::js::json_parse`], a number past the `f64` range is
-/// `null` (JS `Infinity`, which `JSON.stringify` writes as `null`), and
-/// nesting past serde_json's 128 levels is an `Err` where V8 parses it.
+/// the message of V8's `SyntaxError` ([`claudius_agent::js::json_parse_lone`]
+/// with the stand-in). As with [`claudius_agent::js::json_parse`], a number
+/// past the `f64` range is `null` (JS `Infinity`, which `JSON.stringify`
+/// writes as `null`), and nesting past serde_json's 128 levels is an `Err`
+/// where V8 parses it.
 pub fn parse(text: &str) -> Result<Value, String> {
-    if let Some(message) = js::json_parse_error(text) {
-        return Err(message);
-    }
-    match serde_json::from_str(text) {
-        Ok(v) => Ok(v),
-        Err(_) => serde_json::from_str(&representable(text)).map_err(|e| e.to_string()),
-    }
-}
-
-/// Rewrites text V8 accepts so serde_json reads it as JS does: a `\u`
-/// escape of a lone surrogate becomes its stand-in character, a number out
-/// of `f64` range `null`.
-fn representable(text: &str) -> String {
-    let b = text.as_bytes();
-    // The code unit of the `\uXXXX` escape at `i` (V8 checked its digits).
-    let unit = |i: usize| u16::from_str_radix(&text[i + 2..i + 6], 16).ok();
-    let is_low =
-        |i: usize| text[i..].starts_with("\\u") && matches!(unit(i), Some(0xDC00..=0xDFFF));
-    let mut out = String::with_capacity(text.len());
-    let (mut copied, mut i, mut in_string) = (0, 0, false);
-    while i < b.len() {
-        match (in_string, b[i]) {
-            (true, b'"') => in_string = false,
-            (true, b'\\') if b[i + 1] == b'u' => {
-                let u = unit(i);
-                if matches!(u, Some(0xD800..=0xDBFF)) && is_low(i + 6) {
-                    i += 6; // a pair: keep both escapes
-                } else if let Some(u @ 0xD800..=0xDFFF) = u {
-                    out.push_str(&text[copied..i]);
-                    out.push(lone(u));
-                    copied = i + 6;
-                }
-                i += 5;
-            }
-            (true, b'\\') => i += 1,
-            (false, b'"') => in_string = true,
-            (false, b'-' | b'0'..=b'9') => {
-                let len = b[i..]
-                    .iter()
-                    .take_while(|c| matches!(c, b'0'..=b'9' | b'-' | b'+' | b'.' | b'e' | b'E'))
-                    .count();
-                if text[i..i + len].parse::<f64>().is_ok_and(f64::is_infinite) {
-                    out.push_str(&text[copied..i]);
-                    out.push_str("null");
-                    copied = i + len;
-                }
-                i += len - 1;
-            }
-            _ => {}
-        }
-        i += 1;
-    }
-    out.push_str(&text[copied..]);
-    out
+    js::json_parse_lone(text, |u, out| out.push(lone(u)))
 }
 
 /// `JSON.stringify(v)`, lone surrogates written as `\udXXX` escapes.

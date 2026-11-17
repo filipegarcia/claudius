@@ -7,6 +7,20 @@
 //! representation instead, so [`stringify`] reproduces `JSON.stringify` byte
 //! for byte. The other way round, [`json_parse`] and [`json_parse_error`]
 //! mirror `JSON.parse`, down to the wording of V8's `SyntaxError`.
+//!
+//! The JS layer has two homes, because the crate graph forces it (I14c):
+//! - here, in the agent crate (which has no `claudius-core` dependency):
+//!   JS values over plain Rust strings, where a lone surrogate can't be
+//!   held, so `JSON.parse` reads a lone-surrogate escape as U+FFFD (as the
+//!   string written out as UTF-8 would); numbers, `String(v)` and
+//!   `Number(s)`, `trim` / `\s`, truthiness, key order, `JSON.stringify`,
+//!   `JSON.parse` and V8's `SyntaxError` text;
+//! - `claudius_core::js_string`, on top of this: JS strings with their
+//!   lone surrogates kept (as stand-in chars), so `JSON.parse` then
+//!   `JSON.stringify` round-trips them, plus the UTF-16 view (lengths,
+//!   spreads, case mapping, URI coding) and `String(v)` / `Number(v)` with
+//!   the `toString` throw. Its `parse` is [`json_parse_lone`] and its
+//!   `stringify` is [`stringify`] with the stand-ins escaped.
 
 use serde_json::Value;
 
@@ -454,11 +468,20 @@ pub fn dedupe(items: Vec<Value>) -> Vec<Value> {
 /// `JSON.stringify` writes for it. Nesting past serde_json's 127 levels is
 /// still an `Err`, with serde_json's message, where V8 parses it.
 pub fn json_parse(text: &str) -> Result<Value, String> {
+    json_parse_lone(text, |_, out| out.push_str("\\ufffd"))
+}
+
+/// [`json_parse`] with each lone-surrogate escape (`\ud800`, a high one not
+/// followed by a low one, or a low one alone) rewritten by `lone`, which
+/// appends JSON string text for the code unit: `\ufffd` here, the
+/// `claudius_core::js_string` stand-in character there. Escaped pairs and
+/// everything else are left as they are.
+pub fn json_parse_lone(text: &str, lone: fn(u16, &mut String)) -> Result<Value, String> {
     if let Some(message) = json_parse_error(text) {
         return Err(message);
     }
     serde_json::from_str(text)
-        .or_else(|_| serde_json::from_str(&representable(text)))
+        .or_else(|_| serde_json::from_str(&representable(text, lone)))
         .map_err(|e| e.to_string())
 }
 
@@ -866,11 +889,12 @@ fn line_column(s: &[u16], pos: usize) -> (usize, usize) {
 }
 
 /// Rewrites text V8 accepts so serde_json can hold it: a `\u` escape of a
-/// lone surrogate becomes `\ufffd`, a number out of `f64` range `null`.
-fn representable(text: &str) -> String {
+/// lone surrogate becomes what `lone` writes for it, a number out of `f64`
+/// range `null`.
+fn representable(text: &str, lone: fn(u16, &mut String)) -> String {
     let b = text.as_bytes();
     // The code unit of the `\uXXXX` escape at `i` (V8 checked its digits).
-    let unit = |i: usize| u32::from_str_radix(&text[i + 2..i + 6], 16).ok();
+    let unit = |i: usize| u16::from_str_radix(&text[i + 2..i + 6], 16).ok();
     let is_low =
         |i: usize| text[i..].starts_with("\\u") && matches!(unit(i), Some(0xdc00..=0xdfff));
     let mut out = String::with_capacity(text.len());
@@ -882,9 +906,9 @@ fn representable(text: &str) -> String {
                 let u = unit(i);
                 if matches!(u, Some(0xd800..=0xdbff)) && is_low(i + 6) {
                     i += 6; // a pair: keep both escapes
-                } else if matches!(u, Some(0xd800..=0xdfff)) {
+                } else if let Some(u @ 0xd800..=0xdfff) = u {
                     out.push_str(&text[copied..i]);
-                    out.push_str("\\ufffd");
+                    lone(u, &mut out);
                     copied = i + 6;
                 }
                 i += 5;

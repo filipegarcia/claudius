@@ -20,6 +20,7 @@ use claudius_agent::js;
 use serde_json::{Map, Value};
 
 use crate::cost_pricing::{TokenBreakdown, cost_from_tokens, inference_geo_multiplier};
+use crate::session_search::Limits;
 use crate::sessions_db::{self, UsageTotals};
 use crate::{js_num, paths};
 
@@ -166,17 +167,28 @@ pub fn estimate_usage_from_transcripts(cwd: &str, session_id: &str) -> Option<Us
     let main = main.to_string_lossy().into_owned();
     let mut files = vec![main.clone()];
     files.extend(subagent_transcripts(&dir, session_id));
+    estimate_in(&main, &files, Limits::NODE)
+}
 
+/// The estimate over `files` (`main`'s calls count the turns), each read as
+/// node's `readFile(path, "utf8")` reads it under `limits`.
+fn estimate_in(main: &str, files: &[String], limits: Limits) -> Option<UsageTotals> {
     let mut est = UsageTotals::default();
     // Insertion-ordered per-model rows (`Object.fromEntries(map)`).
     let mut models: Vec<(String, [f64; 5])> = Vec::new();
     let mut seen = std::collections::HashSet::new();
     let mut calls = 0usize;
-    for path in &files {
-        let Ok(bytes) = std::fs::read(path) else {
+    for path in files {
+        // `fs.readFile(path, "utf8")` then `text.split("\n")`: the whole
+        // file, not `jsonlLines` (no `\r` stripped; `JSON.parse` skips it).
+        // Any rejection skips the file (`catch { continue }`), node's size
+        // and string-length limits too (I27).
+        let Ok(file) = std::fs::File::open(path) else {
             continue;
         };
-        let text = String::from_utf8_lossy(&bytes);
+        let Ok(text) = limits.read_utf8(file) else {
+            continue;
+        };
         for line in text.split('\n') {
             let Some(call) = transcript_api_call(line) else {
                 continue;
@@ -187,7 +199,7 @@ pub fn estimate_usage_from_transcripts(cwd: &str, session_id: &str) -> Option<Us
                 continue;
             }
             calls += 1;
-            if *path == main {
+            if path == main {
                 est.num_turns += 1.0;
             }
             est.total_cost_usd += call.usd;
@@ -241,4 +253,79 @@ pub fn seed_usage_totals(cwd: &str, session_id: &str, resume: Option<&str>) -> O
         tracing::debug!(target: crate::log::SESSION, "[session] {session_id}: usage estimate not saved: {e}");
     }
     Some(est)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// node's `readFile` limits skip a file, as a missing one is: the
+    /// estimate counts only the calls of the files it could read. Each file
+    /// holds one call whose `input_tokens` is its own bit.
+    #[test]
+    fn a_file_node_cannot_read_is_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        let call = |id: &str, tokens: u32| {
+            format!(
+                r#"{{"type":"assistant","requestId":"r","message":{{"id":"{id}","model":"m","usage":{{"input_tokens":{tokens}}}}}}}"#
+            )
+        };
+        // The call's line, then a filler line of `fill` up to `units` UTF-16
+        // units.
+        let put = |name: &str, id: &str, tokens: u32, fill: &[u8], units: usize| {
+            let mut bytes = format!("{}\n", call(id, tokens)).into_bytes();
+            let per = String::from_utf8_lossy(fill).encode_utf16().count();
+            while String::from_utf8_lossy(&bytes).encode_utf16().count() + per <= units {
+                bytes.extend_from_slice(fill);
+            }
+            while String::from_utf8_lossy(&bytes).encode_utf16().count() < units {
+                bytes.push(b' ');
+            }
+            assert_eq!(
+                String::from_utf8_lossy(&bytes).encode_utf16().count(),
+                units
+            );
+            let p = dir.path().join(name).to_string_lossy().into_owned();
+            std::fs::write(&p, &bytes).unwrap();
+            (p, bytes.len() as u64)
+        };
+        let (main, main_bytes) = put("main.jsonl", "a", 1, b" ", 128);
+        let files = [
+            main.clone(),
+            put("ascii-over.jsonl", "b", 2, b" ", 129).0,
+            put("wide-at.jsonl", "c", 4, "😀".as_bytes(), 128).0,
+            put("wide-over.jsonl", "d", 8, "€".as_bytes(), 129).0,
+            put("bad-at.jsonl", "e", 16, b"\xed\xa0\x80", 128).0,
+            put("bad-over.jsonl", "f", 32, b"\xff", 129).0,
+            dir.path()
+                .join("missing.jsonl")
+                .to_string_lossy()
+                .into_owned(),
+        ];
+        let inputs =
+            |limits| estimate_in(&main, &files, limits).map(|e| (e.input_tokens, e.num_turns));
+        let units = |max_units| Limits {
+            io_max: 1 << 20,
+            max_units,
+        };
+        assert_eq!(inputs(Limits::NODE), Some((63.0, 1.0)));
+        assert_eq!(inputs(units(128)), Some((21.0, 1.0)));
+        assert_eq!(inputs(units(127)), None);
+        // By bytes: `main` and `bad-at` are 128 bytes (each invalid byte
+        // is a unit), the others longer.
+        let bytes = |io_max| Limits {
+            io_max,
+            max_units: 1 << 20,
+        };
+        assert_eq!(main_bytes, 128);
+        assert_eq!(inputs(bytes(128)), Some((17.0, 1.0)));
+        assert_eq!(inputs(bytes(127)), None);
+        // The main file skipped: no turns, the subagents still count.
+        let (ok, _) = put("ok.jsonl", "g", 64, b" ", 128);
+        let without_main = [files[1].clone(), ok];
+        assert_eq!(
+            estimate_in(&main, &without_main, units(128)).map(|e| (e.input_tokens, e.num_turns)),
+            Some((64.0, 0.0))
+        );
+    }
 }

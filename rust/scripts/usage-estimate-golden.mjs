@@ -27,6 +27,11 @@
 //   `JSON.stringify` text, or null when the frame carries no usage.
 // - `costStates`: `lastRecordedCostState(id, cwd)` for odd ids over one
 //   project's `files`.
+// - `costStateEdges`: `lastRecordedCostState` over its stream's edges (I14b):
+//   CRLF, `\r`, U+2028, invalid UTF-8, a character across a 64 KiB chunk
+//   boundary, multi-chunk and torn lines, a BOM, a lone-surrogate escape,
+//   an escaped `type` (the raw-text prefilter), duplicate keys, empty files,
+//   a directory, links, an unreadable file.
 //
 // Written to rust/crates/claudius-core/tests/fixtures/usage_estimate_golden.json
 // and replayed by crates/claudius-core/tests/usage_estimate_golden.rs.
@@ -78,7 +83,7 @@ if (!process.env.USAGE_ESTIMATE_GOLDEN_CHILD) {
   const fixture = JSON.parse(runs[0]);
   writeFileSync(out, `${JSON.stringify(fixture, null, 1)}\n`);
   console.log(
-    `wrote ${out.slice(repo.length + 1)}: ${fixture.prices.length} prices, ${fixture.costs.length} costs, ${fixture.seeds.length} seeds, ${fixture.folds.length} folds (stable)`,
+    `wrote ${out.slice(repo.length + 1)}: ${fixture.prices.length} prices, ${fixture.costs.length} costs, ${fixture.seeds.length} seeds, ${fixture.folds.length} folds, ${fixture.costStateEdges.cases.length} cost-state edges (stable)`,
   );
   process.exit(0);
 }
@@ -174,7 +179,7 @@ const geo = [undefined, null, "", "us", "US", "Us", " us", "us ", "eu", "not_ava
 const { projectRoot } = await import(join(repo, "lib/server/db.ts"));
 const { zeroSdkCumulativeUsage, foldResultIntoSessionUsage } = await import(join(repo, "lib/server/session.ts"));
 const { lastRecordedCostState } = await import(join(repo, "lib/server/sdk-cost-state.ts"));
-const { mkdirSync: mkdirp, symlinkSync } = await import("node:fs");
+const { chmodSync, mkdirSync: mkdirp, symlinkSync } = await import("node:fs");
 
 const usage = (input, output, cacheRead, cacheWrite) => ({
   input_tokens: input,
@@ -289,7 +294,7 @@ const SEEDS = [
   ["subagents only (no main transcript): no turns, still priced", { [`${R}/subagents/agent-a.jsonl`]: [asst({ message: { id: "s" } })] }],
   ["CRLF lines, a BOM, invalid UTF-8", {
     [`${R}.jsonl`]: { hex: Buffer.concat([
-      Buffer.from("﻿" + J(asst({ message: { id: "bom" } })) + "\r\n" + J(asst({ message: { id: "crlf" } })) + "\r\n"),
+      Buffer.from("\ufeff" + J(asst({ message: { id: "bom" } })) + "\r\n" + J(asst({ message: { id: "crlf" } })) + "\r\n"),
       Buffer.from('{"type":"assistant","requestId":"r","message":{"id":"bad-'), Buffer.from([0xff, 0xfe, 0xc3]),
       Buffer.from('","model":"claude-opus-5-5","usage":{"input_tokens":3}}}\n'),
     ]).toString("hex") },
@@ -323,9 +328,18 @@ function writeFiles(root, files) {
     else if (typeof body === "string") writeFileSync(path, body);
     else if (body.hex !== undefined) writeFileSync(path, Buffer.from(body.hex, "hex"));
     else if (body.symlink !== undefined) symlinkSync(body.symlink, path);
+    else if (body.text !== undefined) writeFileSync(path, body.text);
+    else if (body.parts !== undefined) writeFileSync(path, partsBuffer(body.parts));
+    else if (body.dir) mkdirp(path);
+    if (body.mode !== undefined) chmodSync(path, body.mode);
   }
 }
-/** The files as the fixture keeps them: JSONL text, raw bytes, or a link. */
+/** `parts` bodies: `{text}`, `{hex}` or `{repeat, count}` pieces, concatenated. */
+function partsBuffer(parts) {
+  return Buffer.concat(parts.map((p) =>
+    p.hex !== undefined ? Buffer.from(p.hex, "hex") : Buffer.from(p.repeat !== undefined ? p.repeat.repeat(p.count) : p.text)));
+}
+/** The files as the fixture keeps them: JSONL text, raw bytes, parts, a link or a directory. */
 function fixtureFiles(files) {
   return Object.entries(files).map(([rel, body]) =>
     Array.isArray(body) ? { rel, text: lines(body) } : typeof body === "string" ? { rel, text: body } : { rel, ...body });
@@ -485,8 +499,85 @@ for (const id of [CS_ID, "cs-0002", "x", "a b", "../escape", "", "cs-0003", "cs-
 }
 const costStates = { files: fixtureFiles(CS_FILES), cases: costStateCases };
 
+// --------------------------- costStateEdges ---------------------------
+//
+// `lastRecordedCostState` reads `jsonlLines(createReadStream(file, "utf8"))`
+// (64 KiB chunks), all in one `try`: the stream's edges, one id per file.
+// `parts` place a character across a chunk boundary (or a line across
+// several chunks) without storing the filler.
+
+const CE_CWD = join(ROOT_DIR, "project-cost-state-edges");
+mkdirp(CE_CWD, { recursive: true });
+const CHUNK = 65536;
+const cs = (id, cost, extra) => J(costState(id, cost, extra));
+const MODEL = (key) => ({
+  modelUsage: { [key]: { inputTokens: 1, outputTokens: 2, cacheReadInputTokens: 3, cacheCreationInputTokens: 4, webSearchRequests: 0, costUSD: 1 } },
+});
+/** `line` (ASCII) with its `@` replaced by `hex`, after a filler line sized so the bytes start at `at`. */
+function straddle(line, hex, at) {
+  const i = line.indexOf("@");
+  // The filler line `{"pad":"aa...a"}\n` is 11 bytes plus its padding.
+  const pad = at - i - 11;
+  const parts = [
+    { text: '{"pad":"' }, { repeat: "a", count: pad }, { text: `"}\n${line.slice(0, i)}` },
+    { hex }, { text: `${line.slice(i + 1)}\n` },
+  ];
+  if (partsBuffer(parts).subarray(at, at + hex.length / 2).toString("hex") !== hex) throw new Error("straddle offset");
+  return { parts };
+}
+/** `line` (ASCII) with its `@` replaced by `pieces`. */
+const around = (line, pieces, end = "\n") => {
+  const i = line.indexOf("@");
+  return { parts: [{ text: line.slice(0, i) }, ...pieces, { text: line.slice(i + 1) + end }] };
+};
+const CE_FILES = {
+  "e-crlf.jsonl": `${cs("e-crlf", 1)}\r\n${cs("e-crlf", 2)}\r\n`,
+  // `\r` doesn't end a line: the second line is two records, so it fails.
+  "e-cr.jsonl": `${cs("e-cr", 3)}\r\r\n${cs("e-cr", 4)}\r${cs("e-cr", 5)}\n`,
+  "e-cr-tail.jsonl": `${cs("e-cr-tail", 6)}\r`,
+  // U+2028 / U+2029 don't end a line (readline would split the record), and
+  // aren't JSON whitespace.
+  "e-sep.jsonl": `${cs("e-sep", 7)}\n${cs("e-sep", 8, { note: "a\u2028b\u2029c" })}\n${cs("e-sep", 9)}\u2028\n`,
+  "e-utf8.jsonl": { hex: Buffer.concat([Buffer.from(cs("e-utf8", 10, MODEL("bad-@")).split("@")[0]), Buffer.from([0xff, 0xfe, 0xc3]),
+    Buffer.from(`${cs("e-utf8", 10, MODEL("bad-@")).split("@")[1]}\n`)]).toString("hex") },
+  "e-chunk-4.jsonl": straddle(cs("e-chunk-4", 11, MODEL("m-@")), "f09f9880", CHUNK - 2),
+  "e-chunk-3.jsonl": straddle(cs("e-chunk-3", 12, MODEL("m-@")), "e282ac", CHUNK - 1),
+  "e-chunk-bad.jsonl": straddle(cs("e-chunk-bad", 13, MODEL("m-@")), "e28278", CHUNK - 2),
+  // `line.includes('"cost-state"')` on a line joined from two chunks.
+  "e-chunk-mark.jsonl": straddle(cs("e-chunk-mark", 14).replace("cost-state", "@"), Buffer.from("cost-state").toString("hex"), CHUNK - 5),
+  // A line over several chunks, then a tail line with no `\n`.
+  "e-long.jsonl": { parts: [
+    ...around(cs("e-long", 15, { pad: "@" }), [{ repeat: "a", count: 150000 }, { repeat: "\u20ac", count: 30000 }]).parts,
+    ...around(cs("e-long", 16, { pad: "@" }), [{ repeat: "b", count: 70000 }], "").parts,
+  ] },
+  "e-many.jsonl": { parts: [{ repeat: `${cs("e-many", 17)}\n`, count: 600 }, { text: `${cs("e-many", 18)}\n` }] },
+  "e-torn.jsonl": `${cs("e-torn", 19)}\n${cs("e-torn", 20).slice(0, 60)}`,
+  "e-bom.jsonl": `\ufeff${cs("e-bom", 21)}\n`,
+  "e-space.jsonl": ` \t${cs("e-space", 22)} \n`,
+  "e-surrogate.jsonl": `${cs("e-surrogate", 23, { note: "\ud800" })}\n`,
+  // The `"cost-state"` prefilter reads the raw line: an escaped type is
+  // skipped, unless the text holds `"cost-state"` elsewhere.
+  "e-escaped.jsonl": `${cs("e-escaped", 28).replace('"type":"cost-state"', '"type":"cost\\u002dstate"')}\n`,
+  "e-escaped-note.jsonl": `${cs("e-escaped-note", 29, { note: "cost-state" }).replace('"type":"cost-state"', '"type":"cost\\u002dstate"')}\n`,
+  "e-dup.jsonl": `${cs("e-dup", 24).replace('"sessionId":"e-dup"', '"sessionId":"other","sessionId":"e-dup"')}\n${
+    cs("e-dup", 25).replace('"sessionId":"e-dup"', '"sessionId":"e-dup","sessionId":"other"')}\n`,
+  "e-empty.jsonl": "",
+  "e-blank.jsonl": "\n\n\r\n \n",
+  "e-dir.jsonl": { dir: true },
+  "e-link.target": `${cs("e-link", 26)}\n`,
+  "e-link.jsonl": { symlink: "e-link.target" },
+  "e-dangling.jsonl": { symlink: "nowhere.jsonl" },
+  "e-noperm.jsonl": { text: `${cs("e-noperm", 27)}\n`, mode: 0 },
+};
+writeFiles(projectRoot(CE_CWD), CE_FILES);
+const costStateEdges = { files: fixtureFiles(CE_FILES), cases: [] };
+for (const rel of [...Object.keys(CE_FILES).filter((r) => r.endsWith(".jsonl")), "e-missing.jsonl"]) {
+  const id = rel.slice(0, -".jsonl".length);
+  costStateEdges.cases.push({ id, checkpoint: J(await lastRecordedCostState(id, CE_CWD)) });
+}
+
 writeFileSync(
   join(ROOT_DIR, "out.json"),
-  J({ multiplierMax: MODEL_PRICING_MULTIPLIER_MAX, prices, costs, geo, seeds, folds, costStates }),
+  J({ multiplierMax: MODEL_PRICING_MULTIPLIER_MAX, prices, costs, geo, seeds, folds, costStates, costStateEdges }),
 );
 process.exit(0);

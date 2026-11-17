@@ -14,7 +14,7 @@
 
 use crate::auto_memory::{self, MemoryFile, Outcome, Refusal, Thrown, Written};
 use crate::node_fs::{self, FsError};
-use crate::node_path;
+use crate::{node_path, safe_path};
 
 /// `RuleScope`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -39,19 +39,6 @@ pub fn is_valid_rule_filename(name: &str) -> bool {
     auto_memory::is_valid_memory_filename(name)
 }
 
-/// safe-path.ts `assertAbsoluteUserPath(input)`: the normalized absolute
-/// path, or a `PathInjectionError`. (Its "invalid path" for an empty input
-/// is unreachable: `rulesDir` refuses that first.)
-fn assert_absolute_user_path(input: &str) -> Result<String, Thrown> {
-    if input.contains('\0') {
-        return Err(Thrown::PathInjection("null byte in path".into()));
-    }
-    if !node_path::is_absolute(input) {
-        return Err(Thrown::PathInjection("path must be absolute".into()));
-    }
-    Ok(node_path::resolve(&[input]))
-}
-
 /// `rulesDir(scope, projectCwd)` under `home` (`homedir()`).
 pub fn rules_dir(home: &str, scope: RuleScope, cwd: Option<&str>) -> Result<String, Thrown> {
     match scope {
@@ -61,7 +48,8 @@ pub fn rules_dir(home: &str, scope: RuleScope, cwd: Option<&str>) -> Result<Stri
                 "project scope requires an absolute cwd".into(),
             )),
             Some(cwd) => Ok(node_path::join(&[
-                &assert_absolute_user_path(cwd)?,
+                &safe_path::assert_absolute_user_path(cwd)
+                    .map_err(|m| Thrown::PathInjection(m.into()))?,
                 ".claude",
                 "rules",
             ])),

@@ -111,6 +111,71 @@ macro_rules! js_params {
     };
 }
 
+/// better-sqlite3's binding of `stmt.run(...args)` (or `.get`) to a
+/// statement with `placeholders` anonymous parameters, for JS values that
+/// arrive as JSON (S29a): an array argument spreads its items, a plain
+/// object binds named parameters (there are none, so it binds nothing), a
+/// number is a REAL (so `7` stored in a TEXT column reads `"7.0"`), a
+/// string TEXT, `null` NULL, and anything else is a `TypeError`. The type
+/// is checked before the count, then the count must match. `Err` is
+/// better-sqlite3's message.
+pub fn bind_js_args(args: &[serde_json::Value], placeholders: usize) -> Result<Vec<Value>, String> {
+    use serde_json::Value as Json;
+    const TYPE: &str = "SQLite3 can only bind numbers, strings, bigints, buffers, and null";
+    const TOO_MANY: &str = "Too many parameter values were provided";
+    let mut out = Vec::with_capacity(placeholders);
+    let push = |v: &Json, out: &mut Vec<Value>| {
+        let scalar = match v {
+            Json::Null => Value::Null,
+            Json::Number(n) => Value::Real(n.as_f64().unwrap_or(f64::NAN)),
+            Json::String(s) => Value::Text(s.clone()),
+            _ => return Err(TYPE),
+        };
+        if out.len() == placeholders {
+            return Err(TOO_MANY);
+        }
+        out.push(scalar);
+        Ok(())
+    };
+    let mut bound_object = false;
+    for arg in args {
+        match arg {
+            Json::Array(items) => {
+                for item in items {
+                    push(item, &mut out)?;
+                }
+            }
+            Json::Object(_) => {
+                if bound_object {
+                    return Err(
+                        "You cannot specify named parameters in two different objects".into(),
+                    );
+                }
+                bound_object = true;
+            }
+            v => push(v, &mut out)?,
+        }
+    }
+    if out.len() < placeholders {
+        return Err("Too few parameter values were provided".into());
+    }
+    Ok(out)
+}
+
+/// `st`'s parameters bound from the JS values `args` ([`bind_js_args`]),
+/// each text through [`JsText`]. A bind that fails in better-sqlite3 is a
+/// `ToSqlConversionFailure` carrying its message, before anything runs.
+pub fn js_args(
+    st: &rusqlite::Statement<'_>,
+    args: &[serde_json::Value],
+) -> rusqlite::Result<rusqlite::ParamsFromIter<Vec<JsText<Value>>>> {
+    let values = bind_js_args(args, st.parameter_count())
+        .map_err(|e| rusqlite::Error::ToSqlConversionFailure(e.into()))?;
+    Ok(rusqlite::params_from_iter(
+        values.into_iter().map(JsText::new).collect(),
+    ))
+}
+
 /// A column type [`get`] reads TEXT into.
 pub trait FromJsText: FromSql {
     fn from_js_text(text: String) -> Self;

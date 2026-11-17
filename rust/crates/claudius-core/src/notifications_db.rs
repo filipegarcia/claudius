@@ -25,7 +25,7 @@ use rusqlite::{Connection, OptionalExtension, ToSql};
 use serde_json::{Map, Value, json};
 
 use crate::db::{Mode, open_db};
-use crate::sql_text::{self, JsText};
+use crate::sql_text::{self, JsText, bind_js_args};
 use crate::{js_num, js_params, js_string, now_ms};
 
 // ───────────────────────── kinds (lib/shared/notifications.ts) ─────────────────────────
@@ -235,55 +235,6 @@ pub struct NewNotification {
     pub payload: Option<Map<String, Value>>,
     pub request_id: Value,
     pub created_at: Option<f64>,
-}
-
-/// better-sqlite3's `stmt.run(...args)` binding for anonymous parameters: an
-/// array argument spreads its items, a plain object binds named parameters
-/// (none here, so it binds nothing), a number is a REAL, a string TEXT,
-/// `null` NULL, anything else is a `TypeError`; then the count must match.
-fn bind_js_args(args: &[Value], placeholders: usize) -> Result<Vec<Sql>, String> {
-    const TYPE: &str = "SQLite3 can only bind numbers, strings, bigints, buffers, and null";
-    const TOO_MANY: &str = "Too many parameter values were provided";
-    fn scalar(v: &Value) -> Option<Sql> {
-        match v {
-            Value::Null => Some(Sql::Null),
-            Value::Number(n) => Some(Sql::Real(n.as_f64().unwrap_or(f64::NAN))),
-            Value::String(s) => Some(Sql::Text(s.clone())),
-            _ => None,
-        }
-    }
-    let mut out = Vec::with_capacity(placeholders);
-    let mut bound_object = false;
-    for arg in args {
-        match arg {
-            Value::Array(items) => {
-                for item in items {
-                    if out.len() == placeholders {
-                        return Err(TOO_MANY.into());
-                    }
-                    out.push(scalar(item).ok_or(TYPE)?);
-                }
-            }
-            Value::Object(_) => {
-                if bound_object {
-                    return Err(
-                        "You cannot specify named parameters in two different objects".into(),
-                    );
-                }
-                bound_object = true;
-            }
-            v => {
-                if out.len() == placeholders {
-                    return Err(TOO_MANY.into());
-                }
-                out.push(scalar(v).ok_or(TYPE)?);
-            }
-        }
-    }
-    if out.len() < placeholders {
-        return Err("Too few parameter values were provided".into());
-    }
-    Ok(out)
 }
 
 /// `insertNotification`: `INSERT OR IGNORE`, so a `request_id` already in

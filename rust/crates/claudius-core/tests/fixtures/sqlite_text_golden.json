@@ -12965,6 +12965,2448 @@
    ],
    "reads": [],
    "dump": {}
+  },
+  {
+   "name": "odd types",
+   "cwd": "/o/w",
+   "tables": [
+    "queued_messages",
+    "goal_messages",
+    "suggested_messages",
+    "assets",
+    "asset_uses"
+   ],
+   "writes": [
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": 7,
+       "text": "t0"
+      }
+     ],
+     "result": "{\"uuid\":7,\"sessionId\":\"su\",\"position\":0,\"text\":\"t0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t0",
+       "text": 7
+      }
+     ],
+     "result": "{\"uuid\":\"t0\",\"sessionId\":\"st\",\"position\":0,\"text\":7,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": 7,
+       "text": "g0"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s0",
+       "text": 7
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": 7,
+       "occurredMs": 7000,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":true,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": 1.5,
+       "text": "t1"
+      }
+     ],
+     "result": "{\"uuid\":1.5,\"sessionId\":\"su\",\"position\":1,\"text\":\"t1\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t1",
+       "text": 1.5
+      }
+     ],
+     "result": "{\"uuid\":\"t1\",\"sessionId\":\"st\",\"position\":1,\"text\":1.5,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": 1.5,
+       "text": "g1"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s1",
+       "text": 1.5
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": 1.5,
+       "occurredMs": 7001,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": 1e+21,
+       "text": "t2"
+      }
+     ],
+     "result": "{\"uuid\":1e+21,\"sessionId\":\"su\",\"position\":2,\"text\":\"t2\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t2",
+       "text": 1e+21
+      }
+     ],
+     "result": "{\"uuid\":\"t2\",\"sessionId\":\"st\",\"position\":2,\"text\":1e+21,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": 1e+21,
+       "text": "g2"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s2",
+       "text": 1e+21
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": 1e+21,
+       "occurredMs": 7002,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": 0,
+       "text": "t3"
+      }
+     ],
+     "result": "{\"uuid\":0,\"sessionId\":\"su\",\"position\":3,\"text\":\"t3\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t3",
+       "text": 0
+      }
+     ],
+     "result": "{\"uuid\":\"t3\",\"sessionId\":\"st\",\"position\":3,\"text\":0,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": 0,
+       "text": "g3"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s3",
+       "text": 0
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": 0,
+       "occurredMs": 7003,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": "",
+       "text": "t4"
+      }
+     ],
+     "result": "{\"uuid\":\"\",\"sessionId\":\"su\",\"position\":4,\"text\":\"t4\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t4",
+       "text": ""
+      }
+     ],
+     "result": "{\"uuid\":\"t4\",\"sessionId\":\"st\",\"position\":4,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": "",
+       "text": "g4"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s4",
+       "text": ""
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": "",
+       "occurredMs": 7004,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": true,
+       "text": "t5"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t5",
+       "text": true
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": true,
+       "text": "g5"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s5",
+       "text": true
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": true,
+       "occurredMs": 7005,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": false,
+       "text": "t6"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t6",
+       "text": false
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": false,
+       "text": "g6"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s6",
+       "text": false
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": false,
+       "occurredMs": 7006,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": null,
+       "text": "t7"
+      }
+     ],
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t7",
+       "text": null
+      }
+     ],
+     "result": "{\"uuid\":\"t7\",\"sessionId\":\"st\",\"position\":5,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": null,
+       "text": "g7"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s7",
+       "text": null
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": null,
+       "occurredMs": 7007,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": {},
+       "text": "t8"
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t8",
+       "text": {}
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": {},
+       "text": "g8"
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s8",
+       "text": {}
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": {},
+       "occurredMs": 7008,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": {
+        "a": 1
+       },
+       "text": "t9"
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t9",
+       "text": {
+        "a": 1
+       }
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": {
+        "a": 1
+       },
+       "text": "g9"
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s9",
+       "text": {
+        "a": 1
+       }
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": {
+        "a": 1
+       },
+       "occurredMs": 7009,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [],
+       "text": "t10"
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t10",
+       "text": []
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [],
+       "text": "g10"
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s10",
+       "text": []
+      }
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [],
+       "occurredMs": 7010,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [
+        "a"
+       ],
+       "text": "t11"
+      }
+     ],
+     "result": "{\"uuid\":[\"a\"],\"sessionId\":\"su\",\"position\":6,\"text\":\"t11\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t11",
+       "text": [
+        "a"
+       ]
+      }
+     ],
+     "result": "{\"uuid\":\"t11\",\"sessionId\":\"st\",\"position\":6,\"text\":[\"a\"],\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [
+        "a"
+       ],
+       "text": "g11"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s11",
+       "text": [
+        "a"
+       ]
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [
+        "a"
+       ],
+       "occurredMs": 7011,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [
+        "a",
+        "b"
+       ],
+       "text": "t12"
+      }
+     ],
+     "result": "{\"throws\":\"Too many parameter values were provided\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t12",
+       "text": [
+        "a",
+        "b"
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"Too many parameter values were provided\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [
+        "a",
+        "b"
+       ],
+       "text": "g12"
+      }
+     ],
+     "result": "{\"throws\":\"Too many parameter values were provided\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s12",
+       "text": [
+        "a",
+        "b"
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"Too many parameter values were provided\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [
+        "a",
+        "b"
+       ],
+       "occurredMs": 7012,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [
+        [
+         "a"
+        ]
+       ],
+       "text": "t13"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t13",
+       "text": [
+        [
+         "a"
+        ]
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [
+        [
+         "a"
+        ]
+       ],
+       "text": "g13"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s13",
+       "text": [
+        [
+         "a"
+        ]
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [
+        [
+         "a"
+        ]
+       ],
+       "occurredMs": 7013,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [
+        {}
+       ],
+       "text": "t14"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t14",
+       "text": [
+        {}
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [
+        {}
+       ],
+       "text": "g14"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s14",
+       "text": [
+        {}
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [
+        {}
+       ],
+       "occurredMs": 7014,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [
+        1
+       ],
+       "text": "t15"
+      }
+     ],
+     "result": "{\"uuid\":[1],\"sessionId\":\"su\",\"position\":7,\"text\":\"t15\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t15",
+       "text": [
+        1
+       ]
+      }
+     ],
+     "result": "{\"uuid\":\"t15\",\"sessionId\":\"st\",\"position\":7,\"text\":[1],\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [
+        1
+       ],
+       "text": "g15"
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s15",
+       "text": [
+        1
+       ]
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [
+        1
+       ],
+       "occurredMs": 7015,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [
+        null
+       ],
+       "text": "t16"
+      }
+     ],
+     "result": "{\"uuid\":[null],\"sessionId\":\"su\",\"position\":8,\"text\":\"t16\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t16",
+       "text": [
+        null
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"NOT NULL constraint failed: queued_messages.text\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [
+        null
+       ],
+       "text": "g16"
+      }
+     ],
+     "result": "{\"throws\":\"NOT NULL constraint failed: goal_messages.message_uuid\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s16",
+       "text": [
+        null
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"NOT NULL constraint failed: suggested_messages.suggestion_text\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [
+        null
+       ],
+       "occurredMs": 7016,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[{\"hash\":\"ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629\",\"ordinal\":1,\"bytes\":42,\"width\":1,\"height\":1,\"newOnDisk\":false,\"newRow\":true}]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": [
+        true
+       ],
+       "text": "t17"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "st",
+       "uuid": "t17",
+       "text": [
+        true
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordGoalMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sg",
+       "messageUuid": [
+        true
+       ],
+       "text": "g17"
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSuggestedMessage",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "ss",
+       "messageUuid": "s17",
+       "text": [
+        true
+       ]
+      }
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "recordSendUses",
+     "args": [
+      {
+       "cwd": "/o/w",
+       "sessionId": "sa",
+       "messageUuid": [
+        true
+       ],
+       "occurredMs": 7017,
+       "images": [
+        {
+         "data": "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+         "mediaType": "image/gif"
+        }
+       ]
+      }
+     ],
+     "result": "[]"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "su",
+       "uuid": {},
+       "text": {
+        "a": 1
+       }
+      }
+     ],
+     "result": "{\"throws\":\"You cannot specify named parameters in two different objects\"}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      "7"
+     ],
+     "result": "null"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      7
+     ],
+     "result": "{\"uuid\":\"7.0\",\"sessionId\":\"su\",\"position\":0,\"text\":\"t0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      "7.0"
+     ],
+     "result": "null"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      "1.5"
+     ],
+     "result": "{\"uuid\":\"1.5\",\"sessionId\":\"su\",\"position\":1,\"text\":\"t1\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      1e+21
+     ],
+     "result": "{\"uuid\":\"1.0e+21\",\"sessionId\":\"su\",\"position\":2,\"text\":\"t2\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      [
+       "a"
+      ]
+     ],
+     "result": "{\"uuid\":\"a\",\"sessionId\":\"su\",\"position\":6,\"text\":\"t11\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      [
+       1
+      ]
+     ],
+     "result": "{\"uuid\":\"1.0\",\"sessionId\":\"su\",\"position\":7,\"text\":\"t15\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      0
+     ],
+     "result": "{\"uuid\":\"0.0\",\"sessionId\":\"su\",\"position\":3,\"text\":\"t3\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      null
+     ],
+     "result": "null"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      true
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      {}
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      []
+     ],
+     "result": "{\"throws\":\"Too few parameter values were provided\"}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      [
+       "a",
+       "b"
+      ]
+     ],
+     "result": "{\"throws\":\"Too many parameter values were provided\"}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      [
+       "a",
+       true
+      ]
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/o/w",
+      "su",
+      [
+       [
+        "a"
+       ]
+      ]
+     ],
+     "result": "{\"throws\":\"SQLite3 can only bind numbers, strings, bigints, buffers, and null\"}"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/o/w",
+      "su"
+     ],
+     "result": "{\"uuid\":\"\",\"sessionId\":\"su\",\"position\":4,\"text\":\"t4\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/o/w",
+      {
+       "sessionId": "sx",
+       "uuid": "",
+       "text": "kept"
+      }
+     ],
+     "result": "{\"uuid\":\"\",\"sessionId\":\"sx\",\"position\":0,\"text\":\"kept\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/o/w",
+      "su"
+     ],
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/o/w",
+      "su"
+     ],
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/o/w",
+      "su"
+     ],
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+    }
+   ],
+   "reads": [
+    {
+     "op": "listQueue",
+     "args": [
+      "/o/w",
+      "su"
+     ],
+     "result": "[{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":null,\"sessionId\":\"su\",\"position\":8,\"text\":\"t16\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+    },
+    {
+     "op": "listQueue",
+     "args": [
+      "/o/w",
+      "st"
+     ],
+     "result": "[{\"uuid\":\"t0\",\"sessionId\":\"st\",\"position\":0,\"text\":\"7.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t1\",\"sessionId\":\"st\",\"position\":1,\"text\":\"1.5\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t2\",\"sessionId\":\"st\",\"position\":2,\"text\":\"1.0e+21\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t3\",\"sessionId\":\"st\",\"position\":3,\"text\":\"0.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t4\",\"sessionId\":\"st\",\"position\":4,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t7\",\"sessionId\":\"st\",\"position\":5,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t11\",\"sessionId\":\"st\",\"position\":6,\"text\":\"a\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t15\",\"sessionId\":\"st\",\"position\":7,\"text\":\"1.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+    },
+    {
+     "op": "listQueue",
+     "args": [
+      "/o/w",
+      "sx"
+     ],
+     "result": "[{\"uuid\":\"\",\"sessionId\":\"sx\",\"position\":0,\"text\":\"kept\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+    },
+    {
+     "op": "listGoalMessageUuids",
+     "args": [
+      "/o/w",
+      "sg"
+     ],
+     "result": "[\"1.0\",\"1.0e+21\",\"1.5\",\"7.0\",\"a\"]"
+    },
+    {
+     "op": "listSuggestedMessageUuids",
+     "args": [
+      "/o/w",
+      "ss"
+     ],
+     "result": "[\"s0\",\"s1\",\"s11\",\"s15\",\"s2\",\"s3\",\"s4\",\"s7\"]"
+    }
+   ],
+   "dump": {
+    "queued_messages": {
+     "cols": [
+      "uuid",
+      "session_id",
+      "position",
+      "text",
+      "images_json",
+      "slash",
+      "from_suggestion",
+      "from_goal",
+      "created_at_ms"
+     ],
+     "rows": [
+      [
+       [
+        "text",
+        "7430"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "text",
+        "372E30"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7431"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "text",
+        "312E35"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7432"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "32"
+       ],
+       [
+        "text",
+        "312E30652B3231"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7433"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "33"
+       ],
+       [
+        "text",
+        "302E30"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7434"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "34"
+       ],
+       [
+        "text",
+        ""
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "null",
+        ""
+       ],
+       [
+        "text",
+        "7375"
+       ],
+       [
+        "integer",
+        "35"
+       ],
+       [
+        "text",
+        "7437"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7437"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "35"
+       ],
+       [
+        "text",
+        ""
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "743131"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "36"
+       ],
+       [
+        "text",
+        "61"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "743135"
+       ],
+       [
+        "text",
+        "7374"
+       ],
+       [
+        "integer",
+        "37"
+       ],
+       [
+        "text",
+        "312E30"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "null",
+        ""
+       ],
+       [
+        "text",
+        "7375"
+       ],
+       [
+        "integer",
+        "38"
+       ],
+       [
+        "text",
+        "743136"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        ""
+       ],
+       [
+        "text",
+        "7378"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "text",
+        "6B657074"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ]
+     ]
+    },
+    "goal_messages": {
+     "cols": [
+      "session_id",
+      "message_uuid",
+      "goal_text",
+      "created_at"
+     ],
+     "rows": [
+      [
+       [
+        "text",
+        "7367"
+       ],
+       [
+        "text",
+        "372E30"
+       ],
+       [
+        "text",
+        "6730"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7367"
+       ],
+       [
+        "text",
+        "312E35"
+       ],
+       [
+        "text",
+        "6731"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7367"
+       ],
+       [
+        "text",
+        "312E30652B3231"
+       ],
+       [
+        "text",
+        "6732"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7367"
+       ],
+       [
+        "text",
+        "61"
+       ],
+       [
+        "text",
+        "673131"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7367"
+       ],
+       [
+        "text",
+        "312E30"
+       ],
+       [
+        "text",
+        "673135"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ]
+     ]
+    },
+    "suggested_messages": {
+     "cols": [
+      "session_id",
+      "message_uuid",
+      "suggestion_text",
+      "created_at"
+     ],
+     "rows": [
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "7330"
+       ],
+       [
+        "text",
+        "372E30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "7331"
+       ],
+       [
+        "text",
+        "312E35"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "7332"
+       ],
+       [
+        "text",
+        "312E30652B3231"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "7333"
+       ],
+       [
+        "text",
+        "302E30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "7334"
+       ],
+       [
+        "text",
+        ""
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "7337"
+       ],
+       [
+        "text",
+        ""
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "733131"
+       ],
+       [
+        "text",
+        "61"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "7373"
+       ],
+       [
+        "text",
+        "733135"
+       ],
+       [
+        "text",
+        "312E30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ]
+      ]
+     ]
+    },
+    "assets": {
+     "cols": [
+      "hash",
+      "media_type",
+      "size_bytes",
+      "width",
+      "height",
+      "first_seen_ms",
+      "last_seen_ms"
+     ],
+     "rows": [
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "696D6167652F676966"
+       ],
+       [
+        "integer",
+        "3432"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303030"
+       ],
+       [
+        "integer",
+        "37303137"
+       ]
+      ]
+     ]
+    },
+    "asset_uses": {
+     "cols": [
+      "asset_hash",
+      "session_id",
+      "message_uuid",
+      "ordinal",
+      "occurred_ms"
+     ],
+     "rows": [
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "7361"
+       ],
+       [
+        "text",
+        "372E30"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303030"
+       ]
+      ],
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "7361"
+       ],
+       [
+        "text",
+        "312E35"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303031"
+       ]
+      ],
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "7361"
+       ],
+       [
+        "text",
+        "312E30652B3231"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303032"
+       ]
+      ],
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "7361"
+       ],
+       [
+        "text",
+        "302E30"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303033"
+       ]
+      ],
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "7361"
+       ],
+       [
+        "text",
+        ""
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303034"
+       ]
+      ],
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "7361"
+       ],
+       [
+        "text",
+        "61"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303131"
+       ]
+      ],
+      [
+       [
+        "text",
+        "65663139353561653735376338623936366338333234383335303333316264336133306636353863656431316633383766386562663035616233333638363239"
+       ],
+       [
+        "text",
+        "7361"
+       ],
+       [
+        "text",
+        "312E30"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "integer",
+        "37303135"
+       ]
+      ]
+     ]
+    }
+   }
   }
  ]
 }

@@ -140,7 +140,8 @@ pub enum PlanDecision {
 
 #[derive(Clone, Debug, Default)]
 pub struct SendOptions {
-    pub uuid: Option<String>,
+    /// `opts.uuid`: any JS value (the `input` route forwards the posted one).
+    pub uuid: Option<Value>,
     pub slash: bool,
     pub priority_now: bool,
     pub inline_pastes: Vec<String>,
@@ -2141,14 +2142,13 @@ impl Session {
         let Some((file, _)) = sessions_store::find_file(resume, Some(&self.cwd)) else {
             return Vec::new();
         };
-        let bytes = match std::fs::read(&file) {
-            Ok(b) => b,
+        let text = match transcript::read_file(&file) {
+            Ok(t) => t,
             Err(e) => {
                 tracing::debug!(target: log::SESSION, "[session] {}: transcript unreadable — {e}", self.id);
                 return Vec::new();
             }
         };
-        let text = String::from_utf8_lossy(&bytes);
         let mut historical = transcript::session_messages(&text, true);
         // `if (this.resumeAt)`: the SDK has no by-uuid cutoff, so slice the
         // replay to what the model sees; an unknown uuid keeps it whole.
@@ -3162,21 +3162,18 @@ impl Session {
 
     /// `sendInput(text, images?, opts?)`.
     pub fn send_input(&self, text: &str, images: &[ImageInput], opts: SendOptions) {
-        let _ = self.send_input_value(text, input::image_values(images).as_ref(), opts);
+        let _ = self.send_input_value(&json!(text), input::image_values(images).as_ref(), opts);
     }
 
-    /// `sendInput` with `images` as the route's body holds them. `Err` is
-    /// the TypeError TS throws, after the turn was marked running.
+    /// `sendInput` with `text` and `images` as the route's body holds them.
+    /// `Err` is the TypeError TS throws, after the turn was marked running.
     pub fn send_input_value(
         &self,
-        text: &str,
+        text: &Value,
         images: Option<&Value>,
         opts: SendOptions,
     ) -> Result<(), String> {
-        let uuid = opts
-            .uuid
-            .clone()
-            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let uuid = input::uuid_or_new(opts.uuid.clone());
         let queued = self.with(|st| -> Result<Option<Value>, String> {
             if st.done {
                 return Ok(None);
@@ -3191,6 +3188,7 @@ impl Session {
                 recap.cancel();
             }
             if opts.slash {
+                let text = input::text_str(text, "trim")?;
                 let (command, args) = input::slash_parts(text);
                 st.broadcast(json!({"type": "sdk", "message": {
                     "type": "system", "subtype": "slash_invoked", "command": command, "args": args,
@@ -3216,6 +3214,7 @@ impl Session {
                 }
                 _ => {}
             }
+            let text = input::text_str(text, "toLowerCase")?;
             if let Some(b) = ultrathink_reminder_body(text, &opts.inline_pastes) {
                 st.queue_reminder(b);
             }
@@ -3292,23 +3291,24 @@ impl Session {
         Ok(())
     }
 
+    /// `enqueueMessage`: `text` and `uuid` of any JS type (S29a).
     pub fn enqueue_message(
         &self,
-        text: &str,
+        text: &Value,
         images: Option<&Value>,
-        uuid: Option<String>,
+        uuid: Option<Value>,
         slash: bool,
         from_suggestion: bool,
         from_goal: bool,
-    ) -> anyhow::Result<String> {
+    ) -> anyhow::Result<Value> {
         self.load_queue_if_needed();
-        let uuid = uuid.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let uuid = input::uuid_or_new(uuid);
         let row = queue_db::enqueue_tail(
             &self.cwd,
             NewQueued {
                 session_id: &self.id,
-                uuid: &uuid,
-                text,
+                uuid: uuid.clone(),
+                text: text.clone(),
                 images,
                 slash,
                 from_suggestion,
@@ -3355,7 +3355,8 @@ impl Session {
         Ok(ok)
     }
 
-    pub fn send_queued_now(&self, uuid: &str, priority_now: bool) -> anyhow::Result<bool> {
+    /// `sendQueuedNow`: `uuid` as a queue snapshot holds it (S29a).
+    pub fn send_queued_now(&self, uuid: &Value, priority_now: bool) -> anyhow::Result<bool> {
         // CC 2.1.311 — `send_input` drops input once the CLI has ended, so a
         // dead session leaves the row queued for its restart to drain.
         if self.with(|st| st.done) {
@@ -3437,15 +3438,7 @@ impl Session {
     /// event; nothing is retried here.
     async fn run_thinking_replay_recovery(&self) {
         use crate::session_manager::RecoverError;
-        let messages = match self.transcript_messages(&self.id, false) {
-            Ok(m) => m,
-            Err(e) => {
-                self.broadcast(
-                    json!({"type": "error", "message": format!("Auto-recovery failed: {e}")}),
-                );
-                return;
-            }
-        };
+        let messages = self.transcript_messages(&self.id, false);
         let Some(plan) = crate::thinking_replay::plan_thinking_replay_recovery(&messages) else {
             self.broadcast(json!({"type": "error", "message":
                 "Could not auto-recover from the thinking-block error (no safe rewind point). Start a new session, or fork before the failing turn."}));
@@ -3465,13 +3458,16 @@ impl Session {
     }
 
     /// `getSessionMessages(id, { dir: cwd, includeSystemMessages })`:
-    /// nothing without a transcript file.
-    fn transcript_messages(&self, id: &str, include_system: bool) -> std::io::Result<Vec<Value>> {
+    /// nothing without a transcript file, or for one it can't read (the
+    /// SDK's read catches, so no rewind point rather than a failure).
+    fn transcript_messages(&self, id: &str, include_system: bool) -> Vec<Value> {
         let Some((file, _)) = sessions_store::find_file(id, Some(&self.cwd)) else {
-            return Ok(Vec::new());
+            return Vec::new();
         };
-        let text = std::fs::read_to_string(&file)?;
-        Ok(transcript::session_messages(&text, include_system))
+        let Ok(text) = transcript::read_file(&file) else {
+            return Vec::new();
+        };
+        transcript::session_messages(&text, include_system)
     }
 
     /// `flushQueueIfIdle`.
@@ -4420,7 +4416,7 @@ impl Session {
             log_empty();
             return 0;
         };
-        let text = match std::fs::read_to_string(file) {
+        let text = match transcript::read_file(&file) {
             Ok(t) => t,
             Err(e) => {
                 tracing::debug!(target: log::SESS_LOAD, id = %self.id, err = %e, "[sess-load] resyncFromDisk FAILED");
@@ -4684,8 +4680,9 @@ impl Session {
             // Unlike the TS backend (a long-lived Node process reaps the child
             // later), the Rust server may be about to exit: wait for the CLI to
             // finish so it's never orphaned and its final JSONL writes land
-            // before we return. Bounded: close() escalates SIGTERM → SIGKILL
-            // after the agent's kill grace.
+            // before we return. Bounded: in a shutdown (`begin_exit`) close()
+            // SIGTERMs at once and SIGKILLs 2 s later; otherwise it keeps the
+            // SDK's 2 s + 5 s, and kills a CLI this gives up on by itself.
             let _ = tokio::time::timeout(std::time::Duration::from_secs(5), h.wait_exit()).await;
         }
     }

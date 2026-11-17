@@ -8,9 +8,15 @@
 //! the same as the lossy decoding of its bytes (`String::from_utf8_lossy`).
 //! An empty tail after the last `\n` is no line; a non-empty one is.
 //!
-//! These are the same rules as the whole-file readers that note `jsonlLines`
-//! (`sdk_cost_state`), but streamed: memory follows the longest line, not
-//! the file, and a caller that stops early stops reading.
+//! It backs the ports of the TS's three `jsonlLines` readers:
+//! [`crate::peer_source`], `lastRecordedPermissionMode`
+//! ([`crate::session_manager::last_recorded_permission_mode`]) and
+//! `lastRecordedCostState` ([`crate::sdk_cost_state`], I14b). Memory
+//! follows the longest line, not the file, and a caller that stops early
+//! stops reading. The whole-file readers elsewhere port a TS (or SDK)
+//! `readFile` and stay whole: [`crate::transcript::read_file`]
+//! (`getSessionMessages`), `usage_seed` and `asset_ingest`
+//! (`readFile(path, "utf8").split("\n")`, no `\r` stripped).
 //!
 //! One limit is V8's: a line spanning several 64 KiB chunks is joined into
 //! one string, which throws `RangeError: Invalid string length` past
@@ -21,8 +27,7 @@
 
 use std::io::{self, BufRead, BufReader, Read};
 
-/// V8's `String::kMaxLength` on 64-bit hosts (node 22): `(1 << 29) - 24`.
-pub const MAX_STRING_LENGTH: usize = (1 << 29) - 24;
+use crate::js_string::MAX_STRING_LENGTH;
 
 /// The lines of `reader`; see the module docs.
 pub struct JsonlLines<R> {

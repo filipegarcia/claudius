@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::db::{Mode, open_db};
-use crate::sql_text::get;
+use crate::sql_text::{get, js_args};
 use crate::{js_params, now_ms};
 
 /// `{data, mediaType, ordinal?}` — an inline image attached to a prompt.
@@ -32,10 +32,14 @@ fn ser_js_num<S: serde::Serializer>(v: &Option<f64>, s: S) -> Result<S::Ok, S::E
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueuedRow {
-    pub uuid: String,
+    /// `uuid` and `text` as `toRow` hands them over: the TEXT read back, or,
+    /// in the row [`enqueue_tail`] returns, the values the sender passed (a
+    /// number `uuid` of `7` is stored as `"7.0"`; S29a). A uuid stored as
+    /// NULL (a posted `[null]`) reads `null`.
+    pub uuid: Value,
     pub session_id: String,
     pub position: i64,
-    pub text: String,
+    pub text: Value,
     /// `JSON.parse(images_json)` when that is an array, its elements as
     /// stored (whatever the sender put in them).
     pub images: Option<Vec<Value>>,
@@ -49,8 +53,8 @@ impl QueuedRow {
     /// `toQueueMeta` — the SSE-safe view (no image payloads).
     pub fn meta(&self) -> Value {
         let mut m = serde_json::Map::new();
-        m.insert("uuid".into(), json!(self.uuid));
-        m.insert("text".into(), json!(self.text));
+        m.insert("uuid".into(), self.uuid.clone());
+        m.insert("text".into(), self.text.clone());
         if self.slash {
             m.insert("slash".into(), json!(true));
         }
@@ -73,10 +77,10 @@ const COLS: &str = "uuid, session_id, position, text, images_json, slash, from_s
 fn to_row(r: &Row) -> rusqlite::Result<QueuedRow> {
     let images_json: Option<String> = get(r, 4)?;
     Ok(QueuedRow {
-        uuid: get(r, 0)?,
+        uuid: get::<Option<String>, _>(r, 0)?.map_or(Value::Null, Value::String),
         session_id: get(r, 1)?,
         position: r.get(2)?,
-        text: get(r, 3)?,
+        text: Value::String(get(r, 3)?),
         images: images_json.as_deref().and_then(parse_images),
         slash: r.get::<_, i64>(5)? == 1,
         from_suggestion: r.get::<_, i64>(6)? == 1,
@@ -141,8 +145,11 @@ pub fn list_queue(cwd: &str, session_id: &str) -> Vec<QueuedRow> {
 #[derive(Default)]
 pub struct NewQueued<'a> {
     pub session_id: &'a str,
-    pub uuid: &'a str,
-    pub text: &'a str,
+    /// `input.uuid` and `input.text` as the caller passed them, of any JS
+    /// type: bound as better-sqlite3 binds them ([`js_args`]), and kept as
+    /// they are in the returned row (S29a). A `null` text is `""`.
+    pub uuid: Value,
+    pub text: Value,
     /// The images as posted (`JSON.stringify`ed as they are).
     pub images: Option<&'a Value>,
     pub slash: bool,
@@ -153,6 +160,11 @@ pub struct NewQueued<'a> {
 pub fn enqueue_tail(cwd: &str, input: NewQueued) -> anyhow::Result<QueuedRow> {
     let db = open_db(cwd, Mode::ReadWrite)?;
     let ij = raw_images_json(input.images);
+    // `input.text ?? ""`
+    let text = match input.text {
+        Value::Null => json!(""),
+        t => t,
+    };
     Ok(db.with_mut(|c| {
         let tx = c.transaction()?;
         let position: i64 = tx.query_row(
@@ -161,27 +173,31 @@ pub fn enqueue_tail(cwd: &str, input: NewQueued) -> anyhow::Result<QueuedRow> {
             |r| r.get(0),
         )?;
         let created = now_ms();
-        tx.execute(
-            "INSERT INTO queued_messages (uuid, session_id, position, text, images_json, slash, from_suggestion, from_goal, created_at_ms)
+        // `.run(...)` of the JS values: every number a REAL.
+        let args = [
+            input.uuid.clone(),
+            json!(input.session_id),
+            json!(position),
+            text.clone(),
+            ij.clone().map_or(Value::Null, Value::String),
+            json!(input.slash as i64),
+            json!(input.from_suggestion as i64),
+            json!(input.from_goal as i64),
+            json!(created),
+        ];
+        {
+            let mut st = tx.prepare(
+                "INSERT INTO queued_messages (uuid, session_id, position, text, images_json, slash, from_suggestion, from_goal, created_at_ms)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            js_params![
-                input.uuid,
-                input.session_id,
-                position,
-                input.text,
-                ij,
-                input.slash as i64,
-                input.from_suggestion as i64,
-                input.from_goal as i64,
-                created
-            ],
-        )?;
+            )?;
+            st.execute(js_args(&st, &args)?)?;
+        }
         tx.commit()?;
         Ok(QueuedRow {
-            uuid: input.uuid.to_owned(),
+            uuid: input.uuid,
             session_id: input.session_id.to_owned(),
             position,
-            text: input.text.to_owned(),
+            text,
             images: ij.as_deref().and_then(parse_images),
             slash: input.slash,
             from_suggestion: input.from_suggestion,
@@ -191,7 +207,11 @@ pub fn enqueue_tail(cwd: &str, input: NewQueued) -> anyhow::Result<QueuedRow> {
     })?)
 }
 
-fn pop_where(cwd: &str, session_id: &str, uuid: Option<&str>) -> anyhow::Result<Option<QueuedRow>> {
+fn pop_where(
+    cwd: &str,
+    session_id: &str,
+    uuid: Option<&Value>,
+) -> anyhow::Result<Option<QueuedRow>> {
     let db = open_db(cwd, Mode::ReadWrite)?;
     Ok(db.with_mut(|c| {
         let tx = c.transaction()?;
@@ -203,16 +223,17 @@ fn pop_where(cwd: &str, session_id: &str, uuid: Option<&str>) -> anyhow::Result<
                     to_row,
                 )
                 .optional()?,
-            Some(u) => tx
-                .query_row(
-                    &format!("SELECT {COLS} FROM queued_messages WHERE session_id = ? AND uuid = ?"),
-                    js_params![session_id, u],
-                    to_row,
-                )
-                .optional()?,
+            Some(u) => {
+                // `.get(sessionId, uuid)` with the JS value (S29a).
+                let mut st = tx.prepare(&format!(
+                    "SELECT {COLS} FROM queued_messages WHERE session_id = ? AND uuid = ?"
+                ))?;
+                st.query_row(js_args(&st, &[json!(session_id), u.clone()])?, to_row)
+                    .optional()?
+            }
         };
         if let Some(r) = &row {
-            tx.execute("DELETE FROM queued_messages WHERE uuid = ?", [&r.uuid])?;
+            tx.execute("DELETE FROM queued_messages WHERE uuid = ?", [r.uuid.as_str()])?;
         }
         tx.commit()?;
         Ok(row)
@@ -223,7 +244,9 @@ pub fn pop_head(cwd: &str, session_id: &str) -> anyhow::Result<Option<QueuedRow>
     pop_where(cwd, session_id, None)
 }
 
-pub fn pop_by_uuid(cwd: &str, session_id: &str, uuid: &str) -> anyhow::Result<Option<QueuedRow>> {
+/// `popByUuid`: `uuid` is the JS value (a queue snapshot's, as the sender
+/// posted it), bound as better-sqlite3 binds it.
+pub fn pop_by_uuid(cwd: &str, session_id: &str, uuid: &Value) -> anyhow::Result<Option<QueuedRow>> {
     pop_where(cwd, session_id, Some(uuid))
 }
 

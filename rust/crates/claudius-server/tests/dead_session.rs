@@ -337,7 +337,7 @@ async fn dead_session_restart_matches_ts() {
                     queued[q.strip_prefix("$Q").unwrap().parse::<usize>().unwrap() - 1].clone();
                 let dispatched = mgr
                     .get(&id)
-                    .map(|s| json!(s.send_queued_now(&uuid, false).unwrap_or(false)))
+                    .map(|s| json!(s.send_queued_now(&json!(uuid), false).unwrap_or(false)))
                     .unwrap_or(Value::Null);
                 got.insert("dispatched".into(), dispatched);
             } else if step["noteSuccess"] == true {

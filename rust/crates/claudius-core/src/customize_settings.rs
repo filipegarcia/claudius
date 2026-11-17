@@ -32,7 +32,7 @@ use anyhow::{anyhow, bail};
 use claudius_agent::js;
 use serde_json::{Map, Value};
 
-use crate::{js_string, node_err, node_path, paths};
+use crate::{js_string, node_fs, node_path, paths};
 
 /// `DEFAULT_AUTO_FIX_PROMPT`: the template, with the `{{conflict_count}}`
 /// and `{{conflict_paths}}` placeholders the auto-fix route fills in.
@@ -84,7 +84,7 @@ fn with_prompt(prompt: &str) -> Map<String, Value> {
 /// [`js_string`] stand-ins), or the error TS throws.
 pub fn get_settings() -> anyhow::Result<Map<String, Value>> {
     let path = settings_path();
-    let bytes = match node_err::fs::read_file(Path::new(js_string::lossy(&path).as_ref())) {
+    let bytes = match node_fs::sys::read_file(Path::new(js_string::lossy(&path).as_ref())) {
         Ok(b) => b,
         Err(e) if e.code == "ENOENT" => return Ok(with_prompt(DEFAULT_AUTO_FIX_PROMPT)),
         Err(e) => bail!(e.message),
@@ -123,10 +123,10 @@ pub fn set_settings(patch: &Map<String, Value>) -> anyhow::Result<Map<String, Va
 pub fn write_settings(next: &Map<String, Value>) -> anyhow::Result<()> {
     let path = settings_path();
     let dir = node_path::dirname(&path);
-    node_err::fs::mkdir_recursive(Path::new(js_string::lossy(&dir).as_ref()))
+    node_fs::sys::mkdir_recursive(Path::new(js_string::lossy(&dir).as_ref()))
         .map_err(|e| anyhow!(e.message))?;
     let text = js_string::stringify_pretty(&Value::Object(next.clone()));
-    node_err::fs::write_file(Path::new(js_string::lossy(&path).as_ref()), text.as_bytes())
+    node_fs::sys::write_file(Path::new(js_string::lossy(&path).as_ref()), text.as_bytes())
         .map_err(|e| anyhow!(e.message))
 }
 

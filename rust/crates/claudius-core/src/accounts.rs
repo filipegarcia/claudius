@@ -42,6 +42,7 @@ use claudius_agent::js;
 use serde_json::{Map, Value};
 
 use crate::node_fs::{self, FsError};
+use crate::node_path;
 
 /// Env var that moves the store (TS `accountsDir()`'s override).
 pub const ACCOUNTS_DIR_ENV: &str = "CLAUDIUS_ACCOUNTS_DIR";
@@ -563,7 +564,7 @@ fn iso_string(ms: i64) -> String {
 pub fn accounts_dir_for(override_dir: Option<&str>, home: &str) -> String {
     match override_dir {
         Some(d) if !d.is_empty() => d.to_owned(),
-        _ => node_fs::join(&[home, ".claude", ".claudius"]),
+        _ => node_path::join(&[home, ".claude", ".claudius"]),
     }
 }
 
@@ -642,16 +643,16 @@ impl AccountsStore {
     }
 
     pub fn accounts_path(&self) -> String {
-        node_fs::join(&[&self.dir, "accounts.json"])
+        node_path::join(&[&self.dir, "accounts.json"])
     }
 
     fn profiles_root(&self) -> String {
-        node_fs::join(&[&self.dir, "profiles"])
+        node_path::join(&[&self.dir, "profiles"])
     }
 
     /// `profileConfigDir(id)`: the `CLAUDE_CONFIG_DIR` a profile runs with.
     pub fn profile_config_dir(&self, id: &str) -> String {
-        node_fs::join(&[&self.dir, "profiles", id])
+        node_path::join(&[&self.dir, "profiles", id])
     }
 
     /// The profile's config dir when it lies strictly inside
@@ -982,7 +983,7 @@ impl AccountsStore {
             return fail("profile id escapes the profiles directory");
         };
         node_fs::mkdir_recursive(&dir, 0o700)?;
-        let real = node_fs::join(&[&self.home, ".claude"]);
+        let real = node_path::join(&[&self.home, ".claude"]);
         let names: Vec<String> = match std::fs::read_dir(&real) {
             Ok(rd) => rd
                 .filter_map(Result::ok)
@@ -994,8 +995,8 @@ impl AccountsStore {
             if name == ".credentials.json" {
                 continue;
             }
-            let target = node_fs::join(&[&real, &name]);
-            let link = node_fs::join(&[&dir, &name]);
+            let target = node_path::join(&[&real, &name]);
+            let link = node_path::join(&[&dir, &name]);
             let missing = |e: &std::io::Error| e.kind() == std::io::ErrorKind::NotFound;
             match std::fs::read_link(&link) {
                 Ok(existing) => {
@@ -1013,7 +1014,7 @@ impl AccountsStore {
             }
             let _ = node_fs::symlink(&target, &link);
         }
-        let creds = node_fs::join(&[&dir, ".credentials.json"]);
+        let creds = node_path::join(&[&dir, ".credentials.json"]);
         if profile.kind() == AccountKind::OauthToken {
             let blob = serde_json::json!({"claudeAiOauth": {"accessToken": profile.secret()}});
             let tmp = self.tmp_name(&creds);

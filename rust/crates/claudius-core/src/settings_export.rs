@@ -23,7 +23,7 @@ use serde_json::{Map, Value, json};
 
 use crate::settings::{self, Scope};
 use crate::skills::Thrown;
-use crate::{customizations, customize_settings, js_string, keybindings, node_err, node_path};
+use crate::{customizations, customize_settings, js_string, keybindings, node_fs, node_path};
 use crate::{paths, updater, workspaces};
 
 /// `os.platform()` / `process.platform`.
@@ -247,7 +247,7 @@ pub fn build_export_bundle(now: i64) -> Result<Value, Thrown> {
             if !target.starts_with(&format!("{src_dir}/")) {
                 continue;
             }
-            let Ok(bytes) = node_err::fs::read_file(Path::new(&target)) else {
+            let Ok(bytes) = node_fs::sys::read_file(Path::new(&target)) else {
                 continue; // removed from src/ after the publish — skipped
             };
             bundled_files.push(json!({

@@ -31,8 +31,8 @@ use std::path::{Path, PathBuf};
 use claudius_agent::js;
 use serde_json::{Map, Value, json};
 
-use crate::paths;
 use crate::settings::{self, Scope};
+use crate::{paths, safe_path};
 
 /// `Object.getOwnPropertyNames(Object.prototype)` (node 22): what
 /// `key in object` finds on every object besides its own keys.
@@ -113,9 +113,9 @@ pub enum McpConfigError {
     Type(String),
     #[error(transparent)]
     Write(#[from] settings::SettingsError),
-    /// `assertWithin`: the path left its base.
-    #[error("path escapes base directory")]
-    Escape,
+    /// `assertWithin`'s `PathInjectionError` ([`safe_path`]), by message.
+    #[error("{0}")]
+    PathInjection(&'static str),
 }
 
 type Result<T> = std::result::Result<T, McpConfigError>;
@@ -154,41 +154,52 @@ fn scope_name(scope: Scope) -> &'static str {
     }
 }
 
+/// `homedir()/.claude`.
+fn claude_home() -> String {
+    paths::claude_home().to_string_lossy().into_owned()
+}
+
 /// The base directory and the relative path of a scope's settings file,
 /// as `pathFor` builds it.
-fn settings_file(scope: Scope, cwd: &str) -> (PathBuf, &'static str) {
+fn settings_file(scope: Scope, cwd: &str) -> (String, &'static str) {
     match scope {
-        Scope::User => (paths::claude_home(), "settings.json"),
-        Scope::Project => (PathBuf::from(cwd), ".claude/settings.json"),
-        Scope::Local => (PathBuf::from(cwd), ".claude/settings.local.json"),
+        Scope::User => (claude_home(), "settings.json"),
+        Scope::Project => (cwd.to_owned(), ".claude/settings.json"),
+        Scope::Local => (cwd.to_owned(), ".claude/settings.local.json"),
     }
 }
 
-/// `projectMcpJsonPath(cwd)`: `<cwd>/.mcp.json`.
+/// `projectMcpJsonPath(cwd)`: `assertWithin(cwd, ".mcp.json")`.
 pub fn project_mcp_json_path(cwd: &str) -> Option<PathBuf> {
-    paths::within(Path::new(cwd), ".mcp.json")
+    safe_path::assert_within(cwd, ".mcp.json")
+        .ok()
+        .map(PathBuf::from)
 }
 
-/// `userMcpJsonPath()`: `homedir()/.claude/mcp.json`.
+/// `userMcpJsonPath()`: `assertWithin(homedir()/.claude, "mcp.json")`.
 pub fn user_mcp_json_path() -> Option<PathBuf> {
-    paths::within(&paths::claude_home(), "mcp.json")
+    safe_path::assert_within(&claude_home(), "mcp.json")
+        .ok()
+        .map(PathBuf::from)
 }
 
-/// `fs.readFile(p, "utf8")`: `None` for a missing file, invalid UTF-8 as
-/// U+FFFD (a BOM is kept).
-fn read_text(base: &Path, rel: &str) -> Result<Option<String>> {
-    let target = paths::within(base, rel).ok_or(McpConfigError::Escape)?;
+/// `fs.readFile(assertWithin(base, rel), "utf8")`: the path read, and
+/// `None` for a missing file, invalid UTF-8 as U+FFFD (a BOM is kept).
+/// `assertWithin` refuses a base that resolves to `/` (TS checks for
+/// `"/" + sep`), so a `/` workspace can't read its `.mcp.json`.
+fn read_text(base: &str, rel: &str) -> Result<(String, Option<String>)> {
+    let target = safe_path::assert_within(base, rel).map_err(McpConfigError::PathInjection)?;
     match std::fs::read(&target) {
-        Ok(bytes) => Ok(Some(String::from_utf8_lossy(&bytes).into_owned())),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Ok(bytes) => Ok((target, Some(String::from_utf8_lossy(&bytes).into_owned()))),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok((target, None)),
         Err(e) => Err(e.into()),
     }
 }
 
 /// `readJson(p)`: `None` for a missing file or one that is empty or only
 /// (JS) whitespace, else `JSON.parse` of it.
-fn read_json(base: &Path, rel: &str) -> Result<Option<Value>> {
-    let Some(text) = read_text(base, rel)? else {
+fn read_json(base: &str, rel: &str) -> Result<Option<Value>> {
+    let (_, Some(text)) = read_text(base, rel)? else {
         return Ok(None);
     };
     if js::trim(&text).is_empty() {
@@ -202,9 +213,9 @@ fn read_json(base: &Path, rel: &str) -> Result<Option<Value>> {
 /// `writeJson(p, value)`: `JSON.stringify(value, null, 2) + "\n"`, written
 /// in place (through a symlink, keeping the mode) after `mkdir -p` of its
 /// directory.
-fn write_json(base: &Path, rel: &str, value: &Value) -> Result<()> {
-    let target = paths::within(base, rel).ok_or(McpConfigError::Escape)?;
-    if let Some(dir) = target.parent() {
+fn write_json(base: &str, rel: &str, value: &Value) -> Result<()> {
+    let target = safe_path::assert_within(base, rel).map_err(McpConfigError::PathInjection)?;
+    if let Some(dir) = Path::new(&target).parent() {
         std::fs::create_dir_all(dir)?;
     }
     std::fs::write(&target, format!("{}\n", js::stringify_pretty(value)))?;
@@ -215,13 +226,10 @@ fn write_json(base: &Path, rel: &str, value: &Value) -> Result<()> {
 /// type (`{}` for a missing file).
 fn read_settings_value(scope: Scope, cwd: &str) -> Result<Value> {
     let (base, rel) = settings_file(scope, cwd);
-    let Some(text) = read_text(&base, rel)? else {
+    let (path, Some(text)) = read_text(&base, rel)? else {
         return Ok(json!({}));
     };
-    js::json_parse(&text).map_err(|reason| McpConfigError::SettingsParse {
-        path: base.join(rel).display().to_string(),
-        reason,
-    })
+    js::json_parse(&text).map_err(|reason| McpConfigError::SettingsParse { path, reason })
 }
 
 /// `settings.mcpServers` with no `?.`: a `null` settings file throws.
@@ -404,14 +412,14 @@ pub fn list_configured(cwd: &str) -> Result<Vec<ConfiguredServer>> {
     for (name, cfg) in entries(settings_servers(&user)?.unwrap_or(&Value::Null)) {
         push(&mut out, Scope::User, name, cfg);
     }
-    let user_json = read_json(&paths::claude_home(), "mcp.json")?;
+    let user_json = read_json(&claude_home(), "mcp.json")?;
     for (name, cfg) in entries(&json_servers(&user_json)) {
         if out.iter().any(|s| s.scope == Scope::User && s.name == name) {
             continue;
         }
         push(&mut out, Scope::User, name, cfg);
     }
-    let project = read_json(Path::new(cwd), ".mcp.json")?;
+    let project = read_json(cwd, ".mcp.json")?;
     for (name, cfg) in entries(&json_servers(&project)) {
         push(&mut out, Scope::Project, name, cfg);
     }
@@ -432,7 +440,7 @@ pub fn list_configured(cwd: &str) -> Result<Vec<ConfiguredServer>> {
 pub fn upsert_server(scope: Scope, cwd: &str, name: &str, config: &Value) -> Result<()> {
     if scope == Scope::Project {
         // `(await readJson(path)) ?? {}`
-        let mut current = match read_json(Path::new(cwd), ".mcp.json")? {
+        let mut current = match read_json(cwd, ".mcp.json")? {
             None | Some(Value::Null) => json!({}),
             Some(v) => v,
         };
@@ -457,7 +465,7 @@ pub fn upsert_server(scope: Scope, cwd: &str, name: &str, config: &Value) -> Res
                 )));
             }
         }
-        return write_json(Path::new(cwd), ".mcp.json", &current);
+        return write_json(cwd, ".mcp.json", &current);
     }
     let settings = read_settings_value(scope, cwd)?;
     // `{...settings, mcpServers: {...(settings.mcpServers ?? {}), [name]: config}}`
@@ -474,7 +482,7 @@ pub fn upsert_server(scope: Scope, cwd: &str, name: &str, config: &Value) -> Res
 /// is deleted, the file rewritten, and `true`.
 pub fn remove_server(scope: Scope, cwd: &str, name: &str) -> Result<bool> {
     if scope == Scope::Project {
-        let Some(mut current) = read_json(Path::new(cwd), ".mcp.json")? else {
+        let Some(mut current) = read_json(cwd, ".mcp.json")? else {
             return Ok(false);
         };
         // `current?.mcpServers`
@@ -489,7 +497,7 @@ pub fn remove_server(scope: Scope, cwd: &str, name: &str) -> Result<bool> {
             return Ok(false);
         }
         js_delete(servers, name)?;
-        write_json(Path::new(cwd), ".mcp.json", &current)?;
+        write_json(cwd, ".mcp.json", &current)?;
         return Ok(true);
     }
     let mut settings = read_settings_value(scope, cwd)?;
@@ -577,11 +585,64 @@ mod tests {
     }
 
     #[test]
+    fn paths_are_refused_like_assert_within() {
+        fn refused<T>(r: Result<T>) -> &'static str {
+            match r {
+                Err(McpConfigError::PathInjection(m)) => m,
+                Err(e) => panic!("{e}"),
+                Ok(_) => "",
+            }
+        }
+        // `"/.mcp.json".startsWith("/" + sep)` is false, so TS throws for
+        // a `/` workspace before reading anything.
+        for root in ["/", "//", "/.", "/a/.."] {
+            assert_eq!(project_mcp_json_path(root), None);
+            for scope in [Scope::Project, Scope::Local] {
+                assert_eq!(
+                    refused(remove_server(scope, root, "x")),
+                    "path escapes base directory"
+                );
+                assert_eq!(
+                    refused(read_settings_value(scope, root)),
+                    "path escapes base directory"
+                );
+            }
+        }
+        assert_eq!(refused(read_json("", ".mcp.json")), "invalid base path");
+        assert_eq!(
+            refused(read_json("/a\0b", ".mcp.json")),
+            "null byte in path"
+        );
+        // A write checks too, before any fs call (a NUL never reaches it).
+        assert_eq!(
+            refused(write_json("/a\0b", ".mcp.json", &json!({}))),
+            "null byte in path"
+        );
+    }
+
+    /// `readSettings` throws `SettingsParseError(pathFor(scope, cwd), …)`:
+    /// the path `assertWithin` resolved, not the cwd as given.
+    #[test]
+    fn a_settings_parse_error_names_the_resolved_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        let cwd = tmp.path().canonicalize().unwrap();
+        let cwd = cwd.to_str().unwrap();
+        std::fs::create_dir(format!("{cwd}/.claude")).unwrap();
+        std::fs::write(format!("{cwd}/.claude/settings.local.json"), "{").unwrap();
+        match read_settings_value(Scope::Local, &format!("{cwd}//./")) {
+            Err(McpConfigError::SettingsParse { path, .. }) => {
+                assert_eq!(path, format!("{cwd}/.claude/settings.local.json"));
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
     fn settings_files_match_path_for() {
         for scope in [Scope::User, Scope::Project, Scope::Local] {
             let (base, rel) = settings_file(scope, "/w/p");
             assert_eq!(
-                paths::within(&base, rel).unwrap(),
+                PathBuf::from(safe_path::assert_within(&base, rel).unwrap()),
                 settings::path_for(scope, "/w/p")
             );
         }

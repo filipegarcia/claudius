@@ -17,8 +17,7 @@
 use sha2::{Digest, Sha256};
 
 use crate::node_fs::{self, FsError};
-use crate::node_path;
-use crate::paths;
+use crate::{node_path, paths, safe_path};
 
 /// `extFor(mediaType)`: `EXT_BY_MEDIA[mediaType.toLowerCase()] ?? "bin"`.
 pub fn ext_for(media_type: &str) -> String {
@@ -48,15 +47,12 @@ pub fn sha256_hex(buf: &[u8]) -> String {
 }
 
 /// `projectRoot(cwd)` as a string: `assertWithin(<home>/.claude/projects,
-/// encodeProjectDir(cwd))`, which refuses an empty `cwd`.
+/// encodeProjectDir(cwd))`. The encoded name is `[A-Za-z0-9-]*`, so the
+/// one refusal it can meet is an empty `cwd`'s "invalid child path".
 pub fn project_root(cwd: &str) -> Option<String> {
-    let enc = paths::encode_project_dir(cwd);
-    if enc.is_empty() {
-        return None; // "invalid child path"
-    }
     let home = paths::home_dir().to_string_lossy().into_owned();
     let base = node_path::join(&[&home, ".claude", "projects"]);
-    Some(node_path::resolve(&[&base, &enc]))
+    safe_path::assert_within(&base, &paths::encode_project_dir(cwd)).ok()
 }
 
 /// `assetsDir(cwd)`.

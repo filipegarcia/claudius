@@ -1,7 +1,7 @@
 //! Replays `fixtures/settings_errors_golden.json`, recorded from the real TS
 //! by `rust/scripts/settings-errors-golden.mjs`:
 //! - `errorMap` / `unknown` / `fsErrors`: libuv's names and descriptions and
-//!   raw `fs.promises` failures, against `node_err`;
+//!   raw `fs.promises` failures, against `node_fs`;
 //! - `sanitize`: `sanitizeJsonParseReason`, on its own and on V8's
 //!   `JSON.parse` messages;
 //! - `read` / `write`: `readSettings` / `writeSettings` on malformed files
@@ -23,7 +23,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Barrier, LazyLock, OnceLock};
 
 use claudius_agent::js;
-use claudius_core::node_err::{self, NodeError};
+use claudius_core::node_fs::{self, NodeError};
 use claudius_core::paths;
 use claudius_core::session::{RuntimeOptions, Session, SessionOptions};
 use claudius_core::session_manager::{CreateError, SessionManager};
@@ -473,7 +473,7 @@ fn error_map_matches_libuv() {
     let by_code = |code: &str| recorded.iter().find(|(_, c, _)| *c == code);
     let mut checked = 0;
     for n in 1..512 {
-        let Some((code, description)) = node_err::describe(n) else {
+        let Some((code, description)) = node_fs::describe(n) else {
             if same_platform() {
                 assert!(
                     !recorded.iter().any(|(e, ..)| *e == -i64::from(n)),
@@ -494,13 +494,13 @@ fn error_map_matches_libuv() {
         // Every recorded OS errno is named here.
         for (e, code, _) in &recorded {
             if (-511..0).contains(e) {
-                assert_eq!(node_err::describe(-*e as i32).map(|d| d.0), Some(*code));
+                assert_eq!(node_fs::describe(-*e as i32).map(|d| d.0), Some(*code));
             }
         }
     }
     for u in fx["unknown"].as_array().unwrap() {
         let n = -u[0].as_i64().unwrap() as i32;
-        let e = node_err::uv_exception(&std::io::Error::from_raw_os_error(n), "open", None, None);
+        let e = node_fs::uv_exception(&std::io::Error::from_raw_os_error(n), "open", None, None);
         assert_eq!(e.code, u[1].as_str().unwrap());
         assert_eq!(
             e.message,
@@ -568,14 +568,14 @@ fn fs_errors_match_node() {
             continue;
         }
         let uv = |e: std::io::Error, syscall: &'static str, path: &Path, dest: Option<&Path>| {
-            node_err::uv_exception(&e, syscall, Some(path), dest)
+            node_fs::uv_exception(&e, syscall, Some(path), dest)
         };
         let got: NodeError = match op {
-            "readFile" => node_err::fs::read_file(&a(0)).unwrap_err(),
-            "writeFile" => node_err::fs::write_file(&a(0), b"x").unwrap_err(),
+            "readFile" => node_fs::sys::read_file(&a(0)).unwrap_err(),
+            "writeFile" => node_fs::sys::write_file(&a(0), b"x").unwrap_err(),
             "mkdir" => uv(std::fs::create_dir(a(0)).unwrap_err(), "mkdir", &a(0), None),
-            "mkdirp" => node_err::fs::mkdir_recursive(&a(0)).unwrap_err(),
-            "rename" => node_err::fs::rename(&a(0), &a(1)).unwrap_err(),
+            "mkdirp" => node_fs::sys::mkdir_recursive(&a(0)).unwrap_err(),
+            "rename" => node_fs::sys::rename(&a(0), &a(1)).unwrap_err(),
             "rmdir" => uv(std::fs::remove_dir(a(0)).unwrap_err(), "rmdir", &a(0), None),
             "unlink" => uv(
                 std::fs::remove_file(a(0)).unwrap_err(),
@@ -583,10 +583,10 @@ fn fs_errors_match_node() {
                 &a(0),
                 None,
             ),
-            "lstat" => node_err::fs::lstat(&a(0)).unwrap_err(),
+            "lstat" => node_fs::sys::lstat(&a(0)).unwrap_err(),
             "stat" => uv(std::fs::metadata(a(0)).unwrap_err(), "stat", &a(0), None),
             "readdir" => uv(std::fs::read_dir(a(0)).unwrap_err(), "scandir", &a(0), None),
-            "chmod" => node_err::fs::chmod(&a(0), args[1].as_u64().unwrap() as u32).unwrap_err(),
+            "chmod" => node_fs::sys::chmod(&a(0), args[1].as_u64().unwrap() as u32).unwrap_err(),
             "symlink" => uv(
                 std::os::unix::fs::symlink(a(0), a(1)).unwrap_err(),
                 "symlink",

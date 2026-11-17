@@ -323,8 +323,11 @@ fn same_value_zero(a: &Value, b: &Value) -> bool {
 fn not_iterable(v: &Value) -> String {
     let what = match v {
         Value::Bool(b) => format!("boolean {b}"),
-        // A string here is an Infinity sentinel (other strings iterate).
-        Value::Number(_) | Value::String(_) => format!("number {}", db_agents::js_string(v)),
+        // A string here is an Infinity sentinel (other strings iterate); a
+        // number's `String()` never throws.
+        Value::Number(_) | Value::String(_) => {
+            format!("number {}", db_agents::js_string(v).unwrap_or_default())
+        }
         _ => "object".to_owned(),
     };
     format!("{what} is not iterable (cannot read property Symbol(Symbol.iterator))")

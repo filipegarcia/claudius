@@ -75,7 +75,7 @@ use tokio::sync::mpsc;
 use tungstenite::protocol::frame::coding::{Control, Data, OpCode};
 use tungstenite::protocol::frame::{Frame, FrameHeader};
 
-use crate::node_err;
+use crate::node_fs;
 pub use crate::voice_tls::Trust;
 
 /// `WebSocket.CONNECTING`.
@@ -484,12 +484,12 @@ async fn connect(target: &Target) -> Result<TcpStream, Value> {
 
 /// libuv's name for an `io::Error` (`ECONNREFUSED`).
 fn io_code(e: &io::Error) -> String {
-    node_err::uv_exception(e, "connect", None, None).code
+    node_fs::uv_exception(e, "connect", None, None).code
 }
 
 /// A read or write failure on an open socket, in Node's words.
 fn socket_error(e: &io::Error) -> Value {
-    let ne = node_err::uv_exception(e, "read", None, None);
+    let ne = node_fs::uv_exception(e, "read", None, None);
     if e.kind() == io::ErrorKind::UnexpectedEof {
         return err_with_code("socket hang up", "ECONNRESET");
     }

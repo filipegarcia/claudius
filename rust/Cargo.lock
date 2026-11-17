@@ -225,6 +225,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "claudius-client"
+version = "0.1.0"
+dependencies = [
+ "claudius-agent",
+ "claudius-core",
+ "indexmap",
+ "regex",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "claudius-core"
 version = "0.1.0"
 dependencies = [
@@ -291,6 +304,13 @@ dependencies = [
  "tracing-subscriber",
  "tungstenite",
  "uuid",
+]
+
+[[package]]
+name = "claudius-theme"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]

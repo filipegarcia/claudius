@@ -23,8 +23,6 @@ mod common;
 #[path = "../../claudius-core/tests/common_fs/mod.rs"]
 mod common_fs;
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -34,7 +32,7 @@ use claudius_core::fs_list::{FsEntry, list_fs_in};
 use claudius_core::node_path::resolve;
 use claudius_core::tcc_protected::platform;
 use claudius_server::fs_routes::{dirs_get_in, dirs_post_in, search_failed};
-use common::{Server, free_port, http, wait_until};
+use common::{Payload, Server, free_port};
 use common_fs::{Tree, can_replay, check, fixture, got, probe_disk};
 use serde_json::{Value, json};
 
@@ -77,32 +75,17 @@ fn body_bytes(tree: &Tree, step: &Value) -> Vec<u8> {
     }
 }
 
-/// One raw HTTP/1.1 request → (status, content type, body).
+/// One raw HTTP/1.1 request (a JSON `Content-Type` and a `Content-Length`,
+/// an empty body for `None`) → (status, content type, body).
 fn request(
     port: u16,
     method: &str,
     target: &str,
     body: Option<&[u8]>,
 ) -> (u16, Option<String>, Vec<u8>) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    let body = body.unwrap_or(b"");
-    let head = format!(
-        "{method} {target} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        body.len()
-    );
-    s.write_all(head.as_bytes()).unwrap();
-    s.write_all(body).unwrap();
-    let mut out = Vec::new();
-    s.read_to_end(&mut out).unwrap();
-    let split = out.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
-    let head = String::from_utf8_lossy(&out[..split]).into_owned();
-    let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let content_type = head.split("\r\n").find_map(|l| {
-        let (k, v) = l.split_once(':')?;
-        k.eq_ignore_ascii_case("content-type")
-            .then(|| v.trim().to_owned())
-    });
-    (status, content_type, out[split + 4..].to_vec())
+    let r = common::send(port, method, target, Payload::Json(body.unwrap_or(b"")));
+    assert!(r.status != 0, "{method} {target}: {}", r.head);
+    (r.status, r.content_type(), r.body)
 }
 
 /// `claudius --no-next` for one scenario: HOME and the CLI config in the
@@ -120,20 +103,14 @@ fn spawn(tree: &Tree, scenario: &Value) -> Server {
         .env("HOME", tree.path("home"))
         .env("CLAUDE_CONFIG_DIR", tree.path("config"))
         .stdout(Stdio::null())
-        .stderr(Stdio::null());
+        .stderr(Stdio::piped());
     match scenario["env"].as_str() {
         Some(v) => cmd.env("CLAUDIUS_FS_ROOT", tree.sub(v)),
         None => cmd.env_remove("CLAUDIUS_FS_ROOT"),
     };
-    let server = Server {
-        child: cmd.spawn().unwrap(),
-        port,
-    };
-    wait_until("health", Duration::from_secs(20), || {
-        TcpStream::connect(("127.0.0.1", port)).is_ok()
-            && http(port, "GET", "/api/rust/health", "").0 == 200
-    });
-    server
+    let mut child = cmd.spawn().unwrap();
+    common::wait_healthy(&mut child, port, Duration::from_secs(20));
+    Server { child, port }
 }
 
 fn check_snapshot(scenario: &Value, platform: &str, tree: &Tree, failures: &mut Vec<String>) {

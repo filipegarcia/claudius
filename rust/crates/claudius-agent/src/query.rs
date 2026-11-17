@@ -40,11 +40,32 @@ use crate::options::{McpServerConfig, Options};
 use crate::permission::{CanUseTool, ElicitationRequest, OnElicitation, ToolPermissionContext};
 use crate::stream::{self, LineSplitter, Utf8Decoder};
 
-/// SIGTERM → SIGKILL grace on close.
-const KILL_GRACE: Duration = Duration::from_secs(2);
 /// How long the SDK's `ProcessTransport.close()` lets the CLI exit on its
-/// own after ending its stdin before it sends SIGTERM (`D9e`).
+/// own after ending its stdin before it sends SIGTERM (`D9e`). Also how long
+/// its cleanup waits for the exit (`Promise.race` with 2000 ms).
 const CLOSE_GRACE: Duration = Duration::from_secs(2);
+/// SIGTERM → SIGKILL in `ProcessTransport.close()` (its literal `5000`).
+const KILL_GRACE: Duration = Duration::from_secs(5);
+/// SIGTERM → SIGKILL once the host is exiting ([`begin_exit`]). Rust only:
+/// the SDK's exit hook sends SIGTERM, and its process is gone right after.
+const EXIT_KILL_GRACE: Duration = Duration::from_secs(2);
+
+/// Cancelled by [`begin_exit`].
+static EXITING: std::sync::LazyLock<CancellationToken> =
+    std::sync::LazyLock::new(CancellationToken::new);
+
+/// The host process is exiting (the server got SIGINT or SIGTERM). The SDK
+/// SIGTERMs every CLI it still tracks as Node exits (`process.on("exit")` →
+/// `killAll()`), so a TS host doesn't wait out the close grace either. From
+/// here on, every CLI being closed, including one already in its
+/// [`CLOSE_GRACE`], gets SIGTERM at once and SIGKILL [`EXIT_KILL_GRACE`]
+/// later, so the server's shutdown can wait for each CLI without waiting
+/// out the 2 s + 5 s. A query nobody has closed is left alone: a session's
+/// CLI must not die before the session aborts it. It can't be undone.
+pub fn begin_exit() {
+    EXITING.cancel();
+}
+
 /// How long after the exit the SDK waits for stderr to close before it
 /// reports the exit (`vVe`). Stderr arriving later is ignored.
 const STDERR_DRAIN_GRACE: Duration = Duration::from_millis(200);
@@ -165,6 +186,15 @@ struct Shared {
     closed: CancellationToken,
     /// Cancelled once the host aborts: the SDK's `abortController`.
     aborted: CancellationToken,
+    /// Cancelled when the close timer SIGTERMs the CLI (on Windows, when it
+    /// kills it). For an aborted query the SDK then forwards the abort to
+    /// the spawn's `signal`, and the reader stops at once with "Claude Code
+    /// process aborted by user". (After a throw, the only close that isn't
+    /// an abort, the reader has already stopped.)
+    forwarded_abort: CancellationToken,
+    /// The error the reader threw, held back from the stream until the
+    /// cleanup is done (see the reader task).
+    thrown: Mutex<Option<AgentError>>,
     /// `cleanupPerformed`: the reader ended and failed every waiter. Set
     /// under the `pending` lock, so a request either fails up front or is
     /// among the waiters the cleanup fails.
@@ -382,6 +412,8 @@ impl Query {
             exit: exit_rx,
             closed: CancellationToken::new(),
             aborted: CancellationToken::new(),
+            forwarded_abort: CancellationToken::new(),
+            thrown: Mutex::new(None),
             cleaned_up: std::sync::atomic::AtomicBool::new(false),
             write_failed: std::sync::atomic::AtomicBool::new(false),
             kill: kill.clone(),
@@ -399,20 +431,15 @@ impl Query {
             verbatim_prompts: options.verbatim_prompts,
         });
 
-        // Waiter: owns the Child; terminates it on `kill`.
+        // Waiter: owns the Child, and ends it once stdin is ended for good
+        // (`kill`). It holds tokens only, never `Shared`, so dropping every
+        // handle still closes stdin.
+        let forward = shared.forwarded_abort.clone();
         tokio::spawn(async move {
             let status = tokio::select! {
+                biased;
                 s = child.wait() => s,
-                _ = kill.cancelled() => {
-                    terminate(&mut child);
-                    match tokio::time::timeout(KILL_GRACE, child.wait()).await {
-                        Ok(s) => s,
-                        Err(_) => {
-                            let _ = child.start_kill();
-                            child.wait().await
-                        }
-                    }
-                }
+                _ = kill.cancelled() => close_child(&mut child, &forward).await,
             };
             let info = match status {
                 Ok(s) => exit_info(&s),
@@ -469,8 +496,16 @@ impl Query {
                         threw.store(true, Ordering::Relaxed);
                     }
                 };
+                let forwarded = handle.shared.forwarded_abort.clone();
                 let read_error = loop {
-                    match stdout.read(&mut buf).await {
+                    let read = tokio::select! {
+                        biased;
+                        // Lines already read are dispatched; the SDK's line
+                        // reader is closed in the same tick as the forward.
+                        _ = forwarded.cancelled() => break None,
+                        r = stdout.read(&mut buf) => r,
+                    };
+                    match read {
                         Ok(0) => {
                             lines.finish(&mut dispatch);
                             break None;
@@ -486,15 +521,18 @@ impl Query {
                 };
                 if threw.load(Ordering::Relaxed) {
                     // The rest of `cleanup(e)`: `transport.close()` ends
-                    // stdin, and terminates the CLI if it's still running
-                    // after `CLOSE_GRACE`.
+                    // stdin and arms the close timer. The host's stream
+                    // (`readSdkMessages`) awaits the cleanup in its
+                    // `finally`, so the error reaches it once the CLI exited
+                    // or after `CLOSE_GRACE`.
                     handle.end_input().await;
-                    if tokio::time::timeout(CLOSE_GRACE, handle.wait_exit())
-                        .await
-                        .is_err()
-                    {
-                        handle.shared.kill.cancel();
+                    handle.shared.kill.cancel();
+                    let _ = tokio::time::timeout(CLOSE_GRACE, handle.wait_exit()).await;
+                    if let Some(e) = handle.shared.thrown.lock().unwrap().take() {
+                        let _ = tx.send(Err(e));
                     }
+                } else if forwarded.is_cancelled() {
+                    handle.finish_cleanup(&tx, Some(AgentError::AbortedByUser));
                 } else {
                     handle.on_stdout_closed(&tx, read_error).await;
                 }
@@ -552,9 +590,10 @@ impl Query {
 /// The one-shot pattern of every `query({prompt: "<string>"})` caller in
 /// `lib/server` (commit messages, customization descriptions, ...): run a
 /// single-turn query ([`Query::spawn_prompt`]) and return its first `result`
-/// message, then close the query, as returning out of the TS `for await`
-/// does. `Ok(None)` when the stream ends without a result; the caller
-/// decides what a non-`success` subtype means.
+/// message, then close the query and wait for the CLI to exit, at most 2 s
+/// ([`QueryHandle::finish`]), as returning out of the TS `for await` does.
+/// `Ok(None)` when the stream ends without a result; the caller decides
+/// what a non-`success` subtype means.
 pub async fn oneshot(prompt: &str, options: Options) -> Result<Option<Value>, AgentError> {
     let mut q = Query::spawn_prompt(prompt, options).await?;
     let out = loop {
@@ -565,7 +604,7 @@ pub async fn oneshot(prompt: &str, options: Options) -> Result<Option<Value>, Ag
             None => break Ok(None),
         }
     };
-    q.handle.close().await;
+    q.handle.finish().await;
     out
 }
 
@@ -603,6 +642,45 @@ pub fn close_leaked_fds() -> std::io::Result<()> {
     Ok(())
 }
 
+/// `ProcessTransport.close()`'s timer, once stdin has been ended (by
+/// [`QueryHandle::close`], or by the cleanup after the reader threw): an
+/// exit within [`CLOSE_GRACE`] ends it; otherwise SIGTERM, and SIGKILL
+/// [`KILL_GRACE`] later if the CLI still runs. The SIGTERM also forwards an
+/// aborted query's abort, which ends the reader (`forward`). The SDK then
+/// signals once more (Node's `signal` option sends its own SIGTERM in the
+/// same tick); one SIGTERM here. On Windows the SDK sends no SIGTERM and
+/// forwards the abort with the kill. Once the host is exiting
+/// ([`begin_exit`]), the grace is cut short and SIGKILL follows
+/// [`EXIT_KILL_GRACE`] after the SIGTERM, or after the exit began.
+async fn close_child(
+    child: &mut Child,
+    forward: &CancellationToken,
+) -> std::io::Result<std::process::ExitStatus> {
+    tokio::select! {
+        biased;
+        s = child.wait() => return s,
+        _ = EXITING.cancelled() => {}
+        _ = tokio::time::sleep(CLOSE_GRACE) => {}
+    }
+    terminate(child);
+    if cfg!(unix) {
+        forward.cancel();
+    }
+    let exit_deadline = async {
+        EXITING.cancelled().await;
+        tokio::time::sleep(EXIT_KILL_GRACE).await;
+    };
+    tokio::select! {
+        biased;
+        s = child.wait() => return s,
+        _ = tokio::time::sleep(KILL_GRACE) => {}
+        _ = exit_deadline => {}
+    }
+    let _ = child.start_kill();
+    forward.cancel();
+    child.wait().await
+}
+
 #[cfg(unix)]
 fn terminate(child: &mut Child) {
     if let Some(pid) = child.id() {
@@ -613,10 +691,9 @@ fn terminate(child: &mut Child) {
     }
 }
 
+/// The SDK sends no SIGTERM on Windows: only the kill, [`KILL_GRACE`] later.
 #[cfg(not(unix))]
-fn terminate(child: &mut Child) {
-    let _ = child.start_kill();
-}
+fn terminate(_child: &mut Child) {}
 
 fn exit_info(s: &std::process::ExitStatus) -> ExitInfo {
     if let Some(c) = s.code() {
@@ -715,12 +792,26 @@ impl QueryHandle {
         }
     }
 
-    /// Abort: cancel in-flight callbacks, close stdin, terminate the process.
+    /// Abort (the SDK's `abortController.abort()`, what a session's `end()`
+    /// does): cancel in-flight callbacks, end stdin, and arm the close timer
+    /// ([`CLOSE_GRACE`] for the CLI to exit, then SIGTERM, then SIGKILL
+    /// [`KILL_GRACE`] later). Returns once stdin is ended; the stream ends
+    /// when the CLI exits, or at the SIGTERM with
+    /// [`AgentError::AbortedByUser`].
     pub async fn close(&self) {
         self.shared.aborted.cancel();
         self.shared.closed.cancel();
         self.end_input().await;
         self.shared.kill.cancel();
+    }
+
+    /// Break out of the SDK's `for await` (its `return()`), as the one-shot
+    /// callers do: [`close`](Self::close), then wait for the CLI to exit,
+    /// at most [`CLOSE_GRACE`] (the cleanup races `waitForExit()` with
+    /// 2000 ms).
+    pub async fn finish(&self) {
+        self.close().await;
+        let _ = tokio::time::timeout(CLOSE_GRACE, self.wait_exit()).await;
     }
 
     /// Wait for the process to exit.
@@ -1179,7 +1270,7 @@ impl QueryHandle {
                 // lists. The waiter's continuation runs after those
                 // callbacks started, so it is told last.
                 let keep_reading = if waiter.initialize {
-                    self.redeliver_prompts(&resp, tx)
+                    self.redeliver_prompts(&resp)
                 } else {
                     if [
                         "pending_permission_requests",
@@ -1247,11 +1338,7 @@ impl QueryHandle {
     /// iterator before its `catch` runs, so a callback that settles within
     /// those few microtasks is still answered and a slower one is aborted;
     /// here, one that settles on its first poll is answered.
-    fn redeliver_prompts(
-        &self,
-        resp: &Value,
-        tx: &mpsc::UnboundedSender<Result<Value, AgentError>>,
-    ) -> bool {
+    fn redeliver_prompts(&self, resp: &Value) -> bool {
         let (requests, threw) = pending_prompts(resp);
         // The SDK dispatches the whole batch synchronously, and a handler
         // unregisters its id only after an `await`, so an id listed twice
@@ -1270,7 +1357,7 @@ impl QueryHandle {
         match threw {
             None => true,
             Some(message) => {
-                self.reader_threw(tx, message);
+                self.reader_threw(message);
                 false
             }
         }
@@ -1279,10 +1366,11 @@ impl QueryHandle {
     /// `readMessages`' `catch` for an error thrown while reading (a
     /// `TypeError` from [`pending_prompts`]), and `cleanup(e)`'s synchronous
     /// part: the error (swapped for the last error result's text, like an
-    /// exit error) ends the stream and fails every waiter, and in-flight
-    /// callbacks are aborted (their tokens are children of `closed`). The
-    /// reader task then closes the transport.
-    fn reader_threw(&self, tx: &mpsc::UnboundedSender<Result<Value, AgentError>>, message: String) {
+    /// exit error) fails every waiter, and in-flight callbacks are aborted
+    /// (their tokens are children of `closed`). The reader task then closes
+    /// the transport, and ends the stream with the error once the cleanup
+    /// is done.
+    fn reader_threw(&self, message: String) {
         let err = match self.error_result_text() {
             Some(text) => {
                 tracing::debug!("replacing exit error with result text. Original: {message}");
@@ -1298,7 +1386,7 @@ impl QueryHandle {
         for w in waiters {
             let _ = w.send(Err(err.duplicate()));
         }
-        let _ = tx.send(Err(err));
+        *self.shared.thrown.lock().unwrap() = Some(err);
         self.shared.closed.cancel();
     }
 
@@ -1633,6 +1721,17 @@ impl QueryHandle {
         } else {
             self.exit_error(read_error, info).await
         };
+        self.finish_cleanup(tx, err);
+    }
+
+    /// The reader is done (`cleanup(err)`): every waiter fails with `err`
+    /// (or `QueryClosed` without one), in-flight callbacks are aborted, and
+    /// the stream ends with `err`.
+    fn finish_cleanup(
+        &self,
+        tx: &mpsc::UnboundedSender<Result<Value, AgentError>>,
+        err: Option<AgentError>,
+    ) {
         let waiters: Vec<_> = {
             let mut pending = self.shared.pending.lock().unwrap();
             self.shared.cleaned_up.store(true, Ordering::Release);

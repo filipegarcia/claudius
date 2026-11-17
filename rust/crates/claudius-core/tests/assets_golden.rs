@@ -290,7 +290,7 @@ fn replays_the_store_list_and_ingest_sequence() {
                 let out = record_send_uses(
                     &cwd,
                     &s("sessionId"),
-                    &s("messageUuid"),
+                    &json!(s("messageUuid")),
                     num(&op["occurredMs"]),
                     &images,
                 );

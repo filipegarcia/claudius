@@ -17,7 +17,9 @@
 //!   (the Claudius state root, not the CLI's config dir, as in TS) and
 //!   ingests every base64 `image` block of the user messages. A file's
 //!   `(mtimeMs, size)` is kept in `schema_meta` so an unchanged file is
-//!   skipped next time.
+//!   skipped next time. A transcript whose `readFile` rejects (node's size
+//!   and string-length limits too, [`Limits`]) is logged, and its cursor
+//!   still moves on.
 //!
 //! Values reach SQLite as better-sqlite3 binds them: every number a REAL
 //! (the INTEGER columns store whole ones as integers).
@@ -28,6 +30,7 @@ use serde_json::{Map, Value, json};
 use crate::db::{Mode, open_db};
 use crate::image_size::{Dim, image_size};
 use crate::js_date::date_parse;
+use crate::session_search::{Limits, ReadError};
 use crate::{asset_store, js_num, js_params, log, node_path, paths, sql_text};
 
 /// `IngestUseResult`.
@@ -185,11 +188,13 @@ const USE: &str =
 
 /// `recordSendUses({cwd, sessionId, messageUuid, occurredMs, images})`: one
 /// result per image that made it in. An image without a numeric `ordinal`
-/// is its 1-based position.
+/// is its 1-based position. `message_uuid` is the JS value the `input`
+/// route got: its `asset_uses` row binds as better-sqlite3 binds it, so a
+/// boolean or an object skips the image after its `assets` upsert (S29a).
 pub fn record_send_uses(
     cwd: &str,
     session_id: &str,
-    message_uuid: &str,
+    message_uuid: &Value,
     occurred_ms: f64,
     images: &[Value],
 ) -> Vec<IngestUseResult> {
@@ -250,10 +255,15 @@ pub fn record_send_uses(
                     occurred_ms,
                 ],
             )?;
-            let used = c.execute(
-                USE,
-                js_params![written.hash, session_id, message_uuid, ordinal, occurred_ms],
-            )?;
+            let mut st = c.prepare(USE)?;
+            let args = [
+                json!(written.hash),
+                json!(session_id),
+                message_uuid.clone(),
+                json!(ordinal),
+                json!(occurred_ms),
+            ];
+            let used = st.execute(sql_text::js_args(&st, &args)?)?;
             Ok((upserted, used))
         });
         match rows {
@@ -380,7 +390,7 @@ pub fn backfill_project_with(cwd: &str, now: &dyn Fn() -> f64) -> anyhow::Result
             progress.scanned += 1;
             continue;
         }
-        match scan_file(cwd, session_id, &path, now) {
+        match scan_file(cwd, session_id, &path, now, Limits::NODE) {
             Ok(n) => progress.ingested += n,
             Err(e) => tracing::warn!(target: log::API, "[asset-ingest] scanFile failed: {e}"),
         }
@@ -390,15 +400,27 @@ pub fn backfill_project_with(cwd: &str, now: &dyn Fn() -> f64) -> anyhow::Result
     Ok(progress)
 }
 
-/// `scanFile`: the images recorded from one transcript.
+/// `scanFile`: the images recorded from one transcript. `Err` is the
+/// rejection of `fs.readFile(path, "utf8")` under `limits`, which
+/// `backfillProject` logs before it moves the cursor on (I27).
 fn scan_file(
     cwd: &str,
     session_id: &str,
     path: &str,
     now: &dyn Fn() -> f64,
-) -> std::io::Result<usize> {
-    let bytes = std::fs::read(path)?;
-    let text = String::from_utf8_lossy(&bytes);
+    limits: Limits,
+) -> Result<usize, ReadError> {
+    // `fs.readFile(path, "utf8")` then `buf.split("\n")`: the whole file,
+    // not `jsonlLines`.
+    let file = std::fs::File::open(path).map_err(|e| {
+        ReadError::Fs(crate::node_fs::uv_exception(
+            &e,
+            "open",
+            Some(std::path::Path::new(path)),
+            None,
+        ))
+    })?;
+    let text = limits.read_utf8(file)?;
     let mut count = 0;
     for line in text.split('\n') {
         if !line.starts_with('{') {
@@ -456,7 +478,7 @@ fn scan_file(
             continue;
         }
         let occurred = if ts.is_finite() { ts } else { now() };
-        count += record_send_uses(cwd, session_id, &message_uuid, occurred, &images).len();
+        count += record_send_uses(cwd, session_id, &json!(message_uuid), occurred, &images).len();
     }
     Ok(count)
 }
@@ -473,5 +495,78 @@ mod tests {
         assert_eq!(buffer_from_base64("-_"), [0xfb]);
         assert_eq!(buffer_from_base64("Q"), b"");
         assert_eq!(buffer_from_base64(""), b"");
+    }
+
+    /// `scanFile` reads as node's `readFile(path, "utf8")` does: a text past
+    /// the limits is the `RangeError` `backfillProject` logs (and then moves
+    /// the cursor on). The lines hold no image, so nothing is written; `now`
+    /// runs once per user line read.
+    #[test]
+    fn scan_file_rejects_what_node_cannot_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let line = b"{\"type\":\"user\",\"message\":{\"content\":[]}}\n";
+        // Two user lines, then `fill` ten times.
+        let count = |b: &[u8]| String::from_utf8_lossy(b).encode_utf16().count();
+        let put = |name: &str, fill: &[u8]| {
+            let bytes = [&line[..], &line[..], &fill.repeat(10)].concat();
+            let p = dir.path().join(name).to_string_lossy().into_owned();
+            std::fs::write(&p, &bytes).unwrap();
+            (p, bytes.len() as u64, count(&bytes))
+        };
+        let calls = std::cell::Cell::new(0);
+        let now = || {
+            calls.set(calls.get() + 1);
+            0.0
+        };
+        let scan = |path: &str, io_max, max_units| {
+            calls.set(0);
+            let got = scan_file("/i27", "s", path, &now, Limits { io_max, max_units });
+            (got.map_err(|e| e.to_string()), calls.get())
+        };
+        let too_long = (Err("RangeError: Invalid string length".to_owned()), 0);
+        // ASCII, 4-, 3- and 2-byte characters, and invalid bytes (a
+        // surrogate's 3 bytes are 3 units, `ff` one).
+        for (fill, units) in [
+            (&b" "[..], 1),
+            ("\u{1f600}".as_bytes(), 2),
+            ("\u{20ac}".as_bytes(), 1),
+            ("\u{e9}".as_bytes(), 1),
+            (&b"\xed\xa0\x80"[..], 3),
+            (&b"\xff"[..], 1),
+        ] {
+            let (p, len, n) = put("at.jsonl", fill);
+            assert_eq!(n, 2 * line.len() + 10 * units, "{fill:?}");
+            assert_eq!(scan(&p, len, n), (Ok(0), 2), "{fill:?}");
+            assert_eq!(scan(&p, len, n - 1), too_long, "{fill:?}");
+        }
+        let (p, len, _) = put("big.jsonl", "\u{20ac}".as_bytes());
+        assert_eq!(scan(&p, len, 1 << 20), (Ok(0), 2));
+        assert_eq!(
+            scan(&p, len - 1, 1 << 20),
+            (
+                Err(format!(
+                    "RangeError [ERR_FS_FILE_TOO_LARGE]: File size ({len}) is greater than 2 GiB"
+                )),
+                0
+            )
+        );
+        let missing = dir.path().join("gone.jsonl").to_string_lossy().into_owned();
+        assert_eq!(
+            scan(&missing, 100, 100),
+            (
+                Err(format!(
+                    "Error: ENOENT: no such file or directory, open '{missing}'"
+                )),
+                0
+            )
+        );
+        let folder = dir.path().to_string_lossy().into_owned();
+        assert_eq!(
+            scan(&folder, 100, 100),
+            (
+                Err("Error: EISDIR: illegal operation on a directory, read".to_owned()),
+                0
+            )
+        );
     }
 }

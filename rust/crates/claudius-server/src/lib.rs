@@ -15,6 +15,7 @@ pub mod customize;
 pub mod dev;
 pub mod docker;
 pub mod doctor;
+pub mod drain;
 pub mod feedback;
 pub mod files_preview;
 pub mod fs_routes;
@@ -156,6 +157,7 @@ pub fn app(state: AppState) -> Router {
         // The one fallback: page rules (N02), which pass everything else on to
         // the Next proxy. A second `.fallback` would replace this one.
         .fallback(pages::handler)
+        .layer(axum::middleware::map_request(drain::unread_bodies))
         .layer(DefaultBodyLimit::max(256 * 1024 * 1024))
         .with_state(state)
 }

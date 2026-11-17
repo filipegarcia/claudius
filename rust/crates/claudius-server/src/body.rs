@@ -250,13 +250,7 @@ pub fn js_member<'a>(body: &'a Value, key: &str) -> Result<Option<&'a Value>, Re
 /// `false`, `0`, `NaN` and `""` are falsy; everything else (incl. `[]`, `{}`,
 /// `"0"`) is truthy.
 pub fn js_truthy(v: Option<&Value>) -> bool {
-    match v {
-        None | Some(Value::Null) => false,
-        Some(Value::Bool(b)) => *b,
-        Some(Value::Number(n)) => n.as_f64().is_some_and(|f| f != 0.0 && !f.is_nan()),
-        Some(Value::String(s)) => !s.is_empty(),
-        Some(Value::Array(_) | Value::Object(_)) => true,
-    }
+    v.is_some_and(claudius_agent::js::truthy)
 }
 
 /// `let v = tri!(expr);`: unwrap an `Ok`, or return the `Err` as a response.

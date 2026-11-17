@@ -262,11 +262,6 @@ pub fn matches_json(matches: &[ContentMatch]) -> String {
     out
 }
 
-/// `s.length`.
-fn len16(s: &str) -> usize {
-    s.encode_utf16().count()
-}
-
 /// The matching lines of one file's `content` (`split(/\r?\n/)`): the
 /// first hit of `needle` (`q`, lowercased unless `case_sensitive`) in the
 /// line (lowercased likewise), with 1-based UTF-16 columns whose end adds
@@ -282,8 +277,10 @@ pub fn match_lines(
     case_sensitive: bool,
     matches: &mut Vec<ContentMatch>,
 ) -> bool {
-    let q_len = len16(q) as i64;
-    let needle_len = len16(needle) as i64;
+    // `.length`: these are plain strings (a U+10F800–U+10FFFF character is
+    // two units), so not `js_string::len16`, which counts a stand-in as one.
+    let q_len = q.encode_utf16().count() as i64;
+    let needle_len = needle.encode_utf16().count() as i64;
     let mut lines: Vec<&str> = content.split('\n').collect();
     let last = lines.len() - 1;
     for l in &mut lines[..last] {
@@ -301,7 +298,7 @@ pub fn match_lines(
         let Some(at) = hay.find(needle) else {
             continue;
         };
-        let idx = len16(&hay[..at]) as i64;
+        let idx = hay[..at].encode_utf16().count() as i64;
         let units: Vec<u16> = line.encode_utf16().collect();
         let m = if units.len() > CONTENT_LINE_SNIPPET {
             let half = (CONTENT_LINE_SNIPPET as i64 - needle_len).div_euclid(2);

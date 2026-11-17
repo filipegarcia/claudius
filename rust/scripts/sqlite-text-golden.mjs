@@ -35,8 +35,11 @@
 //   surrogates), `other stores` (session-usage-db.ts, session-tasks-db.ts,
 //   loop-ticks-db.ts, feedback-store.ts, mcp-needs-auth-db.ts,
 //   mcp-disconnected-db.ts, db-agents.ts, sessions-db.ts's
-//   `getSessionAccountsByCwd`) and `foreign` (raw SQL writes invalid UTF-8 into TEXT
-//   columns, read back through the stores).
+//   `getSessionAccountsByCwd`), `foreign` (raw SQL writes invalid UTF-8 into TEXT
+//   columns, read back through the stores), `asset cursor` and `odd types`
+//   (S29a: a `uuid` / `text` of every JSON type, as `POST /input` hands
+//   them to queued-messages-db.ts, goal-messages-db.ts,
+//   suggested-messages-db.ts and `recordSendUses`).
 //
 // Written to rust/crates/claudius-core/tests/fixtures/sqlite_text_golden.json;
 // replayed by crates/claudius-core/tests/sqlite_text_golden.rs, which runs
@@ -136,6 +139,7 @@ const lib = (p) => import(join(repo, "lib/server", p));
 const sessionsDb = await lib("sessions-db.ts");
 const drafts = await lib("prompt-drafts-db.ts");
 const goals = await lib("goal-messages-db.ts");
+const suggested = await lib("suggested-messages-db.ts");
 const notifs = await lib("notifications-db.ts");
 const queue = await lib("queued-messages-db.ts");
 const ingest = await lib("asset-ingest.ts");
@@ -225,6 +229,8 @@ const OPS = {
   clearPromptDraft: (cwd, id) => drafts.clearPromptDraft(cwd, id),
   recordGoalMessage: (cwd, input) => goals.recordGoalMessage(cwd, input),
   listGoalMessageUuids: (cwd, id) => goals.listGoalMessageUuids(cwd, id),
+  recordSuggestedMessage: (cwd, input) => suggested.recordSuggestedMessage(cwd, input),
+  listSuggestedMessageUuids: (cwd, id) => suggested.listSuggestedMessageUuids(cwd, id),
   insertNotification: (cwd, ws, input) => notifs.insertNotification(cwd, ws, input),
   listNotifications: (cwd, ws, opts) => notifs.listNotifications(cwd, ws, opts),
   getNotification: (cwd, ws, id) => notifs.getNotification(cwd, ws, id),
@@ -631,6 +637,53 @@ await scenario("asset cursor", "/b/w", [], async (run, toReads) => {
   );
   await toReads();
 });
+
+// S29a: `POST /input` hands a posted `uuid` / `text` of any JSON type to the
+// stores as it is. better-sqlite3 binds a number as a REAL (a TEXT column
+// holds 7 as "7.0", and a lookup with 7 finds that row), spreads an array
+// into the parameters that follow, binds a plain object as named parameters
+// (there are none, so the values fall short) and throws on a boolean, or on
+// an array or object inside an array. A falsy uuid records no provenance
+// (`recordSendUses` doesn't check). A NULL uuid (`[null]`) matches no
+// lookup, so `popHead` hands its row back without deleting it.
+const ODD = [7, 1.5, 1e21, 0, "", true, false, null, {}, { a: 1 }, [], ["a"], ["a", "b"], [["a"]], [{}], [1], [null], [true]];
+const GIF = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+await scenario(
+  "odd types",
+  "/o/w",
+  ["queued_messages", "goal_messages", "suggested_messages", "assets", "asset_uses"],
+  async (run, toReads) => {
+    const cwd = "/o/w";
+    for (const [i, v] of ODD.entries()) {
+      await run("enqueueTail", cwd, { sessionId: "su", uuid: v, text: `t${i}` });
+      await run("enqueueTail", cwd, { sessionId: "st", uuid: `t${i}`, text: v });
+      await run("recordGoalMessage", cwd, { sessionId: "sg", messageUuid: v, text: `g${i}` });
+      await run("recordSuggestedMessage", cwd, { sessionId: "ss", messageUuid: `s${i}`, text: v });
+      await run("recordSendUses", {
+        cwd,
+        sessionId: "sa",
+        messageUuid: v,
+        occurredMs: 7000 + i,
+        images: [{ data: GIF, mediaType: "image/gif" }],
+      });
+    }
+    // Two objects; and a value past the last parameter is checked for its
+    // type first.
+    await run("enqueueTail", cwd, { sessionId: "su", uuid: {}, text: { a: 1 } });
+    for (const v of ["7", 7, "7.0", "1.5", 1e21, ["a"], [1], 0, null, true, {}, [], ["a", "b"], ["a", true], [["a"]]]) {
+      await run("popByUuid", cwd, "su", v);
+    }
+    // The "" row first; then the NULL rows, whose delete (`uuid = NULL`)
+    // spares another session's "" row.
+    await run("popHead", cwd, "su");
+    await run("enqueueTail", cwd, { sessionId: "sx", uuid: "", text: "kept" });
+    for (let i = 0; i < 3; i++) await run("popHead", cwd, "su");
+    await toReads();
+    for (const sid of ["su", "st", "sx"]) await run("listQueue", cwd, sid);
+    await run("listGoalMessageUuids", cwd, "sg");
+    await run("listSuggestedMessageUuids", cwd, "ss");
+  },
+);
 
 writeFileSync(
   join(ROOT_DIR, "out.json"),

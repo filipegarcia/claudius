@@ -497,14 +497,14 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
     // `req.json().catch(() => null)`, checked before any restart below, so an
     // empty (or cross-origin) POST can't spawn a CLI just to be told 400.
     let b = JsonBody::lenient(&body, Value::Null);
-    let text = b["text"].as_str().unwrap_or("").to_owned();
+    let has_text = b["text"].as_str().is_some_and(|t| !t.is_empty());
     // `body.images` goes on as posted; `hasImages` is a non-empty array.
     let images = b.get("images");
     let has_images = images
         .and_then(Value::as_array)
         .is_some_and(|a| !a.is_empty());
     // `if (!body || (!hasText && !hasImages))`: a falsy body is a 400 too.
-    if !js_truthy(Some(&b)) || (text.is_empty() && !has_images) {
+    if !js_truthy(Some(&b)) || (!has_text && !has_images) {
         return err(StatusCode::BAD_REQUEST, "text or images required");
     }
     // CC 2.1.311 — the CLI ended on its own (a crash, a non-zero exit):
@@ -516,10 +516,14 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
         Ok(live) => live.session,
         Err(reason) => return dead_session(&reason),
     };
-    let uuid = b["uuid"]
-        .as_str()
-        .map(str::to_owned)
-        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    // `body.uuid ?? randomUUID()` and `body.text ?? ""`: what was posted, of
+    // any type, goes everywhere TS hands it (S29a).
+    let nullish = |k: &str, or: fn() -> Value| match &b[k] {
+        Value::Null => or(),
+        v => v.clone(),
+    };
+    let uuid = nullish("uuid", || json!(uuid::Uuid::new_v4().to_string()));
+    let text = nullish("text", || json!(""));
     // `if (body.flag)`: JS truthiness (`0` and `""` are false too).
     let truthy = |k: &str| js_truthy(b.get(k));
     // Best-effort provenance bookkeeping: a failure never fails the send.
@@ -555,7 +559,7 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
             truthy("fromSuggestion"),
             truthy("fromGoal"),
         ) {
-            Ok(_) => ok(json!({"ok": true, "queued": true, "uuid": uuid})),
+            Ok(_) => js_ok(&json!({"ok": true, "queued": true, "uuid": uuid})),
             Err(_) => crate::body::thrown(),
         };
     }
@@ -569,7 +573,8 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
                 .collect()
         })
         .unwrap_or_default();
-    // `sendInput` throws (V8's TypeError) on images it can't iterate.
+    // `sendInput` throws (V8's TypeError) on images it can't iterate, or on
+    // a `text` that isn't a string.
     let sent = s.send_input_value(
         &text,
         images,
@@ -584,7 +589,7 @@ async fn input(State(app): State<AppState>, Path(id): Path<String>, body: Bytes)
         tracing::error!(target: log::API, "[input] {e}");
         return crate::body::thrown();
     }
-    ok(json!({"ok": true, "queued": false, "uuid": uuid}))
+    js_ok(&json!({"ok": true, "queued": false, "uuid": uuid}))
 }
 
 async fn interrupt(State(app): State<AppState>, Path(id): Path<String>) -> Response {
@@ -1357,7 +1362,7 @@ async fn queue_send_now(
         Err(reason) => return dead_session(&reason),
     };
     // `sendQueuedNow` throws on a database error or images it can't send.
-    let Ok(dispatched) = s.send_queued_now(&uuid, false) else {
+    let Ok(dispatched) = s.send_queued_now(&json!(uuid), false) else {
         return crate::body::thrown();
     };
     ok(json!({"ok": true, "dispatched": dispatched}))
@@ -1375,14 +1380,14 @@ async fn queue_send_all(State(app): State<AppState>, Path(id): Path<String>) -> 
         if item["slash"] == true {
             join_running_turn = false;
         }
-        let uuid = item["uuid"].as_str().unwrap_or("").to_owned();
-        match s.send_queued_now(&uuid, join_running_turn) {
-            Ok(true) => dispatched.push(uuid),
+        // `item.uuid` as the queue holds it, of any type (S29a).
+        match s.send_queued_now(&item["uuid"], join_running_turn) {
+            Ok(true) => dispatched.push(item["uuid"].clone()),
             Ok(false) => {}
             Err(_) => return crate::body::thrown(),
         }
     }
-    ok(json!({"ok": true, "dispatched": dispatched}))
+    js_ok(&json!({"ok": true, "dispatched": dispatched}))
 }
 
 // ─────────────────────── per-session disk-backed state ───────────────────────

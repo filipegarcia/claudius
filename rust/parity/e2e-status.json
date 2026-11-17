@@ -1,15 +1,29 @@
 {
  "totals": {
-  "expected": 373,
-  "skipped": 7,
-  "unexpected": 1
+  "expected": 449,
+  "unexpected": 3,
+  "skipped": 7
  },
  "failures": [
   {
-   "file": "notifications.spec.ts",
-   "title": "Notifications pipeline \u203a Session.broadcast still calls the bus (no HMR regression)",
-   "cat": "behavior",
-   "error": "Error: broadcast-driven row never landed in the inbox",
+   "file": "cc-parity-2.1.222-diff-raw-content.spec.ts",
+   "title": "Git diff view ignores workspace textconv drivers (CC 2.1.222 parity) \u203a a deleted file's diff shows the real removed line, not the textconv driver's output",
+   "cat": "pre-existing",
+   "error": "Error: expect(locator).toBeVisible() failed",
+   "api": []
+  },
+  {
+   "file": "whats-new.spec.ts",
+   "title": "What's new \u203a Got it closes the window",
+   "cat": "pre-existing",
+   "error": "Test timeout of 60000ms exceeded.",
+   "api": []
+  },
+  {
+   "file": "whats-new.spec.ts",
+   "title": "What's new \u203a version label opens the window; history page lists every release",
+   "cat": "pre-existing",
+   "error": "Test timeout of 60000ms exceeded.",
    "api": []
   }
  ]

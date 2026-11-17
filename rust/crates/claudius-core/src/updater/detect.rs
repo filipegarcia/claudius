@@ -1,5 +1,5 @@
 //! `lib/server/updater/detect.ts`: the background check behind
-//! `POST /api/updater/check` (and, from D27b, the scheduler).
+//! `POST /api/updater/check`, the apply and the scheduler.
 //!
 //! Single flight: two callers racing (the boot tick, the daily timer, a UI
 //! click) share one run, so they can't fetch twice and clobber each other's
@@ -200,6 +200,7 @@ async fn check_body(root: &str, settings: &UpdaterSettings) -> Result<CheckResul
             pending: Some(None),
             conflicts: (!has_conflict).then_some(None),
             status: Some(settings::idle()),
+            ..Default::default()
         })
         .map_err(|e| e.message)?;
         return Ok(CheckResult::UpToDate {
@@ -227,6 +228,7 @@ async fn check_body(root: &str, settings: &UpdaterSettings) -> Result<CheckResul
         pending: Some(Some(pending.clone())),
         conflicts: (!has_conflict).then_some(None),
         status: Some(settings::idle()),
+        ..Default::default()
     })
     .map_err(|e| e.message)?;
 

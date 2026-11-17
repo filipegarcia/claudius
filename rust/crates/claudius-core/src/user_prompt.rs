@@ -9,24 +9,34 @@ use serde_json::Value;
 pub const COMPACT_SUMMARY_PREFIX: &str =
     "This session is being continued from a previous conversation";
 
+/// JS `\s` (no U+0085, plus U+FEFF), which the regex crate's `\s` isn't.
+const JS_SPACE: &str = r"[\t\n\x0b\x0c\r \x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}\x{feff}]";
 static TASK_NOTIFICATION: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*<task-notification[\s>]").unwrap());
+    LazyLock::new(|| Regex::new(&r"^\s*<task-notification[\s>]".replace(r"\s", JS_SPACE)).unwrap());
+/// `/^\s*<(?:command-name|…)[\s>]/i`. Without the `u` flag `/i` folds
+/// ASCII only (`ſ` is not `s`, `K` not `k`), so the lowercase pattern runs
+/// on the ASCII-lowercased text.
 static CLI_PLUMBING: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)^\s*<(?:command-name|command-message|command-args|local-command-stdout|local-command-stderr|local-command-caveat)[\s>]").unwrap()
+    Regex::new(&r"^\s*<(?:command-name|command-message|command-args|local-command-stdout|local-command-stderr|local-command-caveat)[\s>]".replace(r"\s", JS_SPACE)).unwrap()
 });
-static GOAL_REMINDER: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*<session-goal>[\s\S]*?</session-goal>\s*").unwrap());
-static SYSTEM_REMINDER_LEADING: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*<system-reminder>([\s\S]*?)</system-reminder>\s*").unwrap());
+static GOAL_REMINDER: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(&r"^\s*<session-goal>(?s:.)*?</session-goal>\s*".replace(r"\s", JS_SPACE)).unwrap()
+});
+static SYSTEM_REMINDER_LEADING: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(&r"^\s*<system-reminder>((?s:.)*?)</system-reminder>\s*".replace(r"\s", JS_SPACE))
+        .unwrap()
+});
 
 fn is_task_notification(t: &str) -> bool {
     TASK_NOTIFICATION.is_match(t)
 }
 fn is_compact_summary(t: &str) -> bool {
-    t.trim_start().starts_with(COMPACT_SUMMARY_PREFIX)
+    // `trimStart()`: JS whitespace, not Rust's.
+    t.trim_start_matches(claudius_agent::js::is_whitespace)
+        .starts_with(COMPACT_SUMMARY_PREFIX)
 }
 fn is_cli_plumbing(t: &str) -> bool {
-    CLI_PLUMBING.is_match(t)
+    CLI_PLUMBING.is_match(&t.to_ascii_lowercase())
 }
 
 pub fn strip_goal_reminder(text: &str) -> String {
@@ -37,7 +47,7 @@ pub fn split_leading_system_reminders(text: &str) -> (Vec<String>, String) {
     let mut reminders = Vec::new();
     let mut rest = text.to_owned();
     while let Some(c) = SYSTEM_REMINDER_LEADING.captures(&rest) {
-        reminders.push(c[1].trim().to_owned());
+        reminders.push(claudius_agent::js::trim(&c[1]).to_owned());
         let end = c.get(0).unwrap().end();
         rest = rest[end..].to_owned();
     }

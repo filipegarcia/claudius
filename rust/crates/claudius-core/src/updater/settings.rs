@@ -57,6 +57,11 @@ pub struct UpdaterState {
     pub conflicts: Option<Value>,
     pub recovery: Option<Value>,
     pub status: Value,
+    /// The state is `defaultFile()`'s `{ status }` (no file, or one that
+    /// can't be read or isn't an object or array), so a patch spread over
+    /// it writes `status` first; `normalize` builds every member in order,
+    /// `status` last.
+    pub status_first: bool,
 }
 
 /// `UpdaterFile`.
@@ -95,6 +100,7 @@ impl Default for UpdaterState {
             conflicts: None,
             recovery: None,
             status: idle(),
+            status_first: true,
         }
     }
 }
@@ -113,9 +119,14 @@ impl UpdaterSettings {
 
 impl UpdaterState {
     /// The state as `JSON.stringify` writes it: `undefined` members are
-    /// left out, the rest keep `normalize`'s order.
+    /// left out, the rest keep `normalize`'s order (or, see
+    /// [`Self::status_first`], `status` first; every patch lists its
+    /// members in `normalize`'s order).
     pub fn to_json(&self) -> Value {
         let mut m = Map::new();
+        if self.status_first {
+            m.insert("status".into(), self.status.clone());
+        }
         if let Some(n) = self.last_check_at {
             m.insert("lastCheckAt".into(), js_num(n));
         }
@@ -233,6 +244,7 @@ pub fn normalize(parsed: Option<&Js>) -> UpdaterFile {
             conflicts: object(field("conflicts")),
             recovery: object(field("recovery")),
             status,
+            status_first: false,
         },
     }
 }
@@ -349,9 +361,12 @@ pub fn patch_updater_settings(patch: &SettingsPatch) -> Result<UpdaterSettings, 
 #[derive(Clone, Debug, Default)]
 pub struct StatePatch {
     pub last_check_at: Option<Option<f64>>,
+    pub last_update_at: Option<Option<f64>>,
+    pub last_update_sha: Option<Option<String>>,
     pub last_error: Option<Option<String>>,
     pub pending: Option<Option<Value>>,
     pub conflicts: Option<Option<Value>>,
+    pub recovery: Option<Option<Value>>,
     pub status: Option<Value>,
 }
 
@@ -362,6 +377,12 @@ pub fn patch_updater_state(patch: &StatePatch) -> Result<UpdaterState, node_fs::
     if let Some(v) = &patch.last_check_at {
         file.state.last_check_at = *v;
     }
+    if let Some(v) = &patch.last_update_at {
+        file.state.last_update_at = *v;
+    }
+    if let Some(v) = &patch.last_update_sha {
+        file.state.last_update_sha = v.clone();
+    }
     if let Some(v) = &patch.last_error {
         file.state.last_error = v.clone();
     }
@@ -370,6 +391,9 @@ pub fn patch_updater_state(patch: &StatePatch) -> Result<UpdaterState, node_fs::
     }
     if let Some(v) = &patch.conflicts {
         file.state.conflicts = v.clone();
+    }
+    if let Some(v) = &patch.recovery {
+        file.state.recovery = v.clone();
     }
     if let Some(v) = &patch.status {
         file.state.status = v.clone();
@@ -391,6 +415,25 @@ pub fn set_updater_status(status: Value) -> Result<(), node_fs::FsError> {
 pub fn checking(started_at: i64) -> Value {
     let mut m = Map::new();
     m.insert("kind".into(), Value::String("checking".into()));
+    m.insert("startedAt".into(), js_num(started_at as f64));
+    Value::Object(m)
+}
+
+/// `{ kind: "applying", startedAt, strategy }` (`strategy` as the apply
+/// has it: a resumed run takes whatever the recorded conflicts' `origin`
+/// was).
+pub fn applying(started_at: i64, strategy: Value) -> Value {
+    let mut m = Map::new();
+    m.insert("kind".into(), Value::String("applying".into()));
+    m.insert("startedAt".into(), js_num(started_at as f64));
+    m.insert("strategy".into(), strategy);
+    Value::Object(m)
+}
+
+/// `{ kind: "restarting", startedAt }`.
+pub fn restarting(started_at: i64) -> Value {
+    let mut m = Map::new();
+    m.insert("kind".into(), Value::String("restarting".into()));
     m.insert("startedAt".into(), js_num(started_at as f64));
     Value::Object(m)
 }

@@ -9,13 +9,13 @@
 //! nesting depth, `Date` keys in UTC).
 
 use std::io;
-use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use regex::Regex;
 use serde_json::{Map, Value, json};
 
-use crate::{collate, db_agents, paths, yaml};
+use crate::node_path::{join, resolve};
+use crate::{collate, db_agents, node_fs, node_path, paths, yaml};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AgentScope {
@@ -78,63 +78,6 @@ impl AgentFile {
     }
 }
 
-/// `path.posix.normalize(p)`.
-pub fn normalize(p: &str) -> String {
-    if p.is_empty() {
-        return ".".into();
-    }
-    let absolute = p.starts_with('/');
-    let trailing = p.ends_with('/');
-    let mut out: Vec<&str> = Vec::new();
-    for seg in p.split('/') {
-        match seg {
-            "" | "." => {}
-            ".." => {
-                if out.last().is_some_and(|l| *l != "..") {
-                    out.pop();
-                } else if !absolute {
-                    out.push("..");
-                }
-            }
-            s => out.push(s),
-        }
-    }
-    let mut s = out.join("/");
-    if s.is_empty() && !absolute {
-        s = ".".into();
-    }
-    if !s.is_empty() && trailing && s != "." {
-        s.push('/');
-    } else if s == "." && trailing {
-        s = "./".into();
-    }
-    if absolute { format!("/{s}") } else { s }
-}
-
-/// `path.join(...parts)`.
-pub fn join(parts: &[&str]) -> String {
-    let joined = parts
-        .iter()
-        .filter(|p| !p.is_empty())
-        .copied()
-        .collect::<Vec<_>>()
-        .join("/");
-    if joined.is_empty() {
-        ".".into()
-    } else {
-        normalize(&joined)
-    }
-}
-
-/// `path.dirname(p)` for an absolute, normalized path.
-fn dirname(p: &str) -> &str {
-    match p.rfind('/') {
-        Some(0) => "/",
-        Some(i) => &p[..i],
-        None => ".",
-    }
-}
-
 /// `agentsDir(scope, projectCwd)`.
 pub fn agents_dir(scope: AgentScope, project_cwd: &str) -> String {
     match scope {
@@ -144,31 +87,6 @@ pub fn agents_dir(scope: AgentScope, project_cwd: &str) -> String {
             "agents",
         ]),
         AgentScope::Project => join(&[project_cwd, ".claude", "agents"]),
-    }
-}
-
-/// `path.resolve(base, child)` (`base` absolute).
-fn resolve_in(base: &str, child: &str) -> String {
-    let joined = if child.starts_with('/') {
-        child.to_owned()
-    } else {
-        format!("{base}/{child}")
-    };
-    let n = normalize(&joined);
-    if n.len() > 1 {
-        n.trim_end_matches('/').to_owned()
-    } else {
-        n
-    }
-}
-
-/// `path.resolve(p)`.
-fn resolve_abs(p: &str) -> String {
-    if p.starts_with('/') {
-        resolve_in("/", p)
-    } else {
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/"));
-        resolve_in(&cwd.display().to_string(), p)
     }
 }
 
@@ -183,8 +101,8 @@ pub fn agent_path(scope: AgentScope, project_cwd: &str, name: &str) -> Result<St
         return Err(Thrown("invalid agent name".into()));
     }
     // assertWithin(dir, `${name}.md`)
-    let base = resolve_abs(&agents_dir(scope, project_cwd));
-    let child = resolve_in(&base, &format!("{name}.md"));
+    let base = resolve(&[&agents_dir(scope, project_cwd)]);
+    let child = resolve(&[&base, &format!("{name}.md")]);
     if child != base && !child.starts_with(&format!("{base}/")) {
         return Err(Thrown("path escapes base directory".into()));
     }
@@ -196,7 +114,7 @@ pub fn agent_path(scope: AgentScope, project_cwd: &str, name: &str) -> Result<St
 /// unreadable files are skipped. `Err` when `readdir` throws otherwise.
 pub fn list_agents(scope: AgentScope, project_cwd: &str) -> Result<Vec<AgentFile>, Thrown> {
     let dir = agents_dir(scope, project_cwd);
-    let base = resolve_abs(&dir);
+    let base = resolve(&[&dir]);
     let entries = match std::fs::read_dir(&base) {
         Ok(e) => e,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
@@ -215,7 +133,7 @@ pub fn list_agents(scope: AgentScope, project_cwd: &str) -> Result<Vec<AgentFile
             continue;
         }
         let full = join(&[&dir, &filename]);
-        let target = resolve_in(&base, &filename);
+        let target = resolve(&[&base, &filename]);
         if !target.starts_with(&format!("{base}/")) {
             continue;
         }
@@ -244,7 +162,7 @@ pub fn read_agent(
     name: &str,
 ) -> Result<Option<AgentFile>, Thrown> {
     let p = agent_path(scope, project_cwd, name)?;
-    let base = resolve_abs(&agents_dir(scope, project_cwd));
+    let base = resolve(&[&agents_dir(scope, project_cwd)]);
     if !p.starts_with(&format!("{base}/")) {
         return Err(Thrown("path escapes base directory".into()));
     }
@@ -284,7 +202,10 @@ pub fn write_agent(
     name: &Value,
     raw: &str,
 ) -> Result<(), String> {
-    let name_text = db_agents::js_string(name);
+    // `/^[\w.\-]+$/.test(name)`: `String(name)` throws first for an object
+    // with its own `toString`.
+    let name_text = db_agents::js_string(name)
+        .map_err(|_| "Cannot convert object to primitive value".to_owned())?;
     if !is_name(&name_text) {
         return Err("invalid agent name".into());
     }
@@ -313,24 +234,24 @@ pub fn write_agent(
     {
         return Err(too_long);
     }
-    let base = resolve_abs(&agents_dir(scope, project_cwd));
-    let p = resolve_in(&base, &format!("{name_text}.md"));
+    let base = resolve(&[&agents_dir(scope, project_cwd)]);
+    let p = resolve(&[&base, &format!("{name_text}.md")]);
     if p != base && !p.starts_with(&format!("{base}/")) {
         return Err("path escapes base directory".into());
     }
-    mkdir_p(dirname(&p)).map_err(|(errno, at)| node_fs_message(errno, "mkdir", &at))?;
+    node_fs::mkdir_recursive(&node_path::dirname(&p), 0o777).map_err(|e| e.message)?;
     // (the barrier again, at the sink)
     if !p.starts_with(&format!("{base}/")) {
         return Err("path escapes base directory".into());
     }
-    std::fs::write(&p, raw).map_err(|e| node_fs_message(errno_of(&e), "open", &p))?;
+    node_fs::write_file(&p, raw, 0o666).map_err(|e| e.message)?;
     Ok(())
 }
 
 /// `deleteAgent(scope, projectCwd, name)`: whether a file was removed.
 pub fn delete_agent(scope: AgentScope, project_cwd: &str, name: &str) -> Result<bool, Thrown> {
     let p = agent_path(scope, project_cwd, name)?;
-    let base = resolve_abs(&agents_dir(scope, project_cwd));
+    let base = resolve(&[&agents_dir(scope, project_cwd)]);
     if !p.starts_with(&format!("{base}/")) {
         return Err(Thrown("path escapes base directory".into()));
     }
@@ -401,123 +322,9 @@ pub fn parse_frontmatter(raw: &str) -> Parsed {
     }
 }
 
-// ─── node's fs errors ────────────────────────────────────────────────────
-
-fn errno_of(e: &io::Error) -> i32 {
-    e.raw_os_error().unwrap_or(libc::EIO)
-}
-
-/// The `message` of the error node's `fs` throws: `CODE: description,
-/// syscall 'path'` (libuv's names and descriptions).
-pub fn node_fs_message(errno: i32, syscall: &str, path: &str) -> String {
-    let (code, desc) = match errno {
-        libc::EACCES => ("EACCES", "permission denied"),
-        libc::EEXIST => ("EEXIST", "file already exists"),
-        libc::EISDIR => ("EISDIR", "illegal operation on a directory"),
-        libc::ENOTDIR => ("ENOTDIR", "not a directory"),
-        libc::ENOENT => ("ENOENT", "no such file or directory"),
-        libc::ENAMETOOLONG => ("ENAMETOOLONG", "name too long"),
-        libc::EPERM => ("EPERM", "operation not permitted"),
-        libc::ELOOP => ("ELOOP", "too many symbolic links encountered"),
-        libc::EROFS => ("EROFS", "read-only file system"),
-        libc::ENOSPC => ("ENOSPC", "no space left on device"),
-        libc::EMFILE => ("EMFILE", "too many open files"),
-        libc::ENFILE => ("ENFILE", "file table overflow"),
-        libc::EBUSY => ("EBUSY", "resource busy or locked"),
-        libc::EINVAL => ("EINVAL", "invalid argument"),
-        libc::EIO => ("EIO", "i/o error"),
-        libc::EFBIG => ("EFBIG", "file too large"),
-        libc::ETXTBSY => ("ETXTBSY", "text file is busy"),
-        libc::EDQUOT => ("EDQUOT", "disk quota exceeded"),
-        libc::EAGAIN => ("EAGAIN", "resource temporarily unavailable"),
-        libc::ENOMEM => ("ENOMEM", "not enough memory"),
-        _ => {
-            let unknown = format!("Unknown system error -{errno}");
-            return format!("{unknown}: {unknown}, {syscall} '{path}'");
-        }
-    };
-    format!("{code}: {desc}, {syscall} '{path}'")
-}
-
-/// `mkdir(p, { recursive: true })` as node's `MKDirpAsync` runs it, down to
-/// which errno it reports for which path (`ENOTDIR` for a file in the way
-/// of a parent, `EEXIST` for a file at `p` itself).
-pub fn mkdir_p(path: &str) -> Result<(), (i32, String)> {
-    let mut stack = vec![path.to_owned()];
-    while let Some(next) = stack.pop() {
-        let mut err = match std::fs::create_dir(&next) {
-            Ok(()) => 0,
-            Err(e) => errno_of(&e),
-        };
-        loop {
-            match err {
-                0 => {
-                    if stack.is_empty() {
-                        return Ok(());
-                    }
-                }
-                libc::EACCES | libc::ENOSPC | libc::ENOTDIR | libc::EPERM => {
-                    return Err((err, next));
-                }
-                libc::ENOENT => {
-                    let dirname = next
-                        .rfind('/')
-                        .map_or(next.as_str(), |i| &next[..i])
-                        .to_owned();
-                    if dirname != next {
-                        stack.push(next.clone());
-                        stack.push(dirname);
-                    } else if stack.is_empty() {
-                        err = libc::EEXIST;
-                        continue;
-                    }
-                }
-                orig => {
-                    let parent_pending = orig == libc::EEXIST && !stack.is_empty();
-                    match std::fs::metadata(Path::new(&next)) {
-                        Ok(md) if md.is_dir() => {
-                            if !parent_pending {
-                                return Ok(());
-                            }
-                        }
-                        Ok(_) if parent_pending => return Err((libc::ENOTDIR, next)),
-                        Ok(_) => return Err((libc::EEXIST, next)),
-                        Err(_) if parent_pending => return Err((libc::ENOTDIR, next)),
-                        Err(e) => return Err((errno_of(&e), next)),
-                    }
-                }
-            }
-            break;
-        }
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn normalize_follows_path_posix() {
-        for (p, want) in [
-            ("", "."),
-            ("/", "/"),
-            ("//a//b/", "/a/b/"),
-            ("/a/../..", "/"),
-            ("a/../..", ".."),
-            ("./a/./b", "a/b"),
-            ("a/", "a/"),
-            ("./", "./"),
-            ("/x/.claude/agents", "/x/.claude/agents"),
-        ] {
-            assert_eq!(normalize(p), want, "{p:?}");
-        }
-        assert_eq!(join(&["/", ".claude", "agents"]), "/.claude/agents");
-        assert_eq!(
-            join(&["/home/u/", ".claude", "agents"]),
-            "/home/u/.claude/agents"
-        );
-    }
 
     #[test]
     fn frontmatter_delimiters() {
@@ -529,5 +336,58 @@ mod tests {
         assert_eq!(p.body, "---\n---\nbody", "no match: the whole text");
         let p = parse_frontmatter("---\n\n---\rx");
         assert_eq!(p.body, "x");
+    }
+
+    /// `writeAgent` tests the name with `/^[\w.\-]+$/.test(name)`, whose
+    /// `String(name)` throws V8's `TypeError` for an object with an own
+    /// `toString` (the route answers 400 with its message), before any fs
+    /// call; other values are refused by the regex or pass as their text.
+    #[test]
+    fn names_are_tested_through_string() {
+        let cwd = "/nonexistent-i14d-agents";
+        let raw = "---\ndescription: d\n---\nx";
+        for name in [json!({"toString": 1}), json!([{"toString": 1}])] {
+            assert_eq!(
+                write_agent(AgentScope::Project, cwd, &name, raw),
+                Err("Cannot convert object to primitive value".into())
+            );
+        }
+        for name in [json!({"a": 1}), json!([1, null, 2]), json!("../x")] {
+            assert_eq!(
+                write_agent(AgentScope::Project, cwd, &name, raw),
+                Err("invalid agent name".into())
+            );
+        }
+    }
+
+    /// `writeAgent`'s `fs.mkdir(dirname(p), { recursive: true })` and
+    /// `fs.writeFile(p, raw)` create with Node's default modes (0o777 and
+    /// 0o666, less the umask), as a plain `create_dir` / `File::create` do.
+    #[cfg(unix)]
+    #[test]
+    fn writes_with_node_default_modes() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = tempfile::tempdir().unwrap();
+        let cwd = tmp.path().canonicalize().unwrap();
+        let mode =
+            |p: &std::path::Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o7777;
+        std::fs::create_dir(cwd.join("ref-dir")).unwrap();
+        std::fs::File::create(cwd.join("ref-file")).unwrap();
+        let cwd_s = cwd.to_str().unwrap();
+        write_agent(
+            AgentScope::Project,
+            cwd_s,
+            &json!("a"),
+            "---\nname: a\n---\nbody\n",
+        )
+        .unwrap();
+        let dir = cwd.join(".claude/agents");
+        assert_eq!(mode(&cwd.join(".claude")), mode(&cwd.join("ref-dir")));
+        assert_eq!(mode(&dir), mode(&cwd.join("ref-dir")));
+        assert_eq!(mode(&dir.join("a.md")), mode(&cwd.join("ref-file")));
+        assert_eq!(
+            std::fs::read_to_string(dir.join("a.md")).unwrap(),
+            "---\nname: a\n---\nbody\n"
+        );
     }
 }

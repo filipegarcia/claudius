@@ -1,8 +1,7 @@
-//! `lib/server/updater/git.ts`, the parts the five D27a routes need: a
-//! `git` runner aimed at the install root (never a workspace cwd), with
-//! interactive prompts off and the standard install dirs on `PATH`.
-//!
-//! `apply`'s stash / pull / merge helpers stay on Next until D27b.
+//! `lib/server/updater/git.ts`: a `git` runner aimed at the install root
+//! (never a workspace cwd), with interactive prompts off and the standard
+//! install dirs on `PATH`, the read-only helpers the check needs (D27a), and
+//! `apply`'s pull / stash / heal helpers plus `spawnStreamed` (D27b).
 
 use std::path::Path;
 
@@ -275,4 +274,265 @@ pub async fn has_conflicts(cwd: &str) -> bool {
         Ok(false) => !conflicted_files(cwd).await.is_empty(),
         Err(_) => true,
     }
+}
+
+/// `pullFastForward(cwd, remote, branch)`.
+pub async fn pull_fast_forward(
+    cwd: &str,
+    remote: &str,
+    branch: &str,
+) -> Result<(), UpdaterGitError> {
+    git(
+        &["pull", "--ff-only", "--quiet", remote, branch],
+        cwd,
+        PULL_TIMEOUT_MS,
+    )
+    .await
+    .map(|_| ())
+}
+
+/// The label every updater stash carries.
+pub const UPDATER_STASH: &str = "claudius-updater-stash";
+
+/// `stashPushIncludeUntracked(cwd, message)`: `Ok(true)` when the tree's
+/// changes (tracked and untracked) went onto the stash. First, the tracked
+/// part of every earlier `claudius-updater-stash` entry is put back and the
+/// entry dropped (best effort), so the new stash takes it along. A clean
+/// tree stashes nothing. A blocked push is retried once after
+/// [`clear_in_progress_merge_state`] (non-destructive: nothing is reset
+/// `--hard` or cleaned). A tree still dirty after the push stashed nothing.
+pub async fn stash_push_include_untracked(
+    cwd: &str,
+    message: &str,
+) -> Result<bool, UpdaterGitError> {
+    let _ = recover_updater_stashes(cwd).await;
+    if !is_dirty(cwd).await? {
+        return Ok(false);
+    }
+    let push = ["stash", "push", "-u", "-m", message];
+    if git(&push, cwd, DEFAULT_TIMEOUT_MS * 2).await.is_err() {
+        clear_in_progress_merge_state(cwd).await;
+        if !is_dirty(cwd).await? {
+            return Ok(false);
+        }
+        git(&push, cwd, DEFAULT_TIMEOUT_MS * 2).await?;
+    }
+    Ok(!is_dirty(cwd).await?)
+}
+
+/// `clearInProgressMergeState(cwd)`: abort a merge / rebase / cherry-pick /
+/// revert in progress (each a no-op that fails when there is none), then,
+/// if unmerged index entries are left, a mixed `git reset --quiet`. File
+/// content on disk is never touched. Never fails.
+pub async fn clear_in_progress_merge_state(cwd: &str) {
+    for op in ["merge", "rebase", "cherry-pick", "revert"] {
+        let _ = run(&[op, "--abort"], cwd).await;
+    }
+    if has_unmerged_files(cwd).await.unwrap_or(false) {
+        let _ = run(&["reset", "--quiet"], cwd).await;
+    }
+}
+
+/// `recoverUpdaterStashes(cwd)`: for each `claudius-updater-stash` entry,
+/// highest index first, `git stash apply` it and drop it. An apply that
+/// exits 1 with unmerged entries left (a real conflict, or a check that
+/// failed) keeps its entry; any other failed apply keeps it too, and a
+/// failed drop is ignored. `Err` is a `stash list` that failed.
+async fn recover_updater_stashes(cwd: &str) -> Result<(), UpdaterGitError> {
+    let out = run(&["stash", "list", "--format=%gd %s"], cwd).await?;
+    let mut entries: Vec<&str> = out
+        .stdout
+        .split('\n')
+        .filter(|l| l.contains(UPDATER_STASH))
+        .map(|l| l.split(' ').next().unwrap_or(""))
+        .filter(|r| !r.is_empty())
+        .collect();
+    entries.reverse();
+    for reference in entries {
+        let applied = match git(&["stash", "apply", reference], cwd, DEFAULT_TIMEOUT_MS * 2).await {
+            Ok(_) => true,
+            // Exit 1 and nothing unmerged: the changes were already there.
+            Err(e) if e.exit_code == Some(1) => !has_unmerged_files(cwd).await.unwrap_or(true),
+            Err(_) => false,
+        };
+        if applied {
+            let _ = git(&["stash", "drop", reference], cwd, DEFAULT_TIMEOUT_MS).await;
+        }
+    }
+    Ok(())
+}
+
+/// What [`stash_pop`] answers when it doesn't fail.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum StashPop {
+    Ok,
+    /// Real merge conflicts: the entry stays on the stash.
+    Conflicts {
+        output: String,
+    },
+}
+
+/// `stashPop(cwd)`. Exit 1 with unmerged entries (or a check that fails) is
+/// a real conflict, with git's stderr (else the error's message), trimmed.
+/// Exit 1 with none is the "already exists, no checkout" false conflict
+/// that `recoverFalseConflictPop` repairs. Any other failure is `Err`.
+pub async fn stash_pop(cwd: &str) -> Result<StashPop, UpdaterGitError> {
+    match git(&["stash", "pop"], cwd, DEFAULT_TIMEOUT_MS * 2).await {
+        Ok(_) => Ok(StashPop::Ok),
+        Err(e) if e.exit_code == Some(1) => {
+            if !has_unmerged_files(cwd).await.unwrap_or(true) {
+                return Ok(recover_false_conflict_pop(cwd, &e.stderr).await);
+            }
+            let output = if e.stderr.is_empty() {
+                &e.message
+            } else {
+                &e.stderr
+            };
+            Ok(StashPop::Conflicts {
+                output: js::trim(output).to_owned(),
+            })
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// `recoverFalseConflictPop(cwd, originalOutput)`: re-apply the stash (its
+/// tracked part comes back; a failed apply is fine), then, unless that left
+/// unmerged entries, drop the entry.
+async fn recover_false_conflict_pop(cwd: &str, original_output: &str) -> StashPop {
+    let _ = git(&["stash", "apply"], cwd, DEFAULT_TIMEOUT_MS * 2).await;
+    if has_unmerged_files(cwd).await.unwrap_or(false) {
+        let output = if original_output.is_empty() {
+            "tracked changes conflict during stash recovery".to_owned()
+        } else {
+            format!("{original_output}\n(tracked changes also conflicted during recovery apply)")
+        };
+        return StashPop::Conflicts { output };
+    }
+    let _ = git(&["stash", "drop"], cwd, DEFAULT_TIMEOUT_MS).await;
+    StashPop::Ok
+}
+
+/// Which pipe a [`spawn_streamed`] line came from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Stream {
+    Out,
+    Err,
+}
+
+impl Stream {
+    /// `"out"` / `"err"`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Stream::Out => "out",
+            Stream::Err => "err",
+        }
+    }
+}
+
+/// `spawnStreamed(cmd, args, cwd, onLine, envOverrides)`: run `cmd` with
+/// stdin on `/dev/null`, `{...process.env, GIT_TERMINAL_PROMPT: "0",
+/// GIT_ASKPASS: "/bin/echo", PATH: extendedPath(), ...overrides}` (an
+/// override of `None` deletes the variable), and hand `on_line` each line of
+/// either pipe as it arrives: every 64 KiB read decoded as lossy UTF-8 on
+/// its own, split on `\n` with one `\r` before it dropped. At `close` the
+/// unterminated tail of stdout, then of stderr, comes as a last line. `Ok`
+/// is the exit code (1 after a signal); `Err` is Node's spawn error
+/// message (`spawn bun ENOENT`).
+pub async fn spawn_streamed(
+    cmd: &str,
+    args: &[&str],
+    cwd: &str,
+    env: &[(&str, Option<&str>)],
+    mut on_line: impl FnMut(&str, Stream),
+) -> Result<i32, String> {
+    // `normalizeSpawnArguments` refuses a NUL in an argument or the cwd.
+    if let Some(i) = args.iter().position(|a| a.contains('\0')) {
+        return Err(format!(
+            "The argument 'args[{i}]' must be a string without null bytes. Received {}",
+            crate::git::node_inspect_string(args[i])
+        ));
+    }
+    let mut command = tokio::process::Command::new(cmd);
+    command
+        .args(args.iter().map(|a| js_string::lossy(a).into_owned()))
+        .current_dir(cwd)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    for (k, v) in git_env() {
+        command.env(k, v);
+    }
+    for (k, v) in env {
+        match v {
+            Some(v) => command.env(k, v),
+            None => command.env_remove(k),
+        };
+    }
+    let mut child = command
+        .spawn()
+        .map_err(|e| crate::git::spawn_message(cmd, &e))?;
+    let mut stdout = child.stdout.take();
+    let mut stderr = child.stderr.take();
+    let (mut out_tail, mut err_tail) = (String::new(), String::new());
+    let (mut out_buf, mut err_buf) = (vec![0u8; 64 * 1024], vec![0u8; 64 * 1024]);
+    let mut status = None;
+    while stdout.is_some() || stderr.is_some() || status.is_none() {
+        tokio::select! {
+            r = read_some(&mut stdout, &mut out_buf), if stdout.is_some() => {
+                match r {
+                    Ok(n) if n > 0 => {
+                        out_tail.push_str(&String::from_utf8_lossy(&out_buf[..n]));
+                        flush_lines(&mut out_tail, Stream::Out, &mut on_line);
+                    }
+                    _ => stdout = None,
+                }
+            }
+            r = read_some(&mut stderr, &mut err_buf), if stderr.is_some() => {
+                match r {
+                    Ok(n) if n > 0 => {
+                        err_tail.push_str(&String::from_utf8_lossy(&err_buf[..n]));
+                        flush_lines(&mut err_tail, Stream::Err, &mut on_line);
+                    }
+                    _ => stderr = None,
+                }
+            }
+            s = child.wait(), if status.is_none() => status = Some(s),
+        }
+    }
+    if !out_tail.is_empty() {
+        on_line(&out_tail, Stream::Out);
+    }
+    if !err_tail.is_empty() {
+        on_line(&err_tail, Stream::Err);
+    }
+    Ok(match status {
+        Some(Ok(s)) => s.code().unwrap_or(1),
+        _ => 1,
+    })
+}
+
+/// One read from a pipe that is still open.
+async fn read_some<R: tokio::io::AsyncRead + Unpin>(
+    pipe: &mut Option<R>,
+    buf: &mut [u8],
+) -> std::io::Result<usize> {
+    use tokio::io::AsyncReadExt;
+    match pipe.as_mut() {
+        Some(p) => p.read(buf).await,
+        None => Ok(0),
+    }
+}
+
+/// `buf.split(/\r?\n/)`: every complete line goes to `on_line`, the rest
+/// stays in `buf`.
+fn flush_lines(buf: &mut String, stream: Stream, on_line: &mut impl FnMut(&str, Stream)) {
+    let Some(last) = buf.rfind('\n') else {
+        return;
+    };
+    let tail = buf.split_off(last + 1);
+    for line in buf[..last].split('\n') {
+        on_line(line.strip_suffix('\r').unwrap_or(line), stream);
+    }
+    *buf = tail;
 }

@@ -40,7 +40,7 @@ use serde_json::{Map, Value, json};
 use crate::db_agents;
 use crate::fs_list::{self, DirentKind};
 use crate::mcp_config::OBJECT_PROTOTYPE_KEYS;
-use crate::node_err::{self, NodeError};
+use crate::node_fs::{self, NodeError};
 use crate::node_path;
 use crate::paths;
 use crate::settings::{self, Scope, SettingsError};
@@ -904,7 +904,7 @@ pub fn list_available_in(claude_home: &str) -> Result<Vec<Value>> {
         Ok(e) => e,
         Err(e) if fs_list::error_code(&e) == Some("ENOENT") => return Ok(Vec::new()),
         Err(e) => {
-            return Err(node_err::uv_exception(&e, "scandir", Some(root.as_ref()), None).into());
+            return Err(node_fs::uv_exception(&e, "scandir", Some(root.as_ref()), None).into());
         }
     };
     let counts = read_install_counts(claude_home);

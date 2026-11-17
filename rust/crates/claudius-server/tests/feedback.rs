@@ -22,16 +22,13 @@
 
 mod common;
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use claudius_agent::js;
 use claudius_core::db::{Mode, open_path};
 use claudius_core::{is_uuid, js_num, now_ms, paths};
-use common::{Server, World, free_port, http, read_until, wait_until};
+use common::{Server, World, read_until, request};
 use rusqlite::types::ValueRef;
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{Value, json};
@@ -73,40 +70,6 @@ fn lossy_cell(v: &mut Value) {
     if let Value::String(t) = v {
         *t = t.replace("\u{fffd}\u{fffd}\u{fffd}", "\u{fffd}");
     }
-}
-
-/// `(status, content type, body)`; `body: None` sends none (no
-/// `Content-Length`).
-fn request(
-    port: u16,
-    method: &str,
-    path: &str,
-    body: Option<&[u8]>,
-) -> (u16, Option<String>, String) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    let length = body.map_or_else(String::new, |b| {
-        format!(
-            "Content-Type: application/json\r\nContent-Length: {}\r\n",
-            b.len()
-        )
-    });
-    write!(
-        s,
-        "{method} {path} HTTP/1.1\r\nHost: 127.0.0.1\r\n{length}Connection: close\r\n\r\n"
-    )
-    .unwrap();
-    s.write_all(body.unwrap_or_default()).unwrap();
-    let mut out = Vec::new();
-    s.read_to_end(&mut out).unwrap();
-    let out = String::from_utf8(out).unwrap();
-    let (head, body) = out.split_once("\r\n\r\n").unwrap();
-    let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let content_type = head.split("\r\n").find_map(|l| {
-        let (k, v) = l.split_once(':')?;
-        k.eq_ignore_ascii_case("content-type")
-            .then(|| v.trim().to_owned())
-    });
-    (status, content_type, body.to_owned())
 }
 
 fn unhex(hex: &str) -> Vec<u8> {
@@ -272,42 +235,6 @@ impl Subst {
     }
 }
 
-/// `claudius` with a `claude` that doesn't exist: sessions are created, but
-/// their CLI never starts, so they have no query.
-fn spawn_without_cli(world: &World) -> Server {
-    let port = free_port();
-    let missing: PathBuf = world.root.path().join("no-such-claude");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_claudius"))
-        .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
-        .arg(&missing)
-        .current_dir(&world.project)
-        .env_remove("RUST_LOG")
-        .env_remove("CLAUDIUS_DEBUG_SESSIONS")
-        .env_remove("NODE_ENV")
-        .env_remove("CLAUDIUS_DEV")
-        .env("CLAUDIUS_STATE_HOME", &world.home)
-        .env("CLAUDE_CONFIG_DIR", &world.config)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-    wait_until("health", Duration::from_secs(20), || {
-        if let Ok(Some(st)) = child.try_wait() {
-            let mut out = String::new();
-            child
-                .stdout
-                .take()
-                .unwrap()
-                .read_to_string(&mut out)
-                .unwrap();
-            panic!("claudius exited ({st}):\n{out}");
-        }
-        TcpStream::connect(("127.0.0.1", port)).is_ok()
-            && http(port, "GET", "/api/rust/health", "").0 == 200
-    });
-    Server { child, port }
-}
-
 /// The recorded group on a fresh world and server. Returns `(requests,
 /// matched)`; differences go to `failures`.
 fn replay_group(group: &Value, failures: &mut Vec<String>) -> (usize, usize) {
@@ -317,7 +244,7 @@ fn replay_group(group: &Value, failures: &mut Vec<String>) -> (usize, usize) {
     let log = world.root.path().join("stdin.log");
     let log_env = log.display().to_string();
     let server = if query == "none" {
-        spawn_without_cli(&world)
+        Server::spawn_without_cli(&world)
     } else {
         let script = group["script"].to_string();
         let mut env = vec![("FAKE_CLAUDE_LOG", log_env.as_str())];

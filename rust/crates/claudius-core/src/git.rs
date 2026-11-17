@@ -1782,7 +1782,7 @@ pub async fn stage_paths(cwd: &str, paths: &[String], op: StageOp) -> Result<(),
                 if !target.starts_with(&format!("{root}/")) {
                     continue;
                 }
-                match crate::node_err::fs::unlink(Path::new(&target)) {
+                match crate::node_fs::sys::unlink(Path::new(&target)) {
                     Ok(()) => {}
                     Err(e) if e.code == "ENOENT" => {}
                     Err(e) => errors.push(e.message),

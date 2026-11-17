@@ -9,7 +9,7 @@ use claudius_agent::js;
 use serde_json::{Map, Value};
 
 use crate::accounts::Clock;
-use crate::node_fs;
+use crate::{node_fs, node_path};
 
 /// Env var that moves the file (tests).
 pub const CONFIG_PATH_ENV: &str = "CLAUDIUS_CLAUDE_CONFIG_PATH";
@@ -34,7 +34,7 @@ const STRING_FIELDS: [&str; 8] = [
 pub fn config_path_for(override_path: Option<&str>, home: &str) -> String {
     match override_path {
         Some(p) if !p.is_empty() => p.to_owned(),
-        _ => node_fs::join(&[home, ".claude.json"]),
+        _ => node_path::join(&[home, ".claude.json"]),
     }
 }
 

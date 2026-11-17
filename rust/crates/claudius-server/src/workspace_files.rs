@@ -58,8 +58,8 @@ use claudius_core::workspace_files::{
     image_mime, inside, list_dir, matches_json, rel_path, search_contents, search_files, under,
 };
 use claudius_core::{
-    customizations, file_types, fs_list, git, js_string, log, node_err, node_fs, node_path,
-    workspace_roots, workspaces,
+    customizations, file_types, fs_list, git, js_string, log, node_fs, node_path, workspace_roots,
+    workspaces,
 };
 use serde_json::{Value, json};
 
@@ -308,7 +308,7 @@ fn get_in(root_id: &str, root: &str, q: &GetQuery) -> Response {
                 "file too large to edit (>2MB)",
             );
         }
-        let bytes = match node_err::fs::read_file(FsPath::new(&target)) {
+        let bytes = match node_fs::sys::read_file(FsPath::new(&target)) {
             Ok(b) => b,
             Err(e) => return fs_error(&e.message),
         };
@@ -392,7 +392,7 @@ fn get_in(root_id: &str, root: &str, q: &GetQuery) -> Response {
                 &format!("Permission denied — can't read this folder ({code})"),
             ),
             _ => fs_error(
-                &node_err::uv_exception(&e, "scandir", Some(FsPath::new(&target)), None).message,
+                &node_fs::uv_exception(&e, "scandir", Some(FsPath::new(&target)), None).message,
             ),
         },
     }
@@ -409,7 +409,7 @@ fn serve_image(target: &str, meta: &std::fs::Metadata) -> Response {
     if meta.len() > MAX_IMAGE_BYTES {
         return error(StatusCode::PAYLOAD_TOO_LARGE, "image too large (>10MB)");
     }
-    match node_err::fs::read_file(FsPath::new(target)) {
+    match node_fs::sys::read_file(FsPath::new(target)) {
         Ok(bytes) => (
             StatusCode::OK,
             [
@@ -462,7 +462,7 @@ fn put_in(root: &str, target: &str, text: &str) -> Response {
     }
     let mut encoding = Editable::Utf8;
     if exists {
-        match node_err::fs::read_file(FsPath::new(&dest)) {
+        match node_fs::sys::read_file(FsPath::new(&dest)) {
             Ok(existing) => match text_encoding::detect(&existing) {
                 Detected::Editable(e) => encoding = e,
                 Detected::Unsupported(_) => {
@@ -484,13 +484,13 @@ fn put_in(root: &str, target: &str, text: &str) -> Response {
     if parent != base && !parent.starts_with(&format!("{base}/")) {
         return error(StatusCode::FORBIDDEN, ESCAPES);
     }
-    if let Err(e) = node_err::fs::mkdir_recursive(FsPath::new(&parent)) {
+    if let Err(e) = node_fs::sys::mkdir_recursive(FsPath::new(&parent)) {
         return fs_error(&e.message);
     }
     if let Some(r) = nul_arg("path", &dest) {
         return r;
     }
-    match node_err::fs::write_file(
+    match node_fs::sys::write_file(
         FsPath::new(&dest),
         &text_encoding::encode_text(&text.encode_utf16().collect::<Vec<u16>>(), encoding),
     ) {
@@ -535,7 +535,7 @@ fn post_in(root: &str, target: &str, dir: bool) -> Response {
         return match std::fs::create_dir(target) {
             Ok(()) => ok(),
             Err(e) => fs_error(
-                &node_err::uv_exception(&e, "mkdir", Some(FsPath::new(target)), None).message,
+                &node_fs::uv_exception(&e, "mkdir", Some(FsPath::new(target)), None).message,
             ),
         };
     }
@@ -543,7 +543,7 @@ fn post_in(root: &str, target: &str, dir: bool) -> Response {
     if let Some(r) = nul_arg("path", &parent) {
         return r;
     }
-    if let Err(e) = node_err::fs::mkdir_recursive(FsPath::new(&parent)) {
+    if let Err(e) = node_fs::sys::mkdir_recursive(FsPath::new(&parent)) {
         return fs_error(&e.message);
     }
     if let Some(r) = nul_arg("path", target) {
@@ -557,7 +557,7 @@ fn post_in(root: &str, target: &str, dir: bool) -> Response {
     {
         Ok(_) => ok(),
         Err(e) => {
-            fs_error(&node_err::uv_exception(&e, "open", Some(FsPath::new(target)), None).message)
+            fs_error(&node_fs::uv_exception(&e, "open", Some(FsPath::new(target)), None).message)
         }
     }
 }
@@ -633,13 +633,13 @@ fn patch_in((src_root, src): &(String, String), (dst_root, dst): &(String, Strin
     if let Some(r) = nul_arg("path", &parent) {
         return r;
     }
-    if let Err(e) = node_err::fs::mkdir_recursive(FsPath::new(&parent)) {
+    if let Err(e) = node_fs::sys::mkdir_recursive(FsPath::new(&parent)) {
         return fs_error(&e.message);
     }
     if let Some(r) = nul_arg("oldPath", src).or_else(|| nul_arg("newPath", dst)) {
         return r;
     }
-    match node_err::fs::rename(FsPath::new(src), FsPath::new(dst)) {
+    match node_fs::sys::rename(FsPath::new(src), FsPath::new(dst)) {
         Ok(()) => ok(),
         Err(e) => fs_error(&e.message),
     }

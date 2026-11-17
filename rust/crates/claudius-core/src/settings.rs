@@ -8,7 +8,7 @@
 //! Errors carry the TS text byte for byte: a file `JSON.parse` refuses is
 //! a `SettingsParseError` with V8's message through
 //! `sanitizeJsonParseReason`, and an fs failure is Node's
-//! (`EACCES: permission denied, open '…'`, [`crate::node_err`]). The file
+//! (`EACCES: permission denied, open '…'`, [`crate::node_fs`]). The file
 //! is decoded as lossy UTF-8 like `readFile(path, "utf8")`, and parsed like
 //! `JSON.parse`, so any JSON value is a settings value: callers see it the
 //! way the TS callers do, through a spread ([`spread`]) or a property read
@@ -22,9 +22,9 @@ use claudius_agent::js;
 use serde_json::{Map, Value};
 
 use crate::db_agents;
-use crate::node_err::{self, NodeError};
-use crate::paths;
+use crate::node_fs::{self, NodeError};
 use crate::settings_load_error::sanitize_json_parse_reason_utf16;
+use crate::{paths, safe_path};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scope {
@@ -44,8 +44,9 @@ impl Scope {
     }
 }
 
-/// `pathFor(scope, cwd)`. An empty or NUL-holding cwd, which `pathFor`
-/// refuses, falls back to a plain join here; reads and writes refuse it.
+/// `pathFor(scope, cwd)`. An empty, NUL-holding or root (`/`) cwd, which
+/// `pathFor` refuses, falls back to a plain join here; reads and writes
+/// refuse it.
 pub fn path_for(scope: Scope, project_cwd: &str) -> PathBuf {
     settings_path(scope, project_cwd).unwrap_or_else(|_| {
         let (base, child) = parts(scope, project_cwd);
@@ -64,18 +65,16 @@ fn parts(scope: Scope, project_cwd: &str) -> (String, &'static str) {
     }
 }
 
-/// `pathFor`: `assertWithin(base, child)`, which refuses an empty base or a
-/// NUL byte and `path.resolve`s the rest (against the process cwd if
-/// relative, with `.`, `..` and repeated or trailing slashes folded).
+/// `pathFor`: `assertWithin(base, child)` ([`safe_path`]), which refuses an
+/// empty base, a NUL byte, and a base that resolves to `/` (its check is
+/// for `"/" + sep`, so every child of the root "escapes"), and
+/// `path.resolve`s the rest (against the process cwd if relative, with
+/// `.`, `..` and repeated or trailing slashes folded).
 fn settings_path(scope: Scope, project_cwd: &str) -> Result<PathBuf, SettingsError> {
     let (base, child) = parts(scope, project_cwd);
-    if base.is_empty() {
-        return Err(SettingsError::PathInjection("invalid base path"));
-    }
-    if base.contains('\0') {
-        return Err(SettingsError::PathInjection("null byte in path"));
-    }
-    Ok(PathBuf::from(crate::trusted_cwd::resolve(&base)).join(child))
+    safe_path::assert_within(&base, child)
+        .map(PathBuf::from)
+        .map_err(SettingsError::PathInjection)
 }
 
 /// What `readSettings` / `writeSettings` throw. `Display` is the JS
@@ -125,7 +124,7 @@ fn read_parsed_with(
     parse: fn(&str) -> Result<Value, String>,
 ) -> Result<(Value, bool), SettingsError> {
     let path = settings_path(scope, project_cwd)?;
-    let bytes = match node_err::fs::read_file(&path) {
+    let bytes = match node_fs::sys::read_file(&path) {
         Ok(b) => b,
         Err(e) if e.code == "ENOENT" => return Ok((Value::Object(Map::new()), false)),
         Err(e) => return Err(e.into()),
@@ -237,12 +236,12 @@ pub fn write_settings_value(
 ) -> Result<(), SettingsError> {
     let path = settings_path(scope, project_cwd)?;
     let dir = path.parent().unwrap_or(Path::new("/")).to_path_buf();
-    node_err::fs::mkdir_recursive(&dir)?;
+    node_fs::sys::mkdir_recursive(&dir)?;
     let mut body = js::stringify_pretty(next);
     body.push('\n');
-    let meta = node_err::fs::lstat(&path).ok();
+    let meta = node_fs::sys::lstat(&path).ok();
     if meta.as_ref().is_some_and(|m| m.file_type().is_symlink()) {
-        node_err::fs::write_file(&path, body.as_bytes())?;
+        node_fs::sys::write_file(&path, body.as_bytes())?;
         return Ok(());
     }
     let base = path.file_name().unwrap().to_string_lossy().into_owned();
@@ -252,13 +251,13 @@ pub fn write_settings_value(
         WRITE_SEQ.fetch_add(1, Ordering::Relaxed)
     ));
     let res = (|| -> Result<(), NodeError> {
-        node_err::fs::write_file(&tmp, body.as_bytes())?;
+        node_fs::sys::write_file(&tmp, body.as_bytes())?;
         #[cfg(unix)]
         if let Some(m) = &meta {
             use std::os::unix::fs::PermissionsExt;
-            node_err::fs::chmod(&tmp, m.permissions().mode() & 0o777)?;
+            node_fs::sys::chmod(&tmp, m.permissions().mode() & 0o777)?;
         }
-        node_err::fs::rename(&tmp, &path)
+        node_fs::sys::rename(&tmp, &path)
     })();
     if let Err(e) = res {
         let _ = std::fs::remove_file(&tmp);
@@ -578,6 +577,17 @@ mod tests {
         assert_eq!(
             settings_path(Scope::Local, "/a//b/./c/../"),
             Ok(PathBuf::from("/a/b/.claude/settings.local.json"))
+        );
+        // `"/.claude/settings.json".startsWith("/" + sep)` is false.
+        for root in ["/", "//", "/.", "/a/.."] {
+            assert_eq!(
+                settings_path(Scope::Project, root),
+                Err(SettingsError::PathInjection("path escapes base directory"))
+            );
+        }
+        assert_eq!(
+            path_for(Scope::Project, "/").to_str(),
+            Some("/.claude/settings.json")
         );
         assert_eq!(
             path_for(Scope::Project, "").to_str(),

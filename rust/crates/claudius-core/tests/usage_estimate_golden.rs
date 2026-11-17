@@ -50,8 +50,31 @@ fn project(name: &str) -> String {
     dir.display().to_string()
 }
 
+fn unhex(hex: &str) -> Vec<u8> {
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+        .collect()
+}
+
+/// A `parts` body: `{text}`, `{hex}` or `{repeat, count}` pieces in turn.
+fn parts(pieces: &Value) -> Vec<u8> {
+    let mut out = Vec::new();
+    for p in pieces.as_array().unwrap() {
+        if let Some(hex) = p["hex"].as_str() {
+            out.extend(unhex(hex));
+        } else if let Some(r) = p["repeat"].as_str() {
+            out.extend(r.repeat(p["count"].as_u64().unwrap() as usize).into_bytes());
+        } else {
+            out.extend(p["text"].as_str().unwrap().as_bytes());
+        }
+    }
+    out
+}
+
 /// Writes a case's transcript files under the project root, as recorded.
 fn write_files(cwd: &str, files: &Value) {
+    use std::os::unix::fs::PermissionsExt;
     let base = paths::project_root(cwd);
     for f in files.as_array().unwrap() {
         let path = base.join(f["rel"].as_str().unwrap());
@@ -59,14 +82,17 @@ fn write_files(cwd: &str, files: &Value) {
         if let Some(text) = f["text"].as_str() {
             std::fs::write(&path, text).unwrap();
         } else if let Some(hex) = f["hex"].as_str() {
-            let bytes: Vec<u8> = (0..hex.len())
-                .step_by(2)
-                .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-                .collect();
-            std::fs::write(&path, bytes).unwrap();
-        } else {
-            let target = f["symlink"].as_str().unwrap();
+            std::fs::write(&path, unhex(hex)).unwrap();
+        } else if let Some(target) = f["symlink"].as_str() {
             std::os::unix::fs::symlink(target, &path).unwrap();
+        } else if !f["parts"].is_null() {
+            std::fs::write(&path, parts(&f["parts"])).unwrap();
+        } else {
+            assert_eq!(f["dir"], json!(true), "{f}");
+            std::fs::create_dir(&path).unwrap();
+        }
+        if let Some(mode) = f["mode"].as_u64() {
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode as u32)).unwrap();
         }
     }
 }
@@ -248,4 +274,46 @@ fn the_cost_state_checkpoint_matches() {
         assert_eq!(got, c["checkpoint"].as_str().unwrap(), "{id:?}");
     }
     assert_eq!(found, 2);
+}
+
+/// `lastRecordedCostState` over its stream's edges (`jsonlLines` on a utf8
+/// read stream, I14b): CRLF and `\r`, U+2028, invalid UTF-8, characters and
+/// the `"cost-state"` marker across a 64 KiB chunk boundary, multi-chunk
+/// and torn lines, a BOM, a lone-surrogate escape, an escaped `type` (the
+/// raw-text prefilter), duplicate keys, empty files, a directory, links and
+/// an unreadable file.
+#[test]
+fn the_cost_state_stream_edges_match() {
+    let f = &fixture()["costStateEdges"];
+    let cases = f["cases"].as_array().unwrap();
+    assert!(cases.len() >= 20);
+    let cwd = project("project-cost-state-edges");
+    write_files(&cwd, &f["files"]);
+    // SAFETY: geteuid has no preconditions.
+    let as_root = unsafe { libc::geteuid() } == 0;
+    let (mut found, mut models) = (0, std::collections::BTreeSet::new());
+    for c in cases {
+        let id = c["id"].as_str().unwrap();
+        if as_root && id == "e-noperm" {
+            continue; // root reads a mode-0 file
+        }
+        let got = sdk_cost_state::last_recorded_cost_state(id, &cwd);
+        found += usize::from(got.is_some());
+        if let Some(m) = got.as_ref().and_then(|cp| cp.model_usage.as_ref()) {
+            models.extend(m.keys().cloned());
+        }
+        let got = got.map_or_else(|| "null".to_owned(), |cp| js::stringify(&cp.to_json()));
+        assert_eq!(got, c["checkpoint"].as_str().unwrap(), "{id:?}");
+    }
+    assert_eq!(found, 17);
+    // The decoded model names: U+FFFD per invalid sequence, and whole
+    // characters across the chunk boundary.
+    for m in [
+        "bad-\u{fffd}\u{fffd}\u{fffd}",
+        "m-\u{1f600}",
+        "m-\u{20ac}",
+        "m-\u{fffd}x",
+    ] {
+        assert!(models.contains(m), "{m:?} in {models:?}");
+    }
 }

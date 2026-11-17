@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/claudius-agent", "crates/claudius-core", "crates/claudius-server"]
+members = ["crates/claudius-agent", "crates/claudius-client", "crates/claudius-core", "crates/claudius-server", "crates/claudius-theme"]
 
 [workspace.package]
 version = "0.1.0"

@@ -3,13 +3,12 @@
 //! `isCustomizationCwd` check `POST /api/sessions` needs (the customization
 //! store itself is [`crate::customizations`]).
 
-use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use crate::{customizations, paths, sessions_store, workspaces};
+use crate::{customizations, node_path, paths, sessions_store, workspaces};
 
 const CACHE_TTL: Duration = Duration::from_secs(5);
 
@@ -47,21 +46,9 @@ pub fn fork_worktree_cwd(session_id: &str) -> Option<(String, String)> {
     Some((cwd, source))
 }
 
-/// `path.resolve(p)` against the process cwd, lexically normalized.
-pub fn resolve(p: &str) -> String {
-    let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/"));
-    let joined = base.join(p);
-    let mut out = PathBuf::from("/");
-    for c in joined.components() {
-        match c {
-            std::path::Component::ParentDir => {
-                out.pop();
-            }
-            std::path::Component::Normal(s) => out.push(s),
-            _ => {}
-        }
-    }
-    out.display().to_string()
+/// `path.resolve(p)` against the process cwd ([`node_path::resolve`]).
+fn resolve(p: &str) -> String {
+    node_path::resolve(&[p])
 }
 
 fn compute_trusted_roots() -> Vec<String> {

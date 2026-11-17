@@ -1,0 +1,724 @@
+{
+  "sdkVersion": "0.3.312",
+  "observeMs": 9500,
+  "buckets": [
+    [
+      "0-1s",
+      -500,
+      1000
+    ],
+    [
+      "2-3.5s",
+      1800,
+      3500
+    ],
+    [
+      "5-6.5s",
+      5000,
+      6500
+    ],
+    [
+      "7-9s",
+      6800,
+      9000
+    ]
+  ],
+  "runs": 3,
+  "cases": [
+    {
+      "path": "close",
+      "behavior": "eof",
+      "script": {
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": null,
+        "exit": {
+          "code": 0,
+          "at": "0-1s"
+        },
+        "order": [
+          "eof",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": null,
+          "at": "0-1s"
+        },
+        "kills": []
+      }
+    },
+    {
+      "path": "close",
+      "behavior": "term",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "die",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGTERM",
+          "at": "2-3.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": null,
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": false,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "close",
+      "behavior": "stubborn",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "ignore",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGKILL",
+          "at": "7-9s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": null,
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": true,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "close",
+      "behavior": "term_late",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": {
+          "exit": 0,
+          "after_ms": 3500
+        },
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "code": 0,
+          "at": "5-6.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": null,
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "abort",
+      "behavior": "eof",
+      "script": {
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": null,
+        "exit": {
+          "code": 0,
+          "at": "0-1s"
+        },
+        "order": [
+          "eof",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": "Operation aborted",
+          "at": "0-1s"
+        },
+        "kills": []
+      }
+    },
+    {
+      "path": "abort",
+      "behavior": "term",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "die",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGTERM",
+          "at": "2-3.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": "Claude Code process aborted by user",
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": false,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "abort",
+      "behavior": "stubborn",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "ignore",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGKILL",
+          "at": "7-9s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": "Claude Code process aborted by user",
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": true,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "abort",
+      "behavior": "term_late",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": {
+          "exit": 0,
+          "after_ms": 3500
+        },
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "code": 0,
+          "at": "5-6.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "streamEnd": {
+          "error": "Claude Code process aborted by user",
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "return",
+      "behavior": "eof",
+      "script": {
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": null,
+        "exit": {
+          "code": 0,
+          "at": "0-1s"
+        },
+        "order": [
+          "eof",
+          "exit"
+        ],
+        "resolved": "0-1s",
+        "kills": []
+      }
+    },
+    {
+      "path": "return",
+      "behavior": "term",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "die",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGTERM",
+          "at": "2-3.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "2-3.5s",
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": false,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "return",
+      "behavior": "stubborn",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "ignore",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGKILL",
+          "at": "7-9s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "2-3.5s",
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": true,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "return",
+      "behavior": "term_late",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": {
+          "exit": 0,
+          "after_ms": 3500
+        },
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ]
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "code": 0,
+          "at": "5-6.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "resolved": "2-3.5s",
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "throw",
+      "behavior": "eof",
+      "script": {
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ],
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": 5
+            }
+          }
+        }
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": null,
+        "exit": {
+          "code": 0,
+          "at": "0-1s"
+        },
+        "order": [
+          "eof",
+          "exit"
+        ],
+        "streamEnd": {
+          "error": "e is not iterable",
+          "at": "0-1s"
+        },
+        "kills": []
+      }
+    },
+    {
+      "path": "throw",
+      "behavior": "term",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "die",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ],
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": 5
+            }
+          }
+        }
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGTERM",
+          "at": "2-3.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "streamEnd": {
+          "error": "e is not iterable",
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": false,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "throw",
+      "behavior": "stubborn",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": "ignore",
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ],
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": 5
+            }
+          }
+        }
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "signal": "SIGKILL",
+          "at": "7-9s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "streamEnd": {
+          "error": "e is not iterable",
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          },
+          {
+            "signal": "SIGKILL",
+            "sent": true,
+            "at": "7-9s"
+          }
+        ]
+      }
+    },
+    {
+      "path": "throw",
+      "behavior": "term_late",
+      "script": {
+        "on_eof": [
+          {
+            "$delay_ms": 60000
+          }
+        ],
+        "on_sigterm": {
+          "exit": 0,
+          "after_ms": 3500
+        },
+        "on_init": [
+          {
+            "$text": "ready"
+          }
+        ],
+        "control": {
+          "initialize": {
+            "$envelope": {
+              "pending_permission_requests": 5
+            }
+          }
+        }
+      },
+      "want": {
+        "eof": "0-1s",
+        "sigterm": "2-3.5s",
+        "exit": {
+          "code": 0,
+          "at": "5-6.5s"
+        },
+        "order": [
+          "eof",
+          "sigterm",
+          "exit"
+        ],
+        "streamEnd": {
+          "error": "e is not iterable",
+          "at": "2-3.5s"
+        },
+        "kills": [
+          {
+            "signal": "SIGTERM",
+            "sent": true,
+            "at": "2-3.5s"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -12,13 +12,11 @@
 
 mod common;
 
-use std::io::Read;
 use std::net::TcpStream;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::Path;
 use std::time::Duration;
 
-use common::{Server, World, free_port, http, read_until, wait_until};
+use common::{Server, World, http, read_until};
 use serde_json::{Value, json};
 
 fn fixture() -> Value {
@@ -183,7 +181,7 @@ fn the_route_replays_the_ts_handler() {
         let log_env = log.display().to_string();
         match group["query"].as_str().unwrap() {
             "none" => {
-                let server = spawn_without_cli(&world);
+                let server = Server::spawn_without_cli(&world);
                 matched += replay_group(&server, &world, &log, group, false);
             }
             _ => {
@@ -203,42 +201,6 @@ fn the_route_replays_the_ts_handler() {
     }
     assert_eq!(matched + GAPS.len(), total);
     assert!(total >= 55, "{total} cases");
-}
-
-/// `claudius` with a `claude` that doesn't exist: sessions are created, but
-/// their CLI never starts, so they have no query.
-fn spawn_without_cli(world: &World) -> Server {
-    let port = free_port();
-    let missing: PathBuf = world.root.path().join("no-such-claude");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_claudius"))
-        .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
-        .arg(&missing)
-        .current_dir(&world.project)
-        .env_remove("RUST_LOG")
-        .env_remove("CLAUDIUS_DEBUG_SESSIONS")
-        .env_remove("NODE_ENV")
-        .env_remove("CLAUDIUS_DEV")
-        .env("CLAUDIUS_STATE_HOME", &world.home)
-        .env("CLAUDE_CONFIG_DIR", &world.config)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-    wait_until("health", Duration::from_secs(20), || {
-        if let Ok(Some(st)) = child.try_wait() {
-            let mut out = String::new();
-            child
-                .stdout
-                .take()
-                .unwrap()
-                .read_to_string(&mut out)
-                .unwrap();
-            panic!("claudius exited ({st}):\n{out}");
-        }
-        TcpStream::connect(("127.0.0.1", port)).is_ok()
-            && http(port, "GET", "/api/rust/health", "").0 == 200
-    });
-    Server { child, port }
 }
 
 /// What `wire_since` leaves out never belongs to the route.

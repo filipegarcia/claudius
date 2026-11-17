@@ -51,7 +51,7 @@ use claudius_core::paths;
 use claudius_core::session::{RuntimeOptions, SessionOptions, Subscription};
 use claudius_core::session_manager::SessionManager;
 use claudius_server::accounts;
-use common::{Server, World, fake_bin, free_port, read_until, wait_until};
+use common::{Server, World, fake_bin, free_port, read_until, request};
 use common_oauth::{build, fill, hex, recorded_tree, sub, tree, unlock};
 use futures::future::BoxFuture;
 use serde_json::{Value, json};
@@ -197,12 +197,9 @@ fn spawn(world: &World, base: &str, env: &Value, log: &Path) -> Server {
     for (k, v) in env.as_object().unwrap() {
         cmd.env(k, v.as_str().unwrap());
     }
-    let server = Server {
-        child: cmd.spawn().unwrap(),
-        port,
-    };
-    wait_until("health", Duration::from_secs(20), || healthy(port));
-    server
+    let mut child = cmd.spawn().unwrap();
+    common::wait_healthy(&mut child, port, Duration::from_secs(20));
+    Server { child, port }
 }
 
 /// The fake CLI, built once.
@@ -233,58 +230,9 @@ fn spawn_cli(world: &World, claude_bin: &Path, script: Option<&str>) -> Server {
     if let Some(s) = script {
         cmd.env("FAKE_CLAUDE_SCRIPT", s);
     }
-    let server = Server {
-        child: cmd.spawn().unwrap(),
-        port,
-    };
-    wait_until("health", Duration::from_secs(20), || healthy(port));
-    server
-}
-
-/// `/api/rust/health` answers 200; any I/O error (a server still starting,
-/// a reset under load) is a no.
-fn healthy(port: u16) -> bool {
-    let Ok(mut s) = TcpStream::connect(("127.0.0.1", port)) else {
-        return false;
-    };
-    let mut out = String::new();
-    s.write_all(b"GET /api/rust/health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
-        .and_then(|()| s.read_to_string(&mut out))
-        .is_ok()
-        && out.starts_with("HTTP/1.1 200")
-}
-
-/// `(status, content type, body)` of a raw request with exactly `body` (and
-/// its `Content-Length`), or no body at all.
-fn request(
-    port: u16,
-    method: &str,
-    path: &str,
-    body: Option<&[u8]>,
-) -> (u16, Option<String>, String) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    let length = body.map_or_else(String::new, |b| {
-        format!(
-            "Content-Type: application/json\r\nContent-Length: {}\r\n",
-            b.len()
-        )
-    });
-    let mut req =
-        format!("{method} {path} HTTP/1.1\r\nHost: 127.0.0.1\r\n{length}Connection: close\r\n\r\n")
-            .into_bytes();
-    req.extend_from_slice(body.unwrap_or_default());
-    s.write_all(&req).unwrap();
-    let mut out = Vec::new();
-    s.read_to_end(&mut out).unwrap();
-    let out = String::from_utf8(out).unwrap();
-    let (head, body) = out.split_once("\r\n\r\n").unwrap();
-    let status = head.split(' ').nth(1).unwrap().parse().unwrap();
-    let content_type = head.split("\r\n").find_map(|l| {
-        let (k, v) = l.split_once(':')?;
-        k.eq_ignore_ascii_case("content-type")
-            .then(|| v.trim().to_owned())
-    });
-    (status, content_type, body.to_owned())
+    let mut child = cmd.spawn().unwrap();
+    common::wait_healthy(&mut child, port, Duration::from_secs(20));
+    Server { child, port }
 }
 
 /// A step's request body: `bodyHex`, `body`, or none.

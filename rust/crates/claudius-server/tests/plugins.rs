@@ -21,14 +21,13 @@
 mod common;
 
 use std::collections::BTreeMap;
-use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-use common::{Server, free_port, read_until, wait_until};
+use common::{Payload, Server, free_port, read_until};
 use serde_json::{Value, json};
 
 fn fixture() -> Value {
@@ -250,13 +249,7 @@ fn spawn(world: &World, log: &Path, script: Option<String>, cli: bool) -> Server
         None => cmd.env_remove("FAKE_CLAUDE_SCRIPT"),
     };
     let mut child = cmd.spawn().unwrap();
-    wait_until("health", Duration::from_secs(20), || {
-        if let Ok(Some(st)) = child.try_wait() {
-            panic!("claudius exited ({st})");
-        }
-        TcpStream::connect(("127.0.0.1", port)).is_ok()
-            && request(port, "GET", "/api/rust/health", None).0 == 200
-    });
+    common::wait_healthy(&mut child, port, Duration::from_secs(20));
     Server { child, port }
 }
 
@@ -267,33 +260,8 @@ fn request(
     url: &str,
     body: Option<&str>,
 ) -> (u16, Option<String>, String) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    let body = body.unwrap_or("");
-    write!(
-        s,
-        "{method} {url} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-        body.len()
-    )
-    .unwrap();
-    let mut raw = Vec::new();
-    s.read_to_end(&mut raw).unwrap();
-    let text = String::from_utf8(raw).unwrap();
-    let (head, body) = text.split_once("\r\n\r\n").unwrap();
-    let mut lines = head.split("\r\n");
-    let status = lines
-        .next()
-        .unwrap()
-        .split(' ')
-        .nth(1)
-        .unwrap()
-        .parse()
-        .unwrap();
-    let ctype = lines.find_map(|l| {
-        let (k, v) = l.split_once(':')?;
-        k.eq_ignore_ascii_case("content-type")
-            .then(|| v.trim().to_owned())
-    });
-    (status, ctype, body.to_owned())
+    let body = body.unwrap_or("").as_bytes();
+    common::send(port, method, url, Payload::Bytes(body)).parts()
 }
 
 /// The `reload_plugins` control requests in `log` past byte `from`, ids as

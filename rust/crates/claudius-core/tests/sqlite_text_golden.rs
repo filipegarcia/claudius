@@ -9,7 +9,9 @@
 //! session-tasks-db.ts, loop-ticks-db.ts, feedback-store.ts, the two MCP
 //! notice tables, db-agents.ts, `getSessionAccountsByCwd`), the legacy
 //! title copy and `backfillProject`'s cursor, plus rows of invalid UTF-8
-//! written by raw SQL.
+//! written by raw SQL. And (S29a) a queued, goal, suggested or asset-use
+//! `uuid` / `text` of every JSON type, bound by better-sqlite3's rules
+//! (`sql_text::js_args`).
 //!
 //! * `binds` / `decode`: [`JsText`]'s bytes and [`sql_text::decode`]
 //!   against what better-sqlite3 bound and read.
@@ -208,23 +210,23 @@ fn run(op: &str, a: &[Value]) -> Value {
             sessions_db::clear_prompt_draft(s(&a[0]), s(&a[1]));
             Value::Null
         }
-        "recordGoalMessage" => {
+        "recordGoalMessage" | "recordSuggestedMessage" => {
             let i = &a[1];
             js(
                 sessions_db::record_tagged_message(
                     s(&a[0]),
-                    true,
+                    op == "recordGoalMessage",
                     s(&i["sessionId"]),
-                    s(&i["messageUuid"]),
-                    i["text"].as_str().unwrap_or(""),
+                    &i["messageUuid"],
+                    &i["text"],
                 ),
                 |_| Value::Null,
             )
         }
-        "listGoalMessageUuids" => {
+        "listGoalMessageUuids" | "listSuggestedMessageUuids" => {
             json!(sessions_db::list_tagged_message_uuids(
                 s(&a[0]),
-                true,
+                op == "listGoalMessageUuids",
                 s(&a[1])
             ))
         }
@@ -291,8 +293,8 @@ fn run(op: &str, a: &[Value]) -> Value {
             let i = &a[1];
             let input = NewQueued {
                 session_id: s(&i["sessionId"]),
-                uuid: s(&i["uuid"]),
-                text: s(&i["text"]),
+                uuid: i["uuid"].clone(),
+                text: i["text"].clone(),
                 ..Default::default()
             };
             js(queue_db::enqueue_tail(s(&a[0]), input), queued)
@@ -323,7 +325,7 @@ fn run(op: &str, a: &[Value]) -> Value {
             )
         }
         "clearAll" => js(queue_db::clear_all(s(&a[0]), s(&a[1])), |_| Value::Null),
-        "popByUuid" => js(queue_db::pop_by_uuid(s(&a[0]), s(&a[1]), s(&a[2])), |r| {
+        "popByUuid" => js(queue_db::pop_by_uuid(s(&a[0]), s(&a[1]), &a[2]), |r| {
             r.map_or(Value::Null, queued)
         }),
         "popHead" => js(queue_db::pop_head(s(&a[0]), s(&a[1])), |r| {
@@ -344,7 +346,7 @@ fn run(op: &str, a: &[Value]) -> Value {
             let out = asset_ingest::record_send_uses(
                 s(&o["cwd"]),
                 s(&o["sessionId"]),
-                s(&o["messageUuid"]),
+                &o["messageUuid"],
                 o["occurredMs"].as_f64().unwrap(),
                 images,
             );
@@ -560,6 +562,7 @@ const CLOCK_COLUMNS: &[(&str, &str)] = &[
     ("queued_messages", "created_at_ms"),
     ("prompt_drafts", "updated_at"),
     ("goal_messages", "created_at"),
+    ("suggested_messages", "created_at"),
     ("session_usage", "updated_at"),
     ("session_tasks", "updated_at"),
     ("loop_ticks", "created_at"),
@@ -797,7 +800,7 @@ fn rust_stores_write_the_bytes_ts_writes() {
         replay(name, "reads", &sc["reads"], true);
         reset(cwd);
     }
-    assert_eq!(scenarios().len(), 16);
+    assert_eq!(scenarios().len(), 17);
 }
 
 #[test]

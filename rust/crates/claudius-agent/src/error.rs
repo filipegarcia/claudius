@@ -50,6 +50,13 @@ pub enum AgentError {
     #[error("Operation aborted")]
     Aborted,
 
+    /// The end of an aborted query's stream when its CLI was still running
+    /// at the close timer's SIGTERM, 2 s after the abort: the SDK forwards
+    /// the abort to the spawn's `signal`, Node emits `error`, and the reader
+    /// stops at once with `Py()`, without waiting for the exit.
+    #[error("Claude Code process aborted by user")]
+    AbortedByUser,
+
     /// A write after the CLI exited (or a write to its stdin failed) but
     /// before the reader ended: the transport is no longer `ready`. Prompts
     /// get it after the reader ended too.
@@ -90,6 +97,7 @@ impl AgentError {
             Self::ErrorResult(text) => Self::ErrorResult(text.clone()),
             Self::TypeError(message) => Self::TypeError(message.clone()),
             Self::Aborted => Self::Aborted,
+            Self::AbortedByUser => Self::AbortedByUser,
             Self::Closed => Self::Closed,
             Self::QueryClosed => Self::QueryClosed,
             Self::Io(e) => Self::Io(std::io::Error::new(e.kind(), e.to_string())),

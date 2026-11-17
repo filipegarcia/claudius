@@ -11,7 +11,11 @@
 //!   once, the images with no numeric `ordinal` appended (one per code point
 //!   of a string `images`), and the TypeErrors V8 throws for a `null`
 //!   element or an `images` that isn't iterable, which TS throws after the
-//!   turn was marked running.
+//!   turn was marked running;
+//! * a `text` that isn't a string (posted beside images), which throws at
+//!   the first string method called on it, also after the turn was marked
+//!   running (S29a). The posted `uuid` is carried as it is, of any type
+//!   ([`uuid_or_new`]).
 
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -25,6 +29,26 @@ use crate::queue_db::ImageInput;
 
 /// `/\[Image #(\d+)\]/g` (`\d` is ASCII without the `u` flag).
 static IMAGE_TOKEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[Image #([0-9]+)\]").unwrap());
+
+/// `text` where `sendInput` first calls a string method on it (`trim` for
+/// a slash send, else `toLowerCase` in the ultrathink scan). The route
+/// passes any posted `text` beside images; a non-string throws there, after
+/// the turn was marked running (S29a).
+pub(super) fn text_str<'a>(text: &'a Value, method: &str) -> Result<&'a str, String> {
+    text.as_str()
+        .ok_or_else(|| format!("TypeError: text.{method} is not a function"))
+}
+
+/// `opts.uuid ?? randomUUID()` (`sendInput`, `enqueueMessage`): the uuid
+/// the caller passed, of any JS type (the `input` route forwards the posted
+/// one, and a queued row whose uuid is NULL reads back `null`; S29a), else
+/// a fresh v4.
+pub(super) fn uuid_or_new(uuid: Option<Value>) -> Value {
+    match uuid {
+        None | Some(Value::Null) => json!(uuid::Uuid::new_v4().to_string()),
+        Some(u) => u,
+    }
+}
 
 /// `[command, args]` of a slash send.
 pub(super) fn slash_parts(text: &str) -> (String, String) {
@@ -228,5 +252,41 @@ mod tests {
             .unwrap();
         assert_eq!(c.len(), 2);
         assert_eq!(c[1], json!({"type": "image", "source": {"type": "base64"}}));
+    }
+
+    #[test]
+    fn a_text_that_isnt_a_string_throws_at_its_method() {
+        assert_eq!(text_str(&json!("a"), "trim"), Ok("a"));
+        assert_eq!(text_str(&json!(""), "trim"), Ok(""));
+        for v in [json!(5), json!(["a"]), json!({}), json!(true), json!(null)] {
+            assert_eq!(
+                text_str(&v, "toLowerCase"),
+                Err("TypeError: text.toLowerCase is not a function".into()),
+                "{v}"
+            );
+        }
+        assert_eq!(
+            text_str(&json!(0), "trim"),
+            Err("TypeError: text.trim is not a function".into())
+        );
+    }
+
+    #[test]
+    fn uuid_or_new_keeps_any_value_but_nullish() {
+        for v in [
+            json!(7),
+            json!(""),
+            json!(false),
+            json!({"a": 1}),
+            json!([null]),
+            json!("u"),
+        ] {
+            assert_eq!(uuid_or_new(Some(v.clone())), v);
+        }
+        for u in [uuid_or_new(None), uuid_or_new(Some(Value::Null))] {
+            let u = uuid::Uuid::parse_str(u.as_str().unwrap()).unwrap();
+            assert_eq!(u.get_version_num(), 4);
+        }
+        assert_ne!(uuid_or_new(None), uuid_or_new(None));
     }
 }

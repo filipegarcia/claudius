@@ -24,8 +24,9 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use claudius_agent::js;
 use claudius_core::js_string::{self, lossy};
+use claudius_core::safe_path::assert_absolute_user_path;
 use claudius_core::workspaces::{self as store, CreateInput};
-use claudius_core::{log, node_path, now_ms};
+use claudius_core::{log, now_ms};
 use serde_json::{Value, json};
 
 use crate::AppState;
@@ -206,21 +207,6 @@ pub(crate) fn in_next_order(headers: &HeaderMap, modified: Vec<(&str, String)>) 
 }
 
 // ---- paths --------------------------------------------------------------------
-
-/// `assertAbsoluteUserPath`: the resolved path, or the `PathInjectionError`
-/// message the routes answer 400 with.
-pub fn assert_absolute_user_path(input: &str) -> Result<String, &'static str> {
-    if input.is_empty() {
-        return Err("invalid path");
-    }
-    if input.contains('\0') {
-        return Err("null byte in path");
-    }
-    if !node_path::is_absolute(input) {
-        return Err("path must be absolute");
-    }
-    Ok(node_path::resolve(&[input]))
-}
 
 /// `fs.stat(path).isDirectory()`; `None` when the stat fails.
 fn is_dir(path: &str) -> Option<bool> {

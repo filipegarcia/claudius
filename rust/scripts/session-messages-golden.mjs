@@ -12,6 +12,14 @@
 //   now counts as a reply (`aL`, 0.3.299 `AD`), so a queued command it
 //   follows is delivered. Each case's transcript is kept as the exact text
 //   written, under `<CLAUDE_CONFIG_DIR>/projects/golden/<id>.jsonl`.
+// - `files`: `getSessionMessages(id, {includeSystemMessages})` over the
+//   transcript FILE as written (I14b), kept as `hex` bytes (or a `dir`, a
+//   `symlink`, a `mode`) under `<CLAUDE_CONFIG_DIR>/projects/golden-files/`:
+//   the SDK reads the whole file and decodes each `\n`-split line lossily,
+//   so invalid UTF-8 is U+FFFD; a BOM, NUL and control bytes, CRLF,
+//   U+2028 / U+2029, blank and torn lines, no trailing newline; and the
+//   lookup and read failures (empty, a directory, an unreadable file, a
+//   dangling link), each `[]` with no throw.
 // - `gitStub`: the SDK's private macOS check that `git` is only the
 //   developer-tools stub (0.3.312 `PD`, guarding `git worktree list`), lifted
 //   out of sdk.mjs by shape and run with a fake `process.platform`, env and
@@ -22,7 +30,7 @@
 // rust/crates/claudius-core/tests/fixtures/session_messages_golden.json and
 // replayed by crates/claudius-core/tests/session_messages_golden.rs.
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as nodePath from "node:path";
 import { dirname, join, resolve } from "node:path";
@@ -70,7 +78,7 @@ if (!process.env.SESSION_MESSAGES_GOLDEN_CHILD) {
   writeFileSync(out, `${JSON.stringify(fixture, null, 1)}\n`);
   console.log(
     `wrote ${out.slice(repo.length + 1)}: ${fixture.cases.length} transcripts, ` +
-      `${fixture.gitStub.length} git-stub probes (SDK ${fixture.sdkVersion}, stable)`,
+      `${fixture.gitStub.length} git-stub probes, ${fixture.files.length} transcript files (SDK ${fixture.sdkVersion}, stable)`,
   );
   process.exit(0);
 }
@@ -177,6 +185,102 @@ for (const [name, entries] of CASES) {
   cases.push({ name, sessionId: id, transcript, ...results });
 }
 
+// ---- 1b. getSessionMessages over transcript files ----
+
+const fileDir = join(process.env.CLAUDE_CONFIG_DIR, "projects", "golden-files");
+mkdirSync(fileDir, { recursive: true });
+const fsid = () => `00000000-0000-4000-9000-${String(++n).padStart(12, "0")}`;
+/** One transcript line for session `id`, as `JSON.stringify` writes it. */
+const line = (id, e) => JSON.stringify({ ...e, sessionId: id });
+/** A short main chain for `id`: a prompt `text`, a reply, then `more`. */
+const chainOf = (id, text, more = "done") => [
+  line(id, user("u1", null, text)),
+  line(id, assistant("u2", "u1", "ok")),
+  line(id, user("u3", "u2", more)),
+  line(id, assistant("u4", "u3", "bye")),
+];
+/** `s` with each `@` replaced by the next of `bytes` (a Buffer each). */
+function withBytes(s, ...bytes) {
+  const parts = s.split("@");
+  if (parts.length !== bytes.length + 1) throw new Error(`withBytes: ${parts.length - 1} marks, ${bytes.length} byte runs`);
+  return Buffer.concat(parts.flatMap((p, i) => (i < bytes.length ? [Buffer.from(p), bytes[i]] : [Buffer.from(p)])));
+}
+const B = (...b) => Buffer.from(b);
+const FILES = [
+  // Invalid UTF-8 inside strings: each maximal bad run is one U+FFFD.
+  ["invalid_utf8_in_strings", (id) => ({ bytes: Buffer.concat([withBytes(`${chainOf(id, "a@b@c@d@e@f@g").join("\n")}\n`,
+    B(0xff), B(0xe2, 0x82), B(0xc0, 0xaf), B(0xed, 0xa0, 0x80), B(0xf4, 0x90, 0x80, 0x80), B(0x80))]) })],
+  // A bad byte between tokens fails that line's parse: the line is dropped.
+  ["invalid_utf8_between_tokens", (id) => {
+    const [a, b, c, d] = chainOf(id, "first");
+    return { bytes: Buffer.concat([Buffer.from(`${a}\n${b}\n`), withBytes(`${c.slice(0, 1)}@${c.slice(1)}\n${d}\n`, B(0xff))]) };
+  }],
+  // A character cut by the end of a line, and by the end of the file.
+  ["truncated_character_at_line_and_file_end", (id) => {
+    const [a, b, c] = chainOf(id, "cut");
+    return { bytes: Buffer.concat([Buffer.from(`${a}\n${b}`), B(0xe2, 0x82), Buffer.from(`\n${c}\n`), B(0xf0, 0x9f, 0x98)]) };
+  }],
+  ["bom_first_line", (id) => ({ bytes: Buffer.from(`\ufeff${chainOf(id, "bom").join("\n")}\n`) })],
+  ["crlf", (id) => ({ bytes: Buffer.from(`${chainOf(id, "crlf").join("\r\n")}\r\n`) })],
+  ["lone_cr_joins_records", (id) => {
+    const [a, b, c, d] = chainOf(id, "cr");
+    return { bytes: Buffer.from(`${a}\n${b}\r${c}\n${d}\n`) };
+  }],
+  // Bytes up to 0x20 (NUL included) before a record are skipped; after one
+  // they fail its parse (the would-be leaf `u5` is dropped).
+  ["control_bytes_around_records", (id) => {
+    const [a, b, c, d] = chainOf(id, "ctl");
+    const e = line(id, user("u5", "u4", "nul after"));
+    return { bytes: Buffer.concat([B(0x00, 0x01, 0x1f, 0x20, 0x09), Buffer.from(`${a}\n${b}\n${c}\n\x0b\x0c${d}\n${e}`), B(0x00), Buffer.from("\n")]) };
+  }],
+  ["line_and_paragraph_separators", (id) => ({ bytes: Buffer.from(`${chainOf(id, "one\u2028two\u2029three", "x\u2028").join("\n")}\n`) })],
+  ["blank_and_whitespace_lines", (id) => ({ bytes: Buffer.from(`\n\n${chainOf(id, "blank").join("\n \t\n\n")}\n \n`) })],
+  ["no_trailing_newline", (id) => ({ bytes: Buffer.from(chainOf(id, "tail").join("\n")) })],
+  ["torn_last_line", (id) => {
+    const [a, b, c, d] = chainOf(id, "torn");
+    return { bytes: Buffer.from(`${a}\n${b}\n${c}\n${d.slice(0, 40)}`) };
+  }],
+  ["empty_file", () => ({ bytes: Buffer.alloc(0) })],
+  ["only_newlines", () => ({ bytes: Buffer.from("\n\n\r\n") })],
+  ["unreadable", (id) => ({ bytes: Buffer.from(`${chainOf(id, "secret").join("\n")}\n`), mode: 0 })],
+  ["directory", () => ({ dir: true })],
+  ["symlink", (id) => ({ symlink: `target-${id}.txt`, target: Buffer.from(`${chainOf(id, "linked").join("\n")}\n`) })],
+  ["dangling_symlink", (id) => ({ symlink: `missing-${id}.txt` })],
+];
+const files = [];
+for (const [name, make] of FILES) {
+  const id = fsid();
+  const body = make(id);
+  const path = join(fileDir, `${id}.jsonl`);
+  const kept = { name, sessionId: id };
+  if (body.bytes !== undefined) {
+    writeFileSync(path, body.bytes);
+    kept.hex = body.bytes.toString("hex");
+  } else if (body.dir) {
+    // Not empty, so its `stat` size is over 0 and the lookup takes it.
+    mkdirSync(path);
+    writeFileSync(join(path, "inside"), "x");
+    kept.dir = true;
+  } else {
+    if (body.target !== undefined) {
+      writeFileSync(join(fileDir, body.symlink), body.target);
+      kept.targetHex = body.target.toString("hex");
+    }
+    symlinkSync(body.symlink, path);
+    kept.symlink = body.symlink;
+  }
+  if (body.mode !== undefined) {
+    chmodSync(path, body.mode);
+    kept.mode = body.mode;
+  }
+  for (const includeSystemMessages of [false, true]) {
+    kept[includeSystemMessages ? "withSystem" : "withoutSystem"] = JSON.stringify(
+      await getSessionMessages(id, { includeSystemMessages }),
+    );
+  }
+  files.push(kept);
+}
+
 // ---- 2. the git stub check ----
 
 /** `PD` and the fs / path names it imports, found by shape. */
@@ -279,5 +383,5 @@ const gitStubResults = PROBES.map(([name, fake]) => ({ name, ...fake, stub: gitS
 
 writeFileSync(
   process.env.SESSION_MESSAGES_GOLDEN_CHILD,
-  JSON.stringify({ sdkVersion, cases, gitStub: gitStubResults }),
+  JSON.stringify({ sdkVersion, cases, gitStub: gitStubResults, files }),
 );

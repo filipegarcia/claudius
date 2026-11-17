@@ -543,3 +543,38 @@ fn probe_replays_the_ts_golden() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// A probe leaves like the TS `return` out of `for await`: it waits for its
+/// CLI to exit, at most 2 s after the close. This one ignores its stdin's
+/// EOF, so it answers once the CLI dies at the SIGTERM (R13).
+#[test]
+fn probe_waits_for_its_cli_like_return() {
+    let tmp = tempfile::tempdir().unwrap();
+    let wrapper = tmp.path().join("claude");
+    let script = r#"{"on_eof": [{"$delay_ms": 60000}], "on_sigterm": "die"}"#;
+    std::fs::write(
+        &wrapper,
+        format!(
+            "#!/bin/sh\nFAKE_CLAUDE_SCRIPT='{script}' exec '{}' \"$@\"\n",
+            fake_bin().display()
+        ),
+    )
+    .unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let started = Instant::now();
+    let got = rt.block_on(claudius_core::models::probe_one(
+        &claudius_core::models::PROBE_CANDIDATES[0],
+        Some(wrapper),
+        Duration::from_secs(20),
+    ));
+    let took = started.elapsed();
+    assert_eq!(got["ok"], true, "{got}");
+    assert!(
+        took >= Duration::from_millis(1800) && took < Duration::from_millis(3500),
+        "probe took {took:?}"
+    );
+}

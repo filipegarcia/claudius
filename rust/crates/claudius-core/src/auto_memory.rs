@@ -36,7 +36,7 @@ use claudius_agent::js;
 use serde_json::{Map, Value};
 
 use crate::node_fs::{self, FsError};
-use crate::node_path;
+use crate::{js_string, node_path, safe_path};
 
 pub use crate::paths::encode_project_dir;
 
@@ -277,24 +277,12 @@ const RISKY_FIRST: [char; 15] = [
     '-', '?', '&', '*', '!', '|', '>', '%', '@', '`', '[', ']', '{', '}', ',',
 ];
 
-/// `String(v)` (and `"…" + v`) for a JSON value: an object with an own
-/// `toString` key throws (it isn't callable, and `Object.prototype.valueOf`
-/// returns the object), also as an array item.
-pub(crate) fn js_string(v: &Value) -> Result<String, Thrown> {
-    match v {
-        Value::Object(m) if m.contains_key("toString") => Err(Thrown::Type(
-            "Cannot convert object to primitive value".into(),
-        )),
-        Value::Array(items) => Ok(items
-            .iter()
-            .map(|item| match item {
-                Value::Null => Ok(String::new()),
-                item => js_string(item),
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .join(",")),
-        v => Ok(js::to_string(Some(v))),
-    }
+/// `String(v)` (and `"…" + v`) for a JSON value ([`js_string::to_js_string`]):
+/// an object with an own `toString` key throws V8's `TypeError`, also as an
+/// array item.
+fn string_of(v: &Value) -> Result<String, Thrown> {
+    js_string::to_js_string(v)
+        .map_err(|_| Thrown::Type("Cannot convert object to primitive value".into()))
 }
 
 /// `yamlScalar(value)` for any JSON value: a string as [`yaml_scalar`]; any
@@ -304,7 +292,7 @@ pub(crate) fn js_string(v: &Value) -> Result<String, Thrown> {
 fn yaml_scalar_value(value: &Value) -> Result<String, Thrown> {
     match value {
         Value::String(s) => Ok(yaml_scalar(s)),
-        v if js_string(v)?.contains(RISKY) => Ok(js::stringify(v)),
+        v if string_of(v)?.contains(RISKY) => Ok(js::stringify(v)),
         _ => Err(Thrown::Type("value.trim is not a function".into())),
     }
 }
@@ -377,9 +365,12 @@ pub fn write_memory_file(
     }
     let dir = auto_memory_dir(home, cwd);
     node_fs::mkdir_recursive(&dir, 0o777)?;
-    // `assertWithin(dir, input.filename)`.
+    let target = safe_path::assert_within(&dir, &input.filename)
+        .map_err(|m| Thrown::PathInjection(m.into()))?;
+    // The barrier again, inline above the sink (CodeQL doesn't carry it
+    // out of the call). The name passed `isValidMemoryFilename`, so it
+    // never resolves to `dir` itself, which `assertWithin` would allow.
     let base = node_path::resolve(&[&dir]);
-    let target = node_path::resolve(&[&base, &input.filename]);
     if !target.starts_with(&format!("{base}/")) {
         return Err(Thrown::PathInjection("path escapes base directory".into()));
     }
@@ -570,8 +561,8 @@ pub fn patch_memory_file(
         "---\nname: {}\ndescription: {}\ntype: {}\nmodified: {modified}\n---\n\n{}",
         yaml_scalar(&parsed.name),
         yaml_scalar_value(&description)?,
-        yaml_scalar(&js_string(&type_)?),
-        js_string(&body)?
+        yaml_scalar(&string_of(&type_)?),
+        string_of(&body)?
     );
     if let Err(e) = write_text(&target, &content) {
         return Ok(Err(Refusal::new(500, e.message)));
@@ -587,7 +578,7 @@ pub fn patch_memory_file(
             cwd,
             &input.filename,
             &parsed.name,
-            &js_string(&description)?,
+            &string_of(&description)?,
         )?;
     }
     let mut next = Map::new();
@@ -872,7 +863,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            js_string(&serde_json::json!([1, null, [2, [3]]])),
+            string_of(&serde_json::json!([1, null, [2, [3]]])),
             Ok("1,,2,3".into())
         );
     }

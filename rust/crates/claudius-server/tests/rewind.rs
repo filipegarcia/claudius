@@ -14,13 +14,10 @@
 
 mod common;
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::Path;
 use std::time::Duration;
 
-use common::{Server, World, free_port, http, read_until, wait_until};
+use common::{Server, World, http, read_until};
 use serde_json::Value;
 
 fn fixture() -> Value {
@@ -83,31 +80,7 @@ fn unhex(hex: &str) -> Vec<u8> {
 /// `POST path` with exactly these body bytes, or none at all (no
 /// `Content-Length`) → (status, body).
 fn post_bytes(port: u16, path: &str, body: Option<&[u8]>) -> (u16, String) {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    let length = body.map_or_else(String::new, |b| {
-        format!(
-            "Content-Type: application/json\r\nContent-Length: {}\r\n",
-            b.len()
-        )
-    });
-    write!(
-        s,
-        "POST {path} HTTP/1.1\r\nHost: 127.0.0.1\r\n{length}Connection: close\r\n\r\n"
-    )
-    .unwrap();
-    s.write_all(body.unwrap_or_default()).unwrap();
-    let mut out = Vec::new();
-    s.read_to_end(&mut out).unwrap();
-    let out = String::from_utf8(out).unwrap();
-    let status = out
-        .split(' ')
-        .nth(1)
-        .and_then(|c| c.parse().ok())
-        .unwrap_or(0);
-    let body = out
-        .split_once("\r\n\r\n")
-        .map(|(_, b)| b.to_owned())
-        .unwrap_or_default();
+    let (status, _, body) = common::request(port, "POST", path, body);
     (status, body)
 }
 
@@ -225,7 +198,7 @@ fn the_route_replays_the_ts_handler() {
         let log = world.root.path().join("stdin.log");
         let log_env = log.display().to_string();
         let server = match group["query"].as_str().unwrap() {
-            "none" => spawn_without_cli(&world),
+            "none" => Server::spawn_without_cli(&world),
             _ => {
                 let script = match &group["script"] {
                     Value::Null => None,
@@ -305,40 +278,4 @@ fn other_methods_are_405() {
         );
         assert_eq!(status, 405, "{method}");
     }
-}
-
-/// `claudius` with a `claude` that doesn't exist: sessions are created, but
-/// their CLI never starts, so they have no query.
-fn spawn_without_cli(world: &World) -> Server {
-    let port = free_port();
-    let missing: PathBuf = world.root.path().join("no-such-claude");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_claudius"))
-        .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
-        .arg(&missing)
-        .current_dir(&world.project)
-        .env_remove("RUST_LOG")
-        .env_remove("CLAUDIUS_DEBUG_SESSIONS")
-        .env_remove("NODE_ENV")
-        .env_remove("CLAUDIUS_DEV")
-        .env("CLAUDIUS_STATE_HOME", &world.home)
-        .env("CLAUDE_CONFIG_DIR", &world.config)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-    wait_until("health", Duration::from_secs(20), || {
-        if let Ok(Some(st)) = child.try_wait() {
-            let mut out = String::new();
-            child
-                .stdout
-                .take()
-                .unwrap()
-                .read_to_string(&mut out)
-                .unwrap();
-            panic!("claudius exited ({st}):\n{out}");
-        }
-        TcpStream::connect(("127.0.0.1", port)).is_ok()
-            && http(port, "GET", "/api/rust/health", "").0 == 200
-    });
-    Server { child, port }
 }

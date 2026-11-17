@@ -1,0 +1,13 @@
+[package]
+name = "claudius-theme"
+description = "Design tokens of the React UI (app/globals.css, the Tailwind defaults it uses) as typed data, and the client's theme / chat-size / prompt-color logic, with no UI toolkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+# Reading the golden fixture.
+serde_json.workspace = true
