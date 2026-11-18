@@ -60,20 +60,30 @@ export function parseAutoCompactWindowInput(
  */
 export function autoCompactWindowInputWarning(
   raw: string,
-  opts: { allowAuto?: boolean } = {},
+  opts: { allowAuto?: boolean; perModel?: boolean } = {},
 ): "ignored" | "out-of-range" | null {
   const parsed = parseAutoCompactWindowInput(raw, opts);
   if (parsed.kind === "ignore") return "ignored";
-  if (parsed.kind === "set" && isAutoCompactWindowOutOfRange(parsed.value)) return "out-of-range";
+  if (parsed.kind === "set" && isAutoCompactWindowOutOfRange(parsed.value, opts)) return "out-of-range";
   return null;
 }
 
-/** True when a numeric window is outside the documented 100k–1M range. */
-export function isAutoCompactWindowOutOfRange(value: unknown): boolean {
+/**
+ * True when a numeric window is outside the documented 100k–1M range.
+ *
+ * SDK 0.3.327 — `modelSettings.<model>.autoCompactWindow` is now documented as
+ * "at least 100000" with no ceiling, so pass `perModel: true` for those rows to
+ * flag only values below the minimum. The top-level `autoCompactWindow` keeps
+ * the 1M ceiling (its SDK doc states no range, so we stay conservative).
+ */
+export function isAutoCompactWindowOutOfRange(
+  value: unknown,
+  { perModel = false }: { perModel?: boolean } = {},
+): boolean {
   return (
     typeof value === "number" &&
     Number.isFinite(value) &&
-    (value < AUTO_COMPACT_WINDOW_MIN || value > AUTO_COMPACT_WINDOW_MAX)
+    (value < AUTO_COMPACT_WINDOW_MIN || (!perModel && value > AUTO_COMPACT_WINDOW_MAX))
   );
 }
 
