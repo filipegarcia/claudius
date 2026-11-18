@@ -1,10 +1,16 @@
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
 import { hasTopLevelServers, McpJsonShapeError, upsertServer } from "@/lib/server/mcp";
+
+const trusted = { resolveTrustedCwd: vi.fn<(cwd: unknown) => Promise<string | null>>() };
+vi.mock("@/lib/server/trusted-cwd", () => trusted);
+vi.mock("@/lib/server/session-manager", () => ({ sessionManager: { get: () => undefined } }));
+
+const { POST } = await import("@/app/api/mcp/route");
 
 /**
  * CC 2.1.327 parity — "Changed claude mcp add --scope project to stop,
@@ -83,6 +89,40 @@ describe("project .mcp.json shape on add", () => {
   test("other scopes are unaffected by the project file's shape", async () => {
     await fs.writeFile(file, JSON.stringify({ foo: { command: "node" } }));
     await expect(upsertServer("local", cwd, "fs", added)).resolves.toBeUndefined();
+  });
+
+  test("POST /api/mcp answers 409 with the reason for a flat file", async () => {
+    trusted.resolveTrustedCwd.mockResolvedValue(cwd);
+    await fs.writeFile(file, JSON.stringify({ foo: { command: "node" } }));
+    const res = await POST(
+      new Request("http://localhost/api/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scope: "project", cwd, name: "fs", config: added }),
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: new McpJsonShapeError().message });
+  });
+
+  test("POST /api/mcp turns a malformed body into a JSON 400", async () => {
+    const res = await POST(new Request("http://localhost/api/mcp", { method: "POST", body: "{ nope" }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "invalid JSON body" });
+  });
+
+  test("POST /api/mcp turns other write failures into a JSON 500", async () => {
+    trusted.resolveTrustedCwd.mockResolvedValue(cwd);
+    await fs.writeFile(file, "{ nope");
+    const res = await POST(
+      new Request("http://localhost/api/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scope: "project", cwd, name: "fs", config: added }),
+      }),
+    );
+    expect(res.status).toBe(500);
+    expect(typeof (await res.json()).error).toBe("string");
   });
 
   test("hasTopLevelServers", () => {
