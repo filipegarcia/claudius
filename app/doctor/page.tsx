@@ -18,8 +18,8 @@ type Check = {
   detail?: string;
   fixable?: boolean;
   link?: { href: string; label: string };
-  /** CC 2.1.283 parity — see `app/api/doctor/route.ts`'s `Check.category`. */
-  category?: "prompt-audit";
+  /** CC 2.1.283 / 2.1.327 parity — see `app/api/doctor/route.ts`'s `Check.category`. */
+  category?: "prompt-audit" | "config-files";
 };
 type Report = {
   runtime: { node: string; platform: string; arch: string };
@@ -40,10 +40,12 @@ export default function DoctorPage() {
   // `/doctor` is a static route (not nested under `[workspaceId]`), and a
   // static page calling `useSearchParams()` without a `<Suspense>` ancestor
   // fails `next build`'s missing-suspense-boundary check.
+  // CC 2.1.327 — /status's Problems row links to `?section=config-files`.
   useEffect(() => {
     if (!report) return;
-    if (new URLSearchParams(window.location.search).get("section") !== "prompt-audit") return;
-    document.getElementById("prompt-audit-section")?.scrollIntoView({ block: "start" });
+    const section = new URLSearchParams(window.location.search).get("section");
+    if (section !== "prompt-audit" && section !== "config-files") return;
+    document.getElementById(`${section}-section`)?.scrollIntoView({ block: "start" });
   }, [report]);
 
   const [refetchTrigger, setRefetchTrigger] = useState(0);
@@ -149,11 +151,35 @@ export default function DoctorPage() {
                   </h2>
                   <ul className="space-y-1.5">
                     {report.checks
-                      .filter((c) => c.category !== "prompt-audit")
+                      .filter((c) => c.category === undefined)
                       .map((c) => (
                         <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
                       ))}
                   </ul>
+                </section>
+
+                {/*
+                  CC 2.1.327 parity — "/status … list of broken agent,
+                  skill … files, keybinding errors". Own section so the
+                  /status Problems row can deep-link to it.
+                */}
+                <section id="config-files-section" data-testid="doctor-config-files-section">
+                  <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                    Config files
+                  </h2>
+                  {(() => {
+                    const configFileChecks = report.checks.filter((c) => c.category === "config-files");
+                    if (configFileChecks.length === 0) {
+                      return <p className="text-[11px] text-[var(--muted)]">No config files checked.</p>;
+                    }
+                    return (
+                      <ul className="space-y-1.5" data-testid="doctor-config-files-list">
+                        {configFileChecks.map((c) => (
+                          <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </section>
 
                 {/*

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { worktreeBadge } from "@/lib/client/worktree";
 import { Overlay } from "./Overlay";
@@ -26,8 +28,37 @@ type Props = {
    * Claude Code parity, 2.1.275: "the signed-in account ... /status shows it."
    */
   account: { label: string; driftFromActive?: { label: string } } | null;
+  /**
+   * Workspace the chat belongs to — narrows the Problems row to its project
+   * agents/skills (plus the user scope). Null checks every workspace.
+   */
+  workspaceId?: string | null;
   onClose: () => void;
 };
+
+/**
+ * CC 2.1.327 parity — "Added a list in /status of broken agent, skill …
+ * files, keybinding errors". Counts what `GET /api/doctor/files` reports;
+ * the full list lives in /doctor's Config files section.
+ */
+function useConfigFileProblemCount(workspaceId: string | null): number | null {
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const qs = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : "";
+    fetch(`/api/doctor/files${qs}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { problems?: unknown[] };
+        setCount(Array.isArray(data.problems) ? data.problems.length : 0);
+      })
+      .catch(() => {
+        // Leave the row out rather than guess — /doctor still has the list.
+      });
+    return () => controller.abort();
+  }, [workspaceId]);
+  return count;
+}
 
 /**
  * Human-readable "kind" of the session — the browser analogue of Claude Code's
@@ -57,8 +88,10 @@ export function StatusOverlay({
   mainAgent,
   agentCwd,
   account,
+  workspaceId = null,
   onClose,
 }: Props) {
+  const problemCount = useConfigFileProblemCount(workspaceId);
   return (
     <Overlay title="Session status" subtitle="/status" onClose={onClose} width={520}>
       <dl className="divide-y divide-[var(--border)] text-sm">
@@ -89,6 +122,31 @@ export function StatusOverlay({
           label="Capabilities"
           value={`${toolCount} tools · ${slashCount} slash commands · ${agentCount} agents · ${skillCount} skills`}
         />
+        {problemCount !== null && (
+          <Row
+            label="Problems"
+            value={
+              problemCount > 0 ? (
+                <span data-testid="status-problems" className="text-amber-400">
+                  {problemCount} {problemCount === 1 ? "problem" : "problems"}
+                  <span className="text-[var(--muted)]"> · </span>
+                  <Link
+                    href="/doctor?section=config-files"
+                    onClick={onClose}
+                    data-testid="status-problems-link"
+                    className="text-[var(--accent)] hover:underline"
+                  >
+                    Open /doctor
+                  </Link>
+                </span>
+              ) : (
+                <span data-testid="status-problems" className="text-[var(--muted)]">
+                  No problems
+                </span>
+              )
+            }
+          />
+        )}
       </dl>
     </Overlay>
   );

@@ -163,3 +163,38 @@ export function parseFrontmatter(raw: string): { frontmatter: Record<string, unk
   }
   return { frontmatter, body: m[2] };
 }
+
+/**
+ * CC 2.1.327 parity — "/status lists broken agent, skill … files". The
+ * reason `parseFrontmatter` above would silently drop a file's frontmatter
+ * (so the agent/skill shows up with no description, model or tools), or null
+ * when the frontmatter is fine or absent. Same BOM strip, delimiter regex and
+ * YAML options as `parseFrontmatter`, so "flagged here" means exactly
+ * "parsed as `{}` there". Line numbers count from the top of the file.
+ */
+export function frontmatterError(raw: string): string | null {
+  const text = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+  const m = FM_RE.exec(text);
+  if (!m) {
+    // Opens a frontmatter block but never closes it — the whole file is
+    // treated as body, frontmatter included.
+    // An empty block (`---` straight after `---`) is fine.
+    if (/^---\r?\n---(\r?\n|$)/.test(text)) return null;
+    return /^---\r?\n/.test(text) ? "Frontmatter has no closing --- line" : null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(m[1]);
+  } catch (err) {
+    const e = err as Error & { linePos?: Array<{ line: number; col: number }> };
+    const first = (e.message ?? String(err)).split("\n")[0].replace(/ at line \d+, column \d+:?\s*$/, "").trim();
+    const line = e.linePos?.[0]?.line;
+    // +1 for the opening `---` line, which isn't part of the YAML text.
+    return typeof line === "number" ? `${first} (line ${line + 1})` : first || "Invalid YAML frontmatter";
+  }
+  if (parsed == null) return null;
+  if (typeof parsed !== "object" || Array.isArray(parsed)) {
+    return "Frontmatter is not a list of key: value fields";
+  }
+  return null;
+}
