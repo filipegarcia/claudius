@@ -57,6 +57,10 @@ export type ConfiguredServer = {
    * newline silently breaks the connection with no visual cue). Empty when
    * clean; omitted from the JSON payload only when there's nothing to warn about. */
   warnings?: string[];
+  /** CC 2.1.327 — a project (`.mcp.json`) server named in
+   * `disabledMcpjsonServers` in any settings file. The engine never starts
+   * it, so it's missing from the live status on purpose. */
+  rejected?: true;
 };
 
 const HAS_EDGE_WHITESPACE = /^\s|\s$/;
@@ -205,9 +209,21 @@ export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
     out.push({ scope: "local", name, config: cfg as McpServerConfig });
   }
 
+  // CC 2.1.327 — `disabledMcpjsonServers` merges across user / project /
+  // local, and a listed `.mcp.json` server is never started by the engine.
+  // A project settings.json that doesn't load just contributes nothing here
+  // (the /mcp list shouldn't fail over it).
+  const projectSettings = await readSettings("project", cwd).catch(() => ({}) as Record<string, unknown>);
+  const rejected = new Set<string>();
+  for (const s of [userSettings, projectSettings, localSettings]) {
+    const list = (s as Record<string, unknown>).disabledMcpjsonServers;
+    if (Array.isArray(list)) for (const n of list) if (typeof n === "string") rejected.add(n);
+  }
+
   for (const server of out) {
     const warnings = findConfigWhitespaceWarnings(server.config);
     if (warnings.length > 0) server.warnings = warnings;
+    if (server.scope === "project" && rejected.has(server.name)) server.rejected = true;
   }
 
   return out;

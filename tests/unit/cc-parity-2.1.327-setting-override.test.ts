@@ -74,6 +74,20 @@ describe("settingOverriddenBy", () => {
     }
   });
 
+  test("keys Claudius reads from the user file only are skipped", () => {
+    for (const key of ["feedbackSurveyRate", "sessionRecapEnabled"]) {
+      expect(USER_SCOPE_WINS_SETTING_KEYS.has(key)).toBe(true);
+    }
+    expect(settingOverriddenBy("feedbackSurveyRate", "user", scopes({ feedbackSurveyRate: 0.1 }, { feedbackSurveyRate: 0 }, {}))).toBeNull();
+    expect(settingOverriddenBy("sessionRecapEnabled", "user", scopes({}, { sessionRecapEnabled: false }, {}))).toBeNull();
+  });
+
+  test("managed-settings-only keys are skipped (no settings file applies)", () => {
+    expect(
+      settingOverriddenBy("forceLoginGatewayUrl", "user", scopes({}, { forceLoginGatewayUrl: "https://gw.example.com" }, {})),
+    ).toBeNull();
+  });
+
   test("a scope missing from the payload is ignored", () => {
     expect(settingOverriddenBy("model", "user", [{ scope: "user", path: PATHS.user, settings: { model: "opus" } }])).toBeNull();
   });

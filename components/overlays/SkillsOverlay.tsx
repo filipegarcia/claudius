@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bot, Circle, CircleDot, Cpu, Wand2 } from "lucide-react";
+import { settingsRequestFailedMessage } from "@/lib/shared/settings-load-error";
 import { Overlay } from "./Overlay";
+
+// Skill on/off overrides are written to the project settings file only.
+const SKILL_OVERRIDES_FILE = ".claude/settings.json";
 
 type Props = {
   agents: string[];
@@ -108,10 +112,14 @@ export function SkillsOverlay({
         setToggleError(null);
       } else {
         const d = (await res.json().catch(() => null)) as { error?: unknown } | null;
-        setToggleError(typeof d?.error === "string" && d.error ? d.error : `Not saved: ${name} (HTTP ${res.status}).`);
+        setToggleError(
+          typeof d?.error === "string" && d.error
+            ? d.error
+            : settingsRequestFailedMessage(SKILL_OVERRIDES_FILE, { status: res.status }),
+        );
       }
     } catch (err) {
-      setToggleError(`Not saved: ${name} (${err instanceof Error ? err.message : String(err)}).`);
+      setToggleError(settingsRequestFailedMessage(SKILL_OVERRIDES_FILE, { error: err }));
     } finally {
       setTogglePending(false);
     }

@@ -4893,16 +4893,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           const { hidden, infoLevel } = classifyInformationalLevel(inf.level, inf.prevent_continuation);
           if (hidden) return;
           if (content) {
-            setSystemEntries((prev) => [
-              ...prev,
-              {
-                ...baseEntry,
-                kind: "info",
-                label: content,
-                detail: inf.prevent_continuation ? "blocked" : undefined,
-                ...(infoLevel ? { infoLevel } : {}),
-              },
-            ]);
+            setSystemEntries((prev) =>
+              // CC 2.1.327 — a stitched reconnect can replay the same message
+              // (e.g. the resume-gap warning); keep one entry per uuid.
+              typeof baseEntry.uuid === "string" && baseEntry.uuid && prev.some((e) => e.uuid === baseEntry.uuid)
+                ? prev
+                : [
+                    ...prev,
+                    {
+                      ...baseEntry,
+                      kind: "info",
+                      label: content,
+                      detail: inf.prevent_continuation ? "blocked" : undefined,
+                      ...(infoLevel ? { infoLevel } : {}),
+                    },
+                  ],
+            );
           }
           return;
         }

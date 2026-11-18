@@ -308,7 +308,21 @@ function ServerRow({
           </button>
         </div>
       </div>
-      {sessionId && statusLoaded && !status && (
+      {server.rejected && !status ? (
+        // CC 2.1.327 — a project server listed in `disabledMcpjsonServers`
+        // is filtered out by the engine; "start a new chat" would be wrong
+        // advice, so say where it was turned off instead.
+        <div
+          data-testid={`mcp-rejected-hint-${server.name}`}
+          className="-mt-1 pr-3 pb-2 pl-14 text-[11px] text-[var(--muted)]"
+        >
+          Turned off in{" "}
+          <Link href="/settings#mcp" className="underline hover:text-[var(--foreground)]">
+            Settings
+          </Link>{" "}
+          (<code className="font-mono">disabledMcpjsonServers</code>).
+        </div>
+      ) : sessionId && statusLoaded && !status && (
         // CC 2.1.327 — a configured server the live session doesn't know
         // about (added mid-session, or a project server that wasn't
         // approved) used to render with no badge and no actions.
@@ -321,7 +335,7 @@ function ServerRow({
             <>
               {" "}
               If it still doesn&apos;t load, approve it under MCP in{" "}
-              <Link href="/settings" className="underline hover:text-[var(--foreground)]">
+              <Link href="/settings#mcp" className="underline hover:text-[var(--foreground)]">
                 Settings
               </Link>
               .

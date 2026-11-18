@@ -13,7 +13,8 @@
  *    (`permissions.*`, `env`, `hooks`, `enabledPlugins`, `claudeMdExcludes`, …)
  *    merge across scopes instead of replacing.
  *  - Keys whose value Claudius takes from the user file regardless of the
- *    others are skipped (`USER_SCOPE_WINS_SETTING_KEYS`).
+ *    others are skipped (`USER_SCOPE_WINS_SETTING_KEYS`), as are keys only
+ *    managed settings can set (`MANAGED_ONLY_SETTING_KEYS`).
  *  - Managed (policy) settings aren't read by Claudius, so they're out of
  *    scope here.
  */
@@ -37,7 +38,8 @@ const MERGED_SETTING_KEYS: ReadonlySet<string> = new Set(["permissions", "env", 
  *  - The rest are read by Claudius from the user file only (see e.g.
  *    `lib/client/useSpellcheckEnabled.ts`, `useClockOptions.ts`,
  *    `useMaxEffortLevel.ts`, `useDisableAutoMode.ts`, and `queueDispatchMode` /
- *    `promptSuggestionEnabled` / `spinnerTipsEnabled` in `session.ts`).
+ *    `promptSuggestionEnabled` / `spinnerTipsEnabled` / `sessionRecapEnabled` /
+ *    `feedbackSurveyRate` — every `readSettings("user", …)` in `session.ts`).
  */
 export const USER_SCOPE_WINS_SETTING_KEYS: ReadonlySet<string> = new Set([
   // session.ts flag layer
@@ -59,7 +61,15 @@ export const USER_SCOPE_WINS_SETTING_KEYS: ReadonlySet<string> = new Set([
   "autoContinueAtUsageLimit",
   "disableAutoMode",
   "maxEffortLevel",
+  "sessionRecapEnabled",
+  "feedbackSurveyRate",
 ]);
+
+/**
+ * Keys the engine honors only from managed (policy) settings, so no
+ * user/project/local file "takes precedence" — none of them applies.
+ */
+const MANAGED_ONLY_SETTING_KEYS: ReadonlySet<string> = new Set(["forceLoginGatewayUrl"]);
 
 export type SettingOverride = { scope: SettingScope; path: string };
 
@@ -78,7 +88,9 @@ export function settingOverriddenBy(
   scope: SettingScope,
   scopes: readonly ScopeSettings[],
 ): SettingOverride | null {
-  if (MERGED_SETTING_KEYS.has(key) || USER_SCOPE_WINS_SETTING_KEYS.has(key)) return null;
+  if (MERGED_SETTING_KEYS.has(key) || USER_SCOPE_WINS_SETTING_KEYS.has(key) || MANAGED_ONLY_SETTING_KEYS.has(key)) {
+    return null;
+  }
   const from = PRECEDENCE.indexOf(scope);
   for (let i = PRECEDENCE.length - 1; i > from; i--) {
     const higher = scopes.find((s) => s.scope === PRECEDENCE[i]);

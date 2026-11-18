@@ -8,6 +8,8 @@ export type ConfiguredServer = {
   name: string;
   config: McpServerConfig;
   warnings?: string[];
+  /** Project server listed in `disabledMcpjsonServers` (CC 2.1.327). */
+  rejected?: true;
 };
 
 export type LiveStatus = {

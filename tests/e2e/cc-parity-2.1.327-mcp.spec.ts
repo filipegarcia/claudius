@@ -11,7 +11,9 @@
  *     during a session or declined; it now says what to do". A configured
  *     server missing from the live session's status used to render with no
  *     badge and no actions. It now gets a muted "Not loaded in this session"
- *     line, only once the session's status list has actually loaded.
+ *     line, only once the session's status list has actually loaded. A
+ *     project server the user rejected (`disabledMcpjsonServers`) is never
+ *     started by the engine, so it says "Turned off in Settings" instead.
  *
  * /api/mcp and /api/sessions are mocked, so no real .mcp.json is touched.
  *
@@ -43,8 +45,9 @@ test.beforeEach(async ({ page }) => {
   });
 
   // `docs` is live in the session; `linear` (project) and `notes` (user)
-  // are configured but the session never loaded them. Without a sessionId
-  // the route returns `status: null`, as the real one does.
+  // are configured but the session never loaded them; `sentry` (project) is
+  // in `disabledMcpjsonServers`, so the route marks it `rejected`. Without a
+  // sessionId the route returns `status: null`, as the real one does.
   await page.route("**/api/mcp?*", async (route: Route) => {
     if (route.request().method() !== "GET") return route.fallback();
     const withSession = new URL(route.request().url()).searchParams.get("sessionId") === FAKE_SESSION_ID;
@@ -56,6 +59,12 @@ test.beforeEach(async ({ page }) => {
           { scope: "user", name: "docs", config: { command: "npx", args: ["-y", "server-docs"] } },
           { scope: "project", name: "linear", config: { type: "http", url: "https://mcp.linear.app/mcp" } },
           { scope: "user", name: "notes", config: { command: "npx", args: ["-y", "server-notes"] } },
+          {
+            scope: "project",
+            name: "sentry",
+            config: { type: "http", url: "https://mcp.sentry.dev/mcp" },
+            rejected: true,
+          },
         ],
         status: withSession ? [{ name: "docs", status: "connected", tools: [{ name: "search" }] }] : null,
         statusError: null,
@@ -66,6 +75,24 @@ test.beforeEach(async ({ page }) => {
 
 test.describe("CC 2.1.327 — /mcp", () => {
   test("adding into a flat .mcp.json shows why it was refused", async ({ page }) => {
+    // A flat .mcp.json has no `mcpServers` key, so the real route lists no
+    // project servers — only the user-scope ones.
+    await page.route("**/api/mcp?*", async (route: Route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      const withSession = new URL(route.request().url()).searchParams.get("sessionId") === FAKE_SESSION_ID;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          configured: [
+            { scope: "user", name: "docs", config: { command: "npx", args: ["-y", "server-docs"] } },
+            { scope: "user", name: "notes", config: { command: "npx", args: ["-y", "server-notes"] } },
+          ],
+          status: withSession ? [{ name: "docs", status: "connected", tools: [{ name: "search" }] }] : null,
+          statusError: null,
+        }),
+      });
+    });
     let posts = 0;
     await page.route("**/api/mcp", async (route: Route) => {
       if (route.request().method() !== "POST") return route.fallback();
@@ -102,7 +129,14 @@ test.describe("CC 2.1.327 — /mcp", () => {
     const linear = page.getByTestId("mcp-not-loaded-hint-linear");
     await expect(linear).toContainText("Not loaded in this session. Start a new chat to connect it.");
     await expect(linear).toContainText("approve it under MCP in Settings");
-    await expect(linear.getByRole("link", { name: "Settings" })).toHaveAttribute("href", /\/settings$/);
+    await expect(linear.getByRole("link", { name: "Settings" })).toHaveAttribute("href", /\/settings#mcp$/);
+
+    // A server rejected via disabledMcpjsonServers won't load in a new chat
+    // either — it says where it was turned off instead.
+    await expect(page.getByTestId("mcp-not-loaded-hint-sentry")).toHaveCount(0);
+    const sentry = page.getByTestId("mcp-rejected-hint-sentry");
+    await expect(sentry).toHaveText("Turned off in Settings (disabledMcpjsonServers).");
+    await expect(sentry.getByRole("link", { name: "Settings" })).toHaveAttribute("href", /\/settings#mcp$/);
 
     // The loaded server gets its badge and no hint.
     await expect(page.getByTestId("mcp-not-loaded-hint-docs")).toHaveCount(0);

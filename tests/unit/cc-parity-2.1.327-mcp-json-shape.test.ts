@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
-import { hasTopLevelServers, McpJsonShapeError, upsertServer } from "@/lib/server/mcp";
+import { hasTopLevelServers, listConfigured, McpJsonShapeError, upsertServer } from "@/lib/server/mcp";
 
 const trusted = { resolveTrustedCwd: vi.fn<(cwd: unknown) => Promise<string | null>>() };
 vi.mock("@/lib/server/trusted-cwd", () => trusted);
@@ -133,5 +133,21 @@ describe("project .mcp.json shape on add", () => {
     expect(hasTopLevelServers({ foo: null, bar: [{ command: "x" }] })).toBe(false);
     expect(hasTopLevelServers({ foo: { command: "x" } })).toBe(true);
     expect(hasTopLevelServers({ mcpServers: {}, foo: { command: "x" } })).toBe(false);
+  });
+
+  test("project servers named in disabledMcpjsonServers (any scope) are marked rejected", async () => {
+    await fs.writeFile(file, JSON.stringify({ mcpServers: { linear: added, sentry: added, jira: added } }));
+    await fs.mkdir(join(cwd, ".claude"), { recursive: true });
+    await fs.writeFile(join(cwd, ".claude", "settings.local.json"), JSON.stringify({ disabledMcpjsonServers: ["sentry"] }));
+    await fs.writeFile(join(cwd, ".claude", "settings.json"), JSON.stringify({ disabledMcpjsonServers: ["jira"] }));
+    const byName = Object.fromEntries((await listConfigured(cwd)).map((s) => [s.name, s.rejected ?? false]));
+    expect(byName).toEqual({ linear: false, sentry: true, jira: true });
+  });
+
+  test("a project settings.json that doesn't load doesn't fail the list", async () => {
+    await fs.writeFile(file, JSON.stringify({ mcpServers: { linear: added } }));
+    await fs.mkdir(join(cwd, ".claude"), { recursive: true });
+    await fs.writeFile(join(cwd, ".claude", "settings.json"), "{ not json");
+    expect((await listConfigured(cwd)).map((s) => [s.name, s.rejected])).toEqual([["linear", undefined]]);
   });
 });

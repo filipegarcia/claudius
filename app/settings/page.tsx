@@ -810,6 +810,9 @@ export default function SettingsPage() {
                 {catalogEntries.map(([section, metas]) => (
                   <Section
                     key={section}
+                    // CC 2.1.327 — /mcp links rejected / unapproved project
+                    // servers here (`enabledMcpjsonServers`, `disabledMcpjsonServers`).
+                    id={section === "MCP" ? "mcp" : undefined}
                     title={section}
                     subtitle="Claude Code settings from the SDK. Blank / “Default” means the key is absent and Claude Code's built-in default applies."
                   >
@@ -883,16 +886,19 @@ export default function SettingsPage() {
 }
 
 function Section({
+  id,
   title,
   subtitle,
   children,
 }: {
+  /** Anchor for deep links (e.g. /mcp's `/settings#mcp`). */
+  id?: string;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
+    <section id={id} className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-4">
       <h2 className="text-sm font-medium">{title}</h2>
       {subtitle && <p className="mt-0.5 text-[11px] text-[var(--muted)]">{subtitle}</p>}
       <div className="mt-3 space-y-3">{children}</div>
@@ -943,7 +949,7 @@ function ToggleRow({
   onChange: (b: boolean) => void;
   note?: React.ReactNode;
 }) {
-  return (
+  const row = (
     <label className="flex cursor-pointer items-start gap-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
       <input
         type="checkbox"
@@ -954,9 +960,17 @@ function ToggleRow({
       <div className="flex-1">
         <div className="font-mono text-xs">{label}</div>
         <div className="text-[11px] text-[var(--muted)]">{description}</div>
-        {note}
       </div>
     </label>
+  );
+  // Same as `Field`: the note sits outside the <label> so it doesn't become
+  // part of the checkbox's accessible name (or toggle it when clicked).
+  if (!note) return row;
+  return (
+    <div>
+      {row}
+      <div className="pl-[34px]">{note}</div>
+    </div>
   );
 }
 
@@ -2324,7 +2338,6 @@ function AutoCompactWindowCatalogField({
         work, e.g. 200k). The top-level value applies to every model without its own window
         below.
       </p>
-      {note}
       {/* CC 2.1.304 — a text input (not `type="number"`) so `200k` / `1M` can
           be typed; the raw text is kept while editing so an unparseable value
           stays visible next to its "ignored" warning, and blur snaps a parsed
@@ -2364,6 +2377,8 @@ function AutoCompactWindowCatalogField({
           <AutoCompactWindowWarning testId="auto-compact-window-top-warning" kind="out-of-range" />
         )
       )}
+      {/* After the top-level control it describes, like every other row. */}
+      {note}
 
       {overrides.length > 0 && (
         <p

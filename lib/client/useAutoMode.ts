@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { AutoModeConfig } from "@/lib/server/settings";
+import { settingsRequestFailedMessage } from "@/lib/shared/settings-load-error";
 
 export type { AutoModeConfig };
 
 const EMPTY: AutoModeConfig = {};
+// `autoMode` is only ever read from (and written to) the user settings file.
+const AUTO_MODE_FILE = "~/.claude/settings.json";
 
 /**
  * CC 2.1.246 parity — "Added an Auto mode tab to /permissions for viewing
@@ -54,9 +57,13 @@ export function useAutoMode() {
   }, []);
 
   /** Record why a write didn't land (the server's message names the file). */
-  const failed = useCallback(async (res: Response, verb: string) => {
+  const failed = useCallback(async (res: Response) => {
     const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
-    setSaveError(typeof body?.error === "string" && body.error ? body.error : `${verb} failed: ${res.status}`);
+    setSaveError(
+      typeof body?.error === "string" && body.error
+        ? body.error
+        : settingsRequestFailedMessage(AUTO_MODE_FILE, { status: res.status }),
+    );
   }, []);
 
   const updateConfig = useCallback(
@@ -69,13 +76,13 @@ export function useAutoMode() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ patch }),
-      }).catch(() => null);
-      if (res?.ok) {
+      }).catch((err: unknown) => err);
+      if (res instanceof Response && res.ok) {
         setSaveError(null);
         return;
       }
-      if (res) await failed(res, "save");
-      else setSaveError("Not saved: couldn't reach Claudius to update ~/.claude/settings.json.");
+      if (res instanceof Response) await failed(res);
+      else setSaveError(settingsRequestFailedMessage(AUTO_MODE_FILE, { error: res }));
       refresh();
     },
     [failed, refresh],
@@ -85,10 +92,10 @@ export function useAutoMode() {
     // CC 2.1.212 — drop the whole autoMode key so the classifier reverts to
     // the engine defaults. Optimistically clear, then refetch to confirm.
     setConfig(EMPTY);
-    const res = await fetch("/api/settings/auto-mode", { method: "DELETE" }).catch(() => null);
-    if (res?.ok) setSaveError(null);
-    else if (res) await failed(res, "reset");
-    else setSaveError("Not reset: couldn't reach Claudius to update ~/.claude/settings.json.");
+    const res = await fetch("/api/settings/auto-mode", { method: "DELETE" }).catch((err: unknown) => err);
+    if (res instanceof Response && res.ok) setSaveError(null);
+    else if (res instanceof Response) await failed(res);
+    else setSaveError(settingsRequestFailedMessage(AUTO_MODE_FILE, { error: res }));
     refresh();
   }, [failed, refresh]);
 

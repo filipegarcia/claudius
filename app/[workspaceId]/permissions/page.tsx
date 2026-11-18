@@ -58,6 +58,9 @@ export default function PermissionsPage() {
   // only). Forced back to "rules" whenever the user leaves account scope so
   // switching to Project/Local never leaves an unreachable tab selected.
   const [tab, setTab] = useState<"rules" | "auto-mode">("rules");
+  // CC 2.1.327 — the Auto mode tab's last failed save, lifted here so it
+  // shows in the same out-of-scroll strip as a failed rule save.
+  const [autoModeSaveError, setAutoModeSaveError] = useState<string | null>(null);
 
   // Find the live session matching the active workspace CWD so we can surface
   // its recent-denial ring buffer (CC 2.1.193 parity). Same pattern as McpPage.
@@ -128,17 +131,10 @@ export default function PermissionsPage() {
 
         {/* CC 2.1.326 — a rule that didn't reach disk is rolled back; say so,
             and name the settings file, instead of letting it look saved. Out of
-            the scroll area so it's seen wherever the failed edit was made. */}
-        {saveError && (
-          <div
-            role="alert"
-            data-testid="permissions-save-error"
-            className="flex shrink-0 items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span className="min-w-0 [overflow-wrap:anywhere]">{saveError}</span>
-          </div>
-        )}
+            the scroll area so it's seen wherever the failed edit was made.
+            CC 2.1.327 — an Auto mode save that didn't land uses the same strip. */}
+        {saveError && <SaveErrorStrip testId="permissions-save-error" message={saveError} />}
+        {autoModeSaveError && <SaveErrorStrip testId="auto-mode-save-error" message={autoModeSaveError} />}
         <div className="flex-1 overflow-y-auto scroll-thin">
           <div className="mx-auto max-w-4xl px-6 py-6">
             <div className="mb-4 flex items-center gap-2">
@@ -191,7 +187,7 @@ export default function PermissionsPage() {
             )}
 
             {tab === "auto-mode" && iaScope === "account" ? (
-              <AutoModeTab />
+              <AutoModeTab onSaveErrorChange={setAutoModeSaveError} />
             ) : (
               <>
                 {/* CC 2.1.257 parity — "Added a one-time prompt in auto mode
@@ -366,8 +362,26 @@ export default function PermissionsPage() {
  * `$defaults` toggle for whether Anthropic's built-in rules stay in effect
  * alongside the user's own.
  */
-function AutoModeTab() {
+function SaveErrorStrip({ testId, message }: { testId: string; message: string }) {
+  return (
+    <div
+      role="alert"
+      data-testid={testId}
+      className="flex shrink-0 items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300"
+    >
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span className="min-w-0 [overflow-wrap:anywhere]">{message}</span>
+    </div>
+  );
+}
+
+function AutoModeTab({ onSaveErrorChange }: { onSaveErrorChange: (message: string | null) => void }) {
   const { config, loading, error, saveError, updateConfig, reset } = useAutoMode();
+  // CC 2.1.327 — the message survives the rollback refetch; the page shows
+  // it above the scroll area so it's seen wherever the failed edit was made.
+  useEffect(() => {
+    onSaveErrorChange(saveError);
+  }, [saveError, onSaveErrorChange]);
   const hasConfig =
     (["environment", "allow", "soft_deny", "hard_deny"] as const).some(
       (k) => (config[k]?.length ?? 0) > 0,
@@ -402,18 +416,6 @@ function AutoModeTab() {
         <code className="font-mono text-[var(--foreground)]">~/.claude/settings.json</code>.
         {loading && <span className="ml-2">loading…</span>}
         {error && <span className="ml-2 text-red-400">{error}</span>}
-        {/* CC 2.1.327 — survives the rollback refetch, so the change that
-            didn't save doesn't just silently revert. */}
-        {saveError && (
-          <div
-            role="alert"
-            data-testid="auto-mode-save-error"
-            className="mt-2 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-red-300"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span className="min-w-0 [overflow-wrap:anywhere]">{saveError}</span>
-          </div>
-        )}
       </div>
       {/* SDK 0.3.312 — `autoMode.classifyAllShell`. */}
       <label

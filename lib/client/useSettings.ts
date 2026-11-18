@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
+import { settingsRequestFailedMessage } from "@/lib/shared/settings-load-error";
 import { diffSettings, isEmptyPatch } from "@/lib/shared/settings-patch";
 
 export type ScopedSettings = { scope: SettingsScope; path: string; settings: ClaudeSettings };
@@ -59,6 +60,7 @@ export function useSettings(cwd: string | null) {
    */
   const save = useCallback(
     async (scope: SettingsScope, settings: ClaudeSettings, baseline?: ClaudeSettings) => {
+      const fileFor = (s: SettingsScope) => scopes.find((x) => x.scope === s)?.path ?? `the ${s} settings file`;
       const patch = baseline
         ? diffSettings(baseline as Record<string, unknown>, settings as Record<string, unknown>)
         : null;
@@ -71,13 +73,16 @@ export function useSettings(cwd: string | null) {
           body: JSON.stringify(patch ? { scope, cwd, patch } : { scope, cwd, settings }),
         });
       } catch (err) {
-        const path = scopes.find((s) => s.scope === scope)?.path ?? `the ${scope} settings file`;
-        setSaveError(`Not saved: couldn't reach Claudius to update ${path} (${err instanceof Error ? err.message : String(err)}).`);
+        setSaveError(settingsRequestFailedMessage(fileFor(scope), { error: err }));
         return false;
       }
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
-        setSaveError(typeof body?.error === "string" && body.error ? body.error : `save failed: ${res.status}`);
+        setSaveError(
+          typeof body?.error === "string" && body.error
+            ? body.error
+            : settingsRequestFailedMessage(fileFor(scope), { status: res.status }),
+        );
         return false;
       }
       setSaveError(null);
