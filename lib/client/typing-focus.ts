@@ -19,7 +19,7 @@ export type FocusedFieldLike = {
 };
 
 /** `<input type=…>` values that take typed text (an Enter there is "send"). */
-const TEXT_INPUT_TYPES = new Set(["", "text", "search", "email", "url", "tel", "password", "number"]);
+export const TEXT_INPUT_TYPES = new Set(["", "text", "search", "email", "url", "tel", "password", "number"]);
 
 /**
  * True when `el` is a text field the user is actively composing in — an

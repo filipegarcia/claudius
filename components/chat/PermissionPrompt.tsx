@@ -6,7 +6,7 @@ import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/ev
 import { visualizeHiddenNameUnicode, visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
 import { isTypingInField } from "@/lib/client/typing-focus";
-import { isBeforePromptArmed } from "@/lib/client/prompt-arm";
+import { armPrompt, shouldIgnorePromptEscape } from "@/lib/client/prompt-arm";
 
 type Props = {
   request: PermissionRequestEvent;
@@ -101,12 +101,13 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // CC 2.1.318 — when this request appeared (see `prompt-arm.ts`). Set in an
-  // effect keyed by requestId, not the listener effect below: that one re-runs
-  // on every render because `onResolve` is a fresh arrow each time.
+  // CC 2.1.318 / 2.1.327 — when this request appeared (see `prompt-arm.ts`).
+  // Set in an effect keyed by requestId, not the listener effect below: that
+  // one re-runs on every render because `onResolve` is a fresh arrow each time.
   const armedAtRef = useRef<number | null>(null);
   useEffect(() => {
     armedAtRef.current = performance.now();
+    return armPrompt();
   }, [request.requestId]);
 
   useEffect(() => {
@@ -115,8 +116,9 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
       // every stacked request in a row, including ones never seen.
       if (e.key !== "Escape" || e.repeat) return;
       // CC 2.1.318 — an Escape typed (for the composer) just before this
-      // prompt appeared must not deny it unseen.
-      if (isBeforePromptArmed(e.timeStamp, armedAtRef.current)) return;
+      // prompt appeared must not deny it unseen. CC 2.1.327 — but a
+      // deliberate Esc on a just-shown prompt still denies.
+      if (shouldIgnorePromptEscape(e, armedAtRef.current)) return;
       onResolve({ kind: "deny" });
     }
     window.addEventListener("keydown", onKey);
