@@ -540,8 +540,11 @@ export function buildSubagentMessages(
     } else if (m.type === "user") {
       const uuid = m.uuid ?? crypto.randomUUID();
       if (seenUserUuids.has(uuid)) continue;
-      let text = "";
       const content = m.message?.content;
+      // Same filter as the live subagent branch: a background task's
+      // <task-notification> wake-up isn't a prompt to show in the trail.
+      if (isSyntheticTaskNotification(content)) continue;
+      let text = "";
       if (typeof content === "string") text = content;
       else if (Array.isArray(content)) {
         for (const c of content as Array<{ type?: string; text?: string }>) {
@@ -3893,6 +3896,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // Subagent user-shaped message (typically the spawning prompt). Route to subagent.
         if (parent && inner) {
           const content = inner.content;
+          // When a subagent's background task finishes, the engine wakes the
+          // subagent with a parented <task-notification> wrapper. Drop it here
+          // like the top-level filter below does — it's model context, not a
+          // prompt, and the trail would otherwise show raw XML.
+          if (isSyntheticTaskNotification(content)) return;
           let text = "";
           if (typeof content === "string") text = content;
           else if (Array.isArray(content)) {
