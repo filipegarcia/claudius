@@ -237,6 +237,8 @@ test.describe("rewindFiles skippedLinks warning (SDK 0.3.216)", () => {
     await expect(warning).toBeVisible();
     await expect(warning).toContainText("Skipped 2 files");
     await expect(warning).toContainText("safety guard refused to restore");
+    // SDK 0.3.326: the sandbox-on skip reason is named too.
+    await expect(warning).toContainText("sandboxed commands can write");
 
     await warning.scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
