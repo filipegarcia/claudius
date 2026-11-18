@@ -1,5 +1,6 @@
 import { promises as fs, createReadStream } from "node:fs";
-import { resolve, sep } from "node:path";
+import { homedir } from "node:os";
+import { join, resolve, sep } from "node:path";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { projectRoot } from "./db";
 import { getSessionState } from "./sessions-db";
@@ -77,6 +78,129 @@ export async function lastRecordedPermissionModeAt(
     return null;
   }
   return last;
+}
+
+/**
+ * CC 2.1.327 — "Added a line when a resumed session's earlier messages can't
+ * be loaded". The CLI's copy, shown once at the top of the reopened history.
+ */
+export const RESUME_GAP_NOTICE =
+  "Earlier messages couldn't be loaded because part of this session's file is missing or damaged. Claude won't see them, so repeat anything it still needs.";
+
+/** One transcript row, reduced to what the cut-off rule reads. */
+type LinkRow = {
+  parent: string | null;
+  type: string;
+  sidechain: boolean;
+  compactSummary: boolean;
+  /** File position of the uuid's first occurrence. */
+  pos: number;
+};
+
+/**
+ * The parent links of every uuid-bearing row in a session's JSONL, plus the
+ * file position of its first main-chain (non-sidechain) user/assistant row.
+ */
+export type TranscriptLinks = {
+  rows: Map<string, LinkRow>;
+  firstTurnPos: number;
+};
+
+/** Row types the SDK's chain walk steps through (`getSessionMessages`). */
+const CHAIN_TYPES = new Set(["user", "assistant", "progress", "system", "attachment"]);
+
+/**
+ * Build {@link TranscriptLinks} from a session's JSONL in one streaming pass.
+ * Null when the path is outside `projectsBase` or the file can't be read.
+ */
+export async function readTranscriptLinks(
+  file: string,
+  projectsBase: string = join(homedir(), ".claude", "projects"),
+): Promise<TranscriptLinks | null> {
+  const base = resolve(projectsBase);
+  const target = resolve(base, file);
+  if (!target.startsWith(base + sep)) return null;
+  const rows = new Map<string, LinkRow>();
+  try {
+    let pos = 0;
+    for await (const line of jsonlLines(createReadStream(target, "utf8"))) {
+      pos++;
+      if (!line.includes('"uuid"')) continue;
+      let entry: {
+        uuid?: unknown;
+        parentUuid?: unknown;
+        type?: unknown;
+        isSidechain?: unknown;
+        isCompactSummary?: unknown;
+      };
+      try {
+        entry = JSON.parse(line) as typeof entry;
+      } catch {
+        continue; // torn line
+      }
+      if (!entry || typeof entry.uuid !== "string" || !entry.uuid) continue;
+      // A re-written uuid keeps its first position and takes the latest
+      // fields, like the Map the CLI builds.
+      rows.set(entry.uuid, {
+        parent: typeof entry.parentUuid === "string" && entry.parentUuid ? entry.parentUuid : null,
+        type: typeof entry.type === "string" ? entry.type : "",
+        sidechain: entry.isSidechain === true,
+        compactSummary: entry.isCompactSummary === true,
+        pos: rows.get(entry.uuid)?.pos ?? pos,
+      });
+    }
+  } catch {
+    return null;
+  }
+  let firstTurnPos = Infinity;
+  for (const r of rows.values()) {
+    if (!r.sidechain && (r.type === "user" || r.type === "assistant") && r.pos < firstTurnPos) {
+      firstTurnPos = r.pos;
+    }
+  }
+  return { rows, firstTurnPos };
+}
+
+/**
+ * Whether the history the SDK loaded starts at a cut — the CLI's rule: the
+ * chain's first row names a parent that isn't in the file. Walks up from
+ * `firstLoadedUuid` (the first message `getSessionMessages` returned) through
+ * rows the SDK's chain would also cross, to the chain's root, which must:
+ *
+ * - name a parent (a null parent is a real start: a fresh session, or a
+ *   compact boundary, whose old chain is only a `logicalParentUuid`);
+ * - name one missing from the file entirely (any row type counts as present);
+ * - not be a sidechain row or an `isCompactSummary` prompt;
+ * - come after the file's first main-chain user/assistant row, so the
+ *   opening prompt (a fork's or a copied tail's) is never the one flagged.
+ *
+ * False whenever it can't tell: `firstLoadedUuid` not in the file (the SDK
+ * read a different copy), a cycle, or a parent row of another type.
+ */
+export function hasMissingParentAbove(links: TranscriptLinks, firstLoadedUuid: string): boolean {
+  let row = links.rows.get(firstLoadedUuid);
+  if (!row) return false;
+  const seen = new Set<string>([firstLoadedUuid]);
+  while (row.parent) {
+    const next = links.rows.get(row.parent);
+    if (!next) break; // missing — `row` is the chain's root
+    if (!CHAIN_TYPES.has(next.type) || seen.has(row.parent)) return false;
+    seen.add(row.parent);
+    row = next;
+  }
+  if (!row.parent || row.sidechain) return false;
+  if (row.type === "user" && row.compactSummary) return false;
+  return row.pos > links.firstTurnPos;
+}
+
+/** {@link readTranscriptLinks} + {@link hasMissingParentAbove}; false when unreadable. */
+export async function transcriptHasMissingParent(
+  file: string,
+  firstLoadedUuid: string,
+  projectsBase?: string,
+): Promise<boolean> {
+  const links = await readTranscriptLinks(file, projectsBase);
+  return !!links && hasMissingParentAbove(links, firstLoadedUuid);
 }
 
 /**

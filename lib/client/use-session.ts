@@ -6427,11 +6427,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       const data = (await res.json()) as {
         messages: Array<Record<string, unknown>>;
         hasMore: boolean;
+        resumeGap?: { uuid?: unknown; content?: unknown };
       };
       const synth = synthesizeOlder(data.messages);
       // synthesizeOlder drops the compaction summary as plumbing; restore its
       // divider when this page reaches the top of the history (CC 2.1.301).
-      setSystemEntries((prev) => withPagedCompactBoundary(prev, data.messages, data.hasMore));
+      setSystemEntries((prev) =>
+        withPagedResumeGap(withPagedCompactBoundary(prev, data.messages, data.hasMore), data.resumeGap),
+      );
       // Compute fresh prepends against the current list up front so we can
       // tell whether this page actually moved the head cursor. The cursor is
       // always messagesRef.current[0]; if nothing fresh is prepended the head
@@ -7291,6 +7294,27 @@ export function withPagedCompactBoundary(
       label: "Compacted earlier conversation",
       ...(summaryText ? { compactSummary: summaryText } : {}),
     },
+  ];
+}
+
+/**
+ * CC 2.1.327 — add the "earlier messages couldn't be loaded" warning that the
+ * paged transcript route returns with the page reaching the top of a resumed
+ * session's history. A reattach replays only the last turns, so on a long
+ * session the copy at the top of the server's replay buffer never arrives
+ * over SSE. Anchorless, so it renders above the first message. No-op when
+ * absent or already shown (same uuid from a replay that included it).
+ */
+export function withPagedResumeGap(
+  prev: SystemEntry[],
+  gap: { uuid?: unknown; content?: unknown } | undefined,
+): SystemEntry[] {
+  if (!gap || typeof gap.uuid !== "string" || !gap.uuid) return prev;
+  if (typeof gap.content !== "string" || !gap.content.trim()) return prev;
+  if (prev.some((e) => e.uuid === gap.uuid)) return prev;
+  return [
+    ...prev,
+    { uuid: gap.uuid, afterMessageUuid: "", kind: "info", label: gap.content.trim(), infoLevel: "warning" },
   ];
 }
 

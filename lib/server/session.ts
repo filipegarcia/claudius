@@ -1965,6 +1965,12 @@ export class Session {
    * sessions and when no candidate file exists. See `resumedTranscriptPath`.
    */
   private resumedTranscriptFile: string | undefined;
+  /**
+   * CC 2.1.327 — the "earlier messages couldn't be loaded" line `start()`
+   * placed above the replayed history, when the resumed JSONL is cut. See
+   * `resumeGapNotice`.
+   */
+  private resumeGap: { uuid: string; content: string } | undefined;
   private subscribers = new Set<Subscriber>();
   /** Set by `end()` when the SDK process had already died on its own — see `isDead`. */
   private diedOnItsOwn = false;
@@ -2618,6 +2624,15 @@ export class Session {
     const home = homedir();
     return file.startsWith(home + pathSep) ? `~${file.slice(home.length)}` : file;
   }
+  /**
+   * CC 2.1.327 — the cut-history notice for this resume, if any. The replay
+   * buffer carries it at the top, but a reattach only replays the last turns,
+   * so the paged transcript route hands it out again with the page that
+   * reaches the top of the history.
+   */
+  resumeGapNotice(): { uuid: string; content: string } | undefined {
+    return this.resumeGap;
+  }
   async start(): Promise<void> {
     if (this.query) return;
 
@@ -2722,6 +2737,16 @@ export class Session {
     // "model engaged with this id post-click, take over" semantic.
     this.isReplayingTranscript = true;
     if (this.resumeFrom) {
+      // CC 2.1.327 — read the JSONL's parent links alongside the SDK load, to
+      // tell whether the history it returns starts at a cut (see the notice
+      // below). Never fails the resume: any error just means no notice.
+      const resumeFrom = this.resumeFrom;
+      const gapLinks = (async () => {
+        const file = await findResumedTranscriptPath(resumeFrom, this.cwd);
+        if (!file) return null;
+        const { readTranscriptLinks } = await import("./session-resume");
+        return readTranscriptLinks(file);
+      })().catch(() => null);
       try {
         const loaded = await getSessionMessages(this.resumeFrom, {
           dir: this.cwd,
@@ -2770,6 +2795,57 @@ export class Session {
         // frozen on the running spinner (their `tool_result` was in the
         // dropped tail). Losing one malformed record is survivable; losing
         // the rest of the conversation is not.
+        // CC 2.1.327 — "Added a line when a resumed session's earlier
+        // messages can't be loaded". The SDK's chain walk stops silently at
+        // a parent missing from the file, so a damaged middle replayed as a
+        // shorter history. When the first loaded message's chain root is such
+        // an orphan (the CLI's rule — see `hasMissingParentAbove`), put the
+        // CLI's warning above it, stamped with the earliest replayed time so
+        // the chronological replay order keeps it on top. Not persisted.
+        try {
+          const links = await gapLinks;
+          const firstUuid = historical.find(
+            (m) => typeof (m as { uuid?: unknown }).uuid === "string",
+          )?.uuid;
+          if (links && firstUuid) {
+            const { hasMissingParentAbove, RESUME_GAP_NOTICE } = await import("./session-resume");
+            if (hasMissingParentAbove(links, firstUuid)) {
+              let earliest: number | undefined;
+              let leadingUndated = 0;
+              for (const m of historical) {
+                const ts = (m as { timestamp?: string }).timestamp;
+                const t = typeof ts === "string" ? Date.parse(ts) : NaN;
+                if (Number.isFinite(t)) {
+                  if (earliest === undefined || t < earliest) earliest = t;
+                } else if (earliest === undefined) {
+                  leadingUndated++;
+                }
+              }
+              // Undated leading rows (older emitters) would otherwise fall to
+              // `Date.now()`, below everything; carry them forward from just
+              // under the notice instead.
+              if (earliest !== undefined && leadingUndated > 0) {
+                earliest -= leadingUndated + 1;
+                carriedAt = earliest;
+              }
+              this.resumeGap = { uuid: `resume-gap-${resumeFrom}`, content: RESUME_GAP_NOTICE };
+              this.broadcast({
+                type: "sdk",
+                message: {
+                  type: "system",
+                  subtype: "informational",
+                  level: "warning",
+                  content: RESUME_GAP_NOTICE,
+                  uuid: this.resumeGap.uuid,
+                  session_id: this.id,
+                } as unknown as SDKMessage,
+                at: earliest,
+              });
+            }
+          }
+        } catch {
+          // best-effort: no notice rather than a broken resume
+        }
         let replayFailures = 0;
         let firstReplayError: string | undefined;
         for (const m of historical) {
