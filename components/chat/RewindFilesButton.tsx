@@ -88,6 +88,13 @@ export function RewindFilesButton({
     setPhase({ kind: "loading" });
     try {
       const result = await callRewind(sessionId, messageUuid, false);
+      // CC 2.1.327 — a real rewind where every differing file fails to
+      // restore comes back as `canRewind: false` with `error` (see the SDK's
+      // RewindFilesResult). Say it failed rather than "Files restored".
+      if (!result.canRewind) {
+        setPhase({ kind: "error", message: result.error ?? "None of the files could be restored." });
+        return;
+      }
       setPhase({ kind: "done", result });
     } catch (err) {
       setPhase({ kind: "error", message: err instanceof Error ? err.message : String(err) });
