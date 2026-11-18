@@ -15,7 +15,9 @@
  *     local) says which file wins (`lib/shared/setting-override.ts`).
  *
  * Screenshot targets: docs/cc-parity/2.1.327/settings-save-failed.png,
- * docs/cc-parity/2.1.327/settings-overridden.png
+ * docs/cc-parity/2.1.327/settings-overridden.png,
+ * docs/cc-parity/2.1.327/auto-mode-save-failed.png (the /permissions Auto
+ * mode tab's failed save, shown in the strip above the scroll area)
  */
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -194,6 +196,7 @@ test.describe("Auto mode save failure stays on screen (CC 2.1.327)", () => {
     await expect(toggle).not.toBeChecked();
     await page.waitForTimeout(300);
     await expect(error).toBeVisible();
+    await page.screenshot({ path: resolve(SHOTS_DIR, "auto-mode-save-failed.png") });
 
     // The next save that lands clears it.
     await toggle.check();
