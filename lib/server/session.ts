@@ -3290,6 +3290,10 @@ export class Session {
       // in precedence — so the choice surfaced in the global Settings page
       // takes effect even when the SDK's disk path has diverged from ours.
       //
+      // Adding or removing a key here? Update USER_SCOPE_WINS_SETTING_KEYS
+      // in lib/shared/setting-override.ts too: /settings uses it to avoid
+      // saying a project/local value overrides one these keys pin (CC 2.1.327).
+      //
       // Both forwarded values share the same `settings` key, so we build
       // ONE object: an earlier `settings: {...}` spread would be clobbered
       // by a later one (object-literal duplicate-key semantics).

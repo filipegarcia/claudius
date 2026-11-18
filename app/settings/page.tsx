@@ -37,6 +37,7 @@ import {
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { attributionFieldState } from "@/lib/shared/attribution-setting";
 import { stringListSettingValue } from "@/lib/shared/string-list-setting";
+import { settingOverriddenBy, settingOverrideNote } from "@/lib/shared/setting-override";
 import {
   AUTO_COMPACT_WINDOW_MAX,
   AUTO_COMPACT_WINDOW_MIN,
@@ -90,6 +91,12 @@ export default function SettingsPage() {
   const mediaPref = useMediaPreferences();
 
   const active = settings.scopes.find((s) => s.scope === scope);
+  // CC 2.1.327 — the note a row shows when a higher-precedence file also sets
+  // its (single-value) key, so the value on this tab doesn't take effect.
+  const overrideNote = (key: string) => {
+    const o = settingOverriddenBy(key, scope, settings.scopes);
+    return o ? <OverrideNote settingKey={key} text={settingOverrideNote(o)} /> : null;
+  };
 
   // Re-seed draft whenever the active scope's settings load. Done during
   // render via the "store previous props" pattern so the reset isn't a
@@ -586,7 +593,7 @@ export default function SettingsPage() {
                 {sModelUi && (
                 <Section title="Model & UI" subtitle="Defaults Claude Code reads on startup.">
                   {rModel && (
-                  <Field label="Model">
+                  <Field label="Model" note={overrideNote("model")}>
                     <input
                       value={(draft.model as string | undefined) ?? ""}
                       onChange={(e) => update({ model: e.target.value || undefined })}
@@ -596,7 +603,7 @@ export default function SettingsPage() {
                   </Field>
                   )}
                   {rCliTheme && (
-                  <Field label="Theme (CLI rendering)">
+                  <Field label="Theme (CLI rendering)" note={overrideNote("theme")}>
                     <select
                       value={(draft.theme as string | undefined) ?? ""}
                       onChange={(e) => update({ theme: e.target.value || undefined })}
@@ -612,7 +619,7 @@ export default function SettingsPage() {
                   </Field>
                   )}
                   {rOutputStyle && (
-                  <Field label="Output style">
+                  <Field label="Output style" note={overrideNote("outputStyle")}>
                     <select
                       value={(draft.outputStyle as string | undefined) ?? ""}
                       onChange={(e) => update({ outputStyle: e.target.value || undefined })}
@@ -672,6 +679,7 @@ export default function SettingsPage() {
                   {rAutoMemory && (
                   <ToggleRow
                     label="autoMemoryEnabled"
+                    note={overrideNote("autoMemoryEnabled")}
                     checked={Boolean(draft.autoMemoryEnabled)}
                     onChange={(b) => update({ autoMemoryEnabled: b ? true : undefined })}
                     description="Enable auto-memory for this project. When false, Claude will not read from or write to the auto-memory directory."
@@ -680,13 +688,14 @@ export default function SettingsPage() {
                   {rAutoDream && (
                   <ToggleRow
                     label="autoDreamEnabled"
+                    note={overrideNote("autoDreamEnabled")}
                     checked={Boolean(draft.autoDreamEnabled)}
                     onChange={(b) => update({ autoDreamEnabled: b ? true : undefined })}
                     description="Enable background memory consolidation (auto-dream). When set, overrides the server-side default."
                   />
                   )}
                   {rAutoMemDir && (
-                  <Field label="autoMemoryDirectory">
+                  <Field label="autoMemoryDirectory" note={overrideNote("autoMemoryDirectory")}>
                     <input
                       value={(draft.autoMemoryDirectory as string | undefined) ?? ""}
                       onChange={(e) => update({ autoMemoryDirectory: e.target.value || undefined })}
@@ -813,6 +822,7 @@ export default function SettingsPage() {
                         meta={m}
                         draft={draft}
                         update={update}
+                        note={overrideNote(m.key)}
                       />
                     ))}
                   </Section>
@@ -890,12 +900,33 @@ function Section({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
+function Field({ label, note, children }: { label: string; note?: React.ReactNode; children: React.ReactNode }) {
+  const field = (
     <label className="block">
       <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">{label}</div>
       {children}
     </label>
+  );
+  // The note sits outside the <label> so it doesn't become part of the
+  // control's accessible name.
+  if (!note) return field;
+  return (
+    <div>
+      {field}
+      {note}
+    </div>
+  );
+}
+
+/**
+ * CC 2.1.327 — "<Scope> (<file>) takes precedence" under a row whose key a
+ * higher-precedence settings file also sets. See `settingOverriddenBy`.
+ */
+function OverrideNote({ settingKey, text }: { settingKey: string; text: string }) {
+  return (
+    <p data-testid={`setting-override-${settingKey}`} className="mt-1 text-[11px] text-[var(--muted)]">
+      {text}
+    </p>
   );
 }
 
@@ -904,11 +935,13 @@ function ToggleRow({
   description,
   checked,
   onChange,
+  note,
 }: {
   label: string;
   description: string;
   checked: boolean;
   onChange: (b: boolean) => void;
+  note?: React.ReactNode;
 }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
@@ -921,6 +954,7 @@ function ToggleRow({
       <div className="flex-1">
         <div className="font-mono text-xs">{label}</div>
         <div className="text-[11px] text-[var(--muted)]">{description}</div>
+        {note}
       </div>
     </label>
   );
@@ -1213,12 +1247,14 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
   },
   {
     // SDK 0.3.305 — names the claude.ai Project this session is attributed to
-    // in the organization's usage reports (ID or UUID).
+    // in the organization's usage reports (ID or UUID). CC 2.1.327: behind a
+    // Claude apps gateway that sets admin.billing_group_tag, it names the
+    // session's billing group.
     key: "attributionProject",
     type: "string",
     section: "Git",
     placeholder: "claude_proj_…",
-    desc: "The claude.ai Project this session names for your organization's usage reports: the Project's ID, starting with \"claude_proj_\" or \"chan_\", or the UUID of a \"claude_proj_\" Project. An empty string names none and stops lower-precedence files from naming one. Only sent when Claude Code uses your claude.ai login and connects directly to the Anthropic API. CLAUDE_CODE_ATTRIBUTION_PROJECT takes precedence.",
+    desc: "The claude.ai Project this session names for your organization's usage reports: the Project's ID, starting with \"claude_proj_\" or \"chan_\", or the UUID of a \"claude_proj_\" Project. An empty string names none and stops lower-precedence files from naming one. Only sent when Claude Code uses your claude.ai login and connects directly to the Anthropic API — except through a Claude apps gateway that sets admin.billing_group_tag, where the value names the session's billing group instead. CLAUDE_CODE_ATTRIBUTION_PROJECT takes precedence.",
   },
   {
     key: "includeCoAuthoredBy",
@@ -1730,10 +1766,13 @@ function CatalogField({
   meta,
   draft,
   update,
+  note,
 }: {
   meta: SettingMeta;
   draft: ClaudeSettings;
   update: (patch: Patch) => void;
+  /** CC 2.1.327 — "<Scope> (<file>) takes precedence", when another file wins. */
+  note?: React.ReactNode;
 }) {
   const value = (draft as Record<string, unknown>)[meta.key];
   const set = (v: unknown) => update({ [meta.key]: v } as Patch);
@@ -1753,10 +1792,10 @@ function CatalogField({
     return <ModelPricingCatalogField value={value} set={set} />;
   }
   if (meta.key === "attribution") {
-    return <AttributionCatalogField value={value} set={set} />;
+    return <AttributionCatalogField value={value} set={set} note={note} />;
   }
   if (meta.key === "autoCompactWindow") {
-    return <AutoCompactWindowCatalogField draft={draft} update={update} />;
+    return <AutoCompactWindowCatalogField draft={draft} update={update} note={note} />;
   }
   const inputCls =
     "w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none";
@@ -1858,6 +1897,7 @@ function CatalogField({
       </div>
       <p className="mb-2 text-[11px] leading-4 text-[var(--muted)]">{meta.desc}</p>
       {control}
+      {note}
     </div>
   );
 }
@@ -2224,9 +2264,11 @@ function ModelPricingCatalogField({
 function AutoCompactWindowCatalogField({
   draft,
   update,
+  note,
 }: {
   draft: ClaudeSettings;
   update: (patch: Patch) => void;
+  note?: React.ReactNode;
 }) {
   const topLevel = (draft as Record<string, unknown>).autoCompactWindow;
   const modelSettings = (draft as Record<string, unknown>).modelSettings;
@@ -2282,6 +2324,7 @@ function AutoCompactWindowCatalogField({
         work, e.g. 200k). The top-level value applies to every model without its own window
         below.
       </p>
+      {note}
       {/* CC 2.1.304 — a text input (not `type="number"`) so `200k` / `1M` can
           be typed; the raw text is kept while editing so an unparseable value
           stays visible next to its "ignored" warning, and blur snaps a parsed
@@ -2530,9 +2573,11 @@ function AutoCompactWindowWarning({
 function AttributionCatalogField({
   value,
   set,
+  note,
 }: {
   value: unknown;
   set: (v: unknown) => void;
+  note?: React.ReactNode;
 }) {
   const state = attributionFieldState(value);
   const isSet = value !== undefined;
@@ -2574,6 +2619,7 @@ function AttributionCatalogField({
           <option value="hidden">Hidden (attribution: false)</option>
         </select>
       )}
+      {note}
     </div>
   );
 }

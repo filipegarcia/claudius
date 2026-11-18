@@ -10,7 +10,12 @@
  * `/api/settings/full` is mocked so the spec never touches a real
  * settings.json.
  *
- * Screenshot targets: docs/cc-parity/2.1.327/settings-save-failed.png
+ * (b) "Added a note in /config when other settings override a row": a
+ *     single-value key also set by a higher-precedence file (user < project <
+ *     local) says which file wins (`lib/shared/setting-override.ts`).
+ *
+ * Screenshot targets: docs/cc-parity/2.1.327/settings-save-failed.png,
+ * docs/cc-parity/2.1.327/settings-overridden.png
  */
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -91,6 +96,41 @@ test.describe("/settings save failure names the file (CC 2.1.327)", () => {
       if (box) box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top - 24;
     });
     await page.screenshot({ path: resolve(SHOTS_DIR, "settings-save-failed.png"), fullPage: false });
+  });
+});
+
+test.describe("/settings notes when another file overrides a row (CC 2.1.327)", () => {
+  test.beforeEach(async ({ page }) => {
+    await activateClaudiusWorkspace(page);
+  });
+
+  test("the User tab says Project's model takes precedence", async ({ page }) => {
+    await mockSettings(page, {
+      user: { model: "opus", theme: "dark", cleanupPeriodDays: 30, claudeMdExcludes: ["vendor/**"] },
+      project: { model: "sonnet", claudeMdExcludes: ["dist/**"] },
+    });
+
+    await page.goto("/settings");
+    const model = page.getByLabel("Model", { exact: true });
+    await expect(model).toHaveValue("opus", { timeout: 15_000 });
+
+    const note = page.getByTestId("setting-override-model");
+    await expect(note).toHaveText("Project (.claude/settings.json) takes precedence");
+    // Only where a higher file sets the key, and never on a merged list.
+    await expect(page.getByTestId("setting-override-theme")).toHaveCount(0);
+    await expect(page.getByTestId("setting-override-cleanupPeriodDays")).toHaveCount(0);
+    await expect(page.getByTestId("setting-override-claudeMdExcludes")).toHaveCount(0);
+
+    await page.getByRole("heading", { name: "Model & UI" }).evaluate((el) => {
+      const box = el.closest(".overflow-y-auto");
+      if (box) box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top - 24;
+    });
+    await page.screenshot({ path: resolve(SHOTS_DIR, "settings-overridden.png"), fullPage: false });
+
+    // On the Project tab nothing above it sets model, so no note.
+    await page.getByRole("button", { name: "Project", exact: true }).click();
+    await expect(model).toHaveValue("sonnet");
+    await expect(note).toHaveCount(0);
   });
 });
 
