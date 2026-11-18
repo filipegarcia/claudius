@@ -317,6 +317,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.323 — `--managed-settings-in-initialize` could not use the managed settings the initialize request carried.
   managed_settings_not_delivered:
     "your organization's managed settings could not be delivered to the session process — restart the session",
+  // SDK 0.3.327 — as managed_settings_not_delivered, for `--initialize-fields` and the settings / disallowedTools it names.
+  initialize_fields_not_delivered:
+    "the settings or disallowed-tools fields the session process was told to read from its initialize request could not be delivered — restart the session",
 };
 
 /**
