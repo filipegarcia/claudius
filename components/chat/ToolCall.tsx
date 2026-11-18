@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
+import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, CircleStop, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
@@ -10,6 +10,7 @@ import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { useMediaPreferences } from "@/lib/client/useMediaPreferences";
 import { formatElapsed, useElapsedSeconds } from "@/lib/client/use-elapsed";
+import { settledToolLabel, settledToolTitle, type SettledToolReason } from "@/lib/client/subagent-tool-status";
 import { getPreviewType } from "@/lib/shared/file-types";
 import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
 import { splitPathForTruncation } from "@/lib/shared/truncate-path";
@@ -112,6 +113,13 @@ type Props = {
    * `result` alone, unchanged.
    */
   taskStatus?: string;
+  /**
+   * CC 2.1.326 — set by `TaskBlock` for a subagent's inner tool call once the
+   * subagent itself has stopped or failed (see `settledToolReason`).
+   * A result-less call can then never complete, so it reads "Interrupted · …"
+   * instead of running forever with a live timer.
+   */
+  settledReason?: SettledToolReason | null;
 };
 
 export function ToolCall({
@@ -124,6 +132,7 @@ export function ToolCall({
   defaultOpen = false,
   resourceLinks,
   taskStatus,
+  settledReason,
 }: Props) {
   // CC 2.1.302 — a running call stops pulsing while the stream is reconnecting.
   const disconnected = useStreamDisconnected();
@@ -144,7 +153,9 @@ export function ToolCall({
       : taskStatus === "failed" || taskStatus === "killed"
         ? "error"
         : !result
-          ? "running"
+          ? settledReason
+            ? "interrupted"
+            : "running"
           : result.isError
             ? // CC 2.1.296 — auto mode's check had no usable answer, so the
               // call never ran: a dim "Not run" row, not a red error.
@@ -337,6 +348,19 @@ export function ToolCall({
           )}
           {status === "ok" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
           {status === "error" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
+          {status === "interrupted" && settledReason && (
+            <span
+              data-testid="tool-call-interrupted"
+              data-interrupted-reason={settledReason}
+              className="inline-flex items-center gap-1 text-[10px] text-amber-400"
+              title={settledToolTitle(settledReason)}
+            >
+              <CircleStop className="h-3.5 w-3.5" />
+              {/* CC 2.1.326 — a stopped/failed agent's unfinished call stops
+                  "running" and says why. */}
+              {settledToolLabel(settledReason)}
+            </span>
+          )}
           {status === "notrun" && (
             <span
               data-testid="tool-call-not-run"

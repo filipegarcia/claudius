@@ -317,6 +317,9 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.323 — `--managed-settings-in-initialize` could not use the managed settings the initialize request carried.
   managed_settings_not_delivered:
     "your organization's managed settings could not be delivered to the session process — restart the session",
+  // SDK 0.3.327 — as managed_settings_not_delivered, for `--initialize-fields` and the settings / disallowedTools it names.
+  initialize_fields_not_delivered:
+    "the settings or disallowed-tools fields the session process was told to read from its initialize request could not be delivered — restart the session",
 };
 
 /**
@@ -4877,8 +4880,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // CC 2.1.217 — `level: 'info'` is transcript-mode-only; don't surface
           // it in the chat. Other levels tone the pill (notice gray, suggestion
           // sky, warning amber) so a data-loss warning stops looking like
-          // routine info.
-          const { hidden, infoLevel } = classifyInformationalLevel(inf.level);
+          // routine info. CC 2.1.326 — a hook that stops Claude
+          // (`prevent_continuation`) is always shown, amber.
+          const { hidden, infoLevel } = classifyInformationalLevel(inf.level, inf.prevent_continuation);
           if (hidden) return;
           if (content) {
             setSystemEntries((prev) => [

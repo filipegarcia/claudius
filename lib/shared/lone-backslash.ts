@@ -68,6 +68,41 @@ function isUnsafeSpot(text: string, i: number): boolean {
   return false;
 }
 
+/**
+ * CC 2.1.326 parity — "Fixed Windows paths in Claude's responses losing the
+ * backslash before folders like `.claude` or `_build`".
+ *
+ * In CommonMark `\.` and `\_` are escapes, so `C:\Users\me\.claude` rendered as
+ * `C:\Users\me.claude` and `D:\repo\_build` as `D:\repo_build`. A backslash
+ * before a letter (`\Users`) is not an escape, which is why only the folders
+ * that start with punctuation lost theirs.
+ *
+ * Kept narrow, so a `\_` or `\*` Claude wrote to escape emphasis still works:
+ * the backslash must be inside a whitespace-delimited token that starts as a
+ * Windows path (`C:\`, `\\server`, `%VAR%\`, `~\`, `.\` or `..\`, optionally
+ * after `*`, `_`, `(`, a quote or `[`), it must follow a path character (not a
+ * space or another backslash), and the next character must be one a folder
+ * name can start with. Code, quote lines, URLs and the other `isUnsafeSpot`
+ * cases keep the old rendering.
+ *
+ * Known gaps, left as before: a path with a space in it (`C:\Program
+ * Files\App\.config`) is two tokens, so the second half isn't recognised; and
+ * a UNC path's leading `\\` is still read as one escaped backslash (only its
+ * later separators are kept).
+ */
+const PATH_SEGMENT_LEADS = new Set([".", "_", "-", "$", "#", "@", "~", "!", "+", "&", "%", "="]);
+const WINDOWS_PATH_START = /^[*_("'[<]*(?:[A-Za-z]:\\|\\\\[^\\\s]|%[A-Za-z_][A-Za-z0-9_()]*%\\|~\\|\.{1,2}\\)/;
+
+function isWindowsPathSeparator(text: string, i: number): boolean {
+  const next = text[i + 1];
+  const prev = text[i - 1];
+  if (next === undefined || !PATH_SEGMENT_LEADS.has(next)) return false;
+  if (prev === undefined || /\s/.test(prev) || prev === "\\") return false;
+  let tokStart = i;
+  while (tokStart > 0 && !/\s/.test(text[tokStart - 1])) tokStart--;
+  return WINDOWS_PATH_START.test(text.slice(tokStart, i + 1)) && !isUnsafeSpot(text, i);
+}
+
 function preserveInProse(text: string): string {
   let out = "";
   let i = 0;
@@ -97,8 +132,17 @@ function preserveInProse(text: string): string {
         i += 1;
         continue;
       }
+      if (lastPlain === i - 1 && isWindowsPathSeparator(text, i)) {
+        // A Windows path separator before `.claude` / `_build`: keep it.
+        out += "\\\\";
+        i += 1;
+        continue;
+      }
       // Any other backslash escape stays a pair.
       out += text.slice(i, i + 2);
+      // Before anything but ASCII punctuation the backslash isn't an escape,
+      // so the character after it is plain (`C:\a\.claude`: the `a`).
+      if (next !== undefined && !/[!-/:-@[-`{-~]/.test(next)) lastPlain = i + 1;
       i += 2;
       continue;
     }

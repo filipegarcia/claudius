@@ -49,6 +49,7 @@ import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
 import { StreamDisconnectedProvider } from "@/lib/client/stream-status-context";
 import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
+import { helpTopic, isGoalClear, isHelpRequest } from "@/lib/shared/slash-help";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { DiffOverlay } from "@/components/overlays/DiffOverlay";
@@ -257,6 +258,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   const [clearedFromSessionId, setClearedFromSessionId] = useState<string | null>(null);
   const [lastClearedSessionId, setLastClearedSessionId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayKind>(null);
+  // CC 2.1.326 — the command `/help <command>` / `/<command> --help` asked about.
+  const [helpTopicName, setHelpTopicName] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   // Per-session prompt-bar accent (`/color`). Stored keyed by the session it
   // belongs to so the displayed color resets to the theme default the instant
@@ -1327,6 +1330,19 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             return true;
           }
           const text = args.trim();
+          if (isGoalClear(text)) {
+            // CC 2.1.326 — `/goal clear` (what the goal cards tell users to
+            // type) clears the goal; it used to set the goal to "clear" and
+            // send that word to Claude.
+            if (!session.goal) {
+              showToast("No goal to clear");
+              return true;
+            }
+            void session.clearGoal().then((r) =>
+              r.ok ? showToast("Goal cleared") : showToast(`Couldn't clear goal: ${r.error}`, WARNING_TOAST_MS),
+            );
+            return true;
+          }
           if (text) {
             // `/goal <text>` sets the objective AND starts Claude on it (same
             // as submitting the header goal input) — a goal should "start
@@ -1665,6 +1681,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           setOverlay("status");
           return true;
         case "help":
+          // CC 2.1.326 — `/help <command>` opens on that command's usage.
+          setHelpTopicName(helpTopic(args));
           setOverlay("help");
           return true;
         case "release-notes":
@@ -1847,6 +1865,17 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             .filter((b) => b.kind === "text")
             .map((b) => (b as { text: string }).text)
             .join("\n");
+          // CC 2.1.326 — only say "Copied" when something was copied: a reply
+          // with no text (tool calls only) has nothing to copy, and on a
+          // non-secure origin there is no clipboard API at all.
+          if (!text.trim()) {
+            showToast("The last response has no text to copy");
+            return true;
+          }
+          if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+            showToast("Clipboard unavailable — select the text to copy");
+            return true;
+          }
           navigator.clipboard
             .writeText(text)
             .then(() => showToast("Copied last response"))
@@ -1948,6 +1977,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         const cmd = findSlashCommand(head);
+        // CC 2.1.326 — `/clear --help` etc. show usage instead of running.
+        // Only Claudius's own commands: the engine answers `--help` for the
+        // ones it handles (`sdk`, and natives that forward their arguments
+        // to it, like `/fast`), so those are still forwarded.
+        if (cmd && cmd.handler !== "sdk" && !cmd.forwardsArgsToSdk && isHelpRequest(args)) {
+          setHelpTopicName(cmd.name);
+          setOverlay("help");
+          return;
+        }
         if (cmd?.id === "fast") {
           // CC 2.1.299 parity — a bare `/fast` opens the SessionCard's
           // ModelPicker (its fast-mode row). `/fast on|off` etc. still go to
@@ -2964,7 +3002,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           sdkSlashCommands={session.slashCommands}
           sdkSkills={session.skills}
           sessionId={session.sessionId}
-          onClose={() => setOverlay(null)}
+          topic={helpTopicName}
+          onClose={() => {
+            setOverlay(null);
+            setHelpTopicName(null);
+          }}
         />
       )}
       {overlay === "skills" && (

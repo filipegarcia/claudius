@@ -2361,10 +2361,11 @@ function AutoCompactWindowCatalogField({
           <Plus className="h-3 w-3" />
         </button>
       </div>
-      {newWindow.trim() !== "" && autoCompactWindowInputWarning(newWindow) && (
+      {newWindow.trim() !== "" && autoCompactWindowInputWarning(newWindow, { perModel: true }) && (
         <AutoCompactWindowWarning
           testId="auto-compact-window-new-warning"
-          kind={autoCompactWindowInputWarning(newWindow)!}
+          kind={autoCompactWindowInputWarning(newWindow, { perModel: true })!}
+          perModel
         />
       )}
     </div>
@@ -2398,7 +2399,7 @@ function PerModelAutoCompactRow({
   // A non-`auto` string already in settings.json (e.g. a hand-written "200k")
   // isn't a valid window, even though the same text typed here would be.
   const storedInvalid = window !== undefined && typeof window !== "number" && window !== "auto";
-  const typed = autoCompactWindowInputWarning(raw);
+  const typed = autoCompactWindowInputWarning(raw, { perModel: true });
   const warning = storedInvalid && raw === seed ? "ignored" : typed;
   const current = typeof window === "number" || window === "auto" ? window : undefined;
   return (
@@ -2434,6 +2435,7 @@ function PerModelAutoCompactRow({
           testId="auto-compact-window-model-warning"
           kind={warning}
           current={warning === "ignored" ? current : undefined}
+          perModel
         />
       )}
     </li>
@@ -2450,10 +2452,13 @@ function AutoCompactWindowWarning({
   testId,
   kind,
   current,
+  perModel = false,
 }: {
   testId: string;
   kind: "ignored" | "out-of-range";
   current?: number | "auto" | "default";
+  /** Per-model rows have a floor only (SDK 0.3.327: "at least 100000"). */
+  perModel?: boolean;
 }) {
   const stays =
     current === undefined
@@ -2470,19 +2475,29 @@ function AutoCompactWindowWarning({
       {kind === "ignored" ? (
         <>
           Not a token count, so it&apos;s ignored{stays}. Use a number like 200000, 200k or 1M.
-          {isAutoCompactWindowOutOfRange(current) && (
-            <>
-              {" "}
-              That value is outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
-              {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
-            </>
-          )}
+          {isAutoCompactWindowOutOfRange(current, { perModel }) &&
+            (perModel ? (
+              <>
+                {" "}
+                That value is below {AUTO_COMPACT_WINDOW_MIN.toLocaleString()} — the engine may reject it.
+              </>
+            ) : (
+              <>
+                {" "}
+                That value is outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+                {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+              </>
+            ))}
         </>
       ) : (
-        <>
-          Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
-          {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
-        </>
+        perModel ? (
+          <>Below {AUTO_COMPACT_WINDOW_MIN.toLocaleString()} — the engine may reject it.</>
+        ) : (
+          <>
+            Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+            {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+          </>
+        )
       )}
     </div>
   );

@@ -2,8 +2,13 @@
 
 import { AlertTriangle, Timer } from "lucide-react";
 import type { DisplayMessage } from "@/lib/client/types";
-import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
-import { isTopPlan, offersGetMoreUsage, rateLimitCtaKind } from "@/lib/client/rate-limit-cta";
+import { formatResetClock, useResetCountdown } from "@/lib/client/use-countdown";
+import {
+  isTopPlan,
+  LIMIT_RESET_NOTICE,
+  offersGetMoreUsage,
+  rateLimitCtaKind,
+} from "@/lib/client/rate-limit-cta";
 import { autoContinueNotice } from "@/lib/client/auto-continue";
 
 // Upgrade destinations, mirrored from the Claude Code CLI's `/rate-limit-options`
@@ -105,13 +110,18 @@ export function RateLimitHitPanel({
   /** Turn auto-continue off (the "Cancel" affordance). */
   onCancelAutoContinue?: () => void;
 }) {
-  const countdown = useCountdownSeconds(hit.resetsAt);
+  const { countdown, hasReset } = useResetCountdown(hit.resetsAt);
   const tierLabel = hit.rateLimitType
     ? RATE_LIMIT_TYPE_LABEL[hit.rateLimitType] ?? "usage limit"
     : "usage limit";
   const resetClock = hit.resetsAt ? formatResetClock(hit.resetsAt) : null;
   const cta = rateLimitCtaKind(hit);
-  const autoContinueText = autoContinueNotice(autoContinue, resetClock);
+  // CC 2.1.326 — once the reset time has passed this message is history: drop
+  // the upgrade / get-more-usage / credits next steps (and the auto-continue
+  // line) and say the limit has reset. A credits-only model isn't a plan
+  // window, so its options stay.
+  const limitReset = hasReset && cta !== "model-needs-credits";
+  const autoContinueText = limitReset ? null : autoContinueNotice(autoContinue, resetClock);
 
   // Per-model weekly-limit takeover toast — the Claude Code TUI prints a
   // "Now using <fallback>. Your <limit> resets <time>" ambient line so the
@@ -141,7 +151,7 @@ export function RateLimitHitPanel({
         )}
       </div>
 
-      {countdown && (
+      {countdown && !limitReset && (
         <div className="mt-1 flex items-center gap-1.5 opacity-90">
           <Timer className="h-3 w-3" />
           <span className="font-mono">{countdown}</span>
@@ -182,7 +192,13 @@ export function RateLimitHitPanel({
           When canUserPurchaseCredits is explicitly false (org-managed seat) the
           user cannot act directly — show a contact-admin line instead.
           Falls back to the standard upgrade links for ordinary plan limits. */}
-      {cta === "model-needs-credits" ? (
+      {limitReset ? (
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="rate-limit-reset-notice">
+            {LIMIT_RESET_NOTICE}
+          </span>
+        </div>
+      ) : cta === "model-needs-credits" ? (
         // CC 2.1.323 — the engine's options menu for a credits-only model
         // (stop, switch to usage credits, upgrade). The turn has already
         // stopped here, so the options left are turning usage credits on or

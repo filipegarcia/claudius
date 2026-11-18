@@ -7,6 +7,7 @@ import {
   type ClaudeMdScope,
 } from "@/lib/server/claudemd";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
+import { formatClaudeMdWriteError } from "@/lib/shared/claudemd-writable";
 
 export const runtime = "nodejs";
 
@@ -48,6 +49,12 @@ export async function PUT(req: Request) {
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  const { path } = await writeScope(body.scope, cwd, body.content);
-  return NextResponse.json({ ok: true, path });
+  try {
+    const { path } = await writeScope(body.scope, cwd, body.content);
+    return NextResponse.json({ ok: true, path });
+  } catch (err) {
+    // EACCES / EROFS / … — name the file and errno so the Memory page can
+    // keep the draft and say why (CC 2.1.326 parity), instead of a bare 500.
+    return NextResponse.json({ error: formatClaudeMdWriteError(err) }, { status: 500 });
+  }
 }

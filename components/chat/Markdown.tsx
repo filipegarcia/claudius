@@ -15,6 +15,7 @@ import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { hasPathologicalDollarRuns, normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
 import { preserveLoneBackslashes } from "@/lib/shared/lone-backslash";
+import { keepLiteralAsterisks } from "@/lib/shared/user-asterisks";
 import { CodeBlock } from "./CodeBlock";
 import { ImageLightbox } from "./ImageLightbox";
 import { LazyPreview } from "./LazyPreview";
@@ -450,6 +451,7 @@ export const Markdown = memo(function Markdown({
   breaks,
   allowExecute = true,
   math = false,
+  literalAsterisks = false,
 }: {
   children: string;
   /**
@@ -484,6 +486,13 @@ export const Markdown = memo(function Markdown({
    * keeps its dollars as typed.
    */
   math?: boolean;
+  /**
+   * CC 2.1.326 — keep a `*` between two letters, digits, `/` or `.` as typed
+   * (`2*3*4`, `src/**` + `/*.ts`) instead of reading it as emphasis. For the
+   * user's own prompt (`UserMessage.tsx`, `TranscriptViewer.tsx`); see
+   * `lib/shared/user-asterisks.ts`.
+   */
+  literalAsterisks?: boolean;
 }) {
   // Memoized on `allowExecute` (not recreated every render) so ReactMarkdown
   // sees a stable `components.code` identity across re-renders with the same
@@ -506,9 +515,9 @@ export const Markdown = memo(function Markdown({
   // would read it as an escape). Runs before the math pass, which keeps the
   // doubled backslash as a pair.
   const source = useMemo(() => {
-    const kept = preserveLoneBackslashes(children);
+    const kept = preserveLoneBackslashes(literalAsterisks ? keepLiteralAsterisks(children) : children);
     return mathOn ? normalizeMathDelimiters(kept) : kept;
-  }, [children, mathOn]);
+  }, [children, mathOn, literalAsterisks]);
   const remarkPlugins = useMemo(() => {
     const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [remarkGfm];
     if (breaks) plugins.push(remarkBreaks);

@@ -314,7 +314,7 @@ function InlineUserText({ text, images }: { text: string; images: AttachedImage[
           in adversarial review: without this, pasting or receiving a
           ```bash fence starting with `!` would render a live "run in this
           session's shell" button in the user's own bubble. */}
-      <Markdown breaks allowExecute={false}>
+      <Markdown breaks literalAsterisks allowExecute={false}>
         {text}
       </Markdown>
     </div>

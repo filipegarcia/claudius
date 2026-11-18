@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { History, Loader2 } from "lucide-react";
 
 /**
@@ -96,6 +96,17 @@ export function RewindFilesButton({
 
   const close = () => setPhase({ kind: "idle" });
 
+  // CC 2.1.326 — Esc cancels the dialog (preview, result or error).
+  const dialogOpen = phase.kind === "preview" || phase.kind === "error" || phase.kind === "done";
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPhase({ kind: "idle" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dialogOpen]);
+
   return (
     <>
       <button
@@ -116,7 +127,7 @@ export function RewindFilesButton({
         Restore files
       </button>
 
-      {(phase.kind === "preview" || phase.kind === "error" || phase.kind === "done") && (
+      {dialogOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => {
@@ -177,6 +188,30 @@ function RewindPreview({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  // CC 2.1.326 — "a turn whose changes weren't tracked now reads 'Code changes
+  // unknown'" instead of "No code changes". Only Claude's own file edits are
+  // checkpointed, so an empty preview doesn't mean nothing changed: Bash
+  // commands (and edits outside Claude) may have changed files that can't be
+  // restored from here. Say so, and don't offer a restore that does nothing.
+  if ((result.filesChanged ?? []).length === 0) {
+    return (
+      <div data-testid="restore-files-unknown">
+        <h2 className="mb-1 text-sm font-semibold">Code changes unknown</h2>
+        <p className="mb-3 text-xs text-[var(--muted)]">
+          The files Claude edited already match this message, so there&apos;s nothing to restore here. Changes made
+          by Bash commands or outside Claude aren&apos;t tracked and can&apos;t be restored this way.
+        </p>
+        <div className="flex justify-end">
+          <button
+            onClick={onCancel}
+            className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs hover:bg-[var(--panel-2)]"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       <h2 className="mb-1 text-sm font-semibold">Restore files to this message?</h2>
@@ -218,10 +253,15 @@ function RewindDone({ result, onClose }: { result: RewindResult; onClose: () => 
   const skipped = result.skippedLinks ?? 0;
   return (
     <>
-      <h2 className="mb-1 text-sm font-semibold">Files restored</h2>
-      <p className="mb-3 text-xs text-[var(--muted)]">
-        {n > 0 ? `Restored ${n} file${n === 1 ? "" : "s"} to this message's state.` : "Working tree restored."}
-      </p>
+      <h2 className="mb-1 text-sm font-semibold">{n > 0 ? "Files restored" : "Nothing restored"}</h2>
+      {/* With skipped files the warning below says what happened instead. */}
+      {(n > 0 || skipped === 0) && (
+        <p className="mb-3 text-xs text-[var(--muted)]">
+          {n > 0
+            ? `Restored ${n} file${n === 1 ? "" : "s"} to this message's state.`
+            : "The files Claude edited already matched this message."}
+        </p>
+      )}
       {skipped > 0 && (
         <p
           data-testid="rewind-skipped-links-warning"

@@ -70,6 +70,18 @@ describe("autoCompactWindowInputWarning (CC 2.1.304)", () => {
   });
 });
 
+describe("per-model auto-compact window has a floor only (SDK 0.3.327)", () => {
+  test("2M on a per-model row gives no warning; below 100k still does", () => {
+    expect(autoCompactWindowInputWarning("2M", { perModel: true })).toBeNull();
+    expect(autoCompactWindowInputWarning("50k", { perModel: true })).toBe("out-of-range");
+    expect(isAutoCompactWindowOutOfRange(2_000_000, { perModel: true })).toBe(false);
+    expect(isAutoCompactWindowOutOfRange(50_000, { perModel: true })).toBe(true);
+  });
+  test("the top-level window keeps its 1M ceiling", () => {
+    expect(autoCompactWindowInputWarning("2M", { allowAuto: false })).toBe("out-of-range");
+  });
+});
+
 describe("isAutoCompactWindowOutOfRange (F8)", () => {
   test("in range is fine", () => {
     expect(isAutoCompactWindowOutOfRange(100000)).toBe(false);

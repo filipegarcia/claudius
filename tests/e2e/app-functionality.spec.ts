@@ -150,8 +150,13 @@ test.describe("App functionality — buttons, navigation, workspace, settings", 
     // The toggle is the hamburger that surfaces the workspace switcher
     // on small viewports. Clicking it must reveal *something* — the
     // drawer mounts and the toggle's aria-expanded flips to "true".
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "true", { timeout: 5_000 });
+    // A click that lands before React hydrates the button is dropped, so
+    // retry until the drawer opens — only clicking while it is still closed,
+    // so a late-landing first click can't be toggled back shut by the retry.
+    await expect(async () => {
+      if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-expanded", "true", { timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
   });
 
   test("settings link navigates to /settings and renders the page", async ({ page }) => {
