@@ -69,7 +69,7 @@ function escapeInProse(text: string): string {
       // An escape pair is consumed whole above, so an escaped `\*` never
       // gets here and `text[i - 1]` is always a raw character.
       const literal = isLiteralRun(text, i, j) && !inUrlToken(text, i);
-      out += literal ? run.replace(/\*/g, "\\*") : run;
+      out += literal ? run.replace(/\\/g, "\\\\").replace(/\*/g, "\\*") : run;
       i = j;
       continue;
     }
