@@ -123,6 +123,16 @@ const nextConfig: NextConfig = {
   // console and fail CI, so we don't lose any signal.
   devIndicators:
     process.env.NEXT_DIST_DIR === ".next-e2e" ? false : { position: "bottom-right" },
+  // Next 16.4's upgrade reminders: when an advisory covers the installed
+  // version, `next dev` stops once on start-up and DevTools shows a
+  // "Vulnerability Insight" badge bottom-left, regardless of devIndicators.
+  // On the e2e server that badge covers the rail's version label (whats-new
+  // spec) and the start-up stop fails the webServer launch. Turn reminders
+  // off for the e2e server only: your own `next dev` / `next build` still
+  // show them.
+  ...(process.env.NEXT_DIST_DIR === ".next-e2e"
+    ? { experimental: { agentUpgrade: false as const } }
+    : {}),
   // Standalone output for Electron — Next traces every required file
   // and copies them under `.next/standalone/`, which the Electron build
   // ships verbatim as an extraResource.
