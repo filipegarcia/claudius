@@ -491,7 +491,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
 
   const onOverride = useCallback(async () => {
     if (!session.sessionId) return;
-    await limits.setOverride(session.sessionId, true);
+    if (!(await limits.setOverride(session.sessionId, true))) return;
     void limits.audit({
       ts: new Date().toISOString(),
       kind: "override",

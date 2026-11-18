@@ -44,7 +44,8 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
         maxWebSearches: parseCount(maxWebSearches),
         maxSubagents: parseCount(maxSubagents),
       });
-      if (ok) setSavedTick((t) => t + 1);
+      // A refused save hides any earlier "Saved." — the error shows instead.
+      setSavedTick((t) => (ok ? t + 1 : 0));
     } finally {
       setSaving(false);
     }
@@ -66,7 +67,11 @@ export function LimitsPanel({ cwd, todaySpendUsd }: Props) {
       <header className="mb-4 flex items-center gap-2">
         <Shield className="h-4 w-4 text-[var(--accent)]" />
         <h2 className="text-base font-semibold">Spending limits</h2>
-        {error && <span className="ml-auto text-xs text-red-400">{error}</span>}
+        {error && (
+          <span role="alert" data-testid="limits-error" className="ml-auto text-xs text-red-400">
+            {error}
+          </span>
+        )}
       </header>
 
       <p className="mb-4 text-[12px] leading-5 text-[var(--muted)]">
