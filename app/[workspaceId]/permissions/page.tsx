@@ -367,7 +367,7 @@ export default function PermissionsPage() {
  * alongside the user's own.
  */
 function AutoModeTab() {
-  const { config, loading, error, updateConfig, reset } = useAutoMode();
+  const { config, loading, error, saveError, updateConfig, reset } = useAutoMode();
   const hasConfig =
     (["environment", "allow", "soft_deny", "hard_deny"] as const).some(
       (k) => (config[k]?.length ?? 0) > 0,
@@ -402,6 +402,18 @@ function AutoModeTab() {
         <code className="font-mono text-[var(--foreground)]">~/.claude/settings.json</code>.
         {loading && <span className="ml-2">loading…</span>}
         {error && <span className="ml-2 text-red-400">{error}</span>}
+        {/* CC 2.1.327 — survives the rollback refetch, so the change that
+            didn't save doesn't just silently revert. */}
+        {saveError && (
+          <div
+            role="alert"
+            data-testid="auto-mode-save-error"
+            className="mt-2 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-red-300"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 [overflow-wrap:anywhere]">{saveError}</span>
+          </div>
+        )}
       </div>
       {/* SDK 0.3.312 — `autoMode.classifyAllShell`. */}
       <label

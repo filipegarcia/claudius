@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, RefreshCw, Save, Search, Settings as SettingsIcon, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Plus, RefreshCw, Save, Search, Settings as SettingsIcon, Trash2, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useSettings } from "@/lib/client/useSettings";
@@ -324,6 +324,20 @@ export default function SettingsPage() {
             {saving ? "Saving…" : "Save"}
           </button>
         </header>
+
+        {/* CC 2.1.327 — a save that didn't reach disk says so and names the
+            file; the draft stays dirty so Save can be retried. Same strip as
+            /permissions (CC 2.1.326). */}
+        {settings.saveError && (
+          <div
+            role="alert"
+            data-testid="settings-save-error"
+            className="flex shrink-0 items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 [overflow-wrap:anywhere]">{settings.saveError}</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)]/40 px-4 py-2">
           {(["user", "project", "local"] as SettingsScope[]).map((s) => (

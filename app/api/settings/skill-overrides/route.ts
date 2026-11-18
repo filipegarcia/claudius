@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   isSkillOverrideValue,
   readSettings,
+  settingsSaveFailure,
   updateSkillOverride,
   type SkillOverrideValue,
 } from "@/lib/server/settings";
@@ -38,6 +39,12 @@ export async function POST(req: Request) {
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  const next = await updateSkillOverride(cwd, body.name, body.value);
-  return NextResponse.json({ ok: true, skillOverrides: next.skillOverrides ?? {} });
+  // CC 2.1.327 — name the file when the toggle couldn't be saved.
+  try {
+    const next = await updateSkillOverride(cwd, body.name, body.value);
+    return NextResponse.json({ ok: true, skillOverrides: next.skillOverrides ?? {} });
+  } catch (err) {
+    const { status, error } = settingsSaveFailure("project", cwd, err);
+    return NextResponse.json({ error }, { status });
+  }
 }

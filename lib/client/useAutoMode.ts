@@ -18,6 +18,11 @@ export function useAutoMode() {
   const [config, setConfig] = useState<AutoModeConfig>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // CC 2.1.327 — a failed save/reset keeps its message (naming the file)
+  // through the rollback refetch, which clears `error` on success. Same fix
+  // as `usePermissions.saveError` (CC 2.1.326). Cleared by the next save or
+  // reset that lands.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
@@ -48,6 +53,12 @@ export function useAutoMode() {
     setRefetchTrigger((n) => n + 1);
   }, []);
 
+  /** Record why a write didn't land (the server's message names the file). */
+  const failed = useCallback(async (res: Response, verb: string) => {
+    const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+    setSaveError(typeof body?.error === "string" && body.error ? body.error : `${verb} failed: ${res.status}`);
+  }, []);
+
   const updateConfig = useCallback(
     async (patch: Partial<AutoModeConfig>) => {
       // Optimistic local update via the functional setter, same rationale
@@ -58,23 +69,28 @@ export function useAutoMode() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ patch }),
-      });
-      if (!res.ok) {
-        setError(`save failed: ${res.status}`);
-        refresh();
+      }).catch(() => null);
+      if (res?.ok) {
+        setSaveError(null);
+        return;
       }
+      if (res) await failed(res, "save");
+      else setSaveError("Not saved: couldn't reach Claudius to update ~/.claude/settings.json.");
+      refresh();
     },
-    [refresh],
+    [failed, refresh],
   );
 
   const reset = useCallback(async () => {
     // CC 2.1.212 — drop the whole autoMode key so the classifier reverts to
     // the engine defaults. Optimistically clear, then refetch to confirm.
     setConfig(EMPTY);
-    const res = await fetch("/api/settings/auto-mode", { method: "DELETE" });
-    if (!res.ok) setError(`reset failed: ${res.status}`);
+    const res = await fetch("/api/settings/auto-mode", { method: "DELETE" }).catch(() => null);
+    if (res?.ok) setSaveError(null);
+    else if (res) await failed(res, "reset");
+    else setSaveError("Not reset: couldn't reach Claudius to update ~/.claude/settings.json.");
     refresh();
-  }, [refresh]);
+  }, [failed, refresh]);
 
-  return { config, loading, error, refresh, updateConfig, reset };
+  return { config, loading, error, saveError, refresh, updateConfig, reset };
 }

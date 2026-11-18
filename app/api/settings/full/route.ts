@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   pathFor,
   readSettings,
+  settingsSaveFailure,
   writeSettings,
   type ClaudeSettings,
   type SettingsScope,
@@ -44,11 +45,18 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "settings required" }, { status: 400 });
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  if (patch) {
-    const current = await readSettings(body.scope, cwd);
-    await writeSettings(body.scope, cwd, applySettingsPatch(current as Record<string, unknown>, patch) as ClaudeSettings);
-  } else {
-    await writeSettings(body.scope, cwd, body.settings as ClaudeSettings);
+  // CC 2.1.327 — a save that didn't reach disk (the file doesn't load, or
+  // can't be written) returns a message naming the file instead of a bare 500.
+  try {
+    if (patch) {
+      const current = await readSettings(body.scope, cwd);
+      await writeSettings(body.scope, cwd, applySettingsPatch(current as Record<string, unknown>, patch) as ClaudeSettings);
+    } else {
+      await writeSettings(body.scope, cwd, body.settings as ClaudeSettings);
+    }
+  } catch (err) {
+    const { status, error } = settingsSaveFailure(body.scope, cwd, err);
+    return NextResponse.json({ error }, { status });
   }
   return NextResponse.json({ ok: true });
 }
