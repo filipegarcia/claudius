@@ -151,6 +151,34 @@ let writeSeq = 0;
 
 type McpJsonShape = { mcpServers?: Record<string, McpServerConfig> };
 
+/**
+ * CC 2.1.327 parity — "Changed claude mcp add --scope project to stop,
+ * instead of overwriting the file, when .mcp.json lists its servers at the
+ * top level with no mcpServers key". Adding into such a file used to leave a
+ * mixed `{ foo, mcpServers: { new } }`, and `listConfigured` (which reads
+ * only `mcpServers`) never showed the hand-written servers. We refuse instead.
+ */
+export class McpJsonShapeError extends Error {
+  constructor() {
+    super('.mcp.json lists its servers at the top level. Move them under "mcpServers" first, then add this server.');
+    this.name = "McpJsonShapeError";
+  }
+}
+
+/** Pure — true when `.mcp.json` has no `mcpServers` key but a top-level
+ * value looks like a server config (an object with command, url or type). */
+export function hasTopLevelServers(json: unknown): boolean {
+  if (!json || typeof json !== "object" || Array.isArray(json)) return false;
+  if ("mcpServers" in json) return false;
+  return Object.values(json).some(
+    (v) =>
+      v !== null &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      ("command" in v || "url" in v || "type" in v),
+  );
+}
+
 export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
   const out: ConfiguredServer[] = [];
 
@@ -239,6 +267,7 @@ async function upsertServerUnlocked(
   if (scope === "project") {
     const path = projectMcpJsonPath(cwd);
     const current = (await readJson<McpJsonShape>(path)) ?? {};
+    if (hasTopLevelServers(current)) throw new McpJsonShapeError();
     current.mcpServers = { ...(current.mcpServers ?? {}), [name]: config };
     await writeJson(path, current);
     return;

@@ -165,8 +165,9 @@ export default function McpPage() {
               <AddServerForm
                 onCancel={() => setShowAdd(false)}
                 onSubmit={async (scope, name, config) => {
-                  const ok = await mcp.upsert(scope, name, config);
-                  if (ok) setShowAdd(false);
+                  const err = await mcp.upsert(scope, name, config);
+                  if (!err) setShowAdd(false);
+                  return err;
                 }}
               />
             )}
@@ -189,6 +190,7 @@ export default function McpPage() {
                     server={server}
                     status={status}
                     sessionId={sessionId}
+                    statusLoaded={mcp.statusLoaded}
                     onReconnect={() => mcp.reconnect(server.name)}
                     onToggle={(enabled) => mcp.toggle(server.name, enabled)}
                     onDelete={() => {
@@ -211,6 +213,7 @@ function ServerRow({
   server,
   status,
   sessionId,
+  statusLoaded,
   onReconnect,
   onToggle,
   onDelete,
@@ -218,6 +221,7 @@ function ServerRow({
   server: ConfiguredServer;
   status?: LiveStatus;
   sessionId: string | null;
+  statusLoaded: boolean;
   onReconnect: () => void;
   onToggle: (enabled: boolean) => void;
   onDelete: () => void;
@@ -304,6 +308,27 @@ function ServerRow({
           </button>
         </div>
       </div>
+      {sessionId && statusLoaded && !status && (
+        // CC 2.1.327 — a configured server the live session doesn't know
+        // about (added mid-session, or a project server that wasn't
+        // approved) used to render with no badge and no actions.
+        <div
+          data-testid={`mcp-not-loaded-hint-${server.name}`}
+          className="-mt-1 pr-3 pb-2 pl-14 text-[11px] text-[var(--muted)]"
+        >
+          Not loaded in this session. Start a new chat to connect it.
+          {server.scope === "project" && (
+            <>
+              {" "}
+              If it still doesn&apos;t load, approve it under MCP in{" "}
+              <Link href="/settings" className="underline hover:text-[var(--foreground)]">
+                Settings
+              </Link>
+              .
+            </>
+          )}
+        </div>
+      )}
       {open && (
         <div className="border-t border-[var(--border)] px-3 py-2 text-xs">
           {target && (
@@ -377,7 +402,8 @@ function AddServerForm({
   onSubmit,
 }: {
   onCancel: () => void;
-  onSubmit: (scope: McpScope, name: string, config: McpServerConfig) => Promise<void>;
+  /** Resolves to `null` on success, or an error to show in the form. */
+  onSubmit: (scope: McpScope, name: string, config: McpServerConfig) => Promise<string | null>;
 }) {
   const [scope, setScope] = useState<McpScope>("project");
   const [transport, setTransport] = useState<Transport>("stdio");
@@ -437,7 +463,8 @@ function AddServerForm({
     }
     setSubmitting(true);
     try {
-      await onSubmit(scope, trimmedName, config);
+      const err = await onSubmit(scope, trimmedName, config);
+      if (err) setError(err);
     } finally {
       setSubmitting(false);
     }
@@ -562,7 +589,7 @@ function AddServerForm({
         </span>
       </label>
       {error && (
-        <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">
+        <div data-testid="mcp-add-error" className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">
           {error}
         </div>
       )}

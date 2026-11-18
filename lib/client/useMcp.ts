@@ -51,6 +51,11 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
   const [configured, setConfigured] = useState<ConfiguredServer[]>([]);
   const [status, setStatus] = useState<LiveStatus[]>([]);
   const [statusError, setStatusError] = useState<string | null>(null);
+  // CC 2.1.327 — which session `status` was actually read from. `sessionId`
+  // can change without `loading` going back to true, and a session that
+  // isn't in memory returns `status: null`; the page only says "not loaded
+  // in this session" once this matches the current session.
+  const [statusSessionId, setStatusSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
@@ -63,7 +68,10 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
 
     fetch(`/api/mcp?${params}`, { signal: controller.signal })
       .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+          throw new Error(typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`);
+        }
         return (await res.json()) as {
           configured: ConfiguredServer[];
           status: LiveStatus[] | null;
@@ -74,6 +82,7 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
         setConfigured(d.configured);
         setStatus(d.status ?? []);
         setStatusError(d.statusError);
+        setStatusSessionId(sessionId && d.status != null ? sessionId : null);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -92,15 +101,25 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     setRefetchTrigger((n) => n + 1);
   }, []);
 
+  /** Resolves to `null` on success, or the error text to show (CC 2.1.327:
+   * e.g. the route's 409 when `.mcp.json` lists servers at the top level). */
   const upsert = useCallback(
-    async (scope: McpScope, name: string, config: McpServerConfig) => {
-      const res = await fetch("/api/mcp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope, cwd, name, config }),
-      });
-      if (res.ok) refresh();
-      return res.ok;
+    async (scope: McpScope, name: string, config: McpServerConfig): Promise<string | null> => {
+      try {
+        const res = await fetch("/api/mcp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope, cwd, name, config }),
+        });
+        if (res.ok) {
+          refresh();
+          return null;
+        }
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        return typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`;
+      } catch (err) {
+        return err instanceof Error ? err.message : String(err);
+      }
     },
     [cwd, refresh],
   );
@@ -169,5 +188,21 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     [refresh, sessionId],
   );
 
-  return { configured, status, statusError, loading, error, refresh, upsert, remove, reconnect, reconnectAll, toggle };
+  /** True once `status` holds the live list for the current `sessionId`. */
+  const statusLoaded = sessionId != null && statusSessionId === sessionId;
+
+  return {
+    configured,
+    status,
+    statusError,
+    statusLoaded,
+    loading,
+    error,
+    refresh,
+    upsert,
+    remove,
+    reconnect,
+    reconnectAll,
+    toggle,
+  };
 }
