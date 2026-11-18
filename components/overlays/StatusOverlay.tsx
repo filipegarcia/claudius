@@ -28,25 +28,20 @@ type Props = {
    * Claude Code parity, 2.1.275: "the signed-in account ... /status shows it."
    */
   account: { label: string; driftFromActive?: { label: string } } | null;
-  /**
-   * Workspace the chat belongs to — narrows the Problems row to its project
-   * agents/skills (plus the user scope). Null checks every workspace.
-   */
-  workspaceId?: string | null;
   onClose: () => void;
 };
 
 /**
  * CC 2.1.327 parity — "Added a list in /status of broken agent, skill …
- * files, keybinding errors". Counts what `GET /api/doctor/files` reports;
- * the full list lives in /doctor's Config files section.
+ * files, keybinding errors". Counts what `GET /api/doctor/files` reports
+ * across every workspace — the same set /doctor's Config files section
+ * lists, so the count always matches what "Open /doctor" shows.
  */
-function useConfigFileProblemCount(workspaceId: string | null): number | null {
+function useConfigFileProblemCount(): number | null {
   const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
     const controller = new AbortController();
-    const qs = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : "";
-    fetch(`/api/doctor/files${qs}`, { signal: controller.signal })
+    fetch("/api/doctor/files", { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as { problems?: unknown[] };
@@ -56,7 +51,7 @@ function useConfigFileProblemCount(workspaceId: string | null): number | null {
         // Leave the row out rather than guess — /doctor still has the list.
       });
     return () => controller.abort();
-  }, [workspaceId]);
+  }, []);
   return count;
 }
 
@@ -88,10 +83,9 @@ export function StatusOverlay({
   mainAgent,
   agentCwd,
   account,
-  workspaceId = null,
   onClose,
 }: Props) {
-  const problemCount = useConfigFileProblemCount(workspaceId);
+  const problemCount = useConfigFileProblemCount();
   return (
     <Overlay title="Session status" subtitle="/status" onClose={onClose} width={520}>
       <dl className="divide-y divide-[var(--border)] text-sm">

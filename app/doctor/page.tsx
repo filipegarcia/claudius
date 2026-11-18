@@ -167,19 +167,14 @@ export default function DoctorPage() {
                   <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
                     Config files
                   </h2>
-                  {(() => {
-                    const configFileChecks = report.checks.filter((c) => c.category === "config-files");
-                    if (configFileChecks.length === 0) {
-                      return <p className="text-[11px] text-[var(--muted)]">No config files checked.</p>;
-                    }
-                    return (
-                      <ul className="space-y-1.5" data-testid="doctor-config-files-list">
-                        {configFileChecks.map((c) => (
-                          <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
-                        ))}
-                      </ul>
-                    );
-                  })()}
+                  {/* `configFileChecks` always adds an ok row when a kind is clean, so the list is never empty. */}
+                  <ul className="space-y-1.5" data-testid="doctor-config-files-list">
+                    {report.checks
+                      .filter((c) => c.category === "config-files")
+                      .map((c) => (
+                        <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
+                      ))}
+                  </ul>
                 </section>
 
                 {/*

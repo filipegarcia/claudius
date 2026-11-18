@@ -10,8 +10,9 @@ export const runtime = "nodejs";
  * count without paying for the full doctor run (which also runs a prompt
  * audit over every workspace and shells out to `git`).
  *
- * `?workspaceId=` narrows the project scope to that workspace (plus the user
- * scope). The id is only a lookup key into the workspace store — the
+ * /status calls it without arguments so its count covers the same set of
+ * workspaces /doctor lists. `?workspaceId=` narrows the project scope to
+ * that workspace (plus the user scope). The id is only a lookup key into the workspace store — the
  * directory read is the store's `rootPath`, never a path from the request.
  * Without it, every workspace is checked, exactly like /doctor.
  */

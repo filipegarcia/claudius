@@ -4,8 +4,8 @@
  *
  * Claudius parses agent/skill frontmatter itself and used to drop malformed
  * YAML silently — the agent listed as a normal row with no description. Now
- * `/status` gets a Problems row (count from `GET /api/doctor/files`, scoped
- * to the chat's workspace) linking to /doctor's new Config files section,
+ * `/status` gets a Problems row (count from `GET /api/doctor/files` over
+ * every workspace, the same set /doctor lists) linking to /doctor's new Config files section,
  * which names each broken file and the YAML error.
  *
  * Both endpoints are mocked here; the real handlers (temp HOME with broken
@@ -87,7 +87,7 @@ const PROBLEMS: Problem[] = [
     scope: "user",
     name: "reviewer",
     path: "/Users/me/.claude/agents/reviewer.md",
-    reason: "Nested mappings are not allowed in compact mappings (line 3)",
+    reason: 'Missing closing "quote (line 3)',
   },
   {
     kind: "keybindings",
@@ -160,8 +160,9 @@ test.describe("/status lists broken config files (CC 2.1.327 parity)", () => {
     await expect(problems).toBeVisible({ timeout: 5_000 });
     await expect(problems).toContainText("2 problems");
     await expect(page.getByTestId("status-problems-link")).toHaveText("Open /doctor");
-    // Scoped to the chat's workspace.
-    expect(filesUrls.some((u) => new URL(u).searchParams.get("workspaceId"))).toBe(true);
+    // Not narrowed to the chat's workspace — the count covers what /doctor lists.
+    expect(filesUrls.length).toBeGreaterThan(0);
+    expect(filesUrls.every((u) => !new URL(u).searchParams.has("workspaceId"))).toBe(true);
 
     await page.waitForTimeout(150);
     await page.screenshot({ path: resolve(SHOTS_DIR, "status-problems.png"), fullPage: false });

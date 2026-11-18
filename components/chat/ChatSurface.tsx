@@ -3069,7 +3069,6 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           mainAgent={session.mainAgent}
           agentCwd={session.agentCwd}
           account={session.account ?? null}
-          workspaceId={activeWorkspaceId}
           onClose={() => setOverlay(null)}
         />
       )}

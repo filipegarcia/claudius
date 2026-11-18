@@ -92,12 +92,19 @@ describe("parseFrontmatter", () => {
   });
 
   test("malformed YAML frontmatter falls back to empty (does not throw) and keeps the body", () => {
-    // A stray unmatched bracket is invalid YAML; the parser must degrade
-    // gracefully so the prompt body stays editable in the UI.
-    const raw = ["---", "tools: [Read, Grep", "name: broken", "---", "Body.", ""].join("\n");
+    // A mis-indented line is invalid YAML even after the engine's
+    // quote-wrapping fallback; the parser must degrade gracefully so the
+    // prompt body stays editable in the UI.
+    const raw = ["---", "name: broken", "description: Reviews code", "  tools: Read", "---", "Body.", ""].join("\n");
     const { frontmatter, body } = parseFrontmatter(raw);
     expect(frontmatter).toEqual({});
     expect(body).toBe("Body.\n");
+  });
+
+  test("an unmatched bracket is rescued like the engine does: kept as the literal string", () => {
+    // Strict YAML rejects `[Read, Grep`; the engine quote-wraps it and loads.
+    const raw = ["---", "tools: [Read, Grep", "name: rescued", "---", "Body.", ""].join("\n");
+    expect(parseFrontmatter(raw).frontmatter).toEqual({ tools: "[Read, Grep", name: "rescued" });
   });
 
   test("ISO-date-looking scalars stay strings (no YAML 1.1 timestamp coercion)", () => {

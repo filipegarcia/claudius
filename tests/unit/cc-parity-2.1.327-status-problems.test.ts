@@ -15,14 +15,22 @@ import { join } from "node:path";
  * temp HOME keeps the real `~/.claude` untouched.
  */
 
-const { frontmatterError, parseFrontmatter } = await import("@/lib/server/agents");
+const { frontmatterError, parseFrontmatter, parseFrontmatterYaml } = await import("@/lib/server/agents");
 const { listConfigFileProblems, configFileChecks } = await import("@/lib/server/config-file-problems");
 const { createWorkspace } = await import("@/lib/server/workspaces-store");
 const filesRoute = await import("@/app/api/doctor/files/route");
 const doctorRoute = await import("@/app/api/doctor/route");
 
 const GOOD = "---\nname: good\ndescription: Reviews code\n---\nYou review code.\n";
-const BROKEN = "---\nname: broken\ndescription: Reviews: code\n---\nYou review code.\n";
+// A mis-indented line: the engine's quote-wrapping fallback only rewrites
+// top-level `key: value` lines, so this still fails its second parse.
+const BROKEN = "---\nname: broken\ndescription: Reviews code\n  model: sonnet\n---\nYou review code.\n";
+// Strict YAML rejects these (`: ` inside a plain scalar), but the engine
+// quote-wraps the value and loads the agent — so they must not be flagged.
+const RESCUED = "---\nname: rescued\ndescription: Reviews: code\n---\nYou review code.\n";
+const RESCUED_EXAMPLES =
+  "---\nname: helper\ndescription: Use this agent when reviewing. Examples: <example>Context: a PR</example>\n" +
+  "tools: [Read, Grep]\n---\nBody\n";
 
 describe("frontmatterError", () => {
   test("null for valid, empty or missing frontmatter", () => {
@@ -33,11 +41,30 @@ describe("frontmatterError", () => {
     expect(frontmatterError("---\n# just a comment\n---\nbody\n")).toBeNull();
   });
 
+  test("mirrors the engine's fallback: values with `: ` or indicator characters still load", () => {
+    expect(frontmatterError(RESCUED)).toBeNull();
+    expect(parseFrontmatter(RESCUED).frontmatter).toEqual({ name: "rescued", description: "Reviews: code" });
+    expect(frontmatterError(RESCUED_EXAMPLES)).toBeNull();
+    expect(parseFrontmatter(RESCUED_EXAMPLES).frontmatter).toEqual({
+      name: "helper",
+      description: "Use this agent when reviewing. Examples: <example>Context: a PR</example>",
+      tools: ["Read", "Grep"],
+    });
+    // Backslashes and double quotes survive the quote-wrap.
+    expect(parseFrontmatter('---\ndescription: say "hi" \\ then: go\n---\n').frontmatter).toEqual({
+      description: 'say "hi" \\ then: go',
+    });
+    // Leading tabs become two spaces each.
+    expect(parseFrontmatterYaml("tools:\n\t- Read\n\t- Grep\n")).toEqual({ tools: ["Read", "Grep"] });
+  });
+
   test("names the YAML error with its file line number", () => {
     expect(frontmatterError(BROKEN)).toBe("Nested mappings are not allowed in compact mappings (line 3)");
     expect(frontmatterError("---\nname: a\nname: b\n---\n")).toBe("Map keys must be unique (line 3)");
     // Only the first line of the yaml package's multi-line message survives.
     expect(frontmatterError('---\ndescription: "open\n---\n')).not.toContain("\n");
+    // Not rescued: an unterminated quote isn't rewritten by the fallback.
+    expect(frontmatterError('---\nname: x\ndescription: "Reviews code\n---\n')).toBe('Missing closing "quote (line 3)');
   });
 
   test("flags frontmatter parseFrontmatter would drop for not being a map", () => {
