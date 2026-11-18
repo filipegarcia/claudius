@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { CaseSensitive, ChevronDown, ChevronUp, Loader2, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -9,6 +10,7 @@ import {
   supportsHighlightApi,
 } from "@/lib/client/find-in-transcript";
 import { isLetterKey } from "@/lib/client/key-match";
+import { usePublishTranscriptFindQuery } from "@/lib/client/transcript-find-context";
 
 /**
  * Browser-style find bar for the open transcript (Cmd/Ctrl+F).
@@ -77,6 +79,7 @@ export function TranscriptSearch({
   const barRef = useRef<HTMLDivElement>(null);
   const rangesRef = useRef<Range[]>([]);
   const currentRef = useRef(-1);
+  const publishQuery = usePublishTranscriptFindQuery();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -118,10 +121,16 @@ export function TranscriptSearch({
   );
 
   // Query / case change → short debounce so typing stays fluid on big transcripts.
+  // CC 2.1.327 — publish the query first and flush it, so collapsed Edit /
+  // Write cards whose file text matches open (and mount that text) before the
+  // scan, and the first match can be scrolled to like any other.
   useEffect(() => {
-    const t = setTimeout(() => runScan("query"), 60);
+    const t = setTimeout(() => {
+      flushSync(() => publishQuery(q ? { query: q, matchCase } : null));
+      runScan("query");
+    }, 60);
     return () => clearTimeout(t);
-  }, [runScan]);
+  }, [runScan, publishQuery, q, matchCase]);
 
   // Transcript mutates (streaming tokens, older page prepended, block
   // expanded) → rescan. Observe the pane rather than the transcript root so
@@ -181,8 +190,15 @@ export function TranscriptSearch({
     };
   }, [q, hasMoreAbove, onEnsureLoaded, sessionId]);
 
-  // Clear the paint when the bar goes away.
-  useEffect(() => clearPaint, []);
+  // Clear the paint when the bar goes away, and let the cards the search
+  // opened close again.
+  useEffect(
+    () => () => {
+      clearPaint();
+      publishQuery(null);
+    },
+    [publishQuery],
+  );
 
   const step = useCallback((delta: 1 | -1) => {
     const ranges = rangesRef.current;

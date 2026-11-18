@@ -47,6 +47,7 @@ import { useShowMessageTimestamps } from "@/lib/client/useShowMessageTimestamps"
 import { MessageTimestampsProvider } from "@/lib/client/message-timestamps-context";
 import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
 import { StreamDisconnectedProvider } from "@/lib/client/stream-status-context";
+import { TranscriptFindProvider } from "@/lib/client/transcript-find-context";
 import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { helpTopic, isGoalClear, isHelpRequest } from "@/lib/shared/slash-help";
@@ -2685,6 +2686,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           }}
         />
         <div data-pane-name="message-list" className="flex flex-1 flex-col overflow-hidden">
+          {/* CC 2.1.327 — the find bar shares its query with the transcript so
+              matching Edit / Write cards open themselves. */}
+          <TranscriptFindProvider>
           {searchOpen && (
             <TranscriptSearch
               sessionId={session.sessionId}
@@ -2815,6 +2819,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               },
             }}
           />
+          </TranscriptFindProvider>
           {session.errors.length > 0 && (
             <div className="mx-auto w-full max-w-[var(--chat-col)] px-4 pb-2">
               {session.errors.map((e, i) => (

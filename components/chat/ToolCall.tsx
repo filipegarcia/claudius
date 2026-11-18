@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, CircleStop, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
+import { useTranscriptFindQuery } from "@/lib/client/transcript-find-context";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
@@ -14,6 +15,7 @@ import { settledToolLabel, settledToolTitle, type SettledToolReason } from "@/li
 import { getPreviewType } from "@/lib/shared/file-types";
 import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
 import { splitPathForTruncation } from "@/lib/shared/truncate-path";
+import { toolInputMatches, toolInputTextFields, toolInputTextKeys } from "@/lib/shared/tool-input-search";
 import type { TaskResourceLink } from "@/lib/shared/events";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
@@ -145,6 +147,24 @@ export function ToolCall({
     setPrevDefaultOpen(defaultOpen);
     setOpen(defaultOpen);
   }
+  // CC 2.1.327 — while the find bar's query occurs in an Edit / Write card's
+  // file text, open the card so the text is on screen to highlight. Only a
+  // card the search opened is closed again when the query stops matching (or
+  // the bar closes); one the user opened or closed themselves is left alone.
+  const find = useTranscriptFindQuery();
+  const searchHit = !!find && toolInputMatches(name, input, find.query, find.matchCase);
+  const [prevSearchHit, setPrevSearchHit] = useState(false);
+  const [openedBySearch, setOpenedBySearch] = useState(false);
+  if (prevSearchHit !== searchHit) {
+    setPrevSearchHit(searchHit);
+    if (searchHit && !open) {
+      setOpen(true);
+      setOpenedBySearch(true);
+    } else if (!searchHit && openedBySearch) {
+      setOpen(false);
+      setOpenedBySearch(false);
+    }
+  }
   const { editor } = useEditor();
   const { showPreviews } = useMediaPreferences();
   const status =
@@ -220,6 +240,13 @@ export function ToolCall({
   // the click sends the user's answer as a regular follow-up message, so
   // it's safe to expose even after `result.isError = true`.
   const showAnswerPill = name === "AskUserQuestion" && !!onReopenAsk;
+  // CC 2.1.327 — Edit / Write text shown as plain text (not escaped JSON) so
+  // the find bar can match and highlight it; the other input keys stay JSON.
+  const inputTextFields = toolInputTextFields(name, input);
+  const restInput =
+    inputTextFields.length > 0
+      ? Object.fromEntries(Object.entries(input).filter(([k]) => !toolInputTextKeys(name).includes(k)))
+      : input;
   const elapsedSeconds = useElapsedSeconds(startedAt, status === "running");
   return (
     <div
@@ -239,7 +266,10 @@ export function ToolCall({
       <div className={cn("flex w-full items-center gap-2 pr-3 text-xs", "hover:bg-[var(--panel-2)]")}>
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            setOpen((o) => !o);
+            setOpenedBySearch(false);
+          }}
           className={cn(
             "flex items-center gap-2 py-1.5 pl-3 text-left",
             // When a file path follows, the button hugs its content so the
@@ -434,9 +464,19 @@ export function ToolCall({
                   </a>
                 )}
               </div>
-              <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
-                {JSON.stringify(input, null, 2)}
-              </pre>
+              {inputTextFields.map((f) => (
+                <div key={f.label} data-testid="tool-call-input-text" data-field={f.label} className="mb-2">
+                  <div className="mb-1 font-mono text-[10px] text-[var(--muted)]">{f.label}</div>
+                  <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
+                    {f.text}
+                  </pre>
+                </div>
+              ))}
+              {(inputTextFields.length === 0 || Object.keys(restInput).length > 0) && (
+                <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
+                  {JSON.stringify(restInput, null, 2)}
+                </pre>
+              )}
             </div>
           )}
           {result && (
