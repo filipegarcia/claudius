@@ -64,6 +64,11 @@ export type SystemPillLevers = {
    * turns from before its compaction (not replayed into this view).
    */
   resumedTranscriptPath?: string | null;
+  /**
+   * The chat's session id. With `resumedTranscriptPath`, the compaction row
+   * links to the session viewer, which shows the turns before compaction.
+   */
+  sessionId?: string | null;
 };
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
@@ -149,7 +154,13 @@ export function SystemPill({
   // summary). Delegated to its own component so the expand/collapse state
   // doesn't add hooks to the other (hookless) SystemPill render paths.
   if (entry.kind === "compact_boundary") {
-    return <CompactBoundaryDivider entry={entry} transcriptPath={levers?.resumedTranscriptPath ?? null} />;
+    return (
+      <CompactBoundaryDivider
+        entry={entry}
+        transcriptPath={levers?.resumedTranscriptPath ?? null}
+        sessionId={levers?.sessionId ?? null}
+      />
+    );
   }
   // Conversation-reset gets the same full-width-divider treatment as
   // compact-boundary — both mark a thread-state transition the reader
@@ -342,14 +353,28 @@ function formatCompactStats(s: NonNullable<SystemEntry["compactStats"]>): string
   return parts.length ? parts.join(" · ") : null;
 }
 
-function CompactBoundaryDivider({ entry, transcriptPath }: { entry: SystemEntry; transcriptPath: string | null }) {
+function CompactBoundaryDivider({
+  entry,
+  transcriptPath,
+  sessionId,
+}: {
+  entry: SystemEntry;
+  transcriptPath: string | null;
+  sessionId: string | null;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const params = useParams<{ workspaceId?: string }>();
   // CC 2.1.301 — "the compaction row in a resumed session … now says where
   // the earlier messages are saved". A resumed session replays from the
   // compaction on, so a boundary with nothing before it (no anchor message)
   // marks history that isn't loaded here. In a live session the earlier turns
   // are still above the row, so it stays as it was.
   const earlierNotLoaded = !!transcriptPath && !entry.afterMessageUuid;
+  // The session viewer reads the whole transcript, turns before compaction
+  // included, so the user can actually see them, not just a file path.
+  const historyHref = sessionId
+    ? `${params?.workspaceId ? `/${params.workspaceId}` : ""}/sessions/${encodeURIComponent(sessionId)}`
+    : null;
   const statText = entry.compactStats ? formatCompactStats(entry.compactStats) : null;
   const hasSummary = typeof entry.compactSummary === "string" && entry.compactSummary.length > 0;
   const summary = useMemo(
@@ -384,6 +409,18 @@ function CompactBoundaryDivider({ entry, transcriptPath }: { entry: SystemEntry;
           <span className="select-all break-all font-mono" title={transcriptPath ?? undefined}>
             {transcriptPath}
           </span>
+          {historyHref && (
+            <>
+              {" · "}
+              <Link
+                href={historyHref}
+                data-testid="compact-earlier-history-link"
+                className="underline underline-offset-2 hover:text-[var(--foreground)]"
+              >
+                View full history
+              </Link>
+            </>
+          )}
         </div>
       )}
       {expanded && summary && (

@@ -2786,6 +2786,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               effort: session.effort,
               subscriptionType: session.planUsage?.subscriptionType ?? null,
               resumedTranscriptPath: session.transcriptPath,
+              sessionId: session.sessionId,
               onSwitchToSonnet: () =>
                 session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET),
               onStepEffortDown: () => session.setEffort("medium"),

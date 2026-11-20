@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, Edit2, FileJson, GitBranch, Play, Trash2 } from "lucide-react";
-import type { SDKSessionInfo, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKSessionInfo } from "@anthropic-ai/claude-agent-sdk";
 import { SideNav } from "@/components/nav/SideNav";
 import { TranscriptViewer } from "@/components/sessions/TranscriptViewer";
 import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
 import { cn } from "@/lib/utils/cn";
 import { readableSessionLabel } from "@/components/chat/SessionTabs";
+import type { HistoryMessage } from "@/lib/shared/history-message";
 
 export default function SessionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -21,7 +22,10 @@ export default function SessionDetailPage() {
   const { rename, fork, remove } = useSessionsHistory();
 
   const [info, setInfo] = useState<SDKSessionInfo | null>(null);
-  const [messages, setMessages] = useState<SessionMessage[]>([]);
+  const [messages, setMessages] = useState<HistoryMessage[]>([]);
+  // Set when the server couldn't read the turns before the last compaction
+  // and fell back to the post-compact chain.
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
@@ -44,12 +48,13 @@ export default function SessionDetailPage() {
         if (!infoRes.ok) throw new Error(`info: ${infoRes.status}`);
         if (!txRes.ok) throw new Error(`transcript: ${txRes.status}`);
         const meta = (await infoRes.json()) as SDKSessionInfo;
-        const tx = (await txRes.json()) as { messages: SessionMessage[] };
+        const tx = (await txRes.json()) as { messages: HistoryMessage[]; historyError?: string };
         return { meta, tx };
       })
       .then(({ meta, tx }) => {
         setInfo(meta);
         setMessages(tx.messages ?? []);
+        setHistoryError(tx.historyError ?? null);
         // Pre-fill from a trusted title source only — `claudiusTitle`
         // wins (set on every Claudius-side rename even when the SDK's
         // JSONL header write was deferred); `customTitle` is the SDK's
@@ -231,6 +236,16 @@ export default function SessionDetailPage() {
             {info.createdAt && <span>created {new Date(info.createdAt).toLocaleString()}</span>}
             <span>updated {new Date(info.lastModified).toLocaleString()}</span>
             <span>{messages.length} messages</span>
+          </div>
+        )}
+        {historyError && (
+          <div
+            role="status"
+            data-testid="session-history-partial"
+            title={historyError}
+            className="border-b border-[var(--border)] bg-amber-500/10 px-4 py-1.5 text-[11px] text-amber-300"
+          >
+            Showing only the messages since the last compaction. The earlier ones couldn&apos;t be read.
           </div>
         )}
 
