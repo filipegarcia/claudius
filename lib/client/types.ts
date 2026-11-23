@@ -47,8 +47,17 @@ export type DisplayBlock =
        * later turn. `notRun`: CC 2.1.296 — an error result the engine tagged
        * `automode-unavailable` (auto mode's check had no usable answer, so the
        * call never ran); rendered as a dim "Not run" row, not a red error.
+       * `rejected`: CC 2.1.323 — the not-run reason is the user's own
+       * rejection from the permission card ("Not run · rejected").
        */
-      result?: { content: string; isError?: boolean; staged?: boolean; detached?: boolean; notRun?: boolean };
+      result?: {
+        content: string;
+        isError?: boolean;
+        staged?: boolean;
+        detached?: boolean;
+        notRun?: boolean;
+        rejected?: boolean;
+      };
       /**
        * Client-stamped wall-clock start (epoch ms), set the first time this
        * tool_use block is built and preserved across scratch-buffer rebuilds
@@ -153,6 +162,13 @@ export type DisplayMessage = {
      * point at usage credits instead.
      */
     subscriptionType?: "pro" | "max" | "team" | "enterprise" | (string & {});
+    /**
+     * CC 2.1.323 — the hit is the engine's "<Model> requires usage credits."
+     * (a model that runs only on usage credits, which are off or used up),
+     * not a plan-tier window. Holds the model's name; the panel says it needs
+     * usage credits instead of naming a tier or reset.
+     */
+    modelNeedsCredits?: string;
   };
   /**
    * Present when this assistant message IS the Anthropic backend's
@@ -332,6 +348,14 @@ export type SystemEntry = {
    * text-less `system/notification` label.
    */
   priority?: "low" | "medium" | "high" | "immediate";
+  /**
+   * CC 2.1.316 — only for `kind === "notification"`: the engine's `color`
+   * when it names a tone the pill maps (`warning` amber, `error` red), which
+   * then wins over the priority tone. The engine sends some `immediate`
+   * notices as warnings (the Opus 4.8 fast-mode deprecation), which the
+   * priority alone would paint red.
+   */
+  notificationColor?: "warning" | "error";
   /**
    * CC 2.1.217 — only for `kind === "info"` carrying an SDK
    * `system/informational` message: its render level, used to tone the pill
@@ -582,6 +606,8 @@ export type RecentEdit = {
   isError?: boolean;
   /** CC 2.1.296 — auto mode's check had no usable answer; the edit never ran. */
   notRun?: boolean;
+  /** CC 2.1.323 — not run because the user rejected it. */
+  rejected?: boolean;
 };
 
 /**
@@ -605,6 +631,8 @@ export type ToolHistoryEntry = {
    * dim and neutral instead of red, like the chat row.
    */
   notRun?: boolean;
+  /** CC 2.1.323 — not run because the user rejected it ("Not run · rejected"). */
+  rejected?: boolean;
   /** Set when the tool was invoked by a subagent. */
   parentToolUseId?: string | null;
   /**
@@ -1012,10 +1040,16 @@ export type ChatState = {
    * A third variant, "model-switch" (CC 2.1.218 parity), fires when a model
    * switch changes fast-mode *capability* — see `FastModeNoticePanel`'s doc
    * and `Session.setModel`'s `fastModeNowSupported`.
+   *
+   * A fourth, "deprecation" (CC 2.1.316 parity — "Deprecated fast mode for
+   * Opus 4.8 as of October 30, 2026; it will be removed on November 30,
+   * 2026…"), carries the engine's notice text when fast mode is turned on
+   * from the picker on Opus 4.8.
    */
   fastModeNotice:
     | { uuid: string; kind: "cooldown" | "recovered"; reason?: string }
     | { uuid: string; kind: "model-switch"; model: string; nowSupported: boolean }
+    | { uuid: string; kind: "deprecation"; text: string }
     | null;
   /**
    * Transient toast for a rejected `/model` switch. Mirrors the Claude Code
@@ -1044,6 +1078,8 @@ export type ChatState = {
     /** Full model id emitted by the SDK (e.g. "claude-fable-5"). */
     model: string;
     reason: "chat_command" | "auto";
+    /** CC 2.1.316 — the engine's unknown-model warning (`/model <id>` only). */
+    unrecognizedModelWarning?: string;
   } | null;
   /**
    * CC 2.1.299 parity — transient notice shown when a model switch took the
@@ -1056,6 +1092,18 @@ export type ChatState = {
     uuid: string;
     /** Display name of the model that doesn't support auto mode. */
     model: string;
+  } | null;
+  /**
+   * CC 2.1.314 parity — transient notice shown when the session refused a
+   * permission-mode switch: the pill shows `mode` (still in use) and this
+   * says the switch to `requested` didn't happen, with the engine's reason.
+   * See `ModeChangeRefusedNoticePanel`.
+   */
+  modeChangeRefusedNotice: {
+    uuid: string;
+    requested: PermissionMode;
+    mode: PermissionMode;
+    reason: string;
   } | null;
   /**
    * Transient toast shown when the server automatically disabled the advisor
@@ -1089,6 +1137,13 @@ export type ChatState = {
   streamStatus: StreamStatus;
   /** True if older history exists above what's currently loaded. */
   hasMoreAbove: boolean;
+  /**
+   * CC 2.1.316 parity — "[Cloud sessions] Added a 'Catching up…' line that
+   * shows while a cloud or Remote Control session you switch back to is
+   * still bringing its messages up to date". True from a switch-back / boot
+   * resume until the session's history replay finishes (`replay_done`).
+   */
+  catchingUp: boolean;
   /** True while a loadOlder() request is in flight. */
   loadingOlder: boolean;
   /** Latest payload from a TodoWrite tool_use — the agent's current task list. */
@@ -1395,7 +1450,8 @@ export type ChatActions = {
    * Routed through `applyFlagSettings({ fastMode })` server-side. Orthogonal to
    * effort: unlike `setUltracode` it does NOT move the effort mirror.
    */
-  setFast(enabled: boolean): Promise<void>;
+  /** `model` (CC 2.1.316): the picker's resolved id, for the Opus 4.8 deprecation notice. */
+  setFast(enabled: boolean, model?: string): Promise<void>;
   /**
    * Set the per-session "Advisor" model — the SDK escalates to this model
    * for stronger judgment mid-turn. Routed through
@@ -1474,7 +1530,8 @@ export type ChatActions = {
    */
   jumpToUuid(uuid: string): Promise<string | null>;
   /** Rename the current session (persists via SDK and broadcasts to the rail). */
-  renameTitle(title: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  /** `warning` (CC 2.1.319): renamed, but the session transcript couldn't be updated. */
+  renameTitle(title: string): Promise<{ ok: true; warning?: string } | { ok: false; error: string }>;
   /**
    * Set or replace the session goal. Persists server-side and broadcasts a
    * `goal_changed` event to every open tab. Replacing a goal resets any prior
@@ -1540,6 +1597,8 @@ export type ChatActions = {
   dismissChatCommandModelNotice(): void;
   /** Dismiss the auto-mode-off-on-model-switch notice. Client-side only. */
   dismissAutoModeOffNotice(): void;
+  /** Dismiss the refused-permission-mode-switch notice. Client-side only. */
+  dismissModeChangeRefusedNotice(): void;
   /** Dismiss the advisor-auto-disabled notice. Client-side only. */
   dismissAdvisorDisabledNotice(): void;
   /**

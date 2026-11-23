@@ -31,6 +31,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   // the row and drop it while we answered `ok`. Restart it first (or join a
   // rebuild already under way); the rebuilt session drains the persisted
   // queue on start, so a row it already sent reads as "already on its way".
+  // (CC 2.1.316 — except rows held by a Stop, which that drain leaves queued;
+  // the loop below still sends them, since send-all is an explicit ask.)
   const live = await sessionManager.restartIfDead(id);
   if (!live.ok) {
     const { error, status } = deadSessionResponse(live);

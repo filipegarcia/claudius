@@ -119,13 +119,20 @@ test.describe("autoCompactWindow k/M suffixes (CC 2.1.304)", () => {
     const rowWarning = row.getByTestId("auto-compact-window-model-warning");
     await expect(rowWarning).toHaveAttribute("data-warning-kind", "ignored");
     await expect(rowWarning).toContainText("the window stays 90.");
-    await expect(rowWarning).toContainText("outside 100,000");
+    await expect(rowWarning).toContainText("below 100,000");
 
-    // A suffixed value outside 100k–1M on the per-model row: "out of range".
+    // A suffixed value below 100k on the per-model row: "out of range".
+    // (SDK 0.3.327 — per-model windows are documented "at least 100000", no ceiling.)
     await rowInput.fill("50k");
     await expect(rowWarning).toBeVisible();
     await expect(rowWarning).toHaveAttribute("data-warning-kind", "out-of-range");
-    await expect(rowWarning).toContainText("Outside 100,000");
+    await expect(rowWarning).toContainText("Below 100,000");
+
+    // Above 1M is fine on a per-model row now: no warning.
+    await rowInput.fill("2M");
+    await expect(rowWarning).toHaveCount(0);
+    await rowInput.fill("50k");
+    await expect(rowWarning).toBeVisible();
 
     await field.scrollIntoViewIfNeeded();
     await page.waitForTimeout(150);

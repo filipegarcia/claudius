@@ -20,6 +20,12 @@ describe("probe candidates (E2)", () => {
     expect(values).toContain("claude-opus-5-5");
     expect(values).toContain("claude-fable-5-1");
   });
+
+  test("CC 2.1.321: pins Fable 5.2 first and labels Fable 5.1 prior generation", () => {
+    expect(values[0]).toBe("claude-fable-5-2");
+    const f51 = PROBE_CANDIDATES.find((c) => c.value === "claude-fable-5-1");
+    expect(f51?.description).toContain("prior generation");
+  });
 });
 
 describe("current-gen labels (E2)", () => {
@@ -27,8 +33,8 @@ describe("current-gen labels (E2)", () => {
     expect(OPUS_OVERLOAD_NUDGE_SONNET_TARGET).toBe("sonnet");
   });
 
-  test("the model-unavailable copy names Fable 5.1, not the stale Fable 5", () => {
-    expect(MODEL_UNAVAILABLE_MESSAGE).toContain("Fable 5.1");
+  test("the model-unavailable copy names Fable 5.2 (CC 2.1.321), not a stale Fable", () => {
+    expect(MODEL_UNAVAILABLE_MESSAGE).toContain("Fable 5.2");
     expect(MODEL_UNAVAILABLE_MESSAGE).not.toContain("Fable 5 ");
   });
 });

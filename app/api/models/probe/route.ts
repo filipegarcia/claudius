@@ -36,13 +36,22 @@ type ProbeResult = ProbeCandidate & {
  *  through alias resolution. */
 export const PROBE_CANDIDATES: ProbeCandidate[] = [
   {
-    // Claude Code 2.1.257 made Fable 5.1 the default Fable model (1M context).
-    // Probing tests availability, so listing it is safe on accounts without
-    // access — it just reports unavailable, like any other pinned generation.
+    // Claude Code 2.1.321 made Fable 5.2 the default Fable model (1M context,
+    // $8/$40 per Mtok). Probing tests availability, so listing it is safe on
+    // accounts without access — it just reports unavailable, like any other
+    // pinned generation.
+    value: "claude-fable-5-2",
+    displayName: "Fable 5.2",
+    description:
+      "Pinned to Fable 5.2. Most capable; 1M context, full effort tiers + adaptive thinking.",
+  },
+  {
+    // Claude Code 2.1.257 — Fable 5.1, prior generation since 2.1.321. Kept so
+    // `/model claude-fable-5-1` (the engine's documented way back) has a row.
     value: "claude-fable-5-1",
     displayName: "Fable 5.1",
     description:
-      "Pinned to Fable 5.1. Most capable; 1M context, full effort tiers + adaptive thinking.",
+      "Pinned to Fable 5.1 (prior generation). 1M context, full effort tiers + adaptive thinking.",
   },
   {
     value: "claude-fable-5",

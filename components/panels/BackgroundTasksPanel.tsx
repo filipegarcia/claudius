@@ -40,6 +40,7 @@ import { BackgroundBashes } from "./widgets/BackgroundBashes";
 import { ScheduledLoops } from "./widgets/ScheduledLoops";
 import { RecentEdits } from "./widgets/RecentEdits";
 import { cn } from "@/lib/utils/cn";
+import { openTaskInTranscript } from "@/lib/client/open-task";
 
 type Props = {
   progress: Record<string, ToolProgressInfo>;
@@ -103,6 +104,12 @@ type Props = {
   /** Open the live-tail viewer for this bash. */
   onOpenBash?: (b: BackgroundBash) => void;
   /**
+   * CC 2.1.319 — "Earlier in this session" → Message: put a SendMessage
+   * prompt for this finished subagent in the composer (not sent — the user
+   * types the message). Omitting hides the Message button.
+   */
+  onMessageTask?: (task: TaskInfo) => void;
+  /**
    * Open the full context-usage overlay. When provided, the compact
    * `ContextBar` summary becomes a clickable affordance. Optional — read-only
    * embeddings (e.g. the dev activity pages) leave it off.
@@ -154,8 +161,11 @@ type Props = {
   onChangeUltracode?: (enabled: boolean) => Promise<void> | void;
   /** Whether fast mode is on — shown as a SessionCard badge. */
   fastMode?: boolean;
+  /** SDK-reported fast-mode state; drives the picker's per-row credits note
+   *  when fast is on but the local toggle reset (e.g. after a reload). */
+  fastModeState?: "off" | "cooldown" | "on" | null;
   /** Toggle fast mode. Same plumbing rationale as `onChangeUltracode`. */
-  onChangeFast?: (enabled: boolean) => Promise<void> | void;
+  onChangeFast?: (enabled: boolean, model?: string) => Promise<void> | void;
   /** Per-session advisor model (the Claude Code "Advisor" picker). */
   advisorModel?: string | null;
   /** Pick the advisor model. Same plumbing rationale as `onChangeFast`. */
@@ -173,6 +183,15 @@ const PROCESS_TASK_TYPES = new Set(["local_bash", "local_monitor"]);
 
 /** Terminal statuses — used to drop a shell whose process has ended. */
 const TERMINAL_STATUSES = new Set(["completed", "failed", "stopped", "killed"]);
+
+/**
+ * A subagent (`local_agent`) that has finished — the rows of "Earlier in this
+ * session" (CC 2.1.319). Only subagents: they can be messaged (SendMessage
+ * resumes one from its saved transcript); shells and workflows can't.
+ */
+function isFinishedSubagent(t: TaskInfo): boolean {
+  return t.taskType === "local_agent" && TERMINAL_STATUSES.has(t.status);
+}
 
 const TASK_TONES: Record<string, string> = {
   pending: "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)]",
@@ -272,6 +291,7 @@ export function BackgroundTasksPanel({
   scheduledLoops,
   toolHistory,
   onOpenBash,
+  onMessageTask,
   onOpenContext,
   onCancelScheduledLoop,
   onAddTodos,
@@ -282,6 +302,7 @@ export function BackgroundTasksPanel({
   ultracode = false,
   onChangeUltracode,
   fastMode = false,
+  fastModeState = null,
   onChangeFast,
   advisorModel = null,
   onChangeAdvisorModel,
@@ -357,8 +378,18 @@ export function BackgroundTasksPanel({
       body: JSON.stringify({ taskId }),
     }).catch(() => {});
   };
+  // CC 2.1.319 parity — "Added an 'Earlier in this session' row to /tasks
+  // that lists finished subagents, so you can reopen one and message it even
+  // after it leaves the list or you restart". Every finished subagent of this
+  // session, uncapped (the task snapshot already survives a reload or server
+  // restart via session-tasks-db), newest first; system tasks stay folded.
+  const earlierSubagents = Object.values(tasks)
+    .filter((t) => isFinishedSubagent(t) && !isSystemTask(t))
+    .reverse();
   const recent = Object.values(tasks)
     .filter((t) => t.status !== "running" && t.status !== "pending" && t.status !== "paused")
+    // Finished subagents live in "Earlier in this session" now.
+    .filter((t) => !(isFinishedSubagent(t) && !isSystemTask(t)))
     .slice(-3)
     .reverse();
   // Live background shells. Beyond the explicit `killed` flag (set when the
@@ -582,6 +613,7 @@ export function BackgroundTasksPanel({
           ultracode={ultracode}
           onChangeUltracode={onChangeUltracode}
           fastMode={fastMode}
+          fastModeState={fastModeState}
           onChangeFast={onChangeFast}
           advisorModel={advisorModel}
           onChangeAdvisorModel={onChangeAdvisorModel}
@@ -722,8 +754,10 @@ export function BackgroundTasksPanel({
                     <div className="mt-0.5 line-clamp-2 text-[10px] opacity-80">{t.description}</div>
                   )}
                   {/* AI-generated live progress summary (SDK
-                      agentProgressSummaries). Refreshes ~30s while the
-                      subagent runs; distinct from the static `description`. */}
+                      agentProgressSummaries). Refreshes roughly every 30s,
+                      but not a heartbeat — a summary can wait up to 5 min on a
+                      cold prompt cache (SDK 0.3.318); distinct from the static
+                      `description`. */}
                   {t.summary && t.summary !== t.description && (
                     <div className="mt-0.5 line-clamp-2 text-[10px] italic opacity-70">
                       {t.summary}
@@ -852,7 +886,13 @@ export function BackgroundTasksPanel({
                   <li
                     key={e.toolUseId}
                     className={cn("rounded-md border px-2 py-1.5", tone)}
-                    title={isThinking ? undefined : notRun ? `Not run — auto mode's check had no usable answer${e.primaryArg ? ` · ${e.primaryArg}` : ""}` : e.primaryArg}
+                    title={
+                      isThinking
+                        ? undefined
+                        : notRun
+                          ? `${e.rejected ? "Not run · rejected" : "Not run — auto mode's check had no usable answer"}${e.primaryArg ? ` · ${e.primaryArg}` : ""}`
+                          : e.primaryArg
+                    }
                     data-not-run={notRun ? "1" : undefined}
                   >
                     <div className="flex items-center gap-1.5 text-xs">
@@ -964,8 +1004,63 @@ export function BackgroundTasksPanel({
         )}
 
         {/* History group */}
-        {(recentEdits.length > 0 || recent.length > 0) && (
+        {(recentEdits.length > 0 || recent.length > 0 || earlierSubagents.length > 0) && (
           <div className="mb-3 border-t border-[var(--border)]/40" />
+        )}
+
+        {earlierSubagents.length > 0 && (
+          <div data-pane-name="earlier-subagents" data-testid="earlier-subagents">
+          <CollapsibleSection
+            storageKey="earlier"
+            label="Earlier in this session"
+            badge={earlierSubagents.length}
+          >
+            <ul className="space-y-1">
+              {earlierSubagents.map((t) => (
+                <li
+                  key={t.taskId}
+                  data-testid="earlier-subagent-row"
+                  data-task-id={t.taskId}
+                  className={cn("rounded-md border px-2 py-1 text-[10px]", TASK_TONES[t.status])}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Bot className="h-3 w-3 shrink-0" />
+                    <span className="min-w-0 truncate font-mono" title={t.description}>
+                      {t.description}
+                    </span>
+                    <span data-testid="task-status" className="ml-auto shrink-0" title={taskStatusTitle(t)}>
+                      {taskStatusLabel(t)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1">
+                    {t.toolUseId && (
+                      <button
+                        type="button"
+                        data-testid="earlier-subagent-open"
+                        onClick={() => openTaskInTranscript(t.toolUseId as string)}
+                        className="rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] hover:text-[var(--foreground)]"
+                        title="Show this subagent's run in the conversation"
+                      >
+                        Open
+                      </button>
+                    )}
+                    {onMessageTask && (
+                      <button
+                        type="button"
+                        data-testid="earlier-subagent-message"
+                        onClick={() => onMessageTask(t)}
+                        className="rounded border border-[var(--border)] bg-[var(--panel)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] hover:text-[var(--foreground)]"
+                        title="Ask Claude to send this subagent a message — it continues from where it stopped"
+                      >
+                        Message
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CollapsibleSection>
+          </div>
         )}
 
         {recentEdits.length > 0 && (

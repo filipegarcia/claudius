@@ -3,7 +3,8 @@
  *
  * Decide, in isolation, whether a new claude-agent-sdk release is out
  * and whether we should kick off an upgrade run for it. This module
- * does no git, no network beyond one npm registry GET, no Claude API
+ * does no network beyond one npm registry GET and one `git fetch` of
+ * origin/main (to read the SDK range main actually ships), no Claude API
  * calls — it just answers "yes/no, and at what version".
  *
  * It's used in two places:
@@ -19,6 +20,7 @@
  * via .gitignore (the `.claudius/` line) — we piggy-back on that.
  */
 
+import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -214,6 +216,96 @@ export function readInstalledRange(root = repoRoot()): string {
   return range;
 }
 
+/**
+ * The SDK range `origin/main` depends on (what has actually shipped), not
+ * the working tree's. The hourly job runs in the operator's checkout, which
+ * can sit on a stale local `main` or a feature branch: on 2026-11-13 it still
+ * read `^0.3.322` an hour after #362 merged 0.3.323, so the SDK pipeline
+ * "upgraded" to 0.3.323 a second time and opened the junk PR #364. Falls back
+ * to the working tree, loudly, when git can't answer (offline, no remote).
+ */
+export function readMainInstalledRange(
+  root = repoRoot(),
+  warn: (msg: string) => void = (msg) => console.error(msg),
+): string {
+  // Best-effort refresh; a failed fetch still leaves the last-known
+  // origin/main, which is no staler than the working tree.
+  spawnSync("git", ["fetch", "origin", "main", "--quiet"], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 120_000,
+  });
+  const show = spawnSync("git", ["show", "origin/main:package.json"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  let why = (show.stderr ?? "").trim() || `git show exited ${show.status}`;
+  if (show.status === 0) {
+    try {
+      const pkg = JSON.parse(show.stdout) as { dependencies?: Record<string, string> };
+      const range = pkg.dependencies?.[SDK_NAME];
+      if (range) return range;
+      why = `no dependencies["${SDK_NAME}"]`;
+    } catch (err) {
+      why = `unparseable JSON: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+  warn(
+    `WARN could not read ${SDK_NAME} from origin/main:package.json (${why}) — ` +
+      `falling back to the working tree, which may be stale`,
+  );
+  return readInstalledRange(root);
+}
+
+// ── Claudius's own version ────────────────────────────────────────────
+
+/**
+ * The version Claudius should carry once it depends on SDK `sdkVersion`.
+ *
+ * Claudius's `version` follows the Claude Code release it ships with: SDK
+ * 0.3.N goes out alongside Claude Code 2.1.N, and Claudius 0.3.N is built on
+ * them. Two rules:
+ *   - Never invent a version. It only ever becomes a real SDK version.
+ *     cc-parity used to add one to the patch, minting 0.3.320 and 0.3.324,
+ *     which no Claude Code release has. The next real SDK release then
+ *     reused an already-published version, so installed apps never saw it
+ *     as an update.
+ *   - Never lower it. A published release can't be taken back, and
+ *     electron-updater refuses a lower version, so going down cuts every
+ *     install off from updates (PR #364 tried 0.3.324 → 0.3.323).
+ * So it's the SDK version when that's newer, otherwise unchanged.
+ */
+export function syncedClaudiusVersion(current: string, sdkVersion: string): string {
+  return isNewer(sdkVersion, current) ? cleanRange(sdkVersion) : current;
+}
+
+// First match is the top-level key: it precedes `dependencies`, whose keys
+// are package names, never the literal "version".
+const TOP_LEVEL_VERSION_RE = /("version"\s*:\s*")([^"]+)(")/;
+
+/**
+ * Apply `syncedClaudiusVersion` to `<root>/package.json`. This is the only
+ * place either pipeline writes Claudius's version. It's a surgical replace,
+ * so the file's formatting is untouched. Reports what it did so callers can
+ * skip the release commit when nothing changed.
+ */
+export function syncClaudiusVersionToSdk(
+  sdkVersion: string,
+  root = repoRoot(),
+): { from: string; to: string; changed: boolean } {
+  const pkgPath = resolve(root, "package.json");
+  const raw = readFileSync(pkgPath, "utf8");
+  const m = raw.match(TOP_LEVEL_VERSION_RE);
+  if (!m) {
+    throw new Error("failed to read top-level version in package.json — pattern miss");
+  }
+  const from = m[2]!;
+  const to = syncedClaudiusVersion(from, sdkVersion);
+  if (to === from) return { from, to, changed: false };
+  writeFileSync(pkgPath, raw.replace(TOP_LEVEL_VERSION_RE, `$1${to}$3`), "utf8");
+  return { from, to, changed: true };
+}
+
 export async function fetchLatestVersion(
   signal?: AbortSignal,
 ): Promise<string> {
@@ -328,7 +420,8 @@ export function decide(
 
 async function main(): Promise<void> {
   const root = repoRoot();
-  const installed = readInstalledRange(root);
+  // origin/main, not the working tree: see readMainInstalledRange.
+  const installed = readMainInstalledRange(root);
 
   let latest: string;
   try {

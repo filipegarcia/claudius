@@ -1,13 +1,15 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import { OPEN_TASK_EVENT, type OpenTaskDetail } from "@/lib/client/open-task";
 import { Bot, ChevronDown, ChevronRight, AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { DisplayBlock, DisplayMessage, TaskInfo, ToolProgressInfo } from "@/lib/client/types";
 import { findSubagentRetry } from "@/lib/client/task-status";
+import { settledToolReason, type SettledToolReason } from "@/lib/client/subagent-tool-status";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { prettyModelName } from "@/lib/shared/advisor";
-import { stripSubagentHandBackFrame } from "@/lib/shared/subagent-handback";
+import { parseSubagentHandBack } from "@/lib/shared/subagent-handback";
 import { Markdown } from "./Markdown";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCall } from "./ToolCall";
@@ -77,6 +79,22 @@ export function TaskBlock({
     setPrevDefaultOpen(defaultOpen);
     setOpen(defaultOpen);
   }
+  // CC 2.1.280 / 2.1.319 — the report as the user should read it: no frame,
+  // no agentId/usage trailer, canned provenance notes split out.
+  const handBack = result ? parseSubagentHandBack(result.content) : null;
+  // CC 2.1.319 — the rail's "Earlier in this session" → Open expands this
+  // block and scrolls it into view.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    function onOpen(e: Event) {
+      const detail = (e as CustomEvent<OpenTaskDetail>).detail;
+      if (!detail || detail.toolUseId !== toolUseId) return;
+      setOpen(true);
+      rootRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    window.addEventListener(OPEN_TASK_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_TASK_EVENT, onOpen);
+  }, [toolUseId]);
   const subagentName = (input as { subagent_type?: string; agent?: string }).subagent_type ?? (input as { agent?: string }).agent ?? "Task";
   // Title is the spawn *intent* (the Task tool's static `description` — the
   // "why"), with live progress shown as a trailing detail only when it diverges.
@@ -98,6 +116,11 @@ export function TaskBlock({
   // a running card stops pulsing and says it's disconnected instead.
   const streamDisconnected = useStreamDisconnected();
   const disconnected = streamDisconnected && status === "running";
+  // CC 2.1.326 — once this subagent has stopped or failed, an inner
+  // tool call still without a result can never complete.
+  // Only from a live task status: the result-only fallback above can't tell
+  // a failed agent from one whose inner results weren't captured.
+  const settledReason = settledToolReason(task?.status);
 
   // The numeric metrics render as a single "·"-joined run with tabular figures
   // so the digits don't jitter as they tick up during streaming. Each part is
@@ -117,7 +140,9 @@ export function TaskBlock({
 
   return (
     <div
+      ref={rootRef}
       data-testid="task-block"
+      data-tool-use-id={toolUseId}
       data-task-status={status}
       data-stream-disconnected={disconnected ? "1" : undefined}
       data-open={open ? "1" : "0"}
@@ -224,12 +249,12 @@ export function TaskBlock({
           ) : (
             <div className="space-y-2">
               {innerMessages.map((m) => (
-                <SubMessage key={m.uuid} message={m} />
+                <SubMessage key={m.uuid} message={m} settledReason={settledReason} />
               ))}
             </div>
           )}
-          {result && (
-            <details className="mt-2">
+          {result && handBack && (
+            <details className="mt-2" data-testid="task-returned-to-parent">
               <summary className="cursor-pointer text-[10px] uppercase tracking-wide text-[var(--muted)]">
                 Returned to parent
               </summary>
@@ -239,8 +264,19 @@ export function TaskBlock({
                   result.isError && "text-red-300",
                 )}
               >
-                {stripSubagentHandBackFrame(result.content)}
+                {handBack.text}
               </pre>
+              {/* CC 2.1.319 — the harness's canned provenance notes, shown
+                  muted instead of as raw `<…/>` marker tags in the report. */}
+              {handBack.provenance.map((note) => (
+                <p
+                  key={note}
+                  data-testid="task-handback-provenance"
+                  className="mt-1 text-[10px] italic text-[var(--muted)]"
+                >
+                  {note}
+                </p>
+              ))}
             </details>
           )}
           {process.env.NODE_ENV === "development" && (
@@ -261,7 +297,14 @@ export function TaskBlock({
  * memoizing on the `message` reference means only the changed message
  * re-renders; the rest of the trail (and its Markdown) is skipped.
  */
-const SubMessage = memo(function SubMessage({ message }: { message: DisplayMessage }) {
+const SubMessage = memo(function SubMessage({
+  message,
+  settledReason,
+}: {
+  message: DisplayMessage;
+  /** CC 2.1.326 — the owning subagent's settled state; see `settledToolReason`. */
+  settledReason: SettledToolReason | null;
+}) {
   if (message.role === "user") {
     const text = message.blocks.map((b) => (b.kind === "text" ? b.text : "")).join("");
     return (
@@ -300,7 +343,14 @@ const SubMessage = memo(function SubMessage({ message }: { message: DisplayMessa
           }
           if (b.kind === "tool_use")
             return (
-              <ToolCall key={i} name={b.name} input={b.input} result={b.result} startedAt={b.startedAt} />
+              <ToolCall
+                key={i}
+                name={b.name}
+                input={b.input}
+                result={b.result}
+                startedAt={b.startedAt}
+                settledReason={settledReason}
+              />
             );
           return null;
         })}

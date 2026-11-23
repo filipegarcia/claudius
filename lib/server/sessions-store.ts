@@ -9,6 +9,7 @@ import {
   type SDKSessionInfo,
   type SessionMessage,
 } from "@anthropic-ai/claude-agent-sdk";
+import { fullHistoryMessages, type HistoryMessage } from "./compacted-history";
 
 export type SessionListItem = SDKSessionInfo;
 
@@ -47,12 +48,22 @@ export async function remove(sessionId: string, dir?: string): Promise<void> {
   await deleteSession(sessionId, { dir });
 }
 
-/** Plain-text export of a session, used by /api/sessions/export/:id. */
+/**
+ * Plain-text export of a session, used by /api/sessions/export/:id (the
+ * session viewer's Export button). Covers the whole conversation, like the
+ * viewer, including turns before each compaction. Falls back to the SDK's
+ * post-compact chain if the stitched read fails.
+ */
 export async function exportPlainText(sessionId: string, dir?: string): Promise<string> {
-  const all = await getSessionMessages(sessionId, { dir, includeSystemMessages: false });
+  const all: HistoryMessage[] = await fullHistoryMessages(sessionId, dir, false).catch(() =>
+    getSessionMessages(sessionId, { dir, includeSystemMessages: false }),
+  );
   const out: string[] = [];
   for (const m of all) {
-    if (m.type === "user") {
+    if (m.isCompactSummary) {
+      const content = (m.message as { content?: unknown }).content;
+      out.push("---\n[Compacted earlier conversation. Summary:]\n\n" + stringifyContent(content) + "\n---\n");
+    } else if (m.type === "user") {
       const content = (m.message as { content?: unknown }).content;
       out.push("# User\n\n" + stringifyContent(content) + "\n");
     } else if (m.type === "assistant") {

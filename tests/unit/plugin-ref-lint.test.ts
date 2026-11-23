@@ -169,12 +169,11 @@ describe("lintMarketplaceName", () => {
     ).not.toBeNull();
   });
 
-  test("refuses install-routing suffix names regardless of source", () => {
-    for (const bad of ["npm", "GitHub", "gh", "pip", "uv", "cargo"]) {
-      expect(lintMarketplaceName(bad, someone)?.message, bad).toContain("reserved for plugins installed");
+  test("CC 2.1.323 — accepts the former install-routing suffix names", () => {
+    for (const ok of ["npm", "GitHub", "gh", "pip", "uv", "cargo"]) {
+      expect(lintMarketplaceName(ok, someone), ok).toBeNull();
     }
-    expect(lintMarketplaceName("npm", { source: "github", repo: "anthropics/npm" })).not.toBeNull();
-    // Only the exact suffix — names that merely contain one are fine.
+    expect(lintMarketplaceName("npm", { source: "github", repo: "anthropics/npm" })).toBeNull();
     expect(lintMarketplaceName("npm-tools", someone)).toBeNull();
   });
 

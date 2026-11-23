@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils/cn";
 import { usePathname } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
 import { splitCompactSummaryTools } from "@/lib/shared/compact-summary-tools";
@@ -27,9 +28,9 @@ import {
   shouldShowRateLimitPill,
   useRateLimitWarningPct,
 } from "@/lib/client/useRateLimitWarning";
-import { formatResetClock, useCountdownSeconds } from "@/lib/client/use-countdown";
+import { formatResetClock, useResetCountdown } from "@/lib/client/use-countdown";
 import { PURCHASE_CREDITS_URL, RateLimitUpgradeLinks } from "./RateLimitHitPanel";
-import { offersGetMoreUsage } from "@/lib/client/rate-limit-cta";
+import { LIMIT_RESET_NOTICE, offersGetMoreUsage } from "@/lib/client/rate-limit-cta";
 import { OPUS_OVERLOAD_NUDGE_SONNET_TARGET } from "./OpusOverloadNudgePanel";
 import { extraUsageState } from "@/lib/shared/rate-limit-extra-usage";
 import { rateLimitEventPct } from "@/lib/shared/usage-pct";
@@ -64,6 +65,11 @@ export type SystemPillLevers = {
    * turns from before its compaction (not replayed into this view).
    */
   resumedTranscriptPath?: string | null;
+  /**
+   * The chat's session id. With `resumedTranscriptPath`, the compaction row
+   * links to the session viewer, which shows the turns before compaction.
+   */
+  sessionId?: string | null;
 };
 
 const KIND_META: Record<SystemEntry["kind"], { icon: typeof Info; tone: string }> = {
@@ -109,6 +115,12 @@ const NOTIFICATION_TONE: Record<NonNullable<SystemEntry["priority"]>, string> = 
   immediate: "text-red-400",
 };
 
+/** CC 2.1.316 — map a notification's engine `color` to its pill tone. */
+const NOTIFICATION_COLOR_TONE: Record<NonNullable<SystemEntry["notificationColor"]>, string> = {
+  warning: "text-amber-400",
+  error: "text-red-400",
+};
+
 /** CC 2.1.217 — map a system/informational level to its pill tone. */
 const INFO_LEVEL_TONE: Record<NonNullable<SystemEntry["infoLevel"]>, string> = {
   notice: "text-[var(--muted)]",
@@ -125,14 +137,17 @@ export function SystemPill({
 }) {
   const meta = KIND_META[entry.kind];
   const Icon = meta.icon;
-  // CC 2.1.267/2.1.274 — a notification pill is toned by its priority;
+  // CC 2.1.267/2.1.274 — a notification pill is toned by its priority
+  // (CC 2.1.316: an engine `color` — warning / error — wins over priority);
   // CC 2.1.217 — an informational pill is toned by its level.
   const tone =
-    entry.kind === "notification" && entry.priority
-      ? NOTIFICATION_TONE[entry.priority]
-      : entry.kind === "info" && entry.infoLevel
-        ? INFO_LEVEL_TONE[entry.infoLevel]
-        : meta.tone;
+    entry.kind === "notification" && entry.notificationColor
+      ? NOTIFICATION_COLOR_TONE[entry.notificationColor]
+      : entry.kind === "notification" && entry.priority
+        ? NOTIFICATION_TONE[entry.priority]
+        : entry.kind === "info" && entry.infoLevel
+          ? INFO_LEVEL_TONE[entry.infoLevel]
+          : meta.tone;
   // Compact-boundary is a major thread-state transition (the SDK summarized
   // earlier turns into a single context block). Show it as a full-width
   // horizontal rule with the token-reduction stats and an expandable summary —
@@ -140,7 +155,13 @@ export function SystemPill({
   // summary). Delegated to its own component so the expand/collapse state
   // doesn't add hooks to the other (hookless) SystemPill render paths.
   if (entry.kind === "compact_boundary") {
-    return <CompactBoundaryDivider entry={entry} transcriptPath={levers?.resumedTranscriptPath ?? null} />;
+    return (
+      <CompactBoundaryDivider
+        entry={entry}
+        transcriptPath={levers?.resumedTranscriptPath ?? null}
+        sessionId={levers?.sessionId ?? null}
+      />
+    );
   }
   // Conversation-reset gets the same full-width-divider treatment as
   // compact-boundary — both mark a thread-state transition the reader
@@ -197,8 +218,18 @@ export function SystemPill({
       </div>
     );
   }
+  // CC 2.1.326 — a warning-level line (incl. a hook that stopped Claude, see
+  // `classifyInformationalLevel`) reads amber, not just its icon, so it
+  // stands apart from the grey routine pills.
+  const rowTone =
+    entry.kind === "info" && entry.infoLevel === "warning" ? "text-amber-400" : "text-[var(--muted)]";
   return (
-    <div className="my-1 flex items-center gap-2 text-[11px] text-[var(--muted)]">
+    <div
+      className={`my-1 flex items-center gap-2 text-[11px] ${rowTone}`}
+      data-testid="system-pill"
+      data-kind={entry.kind}
+      data-info-level={entry.kind === "info" ? entry.infoLevel : undefined}
+    >
       <Icon className={`h-3 w-3 ${tone}`} />
       <span>{entry.label}</span>
       {typeof entry.count === "number" && entry.count > 1 && (
@@ -269,25 +300,36 @@ function SystemReminderPill({ entry }: { entry: SystemEntry }) {
 // ---------------------------------------------------------------------------
 
 function HookFailurePill({ entry }: { entry: SystemEntry }) {
+  // CC 2.1.326 — "the reason is shown under them": the first lines of the
+  // stderr always show under the pill (a broken PreToolUse hook can fail on
+  // every tool call, so a full box each time would flood the transcript);
+  // the toggle opens the whole output.
   const [expanded, setExpanded] = useState(false);
   const hasStderr = typeof entry.hookStderr === "string" && entry.hookStderr.length > 0;
   return (
-    <div className="my-1 text-[11px] text-red-300">
+    <div className="my-1 text-[11px] text-red-300" data-testid="hook-failure-pill">
       <button
         type="button"
         onClick={() => hasStderr && setExpanded((v) => !v)}
         aria-expanded={hasStderr ? expanded : undefined}
         disabled={!hasStderr}
         className="flex items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-red-500/10 disabled:cursor-default disabled:hover:bg-transparent"
-        title={hasStderr ? (expanded ? "Hide hook stderr" : "Show hook stderr") : undefined}
+        title={hasStderr ? (expanded ? "Show less of the hook output" : "Show all of the hook output") : undefined}
       >
         <AlertCircle className="h-3 w-3 text-red-400" />
         <span>{entry.label}</span>
         {entry.detail && <span className="opacity-70">— {entry.detail}</span>}
         {hasStderr && <span className="opacity-50">{expanded ? "▾" : "▸"}</span>}
       </button>
-      {expanded && hasStderr && (
-        <div className="ml-5 mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-red-500/30 bg-red-500/10 p-2 font-mono text-[10.5px] leading-5 text-red-200 scroll-thin">
+      {hasStderr && (
+        <div
+          data-testid="hook-failure-reason"
+          data-expanded={expanded ? "true" : "false"}
+          className={cn(
+            "ml-5 mt-1 whitespace-pre-wrap rounded-md border border-red-500/30 bg-red-500/10 p-2 font-mono text-[10.5px] leading-5 text-red-200",
+            expanded ? "max-h-60 overflow-auto scroll-thin" : "line-clamp-3",
+          )}
+        >
           {entry.hookStderr}
         </div>
       )}
@@ -312,14 +354,29 @@ function formatCompactStats(s: NonNullable<SystemEntry["compactStats"]>): string
   return parts.length ? parts.join(" · ") : null;
 }
 
-function CompactBoundaryDivider({ entry, transcriptPath }: { entry: SystemEntry; transcriptPath: string | null }) {
+function CompactBoundaryDivider({
+  entry,
+  transcriptPath,
+  sessionId,
+}: {
+  entry: SystemEntry;
+  transcriptPath: string | null;
+  sessionId: string | null;
+}) {
   const [expanded, setExpanded] = useState(false);
+  // Not `useParams()`: see lib/shared/route-params.ts.
+  const workspaceId = workspaceIdFromPathname(usePathname());
   // CC 2.1.301 — "the compaction row in a resumed session … now says where
   // the earlier messages are saved". A resumed session replays from the
   // compaction on, so a boundary with nothing before it (no anchor message)
   // marks history that isn't loaded here. In a live session the earlier turns
   // are still above the row, so it stays as it was.
   const earlierNotLoaded = !!transcriptPath && !entry.afterMessageUuid;
+  // The session viewer reads the whole transcript, turns before compaction
+  // included, so the user can actually see them, not just a file path.
+  const historyHref = sessionId
+    ? `${workspaceId ? `/${workspaceId}` : ""}/sessions/${encodeURIComponent(sessionId)}`
+    : null;
   const statText = entry.compactStats ? formatCompactStats(entry.compactStats) : null;
   const hasSummary = typeof entry.compactSummary === "string" && entry.compactSummary.length > 0;
   const summary = useMemo(
@@ -354,6 +411,18 @@ function CompactBoundaryDivider({ entry, transcriptPath }: { entry: SystemEntry;
           <span className="select-all break-all font-mono" title={transcriptPath ?? undefined}>
             {transcriptPath}
           </span>
+          {historyHref && (
+            <>
+              {" · "}
+              <Link
+                href={historyHref}
+                data-testid="compact-earlier-history-link"
+                className="underline underline-offset-2 hover:text-[var(--foreground)]"
+              >
+                View full history
+              </Link>
+            </>
+          )}
         </div>
       )}
       {expanded && summary && (
@@ -490,7 +559,7 @@ function RateLimitPill({
   // dedupe in use-session.ts means at most one pill per `rateLimitType`
   // exists at any time, so we're not running runaway timers in hidden
   // pills.
-  const countdown = useCountdownSeconds(liveReset);
+  const { countdown, hasReset } = useResetCountdown(liveReset);
   const workspaceId = workspaceIdFromPathname(usePathname());
   const { value: warningThresholdPct } = useRateLimitWarningPct();
 
@@ -531,14 +600,21 @@ function RateLimitPill({
   // perform the flip from the browser (it's CLI/credential-level config),
   // but we can mirror the messaging and link to the workspace's cost page
   // for the manual switchover.
+  // CC 2.1.326 — a rejection whose reset time has passed is an old message:
+  // no upgrade / credits / pay-as-you-go next steps under it, just a note that
+  // the limit has reset.
+  const rejectedAndReset = status === "rejected" && hasReset;
+
   const canSwitchToOverage =
+    !rejectedAndReset &&
     status === "rejected" &&
     (info.overageStatus === "allowed" || info.overageStatus === "allowed_warning") &&
     !info.isUsingOverage;
 
-  const overageBlockedCopy = info.overageDisabledReason
-    ? OVERAGE_DISABLED_COPY[info.overageDisabledReason] ?? null
-    : null;
+  const overageBlockedCopy =
+    info.overageDisabledReason && !rejectedAndReset
+      ? OVERAGE_DISABLED_COPY[info.overageDisabledReason] ?? null
+      : null;
 
   // CC 2.1.295 parity — a soft warning says whether the account has extra
   // usage turned on, i.e. what happens when this limit is actually reached.
@@ -599,7 +675,7 @@ function RateLimitPill({
         )}
       </div>
 
-      {countdown && (
+      {countdown && !rejectedAndReset && (
         <div className="mt-1 flex items-center gap-1.5 opacity-90">
           <Timer className="h-3 w-3" />
           <span className="font-mono">{countdown}</span>
@@ -678,7 +754,13 @@ function RateLimitPill({
           contact-admin line. For ordinary plan limits mirror the CLI's
           `/rate-limit-options`: wait for the reset or upgrade to lift the cap.
           Only shown on rejection — a warning isn't a wall yet. */}
-      {status === "rejected" && info.errorCode === "credits_required" && info.canUserPurchaseCredits !== false ? (
+      {rejectedAndReset ? (
+        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+          <span className="opacity-70" data-testid="rate-limit-pill-reset-notice">
+            {LIMIT_RESET_NOTICE}
+          </span>
+        </div>
+      ) : status === "rejected" && info.errorCode === "credits_required" && info.canUserPurchaseCredits !== false ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
           <span className="opacity-70">Credits required to continue:</span>
           <a

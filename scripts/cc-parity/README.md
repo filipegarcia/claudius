@@ -258,11 +258,16 @@ Everything under `.claudius/` is already gitignored.
    11. Gate: `bun run lint`, `bun run test`, `bun run build`,
        `bun run test:e2e`.
    12. **Announce** the gate verdict.
-   13. If green: bump Claudius's own **patch** version (the SDK
-       updater owns the minor channel; cc-parity bumps patch each
-       time it ships, so the displayed version stays monotonic and
-       the two pipelines never fight over `package.json:version`).
-       Commit the bump.
+   13. If green: line Claudius's `version` up with the SDK the branch
+       depends on (`syncClaudiusVersionToSdk`, shared with the SDK
+       pipeline). It follows Claude Code's numbering (SDK 0.3.N ships
+       with Claude Code 2.1.N), so it only ever becomes a real SDK
+       version: never past it, never lower. Usually that's a no-op
+       and nothing is committed. A cc-parity release needs no version
+       change of its own, because auto-tag cuts `v<version>.<N>` for
+       every push to main. (This step used to add one to the patch,
+       minting versions like 0.3.320 that Claude Code never had, which
+       collided with the next real SDK release.)
    14. Push, open the draft PR via `openPr()`, retitle to
        `feat(cc-parity): claude-code <prev> → <new>`, announce.
    15. Watch CI. On green, mark ready, drop `needs-human`, post the

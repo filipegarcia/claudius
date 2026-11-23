@@ -74,7 +74,8 @@ const STATIC_FALLBACK: ModelInfo[] = [
   },
   {
     value: "fable",
-    displayName: "Fable 5.1",
+    // CC 2.1.321: the `fable` alias now resolves to Fable 5.2.
+    displayName: "Fable 5.2",
     // Mirrors the Claude Code TUI's `/model` picker copy verbatim so the
     // sessionless picker (workspace-create form) reads the same as a live
     // session. The "~2× faster than Opus" hint is the SDK's framing of

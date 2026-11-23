@@ -100,10 +100,12 @@ import { fileURLToPath } from "node:url";
 import {
   buildCombinedPrTitle,
   cleanRange,
+  isNewer,
   patchState,
-  readInstalledRange,
+  readMainInstalledRange,
   readState,
   repoRoot,
+  syncClaudiusVersionToSdk,
 } from "./check";
 // CC state helpers — aliased to avoid the name collision with the SDK
 // state helpers above. The CC orchestrator itself is imported
@@ -1135,39 +1137,24 @@ function bumpSdkDependency(version: string): void {
  * don't choke on a 4-component bundle version — the 4th component lives only
  * in the displayed string.
  *
- * Surgical regex replace (no JSON round-trip) to match `bumpSdkDependency`'s
- * formatting-preserving approach. Runs right after the dep bump so the single
- * follow-up commit carries both edits.
+ * Moves the version up to the SDK version, never down
+ * (`syncClaudiusVersionToSdk`). A version already ahead is left alone,
+ * because lowering it below a published release would block auto-updates.
+ * That's exactly what PR #364 tried. Runs right after the dep bump so the
+ * single follow-up commit carries both edits.
  */
 function bumpClaudiusVersion(version: string): void {
-  const pkgPath = resolve(ROOT, "package.json");
-  const raw = readFileSync(pkgPath, "utf8");
-
-  // Idempotency mirror of `bumpSdkDependency` — when resuming an
-  // existing branch the top-level version is already at the target,
-  // and the regex-replace below would be a no-op that throws "pattern
-  // miss". Detect + skip cleanly.
-  const currentMatch = raw.match(/"version"\s*:\s*"([^"]+)"/);
-  if (currentMatch && currentMatch[1] === version) {
-    log(`claudius version already at ${version} — skipping bump (resumed branch)`);
-    return;
-  }
-
-  // Top-level "version" is the first "version": key in the file (the SDK dep
-  // key is "@anthropic-ai/claude-agent-sdk", a different token), so an
-  // unanchored first-match replace is safe.
-  const next = raw.replace(
-    /("version"\s*:\s*")([^"]+)(")/,
-    `$1${version}$3`,
-  );
-  if (next === raw) {
-    throw new Error(
-      "failed to rewrite top-level version in package.json — pattern miss",
+  const { from, to, changed } = syncClaudiusVersionToSdk(version, ROOT);
+  if (changed) {
+    log(`set claudius version ${from} → ${to} (release counter auto-resets via git)`);
+  } else if (from === cleanRange(version)) {
+    log(`claudius version already at ${from} — skipping bump (resumed branch)`);
+  } else {
+    log(
+      `claudius version ${from} is already ahead of SDK ${version} — ` +
+        `keeping it (the version is never lowered)`,
     );
   }
-
-  writeFileSync(pkgPath, next, "utf8");
-  log(`set claudius version → ${version} (release counter auto-resets via git)`);
 }
 
 // ── Changelog extraction ──────────────────────────────────────────────
@@ -6364,13 +6351,34 @@ async function main(): Promise<void> {
     return;
   }
 
-  preflight();
-
-  const prevVersion = prevVersionArg ?? cleanRange(readInstalledRange(ROOT));
   if (!newVersionArg) {
     fatal("orchestrate.ts requires --version=<x.y.z>");
   }
   const newVersion = newVersionArg!;
+
+  // Already shipped? Ask origin/main, not the working tree (see
+  // readMainInstalledRange). PR #364 came from a stale tree: the run
+  // "upgraded" 0.3.322 → 0.3.323 an hour after #362 merged 0.3.323, resumed
+  // that merged branch, and its only diff was lowering the version. This
+  // runs before preflight so a no-op firing doesn't autostash the
+  // operator's working tree either. Dry-run is exempt, since iterating on the
+  // prompt for the current version is its point.
+  const mainRange = readMainInstalledRange(ROOT, (msg) => log(msg));
+  if (!dryRun && !isNewer(newVersion, mainRange)) {
+    log(
+      `origin/main already depends on ${SDK_PKG_NAME} ${mainRange} — ` +
+        `${newVersion} has shipped, nothing to upgrade`,
+    );
+    const state = readState(ROOT);
+    if (!state.lastCompletedVersion || isNewer(mainRange, state.lastCompletedVersion)) {
+      patchState({ lastCompletedVersion: cleanRange(mainRange) }, ROOT);
+    }
+    return;
+  }
+
+  preflight();
+
+  const prevVersion = prevVersionArg ?? cleanRange(mainRange);
 
   // Continuation: if a prior SDK-update PR is still open (the human hadn't
   // merged it before this newer release shipped), stack this bump onto that

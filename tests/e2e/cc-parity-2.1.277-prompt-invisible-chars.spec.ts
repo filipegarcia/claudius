@@ -11,11 +11,15 @@
  * toast explains why, instead of silently forwarding a cleaned prompt the
  * user never saw.
  *
+ * CC 2.1.316 narrowed the hold: a plain prompt now sends cleaned on the
+ * first Send (with a footer notice); only a prompt with a bidi control, a
+ * command (`/…`, `!…`, exit words) or nothing left after cleaning is held.
+ *
  * This spec mocks the chat backend the same way
  * `cc-parity-2.1.275-send-all-queued.spec.ts` does (fixed SSE fixture +
- * routed POSTs), types a prompt containing a hidden zero-width character,
- * presses Send, and asserts the send was held (composer keeps the cleaned
- * text, no message left the session) plus the notice toast renders.
+ * routed POSTs), types prompts containing hidden characters, presses Send,
+ * and asserts which are sent cleaned and which are held (composer keeps the
+ * cleaned text, no message left the session, notice toast renders).
  *
  * Screenshot target: docs/cc-parity/2.1.277/prompt-invisible-chars-held.png
  */
@@ -119,7 +123,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("Invisible-Unicode prompt hardening (CC 2.1.277 parity)", () => {
-  test("a prompt with a hidden zero-width character is held for review instead of sent", async ({
+  // CC 2.1.316 parity — "Fixed prompts containing invisible characters
+  // needing a second Enter to send; plain prompts now send cleaned on the
+  // first Enter, and commands still wait for review". This used to be the
+  // "held for review" case; a plain prompt now goes out cleaned at once.
+  test("a plain prompt with a hidden zero-width character is sent cleaned on the first Send", async ({
     page,
   }) => {
     const { sentTexts } = await mockChatBackend(page, PRELUDE);
@@ -130,16 +138,35 @@ test.describe("Invisible-Unicode prompt hardening (CC 2.1.277 parity)", () => {
 
     // A zero-width space hidden inside otherwise-ordinary text — invisible
     // in the rendered textarea, but present in the DOM value.
-    const tainted = "Please run tests​ and report back";
-    await composer.fill(tainted);
+    await composer.fill("Please run tests\u{200B} and report back");
+    await page.getByTestId("prompt-send").click();
+
+    await expect.poll(() => sentTexts[0]).toBe("Please run tests and report back");
+    expect(sentTexts).toHaveLength(1);
+    await expect(composer).toHaveValue("");
+    await expect(page.getByTestId("prompt-invisible-unicode-notice")).toContainText(
+      "Removed 1 hidden character from your prompt",
+    );
+  });
+
+  test("a prompt with a hidden bidi override is held for review instead of sent", async ({ page }) => {
+    const { sentTexts } = await mockChatBackend(page, PRELUDE);
+    await page.goto("/");
+
+    const composer = page.getByTestId("prompt-input");
+    await expect(composer).toBeEnabled({ timeout: 15_000 });
+
+    // A right-to-left override (U+202E) can visually reorder the text that
+    // follows it, so the user must see the cleaned prompt before it leaves.
+    await composer.fill("Please open \u{202E}txt.exe and report back");
     await page.getByTestId("prompt-send").click();
 
     // Held: the toast explains why, and the composer keeps the CLEANED text
-    // (zero-width character gone) rather than clearing on send.
+    // (bidi control gone) rather than clearing on send.
     const toast = page.getByTestId("chat-toast");
     await expect(toast).toBeVisible();
     await expect(toast).toContainText(/hidden character/i);
-    await expect(composer).toHaveValue("Please run tests and report back");
+    await expect(composer).toHaveValue("Please open txt.exe and report back");
     expect(sentTexts).toHaveLength(0);
 
     await page.waitForTimeout(200);
@@ -151,6 +178,24 @@ test.describe("Invisible-Unicode prompt hardening (CC 2.1.277 parity)", () => {
     // Pressing Send again on the now-clean text goes through normally.
     await page.getByTestId("prompt-send").click();
     await expect(composer).toHaveValue("");
+    await expect.poll(() => sentTexts[0]).toBe("Please open txt.exe and report back");
+  });
+
+  test("a slash command with a hidden character still waits for review", async ({ page }) => {
+    const { sentTexts } = await mockChatBackend(page, PRELUDE);
+    await page.goto("/");
+
+    const composer = page.getByTestId("prompt-input");
+    await expect(composer).toBeEnabled({ timeout: 15_000 });
+
+    // Click Send rather than pressing Enter: a leading `/word` opens the
+    // slash picker, which would take the Enter itself.
+    await composer.fill("/cost\u{200B}");
+    await page.getByTestId("prompt-send").click();
+
+    await expect(page.getByTestId("chat-toast")).toContainText(/hidden character/i);
+    await expect(composer).toHaveValue("/cost");
+    expect(sentTexts).toHaveLength(0);
   });
 
   test("an ordinary prompt with no hidden characters sends immediately", async ({ page }) => {

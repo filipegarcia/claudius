@@ -35,8 +35,9 @@
  * Idempotent: a second run with the same arch and a matching on-disk version is
  * a no-op (cheap to re-run failed builds without re-fetching the tarball).
  */
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 import url from "node:url";
 
@@ -134,36 +135,51 @@ if (existsSync(installedPkgJsonPath) && existsSync(claudeBinPath)) {
 }
 
 // ── fetch + extract ────────────────────────────────────────────────────────
-// Two-step fetch + extract without a shell (targetDir is a plain argv element
-// passed to tar — no shell interpolation). curl stdout buffered → tar stdin.
+// Download to a temp FILE, then extract from it, with no shell (the URL and
+// paths are plain argv elements). This used to buffer curl's stdout in memory
+// under `maxBuffer: 150 MB`. The darwin-x64 tarball crossed that at SDK 0.3.323
+// (155.6 MB), Node killed curl with SIGTERM ("curl failed (status=null,
+// signal=SIGTERM)"), and the x64 release job died for v0.3.324.0 and .1, so
+// neither release was marked Latest. A file has no size ceiling.
 // Always rm + mkdir first so a stale dir can't leave a hybrid version.
 console.log(`[stage-claude-sdk] fetching ${tarballUrl}`);
 rmSync(targetDir, { recursive: true, force: true });
 mkdirSync(targetDir, { recursive: true });
+const tmpDir = mkdtempSync(path.join(os.tmpdir(), "stage-claude-sdk-"));
+const tarballPath = path.join(tmpDir, `${unscopedName}-${SDK_VERSION}.tgz`);
 
-const curlResult = spawnSync("curl", ["-fsSL", tarballUrl], {
-  encoding: "buffer",
-  maxBuffer: 150 * 1024 * 1024,
-  stdio: ["ignore", "pipe", "inherit"],
-});
+/** Clean up both dirs, then exit non-zero. (process.exit skips `finally`.) */
+function bail(message, code) {
+  console.error(`[stage-claude-sdk] ${message}`);
+  rmSync(targetDir, { recursive: true, force: true });
+  rmSync(tmpDir, { recursive: true, force: true });
+  process.exit(code || 1); // never 0: this is the failure path
+}
+
+const curlResult = spawnSync(
+  "curl",
+  ["-fsSL", "--retry", "3", "--retry-delay", "5", "-o", tarballPath, tarballUrl],
+  { stdio: ["ignore", "inherit", "inherit"] },
+);
 if (curlResult.status !== 0 || curlResult.error) {
-  console.error(
-    `[stage-claude-sdk] curl failed (status=${curlResult.status}, signal=${curlResult.signal ?? "none"})`,
+  bail(
+    `curl failed (status=${curlResult.status}, signal=${curlResult.signal ?? "none"}${curlResult.error ? `, ${curlResult.error.message}` : ""})`,
+    curlResult.status,
   );
-  rmSync(targetDir, { recursive: true, force: true });
-  process.exit(curlResult.status ?? 1);
 }
-const tarResult = spawnSync("tar", ["-xz", "--strip-components=1", "-C", targetDir], {
-  input: curlResult.stdout,
-  stdio: ["pipe", "inherit", "inherit"],
-});
+const tarballMB = (statSync(tarballPath).size / (1024 * 1024)).toFixed(1);
+const tarResult = spawnSync(
+  "tar",
+  ["-x", "-z", "-f", tarballPath, "--strip-components=1", "-C", targetDir],
+  { stdio: ["ignore", "inherit", "inherit"] },
+);
 if (tarResult.status !== 0 || tarResult.error) {
-  console.error(
-    `[stage-claude-sdk] tar failed (status=${tarResult.status}, signal=${tarResult.signal ?? "none"})`,
+  bail(
+    `tar failed on the ${tarballMB} MB tarball (status=${tarResult.status}, signal=${tarResult.signal ?? "none"})`,
+    tarResult.status,
   );
-  rmSync(targetDir, { recursive: true, force: true });
-  process.exit(tarResult.status ?? 1);
 }
+rmSync(tmpDir, { recursive: true, force: true });
 
 // ── sanity-check ───────────────────────────────────────────────────────────
 // The whole point is a runnable `claude` binary in the staged package. If it's

@@ -1,8 +1,9 @@
 import { promises as fs } from "node:fs";
+import { applyRuleDelta } from "@/lib/shared/settings-patch";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import type { WorktreeSettings } from "@/lib/shared/worktree-settings";
-import { sanitizeJsonParseReason } from "@/lib/shared/settings-load-error";
+import { sanitizeJsonParseReason, settingsSaveFailedMessage } from "@/lib/shared/settings-load-error";
 
 import { assertWithin } from "./safe-path";
 
@@ -32,6 +33,23 @@ export type PermissionRules = {
    * Claudius merging them itself).
    */
   blockReadsOutsideWorkingDirectories?: boolean;
+  /**
+   * SDK 0.3.314 — "Refuse file-tool writes (Write, Edit, NotebookEdit)
+   * outside the working directories in every permission mode; true in any
+   * settings source wins. No allow rule lifts it." Write-side twin of
+   * `blockReadsOutsideWorkingDirectories`; same per-scope plain toggle.
+   */
+  blockWritesOutsideWorkingDirectories?: boolean;
+  /**
+   * CC 2.1.319 — `permissions.denyInsteadOfPrompting`: a tool call that would
+   * wait on a permission prompt is denied and the turn continues. The engine
+   * applies it before an SDK host's `canUseTool` (so Claudius's permission
+   * cards, AskUserQuestion forms and plan approval stop appearing, and MCP
+   * elicitations are cancelled) and reads it only from user, `--settings` and
+   * managed sources — never project or local settings. Claudius therefore
+   * offers it on the account (user) scope only.
+   */
+  denyInsteadOfPrompting?: boolean;
 };
 
 /**
@@ -87,7 +105,8 @@ export type ClaudeSettings = {
   permissions?: PermissionRules;
   hooks?: Record<string, unknown>;
   mcpServers?: Record<string, unknown>;
-  enabledPlugins?: Record<string, boolean>;
+  /** `string[] | boolean | {…}` per sdk.d.ts — only `true` turns a marketplace plugin on. */
+  enabledPlugins?: Record<string, unknown>;
   autoMemoryEnabled?: boolean;
   // Predicted next-user-prompt chips (PromptSuggestions). The SDK's canonical
   // settings key: "When false, prompt suggestions are disabled. When absent or
@@ -318,8 +337,8 @@ export type ClaudeSettings = {
   syncClaudeAiSkills?: boolean;
   // SDK 0.3.292 — set to false to stop Claude Code compacting a long
   // conversation while the session is idle. Mirrors `Settings.idleCompaction`
-  // ("setting it to true does not turn idle compaction on", i.e. only
-  // false is honored). Config-passthrough: read by the bundled binary from
+  // (SDK 0.3.314: "Defaults to true", i.e. false is the opt-out).
+  // Config-passthrough: read by the bundled binary from
   // `~/.claude/settings.json`; the catalog row is all Claudius needs.
   idleCompaction?: boolean;
   // Claude Code 2.1.238 — set to "readline" to make Ctrl+W in the CLI's own
@@ -583,6 +602,20 @@ export async function readSettings(scope: SettingsScope, projectCwd: string): Pr
   }
 }
 
+/**
+ * CC 2.1.326 — turn a failed `readSettings` / `writeSettings` into the JSON
+ * error a settings route returns, naming the file (see
+ * `settingsSaveFailedMessage`). A file that doesn't load is the user's to fix
+ * (422); any other failure, such as a read-only file or folder, is a 500.
+ */
+export function settingsSaveFailure(scope: SettingsScope, projectCwd: string, err: unknown): { status: number; error: string } {
+  if (err instanceof SettingsParseError) {
+    return { status: 422, error: settingsSaveFailedMessage(err.path, { parseReason: err.reason }) };
+  }
+  const code = typeof (err as NodeJS.ErrnoException | null)?.code === "string" ? (err as NodeJS.ErrnoException).code : undefined;
+  return { status: 500, error: settingsSaveFailedMessage(pathFor(scope, projectCwd), { code }) };
+}
+
 export async function writeSettings(
   scope: SettingsScope,
   projectCwd: string,
@@ -654,6 +687,22 @@ export async function updatePermissions(
   };
   await writeSettings(scope, projectCwd, next);
   return next;
+}
+
+/**
+ * CC 2.1.323 — add/remove rules on one list against a fresh read, so a rule
+ * added to the file by hand after the /permissions page loaded isn't dropped
+ * (the page used to send its whole cached list).
+ */
+export async function updatePermissionRuleList(
+  scope: SettingsScope,
+  projectCwd: string,
+  kind: "allow" | "ask" | "deny",
+  delta: { add?: string[]; remove?: string[] },
+): Promise<ClaudeSettings> {
+  const current = await readSettings(scope, projectCwd);
+  const list = applyRuleDelta(current.permissions?.[kind], delta);
+  return updatePermissions(scope, projectCwd, { [kind]: list });
 }
 
 /**

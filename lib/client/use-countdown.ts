@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { limitHasReset } from "@/lib/client/rate-limit-cta";
 
 /**
  * Live countdown to an epoch-**seconds** timestamp. Returns `"Available now"`
@@ -17,6 +18,19 @@ import { useEffect, useState } from "react";
  * first paint is correct; the interval keeps it advancing.
  */
 export function useCountdownSeconds(resetsAtSec: number | undefined): string | null {
+  return useResetCountdown(resetsAtSec).countdown;
+}
+
+/**
+ * {@link useCountdownSeconds} plus whether the reset has already passed
+ * (CC 2.1.326 parity — the limit panels drop their upgrade hint once the
+ * limit has reset). Both values come from the same ticking clock so they
+ * flip together.
+ */
+export function useResetCountdown(resetsAtSec: number | undefined): {
+  countdown: string | null;
+  hasReset: boolean;
+} {
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   useEffect(() => {
     if (!resetsAtSec) return;
@@ -26,10 +40,9 @@ export function useCountdownSeconds(resetsAtSec: number | undefined): string | n
     return () => window.clearInterval(id);
   }, [resetsAtSec]);
 
-  if (!resetsAtSec) return null;
-  const remaining = Math.floor(resetsAtSec - nowMs / 1000);
-  if (remaining <= 0) return "Available now";
-  return formatRemaining(remaining);
+  if (!resetsAtSec) return { countdown: null, hasReset: false };
+  if (limitHasReset(resetsAtSec, nowMs)) return { countdown: "Available now", hasReset: true };
+  return { countdown: formatRemaining(Math.floor(resetsAtSec - nowMs / 1000)), hasReset: false };
 }
 
 function formatRemaining(totalSec: number): string {

@@ -2,6 +2,11 @@ import { promises as fs, createReadStream } from "node:fs";
 import { resolve, sep } from "node:path";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { projectRoot } from "./db";
+import { getSessionState } from "./sessions-db";
+import {
+  pickRecordedPermissionMode,
+  readPermissionModeRecord,
+} from "@/lib/shared/permission-mode-record";
 import { jsonlLines } from "./jsonl-lines";
 import { sessionManager } from "./session-manager";
 import { info as sessionFileInfo } from "./sessions-store";
@@ -20,6 +25,21 @@ function debug(): boolean {
  * are skipped. Null when nothing is recorded or the file can't be read.
  */
 export async function lastRecordedPermissionMode(id: string, cwd: string): Promise<string | null> {
+  return (await lastRecordedPermissionModeAt(id, cwd))?.mode ?? null;
+}
+
+/**
+ * `lastRecordedPermissionMode` plus when it was recorded: the line's own
+ * `timestamp` in epoch ms, or null for an undated line. Only the terminal
+ * CLI writes undated `permission-mode` lines (in its metadata re-append,
+ * possibly long after the last dated line), so no timestamp in the file
+ * bounds when one was written — `pickRecordedPermissionMode` treats it as
+ * unknown rather than guessing.
+ */
+export async function lastRecordedPermissionModeAt(
+  id: string,
+  cwd: string,
+): Promise<{ mode: string; at: number | null } | null> {
   if (!/^[\w-]+$/.test(id)) return null;
   const dir = projectRoot(cwd);
   const file = resolve(dir, `${id}.jsonl`);
@@ -29,13 +49,18 @@ export async function lastRecordedPermissionMode(id: string, cwd: string): Promi
   } catch {
     return null;
   }
-  let last: string | null = null;
+  let last: { mode: string; at: number | null } | null = null;
   try {
     // `jsonlLines`, not readline: readline splits a record at U+2028/U+2029
     // and the fragments fail to parse (CC 2.1.296).
     for await (const line of jsonlLines(createReadStream(file, "utf8"))) {
       if (!line.includes('"permissionMode"')) continue;
-      let entry: { type?: unknown; permissionMode?: unknown; isSidechain?: unknown };
+      let entry: {
+        type?: unknown;
+        permissionMode?: unknown;
+        isSidechain?: unknown;
+        timestamp?: unknown;
+      };
       try {
         entry = JSON.parse(line) as typeof entry;
       } catch {
@@ -43,12 +68,27 @@ export async function lastRecordedPermissionMode(id: string, cwd: string): Promi
       }
       if (entry.isSidechain === true) continue;
       if (entry.type !== "user" && entry.type !== "permission-mode") continue;
-      if (typeof entry.permissionMode === "string") last = entry.permissionMode;
+      if (typeof entry.permissionMode === "string") {
+        const stamped = typeof entry.timestamp === "string" ? Date.parse(entry.timestamp) : NaN;
+        last = { mode: entry.permissionMode, at: Number.isFinite(stamped) ? stamped : null };
+      }
     }
   } catch {
     return null;
   }
   return last;
+}
+
+/**
+ * The mode switch `Session` last recorded in the session's state bag (CC
+ * 2.1.317, see `lib/shared/permission-mode-record.ts`), if any.
+ */
+export async function persistedPermissionMode(
+  id: string,
+  cwd: string,
+): Promise<{ mode: string; at: number } | null> {
+  const state = await getSessionState(cwd, id).catch(() => ({}) as Record<string, unknown>);
+  return readPermissionModeRecord(state);
 }
 
 /**
@@ -61,6 +101,11 @@ export async function lastRecordedPermissionMode(id: string, cwd: string): Promi
  * Only plan is carried over, like the CLI: losing it is what lets Claude
  * edit files the user believed were off-limits, and keeping it never widens
  * what the session may do.
+ *
+ * CC 2.1.317 — for a session that isn't live, "last recorded" is the newer
+ * of the transcript's stamp and the switch `Session` persisted (see
+ * `pickRecordedPermissionMode`), so a switch with no prompt after it
+ * survives a reap or restart.
  */
 export async function resumePermissionMode(
   id: string,
@@ -68,7 +113,12 @@ export async function resumePermissionMode(
   fallback: PermissionMode | undefined,
 ): Promise<PermissionMode | undefined> {
   const live = sessionManager.get(id);
-  const was = live ? live.getPermissionMode() : await lastRecordedPermissionMode(id, cwd);
+  const was = live
+    ? live.getPermissionMode()
+    : pickRecordedPermissionMode(
+        await lastRecordedPermissionModeAt(id, cwd),
+        await persistedPermissionMode(id, cwd),
+      );
   return was === "plan" ? "plan" : fallback;
 }
 

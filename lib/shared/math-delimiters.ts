@@ -303,3 +303,32 @@ export function mapProseSegments(markdown: string, rewrite: (prose: string) => s
   flushProse();
   return out.join("\n");
 }
+
+/**
+ * CC 2.1.319 parity — "[VSCode] Fixed the chat panel slowing down while a
+ * reply with many unclosed `$$` math fences, each shorter than the last,
+ * streams in". Claudius's math pass (remark-math) has the same super-linear
+ * cost on that shape — runs of three or more `$`, each opening a fence the
+ * next shorter run can't close — and re-parses on every streaming delta.
+ * Real math fences are `$$`; a message with more than
+ * {@link MAX_LONG_DOLLAR_RUNS} longer runs renders without math instead.
+ * One linear pass, no regex.
+ */
+export const MAX_LONG_DOLLAR_RUNS = 16;
+
+export function hasPathologicalDollarRuns(text: string): boolean {
+  let runs = 0;
+  let i = 0;
+  const n = text.length;
+  while (i < n) {
+    if (text.charCodeAt(i) !== 36 /* $ */) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < n && text.charCodeAt(j) === 36) j++;
+    if (j - i >= 3 && ++runs > MAX_LONG_DOLLAR_RUNS) return true;
+    i = j;
+  }
+  return false;
+}

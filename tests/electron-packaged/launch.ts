@@ -144,13 +144,37 @@ export async function waitForMainWindow(
   );
 }
 
+/**
+ * How long `app.close()` gets before the packaged process is SIGKILLed. An
+ * unbounded `close()` once hung until the 150 s test timeout fired inside
+ * `afterEach`. The test had already passed its assertions, but Playwright
+ * counted it flaky and failed the Linux AppImage smoke job (v0.3.324.2).
+ */
+const CLOSE_TIMEOUT_MS = 20_000;
+
 export async function teardownPackaged(
   launched: LaunchedPackaged,
 ): Promise<void> {
-  try {
-    await launched.app.close();
-  } catch {
-    // close() throws if the process already exited (crash / killed window).
-    // We tried — nothing else to clean up.
+  const proc = launched.app.process();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const closed = await Promise.race([
+    // close() throws if the process already exited (crash / killed window);
+    // either way there's nothing left to wait for.
+    launched.app.close().then(
+      () => true,
+      () => true,
+    ),
+    new Promise<false>((resolve) => {
+      timer = setTimeout(() => resolve(false), CLOSE_TIMEOUT_MS);
+    }),
+  ]);
+  clearTimeout(timer);
+  if (!closed && proc.exitCode === null && proc.signalCode === null) {
+    // Loud on purpose: a packaged app that won't quit is worth knowing about,
+    // but it isn't what these launch smokes assert, so it mustn't fail them.
+    console.warn(
+      `[electron-packaged] app.close() still pending after ${CLOSE_TIMEOUT_MS}ms — SIGKILLing pid ${proc.pid}`,
+    );
+    proc.kill("SIGKILL");
   }
 }

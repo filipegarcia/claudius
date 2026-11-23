@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Link2, Shield, Webhook } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
-import { visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import { visualizeHiddenNameUnicode, visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
 import { isTypingInField } from "@/lib/client/typing-focus";
+import { isBeforePromptArmed } from "@/lib/client/prompt-arm";
 
 type Props = {
   request: PermissionRequestEvent;
@@ -64,6 +65,15 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // treatment too.
   const symlink = request.symlink;
   const symlinkTargetVis = symlink ? visualizeInvisibleUnicode(symlink.target) : null;
+  // CC 2.1.321 parity — "[VSCode] Fixed a plugin's permission request
+  // showing a name with hidden characters". The source badge's server name is
+  // untrusted (sdk.d.ts: a non-`sdk` server's name, including one a plugin
+  // ships, is "untrusted text, escape it before display"), so it gets the
+  // same treatment as every other name on this card — the engine's wider
+  // *name* set (`visualizeHiddenNameUnicode`: LRM/RLM, ZWJ, Hangul fillers,
+  // NBSP, U+16910, …), since a name that merely looks like another one is the
+  // risk here, not just bidi overrides.
+  const mcpNameVis = request.mcpServer ? visualizeHiddenNameUnicode(request.mcpServer.name) : null;
   // SDK 0.3.268 `suppressAlwaysAllowRule` — the rule an "Always allow" click
   // would write grants more than this ask's own action, so hide all three
   // standing-grant buttons. The auto-mode tip button is itself a one-click
@@ -87,15 +97,27 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // title, the description, the tool input, or a hook's reason (CC 2.1.301).
   const hiddenCharCount =
     summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount + (hookReasonVis?.count ?? 0) +
-    (symlinkTargetVis?.count ?? 0);
+    (symlinkTargetVis?.count ?? 0) + (mcpNameVis?.count ?? 0);
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // CC 2.1.318 — when this request appeared (see `prompt-arm.ts`). Set in an
+  // effect keyed by requestId, not the listener effect below: that one re-runs
+  // on every render because `onResolve` is a fresh arrow each time.
+  const armedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    armedAtRef.current = performance.now();
+  }, [request.requestId]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Ignore auto-repeat: with a queue, a held Escape would otherwise deny
       // every stacked request in a row, including ones never seen.
-      if (e.key === "Escape" && !e.repeat) onResolve({ kind: "deny" });
+      if (e.key !== "Escape" || e.repeat) return;
+      // CC 2.1.318 — an Escape typed (for the composer) just before this
+      // prompt appeared must not deny it unseen.
+      if (isBeforePromptArmed(e.timeStamp, armedAtRef.current)) return;
+      onResolve({ kind: "deny" });
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -163,7 +185,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
                       : "border-amber-500/30 bg-amber-500/10 text-amber-300",
                   )}
                 >
-                  MCP · {request.mcpServer.name} ({request.mcpServer.source})
+                  MCP · {mcpNameVis?.visualized ?? request.mcpServer.name} ({request.mcpServer.source})
                 </span>
               )}
             </div>

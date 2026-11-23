@@ -383,6 +383,8 @@ export function canonicalModelId(raw: string | null | undefined): string | null 
 }
 
 const GEN5_ADVISORS = [
+  "claude-mythos-5-2",
+  "claude-fable-5-2",
   "claude-mythos-5-1",
   "claude-fable-5-1",
   "claude-mythos-5",
@@ -404,13 +406,21 @@ const GEN5_ADVISORS = [
  * Sonnet 4.6, Sonnet 5 and Opus 4.6 executors. Without its rows, a Haiku 5.5
  * advisor was flagged as refused for those executors, and a Haiku 5.5
  * executor's refused pairs (e.g. an Opus 4.6 advisor) went unflagged.
+ *
+ * CC 2.1.321 added Claude Fable 5.2 (and its twin Mythos 5.2) as the default
+ * Fable. The engine catalog gives both `advisor_rank: 10`, above Fable/Mythos
+ * 5.1 (9), so they can advise every executor, and as executors they accept
+ * only each other. Without these rows a Fable 5.2 session's refused advisors
+ * (Opus 5.5, Fable 5.1, …) went unflagged, and a Fable 5.2 advisor was
+ * flagged as refused for every executor.
  */
 const ADVISOR_PAIRS: Record<string, readonly string[]> = (() => {
   const upTo46 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-5-5", "claude-sonnet-5", "claude-haiku-5-5", "claude-sonnet-4-6"];
   const sonnet5 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5", "claude-sonnet-5", "claude-haiku-5-5"];
   const opus47 = [...GEN5_ADVISORS, "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5-5"];
   const gen5 = GEN5_ADVISORS;
-  const gen51 = ["claude-mythos-5-1", "claude-fable-5-1"];
+  const gen51 = ["claude-mythos-5-2", "claude-fable-5-2", "claude-mythos-5-1", "claude-fable-5-1"];
+  const gen52 = ["claude-mythos-5-2", "claude-fable-5-2"];
   return {
     "claude-haiku-4-5": upTo46,
     "claude-sonnet-4-6": upTo46,
@@ -425,6 +435,8 @@ const ADVISOR_PAIRS: Record<string, readonly string[]> = (() => {
     "claude-mythos-5": gen5,
     "claude-fable-5-1": gen51,
     "claude-mythos-5-1": gen51,
+    "claude-fable-5-2": gen52,
+    "claude-mythos-5-2": gen52,
     "claude-sonnet-5-5": [...GEN5_ADVISORS, "claude-sonnet-5-5"],
   };
 })();

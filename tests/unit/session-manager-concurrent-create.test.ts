@@ -73,6 +73,9 @@ class StubSession {
   hasArmedLoops(): boolean {
     return false;
   }
+  hasLiveBackgroundAgents(): boolean {
+    return false;
+  }
   onSubscriberCountChange(): () => void {
     return () => {};
   }

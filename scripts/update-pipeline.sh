@@ -154,6 +154,52 @@ EOF
 
 reap_stalled_pipeline
 
+# ── Self-update: run main's current pipeline code ────────────────────
+# Every script below runs from THIS checkout, and nothing else moves local
+# `main` forward: the orchestrators branch off origin/main and only switch
+# back to local `main` when they finish. So the hourly job kept running
+# whatever was last pulled by hand. On 2026-11-13 local main sat 18 commits
+# behind, and merged pipeline fixes (#365's version rules) would never have
+# run. Fast-forward local main to origin/main first, then re-exec, so the
+# rest of this firing runs the new copy. bash reads a script lazily from
+# disk, so carrying on after the file changed underneath it is unsafe.
+#
+# Best-effort and conservative:
+#   - only when HEAD is `main` and no live run holds the shared lock;
+#   - `--ff-only`, so it never resets, stashes, or creates a merge commit;
+#   - any failure (offline, local commits on main, dirty files the update
+#     touches) logs a WARN and the firing carries on with the current code.
+# The decision itself doesn't depend on this: check.ts / orchestrate.ts read
+# the SDK range from origin/main either way (readMainInstalledRange).
+self_sync_main() {
+  [ -n "${UPDATE_PIPELINE_SYNCED:-}" ] && return 0
+  if [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" != "main" ]; then
+    log "self-sync: HEAD is not main — skipping (running this checkout's code as-is)"
+    return 0
+  fi
+  holder="$(cat "$ROOT/.claudius/run.lock.d/holder.pid" 2>/dev/null || true)"
+  if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+    log "self-sync: a run is live (pid $holder) — skipping"
+    return 0
+  fi
+  if ! git fetch --quiet origin main 2>/dev/null; then
+    log "WARN self-sync: git fetch origin main failed — running the current checkout's code"
+    return 0
+  fi
+  before="$(git rev-parse HEAD)"
+  if ! out="$(git merge --ff-only --quiet origin/main 2>&1)"; then
+    log "WARN self-sync: could not fast-forward main to origin/main — running STALE pipeline code: $(printf '%s' "$out" | tr '\n' ' ' | cut -c1-300)"
+    return 0
+  fi
+  after="$(git rev-parse HEAD)"
+  [ "$before" = "$after" ] && return 0
+  log "self-sync: fast-forwarded main ${before:0:8} → ${after:0:8}; re-executing on the new code"
+  export UPDATE_PIPELINE_SYNCED=1
+  exec "$ROOT/scripts/update-pipeline.sh" "$@"
+}
+
+self_sync_main "$@"
+
 # ── e2e web-server forensics (issue #128) ────────────────────────────
 # The gate's Playwright `next dev` server has now died mid-run twice,
 # each time taking the rest of the suite with it in a connection-refused

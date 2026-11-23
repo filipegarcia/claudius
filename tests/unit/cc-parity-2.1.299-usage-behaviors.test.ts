@@ -172,6 +172,8 @@ describe("usageFlagCopy — CLI 2.1.299 copy, pct Math.round-ed", () => {
     expect(USAGE_BEHAVIOR_COPY.subagent_heavy.headline(15)).toBe("15% of your usage came from subagent-heavy sessions");
     expect(USAGE_BEHAVIOR_COPY.subagent_heavy.body).toContain("spawning them — and consider");
     expect(USAGE_BEHAVIOR_COPY.high_parallel.headline(15)).toBe("15% of your usage was while 4+ sessions ran in parallel");
-    expect(USAGE_BEHAVIOR_COPY.cron.headline(15)).toBe("15% of your usage came from sessions active for 8+ hours");
+    expect(USAGE_BEHAVIOR_COPY.cron.headline(15)).toBe(
+      "15% of your usage came from sessions with requests in 8 or more separate hours",
+    );
   });
 });

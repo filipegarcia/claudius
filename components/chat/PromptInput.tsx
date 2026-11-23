@@ -31,9 +31,19 @@ import {
   computeListContinuation,
   isListLine,
 } from "@/lib/shared/markdown-list";
-import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
+import {
+  invisibleStripNeedsReview,
+  rebaseRangesThroughStrip,
+  stripInvisibleUnicode,
+} from "@/lib/shared/invisible-unicode";
 import { slashTokenBeforeCaret } from "@/lib/shared/slash-commands";
-import { canRestoreClearedDraft, shouldStashClearedDraft } from "@/lib/client/cleared-draft";
+import {
+  canRestoreClearedDraft,
+  ordinalFloorAfterRestore,
+  shouldStashClearedDraft,
+  stashClearedDraft,
+  type ClearedDraft,
+} from "@/lib/client/cleared-draft";
 import { flushPendingDraft, type PendingDraft } from "@/lib/client/pending-draft";
 import {
   mergeIntoDraft,
@@ -51,6 +61,7 @@ import {
   type PasteRange,
 } from "@/lib/shared/large-paste";
 import { describeOversizedImages } from "@/lib/client/image-intake";
+import { isLetterKey } from "@/lib/client/key-match";
 
 type Props = {
   pending: boolean;
@@ -361,8 +372,9 @@ export function PromptInput({
   const stashedDraftRef = useRef("");
   // CC 2.1.288 — the draft (text + pasted images) that Ctrl+C / double-Esc last
   // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
-  // is stashed (a fresh session, or already restored).
-  const clearedDraftRef = useRef<{ text: string; images: AttachedImage[] } | null>(null);
+  // is stashed (a fresh session, or already restored). CC 2.1.326 — paste
+  // ranges ride along so ↑ keeps a restored paste marked as pasted.
+  const clearedDraftRef = useRef<ClearedDraft<AttachedImage> | null>(null);
   // CC 2.1.299 — an undelivered message parked for ↑ because the user had
   // already started a new one (see `restoreUndelivered`). Its own slot, not
   // `clearedDraftRef`: following the hint ("press ↑ in an empty box") often
@@ -579,7 +591,7 @@ export function PromptInput({
         shouldStashClearedDraft(value, images.length) &&
         value !== draftInjection.text
       ) {
-        clearedDraftRef.current = { text: value, images };
+        clearedDraftRef.current = stashClearedDraft(value, images, pasteRangesRef.current);
       }
       setValue(draftInjection.text);
       if (draftInjection.recalled) closePickers();
@@ -979,7 +991,7 @@ export function PromptInput({
   function clearInput() {
     // CC 2.1.288 — stash a non-empty draft so plain ↑ can bring it back.
     if (shouldStashClearedDraft(value, images.length)) {
-      clearedDraftRef.current = { text: value, images };
+      clearedDraftRef.current = stashClearedDraft(value, images, pasteRangesRef.current);
       // CC 2.1.312 — "Fixed agent view restoring input text on the next
       // launch after it was cleared with Ctrl+C just before exiting". A draft
       // restored from the server after a reload isn't "typed"
@@ -1034,13 +1046,29 @@ export function PromptInput({
     // remove zero-width space, word joiner or bidi controls, so a draft of
     // *only* invisible characters would otherwise read as non-empty.
     //
-    // Claude Code 2.1.277 parity: a prompt that needed cleaning is never
-    // forwarded silently-cleaned — the cleaned text is put back in the
-    // composer for review and the user presses Send again to confirm
-    // (steganographic prompt injection hides instructions the user never
-    // saw, so they get to see exactly what will be sent).
-    const { cleaned: strippedValue, removedCount } = stripInvisibleUnicode(value);
-    if (removedCount > 0) {
+    // Claude Code 2.1.277 parity: a prompt that needed cleaning was put back
+    // in the composer for review and the user pressed Send again to confirm.
+    //
+    // CC 2.1.316 parity — "Fixed prompts containing invisible characters
+    // needing a second Enter to send; plain prompts now send cleaned on the
+    // first Enter, and commands still wait for review". Only a prompt that is
+    // empty once cleaned with nothing attached, had a bidi control removed
+    // (it may have reordered what the user saw), or is a `/…` command is
+    // still held; any other prompt (or an image with only invisible text)
+    // goes out cleaned right away with a footer notice saying how many
+    // characters were removed.
+    //
+    // `!` input never reaches this check: it was routed to `submitBash()`
+    // above, which keeps its 2.1.280 strip-and-run. The helper's `!` rule
+    // only catches a `!` command that got here because it didn't start the
+    // raw value — after leading whitespace (` !ls`) or a leading invisible
+    // character (`​!ls`, which cleans to `!ls`, so the next Send routes
+    // it to bash) — holding it lets the user see what it really is first.
+    const { cleaned: strippedValue, removedCount, bidiCount } = stripInvisibleUnicode(value);
+    if (
+      removedCount > 0 &&
+      invisibleStripNeedsReview(strippedValue, bidiCount, { hasAttachments: images.length > 0 })
+    ) {
       setValue(strippedValue);
       onNotice?.(
         `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"} from your prompt — review and press Send again.`,
@@ -1061,8 +1089,13 @@ export function PromptInput({
     // merged spans (CC 2.1.292: overlapping pastes stay one pasted block).
     // Spans get the same bullet conversion as the wire text when that's how
     // they appear in it.
+    // CC 2.1.316 — when characters were stripped, the paste ranges (recorded
+    // against the raw `value`) are carried over to the cleaned text that is
+    // actually sent, so spans and a failed-send restore line up with it.
+    const rawRanges = [...pasteRangesRef.current];
+    const sentRanges = removedCount > 0 ? rebaseRangesThroughStrip(rawRanges, value) : rawRanges;
     const inlinePastes = inlinePastesInText(
-      pastedSpans(pasteRangesRef.current, value).map((span) => {
+      pastedSpans(sentRanges, strippedValue).map((span) => {
         const md = bulletsToMarkdown(span);
         return wire.includes(md.trim()) ? md : span;
       }),
@@ -1071,7 +1104,7 @@ export function PromptInput({
     // Snapshot what's leaving, in the composer's own representation (`•`
     // bullets, `[Image #N]` tokens, paste ranges), so an undelivered send can
     // be put back exactly as typed — `inline_pastes` metadata included.
-    const sent = { sessionId, text: value, images, pasteRanges: [...pasteRangesRef.current] };
+    const sent = { sessionId, text: strippedValue, images, pasteRanges: sentRanges };
     pasteRangesRef.current = [];
     pendingPasteRef.current = null;
     setSendFailed(null);
@@ -1084,10 +1117,19 @@ export function PromptInput({
       });
     } else if (!outcome.ok) {
       // Synchronous refusal — nothing was cleared yet; put the paste ranges
-      // back and just say why.
-      pasteRangesRef.current = sent.pasteRanges;
+      // back and just say why. The composer still holds the raw text, so the
+      // raw (un-rebased) ranges go back.
+      pasteRangesRef.current = rawRanges;
       setSendFailed({ sessionId, text: sendFailedCopy(outcome.error, "restore") });
       return;
+    }
+    // CC 2.1.316 — the prompt left cleaned; say so. Same "hidden" wording as
+    // the paste notice in this footer slot and the hold-for-review toast.
+    if (removedCount > 0) {
+      noteInvisibleStrip(
+        removedCount,
+        `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"} from your prompt`,
+      );
     }
     // Clear right away rather than after the outcome: a fast follow-up
     // keystroke must not land in the message that just left.
@@ -1263,12 +1305,13 @@ export function PromptInput({
   /**
    * Surface the transient "removed N hidden character(s)" footer notice
    * (Claude Code 2.1.280 [VSCode] parity) and auto-dismiss it after a few
-   * seconds. No-op when nothing was actually stripped.
+   * seconds. No-op when nothing was actually stripped. `text` overrides the
+   * default copy (CC 2.1.316: the sent-cleaned prompt's "from your prompt").
    */
-  function noteInvisibleStrip(removedCount: number) {
+  function noteInvisibleStrip(removedCount: number, text?: string) {
     if (removedCount <= 0) return;
     if (invisibleNoticeTimerRef.current != null) clearTimeout(invisibleNoticeTimerRef.current);
-    setInvisibleNotice(`Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"}`);
+    setInvisibleNotice(text ?? `Removed ${removedCount} hidden character${removedCount === 1 ? "" : "s"}`);
     invisibleNoticeTimerRef.current = setTimeout(() => setInvisibleNotice(null), 4000);
   }
 
@@ -1369,7 +1412,8 @@ export function PromptInput({
     // ── Ctrl+C — Claude Code parity ────────────────────────────────────────
     // Only intercept when there is no active text selection (otherwise the
     // user is copying text and we should leave the browser default alone).
-    if (e.ctrlKey && e.key === "c") {
+    // `isLetterKey`: CC 2.1.314 — also fires under non-Latin layouts.
+    if (e.ctrlKey && isLetterKey(e, "c")) {
       const sel = e.currentTarget.selectionStart !== e.currentTarget.selectionEnd;
       if (!sel) {
         e.preventDefault();
@@ -1445,26 +1489,27 @@ export function PromptInput({
       // CC 2.1.299 — an undelivered message parked by `restoreUndelivered`
       // wins over a Ctrl+C-cleared draft: it's what the hint points at.
       const failed = failedSendForThisSession();
-      let d: { text: string; images: AttachedImage[] };
+      let d: ClearedDraft<AttachedImage>;
       if (failed) {
         failedSendRef.current = null;
         d = failed;
         // Like `restoreUndelivered`: the restored message is the user's draft
         // again — a late seed must not clobber it, and it gets re-saved.
         userTypedRef.current = true;
-        // Restore its paste ranges too (see `restoreUndelivered`).
-        pendingPasteRef.current = null;
-        pasteRangesRef.current = failed.pasteRanges;
-        prevValueRef.current = failed.text;
         if (sendFailed) setSendFailed(null);
-        if (failed.images.length > 0) {
-          const maxOrd = failed.images.reduce((m, im) => Math.max(m, im.ordinal), 0);
-          ordinalCounterRef.current = Math.max(ordinalCounterRef.current, maxOrd);
-        }
       } else {
         d = clearedDraftRef.current!;
         clearedDraftRef.current = null;
       }
+      // Restore the paste ranges too (see `restoreUndelivered`) — CC 2.1.326:
+      // a cleared draft's paste used to come back as typed text. Syncing
+      // `prevValueRef` makes the layout effect see no edit and keep them.
+      pendingPasteRef.current = null;
+      pasteRangesRef.current = d.pasteRanges;
+      prevValueRef.current = d.text;
+      // The clear zeroed the ordinal counter; lift it past the restored images
+      // so the next attach doesn't reuse their `#N` (CC 2.1.326).
+      ordinalCounterRef.current = ordinalFloorAfterRestore(ordinalCounterRef.current, d.images);
       setValue(d.text);
       setImages(d.images);
       requestAnimationFrame(() => {

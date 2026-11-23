@@ -72,6 +72,10 @@ export default function SettingsPage() {
   // textarea, nothing to filter).
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<ClaudeSettings>({});
+  // CC 2.1.323 — the settings `draft` was seeded from. Save sends only the
+  // keys that differ from it, merged server-side into a fresh read, so a hand
+  // edit to settings.json made after the page loaded isn't undone.
+  const [baseline, setBaseline] = useState<ClaudeSettings>({});
   const [rawDraft, setRawDraft] = useState<string>("");
   const [rawError, setRawError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -115,6 +119,7 @@ export default function SettingsPage() {
     setLastActiveKey(activeKey);
     if (scopeChanged || forceReseed || !dirty) {
       setDraft(active?.settings ?? {});
+      setBaseline(active?.settings ?? {});
       setRawDraft(JSON.stringify(active?.settings ?? {}, null, 2));
       setRawError(null);
       setDirty(false);
@@ -128,17 +133,29 @@ export default function SettingsPage() {
     try {
       let toWrite = draft;
       if (showRaw) {
+        let parsed: unknown;
         try {
-          toWrite = JSON.parse(rawDraft) as ClaudeSettings;
+          parsed = JSON.parse(rawDraft);
         } catch (err) {
           setRawError(err instanceof Error ? err.message : String(err));
-          setSaving(false);
           return;
         }
+        // The save is a patch of top-level keys against the baseline, so
+        // `null` or an array would be read as "remove every key".
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          setRawError("Settings must be a JSON object");
+          return;
+        }
+        toWrite = parsed as ClaudeSettings;
       }
       // Clearing `dirty` here (rather than letting the post-save refetch
       // do it) is what lets the re-seed guard above protect unsaved edits.
-      if (await settings.save(scope, toWrite)) setDirty(false);
+      // The saved document is the next patch's baseline: the refetch that
+      // would re-seed it is skipped while the user keeps editing.
+      if (await settings.save(scope, toWrite, baseline)) {
+        setBaseline(toWrite);
+        setDirty(false);
+      }
     } finally {
       setSaving(false);
     }
@@ -1021,7 +1038,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     key: "fastMode",
     type: "boolean",
     section: "Model & behavior",
-    desc: "When true, fast mode is enabled. When absent or false, fast mode is off.",
+    desc: "When true, fast mode is enabled. When absent or false, fast mode is off. On Vertex a saved value is ignored: use /fast each session.",
   },
   {
     // CC 2.1.234 — resume automatically once the claude.ai usage limit resets.
@@ -1107,14 +1124,15 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Auto-compact window size",
   },
   {
-    // SDK 0.3.290 — only `false` has an effect: true does not turn idle
-    // compaction on, so the toggle is documented as an opt-out. (0.3.292
-    // re-added it under "Model & behavior"; one row per key — the catalog
-    // keys must stay unique, see settings-catalog-keys.test.ts.)
+    // SDK 0.3.290 — opt-out toggle. SDK 0.3.314 reworded the JSDoc from
+    // "setting it to true does not turn idle compaction on" to "Defaults to
+    // true", so the copy now states the default. (0.3.292 re-added it under
+    // "Model & behavior"; one row per key — the catalog keys must stay
+    // unique, see settings-catalog-keys.test.ts.)
     key: "idleCompaction",
     type: "boolean",
     section: "Context & compaction",
-    desc: "Set to false to stop Claude Code from compacting a long conversation while the session is idle. Setting it to true does not turn idle compaction on.",
+    desc: "Set to false to stop Claude Code from compacting a long conversation while the session is idle. Defaults to true.",
   },
   {
     key: "promptCacheTtl",
@@ -1135,7 +1153,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     type: "number",
     section: "Storage & sessions",
     placeholder: "30",
-    desc: "Number of days to retain chat transcripts before automatic cleanup (default: 30). Minimum 1. Use a large value for long retention; use --no-session-persistence to disable transcript writes entirely.",
+    desc: "Number of days to retain chat transcripts before automatic cleanup (default: 30). Minimum 1. Use a large value for long retention; use --no-session-persistence to disable transcript writes entirely. Cleanup deletes data only on this computer, not anything stored by Anthropic.",
   },
   {
     // SDK 0.3.248 — retention ceiling for transcripts written by a
@@ -1181,12 +1199,12 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
   },
   {
     // SDK 0.3.305 — names the claude.ai Project this session is attributed to
-    // in the organization's usage reports (UUID or `claude_proj_…` ID).
+    // in the organization's usage reports (ID or UUID).
     key: "attributionProject",
     type: "string",
     section: "Git",
     placeholder: "claude_proj_…",
-    desc: "The claude.ai Project this session names for your organization's usage reports: the Project's UUID, or its ID starting with \"claude_proj_\". An empty string names none and stops lower-precedence files from naming one. Only sent when Claude Code uses your claude.ai login and connects directly to the Anthropic API. CLAUDE_CODE_ATTRIBUTION_PROJECT takes precedence.",
+    desc: "The claude.ai Project this session names for your organization's usage reports: the Project's ID, starting with \"claude_proj_\" or \"chan_\", or the UUID of a \"claude_proj_\" Project. An empty string names none and stops lower-precedence files from naming one. Only sent when Claude Code uses your claude.ai login and connects directly to the Anthropic API. CLAUDE_CODE_ATTRIBUTION_PROJECT takes precedence.",
   },
   {
     key: "includeCoAuthoredBy",
@@ -1316,11 +1334,25 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     desc: "Default shell for input-box ! commands. Defaults to 'bash' on all platforms (no Windows auto-flip).",
   },
   {
+    // SDK 0.3.319
+    key: "disableWindowsBashCommandSplit",
+    type: "boolean",
+    section: "Shell",
+    desc: "Windows only. Keep every Bash command in a single argument to bash so endpoint security tools that match text in process command lines see it whole. Otherwise Claude Code may split a long command over several arguments. With true, a command of about 7,000 characters or more (fewer if full of quotes) may reach bash cut short and usually fails with a syntax error.",
+  },
+  {
+    // SDK 0.3.319
+    key: "disableReplyCheck",
+    type: "boolean",
+    section: "Dialogs & messaging",
+    desc: "Disable the reply check in Claude Tag sessions on a self-hosted runner. The check re-prompts Claude (at most four times a turn) when a turn ends without a call to one of Claude Tag's reply tools. It is not a hook, so disableAllHooks does not affect it.",
+  },
+  {
     // SDK 0.3.269
     key: "bashEditDiffEnabled",
     type: "boolean",
     section: "Shell",
-    desc: "Whether the Bash tool shows a diff of the files a Bash command changed (PostToolUse Bash hooks get the changed-file list in tool_response). Set to false to turn that off. Default: on when the Bash tool handles file edits. Only user, flag or policy settings can turn it on outside auto and bypassPermissions modes.",
+    desc: "Whether the Bash tool shows a diff of the files a Bash command changed (PostToolUse Bash hooks get the changed-file list in tool_response). Set to false to turn that off. Default: off, except in auto and bypassPermissions modes when the Bash tool handles file edits or the model's configuration turns it on. Only user, flag or policy settings can turn it on in other modes.",
   },
   {
     // SDK 0.3.261 — config-passthrough only, same reasoning as
@@ -1407,7 +1439,7 @@ const SDK_SETTINGS_CATALOG: SettingMeta[] = [
     // flow, paired with forceLoginGatewayUrl below). sdk.d.ts: the type is
     // 'claudeai' | 'console' | 'gateway'.
     options: ["claudeai", "console", "gateway"],
-    desc: 'Force a specific login method: "claudeai" for Claude Pro/Max, "console" for Console billing, "gateway" for the Cloud gateway OIDC device flow (paired with forceLoginGatewayUrl).',
+    desc: 'Force a specific login method: "claudeai" for a Claude subscription (individual, Team, or Enterprise plans), "console" for Console billing, "gateway" for the Cloud gateway OIDC device flow (paired with forceLoginGatewayUrl).',
   },
   {
     key: "forceLoginGatewayUrl",
@@ -2329,10 +2361,11 @@ function AutoCompactWindowCatalogField({
           <Plus className="h-3 w-3" />
         </button>
       </div>
-      {newWindow.trim() !== "" && autoCompactWindowInputWarning(newWindow) && (
+      {newWindow.trim() !== "" && autoCompactWindowInputWarning(newWindow, { perModel: true }) && (
         <AutoCompactWindowWarning
           testId="auto-compact-window-new-warning"
-          kind={autoCompactWindowInputWarning(newWindow)!}
+          kind={autoCompactWindowInputWarning(newWindow, { perModel: true })!}
+          perModel
         />
       )}
     </div>
@@ -2366,7 +2399,7 @@ function PerModelAutoCompactRow({
   // A non-`auto` string already in settings.json (e.g. a hand-written "200k")
   // isn't a valid window, even though the same text typed here would be.
   const storedInvalid = window !== undefined && typeof window !== "number" && window !== "auto";
-  const typed = autoCompactWindowInputWarning(raw);
+  const typed = autoCompactWindowInputWarning(raw, { perModel: true });
   const warning = storedInvalid && raw === seed ? "ignored" : typed;
   const current = typeof window === "number" || window === "auto" ? window : undefined;
   return (
@@ -2402,6 +2435,7 @@ function PerModelAutoCompactRow({
           testId="auto-compact-window-model-warning"
           kind={warning}
           current={warning === "ignored" ? current : undefined}
+          perModel
         />
       )}
     </li>
@@ -2418,10 +2452,13 @@ function AutoCompactWindowWarning({
   testId,
   kind,
   current,
+  perModel = false,
 }: {
   testId: string;
   kind: "ignored" | "out-of-range";
   current?: number | "auto" | "default";
+  /** Per-model rows have a floor only (SDK 0.3.327: "at least 100000"). */
+  perModel?: boolean;
 }) {
   const stays =
     current === undefined
@@ -2438,19 +2475,29 @@ function AutoCompactWindowWarning({
       {kind === "ignored" ? (
         <>
           Not a token count, so it&apos;s ignored{stays}. Use a number like 200000, 200k or 1M.
-          {isAutoCompactWindowOutOfRange(current) && (
-            <>
-              {" "}
-              That value is outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
-              {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
-            </>
-          )}
+          {isAutoCompactWindowOutOfRange(current, { perModel }) &&
+            (perModel ? (
+              <>
+                {" "}
+                That value is below {AUTO_COMPACT_WINDOW_MIN.toLocaleString()} — the engine may reject it.
+              </>
+            ) : (
+              <>
+                {" "}
+                That value is outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+                {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+              </>
+            ))}
         </>
       ) : (
-        <>
-          Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
-          {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
-        </>
+        perModel ? (
+          <>Below {AUTO_COMPACT_WINDOW_MIN.toLocaleString()} — the engine may reject it.</>
+        ) : (
+          <>
+            Outside {AUTO_COMPACT_WINDOW_MIN.toLocaleString()}–
+            {AUTO_COMPACT_WINDOW_MAX.toLocaleString()} — the engine may reject it.
+          </>
+        )
       )}
     </div>
   );

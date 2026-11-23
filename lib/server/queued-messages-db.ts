@@ -27,6 +27,12 @@ export type QueuedMessageRow = {
   fromSuggestion: boolean;
   fromGoal: boolean;
   createdAtMs: number;
+  /**
+   * CC 2.1.316 parity — still queued when the user hit Stop on a working
+   * turn (migration 026). A replaced Session's `start()` drain leaves a held
+   * head in place; see `holdAll` / `releaseHolds`.
+   */
+  heldByStop: boolean;
 };
 
 type DbRow = {
@@ -39,6 +45,7 @@ type DbRow = {
   from_suggestion: number;
   from_goal: number;
   created_at_ms: number;
+  held_by_stop: number;
 };
 
 function toRow(r: DbRow): QueuedMessageRow {
@@ -61,6 +68,7 @@ function toRow(r: DbRow): QueuedMessageRow {
     fromSuggestion: r.from_suggestion === 1,
     fromGoal: r.from_goal === 1,
     createdAtMs: r.created_at_ms,
+    heldByStop: r.held_by_stop === 1,
   };
 }
 
@@ -73,7 +81,7 @@ export async function listQueue(
   const rows = db
     .prepare<[string], DbRow>(
       `SELECT uuid, session_id, position, text, images_json, slash,
-              from_suggestion, from_goal, created_at_ms
+              from_suggestion, from_goal, created_at_ms, held_by_stop
        FROM queued_messages
        WHERE session_id = ?
        ORDER BY position ASC`,
@@ -136,6 +144,7 @@ export async function enqueueTail(
       from_suggestion: input.fromSuggestion ? 1 : 0,
       from_goal: input.fromGoal ? 1 : 0,
       created_at_ms: createdAtMs,
+      held_by_stop: 0,
     };
   });
   return toRow(tx());
@@ -145,17 +154,22 @@ export async function enqueueTail(
  * Atomically read-and-remove the head item (lowest position) for this session.
  * Returns null if the queue is empty. Used by `flushQueueIfIdle()` on the
  * Session to drain one message per turn.
+ *
+ * CC 2.1.316 parity — `opts.unlessHeld` (the replaced-Session `start()`
+ * drain) also returns null, leaving the queue intact, when the head is held
+ * by a Stop. Checked inside the transaction so it's the row actually popped.
  */
 export async function popHead(
   cwd: string,
   sessionId: string,
+  opts?: { unlessHeld?: boolean },
 ): Promise<QueuedMessageRow | null> {
   const db = await openDb(cwd);
   const tx = db.transaction((): DbRow | null => {
     const row = db
       .prepare<[string], DbRow>(
         `SELECT uuid, session_id, position, text, images_json, slash,
-                from_suggestion, from_goal, created_at_ms
+                from_suggestion, from_goal, created_at_ms, held_by_stop
          FROM queued_messages
          WHERE session_id = ?
          ORDER BY position ASC
@@ -163,6 +177,7 @@ export async function popHead(
       )
       .get(sessionId);
     if (!row) return null;
+    if (opts?.unlessHeld && row.held_by_stop === 1) return null;
     db.prepare(`DELETE FROM queued_messages WHERE uuid = ?`).run(row.uuid);
     return row;
   });
@@ -188,7 +203,7 @@ export async function popByUuid(
     const row = db
       .prepare<[string, string], DbRow>(
         `SELECT uuid, session_id, position, text, images_json, slash,
-                from_suggestion, from_goal, created_at_ms
+                from_suggestion, from_goal, created_at_ms, held_by_stop
          FROM queued_messages
          WHERE session_id = ? AND uuid = ?`,
       )
@@ -302,4 +317,31 @@ export async function moveByUuid(
 export async function clearAll(cwd: string, sessionId: string): Promise<void> {
   const db = await openDb(cwd);
   db.prepare(`DELETE FROM queued_messages WHERE session_id = ?`).run(sessionId);
+}
+
+/**
+ * CC 2.1.316 parity — "Self-hosted runner: Fixed a message sent while Claude
+ * was working being answered after a Stop, once the session's process had
+ * been replaced". Mark every row still queued for this session as held by a
+ * Stop (migration 026). Returns the number of rows marked.
+ */
+export async function holdAll(cwd: string, sessionId: string): Promise<number> {
+  const db = await openDb(cwd);
+  return db
+    .prepare(`UPDATE queued_messages SET held_by_stop = 1 WHERE session_id = ?`)
+    .run(sessionId).changes;
+}
+
+/**
+ * Clear every Stop hold for this session — the queue then drains exactly as
+ * it would in-process. Returns the number of rows released.
+ */
+export async function releaseHolds(cwd: string, sessionId: string): Promise<number> {
+  const db = await openDb(cwd);
+  return db
+    .prepare(
+      `UPDATE queued_messages SET held_by_stop = 0
+       WHERE session_id = ? AND held_by_stop = 1`,
+    )
+    .run(sessionId).changes;
 }

@@ -13,8 +13,9 @@ import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, isLocalFileRef, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
-import { normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
+import { hasPathologicalDollarRuns, normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
 import { preserveLoneBackslashes } from "@/lib/shared/lone-backslash";
+import { keepLiteralAsterisks } from "@/lib/shared/user-asterisks";
 import { CodeBlock } from "./CodeBlock";
 import { ImageLightbox } from "./ImageLightbox";
 import { LazyPreview } from "./LazyPreview";
@@ -453,6 +454,7 @@ export const Markdown = memo(function Markdown({
   breaks,
   allowExecute = true,
   math = false,
+  literalAsterisks = false,
 }: {
   children: string;
   /**
@@ -487,6 +489,13 @@ export const Markdown = memo(function Markdown({
    * keeps its dollars as typed.
    */
   math?: boolean;
+  /**
+   * CC 2.1.326 — keep a `*` between two letters, digits, `/` or `.` as typed
+   * (`2*3*4`, `src/**` + `/*.ts`) instead of reading it as emphasis. For the
+   * user's own prompt (`UserMessage.tsx`, `TranscriptViewer.tsx`); see
+   * `lib/shared/user-asterisks.ts`.
+   */
+  literalAsterisks?: boolean;
 }) {
   // Memoized on `allowExecute` (not recreated every render) so ReactMarkdown
   // sees a stable `components.code` identity across re-renders with the same
@@ -501,19 +510,23 @@ export const Markdown = memo(function Markdown({
   // bubble re-renders on every delta. Past the cap, the parser would overflow
   // the stack (quotes) or stall the tab (lists), so render plain text instead.
   const tooDeep = useMemo(() => isMarkdownTooDeep(children), [children]);
+  // CC 2.1.319 — many unclosed `$$$…` fences make the math parser
+  // super-linear on every streaming delta; render that message without math.
+  const dollarRunsOk = useMemo(() => !math || !hasPathologicalDollarRuns(children), [children, math]);
+  const mathOn = math && dollarRunsOk;
   // CC 2.1.311 — keep a lone `\` in `"\"` / `(\)` / `[\]` visible (CommonMark
   // would read it as an escape). Runs before the math pass, which keeps the
   // doubled backslash as a pair.
   const source = useMemo(() => {
-    const kept = preserveLoneBackslashes(children);
-    return math ? normalizeMathDelimiters(kept) : kept;
-  }, [children, math]);
+    const kept = preserveLoneBackslashes(literalAsterisks ? keepLiteralAsterisks(children) : children);
+    return mathOn ? normalizeMathDelimiters(kept) : kept;
+  }, [children, mathOn, literalAsterisks]);
   const remarkPlugins = useMemo(() => {
     const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [remarkGfm];
     if (breaks) plugins.push(remarkBreaks);
-    if (math) plugins.push(REMARK_MATH);
+    if (mathOn) plugins.push(REMARK_MATH);
     return plugins;
-  }, [breaks, math]);
+  }, [breaks, mathOn]);
   if (tooDeep) {
     return (
       <PlainMarkdownFallback
@@ -526,7 +539,7 @@ export const Markdown = memo(function Markdown({
     <MarkdownErrorBoundary text={children}>
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
-        rehypePlugins={math ? (REHYPE_MATH as unknown as NonNullable<Parameters<typeof ReactMarkdown>[0]["rehypePlugins"]>) : undefined}
+        rehypePlugins={mathOn ? (REHYPE_MATH as unknown as NonNullable<Parameters<typeof ReactMarkdown>[0]["rehypePlugins"]>) : undefined}
         components={componentsForRender}
         urlTransform={chatUrlTransform}
       >

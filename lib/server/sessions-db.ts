@@ -273,6 +273,11 @@ export async function getSessionState(
  * INSERT … ON CONFLICT idiom as `setSessionTitle` so a feature that
  * writes state before the session's first turn (no SDK JSONL yet) still
  * lands a row.
+ *
+ * The read and the write run synchronously on the same handle, with no
+ * await between them, so two merges started together can't both read the
+ * old bag and drop each other's keys (CC 2.1.317: mode switches merge here
+ * fire-and-forget alongside todo overrides).
  */
 export async function mergeSessionState(
   cwd: string,
@@ -281,7 +286,22 @@ export async function mergeSessionState(
 ): Promise<void> {
   const db = await openDb(cwd);
   const now = Date.now();
-  const current = await getSessionState(cwd, id);
+  const row = db
+    .prepare<[string], { state: string | null } | undefined>(
+      "SELECT state FROM sessions WHERE id = ?",
+    )
+    .get(id);
+  let current: Record<string, unknown> = {};
+  if (row?.state) {
+    try {
+      const parsed = JSON.parse(row.state) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        current = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Malformed bag — start over, as `getSessionState` reads it as empty.
+    }
+  }
   const next = JSON.stringify({ ...current, ...patch });
   db.prepare(
     `INSERT INTO sessions(id, cwd, state, created_at, updated_at, last_seen_at)
@@ -335,6 +355,40 @@ export async function retitleIndexedSession(id: string, title: string): Promise<
     }
   }
   return updated;
+}
+
+/**
+ * CC 2.1.314 — "Fixed a rare case where a deleted session could reappear in
+ * the resume list as an almost empty entry". Deleting a session only
+ * unlinked the SDK transcript; its `.claudius.db` row stayed, and
+ * `/api/sessions/all` synthesizes a list entry for every titled DB row the
+ * SDK doesn't return — so a renamed session came back as a title-only stub.
+ *
+ * Same fan-out and safety shape as `retitleIndexedSession`: only the DBs of
+ * workspaces Claudius already knows about (never a caller-supplied path), a
+ * read-only probe first so no DB file is created. Returns rows deleted.
+ */
+export async function deleteIndexedSession(id: string): Promise<number> {
+  if (!id) return 0;
+  const workspaces = await listWorkspaces().catch(() => []);
+  let deleted = 0;
+  const seen = new Set<string>();
+  for (const ws of workspaces) {
+    const root = ws.rootPath;
+    if (!root || seen.has(root)) continue;
+    seen.add(root);
+    const ro = await openDb(root, "readonly").catch(() => null);
+    if (!ro) continue;
+    const hit = ro.prepare("SELECT 1 FROM sessions WHERE id = ?").get(id);
+    if (!hit) continue;
+    try {
+      const db = await openDb(root);
+      deleted += db.prepare("DELETE FROM sessions WHERE id = ?").run(id).changes;
+    } catch {
+      // One workspace's DB failing must not undo deletes already made.
+    }
+  }
+  return deleted;
 }
 
 /** List every indexed session for this cwd, newest activity first. */

@@ -350,7 +350,8 @@ export class SessionManager {
    * every message. This rebuilds it under the SAME id, resumed from its own
    * transcript (the `restartInPlace` path), then closes the old instance's
    * SSE streams so open tabs reconnect to the new one. The new session's
-   * `start()` drains anything left in the persisted queue.
+   * `start()` drains anything left in the persisted queue (CC 2.1.316 —
+   * except rows the user stopped behind, which stay queued).
    *
    * Returns the live session unchanged when it isn't dead, and `gone` when
    * the id isn't live. Concurrent callers share one rebuild. Capped at
@@ -445,6 +446,16 @@ export class SessionManager {
       // stop the loop (CC 2.1.292 parity). Re-checked every window, and
       // only a loop that will still fire counts — see `loop-keepalive.ts`.
       if (s.hasArmedLoops()) {
+        this.scheduleReap(id);
+        return;
+      }
+      // CC 2.1.319 parity — "Fixed /clear killing running commands of
+      // background agents, teammates and workflows that keep running".
+      // `/clear` leaves the old session subscriber-less; reaping it would
+      // end its SDK process and every background agent still working in
+      // it. Re-checked each window; shells don't count, and a hung agent
+      // stops counting after a long silence (`background-agent-keepalive.ts`).
+      if (s.hasLiveBackgroundAgents()) {
         this.scheduleReap(id);
         return;
       }

@@ -33,9 +33,12 @@ const HIDDEN_OR_ANGLE_RE =
 /**
  * Blank-like: any space separator other than the plain space (no-break space,
  * ideographic space, en/em spaces, …), the object replacement character and a
- * handful of format-like symbols, or a leading / trailing space.
+ * handful of format-like symbols, or a leading / trailing space. CC 2.1.321
+ * adds one Bamum letter, U+16910 BAMUM LETTER PHASE-D NGKEURI, which some
+ * fonts draw as blank; the rest of the Bamum blocks stay allowed, as in the
+ * engine's rule.
  */
-const BLANK_LIKE_RE = /(?! )\p{Zs}|[\u{FFFC}\u{1D159}\u{13441}\u{13442}\u{16FE4}]|^ | $/u;
+const BLANK_LIKE_RE = /(?! )\p{Zs}|[\u{FFFC}\u{1D159}\u{13441}\u{13442}\u{16910}\u{16FE4}]|^ | $/u;
 
 /**
  * Mark abuse (the "Zalgo" shapes): a combining mark (or Hangul medial/final

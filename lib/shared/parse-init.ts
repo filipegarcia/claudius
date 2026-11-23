@@ -16,13 +16,48 @@ import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
  * - `message` — display text, author-controlled; render, don't trust.
  * - `path` — present only for a directory/archive entry that failed to load at
  *   all, resolved against the cwd; lets a host pair the error to its own mount.
+ * - `managedLock` — SDK 0.3.325 `managed_lock`: present only when a
+ *   managed-settings `enabledPlugins` entry dropped this directory copy.
+ *   `pluginEnabled` true: the entry turns that plugin on and this copy is not
+ *   accepted as it; false: the entry turns it off, so no directory copy of the
+ *   name may load. `name` / `marketplace` are byte-exact author text — clean
+ *   and bound them before display (see `describeManagedLock`).
  */
+export type PluginManagedLock = {
+  pluginEnabled: boolean;
+  name: string;
+  marketplace?: string;
+};
+
 export type PluginLoadError = {
   plugin: string;
   type: string;
   message: string;
   path?: string;
+  managedLock?: PluginManagedLock;
 };
+
+const MANAGED_LOCK_FIELD_MAX = 120;
+
+/** Strip control + bidi-override characters and bound the length (SDK asks hosts to). */
+function cleanLockText(s: string): string {
+  const cleaned = s.replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "");
+  return cleaned.length > MANAGED_LOCK_FIELD_MAX
+    ? `${cleaned.slice(0, MANAGED_LOCK_FIELD_MAX)}…`
+    : cleaned;
+}
+
+/**
+ * One-line explanation of why a managed-settings `enabledPlugins` entry
+ * dropped a plugin copy (SDK 0.3.325 `managed_lock`).
+ */
+export function describeManagedLock(lock: PluginManagedLock): string {
+  const name = cleanLockText(lock.name);
+  const id = lock.marketplace ? `${name}@${cleanLockText(lock.marketplace)}` : name;
+  return lock.pluginEnabled
+    ? `Managed settings enable ${id}, so this local copy is not accepted as that plugin.`
+    : `Managed settings turn ${id} off, so no local copy of that plugin may load.`;
+}
 
 /**
  * Normalized view of the SDK `system:init` message (SDKSystemMessage with
@@ -114,6 +149,19 @@ function optionalString(v: unknown): string | undefined {
  * throwing — the parser's schema-drift-tolerant contract (see below) applies
  * here too. Absent / non-array input collapses to `[]`.
  */
+function parseManagedLock(v: unknown): PluginManagedLock | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const l = v as Record<string, unknown>;
+  const name = optionalString(l.name);
+  if (typeof l.plugin_enabled !== "boolean" || !name) return undefined;
+  const marketplace = optionalString(l.marketplace);
+  return {
+    pluginEnabled: l.plugin_enabled,
+    name,
+    ...(marketplace ? { marketplace } : {}),
+  };
+}
+
 function pluginErrorArray(v: unknown): PluginLoadError[] {
   if (!Array.isArray(v)) return [];
   const out: PluginLoadError[] = [];
@@ -125,7 +173,14 @@ function pluginErrorArray(v: unknown): PluginLoadError[] {
     const message = optionalString(e.message);
     if (!plugin || !type || !message) continue;
     const path = optionalString(e.path);
-    out.push(path ? { plugin, type, message, path } : { plugin, type, message });
+    const managedLock = parseManagedLock(e.managed_lock);
+    out.push({
+      plugin,
+      type,
+      message,
+      ...(path ? { path } : {}),
+      ...(managedLock ? { managedLock } : {}),
+    });
   }
   return out;
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   readSettings,
+  settingsSaveFailure,
+  updatePermissionRuleList,
   updatePermissions,
   type PermissionRules,
   type SettingsScope,
@@ -14,21 +16,50 @@ const SCOPES: SettingsScope[] = ["user", "project", "local"];
 type Body = {
   scope: SettingsScope;
   cwd?: string;
-  patch: Partial<PermissionRules>;
+  patch?: Partial<PermissionRules>;
+  /**
+   * CC 2.1.323 — add/remove rules on one list, applied to a fresh read so a
+   * rule hand-added to the file since the page loaded survives.
+   */
+  ruleDelta?: { kind: "allow" | "ask" | "deny"; add?: string[]; remove?: string[] };
 };
+
+const RULE_KINDS = ["allow", "ask", "deny"] as const;
+const isStringList = (v: unknown): v is string[] | undefined =>
+  v === undefined || (Array.isArray(v) && v.every((x) => typeof x === "string"));
 
 export async function POST(req: Request) {
   const body = (await req.json()) as Body;
   if (!body?.scope || !SCOPES.includes(body.scope)) {
     return NextResponse.json({ error: "invalid scope" }, { status: 400 });
   }
-  if (!body.patch || typeof body.patch !== "object") {
+  const delta = body.ruleDelta;
+  if (delta !== undefined) {
+    if (
+      !delta ||
+      typeof delta !== "object" ||
+      !RULE_KINDS.includes(delta.kind) ||
+      !isStringList(delta.add) ||
+      !isStringList(delta.remove)
+    ) {
+      return NextResponse.json({ error: "invalid ruleDelta" }, { status: 400 });
+    }
+  } else if (!body.patch || typeof body.patch !== "object") {
     return NextResponse.json({ error: "patch required" }, { status: 400 });
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  const next = await updatePermissions(body.scope, cwd, body.patch);
-  return NextResponse.json({ ok: true, settings: next });
+  // CC 2.1.326 — a rule must never look saved when the file wasn't written:
+  // return a message naming the file instead of a bare 500.
+  try {
+    const next = delta
+      ? await updatePermissionRuleList(body.scope, cwd, delta.kind, { add: delta.add, remove: delta.remove })
+      : await updatePermissions(body.scope, cwd, body.patch as Partial<PermissionRules>);
+    return NextResponse.json({ ok: true, settings: next });
+  } catch (err) {
+    const { status, error } = settingsSaveFailure(body.scope, cwd, err);
+    return NextResponse.json({ error }, { status });
+  }
 }
 
 export async function GET(req: Request) {

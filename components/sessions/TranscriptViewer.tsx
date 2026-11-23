@@ -2,11 +2,14 @@
 
 import { useMemo } from "react";
 import { ChevronRight, Wrench } from "lucide-react";
-import type { SessionMessage } from "@anthropic-ai/claude-agent-sdk";
 import { Markdown } from "@/components/chat/Markdown";
+import { SystemPill } from "@/components/chat/SystemPill";
+import type { SystemEntry } from "@/lib/client/types";
+import type { HistoryMessage } from "@/lib/shared/history-message";
+import { COMPACT_SUMMARY_PREFIX } from "@/lib/shared/user-prompt";
 
 type Props = {
-  messages: SessionMessage[];
+  messages: HistoryMessage[];
   onRewind?: (uuid: string) => void;
   rewinding?: string | null;
 };
@@ -43,21 +46,95 @@ function blocks(content: unknown): Block[] {
   return out;
 }
 
+function plainText(content: unknown): string {
+  return blocks(content)
+    .filter((b) => b.kind === "text")
+    .map((b) => (b as { text: string }).text)
+    .join("");
+}
+
+function isCompactSummary(m: HistoryMessage): boolean {
+  if (m.type !== "user") return false;
+  if (m.isCompactSummary === true) return true;
+  return plainText((m.message as { content?: unknown })?.content).trimStart().startsWith(COMPACT_SUMMARY_PREFIX);
+}
+
+type Row = { kind: "message"; m: HistoryMessage } | { kind: "compaction"; entry: SystemEntry };
+
+/**
+ * The transcript includes the turns before each compaction. Each compaction
+ * becomes one divider, like the chat's: the `compact_boundary` system row
+ * supplies the token stats and the "This session is being continued…"
+ * summary that follows it goes behind "show summary", instead of rendering
+ * as a wall-of-text user bubble.
+ */
+function toRows(messages: readonly HistoryMessage[]): Row[] {
+  const rows: Row[] = [];
+  // Index of a divider still waiting for its summary (the summary is the
+  // next user message after the boundary).
+  let pending: number | null = null;
+  let prev = "";
+  for (const m of messages) {
+    if (m.type === "system" && m.subtype === "compact_boundary") {
+      rows.push({
+        kind: "compaction",
+        entry: {
+          uuid: m.uuid,
+          afterMessageUuid: prev,
+          kind: "compact_boundary",
+          label: "Compacted earlier conversation",
+          ...(m.compactBoundary && { compactStats: m.compactBoundary }),
+        },
+      });
+      pending = rows.length - 1;
+    } else if (isCompactSummary(m)) {
+      const summary = plainText((m.message as { content?: unknown })?.content).trim();
+      const open = pending !== null ? rows[pending] : undefined;
+      if (open?.kind === "compaction") {
+        open.entry = { ...open.entry, compactSummary: summary };
+      } else {
+        // No boundary row (system messages filtered out): the summary alone
+        // still marks the compaction.
+        rows.push({
+          kind: "compaction",
+          entry: {
+            uuid: m.uuid,
+            afterMessageUuid: prev,
+            kind: "compact_boundary",
+            label: "Compacted earlier conversation",
+            compactSummary: summary,
+          },
+        });
+      }
+      pending = null;
+    } else if (m.type === "assistant" || m.type === "user" || m.type === "system") {
+      rows.push({ kind: "message", m });
+      if (m.type !== "system") pending = null;
+    }
+    prev = m.uuid;
+  }
+  return rows;
+}
+
 export function TranscriptViewer({ messages, onRewind, rewinding }: Props) {
-  const display = useMemo(
-    () =>
-      messages.filter((m) => m.type === "assistant" || m.type === "user" || m.type === "system"),
-    [messages],
-  );
+  const rows = useMemo(() => toRows(messages), [messages]);
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
-      {display.map((m) => {
+      {rows.map((row) => {
+        if (row.kind === "compaction") {
+          return (
+            <div key={row.entry.uuid} data-testid="transcript-compaction">
+              <SystemPill entry={row.entry} />
+            </div>
+          );
+        }
+        const m = row.m;
         const inner = (m.message as { content?: unknown }) ?? {};
         const bs = blocks(inner.content);
         if (m.type === "system") {
           return (
             <div key={m.uuid} className="text-[11px] text-[var(--muted)]">
-              <span className="opacity-60">— system —</span>
+              <span className="opacity-60">— {m.subtype ? m.subtype.replace(/_/g, " ") : "system"} —</span>
             </div>
           );
         }
@@ -93,7 +170,7 @@ export function TranscriptViewer({ messages, onRewind, rewinding }: Props) {
                   // reason as `UserMessage.tsx`: this text isn't
                   // model-authored, so the `!`-mode Execute button doesn't
                   // apply.
-                  <Markdown breaks allowExecute={false}>
+                  <Markdown breaks literalAsterisks allowExecute={false}>
                     {userText}
                   </Markdown>
                 )}

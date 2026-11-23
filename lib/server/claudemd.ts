@@ -1,4 +1,4 @@
-import { promises as fs } from "node:fs";
+import { constants as fsConstants, promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { assertWithin } from "./safe-path";
@@ -10,6 +10,13 @@ export type ScopeFile = {
   path: string;
   exists: boolean;
   content: string;
+  /**
+   * Whether a save is expected to succeed: W_OK on the file when it exists,
+   * else on the nearest existing parent directory (writeScope mkdirs the
+   * rest). CC 2.1.326 parity — "Fixed /memory opening a read-only file with
+   * no warning that changes may not save".
+   */
+  writable: boolean;
   /**
    * Set on the "project" scope when this file is AGENTS.md rather than
    * CLAUDE.md — Claude Code 2.1.277 ("Added AGENTS.md support: in a project
@@ -47,26 +54,59 @@ function agentsPathFor(projectCwd: string): string {
   return assertWithin(projectCwd, "AGENTS.md");
 }
 
+/**
+ * W_OK probe for a server-resolved scope path (never user input — callers
+ * pass `pathFor`/`agentsPathFor` output). Walks up to the nearest existing
+ * ancestor when the file doesn't exist yet, since that's the directory the
+ * `mkdir -p` + write in `writeScope` would have to create entries in.
+ */
+async function isWritable(path: string, exists: boolean): Promise<boolean> {
+  let probe = exists ? path : dirname(path);
+  for (;;) {
+    try {
+      await fs.access(probe, fsConstants.W_OK);
+      return true;
+    } catch (err) {
+      const e = err as NodeJS.ErrnoException;
+      if (exists || e.code !== "ENOENT") return false;
+    }
+    const parent = dirname(probe);
+    if (parent === probe) return false;
+    probe = parent;
+  }
+}
+
 export async function readScope(scope: ClaudeMdScope, projectCwd: string): Promise<ScopeFile> {
   const path = pathFor(scope, projectCwd);
   try {
     const content = await fs.readFile(path, "utf8");
-    return { scope, path, exists: true, content };
+    return { scope, path, exists: true, content, writable: await isWritable(path, true) };
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code !== "ENOENT") throw err;
   }
-  if (scope !== "project") return { scope, path, exists: false, content: "" };
+  if (scope !== "project") {
+    return { scope, path, exists: false, content: "", writable: await isWritable(path, false) };
+  }
   // No CLAUDE.md — Claude Code 2.1.277's AGENTS.md fallback. Only the
   // "project" scope is ambiguous this way (user/project-claude/local all
   // have one canonical file); see the ScopeFile.usingAgentsFallback doc.
   const agentsPath = agentsPathFor(projectCwd);
   try {
     const content = await fs.readFile(agentsPath, "utf8");
-    return { scope, path: agentsPath, exists: true, content, usingAgentsFallback: true };
+    return {
+      scope,
+      path: agentsPath,
+      exists: true,
+      content,
+      writable: await isWritable(agentsPath, true),
+      usingAgentsFallback: true,
+    };
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
-    if (e.code === "ENOENT") return { scope, path, exists: false, content: "" };
+    if (e.code === "ENOENT") {
+      return { scope, path, exists: false, content: "", writable: await isWritable(path, false) };
+    }
     throw err;
   }
 }

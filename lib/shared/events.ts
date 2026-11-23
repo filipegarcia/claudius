@@ -221,6 +221,20 @@ export type ModelChangedEvent = {
    * `mode_changed`, broadcast just before this event.
    */
   autoModeOffFor?: string;
+  /**
+   * CC 2.1.316 parity — "Fixed /model <id> not warning when the model isn't
+   * recognized by this version and auto-compact will assume a 200K context
+   * window". Set only on a `chat_command` switch to an id Claudius can't
+   * recognize (see `lib/shared/model-recognition.ts`); carries the engine's
+   * warning (its wording, except "Update Claudius" and the docs URL moved
+   * into the notice's link) for the chat-command model notice.
+   */
+  unrecognizedModelWarning?: string;
+  /**
+   * Server-minted id of that warning (also on the `/model` POST response),
+   * so the client shows each warning at most once across SSE replays.
+   */
+  unrecognizedModelWarningId?: string;
 };
 
 /**
@@ -429,6 +443,13 @@ export type TokenExpiringNudgeEvent = {
   type: "token_expiring_required";
   /** Unix-ms instant the active credential's access token expires. */
   expiresAt: number;
+  /**
+   * CC 2.1.318 — `"sign_in"`: `expiresAt` is when the stored claude.ai
+   * sign-in itself ends (the result's `credential_expires_at`; renewing the
+   * access token doesn't move it), so the fix is signing in again rather than
+   * re-authenticating a profile. Absent = the access-token nudge (CC 2.1.203).
+   */
+  kind?: "sign_in";
 };
 
 /**
@@ -658,14 +679,21 @@ export type AskAnswerSubmission = {
 export function buildAskUpdatedInput(
   questions: AskQuestion[],
   answers: AskAnswer[],
+  opts: { reportUnanswered?: boolean } = {},
 ): {
   questions: AskQuestion[];
   answers: Record<string, string>;
   response?: string;
-  annotations?: Record<string, { preview?: string; notes?: string }>;
+  annotations?: Record<
+    string,
+    { preview?: string; notes?: string; unanswered?: "skipped" | "replied_in_chat" | "dismissed" }
+  >;
 } {
   const answersMap: Record<string, string> = {};
-  const annotations: Record<string, { preview?: string; notes?: string }> = {};
+  const annotations: Record<
+    string,
+    { preview?: string; notes?: string; unanswered?: "skipped" | "replied_in_chat" | "dismissed" }
+  > = {};
 
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
@@ -684,6 +712,14 @@ export function buildAskUpdatedInput(
     const chosen = q.options.find((o) => o.label === a.label);
     if (chosen?.preview) {
       annotations[q.question] = { preview: chosen.preview };
+    }
+    // SDK 0.3.312 — `annotations[q].unanswered`: how a question went
+    // unanswered. Claudius's form submits a blank answer only when the user
+    // left that question empty, i.e. skipped it. Sent only when `system/init`
+    // advertised `ask_user_question_unanswered_v1` (the CLI otherwise ignores
+    // or rejects the key). The model never sees it; `answers[q]` stays "".
+    if (opts.reportUnanswered && value === "") {
+      annotations[q.question] = { ...(annotations[q.question] ?? {}), unanswered: "skipped" };
     }
   }
 

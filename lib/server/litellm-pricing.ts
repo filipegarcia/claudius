@@ -29,6 +29,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import bundledRaw from "./litellm-prices.json";
+import { normalizeDottedModelVersion } from "@/lib/shared/model-id";
 
 /** The pricing fields we read from a LiteLLM model entry (USD per token). */
 export type LiteLlmPricing = {
@@ -296,7 +297,13 @@ export function priceForModel(
   table: PricingTable,
 ): LiteLlmPricing | undefined {
   if (!model) return undefined;
-  const m = model.trim();
+  const raw = model.trim();
+  if (table[raw]) return table[raw];
+  // CC 2.1.314: after the raw exact match (the table has dotted aggregator
+  // keys such as `openrouter/anthropic/claude-opus-4.6`), look the id up in
+  // dashed form so `claude-opus-5.5` finds `claude-opus-5-5` instead of the
+  // longest dashed prefix it contains (`claude-opus-5`).
+  const m = normalizeDottedModelVersion(raw);
   if (table[m]) return table[m];
 
   const slash = m.lastIndexOf("/");

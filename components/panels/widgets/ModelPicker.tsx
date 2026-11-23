@@ -27,6 +27,8 @@ import {
   isCustomAdvisor,
   prettyModelName,
 } from "@/lib/shared/advisor";
+import { findModelEntry } from "@/lib/shared/model-id";
+import { OPUS48_FAST_MIGRATE_HINT, fastModeLabel, opus48FastDeprecationText } from "@/lib/shared/fast-mode";
 
 /**
  * Mirror of `ModelInfo` from `@anthropic-ai/claude-agent-sdk`. We don't
@@ -38,9 +40,9 @@ type ModelInfo = {
   value: string;
   /**
    * Canonical wire model id this row's `value` resolves to (e.g. 'sonnet' →
-   * 'claude-sonnet-5'). Added in SDK 0.3.197 (`sdk.d.ts`); type-only here —
-   * `isCurrent` highlighting below already does exact `value` matching, see
-   * run-notes for 0.3.197.
+   * 'claude-sonnet-5'). Added in SDK 0.3.197 (`sdk.d.ts`). `activeModel` /
+   * `isCurrent` match on `value` first; CC 2.1.316 falls back to this field
+   * for a `[1m]`-tagged current model (see `findModelEntry`).
    */
   resolvedModel?: string;
   displayName: string;
@@ -122,7 +124,20 @@ type Props = {
    * mode.
    */
   fastMode?: boolean;
-  onToggleFast?: (enabled: boolean) => Promise<void> | void;
+  /**
+   * CC 2.1.321 — the SDK-reported fast-mode state (`fast_mode_state === "on"`).
+   * `fastMode` above is only the optimistic record of the last picker toggle
+   * and resets on reload / resume, so fast mode turned on elsewhere (the
+   * `fastMode` setting, a reloaded tab) would otherwise hide the per-row
+   * "Draws from usage credits" note exactly while it applies.
+   */
+  fastModeActive?: boolean;
+  /**
+   * `model` is the active row's canonical id (`resolvedModel ?? value`), so
+   * the host can raise the CC 2.1.316 Opus 4.8 fast-mode deprecation notice
+   * without re-resolving an alias.
+   */
+  onToggleFast?: (enabled: boolean, model?: string) => Promise<void> | void;
   /**
    * Called with the model list once it loads (not on a failed fetch). Lets
    * the host learn per-model capabilities the picker gates rows on — the
@@ -163,6 +178,7 @@ export function ModelPicker({
   ultracode = false,
   onToggleUltracode,
   fastMode = false,
+  fastModeActive = false,
   onToggleFast,
   onModelsLoaded,
   advisorModel = null,
@@ -301,7 +317,14 @@ export function ModelPicker({
   // row stable: when the user picks a different model the optimistic update
   // in `setModel` (use-session) refreshes `currentModel` and the chips
   // re-render to that model's `supportedEffortLevels`.
-  const activeModel = models?.find((m) => m.value === currentModel) ?? null;
+  //
+  // CC 2.1.316 parity — "[VSCode] Fixed the missing Effort slider, Ultracode
+  // switch and model name when the model setting has the [1m] tag, such as
+  // opus[1m]". The engine lists Opus 5.5 as plain `opus`, so an exact match
+  // on `opus[1m]` found nothing and every row gated on `activeModel` (Effort,
+  // Ultracode, Fast, the effort header's model name) vanished.
+  // `findModelEntry` falls back to a `[1m]`-insensitive match.
+  const activeModel = findModelEntry(models, currentModel);
 
   // "More models" — collapsible section that live-probes full versioned
   // model IDs via /api/models/probe. State is lazily fetched the first time
@@ -408,7 +431,9 @@ export function ModelPicker({
             </li>
           )}
           {models.map((m) => {
-            const isCurrent = m.value === currentModel;
+            // CC 2.1.316 — the row `activeModel` resolved to (identity, so
+            // only one row is checked even if two would match loosely).
+            const isCurrent = activeModel !== null && m === activeModel;
             return (
               <li key={m.value}>
                 <button
@@ -459,9 +484,20 @@ export function ModelPicker({
                     {/* Mirror the TUI's `Draws from usage credits` suffix on
                         per-model rows whose accelerated decoding is billed
                         from the usage-credit bucket rather than the standard
-                        pool. Subdued amber to match the `fast` chip above. */}
-                    {m.supportsFastMode && (
-                      <div className="mt-0.5 truncate text-[9px] text-amber-200/80">
+                        pool. Subdued amber to match the `fast` chip above.
+                        CC 2.1.321 parity — "Fixed the 'Draws from usage
+                        credits' note showing after a switch to Fable on
+                        Enterprise seats whose plan includes Fable": the
+                        engine adds it for fast mode only while fast mode is
+                        ON. Fable 5.2 is the first fast-capable Fable, so an
+                        always-on note would now sit on every Fable row,
+                        plan-included seats too. The `fast` chip still shows
+                        the capability. */}
+                    {(fastMode || fastModeActive) && m.supportsFastMode && (
+                      <div
+                        data-testid="model-picker-row-credits"
+                        className="mt-0.5 truncate text-[9px] text-amber-200/80"
+                      >
                         Draws from usage credits
                       </div>
                     )}
@@ -869,6 +905,12 @@ export function ModelPicker({
         if (!onToggleFast || !activeModel?.supportsFastMode) {
           return null;
         }
+        // CC 2.1.316 parity — "Deprecated fast mode for Opus 4.8 as of
+        // October 30, 2026; it will be removed on November 30, 2026…Migrate
+        // to Opus 5.5 to keep the speedup". Resolved through the catalog row
+        // so the `opus` alias (Opus 5.5) never warns; null after removal.
+        const activeId = activeModel.resolvedModel ?? activeModel.value;
+        const deprecation = opus48FastDeprecationText(activeId);
         return (
           <div className="border-t border-[var(--border)]/60 px-3 py-2">
             <button
@@ -876,7 +918,7 @@ export function ModelPicker({
               data-testid="model-picker-fast"
               data-enabled={fastMode ? "1" : "0"}
               aria-pressed={fastMode}
-              onClick={() => onToggleFast(!fastMode)}
+              onClick={() => onToggleFast(!fastMode, activeId)}
               className={cn(
                 "flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left transition",
                 fastMode
@@ -891,15 +933,20 @@ export function ModelPicker({
                 )}
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-medium text-[var(--foreground)]">
-                  Fast mode
+                <span
+                  data-testid="model-picker-fast-label"
+                  className="block text-[11px] font-medium text-[var(--foreground)]"
+                >
+                  {fastModeLabel(activeId)}
                 </span>
                 <span className="block text-[9px] leading-tight text-[var(--muted)]">
-                  Accelerated responses on supported models.
+                  Accelerated responses from the same model.
                 </span>
                 {/* Mirror the TUI's `Draws from usage credits` confirmation
                     line under the Fast-mode toggle. Subdued amber so it reads
-                    as a cost cue rather than a warning. */}
+                    as a cost cue rather than a warning. Kept while the toggle
+                    is off on purpose: it's the heads-up before you turn fast
+                    on (the per-row note above only shows once it's on). */}
                 <span className="mt-0.5 block text-[9px] leading-tight text-amber-200/80">
                   Draws from usage credits.
                 </span>
@@ -918,6 +965,14 @@ export function ModelPicker({
                 />
               </span>
             </button>
+            {deprecation && (
+              <p
+                data-testid="model-picker-fast-deprecation"
+                className="mt-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] leading-snug text-amber-200"
+              >
+                {deprecation}. {OPUS48_FAST_MIGRATE_HINT}
+              </p>
+            )}
           </div>
         );
       })()}

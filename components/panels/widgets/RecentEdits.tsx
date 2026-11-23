@@ -24,7 +24,11 @@ export function RecentEdits({ items, max = 5 }: { items: RecentEdit[]; max?: num
           <li
             key={r.toolUseId}
             className={`flex items-baseline gap-1.5 rounded px-1.5 py-0.5 text-[11px] hover:bg-[var(--panel-2)]/50 ${tone}`}
-            title={notRun ? `${r.filePath} — not run (auto mode's check had no usable answer)` : r.filePath}
+            title={
+              notRun
+                ? `${r.filePath} — ${r.rejected ? "not run · rejected" : "not run (auto mode's check had no usable answer)"}`
+                : r.filePath
+            }
           >
             <FileEdit className="h-3 w-3 shrink-0 opacity-70" />
             <span className="truncate font-mono">{fname}</span>

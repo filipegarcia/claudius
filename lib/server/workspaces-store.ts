@@ -13,7 +13,10 @@ export type Icon = IconLetter | IconImage;
 
 /**
  * Per-workspace defaults that flow into new sessions started in this workspace.
- * Each field is optional; when absent the machine-level setting is used.
+ * Each field is optional; when absent the session falls back to its own
+ * default. For `permissionMode` that's Claudius's explicit "default" mode —
+ * `permissions.defaultMode` in settings.json is not read (CC 2.1.321 parity
+ * note: the workspace page labels this "Not set").
  * Wired through `/api/sessions` (POST) — see the merge that happens there.
  */
 export type WorkspaceDefaults = {
@@ -389,8 +392,9 @@ export async function createWorkspace(input: {
   const id = "wks_" + randomUUID().replace(/-/g, "").slice(0, 12);
   const icon = input.icon ?? defaultLetterIcon(input.name, id);
   // Stamp the workspace-level defaults *under* any caller-supplied ones so an
-  // explicit choice (including the form's "(inherit)" → field omitted) still
-  // wins per-field, while gaps fall back to DEFAULT_WORKSPACE_DEFAULTS. The
+  // explicit choice still wins per-field, while gaps — including the create
+  // form's unset permission mode, labelled "(auto — Claudius default)" — fall
+  // back to DEFAULT_WORKSPACE_DEFAULTS. The
   // resulting object always has at least `permissionMode`, so — unlike before
   // — `defaults` is always present on new workspaces.
   const defaults: WorkspaceDefaults = { ...DEFAULT_WORKSPACE_DEFAULTS, ...(input.defaults ?? {}) };

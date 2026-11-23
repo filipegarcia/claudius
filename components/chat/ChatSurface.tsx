@@ -25,6 +25,7 @@ import { TokenExpiringPanel } from "@/components/chat/TokenExpiringPanel";
 import { FastModeNoticePanel } from "@/components/chat/FastModeNoticePanel";
 import { ModelSwitchNoticePanel } from "@/components/chat/ModelSwitchNoticePanel";
 import { AutoModeOffNoticePanel } from "@/components/chat/AutoModeOffNoticePanel";
+import { ModeChangeRefusedNoticePanel } from "@/components/chat/ModeChangeRefusedNoticePanel";
 import { ModelChatCommandNoticePanel } from "@/components/chat/ModelChatCommandNoticePanel";
 import { AdvisorDisabledNoticePanel } from "@/components/chat/AdvisorDisabledNoticePanel";
 import { ClearedFromBanner } from "@/components/chat/ClearedFromBanner";
@@ -49,6 +50,7 @@ import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
 import { StreamDisconnectedProvider } from "@/lib/client/stream-status-context";
 import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
+import { helpTopic, isGoalClear, isHelpRequest } from "@/lib/shared/slash-help";
 import { SkillsOverlay } from "@/components/overlays/SkillsOverlay";
 import { CostOverlay } from "@/components/overlays/CostOverlay";
 import { DiffOverlay } from "@/components/overlays/DiffOverlay";
@@ -84,6 +86,7 @@ import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { BashViewer } from "@/components/panels/BashViewer";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { BackgroundBash } from "@/lib/client/types";
+import { isLetterKey } from "@/lib/client/key-match";
 
 function todayKey(): string {
   const d = new Date();
@@ -125,6 +128,11 @@ import { useResumeFromSummaryEnabled } from "@/lib/client/useResumeFromSummary";
 import { lastActivityAt, staleResumeOffer } from "@/lib/shared/resume-from-summary";
 import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import { findSlashCommand, isSlashCommandHead, resolveFastCommandArgs, userCommandShadowsBuiltin } from "@/lib/shared/slash-commands";
+import { renameToastText } from "@/lib/shared/rename-warning";
+import { messageSubagentDraft } from "@/lib/client/open-task";
+
+/** Long enough to read the CC 2.1.319 "may not last" rename warning. */
+const WARNING_TOAST_MS = 6000;
 import { OPEN_ADVISOR_PICKER_EVENT, requestOpenModelPicker } from "@/lib/client/model-picker-events";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { parseEffortArgs } from "@/lib/shared/effort-flags";
@@ -253,6 +261,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   const [clearedFromSessionId, setClearedFromSessionId] = useState<string | null>(null);
   const [lastClearedSessionId, setLastClearedSessionId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayKind>(null);
+  // CC 2.1.326 — the command `/help <command>` / `/<command> --help` asked about.
+  const [helpTopicName, setHelpTopicName] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   // Per-session prompt-bar accent (`/color`). Stored keyed by the session it
   // belongs to so the displayed color resets to the theme default the instant
@@ -968,7 +978,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   const [findNonce, setFindNonce] = useState(0);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+      if ((e.metaKey || e.ctrlKey) && isLetterKey(e, "f")) {
         e.preventDefault();
         setSearchOpen(true);
         setFindNonce((n) => n + 1);
@@ -1142,10 +1152,18 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     void refreshSessionsAction();
   }, [stateVersion, refreshSessionsAction]);
 
-  const showToast = useCallback((msg: string) => {
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((msg: string, durationMs = 2200) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2200);
+    // A newer toast owns the timer — an older one's 2.2s must not cut a
+    // longer warning short (CC 2.1.319 rename warning).
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      toastTimerRef.current = null;
+      setToast(null);
+    }, durationMs);
   }, []);
+
 
   const onRewind = useCallback(
     async (messageUuid: string) => {
@@ -1278,6 +1296,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                   worktree: d.worktree ?? null,
                   worktreeError: d.worktreeError,
                 }),
+                // A caveat (couldn't check for uncommitted changes, couldn't
+                // make a worktree) is a warning: give it time to be read.
+                d.worktree?.dirty === null || d.worktreeError ? WARNING_TOAST_MS : undefined,
               );
             })
             .catch(() => showToast("Fork failed"));
@@ -1287,11 +1308,13 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           if (args.trim()) {
             const sid = session.sessionId;
             if (!sid) return true;
-            void fetch("/api/sessions/rename", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sessionId: sid, title: args.trim() }),
-            }).then(() => showToast("Renamed"));
+            // CC 2.1.319 parity — through `renameTitle`, which checks the
+            // response: a failed rename says why instead of "Renamed", and a
+            // rename whose transcript write failed carries the warning.
+            void session.renameTitle(args.trim()).then((r) => {
+              if (!r.ok) showToast(`Rename failed: ${r.error}`, WARNING_TOAST_MS);
+              else showToast(renameToastText(r.warning), r.warning ? WARNING_TOAST_MS : undefined);
+            });
           } else {
             setOverlay("rename");
           }
@@ -1310,6 +1333,19 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             return true;
           }
           const text = args.trim();
+          if (isGoalClear(text)) {
+            // CC 2.1.326 — `/goal clear` (what the goal cards tell users to
+            // type) clears the goal; it used to set the goal to "clear" and
+            // send that word to Claude.
+            if (!session.goal) {
+              showToast("No goal to clear");
+              return true;
+            }
+            void session.clearGoal().then((r) =>
+              r.ok ? showToast("Goal cleared") : showToast(`Couldn't clear goal: ${r.error}`, WARNING_TOAST_MS),
+            );
+            return true;
+          }
           if (text) {
             // `/goal <text>` sets the objective AND starts Claude on it (same
             // as submitting the header goal input) — a goal should "start
@@ -1553,7 +1589,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           return true;
         }
         case "tasks":
-          showToast("Background tasks panel is on the right rail");
+          showToast(
+            "Background tasks panel is on the right rail — finished subagents are under “Earlier in this session”",
+          );
           return true;
         case "skills":
           setOverlay("skills");
@@ -1646,6 +1684,8 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           setOverlay("status");
           return true;
         case "help":
+          // CC 2.1.326 — `/help <command>` opens on that command's usage.
+          setHelpTopicName(helpTopic(args));
           setOverlay("help");
           return true;
         case "release-notes":
@@ -1828,6 +1868,17 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             .filter((b) => b.kind === "text")
             .map((b) => (b as { text: string }).text)
             .join("\n");
+          // CC 2.1.326 — only say "Copied" when something was copied: a reply
+          // with no text (tool calls only) has nothing to copy, and on a
+          // non-secure origin there is no clipboard API at all.
+          if (!text.trim()) {
+            showToast("The last response has no text to copy");
+            return true;
+          }
+          if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+            showToast("Clipboard unavailable — select the text to copy");
+            return true;
+          }
           navigator.clipboard
             .writeText(text)
             .then(() => showToast("Copied last response"))
@@ -1929,6 +1980,15 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           return delivered(session.send(text, undefined, { asSlashCommand: true, reportsFailureInline: true }));
         }
         const cmd = findSlashCommand(head);
+        // CC 2.1.326 — `/clear --help` etc. show usage instead of running.
+        // Only Claudius's own commands: the engine answers `--help` for the
+        // ones it handles (`sdk`, and natives that forward their arguments
+        // to it, like `/fast`), so those are still forwarded.
+        if (cmd && cmd.handler !== "sdk" && !cmd.forwardsArgsToSdk && isHelpRequest(args)) {
+          setHelpTopicName(cmd.name);
+          setOverlay("help");
+          return;
+        }
         if (cmd?.id === "fast") {
           // CC 2.1.299 parity — a bare `/fast` opens the SessionCard's
           // ModelPicker (its fast-mode row). `/fast on|off` etc. still go to
@@ -2178,15 +2238,21 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     async (title: string) => {
       const sid = session.sessionId;
       if (!sid) return;
-      await fetch("/api/sessions/rename", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: sid, title }),
-      });
+      const r = await session.renameTitle(title);
       setOverlay(null);
-      showToast("Renamed");
+      if (!r.ok) showToast(`Rename failed: ${r.error}`, WARNING_TOAST_MS);
+      else showToast(renameToastText(r.warning), r.warning ? WARNING_TOAST_MS : undefined);
     },
-    [session.sessionId, showToast],
+    [session, showToast],
+  );
+  /** RecapBanner's inline title edit — same warning toast as `/rename`. */
+  const onRecapRename = useCallback(
+    async (title: string) => {
+      const r = await session.renameTitle(title);
+      if (r.ok && r.warning) showToast(renameToastText(r.warning), WARNING_TOAST_MS);
+      return r;
+    },
+    [session, showToast],
   );
 
   // Scope the session-picker dropdown to the active workspace. A session
@@ -2480,7 +2546,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               }
               sessionId={session.sessionId}
               title={session.sessionTitle}
-              onRename={session.renameTitle}
+              onRename={onRecapRename}
               openEditNonce={titleEditNonce}
             />
             <GoalBanner
@@ -2587,6 +2653,10 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           notice={session.autoModeOffNotice}
           onDismiss={session.dismissAutoModeOffNotice}
         />
+        <ModeChangeRefusedNoticePanel
+          notice={session.modeChangeRefusedNotice}
+          onDismiss={session.dismissModeChangeRefusedNotice}
+        />
         <SkippedSessionNotice
           sessionId={session.skippedBootSession}
           onOpenAnyway={session.openSkippedBootSession}
@@ -2639,6 +2709,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             toolProgress={session.toolProgress}
             replaying={session.replaying}
             hasMoreAbove={session.hasMoreAbove}
+            catchingUp={session.catchingUp}
             loadingOlder={session.loadingOlder}
             onLoadOlder={session.loadOlder}
             onPickExample={handleSend}
@@ -2718,6 +2789,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               effort: session.effort,
               subscriptionType: session.planUsage?.subscriptionType ?? null,
               resumedTranscriptPath: session.transcriptPath,
+              sessionId: session.sessionId,
               onSwitchToSonnet: () =>
                 session.setModel(OPUS_OVERLOAD_NUDGE_SONNET_TARGET),
               onStepEffortDown: () => session.setEffort("medium"),
@@ -2893,6 +2965,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         scheduledLoops={session.scheduledLoops}
         toolHistory={session.toolHistory}
         onOpenBash={setOpenBash}
+        onMessageTask={(t) => {
+          // CC 2.1.319 — "Earlier in this session" → Message: prefill, don't
+          // send; the model's SendMessage resumes the finished subagent.
+          draftTokenRef.current += 1;
+          setDraftInjection({ token: draftTokenRef.current, text: messageSubagentDraft(t.taskId) });
+        }}
         onCancelScheduledLoop={onCancelScheduledLoop}
         onAddTodos={onAddTodos}
         onClearTodos={session.clearTodos}
@@ -2908,6 +2986,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         ultracode={session.ultracode}
         onChangeUltracode={session.setUltracode}
         fastMode={session.fastMode}
+        fastModeState={session.fastModeState}
         onChangeFast={session.setFast}
         advisorModel={session.advisorModel}
         onChangeAdvisorModel={session.setAdvisorModel}
@@ -2927,7 +3006,11 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           sdkSlashCommands={session.slashCommands}
           sdkSkills={session.skills}
           sessionId={session.sessionId}
-          onClose={() => setOverlay(null)}
+          topic={helpTopicName}
+          onClose={() => {
+            setOverlay(null);
+            setHelpTopicName(null);
+          }}
         />
       )}
       {overlay === "skills" && (

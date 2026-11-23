@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
+import { assertWithin } from "./safe-path";
 
 export type Keybinding = {
   key: string;
@@ -33,8 +34,32 @@ export async function readKeybindings(): Promise<{ path: string; exists: boolean
   }
 }
 
+/** Per-process counter so concurrent saves never share a temp name. */
+let writeSeq = 0;
+
 export async function writeKeybindings(data: KeybindingsFile): Promise<void> {
   const path = keybindingsPath();
-  await fs.mkdir(dirname(path), { recursive: true });
-  await fs.writeFile(path, JSON.stringify(data, null, 2) + "\n", "utf8");
+  const dir = dirname(path);
+  await fs.mkdir(dir, { recursive: true });
+  const body = JSON.stringify(data, null, 2) + "\n";
+  // CC 2.1.319 parity — "Fixed … settings and edited files ending up empty or
+  // cut off when the disk fills during a save". `fs.writeFile` truncates
+  // first, so a failed write left `keybindings.json` empty or cut off. Write a
+  // sibling temp file and rename it into place (as `writeSettings` does);
+  // write through a symlink so a dotfiles link isn't replaced by a file.
+  const st = await fs.lstat(path).catch(() => null);
+  if (st?.isSymbolicLink()) {
+    await fs.writeFile(path, body, "utf8");
+    return;
+  }
+  const tmpPath = assertWithin(dir, `.${basename(path)}.tmp-${process.pid}-${writeSeq++}`);
+  const mode = st ? st.mode & 0o777 : undefined;
+  try {
+    await fs.writeFile(tmpPath, body, "utf8");
+    if (mode !== undefined) await fs.chmod(tmpPath, mode);
+    await fs.rename(tmpPath, path);
+  } catch (err) {
+    await fs.rm(tmpPath, { force: true }).catch(() => {});
+    throw err;
+  }
 }

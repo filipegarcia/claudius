@@ -9,7 +9,13 @@ import { usePermissions, type RuleKind, type Scope } from "@/lib/client/usePermi
 import { useAutoMode } from "@/lib/client/useAutoMode";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import { useRecentDenials } from "@/lib/client/useRecentDenials";
-import { lintBashWildcardRule, lintPermissionRule, lintTrailingGarbageRule, lintWindowsPathParen } from "@/lib/shared/permission-rule-lint";
+import {
+  lintBashEnvWildcardRule,
+  lintBashWildcardRule,
+  lintPermissionRule,
+  lintTrailingGarbageRule,
+  lintWindowsPathParen,
+} from "@/lib/shared/permission-rule-lint";
 import { cn } from "@/lib/utils/cn";
 
 const SCOPES: { id: Scope; label: string; path: string }[] = [
@@ -35,7 +41,16 @@ const SYNTAX_HINTS = [
 ];
 
 export default function PermissionsPage() {
-  const { rules, loading, error, updateRules, updateBlockReadsOutsideWorkingDirectories } = usePermissions();
+  const {
+    rules,
+    loading,
+    error,
+    saveError,
+    updateRules,
+    updateBlockReadsOutsideWorkingDirectories,
+    updateBlockWritesOutsideWorkingDirectories,
+    updateDenyInsteadOfPrompting,
+  } = usePermissions();
   const [scope, setScope] = useState<Scope>("project");
   const [iaScope, setIaScope] = useState<IaScope>("workspace");
   // CC 2.1.246 parity — the "Auto mode" tab only exists in account ("user")
@@ -83,7 +98,7 @@ export default function PermissionsPage() {
     if (!v) return;
     const cur = rules[scope][kind];
     if (cur.includes(v)) return;
-    void updateRules(scope, kind, [...cur, v]);
+    void updateRules(scope, kind, [...cur, v], { add: [v] });
   }
 
   function remove(kind: RuleKind, value: string) {
@@ -92,6 +107,7 @@ export default function PermissionsPage() {
       scope,
       kind,
       cur.filter((r) => r !== value),
+      { remove: [value] },
     );
   }
 
@@ -110,6 +126,19 @@ export default function PermissionsPage() {
           {loading && <span className="ml-3 text-[var(--muted)]">loading…</span>}
         </header>
 
+        {/* CC 2.1.326 — a rule that didn't reach disk is rolled back; say so,
+            and name the settings file, instead of letting it look saved. Out of
+            the scroll area so it's seen wherever the failed edit was made. */}
+        {saveError && (
+          <div
+            role="alert"
+            data-testid="permissions-save-error"
+            className="flex shrink-0 items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 [overflow-wrap:anywhere]">{saveError}</span>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto scroll-thin">
           <div className="mx-auto max-w-4xl px-6 py-6">
             <div className="mb-4 flex items-center gap-2">
@@ -199,6 +228,60 @@ export default function PermissionsPage() {
                       </p>
                     </span>
                   </label>
+                  {/* SDK 0.3.314 — write-side twin
+                      (permissions.blockWritesOutsideWorkingDirectories):
+                      Write/Edit/NotebookEdit outside the working
+                      directories; no allow rule lifts it. */}
+                  <label className="mt-3 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      data-testid="block-writes-outside-working-dirs"
+                      checked={rules[scope].blockWritesOutsideWorkingDirectories}
+                      disabled={loading}
+                      onChange={(e) =>
+                        void updateBlockWritesOutsideWorkingDirectories(scope, e.target.checked)
+                      }
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-medium text-[var(--foreground)]">
+                        Block writes outside working directories
+                      </span>
+                      <p className="mt-0.5 text-[10px] text-[var(--muted)]">
+                        Refuse Write/Edit/NotebookEdit file access outside this session&apos;s
+                        working directories, in every permission mode. No allow rule lifts it.
+                        Enabled in any scope applies everywhere.
+                      </p>
+                    </span>
+                  </label>
+                  {/* CC 2.1.319 parity — permissions.denyInsteadOfPrompting.
+                      Account scope only: the engine reads it from user,
+                      --settings and managed sources, never project/local. */}
+                  {iaScope === "account" && (
+                    <label className="mt-3 flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        data-testid="deny-instead-of-prompting"
+                        checked={rules.user.denyInsteadOfPrompting}
+                        disabled={loading}
+                        onChange={(e) => void updateDenyInsteadOfPrompting(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="font-medium text-[var(--foreground)]">
+                          Deny instead of prompting
+                        </span>
+                        <p className="mt-0.5 text-[10px] text-[var(--muted)]">
+                          A tool call that would wait for your approval is denied and the turn
+                          continues. Permission cards, questions and plan approval stop appearing
+                          and MCP input requests are cancelled; only allow rules, the permission
+                          mode, auto mode and PermissionRequest hooks still let calls through.
+                          Saved in ~/.claude/settings.json, so it also applies to the terminal
+                          CLI.
+                        </p>
+                      </span>
+                    </label>
+                  )}
                 </div>
 
                 <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--panel)]/40 p-3 text-xs">
@@ -465,7 +548,12 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
   // `allow` because a rule matching more than intended is a safety concern
   // only when it widens what auto-runs; over-matching an `ask`/`deny` rule
   // just asks/denies more, which isn't a risk.
-  const draftBashLint = kind === "allow" ? lintBashWildcardRule(draft) : null;
+  // CC 2.1.323 parity: a `*` in a variable's value (`Bash(PORT=* npm run
+  // dev)`) also matches spaces, so the rule approves other commands placed
+  // before the named one. Allow-only, same reasoning as the check below. It
+  // is the wider hole, so it wins over the subcommand-wildcard warning.
+  const draftEnvLint = kind === "allow" ? lintBashEnvWildcardRule(draft) : null;
+  const draftBashLint = kind === "allow" && !draftEnvLint ? lintBashWildcardRule(draft) : null;
   // CC 2.1.260 parity: text after a rule's closing parenthesis never
   // matched anything and was silently ignored — warn instead, same
   // "don't block, the rule still saves as typed" treatment as the two
@@ -487,7 +575,8 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
         )}
         {rules.map((r) => {
           const lint = lintPermissionRule(r);
-          const bashLint = kind === "allow" ? lintBashWildcardRule(r) : null;
+          const envLint = kind === "allow" ? lintBashEnvWildcardRule(r) : null;
+          const bashLint = kind === "allow" && !envLint ? lintBashWildcardRule(r) : null;
           const trailingLint = lintTrailingGarbageRule(r);
           const winLint = lintWindowsPathParen(r);
           return (
@@ -507,6 +596,14 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
                 <span
                   data-testid="permission-rule-bash-wildcard-warning-icon"
                   title={`The wildcard in "${bashLint.command}" sits before a fixed word — it also matches options inserted in between, not just the subcommand you intended`}
+                >
+                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
+                </span>
+              )}
+              {envLint && (
+                <span
+                  data-testid="permission-rule-bash-env-wildcard-warning-icon"
+                  title={`The * in a variable's value also matches spaces — this rule can approve a different command that has "${envLint.command}" later in the line. Use an exact value.`}
                 >
                   <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400" />
                 </span>
@@ -583,6 +680,20 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
               The wildcard in <code className="font-mono">{draftBashLint.command}</code> sits before a
               fixed word — it also matches options inserted in between (e.g. a flag), not just the
               subcommand you intended. The rule will still save as typed.
+            </span>
+          </p>
+        )}
+        {draftEnvLint && (
+          <p
+            data-testid="permission-rule-bash-env-wildcard-warning"
+            className="flex items-start gap-1 text-[10px] text-amber-400"
+          >
+            <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+            <span>
+              <code className="font-mono">{draftEnvLint.rule}</code> has a * in a variable&apos;s value.
+              A * also matches spaces, so this rule can also approve a different command that has{" "}
+              <code className="font-mono">{draftEnvLint.command}</code> later in the line, without a
+              prompt. Give the variable an exact value instead. The rule will still save as typed.
             </span>
           </p>
         )}

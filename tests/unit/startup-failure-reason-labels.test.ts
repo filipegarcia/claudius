@@ -31,6 +31,11 @@ describe("STARTUP_FAILURE_REASON_LABELS", () => {
     "bypass_root",
     "org_config_required_unavailable",
     "org_config_refused",
+    "sandbox_required_unavailable",
+    "initialize_not_first",
+    "config_file_invalid",
+    "managed_settings_not_delivered",
+    "initialize_fields_not_delivered",
   ];
 
   test("covers every reason value the SDK documents", () => {

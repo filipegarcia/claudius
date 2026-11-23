@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readCronNextFireAt } from "@/lib/shared/session-loops";
+import { readCronNextFireAt, readEndedLoopWakeup } from "@/lib/shared/session-loops";
 
 /** SDK 0.3.299 — `CronCreateOutput.nextFireAt` (epoch ms), read defensively. */
 describe("readCronNextFireAt", () => {
@@ -16,5 +16,19 @@ describe("readCronNextFireAt", () => {
     expect(readCronNextFireAt({ nextFireAt: Number.NaN })).toBeUndefined();
     expect(readCronNextFireAt({ nextFireAt: 0 })).toBeUndefined();
     expect(readCronNextFireAt({ nextFireAt: -5 })).toBeUndefined();
+  });
+});
+
+describe("readEndedLoopWakeup", () => {
+  test("is true only for a literal endedLoopWakeup: true", () => {
+    expect(readEndedLoopWakeup({ id: "x", endedLoopWakeup: true })).toBe(true);
+  });
+  test("is false for absent / malformed payloads", () => {
+    expect(readEndedLoopWakeup(undefined)).toBe(false);
+    expect(readEndedLoopWakeup(null)).toBe(false);
+    expect(readEndedLoopWakeup("yes")).toBe(false);
+    expect(readEndedLoopWakeup({ id: "x" })).toBe(false);
+    expect(readEndedLoopWakeup({ endedLoopWakeup: "true" })).toBe(false);
+    expect(readEndedLoopWakeup({ endedLoopWakeup: false })).toBe(false);
   });
 });

@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils/cn";
 import { readableSessionLabel } from "@/components/chat/SessionTabs";
 import { pathSegment } from "@/lib/shared/route-params";
 import { parseSessionQuery, scoreSession } from "@/lib/shared/session-search";
+import {
+  nextOlderSearchCeiling,
+  OLDER_SEARCH_STEP,
+  olderSearchState,
+} from "@/lib/shared/session-search-older";
 import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
 import { matchBinding } from "@/lib/client/shortcuts";
 
@@ -71,6 +76,8 @@ export default function SessionsPage() {
   // (same exact-match rule the server uses for `/api/sessions?workspaceId`),
   // which also keeps the brief pre-resolution window (workspaceRoot == null →
   // unscoped fetch) correct.
+  // CC 2.1.314: a delete that can't be saved says so instead of failing silently.
+  const [actionError, setActionError] = useState<string | null>(null);
   const { sessions, accountsConfigured, loading, error, refresh, remove, hasMore, loadMore } =
     useSessionsHistory({
       dir: workspaceRoot ?? undefined,
@@ -202,6 +209,40 @@ export default function SessionsPage() {
     return scored.map((x) => x.s);
   }, [filter, branchFilter, scopedSessions, contentMatches, searchTranscripts, filterUnread, unreadBySession]);
 
+  // CC 2.1.326 parity — a query with no match among the loaded sessions keeps
+  // loading older pages (up to `olderCeiling` sessions) instead of saying
+  // "No sessions match." while older ones exist. The ceiling only grows from
+  // the "Search older" click; the effect just asks the hook for the next page,
+  // and `loading` gates it so requests never overlap.
+  const [olderCeiling, setOlderCeiling] = useState(OLDER_SEARCH_STEP);
+  // Debounced, so a mid-word typo doesn't fetch older pages on every key.
+  const typedQuery = parseSessionQuery(filter).text.trim();
+  const [settledQuery, setSettledQuery] = useState(typedQuery);
+  useEffect(() => {
+    const t = setTimeout(() => setSettledQuery(typedQuery), 300);
+    return () => clearTimeout(t);
+  }, [typedQuery]);
+  // A new query starts from the default cap again (store-previous-value
+  // pattern, so no effect is needed).
+  const [ceilingQuery, setCeilingQuery] = useState(settledQuery);
+  if (ceilingQuery !== settledQuery) {
+    setCeilingQuery(settledQuery);
+    setOlderCeiling(OLDER_SEARCH_STEP);
+  }
+  const queryPending = typedQuery !== settledQuery;
+  const olderSearch = olderSearchState({
+    query: settledQuery,
+    matchCount: filtered.length,
+    loadedCount: sessions.length,
+    hasMore,
+    loading: loading || (searchTranscripts && contentSearching),
+    failed: error != null,
+    ceiling: olderCeiling,
+  });
+  useEffect(() => {
+    if (olderSearch === "load") loadMore();
+  }, [olderSearch, loadMore]);
+
   // CC 2.1.287/2.1.288 (H1) — the href the row's Link uses, reused by the
   // Enter-opens-best-match handler.
   const sessionHref = (s: { sessionId: string; cwd?: string | null }): string =>
@@ -269,6 +310,11 @@ export default function SessionsPage() {
             <span className="text-[var(--muted)]">searching transcripts…</span>
           )}
           {error && <span className="text-red-400">{error}</span>}
+          {actionError && (
+            <span role="alert" data-testid="sessions-action-error" className="truncate text-red-400" title={actionError}>
+              {actionError}
+            </span>
+          )}
           <div className="flex flex-1 items-center justify-center gap-2 px-3">
             <div className="relative w-full max-w-md">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
@@ -349,9 +395,37 @@ export default function SessionsPage() {
         )}
 
         <div className="flex-1 overflow-y-auto scroll-thin">
-          {filtered.length === 0 && !loading ? (
-            <div className="px-6 py-16 text-center text-sm text-[var(--muted)]">
-              {searchTranscripts && contentSearching ? "Searching transcripts…" : "No sessions match."}
+          {filtered.length === 0 && (!loading || olderSearch === "searching") ? (
+            <div
+              data-testid="sessions-search-status"
+              className="px-6 py-16 text-center text-sm text-[var(--muted)]"
+            >
+              {searchTranscripts && contentSearching ? (
+                "Searching transcripts…"
+              ) : olderSearch === "searching" || olderSearch === "load" || (queryPending && hasMore) ? (
+                "Searching older sessions…"
+              ) : olderSearch === "capped" ? (
+                <div className="flex flex-col items-center gap-3">
+                  <span>
+                    {error != null
+                      ? "Couldn't load older sessions."
+                      : `No matches in the ${sessions.length} most recent session${sessions.length === 1 ? "" : "s"}.`}
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="sessions-search-older"
+                    onClick={() => {
+                      setOlderCeiling((c) => nextOlderSearchCeiling(c, sessions.length));
+                      loadMore();
+                    }}
+                    className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+                  >
+                    {error != null ? "Retry" : "Search older"}
+                  </button>
+                </div>
+              ) : (
+                "No sessions match."
+              )}
             </div>
           ) : (
             <ul className="divide-y divide-[var(--border)]">
@@ -475,7 +549,12 @@ export default function SessionsPage() {
                       <button
                         onClick={() => {
                           if (confirm(`Delete session ${s.sessionId.slice(0, 8)}?`)) {
-                            void remove(s.sessionId, s.cwd);
+                            setActionError(null);
+                            void remove(s.sessionId, s.cwd).then((r) => {
+                              if (!r.ok) {
+                                setActionError(`Delete failed (${s.sessionId.slice(0, 8)}): ${r.error}`);
+                              }
+                            });
                           }
                         }}
                         className={cn(
@@ -492,8 +571,10 @@ export default function SessionsPage() {
               })}
             </ul>
           )}
-          {/* CC 2.1.243 (H9) — load older sessions beyond the first page. */}
-          {hasMore && (
+          {/* CC 2.1.243 (H9) — load older sessions beyond the first page.
+              CC 2.1.326 — hidden while a no-match search is loading older
+              pages itself or offers "Search older", so there's one control. */}
+          {hasMore && olderSearch === "idle" && !(queryPending && filtered.length === 0) && (
             <div className="mt-3 flex justify-center">
               <button
                 type="button"

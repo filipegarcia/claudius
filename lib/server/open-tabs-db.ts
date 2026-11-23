@@ -1,4 +1,5 @@
 import { openDb } from "./db";
+import { listWorkspaces } from "./workspaces-store";
 
 /**
  * Per-cwd open-tab strip.
@@ -196,4 +197,45 @@ export async function setTabLabelMaxWidth(cwd: string, width: number): Promise<v
 function clampLabelWidth(n: number): number {
   if (!Number.isFinite(n)) return TAB_LABEL_DEFAULT;
   return Math.min(TAB_LABEL_MAX, Math.max(TAB_LABEL_MIN, Math.round(n)));
+}
+
+/**
+ * CC 2.1.314 — a deleted session must not come back in the history list.
+ * If it stayed in a saved tab strip, the next chat boot resumed it (the
+ * active tab) and `Session.start` re-indexed it as a live, almost empty
+ * entry. Drop the id from every known workspace's open, pinned and active
+ * tabs. Only workspaces Claudius already knows (never a caller-supplied
+ * path), and a read-only probe first so no DB is created. Returns how many
+ * workspaces changed.
+ */
+export async function removeSessionFromSavedTabs(id: string): Promise<number> {
+  if (!id) return 0;
+  const workspaces = await listWorkspaces().catch(() => []);
+  let changed = 0;
+  const seen = new Set<string>();
+  for (const ws of workspaces) {
+    const root = ws.rootPath;
+    if (!root || seen.has(root)) continue;
+    seen.add(root);
+    try {
+      const [open, pinned, active] = await Promise.all([getOpenTabs(root), getPinnedTabs(root), getActiveTab(root)]);
+      let hit = false;
+      if (open.includes(id)) {
+        await setOpenTabs(root, open.filter((t) => t !== id));
+        hit = true;
+      }
+      if (pinned.includes(id)) {
+        await setPinnedTabs(root, pinned.filter((t) => t !== id));
+        hit = true;
+      }
+      if (active === id) {
+        await setActiveTab(root, null);
+        hit = true;
+      }
+      if (hit) changed++;
+    } catch {
+      // One workspace's DB failing must not stop the others.
+    }
+  }
+  return changed;
 }

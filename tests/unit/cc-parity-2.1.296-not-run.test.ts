@@ -18,7 +18,9 @@ describe("extractToolResult — tool_result_meta automode-unavailable", () => {
   });
 
   test("other non-execution kinds stay ordinary errors", () => {
-    for (const kind of ["automode-blocked", "automode-parsing-error", "user-rejected", "permission-rule", "interrupted"]) {
+    // `user-rejected` left this list in CC 2.1.323 ("Not run · rejected") —
+    // see cc-parity-2.1.323-user-rejected.test.ts.
+    for (const kind of ["automode-blocked", "automode-parsing-error", "permission-rule", "interrupted"]) {
       expect(extractToolResult(content, undefined, [{ id: "tu1", non_execution_kind: kind }])).not.toHaveProperty("notRun");
     }
   });

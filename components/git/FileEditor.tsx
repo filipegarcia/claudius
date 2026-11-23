@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AlertTriangle, Loader2, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { BinaryFilePlaceholder, saveButtonTitle } from "@/components/files/BinaryFilePlaceholder";
+import { isLetterKey } from "@/lib/client/key-match";
 
 type FilePayload = {
   relPath: string;
@@ -669,7 +670,7 @@ export function FileEditor({ wsId, relPath, diff, onSaved, split = false, mode }
    */
   const onRightKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && isLetterKey(e, "s")) {
         e.preventDefault();
         void onSave();
         return;

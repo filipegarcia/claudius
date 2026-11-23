@@ -5,7 +5,6 @@ import { ChevronDown, Loader2, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
 import { useAutoContinueAtUsageLimit } from "@/lib/client/useAutoContinueAtUsageLimit";
-import type { ClaudeSettings } from "@/lib/server/settings";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { AskUserQuestionPrompt } from "./AskUserQuestionPrompt";
@@ -14,6 +13,7 @@ import { SystemPill, type SystemPillLevers } from "./SystemPill";
 import { SpinnerTip } from "./SpinnerTip";
 import type { Tip } from "@/lib/shared/tips";
 import { SplashScreen } from "./SplashScreen";
+import { transcriptPlaceholder } from "@/lib/shared/transcript-placeholder";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
 import { nextPinGate } from "@/lib/client/scroll-gate";
 import { forkableUuid } from "@/lib/shared/forkable-uuid";
@@ -48,6 +48,12 @@ type Props = {
   replaying?: boolean;
   /** True if older history exists above what's currently loaded. */
   hasMoreAbove?: boolean;
+  /**
+   * CC 2.1.316 — an existing session is still replaying its history after a
+   * switch / resume (`session.catchingUp`). An empty transcript then shows
+   * "Catching up…" instead of the new-session splash.
+   */
+  catchingUp?: boolean;
   /** True while a loadOlder() request is in flight. */
   loadingOlder?: boolean;
   /** Fetch the page of messages older than the current head and prepend. */
@@ -142,6 +148,7 @@ export function MessageList({
   toolProgress,
   replaying = false,
   hasMoreAbove = false,
+  catchingUp = false,
   loadingOlder = false,
   onLoadOlder,
   highlightUuid = null,
@@ -163,6 +170,9 @@ export function MessageList({
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
+  // CC 2.1.302 / 2.1.316 — while the session stream is reconnecting, the
+  // "Catching up…" line below must not claim progress (see that branch).
+  const streamDisconnected = useStreamDisconnected();
   const endRef = useRef<HTMLDivElement>(null);
 
   // Last scrollTop we either observed in a scroll event or wrote ourselves.
@@ -212,19 +222,18 @@ export function MessageList({
 
   // CC 2.1.234 — whether the usage-limit panel should say "Continuing
   // automatically at HH:MM". Read once here (shared by every rate-limit bubble)
-  // from the user-scope setting; Cancel disables it (read-merge-write so other
-  // keys are preserved).
+  // from the user-scope setting; Cancel disables it. CC 2.1.323: sent as a
+  // one-key patch the server merges into a fresh read, so other keys (and a
+  // hand edit made meanwhile) are kept and a malformed file is left alone.
   const autoContinueAtUsageLimit = useAutoContinueAtUsageLimit(fileLink?.cwd ?? null);
   const onCancelAutoContinue = useCallback(async () => {
     const cwd = fileLink?.cwd;
     if (!cwd) return;
     try {
-      const r = await fetch(`/api/settings?scope=user&cwd=${encodeURIComponent(cwd)}`);
-      const cur = r.ok ? (((await r.json()) as { settings?: ClaudeSettings }).settings ?? {}) : {};
       await fetch("/api/settings/full", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope: "user", cwd, settings: { ...cur, autoContinueAtUsageLimit: false } }),
+        body: JSON.stringify({ scope: "user", cwd, patch: { set: { autoContinueAtUsageLimit: false }, unset: [] } }),
       });
     } catch {
       // best-effort — leave the setting as-is on a transient failure.
@@ -367,10 +376,13 @@ export function MessageList({
   // the anchor on the first user message of the new session if the two
   // happen to share the same uuid (unlikely, but cheap insurance).
   const isEmpty = messages.length === 0;
-  // Empty transcript with nothing older to fetch → render the splash instead of
-  // the scroll container (see the early return below). Hoisted here so the
-  // scroll/pin effects can depend on it and re-attach when the scroller mounts.
-  const showSplash = isEmpty && !hasMoreAbove;
+  // Empty transcript with nothing older to fetch → render the splash (or, CC
+  // 2.1.316, the "Catching up…" line while a switched-to session replays)
+  // instead of the scroll container (see the early returns below). `showSplash`
+  // means "no scroll container" and is hoisted here so the scroll/pin effects
+  // can depend on it and re-attach when the scroller mounts.
+  const placeholder = transcriptPlaceholder({ isEmpty, hasMoreAbove, catchingUp });
+  const showSplash = placeholder !== "list";
   useLayoutEffect(() => {
     if (isEmpty) {
       lastAnchoredUserUuidRef.current = "";
@@ -531,6 +543,41 @@ export function MessageList({
   // `replaying` here because for a brand-new session replay_done arrives
   // empty (no flash); for a resumed session messages will populate before
   // replay finishes and we'll fall through to the scroll branch.
+  if (placeholder === "catching-up") {
+    // CC 2.1.316 parity — "[Cloud sessions] Added a 'Catching up…' line that
+    // shows while a cloud or Remote Control session you switch back to is
+    // still bringing its messages up to date". The session has history on
+    // its way (resume POST → SSE replay); the new-session splash would make
+    // it look empty. Top-level notices still render under the line. While
+    // the stream is down nothing can be catching up, so it says what the
+    // working row says (CC 2.1.302) instead of claiming progress.
+    const top = grouped.get("") ?? [];
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+        {streamDisconnected ? (
+          <div
+            role="status"
+            data-testid="transcript-catching-up-disconnected"
+            className="flex items-center gap-2 text-sm text-[var(--muted)]"
+          >
+            <WifiOff className="h-3.5 w-3.5 text-amber-300" />
+            Disconnected — reconnecting…
+          </div>
+        ) : (
+          <div role="status" data-testid="transcript-catching-up" className="text-sm text-[var(--muted)]">
+            Catching up…
+          </div>
+        )}
+        {top.length > 0 && (
+          <div className="mt-6 w-full max-w-md text-left">
+            {top.map((e) => (
+              <SystemPill key={e.uuid} entry={e} levers={systemPillLevers} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
   if (showSplash) {
     const top = grouped.get("") ?? [];
     return (

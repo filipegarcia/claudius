@@ -85,6 +85,9 @@ test.describe("What's new", () => {
   test("Got it closes the window", async ({ page }) => {
     await activateClaudiusWorkspace(page);
     await page.goto("/");
+    // Same bind-first wait as the test above: a click before the chat binds its
+    // session can be lost when the page's deferred `?session=` writer re-renders.
+    await expect(page).toHaveURL(/[?&]session=/);
     await page.getByTestId("claudius-version").click();
     await expect(page.getByTestId("whats-new-window")).toBeVisible();
     await page.getByTestId("whats-new-dismiss").click();
