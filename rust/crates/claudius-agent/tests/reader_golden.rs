@@ -7,6 +7,9 @@
 //! `commands_changed`, and the transport's decoding, line splitting, stderr
 //! tail and signal names.
 
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -43,7 +46,7 @@ async fn replay(case: Value) -> (String, Vec<String>) {
     let name = case["name"].as_str().unwrap().to_owned();
     let tmp = tempfile::tempdir().unwrap();
     let opts = Options {
-        path_to_claude_code_executable: Some(PathBuf::from(env!(
+        path_to_claude_code_executable: Some(test_bins::private_copy(env!(
             "CARGO_BIN_EXE_claudius-fake-claude"
         ))),
         cwd: Some(tmp.path().to_path_buf()),

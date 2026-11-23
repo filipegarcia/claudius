@@ -1,18 +1,14 @@
-import { redirectToWorkspaceRoute } from "@/lib/server/redirect-to-workspace";
+import { BareRouteRedirect } from "@/components/nav/WorkspaceRedirects";
 
 /**
  * Bare-path redirect stub. The workspace-scoped page lives under
  * `app/[workspaceId]/cost/`; landing here means the cookie was
- * unreadable when middleware ran (first boot, cleared cookies). The
- * helper resolves the active workspace via the store hint and
- * 307s the browser to the canonical `/<id>/cost` URL, preserving any
- * search params on the way through.
+ * unreadable when the proxy ran (first boot, cleared cookies).
+ * {@link BareRouteRedirect} resolves the active workspace from the store
+ * hint and sends the browser to the canonical `/<id>/cost` URL, keeping
+ * the query. Behind the Rust front door, its rule R2 answers with a 307
+ * instead.
  */
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const sp = await searchParams;
-  await redirectToWorkspaceRoute("/cost", sp);
+export default function Page() {
+  return <BareRouteRedirect />;
 }

@@ -176,7 +176,7 @@ impl World {
 
     fn server(&self, path_var: &str, fake: &std::path::Path) -> Server {
         let port = free_port();
-        let child = Command::new(env!("CARGO_BIN_EXE_claudius"))
+        let child = Command::new(common::server_bin())
             .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
             .arg(fake)
             .current_dir(self.path("servercwd"))

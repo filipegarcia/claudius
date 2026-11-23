@@ -463,7 +463,7 @@ impl Run {
     /// server listens (a free one by default).
     fn spawn(w: World, path: &[String], env: &Map<String, Value>, port: Option<u16>) -> Run {
         let port = port.unwrap_or_else(common::free_port);
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+        let mut cmd = Command::new(common::server_bin());
         cmd.args(["--port", &port.to_string(), "--no-next", "--no-scheduler"])
             .arg("--claude-bin")
             .arg(fake_bin())

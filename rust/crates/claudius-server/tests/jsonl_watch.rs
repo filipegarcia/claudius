@@ -27,7 +27,9 @@ fn external_jsonl_appends_reach_an_open_stream() {
     let id = server.create_session(&world);
     let mut sse = server.open_stream(&id);
     // The live CLI is up (its init is on the stream) before the outside write.
-    read_until(&mut sse, r#""subtype":"init""#, Duration::from_secs(10));
+    // The deadlines here only bound a hang; under a loaded machine the CLI's
+    // spawn and FSEvents both run seconds late (TODO I32).
+    read_until(&mut sse, r#""subtype":"init""#, Duration::from_secs(30));
 
     let line = json!({"type":"user","uuid":"ext-1","parentUuid":null,"sessionId":id,"cwd":project,
         "timestamp":"2026-03-04T05:06:07.000Z","message":{"role":"user","content":"typed in a terminal"}});
@@ -49,7 +51,7 @@ fn external_jsonl_appends_reach_an_open_stream() {
     let got = read_until_nudging(
         &mut sse,
         r#""uuid":"ext-1""#,
-        Duration::from_secs(30),
+        Duration::from_secs(60),
         || append(""),
     );
     let event = got

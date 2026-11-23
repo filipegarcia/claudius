@@ -411,7 +411,7 @@ fn set_mtime(p: &Path, ns: i128) {
 fn spawn(world: &World) -> Server {
     let port = free_port();
     let home = world.path("home");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_claudius"))
+    let mut child = Command::new(common::server_bin())
         .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(fake_bin())
         .current_dir(world.path("project"))

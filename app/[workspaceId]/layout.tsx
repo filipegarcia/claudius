@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
-import { getWorkspace } from "@/lib/server/workspaces-store";
+import { WorkspaceIdGuard } from "@/components/nav/WorkspaceRedirects";
 
 /**
  * Workspace-id validation. The `[workspaceId]` segment exists in the
  * URL but the value could be stale — a bookmark to a deleted
- * workspace, a typo, or a polluted cookie from middleware. We resolve
- * the id against the store and 307 the user to `/` when it doesn't
- * match a real workspace; `app/page.tsx` then redirects to the active
- * (cookie or store-hint) workspace.
+ * workspace, a typo, or a polluted cookie from middleware. The guard
+ * ({@link WorkspaceIdGuard}) checks the id against the workspace list
+ * and sends the user to `/` when it doesn't match a real workspace;
+ * `app/page.tsx` then redirects to the active (cookie or store-hint)
+ * workspace. Behind the Rust front door, its rule R4 answers with a
+ * 307 instead.
  *
  * Without this guard, middleware would write the polluted id back to
  * the cookie on every request, leaving the UI permanently stuck on
@@ -16,25 +17,9 @@ import { getWorkspace } from "@/lib/server/workspaces-store";
  * falls back to a different workspace's data because the cookie's id
  * isn't in the store.
  *
- * No-op when the id is valid — layouts pass children through
- * untouched and the workspace-scoped page renders normally.
- *
- * Types are declared inline rather than via Next 16's generated
- * `LayoutProps<'/[workspaceId]'>` helper because that helper only
- * exists after `next dev` / `next build` has run typegen — typechecks
- * from a clean tree would fail otherwise. The inline shape matches
- * what Next's typegen produces (`{ params: Promise<...>; children:
- * ReactNode }`), so the runtime contract is identical.
+ * A server component that reads nothing, so N04's static build can
+ * add `generateStaticParams` here (a `"use client"` file can't export it).
  */
-export default async function WorkspaceLayout({
-  params,
-  children,
-}: {
-  params: Promise<{ workspaceId: string }>;
-  children: ReactNode;
-}) {
-  const { workspaceId } = await params;
-  const ws = await getWorkspace(workspaceId);
-  if (!ws) redirect("/");
-  return children;
+export default function WorkspaceLayout({ children }: { children: ReactNode }) {
+  return <WorkspaceIdGuard>{children}</WorkspaceIdGuard>;
 }

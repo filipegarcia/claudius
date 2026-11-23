@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, Edit2, FileJson, GitBranch, Play, Trash2 } from "lucide-react";
 import type { SDKSessionInfo, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
@@ -10,12 +10,14 @@ import { TranscriptViewer } from "@/components/sessions/TranscriptViewer";
 import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
 import { cn } from "@/lib/utils/cn";
 import { readableSessionLabel } from "@/components/chat/SessionTabs";
+import { pathSegment } from "@/lib/shared/route-params";
 
 export default function SessionDetailPage() {
-  const params = useParams<{ id: string }>();
+  // `/<workspaceId>/sessions/<id>`: from the pathname, not `useParams()`
+  // (see lib/shared/route-params.ts).
+  const id = pathSegment(usePathname(), 2) ?? "";
   const search = useSearchParams();
   const router = useRouter();
-  const id = params?.id ?? "";
   const dir = search?.get("dir") || undefined;
 
   const { rename, fork, remove } = useSessionsHistory();

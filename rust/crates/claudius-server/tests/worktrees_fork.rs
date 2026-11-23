@@ -348,7 +348,7 @@ impl Replay {
     fn server(&mut self) -> u16 {
         if self.server.is_none() {
             let port = free_port();
-            let child = Command::new(env!("CARGO_BIN_EXE_claudius"))
+            let child = Command::new(common::server_bin())
                 .args(["--port", &port.to_string(), "--no-next"])
                 .current_dir(self.abs("servercwd"))
                 .env_clear()

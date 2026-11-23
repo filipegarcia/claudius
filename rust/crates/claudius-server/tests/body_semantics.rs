@@ -2,6 +2,9 @@
 //! fails on an empty / malformed / `null` body exactly like its TS handler
 //! (see `src/body.rs` for the mapping).
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -20,21 +23,7 @@ use serde_json::{Value, json};
 type HttpClient = Client<HttpConnector, Full<Bytes>>;
 
 fn fake_bin() -> PathBuf {
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-    let st = std::process::Command::new(cargo)
-        .args([
-            "build",
-            "-q",
-            "-p",
-            "claudius-agent",
-            "--bin",
-            "claudius-fake-claude",
-        ])
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .status()
-        .unwrap();
-    assert!(st.success());
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/claudius-fake-claude")
+    test_bins::fake_claude()
 }
 
 struct Resp {

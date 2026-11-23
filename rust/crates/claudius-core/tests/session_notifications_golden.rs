@@ -14,6 +14,9 @@
 //! are compared as the recorder wrote them: ids as `$N<k>` / `$R<k>` in order
 //! of first appearance, times as `"$T"`.
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
@@ -59,22 +62,7 @@ fn env() -> &'static Env {
         .unwrap();
         assert!(paths::set_home_override(home));
         assert!(paths::set_config_dir_override(root.join("config")));
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
-        let fake = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../target/debug/claudius-fake-claude");
+        let fake = test_bins::fake_claude();
         Env {
             root,
             fake,

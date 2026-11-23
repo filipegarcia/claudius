@@ -1,6 +1,9 @@
 //! Session-level behaviour against the scripted fake CLI
 //! (`claudius-agent/src/bin/fake_claude.rs`).
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -31,22 +34,7 @@ fn env() -> &'static Env {
         std::fs::create_dir_all(&config).unwrap();
         assert!(paths::set_home_override(home));
         assert!(paths::set_config_dir_override(config.clone()));
-        let target = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../target/debug/claudius-fake-claude");
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
+        let target = test_bins::fake_claude();
         Env {
             _root: root,
             fake: target,
@@ -117,18 +105,38 @@ impl Fixture {
     }
 }
 
+/// How long [`next`] waits for one event, and the cap on every other wait
+/// here that only bounds a hang (the polling loops, `eventually`, the
+/// spawned-call timeouts; the "nothing happens within N ms" checks keep their
+/// own short windows). It only bounds a hang: an idle
+/// machine sees each event within milliseconds. Under load it doesn't (TODO
+/// I32). At 10 s, four loaded gate runs on 2026-11-22/23 (load average
+/// 12–15) each failed one test: the fake CLI's spawn and turns were slow
+/// (`a_dangerous_rm_in_bypass_mode_is_denied_at_once`,
+/// `a_new_turn_cancels_the_recap_and_a_running_one_refuses_it`), or a
+/// transcript-watch event was late (`a_clear_bounces_older_transcript_writes`).
+/// The watch tests wait on FSEvents, which fseventsd delivers seconds late
+/// under heavy file churn elsewhere (parallel cargo builds, an e2e run): one
+/// alone took 12–22 s, and four copies of this binary at once ~550 s each.
+const EVENT_DEADLINE: Duration = Duration::from_secs(60);
+
+/// The next event, or a panic after [`EVENT_DEADLINE`].
 async fn next(sub: &mut Subscription) -> Value {
-    tokio::time::timeout(Duration::from_secs(10), sub.recv())
+    tokio::time::timeout(EVENT_DEADLINE, sub.recv())
         .await
         .expect("event timeout")
         .expect("stream closed")
 }
 
-/// Read until `pred` matches; returns everything seen (inclusive).
+/// Read until `pred` matches; returns everything seen (inclusive). A timeout
+/// names what came instead (TODO I35: a rare hang under load).
 async fn until(sub: &mut Subscription, pred: impl Fn(&Value) -> bool) -> Vec<Value> {
     let mut seen = vec![];
     loop {
-        let ev = next(sub).await;
+        let Ok(ev) = tokio::time::timeout(EVENT_DEADLINE, sub.recv()).await else {
+            panic!("event timeout; seen before it:\n{}", brief(&seen));
+        };
+        let ev = ev.expect("stream closed");
         let done = pred(&ev);
         seen.push(ev);
         if done {
@@ -145,6 +153,14 @@ fn assistant_text(e: &Value) -> Option<&str> {
     (e["type"] == "sdk" && e["message"]["type"] == "assistant")
         .then(|| e["message"]["message"]["content"][0]["text"].as_str())
         .flatten()
+}
+
+/// One line per event, each cut to 300 chars, for a failure message.
+fn brief(evs: &[Value]) -> String {
+    evs.iter()
+        .map(|e| e.to_string().chars().take(300).collect::<String>())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn types(evs: &[Value]) -> Vec<String> {
@@ -593,7 +609,7 @@ async fn legacy_and_foreign_titles_reach_live_sessions() {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
     };
-    tokio::time::timeout(Duration::from_secs(10), upserted)
+    tokio::time::timeout(EVENT_DEADLINE, upserted)
         .await
         .expect("the moved title is upserted");
     assert_eq!(row(fresh_id).0.as_deref(), Some("Renamed elsewhere"));
@@ -1021,6 +1037,16 @@ fn tool_use(id: &str, name: &str, input: Value) -> Value {
 
 /// Send `text` and wait for the turn to settle.
 async fn turn(s: &Session, sub: &mut Subscription, text: &str) -> Vec<Value> {
+    // A session whose CLI already ended takes no input and says nothing, so
+    // the wait below would only time out (TODO I35). Show why it ended.
+    if s.is_done() {
+        let mut late = s.subscribe(None, None);
+        let head = until(&mut late, is("tips")).await;
+        panic!(
+            "the session ended before {text:?}; its replay:\n{}",
+            brief(&head)
+        );
+    }
     s.send_input(text, &[], SendOptions::default());
     let mut evs = until(sub, |e| {
         e["type"] == "turn_status" && e["status"] == "running"
@@ -2649,9 +2675,10 @@ async fn resumed_loops_keep_their_arming_time() {
     f.mgr.remove(&id).await;
 }
 
-/// Polls `cond` every 20 ms until it holds; panics after `secs`.
+/// Polls `cond` every 20 ms until it holds; panics after `secs`, or after
+/// [`EVENT_DEADLINE`] if that is longer (the bound is only for a hang).
 async fn eventually(secs: u64, what: &str, cond: impl Fn() -> bool) {
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(secs);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(secs).max(EVENT_DEADLINE);
     while !cond() {
         assert!(tokio::time::Instant::now() < deadline, "timed out: {what}");
         tokio::time::sleep(Duration::from_millis(20)).await;
@@ -2745,7 +2772,7 @@ async fn a_recap_reaches_every_tab_once_per_window() {
         );
     }
 
-    turn(&s, &mut sub, "hello").await;
+    let hello = turn(&s, &mut sub, "hello").await;
     let before = claudius_core::now_ms();
     s.request_recap("manual").await;
     for tab in [&mut sub, &mut other] {
@@ -2769,7 +2796,8 @@ async fn a_recap_reaches_every_tab_once_per_window() {
         .expect("the recap prompt");
     assert!(
         prompt.contains("ASSISTANT: echo:hello\n</recent_transcript>"),
-        "{prompt}"
+        "{prompt}\nthe turn's events:\n{}",
+        brief(&hello)
     );
 
     // A second tab coming back within the window.
@@ -2807,7 +2835,7 @@ async fn a_new_turn_cancels_the_recap_and_a_running_one_refuses_it() {
     };
     tokio::time::sleep(Duration::from_millis(400)).await;
     let evs = turn(&s, &mut sub, "again").await;
-    tokio::time::timeout(Duration::from_secs(5), recap)
+    tokio::time::timeout(EVENT_DEADLINE, recap)
         .await
         .expect("the cancelled recap returns")
         .unwrap();
@@ -3159,7 +3187,8 @@ fn seeds(f: &Fixture) -> Vec<(String, i64)> {
 /// Wait until `n` seeds have arrived, then a little longer to see that no
 /// more follow.
 async fn settled_seeds(f: &Fixture, n: usize) -> Vec<(String, i64)> {
-    for _ in 0..250 {
+    let deadline = tokio::time::Instant::now() + EVENT_DEADLINE;
+    while tokio::time::Instant::now() < deadline {
         if seeds(f).len() >= n {
             break;
         }
@@ -3315,7 +3344,8 @@ async fn replayed_errors(s: &Arc<Session>) -> Vec<String> {
 /// Wait until the live session for `id` replays an error containing
 /// `needle`, and return it.
 async fn live_with_error(f: &Fixture, id: &str, needle: &str) -> Arc<Session> {
-    for _ in 0..300 {
+    let deadline = tokio::time::Instant::now() + EVENT_DEADLINE;
+    while tokio::time::Instant::now() < deadline {
         if let Some(s) = f.mgr.get(id)
             && replayed_errors(&s).await.iter().any(|m| m.contains(needle))
         {
@@ -4023,7 +4053,8 @@ async fn a_credits_rejected_notice_turns_fast_mode_off() {
 
     turn(&s, &mut sub, "credits are gone").await;
     // The notice's `setFast(false)` runs off the consume loop, so wait for it.
-    for _ in 0..200 {
+    let deadline = tokio::time::Instant::now() + EVENT_DEADLINE;
+    while tokio::time::Instant::now() < deadline {
         if flags().len() > 1 {
             break;
         }
@@ -4234,7 +4265,7 @@ async fn rename_tells_the_engine_and_keeps_the_pending_mirror() {
     s.rename("New name").await.unwrap();
     let took = t0.elapsed();
     assert!(
-        took >= Duration::from_secs(5) && took < Duration::from_secs(30),
+        took >= Duration::from_secs(5) && took < EVENT_DEADLINE,
         "{took:?}"
     );
     assert_eq!(rename_requests(&f).len(), 1);
@@ -4334,7 +4365,8 @@ async fn a_turn_boundary_flushes_the_pending_title_mirror() {
     let file = write_transcript(&f.cwd(), &s.id);
     s.send_input("hello again", &[], SendOptions::default());
     until(&mut sub, |e| e["message"]["type"] == "result").await;
-    for _ in 0..200 {
+    let deadline = tokio::time::Instant::now() + EVENT_DEADLINE;
+    while tokio::time::Instant::now() < deadline {
         if s.pending_title_mirror().is_none() {
             break;
         }

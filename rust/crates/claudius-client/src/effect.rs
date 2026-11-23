@@ -7,6 +7,21 @@
 //! same id: [`ChatState::fetch_settled`](crate::state::ChatState::fetch_settled)
 //! for a fetch, [`ChatState::timer_fired`](crate::state::ChatState::timer_fired)
 //! for a timer. Effects come back in the order the hook makes the calls.
+//!
+//! **Promise outcomes.** Most actions change state and nothing else, so
+//! the caller reads the result off the state. A few hand their caller a
+//! value instead (`jumpToUuid`'s uuid, `send`'s `SendResult`,
+//! `moveToActiveAccount`'s `{ ok, error }`): each of those ends with one
+//! [`Effect::ActionResolved`], carrying the promise's value as the TS
+//! builds it (snapshot JSON: a nested `undefined` is left out). It comes in
+//! the same effect list as the work that settles it: the action's own
+//! return for an early `return`, else the `fetch_settled` of the reply the
+//! TS awaited last. [`Action`] names the call, with the argument that tells
+//! two calls apart where the action has one (a jump's target, a todo item's
+//! or a queued row's id); calls of one action that are both in flight
+//! resolve in the order their fetches settle. An action whose promise is `void`
+//! (`cancelQueued`, `interrupt`, ...) emits none, and one that rejects
+//! with nothing catching it emits [`Effect::UnhandledRejection`] instead.
 
 use serde_json::Value;
 
@@ -87,4 +102,44 @@ pub enum Effect {
     /// browser's "Uncaught (in promise)" (`resolvePermission`'s POST when
     /// the fetch itself fails). `error` is the rejection's text.
     UnhandledRejection { error: String },
+    /// `console.warn(...)`, as the recorder prints it (the arguments joined
+    /// by a space, an `Error` as `<name>: <message>`): a todo action's
+    /// failure (U01g).
+    ConsoleWarn { text: String },
+    /// A promise-valued action's promise resolved with `outcome` (see the
+    /// module docs).
+    ActionResolved { action: Action, outcome: Value },
+}
+
+/// The action an [`Effect::ActionResolved`] settles, and its outcome's
+/// shape.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Action {
+    /// `updateTodoItem(itemId, action)` (U01g): `{ ok: true }`, or `{ ok:
+    /// false, error }` with the `error` as the hook built it (the server's
+    /// `error` as sent, `HTTP <status>`, or the thrown message).
+    UpdateTodoItem { item_id: String },
+    /// `jumpToUuid(target)` (U01h): the primary uuid of the bubble holding
+    /// `target` (its own uuid or a folded SDK uuid), or `null` once the top
+    /// of the history is reached without it.
+    JumpToUuid { target: String },
+    /// `moveToActiveAccount()` (U01n): `{ ok: true }` or `{ ok: false,
+    /// error }`.
+    MoveToActiveAccount,
+    /// `send(...)` (U01j): `SendResult`, `{ ok: true }` or `{ ok: false,
+    /// error }`.
+    Send,
+    /// `enqueue(...)` (U01j): `SendResult`.
+    Enqueue,
+    /// `editQueued(qid)` (U01j): `{ text, images? }`, or `null`.
+    EditQueued { qid: String },
+    /// `renameTitle(title)` (U01j): `{ ok: true }` or `{ ok: false, error }`.
+    RenameTitle,
+    /// `setGoal(text)` (U01j): `{ ok: true }` or `{ ok: false, error }`.
+    SetGoal,
+    /// `clearGoal()` (U01j). `setGoal` with a blank text clears through
+    /// the same POST, and resolves as `SetGoal`.
+    ClearGoal,
+    /// `submitFeedback(input)` (U01j): `{ ok, stored, forwarded, reason? }`.
+    SubmitFeedback,
 }

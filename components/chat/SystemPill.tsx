@@ -17,9 +17,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { SystemEntry } from "@/lib/client/types";
 import { splitCompactSummaryTools } from "@/lib/shared/compact-summary-tools";
+import { workspaceIdFromPathname } from "@/lib/shared/route-params";
 import { formatMessageTime } from "@/lib/client/format-message-time";
 import { useClockOptionsContext } from "@/lib/client/clock-options-context";
 import {
@@ -490,7 +491,7 @@ function RateLimitPill({
   // exists at any time, so we're not running runaway timers in hidden
   // pills.
   const countdown = useCountdownSeconds(liveReset);
-  const params = useParams<{ workspaceId?: string }>();
+  const workspaceId = workspaceIdFromPathname(usePathname());
   const { value: warningThresholdPct } = useRateLimitWarningPct();
 
   // Gate non-rejected pills on the user's chosen threshold. The pill
@@ -559,10 +560,11 @@ function RateLimitPill({
   // (the browser already knows where the user is).
   const resetClock = liveReset ? formatResetClock(liveReset) : null;
 
-  // Workspace-aware deep link. SystemPill is rendered inside the chat,
-  // which always lives at /[workspaceId]/..., so useParams gives us the
-  // active workspace id without having to thread it through props.
-  const costHref = params?.workspaceId ? `/${params.workspaceId}/cost` : "/cost";
+  // Workspace-aware deep link. SystemPill is rendered inside the chat, at
+  // /[workspaceId]/... (or /customize/<id>/chat, which has no workspace), so
+  // the pathname gives us the workspace id without threading it through
+  // props. Not `useParams()`: see lib/shared/route-params.ts.
+  const costHref = workspaceId ? `/${workspaceId}/cost` : "/cost";
 
   // Soft-warning remediation chips. The CLI pairs "Approaching <limit>" with
   // one-line hints — "try /model sonnet" when the active model is Opus

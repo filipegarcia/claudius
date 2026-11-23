@@ -398,7 +398,7 @@ fn fnv64(s: &str) -> String {
 
 fn spawn(replay: &Replay, install_root: Option<&str>, base: &str) -> Server {
     let port = common::free_port();
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+    let mut cmd = Command::new(common::server_bin());
     cmd.args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(common::fake_bin())
         .current_dir(replay.p("servercwd"))

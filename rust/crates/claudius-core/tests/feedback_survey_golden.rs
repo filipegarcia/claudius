@@ -13,6 +13,9 @@
 //!   query: the result and the `submit_feedback` request on the wire, byte
 //!   for byte (the request id as `$ID`).
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI64, AtomicU64, AtomicUsize, Ordering};
@@ -54,24 +57,9 @@ fn world() -> &'static World {
         std::fs::create_dir_all(&project).unwrap();
         assert!(paths::set_home_override(home.clone()));
         assert!(paths::set_config_dir_override(root.path().join("config")));
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
         World {
             project: project.canonicalize().unwrap().display().to_string(),
-            fake: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../target/debug/claudius-fake-claude"),
+            fake: test_bins::fake_claude(),
             home,
             _root: root,
         }

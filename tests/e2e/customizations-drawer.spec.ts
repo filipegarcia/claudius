@@ -17,9 +17,12 @@ import { test, expect, type Page } from "../helpers/test";
  * `POST /api/customizations/<id>/select`.
  */
 
+// The id has a real workspace id's shape (`wks_` + 12 hex): with Next alone,
+// `/` now resolves in the browser from this stubbed list (N03b), and the chat
+// only writes `?session=` on a `/wks_<hex>` path.
 const FIXTURE_WORKSPACES = [
   {
-    id: "wks_fixture_project",
+    id: "wks_f1f1f1f1f1f1",
     name: "fixture-project",
     rootPath: "/tmp/fixture-project",
     icon: { kind: "letter" as const, letter: "F", color: "#5588dd" },
@@ -131,7 +134,7 @@ async function mountFixtureWorkspaces(page: Page): Promise<void> {
   // this test, so hitting the real backend returns a slow 404 — slow enough
   // to widen the boot/click race the test depends on. Stub with a matching
   // synthetic record so the hook resolves immediately.
-  await page.route("**/api/workspaces/wks_fixture_*", async (route) => {
+  await page.route("**/api/workspaces/wks_f1f1f1f1f1f1", async (route) => {
     if (route.request().method() !== "GET") return route.fallback();
     const url = new URL(route.request().url());
     const id = url.pathname.split("/").pop()!;

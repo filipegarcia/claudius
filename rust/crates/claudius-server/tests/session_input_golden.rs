@@ -15,6 +15,9 @@
 //! window for every recorded `CLAUDIUS_SESSION_IDLE_REAP_MS` and
 //! `lastRecordedPermissionMode` over the recorded transcripts.
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -47,21 +50,7 @@ fn fixture() -> Value {
 }
 
 fn fake_bin() -> PathBuf {
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-    let st = std::process::Command::new(cargo)
-        .args([
-            "build",
-            "-q",
-            "-p",
-            "claudius-agent",
-            "--bin",
-            "claudius-fake-claude",
-        ])
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .status()
-        .unwrap();
-    assert!(st.success());
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/claudius-fake-claude")
+    test_bins::fake_claude()
 }
 
 /// The recorder's normalization.

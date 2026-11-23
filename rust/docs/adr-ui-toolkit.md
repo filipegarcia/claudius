@@ -125,7 +125,7 @@ Nothing was copied from them. The non-permissive licenses in the tree:
 
 - MPL-2.0: `option-ext`, linked (file-level copyleft; fine to ship unmodified).
 - MPL-2.0: `cbindgen`, a build tool only.
-- OFL-1.1: the KaTeX fonts.
+- OFL-1.1: the KaTeX fonts, and Geist / Geist Mono (vercel/geist-font 1.8.0, bundled by `claudius-gpui-theme`, U03c). ISC (with Feather's MIT notice): the 5 lucide-react 1.14 drawings `claudius-gpui-theme` vendors (U03d).
 - Unicode-3.0: the ICU data crates.
 
 The KaTeX comparison script uses the repo's existing `katex` and `playwright-core` (MIT and

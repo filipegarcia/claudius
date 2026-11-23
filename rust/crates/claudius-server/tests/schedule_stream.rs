@@ -258,7 +258,7 @@ impl World {
     /// `server.out`.
     fn spawn(&self, env: &[(&str, &str)]) -> Server {
         let port = free_port();
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+        let mut cmd = Command::new(common::server_bin());
         cmd.args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
             .arg(&self.fake)
             .current_dir(self.root.join("project"))

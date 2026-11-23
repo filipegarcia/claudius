@@ -260,7 +260,9 @@ pub async fn exec_shell_command(
         cmd.current_dir(lossy(dir).as_ref());
     }
     // `detached: true`: Node calls `setsid()`, so the shell leads its own
-    // process group, which the timeout kills as a whole.
+    // process group, which the timeout kills as a whole. The hook makes
+    // this a fork (see `prepare_fork`).
+    claudius_agent::prepare_fork();
     #[cfg(unix)]
     // SAFETY: setsid, fcntl and close are async-signal-safe and touch no
     // Rust state.

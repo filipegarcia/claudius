@@ -11,6 +11,9 @@
 //! that will close it. Allowlist entries that no longer differ fail too, so
 //! the list can only shrink.
 
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -375,7 +378,7 @@ fn diff(path: &str, want: &Value, got: &Value, out: &mut Vec<(String, String)>) 
 
 #[tokio::test]
 async fn rust_wire_matches_ts_sdk_golden_fixtures() {
-    let fake = PathBuf::from(env!("CARGO_BIN_EXE_claudius-fake-claude"));
+    let fake = test_bins::private_copy(env!("CARGO_BIN_EXE_claudius-fake-claude"));
     let mut files: Vec<PathBuf> = std::fs::read_dir(fixtures_dir())
         .expect("fixtures dir (run `bun rust/scripts/golden-wire.mjs`)")
         .map(|e| e.unwrap().path())

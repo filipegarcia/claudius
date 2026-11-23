@@ -1,5 +1,9 @@
+"use client";
+
+import { usePathname, useSearchParams } from "next/navigation";
 import { GitFileWindow } from "@/components/git/GitFileWindow";
 import type { DiffSelection } from "@/components/git/ChangesList";
+import { pathSegment } from "@/lib/shared/route-params";
 
 /**
  * Pop-out window for one changed file — opened from the Git page by
@@ -9,33 +13,24 @@ import type { DiffSelection } from "@/components/git/ChangesList";
  * diff base (falls back to the file's natural group when it no longer
  * applies).
  *
- * Workspace-id validation is inherited from `app/[workspaceId]/layout.tsx`.
+ * A client page: the workspace id comes from the pathname (not `params`,
+ * see lib/shared/route-params.ts) and the query from `useSearchParams()`,
+ * which the root layout's `<Suspense>` covers. Workspace-id validation is
+ * inherited from `app/[workspaceId]/layout.tsx`.
  */
-
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-function first(v: string | string[] | undefined): string {
-  return (Array.isArray(v) ? v[0] : v) ?? "";
-}
 
 function parseMode(v: string): DiffSelection["mode"] | null {
   return v === "staged" || v === "worktree" || v === "untracked" ? v : null;
 }
 
-export default async function Page({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ workspaceId: string }>;
-  searchParams: SearchParams;
-}) {
-  const { workspaceId } = await params;
-  const sp = await searchParams;
+export default function Page() {
+  const workspaceId = pathSegment(usePathname(), 0) ?? "";
+  const search = useSearchParams();
   return (
     <GitFileWindow
       wsId={workspaceId}
-      path={first(sp.path)}
-      initialMode={parseMode(first(sp.mode))}
+      path={search.get("path") ?? ""}
+      initialMode={parseMode(search.get("mode") ?? "")}
     />
   );
 }

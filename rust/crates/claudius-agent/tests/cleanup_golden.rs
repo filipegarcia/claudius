@@ -13,6 +13,9 @@
 //! shell script as the CLI.
 #![cfg(unix)]
 
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::future::{Future, poll_fn};
 use std::path::PathBuf;
@@ -48,7 +51,7 @@ async fn replay(case: Value, settle: Duration) -> (String, Value) {
             std::fs::set_permissions(&cli, std::fs::Permissions::from_mode(0o755)).unwrap();
             cli
         }
-        None => PathBuf::from(env!("CARGO_BIN_EXE_claudius-fake-claude")),
+        None => test_bins::private_copy(env!("CARGO_BIN_EXE_claudius-fake-claude")),
     };
     let opts = Options {
         path_to_claude_code_executable: Some(cli),

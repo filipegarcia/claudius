@@ -8,6 +8,7 @@ import type { Customization } from "@/lib/server/customizations-store";
 import type { PreviewState } from "@/lib/server/preview-server";
 import { PANE_LABELS_EVENT } from "@/components/overlays/PaneLabelsHost";
 import { useIsElectron } from "@/lib/client/useElectron";
+import { customizationIdFromPathname } from "@/lib/shared/route-params";
 
 const COOKIE = "claudius.customization";
 
@@ -78,10 +79,7 @@ export function CustomizationBanner() {
   //   3. the active-customization cookie id,
   //   4. nothing — banner stays hidden.
   const pathname = usePathname();
-  const customizeIdFromUrl = useMemo(() => {
-    const m = pathname?.match(/^\/customize\/(cust_[a-z0-9]+)/i);
-    return m?.[1] ?? null;
-  }, [pathname]);
+  const customizeIdFromUrl = customizationIdFromPathname(pathname);
   const customizationByUrl = useMemo(
     () =>
       customizeIdFromUrl

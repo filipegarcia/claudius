@@ -139,7 +139,7 @@ fn world(places: &Places, root: tempfile::TempDir) -> World {
 /// [`Server::spawn`] with `env` set and every `None` removed.
 fn spawn(world: &World, env: &[(&str, Option<String>)]) -> Server {
     let port = free_port();
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+    let mut cmd = Command::new(common::server_bin());
     cmd.args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(fake_bin())
         .current_dir(&world.project)

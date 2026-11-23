@@ -1,7 +1,7 @@
 {
  "totals": {
-  "expected": 449,
-  "unexpected": 3,
+  "expected": 465,
+  "unexpected": 1,
   "skipped": 7
  },
  "failures": [
@@ -10,20 +10,6 @@
    "title": "Git diff view ignores workspace textconv drivers (CC 2.1.222 parity) \u203a a deleted file's diff shows the real removed line, not the textconv driver's output",
    "cat": "pre-existing",
    "error": "Error: expect(locator).toBeVisible() failed",
-   "api": []
-  },
-  {
-   "file": "whats-new.spec.ts",
-   "title": "What's new \u203a Got it closes the window",
-   "cat": "pre-existing",
-   "error": "Test timeout of 60000ms exceeded.",
-   "api": []
-  },
-  {
-   "file": "whats-new.spec.ts",
-   "title": "What's new \u203a version label opens the window; history page lists every release",
-   "cat": "pre-existing",
-   "error": "Test timeout of 60000ms exceeded.",
    "api": []
   }
  ]

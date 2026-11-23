@@ -1,5 +1,8 @@
 //! Protocol tests against the scripted `claudius-fake-claude` binary.
 
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -14,7 +17,7 @@ use indexmap::IndexMap;
 use serde_json::{Value, json};
 
 fn fake_bin() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_claudius-fake-claude"))
+    test_bins::private_copy(env!("CARGO_BIN_EXE_claudius-fake-claude"))
 }
 
 fn base_options() -> Options {

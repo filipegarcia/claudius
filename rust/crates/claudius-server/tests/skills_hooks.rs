@@ -295,7 +295,7 @@ fn spawn(world: &World) -> Server {
     let mut cmd = Command::new("/bin/sh");
     cmd.arg("-c")
         .arg("umask 022 && exec \"$0\" \"$@\"")
-        .arg(env!("CARGO_BIN_EXE_claudius"))
+        .arg(common::server_bin())
         .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(common::fake_bin())
         .current_dir(world.path("project"))

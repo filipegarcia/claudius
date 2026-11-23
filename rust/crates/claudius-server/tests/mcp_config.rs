@@ -244,7 +244,7 @@ fn spawn(world: &World, log: &Path, script: Option<String>, cli: bool) -> Server
     let mut cmd = Command::new("/bin/sh");
     cmd.arg("-c")
         .arg("umask 022 && exec \"$0\" \"$@\"")
-        .arg(env!("CARGO_BIN_EXE_claudius"))
+        .arg(common::server_bin())
         .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(claude)
         .current_dir(world.path("project"))

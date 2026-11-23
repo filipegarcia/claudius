@@ -328,10 +328,13 @@ impl Query {
             cmd.current_dir(cwd);
         }
         #[cfg(unix)]
-        // SAFETY: the closure only calls the async-signal-safe `getrlimit`,
-        // `fcntl` and `close`.
-        unsafe {
-            cmd.pre_exec(close_leaked_fds);
+        {
+            prepare_fork();
+            // SAFETY: the closure only calls the async-signal-safe
+            // `getrlimit`, `fcntl` and `close`.
+            unsafe {
+                cmd.pre_exec(close_leaked_fds);
+            }
         }
         // Node's `windowsHide`: no console window for the CLI.
         #[cfg(windows)]
@@ -608,6 +611,42 @@ pub async fn oneshot(prompt: &str, options: Options) -> Result<Option<Value>, Ag
     out
 }
 
+/// Call before spawning a `Command` that has a `pre_exec` hook, in the
+/// parent. A hook keeps `std` off `posix_spawn`, so the child is a `fork`,
+/// and on macOS a fork runs libSystem's atfork handlers in the child.
+/// libnotify's handler (`_notify_fork_child`) reads its lazily made globals
+/// through `os_alloc_once`. If another thread is making them at that moment,
+/// the child sees a half-done once-gate whose owner thread it doesn't have,
+/// and aborts ("os_once_t is corrupt", "crashed on child side of fork
+/// pre-exec"). The parent then sees the CLI die by SIGKILL before it runs.
+/// The other thread can be starting an FSEvents stream (the transcript
+/// watcher), reading the local time zone, or resolving a host name.
+///
+/// It can only happen during libnotify's first init in the process, so
+/// making the globals once, here, closes the window: a fork after this sees
+/// them done. Found by TODO I35: the `session_fake` gate lost about one CLI
+/// in every few loaded runs, and a scratch repro (a thread making the
+/// globals, six threads forking) lost a child in 752 of 1500 processes, and
+/// none with this call first. Rust only: Node's libuv spawns with
+/// `posix_spawn` on macOS. Cheap and idempotent.
+pub fn prepare_fork() {
+    #[cfg(target_os = "macos")]
+    {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| {
+            unsafe extern "C" {
+                // libsystem_notify, part of libSystem.
+                fn notify_is_valid_token(val: libc::c_int) -> bool;
+            }
+            // SAFETY: a read-only lookup in libnotify's token table, which
+            // first makes its globals; any int is a valid argument.
+            unsafe {
+                notify_is_valid_token(0);
+            }
+        });
+    }
+}
+
 /// In the child, before exec: close every inherited descriptor above stdio
 /// that isn't close-on-exec. On macOS `std` creates pipes and sockets
 /// without an atomic `O_CLOEXEC` (no `pipe2`), so a child forked by another
@@ -616,7 +655,7 @@ pub async fn oneshot(prompt: &str, options: Options) -> Result<Option<Value>, Ag
 /// closed never finishes. Node is immune (libuv's cloexec lock, and spawns
 /// from one thread). Descriptors that are close-on-exec, such as `std`'s own
 /// exec-error pipe, are left for exec to close. Use it (`pre_exec`) for
-/// any other long-lived child the host spawns.
+/// any other long-lived child the host spawns, after [`prepare_fork`].
 #[cfg(unix)]
 pub fn close_leaked_fds() -> std::io::Result<()> {
     let mut lim = libc::rlimit {

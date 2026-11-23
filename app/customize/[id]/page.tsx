@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, ExternalLink, Loader2, Play, Square, RefreshCw, WandSparkles, Pencil, Check, X, MessageSquare, Keyboard, RotateCw, Sparkles, AlertTriangle } from "lucide-react";
 import { PANE_LABELS_EVENT } from "@/components/overlays/PaneLabelsHost";
 import { SideNav } from "@/components/nav/SideNav";
@@ -11,9 +11,12 @@ import { SyncFromBasePanel } from "@/components/customize/SyncFromBasePanel";
 import { BuildAppPanel } from "@/components/customize/BuildAppPanel";
 import type { Customization } from "@/lib/server/customizations-store";
 import type { PreviewState } from "@/lib/server/preview-server";
+import { pathSegment } from "@/lib/shared/route-params";
 
-export default function CustomizationDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function CustomizationDetail() {
+  // `/customize/<id>`: from the pathname, not the `params` prop (see
+  // lib/shared/route-params.ts).
+  const id = pathSegment(usePathname(), 1) ?? "";
   const router = useRouter();
   const [item, setItem] = useState<Customization | null>(null);
   const [preview, setPreview] = useState<PreviewState | null>(null);

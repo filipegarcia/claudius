@@ -176,7 +176,7 @@ impl Env {
     fn spawn(&self, claude_bin: &Path) -> Claudius {
         let port = free_port();
         let log = self.world.root.path().join(format!("server-{port}.log"));
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+        let mut cmd = Command::new(common::server_bin());
         cmd.args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
             .arg(claude_bin)
             .current_dir(&self.world.project)

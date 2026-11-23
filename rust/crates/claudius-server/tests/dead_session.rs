@@ -14,6 +14,9 @@
 //! [`SETTLE`] to reach the recorded state (TS settles on its event loop, Rust
 //! on tokio tasks and a blocking pool).
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
@@ -53,21 +56,7 @@ fn fixture() -> Value {
 }
 
 fn fake_bin() -> PathBuf {
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-    let st = std::process::Command::new(cargo)
-        .args([
-            "build",
-            "-q",
-            "-p",
-            "claudius-agent",
-            "--bin",
-            "claudius-fake-claude",
-        ])
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .status()
-        .unwrap();
-    assert!(st.success());
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/claudius-fake-claude")
+    test_bins::fake_claude()
 }
 
 /// The recorder's instance counter: a number per `Session` object, assigned

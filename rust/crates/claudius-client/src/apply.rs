@@ -12,6 +12,11 @@
 //! `refreshSessions` (U01k, in `refresh.rs`), and the `requestRecap` /
 //! `dismissRecap` actions (U01j). U01d: the `sdk` event's `assistant`,
 //! `stream_event`, `result` and `prompt_suggestion` messages (`sdk.rs`).
+//! U01h: `system`, `conversation_reset`, `rate_limit_event`,
+//! `session_snapshot`, `loadOlder` and `jumpToUuid` (`system_events.rs`).
+//! U01g: `task_snapshot`, `todos_auto_cleared` and the todo actions
+//! (`task_events.rs`).
+//! U01j: `queue:updated` and the send / queue actions (`queue.rs`).
 //! Every other event is accepted and ignored until its slice lands.
 
 use serde_json::{Value, json};
@@ -104,6 +109,11 @@ impl ChatState {
                 Then::Sessions { op, disk } => self.refresh_half(op, disk, outcome, &mut cx),
                 Then::Answer { uncaught } => self.answer_settled(uncaught, &outcome, &mut cx),
                 Then::Status(then) => self.status_settled(then, &outcome, &mut cx),
+                Then::Older(jump) => self.older_settled(jump, &outcome, &mut cx),
+                Then::Account => self.account_settled(&outcome, &mut cx),
+                Then::Queue(then) => self.queue_settled(then, &outcome, &mut cx),
+                Then::Todos(then) => self.todos_settled(then, &outcome, &mut cx),
+                Then::TaskPage(hunt) => self.task_page_settled(hunt, &outcome, &mut cx),
             }
         }
         cx.out
@@ -131,7 +141,7 @@ impl ChatState {
     /// the server; `session_recap` / `session_recap_error` settle it.
     pub fn request_recap(&mut self, origin: Option<&str>, env: &mut dyn ClientEnv) -> Vec<Effect> {
         let mut cx = Cx::new(env);
-        let Some(id) = self.session_id.clone() else {
+        let Some(id) = self.bound_id() else {
             return cx.out;
         };
         let origin = origin.unwrap_or("manual");
@@ -307,11 +317,10 @@ impl ChatState {
             ServerEvent::EffortApplied(e) => self.on_effort_applied(&e),
             ServerEvent::ModelChanged(e) => self.on_model_changed(&e, cx),
             ServerEvent::AdvisorDisabledOnModelChange(e) => self.on_advisor_disabled(&e, cx),
-            // Later slices.
-            ServerEvent::TaskSnapshot(_)
-            | ServerEvent::TodosAutoCleared(_)
-            | ServerEvent::SessionSnapshot(_)
-            | ServerEvent::QueueUpdated(_) => {}
+            ServerEvent::SessionSnapshot(e) => self.on_session_snapshot(&e)?,
+            ServerEvent::QueueUpdated(e) => self.on_queue_updated(&e)?,
+            ServerEvent::TaskSnapshot(e) => self.on_task_snapshot(&e, cx)?,
+            ServerEvent::TodosAutoCleared(e) => self.on_todos_auto_cleared(&e, cx),
         }
         Ok(())
     }

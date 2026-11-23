@@ -209,7 +209,7 @@ pub enum ServerEvent {
     UsageSnapshot(JsObject),
     PlanUsage(JsObject),
     PlanUsageUnavailable(JsObject),
-    /// U01g.
+    /// U01g (`task_events.rs`).
     TaskSnapshot(JsObject),
     TodosAutoCleared(JsObject),
     /// U01h.

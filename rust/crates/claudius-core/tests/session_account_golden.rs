@@ -16,6 +16,9 @@
 //! `tests/session_start_golden.rs`.
 #![cfg(unix)]
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -60,26 +63,11 @@ fn env() -> &'static Env {
         std::fs::create_dir_all(&config).unwrap();
         assert!(paths::set_home_override(home.clone()));
         assert!(paths::set_config_dir_override(config));
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
         Env {
             root: root.display().to_string(),
             _tmp: tmp,
             home,
-            fake: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../target/debug/claudius-fake-claude"),
+            fake: test_bins::fake_claude(),
         }
     })
 }

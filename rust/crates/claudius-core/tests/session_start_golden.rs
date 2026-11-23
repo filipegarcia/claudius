@@ -31,6 +31,9 @@
 //! to differ the case is in [`KNOWN`] with its reason; a stale entry fails.
 #![cfg(unix)]
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::{BTreeMap, HashMap};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -91,20 +94,6 @@ fn env() -> &'static Env {
         std::fs::create_dir_all(&config).unwrap();
         assert!(paths::set_home_override(home.clone()));
         assert!(paths::set_config_dir_override(config.clone()));
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
         let root_s = root.display().to_string();
         let git_root = root.join("repo");
         std::fs::create_dir_all(&git_root).unwrap();
@@ -141,8 +130,7 @@ fn env() -> &'static Env {
             root: root_s,
             home,
             config,
-            fake: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../target/debug/claudius-fake-claude"),
+            fake: test_bins::fake_claude(),
         }
     })
 }

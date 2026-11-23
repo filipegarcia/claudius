@@ -8,11 +8,16 @@
 //! | Rule | Request | Answer | Replaces |
 //! |---|---|---|---|
 //! | R1 | `/` | the active workspace, else the first one, else `/welcome` | `app/page.tsx` |
-//! | R2 | a bare scoped path (`/git`) | `/<cookie><path>`, else the active workspace's | `proxy.ts` job 2, the 20 stubs, `redirect-to-workspace.ts` |
+//! | R2 | a bare scoped path (`/git`) | `/<cookie><path>`, else the active workspace's | `proxy.ts` job 2, the 20 stubs |
 //! | R3 | `/<wks_id>/…` | pass through, with the id written back to the cookie | `proxy.ts` job 1 |
 //! | R4 | `/<wks_id>/…`, unknown id | `/` | `app/[workspaceId]/layout.tsx` |
 //! | R5 | `/welcome` with a workspace | `/` | `app/welcome/page.tsx` |
 //! | R6 | `/customize/<id>/chat`, unknown id | `/customize` | `app/customize/[id]/chat/page.tsx` |
+//!
+//! Since N03a / N03b those pages read nothing on the server: they make the
+//! same decisions in the browser (`components/nav/WorkspaceRedirects.tsx`, and
+//! the customization chat page), so Next without Rust in front keeps working.
+//! Behind this router they never get to: every rule above answers first.
 //!
 //! Deliberate differences from the TS:
 //! - **Always a 307.** Next sends the server components' `redirect()` as a
@@ -31,8 +36,8 @@
 //!
 //! While Next still runs behind this, `proxy.ts` writes the same cookie on a
 //! request that passes through, so the answer carries two identical
-//! `claudius.workspace` headers. N03 deletes `proxy.ts` and with it the
-//! duplicate.
+//! `claudius.workspace` headers. `proxy.ts` stays while Next alone must keep
+//! working (N03b, until T03); deleting it (N04) removes the duplicate.
 
 use axum::extract::{Request, State};
 use axum::http::{HeaderMap, Method, StatusCode, header};
@@ -217,8 +222,9 @@ pub(crate) fn decide(
         if page && stubbed {
             return Ok(match env.active_workspace(cookie)? {
                 Some(id) => Decision::to(format!("/{id}{path}{}", whole_query(query))),
-                // `redirectToWorkspaceRoute` sends a workspace-less install
-                // to `/`, where R1 renders or redirects onward.
+                // The bare stubs send a workspace-less install to `/`
+                // (`BareRouteRedirect`, was `redirectToWorkspaceRoute`),
+                // where R1 renders or redirects onward.
                 None => Decision::to(format!("/{}", whole_query(query))),
             });
         }
@@ -454,7 +460,7 @@ mod tests {
             hint: None,
             ..Fake::default()
         };
-        // `redirectToWorkspaceRoute` keeps the query on its way to `/`.
+        // The bare stubs keep the query on their way to `/` (`BareRouteRedirect`).
         assert_eq!(to(get(&f, "/git", "a=1", None)), "/?a=1");
     }
 

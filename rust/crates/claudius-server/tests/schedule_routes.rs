@@ -179,7 +179,7 @@ impl World {
     /// `CLAUDIUS_SCHEDULER=0`.
     fn spawn(&self, fake: &Path, scheduler: bool, next: Option<u16>) -> Server {
         let port = free_port();
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+        let mut cmd = Command::new(common::server_bin());
         cmd.args(["--port", &port.to_string()]);
         match next {
             Some(up) => cmd.args(["--next", &format!("http://127.0.0.1:{up}")]),

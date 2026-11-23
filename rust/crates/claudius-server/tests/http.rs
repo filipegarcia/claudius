@@ -1,6 +1,9 @@
 //! End-to-end over real HTTP: the Rust front door + fake CLI + a stub
 //! "Next" upstream for the proxy fallback.
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -21,23 +24,7 @@ use serde_json::{Value, json};
 type HttpClient = Client<HttpConnector, Full<Bytes>>;
 
 fn fake_bin() -> PathBuf {
-    let target =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/claudius-fake-claude");
-    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-    let st = std::process::Command::new(cargo)
-        .args([
-            "build",
-            "-q",
-            "-p",
-            "claudius-agent",
-            "--bin",
-            "claudius-fake-claude",
-        ])
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .status()
-        .unwrap();
-    assert!(st.success());
-    target
+    test_bins::fake_claude()
 }
 
 async fn serve(router: axum::Router) -> String {

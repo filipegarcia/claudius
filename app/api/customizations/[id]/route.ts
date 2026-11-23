@@ -2,7 +2,9 @@ import { promises as fs } from "node:fs";
 import { NextResponse } from "next/server";
 
 import {
+  type CustomizationWithSrcDir,
   customizationDir,
+  customizationSrcDir,
   deleteCustomizationRecord,
   getCustomization,
   listPublishes,
@@ -15,11 +17,14 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+// The record plus `srcDir` (see CustomizationWithSrcDir): the customization
+// chat page is a client page and reads its cwd from here.
 export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
   const c = await getCustomization(id);
   if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
-  return NextResponse.json(c);
+  const body: CustomizationWithSrcDir = { ...c, srcDir: customizationSrcDir(id) };
+  return NextResponse.json(body);
 }
 
 type PatchBody = { name?: string };

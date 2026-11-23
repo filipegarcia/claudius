@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Bell, FolderTree, Search, X } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
@@ -10,6 +10,7 @@ import { useSessionsHistory } from "@/lib/client/useSessionsHistory";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { cn } from "@/lib/utils/cn";
 import { readableSessionLabel } from "@/components/chat/SessionTabs";
+import { pathSegment } from "@/lib/shared/route-params";
 import { parseSessionQuery, scoreSession } from "@/lib/shared/session-search";
 import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
 import { matchBinding } from "@/lib/client/shortcuts";
@@ -42,9 +43,9 @@ export default function SessionsPage() {
 
   // Scope the list to the workspace in the URL. The URL param (not
   // `useActiveCwd`'s cookie-resolved id) is authoritative for the page we're
-  // actually on.
-  const params = useParams<{ workspaceId: string }>();
-  const workspaceId = params?.workspaceId ?? null;
+  // actually on. Read from the pathname, not `useParams()` (see
+  // lib/shared/route-params.ts).
+  const workspaceId = pathSegment(usePathname(), 0);
   const { items: workspaces } = useWorkspaces();
   const workspace = workspaces.find((w) => w.id === workspaceId) ?? null;
   const workspaceRoot = workspace?.rootPath ?? null;

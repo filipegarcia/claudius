@@ -92,7 +92,7 @@ fn request(
 /// tree, its `CLAUDIUS_FS_ROOT` (or none), its cwd.
 fn spawn(tree: &Tree, scenario: &Value) -> Server {
     let port = free_port();
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+    let mut cmd = Command::new(common::server_bin());
     cmd.args(["--port", &port.to_string(), "--no-next"])
         .current_dir(tree.path(scenario["cwd"].as_str().unwrap()))
         .env_remove("RUST_LOG")

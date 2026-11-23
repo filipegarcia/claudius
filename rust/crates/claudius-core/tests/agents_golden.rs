@@ -15,6 +15,9 @@
 //! The routes replay on the real binary in
 //! `claudius-server/tests/agents_routes.rs`.
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -50,24 +53,9 @@ fn env() -> &'static Env {
         std::fs::create_dir_all(&config).unwrap();
         assert!(paths::set_home_override(home));
         assert!(paths::set_config_dir_override(config));
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
         Env {
             _root: root,
-            fake: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../target/debug/claudius-fake-claude"),
+            fake: test_bins::fake_claude(),
         }
     })
 }

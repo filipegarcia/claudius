@@ -12,9 +12,21 @@ export async function openApp(base) {
     if (path.startsWith("/api/") && r.status() >= 500) apiFailures.push(`${r.status()} ${r.request().method()} ${path}`);
   });
   page.on("pageerror", (e) => console.log(`  ! pageerror: ${e.message}`));
+  // For a page that never settles (TODO I37: once, the page reloaded itself
+  // ~90 times): the console says whether Next's dev client or the app reloaded it.
+  const consoleTail = [];
+  page.on("console", (m) => {
+    consoleTail.push(`${new Date().toISOString().slice(11, 23)} ${m.type()}: ${m.text().slice(0, 300)}`);
+    if (consoleTail.length > 60) consoleTail.shift();
+  });
   await page.goto(base + "/");
   const composer = page.getByTestId("prompt-input");
-  await composer.waitFor({ state: "visible", timeout: 120_000 });
+  try {
+    await composer.waitFor({ state: "visible", timeout: 120_000 });
+  } catch (e) {
+    console.log(`  ! no composer at ${page.url()}; the page's last console lines:\n    ${consoleTail.join("\n    ")}`);
+    throw e;
+  }
   await page.waitForFunction(() => !document.querySelector('[data-testid="prompt-input"]')?.disabled, null, {
     timeout: 60_000,
   });

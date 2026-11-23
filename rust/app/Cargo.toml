@@ -1,0 +1,31 @@
+# The native UI (section 7 of rust/TODO.md): GPUI + gpui-component, per
+# rust/docs/adr-ui-toolkit.md. Its own workspace, `Cargo.lock` and `target/`,
+# so the root `cargo … --workspace` gate never builds gpui; it reaches the
+# root crates by path. CI: .github/workflows/rust-app.yml (macOS, Metal).
+[workspace]
+resolver = "3"
+members = ["crates/claudius-gpui-theme"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/claudius-network/claudius"
+# gpui-component 0.10 uses let chains (stable in 1.88).
+rust-version = "1.88"
+
+[workspace.dependencies]
+claudius-theme = { path = "../crates/claudius-theme" }
+claudius-gpui-theme = { path = "crates/claudius-gpui-theme" }
+
+# GPUI Kit publishes gpui-component and pins the gpui-pre (Zed snapshot)
+# crates it was built against. Pinned exactly, as the U00a spike verified it
+# (the ADR's "upstream churn": every bump is an API fix-up). `syntect` is the
+# code-block highlighter (TextMate grammars, as Shiki).
+gpui-kit = { version = "=0.10.0", features = ["syntect"] }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 16
+debug = false

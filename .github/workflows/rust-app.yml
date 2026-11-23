@@ -1,0 +1,76 @@
+# Native UI (rust/app/): fmt, clippy, tests.
+#
+# rust/app is its own cargo workspace (GPUI + gpui-component, see
+# rust/docs/adr-ui-toolkit.md), so rust.yml's root `--workspace` gate never
+# builds gpui and this job never builds the server crates. macOS only: gpui
+# renders with Metal, and the theme tests run a headless gpui app
+# (`TestAppContext`). It triggers on:
+#   - rust/app/**                    the workspace itself (and its Cargo.lock)
+#   - rust/crates/claudius-theme/**  the design tokens claudius-gpui-theme
+#                                    builds the theme from (a path dependency)
+#   - rust/Cargo.toml                claudius-theme inherits its package
+#                                    fields from the root workspace
+#   - components/**, app/**/*.tsx    the icon drift test checks that every
+#                                    `lucide-react` import there has a GPUI
+#                                    Kit icon
+#   - bun.lock                       without node_modules the drift tests
+#                                    check the lucide-react and Shiki theme
+#                                    versions the lockfile pins
+#
+# No system packages are needed; the macOS runner image has the Metal SDK.
+name: rust-app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rust/app/**"
+      - "rust/crates/claudius-theme/**"
+      - "rust/Cargo.toml"
+      - "components/**"
+      - "app/**/*.tsx"
+      - "bun.lock"
+      - ".github/workflows/rust-app.yml"
+  pull_request:
+    paths:
+      - "rust/app/**"
+      - "rust/crates/claudius-theme/**"
+      - "rust/Cargo.toml"
+      - "components/**"
+      - "app/**/*.tsx"
+      - "bun.lock"
+      - ".github/workflows/rust-app.yml"
+
+# Cancel stale runs when a new commit lands on the same ref.
+concurrency:
+  group: rust-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-app:
+    name: rust-app (macos-latest)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: rust/app
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      # Whole-repo checkout: the crate reaches ../crates/claudius-theme by
+      # path (which reads app/globals.css in its own tests, not here), and
+      # the drift tests read components/, app/ and bun.lock.
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      # Caches ~/.cargo and rust/app/target (gpui is most of the build),
+      # keyed on rust/app/Cargo.lock + toolchain.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/app -> target
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: test
+        run: cargo test --workspace

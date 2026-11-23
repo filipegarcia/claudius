@@ -200,7 +200,7 @@ impl World {
     /// `claudius` in this world (`next`: a fake Next upstream's port).
     fn spawn(&self, next: Option<u16>) -> Server {
         let port = free_port();
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+        let mut cmd = Command::new(common::server_bin());
         // `--no-next` first, so the orphan selector in the brief matches;
         // a later `--next` wins.
         cmd.args(["--port", &port.to_string(), "--no-next"]);
@@ -609,7 +609,7 @@ fn routes_match_the_ts_routes() {
         }
         last = now;
     }
-    assert_eq!((reqs, differences), (172, 3));
+    assert_eq!((reqs, differences), (176, 3));
 }
 
 /// The recorded tree after `step` (the one before when it didn't change).

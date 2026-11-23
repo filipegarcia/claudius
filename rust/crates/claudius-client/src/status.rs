@@ -6,16 +6,17 @@
 //! `setAgent`, and the `dismiss*` notices (the nudges, fast mode, the model
 //! switch, the chat-command model, the advisor and auto mode).
 //!
-//! Still open (U01i): `moveToActiveAccount`, whose outcome is the
-//! promise's value rather than state. `fastModeState`'s other writers are
-//! `system` init (U01h) and the session reset (U01k).
+//! `moveToActiveAccount` (its outcome is the promise's value rather than
+//! state) and `effortChangeWouldWait` are U01n's (`account.rs`).
+//! `fastModeState`'s other writers are `system` init (U01h) and the session
+//! reset (U01k).
 
 use claudius_core::js_string::spread_into;
 use serde_json::{Map, Value, json};
 
 use crate::apply::Cx;
 use crate::effect::{Effect, FetchOutcome};
-use crate::effort_wait::{EffortPick, effort_applied, effort_picked};
+use crate::effort_wait::{EffortPick, EffortWaitState, effort_applied, effort_picked};
 use crate::env::ClientEnv;
 use crate::event::JsObject;
 use crate::state::{ChatState, Then};
@@ -35,7 +36,7 @@ const JSON_HEADERS: &[(&str, &str)] = &[("Content-Type", "application/json")];
 impl ChatState {
     /// `sessionIdRef.current` where the action's `if (!id) return;` lets
     /// it through.
-    fn bound_id(&self) -> Option<String> {
+    pub(crate) fn bound_id(&self) -> Option<String> {
         self.session_id.clone().filter(|id| !id.is_empty())
     }
 
@@ -231,6 +232,26 @@ impl ChatState {
         cx.out
     }
 
+    /// `nextEffortWait(level)`: what picking `level` now would do to the
+    /// "may wait" note (`setEffort`, and U01n's `effortChangeWouldWait`).
+    pub(crate) fn next_effort_wait(&self, level: &str) -> EffortWaitState {
+        // `appliedEffortRef.current ?? effortRef.current`.
+        let shown = match &self.applied_effort {
+            Some(v) if !v.is_null() => v,
+            _ => &self.effort,
+        };
+        let shown_before = wire_str(Some(shown));
+        effort_picked(
+            &self.effort_wait,
+            EffortPick {
+                pending: self.pending,
+                picked: level,
+                shown_before: &shown_before,
+                no_effort_param: matches!(self.applied_effort, Some(Value::Null)),
+            },
+        )
+    }
+
     /// `setEffort(level, opts)`: note a mid-turn pick on the pill
     /// (`effortChangeWaits`), mirror it, drop the applied level and POST it
     /// with the current ultracode state.
@@ -244,21 +265,7 @@ impl ChatState {
         let Some(id) = self.bound_id() else {
             return cx.out;
         };
-        // `appliedEffortRef.current ?? effortRef.current`.
-        let shown = match &self.applied_effort {
-            Some(v) if !v.is_null() => v,
-            _ => &self.effort,
-        };
-        let shown_before = wire_str(Some(shown));
-        let next = effort_picked(
-            &self.effort_wait,
-            EffortPick {
-                pending: self.pending,
-                picked: level,
-                shown_before: &shown_before,
-                no_effort_param: matches!(self.applied_effort, Some(Value::Null)),
-            },
-        );
+        let next = self.next_effort_wait(level);
         self.effort_change_waits = next.waits;
         self.effort_wait = next;
         self.effort = json!(level);

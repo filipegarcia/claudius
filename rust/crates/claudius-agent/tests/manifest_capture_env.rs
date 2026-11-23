@@ -3,7 +3,9 @@
 //! this test sets it on the test process; it lives in its own test binary so
 //! no other test sees the variable.
 
-use std::path::PathBuf;
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::sync::Arc;
 
 use claudius_agent::{McpServerConfig, Options, Query, ToolDef, ToolOutput, ToolServer};
@@ -15,7 +17,7 @@ async fn disable_env_var_skips_manifest_capture() {
     unsafe { std::env::set_var("CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS", "yes") };
     let log = tempfile::NamedTempFile::new().unwrap();
     let mut opts = Options {
-        path_to_claude_code_executable: Some(PathBuf::from(env!(
+        path_to_claude_code_executable: Some(test_bins::private_copy(env!(
             "CARGO_BIN_EXE_claudius-fake-claude"
         ))),
         ..Default::default()

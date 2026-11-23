@@ -9,6 +9,11 @@
 #                                    rust/ROUTES.md against these routes; a new
 #                                    or removed Next route must be reflected
 #                                    there (run rust/scripts/route-coverage.sh)
+#   - app/globals.css, bun.lock      claudius-theme's drift test reads the
+#                                    stylesheet's @theme tokens and the
+#                                    tailwindcss build the lockfile pins, so a
+#                                    stylesheet or tailwind bump alone must
+#                                    re-run it
 #
 # No system packages are needed: rusqlite is built with `bundled` SQLite, and
 # the tests only shell out to git, bash and python3, which both runner images
@@ -22,12 +27,16 @@ on:
       - "rust/**"
       - "lib/server/db-migrations/**"
       - "app/api/**"
+      - "app/globals.css"
+      - "bun.lock"
       - ".github/workflows/rust.yml"
   pull_request:
     paths:
       - "rust/**"
       - "lib/server/db-migrations/**"
       - "app/api/**"
+      - "app/globals.css"
+      - "bun.lock"
       - ".github/workflows/rust.yml"
 
 # Cancel stale runs when a new commit lands on the same ref.

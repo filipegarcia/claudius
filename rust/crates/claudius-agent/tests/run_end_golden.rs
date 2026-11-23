@@ -6,6 +6,9 @@
 //! yielded must match too. Plus the SDK's ceiling-env parser, value by value,
 //! and [`oneshot`].
 
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -25,7 +28,7 @@ fn fixture() -> Value {
 }
 
 fn fake_bin() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_claudius-fake-claude"))
+    test_bins::private_copy(env!("CARGO_BIN_EXE_claudius-fake-claude"))
 }
 
 struct Allow;

@@ -18,6 +18,9 @@
 //! `kill()` on a CLI already dead by SIGTERM, which sends nothing.
 #![cfg(unix)]
 
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -61,7 +64,7 @@ async fn replay(case: Value, buckets: Vec<Value>) -> Value {
     let tmp = tempfile::tempdir().unwrap();
     let times = tmp.path().join("times.log");
     let opts = Options {
-        path_to_claude_code_executable: Some(PathBuf::from(env!(
+        path_to_claude_code_executable: Some(test_bins::private_copy(env!(
             "CARGO_BIN_EXE_claudius-fake-claude"
         ))),
         cwd: Some(tmp.path().to_path_buf()),
@@ -267,7 +270,7 @@ async fn oneshot_waits_for_the_exit_like_return() {
     let tmp = tempfile::tempdir().unwrap();
     let script = json!({"on_eof": [{"$delay_ms": 60000}], "on_sigterm": "die"});
     let opts = Options {
-        path_to_claude_code_executable: Some(PathBuf::from(env!(
+        path_to_claude_code_executable: Some(test_bins::private_copy(env!(
             "CARGO_BIN_EXE_claudius-fake-claude"
         ))),
         cwd: Some(tmp.path().to_path_buf()),

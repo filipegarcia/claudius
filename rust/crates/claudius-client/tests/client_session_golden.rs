@@ -27,11 +27,16 @@
 //! high-demand / model-unavailable texts, results without an assistant
 //! message, fast-mode edges, odd payloads, usage across models and the
 //! tool rail's cap.
+//!
+//! U01g's `task-` scenarios add the todo actions. A promise-valued action's
+//! step (`updateTodoItem`, and U01n / U01j's `queue-` actions) also records
+//! what its promise resolved to (`resolved`), which the harness compares
+//! with the [`Effect::ActionResolved`] the port gives (and its action).
 
 use std::collections::VecDeque;
 
 use claudius_client::FixedEnv;
-use claudius_client::effect::{Effect, FetchOutcome, TimerId};
+use claudius_client::effect::{Action, Effect, FetchOutcome, TimerId};
 use claudius_client::state::ChatState;
 use claudius_core::js_string;
 use serde_json::{Map, Value, json};
@@ -83,6 +88,8 @@ struct Log {
     window_events: Vec<Value>,
     history: Vec<Value>,
     logs: Vec<Value>,
+    /// The promise values the step's action resolved with (U01n / U01j).
+    resolved: Vec<Value>,
 }
 
 struct Harness<'f> {
@@ -167,6 +174,12 @@ impl<'f> Harness<'f> {
                         "level": "error",
                         "text": format!("bad SSE payload {error} {}", self.data),
                     }));
+                }
+                Effect::ConsoleWarn { text } => {
+                    self.log.logs.push(json!({ "level": "warn", "text": text }));
+                }
+                Effect::ActionResolved { action, outcome } => {
+                    self.log.resolved.push(resolution(&action, outcome));
                 }
                 Effect::UnhandledRejection { error } => {
                     self.log
@@ -371,6 +384,13 @@ fn replays_the_ts_golden() {
                     }
                     "setModel" | "setEffort" | "setUltracode" | "setFast" | "setAdvisorModel"
                     | "reEnableAdvisor" | "setAgent" => status_action(&mut h, action, args),
+                    "loadOlder" => h.state.load_older(&mut h.env),
+                    "clearTodos" => h.state.clear_todos(&mut h.env),
+                    "updateTodoItem" => {
+                        let s = |i: usize| args[i].as_str().unwrap();
+                        h.state.update_todo_item(s(0), s(1), &mut h.env)
+                    }
+                    q if QUEUE_ACTIONS.contains(&q) => queue_action(&mut h, q, args),
                     d if d.starts_with("dismiss") => {
                         dismiss(&mut h.state, d);
                         Vec::new()
@@ -409,6 +429,11 @@ fn replays_the_ts_golden() {
             ] {
                 check_list(&at, what, got, list(step, key), &mut failures);
             }
+            // U01n / U01j: the promise value of an action that has one.
+            let want: Vec<Value> = step.get("resolved").map_or_else(Vec::new, |v| {
+                vec![json!({ "action": step["action"], "outcome": v })]
+            });
+            check_list(&at, "resolved", &log.resolved, &want, &mut failures);
         }
     }
     assert!(
@@ -455,6 +480,115 @@ fn dismiss(state: &mut ChatState, action: &str) {
         "dismissModelSwitchNotice" => state.dismiss_model_switch_notice(),
         "dismissAdvisorDisabledNotice" => state.dismiss_advisor_disabled_notice(),
         "dismissAutoModeOffNotice" => state.dismiss_auto_mode_off_notice(),
+        "dismissTodosAutoCleared" => state.dismiss_todos_auto_cleared(),
         other => panic!("no port of the action {other}"),
+    }
+}
+
+/// The actions U01n / U01j port.
+const QUEUE_ACTIONS: &[&str] = &[
+    "moveToActiveAccount",
+    "effortChangeWouldWait",
+    "send",
+    "enqueue",
+    "cancelQueued",
+    "editQueued",
+    "reorderQueued",
+    "sendQueuedNow",
+    "sendAllQueuedNow",
+    "interrupt",
+    "takeOver",
+    "renameTitle",
+    "setGoal",
+    "clearGoal",
+    "submitFeedback",
+];
+
+/// An `ActionResolved` in the recorder's shape: the TS action's name and
+/// its promise value.
+fn resolution(action: &Action, outcome: Value) -> Value {
+    let name = match action {
+        Action::UpdateTodoItem { .. } => "updateTodoItem",
+        Action::JumpToUuid { .. } => "jumpToUuid",
+        Action::MoveToActiveAccount => "moveToActiveAccount",
+        Action::Send => "send",
+        Action::Enqueue => "enqueue",
+        Action::EditQueued { .. } => "editQueued",
+        Action::RenameTitle => "renameTitle",
+        Action::SetGoal => "setGoal",
+        Action::ClearGoal => "clearGoal",
+        Action::SubmitFeedback => "submitFeedback",
+    };
+    json!({ "action": name, "outcome": outcome })
+}
+
+/// U01n / U01j's actions, with the recorder's JSON args as the typed ones.
+fn queue_action(h: &mut Harness<'_>, action: &str, args: &[Value]) -> Vec<Effect> {
+    use claudius_client::AttachedImage;
+    use claudius_client::queue::{FeedbackInput, SendImage, SendOpts};
+    let s = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or_default();
+    let (state, env) = (&mut h.state, &mut h.env);
+    match action {
+        "moveToActiveAccount" => state.move_to_active_account(env),
+        "effortChangeWouldWait" => {
+            let waits = state.effort_change_would_wait(s(0));
+            h.log
+                .resolved
+                .push(json!({ "action": action, "outcome": waits }));
+            Vec::new()
+        }
+        "send" => {
+            let images: Option<Vec<SendImage>> = args.get(1).and_then(Value::as_array).map(|a| {
+                a.iter()
+                    .map(|i| SendImage {
+                        id: i.get("id").and_then(Value::as_str).map(str::to_owned),
+                        ordinal: i.get("ordinal").and_then(Value::as_f64),
+                        data: i["data"].as_str().unwrap().to_owned(),
+                        media_type: i["mediaType"].as_str().unwrap().to_owned(),
+                    })
+                    .collect()
+            });
+            let o = args.get(2).cloned().unwrap_or(Value::Null);
+            let flag = |k: &str| o.get(k).and_then(Value::as_bool).unwrap_or(false);
+            let opts = SendOpts {
+                as_slash_command: flag("asSlashCommand"),
+                from_suggestion: flag("fromSuggestion"),
+                from_goal: flag("fromGoal"),
+                inline_pastes: o
+                    .get("inlinePastes")
+                    .and_then(Value::as_array)
+                    .map(|p| p.iter().map(|x| x.as_str().unwrap().to_owned()).collect())
+                    .unwrap_or_default(),
+                reports_failure_inline: flag("reportsFailureInline"),
+            };
+            state.send(s(0), images.as_deref(), &opts, env)
+        }
+        "enqueue" => {
+            let images: Option<Vec<AttachedImage>> = args
+                .get(1)
+                .filter(|v| !v.is_null())
+                .map(|v| serde_json::from_value(v.clone()).unwrap());
+            state.enqueue(s(0), images.as_deref(), env)
+        }
+        "cancelQueued" => state.cancel_queued(s(0), env),
+        "editQueued" => state.edit_queued(s(0), env),
+        "reorderQueued" => state.reorder_queued(s(0), args[1].as_f64().unwrap(), env),
+        "sendQueuedNow" => state.send_queued_now(s(0), env),
+        "sendAllQueuedNow" => state.send_all_queued_now(env),
+        "interrupt" => state.interrupt(env),
+        "takeOver" => state.take_over(env),
+        "renameTitle" => state.rename_title(s(0), env),
+        "setGoal" => state.set_goal(s(0), env),
+        "clearGoal" => state.clear_goal(env),
+        "submitFeedback" => {
+            let i = &args[0];
+            let input = FeedbackInput {
+                rating: i.get("rating").and_then(Value::as_str).map(str::to_owned),
+                comment: i["comment"].as_str().unwrap().to_owned(),
+                attach_transcript: i.get("attachTranscript").and_then(Value::as_bool),
+            };
+            state.submit_feedback(&input, env)
+        }
+        other => unreachable!("{other}"),
     }
 }

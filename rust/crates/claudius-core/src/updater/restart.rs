@@ -106,7 +106,9 @@ impl RestartBoundary for ProcessBoundary {
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;
-            // `detached: true`: the child leads a new session.
+            // `detached: true`: the child leads a new session. The hook
+            // makes this a fork (see `prepare_fork`).
+            claudius_agent::prepare_fork();
             // SAFETY: `setsid` is async-signal-safe.
             unsafe {
                 cmd.pre_exec(|| {

@@ -16,12 +16,16 @@
 //!   and the resume / startup-failure / budget / compaction notices.
 //! - `prompt_suggestion`: the next-prompt chips (the last four, deduped).
 //!
-//! Not yet: the `user`, `tool_progress`, `system`, `conversation_reset`
-//! and `rate_limit_event` messages (U01e / U01h), and the assistant
-//! handler's per-tool side effects (TodoWrite / TaskCreate / TaskUpdate,
-//! Edit / MultiEdit / Write, background Bash, KillBash, CronCreate /
-//! CronDelete, ScheduleWakeup: U01e / U01g). They are accepted and ignored
-//! until their slices land.
+//! U01e (`user_events.rs`): `user`, `tool_progress`, `system` /
+//! `thinking_tokens`, and the Edit / MultiEdit / Write, background Bash and
+//! KillBash side effects of a tool_use.
+//!
+//! U01h (`system_events.rs`): the other `system` subtypes,
+//! `conversation_reset` and `rate_limit_event`.
+//!
+//! U01g (`task_events.rs`): the `task_*` subtypes and the assistant
+//! handler's TodoWrite / TaskCreate / TaskUpdate, CronCreate / CronDelete
+//! and ScheduleWakeup side effects.
 //!
 //! Deliberate, with the crate's convention for SDK fields the TS copies
 //! unchecked: a non-string `uuid`, `parent_tool_use_id`, stream
@@ -238,11 +242,15 @@ impl ChatState {
                 self.on_prompt_suggestion(msg);
                 Ok(())
             }
-            // Not yet: U01e (`user`, `tool_progress`) and U01h (`system`,
-            // `conversation_reset`, `rate_limit_event`).
-            Some(
-                "user" | "tool_progress" | "system" | "conversation_reset" | "rate_limit_event",
-            ) => Ok(()),
+            Some("user") => self.on_user(msg, at, cx),
+            Some("tool_progress") => self.on_tool_progress(msg),
+            // Above the `system` arm: `on_system`'s catch-all would swallow it.
+            Some("system") if crate::user_events::is_thinking_tokens(msg) => {
+                self.on_thinking_tokens(msg)
+            }
+            Some("system") => self.on_system(msg, cx),
+            Some("conversation_reset") => self.on_conversation_reset(msg),
+            Some("rate_limit_event") => self.on_rate_limit_event(msg),
             _ => Ok(()),
         }
     }
@@ -377,9 +385,10 @@ impl ChatState {
                 self.tool_history.insert(0, row);
                 self.tool_history.truncate(TOOL_HISTORY_CAP);
             }
-            // Not yet: the per-tool branches after this point (TodoWrite /
-            // TaskCreate / TaskUpdate and the loops: U01g; Edit / MultiEdit /
-            // Write and background Bash / KillBash: U01e).
+            // Edit / MultiEdit / Write, background Bash, KillBash (U01e);
+            // the todos and loops (U01g).
+            self.tool_use_side_effects(id, name, input, at, now);
+            self.task_tool_use(id, name, input, at, now);
         }
         Ok(())
     }
@@ -935,22 +944,6 @@ mod tests {
         assert_eq!(s.tasks["t1"].model.as_deref(), Some("claude-haiku-4-5"));
         assert_eq!(s.subagent_messages["toolu_A"].len(), 3);
         assert!(s.messages.is_empty());
-    }
-
-    #[test]
-    fn the_later_slices_messages_are_ignored_for_now() {
-        let mut s = ChatState::new("tab-1");
-        let before = s.clone();
-        for message in [
-            json!({ "type": "user", "message": { "content": "hi" } }),
-            json!({ "type": "system", "subtype": "init", "model": "x" }),
-            json!({ "type": "tool_progress", "tool_use_id": "t" }),
-            json!({ "type": "conversation_reset" }),
-            json!({ "type": "rate_limit_event", "rate_limit_info": {} }),
-        ] {
-            assert!(sdk(&mut s, message).is_empty());
-        }
-        assert_eq!(s, before);
     }
 
     #[test]

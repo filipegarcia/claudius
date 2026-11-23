@@ -16,7 +16,8 @@ CLAUDIUS CONVENTIONS (Next.js 16 App Router + React 19 + Tailwind v4 + better-sq
   node_modules/next/dist/docs/ for the relevant API.
 - Feature-vertical recipe (only if a feature needs a NEW page/tile — most of these do NOT):
   * Workspace-scoped page: app/[workspaceId]/<x>/page.tsx, renders <SideNav/>.
-  * Bare redirect stub: app/<x>/page.tsx calling redirectToWorkspaceRoute("/<x>", sp).
+  * Bare redirect stub: app/<x>/page.tsx rendering <BareRouteRedirect /> (components/nav/WorkspaceRedirects),
+    AND add "<x>" to SCOPED_ROUTES in proxy.ts and to SCOPED in rust/crates/claudius-server/src/pages.rs.
   * Nav tile: add to items[] in components/nav/SideNav.tsx with a unique nav.<x> actionId,
     AND add navAction("nav.<x>","Open <X>","Key?") to lib/client/shortcuts.ts. Used nav
     letters already: C S F G M I B A K N H L P D T E J W — pick an UNUSED letter and avoid

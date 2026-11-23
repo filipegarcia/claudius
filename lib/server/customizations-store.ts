@@ -93,6 +93,15 @@ type IndexShape = {
 const ROOT = join(homedir(), ".claude", ".claudius", "customizations");
 const INDEX_FILE = join(ROOT, "index.json");
 
+/**
+ * `GET /api/customizations/{id}`'s body: the index record plus `srcDir`
+ * ({@link customizationSrcDir}), the editable mirror the customization chat
+ * (`app/customize/[id]/chat/page.tsx`, a client page) runs fresh sessions
+ * in. Built by object spread, so a record that already carries a `srcDir`
+ * key keeps that key's place with the computed value.
+ */
+export type CustomizationWithSrcDir = Customization & { srcDir: string };
+
 export function customizationsRoot(): string {
   return ROOT;
 }

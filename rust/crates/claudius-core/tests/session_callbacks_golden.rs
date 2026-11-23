@@ -27,6 +27,9 @@
 //! reason; a stale entry fails.
 #![cfg(unix)]
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -128,20 +131,6 @@ fn env() -> &'static Env {
             "{\n  \"feedbackSurveyRate\": 0\n}\n",
         )
         .unwrap();
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
         let gated = root.join("gated-claude");
         std::fs::write(
             &gated,
@@ -153,8 +142,7 @@ fn env() -> &'static Env {
         Env {
             _tmp: tmp,
             root: root.display().to_string(),
-            fake: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../target/debug/claudius-fake-claude"),
+            fake: test_bins::fake_claude(),
             gated,
         }
     })

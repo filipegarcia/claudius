@@ -501,7 +501,7 @@ fn spawn(replay: &Replay, phase: &Value, fx: &Value) -> Server {
         install_root.starts_with("$ROOT/"),
         "the fixture's install root {install_root} isn't under the temp root"
     );
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+    let mut cmd = Command::new(common::server_bin());
     cmd.args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(replay.p("claude-wrap"))
         .current_dir(replay.p("servercwd"))

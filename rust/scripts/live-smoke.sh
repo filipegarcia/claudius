@@ -4,7 +4,7 @@
 #
 #   rust/scripts/live-smoke.sh              # API smoke + React UI smoke
 #   rust/scripts/live-smoke.sh --api-only   # HTTP/SSE only, no Next, no browser
-#   rust/scripts/live-smoke.sh --keep       # keep the temp world for inspection
+#   rust/scripts/live-smoke.sh --keep       # keep the temp world even on success
 #
 # What it does:
 #   1. builds `claudius`, creates a throwaway world under /tmp: a project dir
@@ -107,6 +107,25 @@ encoded="$(printf '%s' "$proj" | sed 's/[^a-zA-Z0-9]/-/g')"
 
 rust_pid=""
 next_pid=""
+descendants() { # every process below pid $1
+  local k
+  for k in $(pgrep -P "$1" || true); do
+    echo "$k"
+    descendants "$k"
+  done
+}
+flushes() { pgrep -f "next/dist/telemetry/detached-flush.js dev $repo" | sort || true; }
+wait_gone() { # pids…: wait up to 10 s for them to exit
+  local left="$*" alive k
+  for _ in $(seq 1 100); do
+    [[ -z "$left" ]] && return 0
+    alive=""
+    for k in $left; do kill -0 "$k" 2>/dev/null && alive+=" $k"; done
+    left="${alive# }"
+    [[ -n "$left" ]] && sleep 0.1
+  done
+  return 0
+}
 cleanup() {
   local status=$?
   # claudius first: on SIGTERM it ends every session and waits for each CLI to
@@ -116,21 +135,32 @@ cleanup() {
     wait "$rust_pid" 2>/dev/null || true
   fi
   if [[ -n "$next_pid" ]]; then
+    # next dev's tree (next-server, Turbopack's worker pool) and the telemetry
+    # flush it spawns detached on exit (even with NEXT_TELEMETRY_DISABLED, it
+    # makes $HOME/Library/Preferences/nextjs-nodejs) outlive `wait`; the rm
+    # below must come after them, or they leave a stray world behind.
+    local tree old_flushes
+    tree=$(descendants "$next_pid")
+    old_flushes=$(flushes)
     pkill -P "$next_pid" 2>/dev/null || true # next dev's next-server child
     kill "$next_pid" 2>/dev/null || true
     wait "$next_pid" 2>/dev/null || true
+    # shellcheck disable=SC2086 # one pid per word
+    wait_gone $tree
+    # shellcheck disable=SC2086
+    wait_gone $(comm -13 <(echo "$old_flushes") <(flushes))
   fi
   # Guarded: only ever delete this run's own encoded temp project dir.
   if [[ "$encoded" == *claudius-live-* && -d "$config_dir/projects/$encoded" ]]; then
     rm -rf "${config_dir:?}/projects/$encoded"
     echo "cleaned up $config_dir/projects/$encoded"
   fi
-  if [[ $keep == 1 ]]; then
+  if [[ $keep == 1 || $status != 0 ]]; then
     echo "kept temp world: $world"
   else
     rm -rf "$world"
   fi
-  if [[ $status == 0 ]]; then echo "LIVE SMOKE PASSED"; else echo "LIVE SMOKE FAILED (exit $status) — logs: $world (rerun with --keep)" >&2; fi
+  if [[ $status == 0 ]]; then echo "LIVE SMOKE PASSED"; else echo "LIVE SMOKE FAILED (exit $status) — logs: $world" >&2; fi
 }
 trap cleanup EXIT
 

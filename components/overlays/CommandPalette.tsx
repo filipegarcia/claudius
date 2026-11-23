@@ -42,6 +42,7 @@ import {
 } from "@/lib/client/shortcuts";
 import { useKeydownBinding } from "@/lib/client/useKeydownBinding";
 import { useElectronAction } from "@/lib/client/useElectron";
+import { workspaceIdFromPathname } from "@/lib/shared/route-params";
 import { SLASH_COMMANDS } from "@/lib/shared/slash-commands";
 
 import { Overlay } from "./Overlay";
@@ -97,13 +98,6 @@ const GLOBAL_NAV: Array<{ label: string; path: string }> = [
   { label: "Release notes", path: "/release-notes" },
   { label: "Updater", path: "/updater" },
 ];
-
-const WORKSPACE_ID_RE = /^\/(wks_[a-f0-9]{12})(\/|$)/;
-
-function extractWorkspaceId(pathname: string): string | null {
-  const m = WORKSPACE_ID_RE.exec(pathname);
-  return m ? m[1] : null;
-}
 
 // ── Fuzzy match ──────────────────────────────────────────────────────────
 // Simple "every character of the query appears in the target in order"
@@ -189,7 +183,7 @@ export function CommandPalette() {
 
   // ── Items ──────────────────────────────────────────────────────────────
   const pathname = typeof window === "undefined" ? "" : window.location.pathname;
-  const workspaceId = useMemo(() => extractWorkspaceId(pathname), [pathname]);
+  const workspaceId = useMemo(() => workspaceIdFromPathname(pathname), [pathname]);
 
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];

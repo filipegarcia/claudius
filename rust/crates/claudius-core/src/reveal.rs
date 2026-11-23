@@ -59,6 +59,8 @@ pub fn reveal_on_host(abs_path: &str, is_dir: bool) -> Result<(), String> {
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
+        // The hook makes this a fork (see `prepare_fork`).
+        claudius_agent::prepare_fork();
         // SAFETY: setsid, fcntl and close are async-signal-safe and touch
         // no Rust state.
         unsafe {

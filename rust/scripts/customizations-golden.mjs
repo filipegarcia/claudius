@@ -2,9 +2,10 @@
 // Golden fixture for the customizations store and its routes (D13):
 // `lib/server/customizations-store.ts` behind `app/api/customizations/route.ts`
 // (GET; its POST is `bootstrapCustomization`, D14, and isn't recorded),
-// `[id]/route.ts` (GET/PATCH/DELETE), `[id]/select/route.ts` (the
-// `claudius.customization` cookie, which also clears `claudius.workspace`),
-// `[id]/publishes/route.ts` (GET) and `[id]/diff/route.ts` (GET:
+// `[id]/route.ts` (GET, which adds `srcDir`; PATCH; DELETE),
+// `[id]/select/route.ts` (the `claudius.customization` cookie, which also
+// clears `claudius.workspace`), `[id]/publishes/route.ts` (GET) and
+// `[id]/diff/route.ts` (GET:
 // `computeDiff` from lib/server/customization-publish.ts over the hash and
 // walk helpers of lib/server/customization-hash.ts).
 //
@@ -745,8 +746,25 @@ const STEPS = [
   FS.chmod(CR, 0o755),
 
   // ---- Ids that need encoding, and ids that climb out of the store.
-  seed([cust("cust a/b;c,=%"), cust(`cust_${cp(0xe9)}`), cust("-_.!~*'()"), cust("../escape"), cust("x/..")], []),
+  // GET's `srcDir` is `join(root, id, "src")`, so these also pin how the id
+  // is normalized into it; `cust_srcdir` already carries a `srcDir` key,
+  // which keeps its place (object spread) with the computed value.
+  seed(
+    [
+      cust("cust a/b;c,=%"),
+      cust(`cust_${cp(0xe9)}`),
+      cust("-_.!~*'()"),
+      cust("../escape"),
+      cust("x/.."),
+      cust("cust_srcdir", { srcDir: "stale", 7: 7, z: 1 }),
+    ],
+    [],
+  ),
   G(`${C}/${enc("cust a/b;c,=%")}`),
+  G(`${C}/${enc(`cust_${cp(0xe9)}`)}`),
+  G(`${C}/${enc("-_.!~*'()")}`),
+  G(`${C}/${enc("x/..")}`),
+  G(`${C}/cust_srcdir`),
   SEL(enc("cust a/b;c,=%")),
   SEL(enc(`cust_${cp(0xe9)}`)),
   SEL(enc("-_.!~*'()")),

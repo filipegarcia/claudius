@@ -165,6 +165,17 @@ pub(crate) enum Then {
     Sessions { op: u64, disk: bool },
     /// A status action's POST (U01i, `status.rs`).
     Status(crate::status::StatusThen),
+    /// `loadOlder`'s transcript page (U01h, `system_events.rs`), and the
+    /// `jumpToUuid` it pages for, if any.
+    Older(Option<crate::system_events::Jump>),
+    /// A todo action's POST (U01g, `task_events.rs`).
+    Todos(crate::task_events::TodosThen),
+    /// A transcript page `task_snapshot`'s orphan hunt asked for (U01g).
+    TaskPage(crate::task_events::TaskHunt),
+    /// `moveToActiveAccount`'s POST (U01n, `account.rs`).
+    Account,
+    /// A queue or send action's fetch (U01j, `queue.rs`).
+    Queue(crate::queue::QueueThen),
 }
 
 /// What runs after a `refreshSessions` settles.
@@ -206,8 +217,8 @@ pub struct ChatState {
     pub system_entries: Vec<SystemEntry>,
     /// U01h.
     pub running_hook: Value,
-    /// `runningHookIdRef` (U01h).
-    pub running_hook_id: Option<String>,
+    /// `runningHookIdRef`: `hook_started`'s `hook_id ?? null`, as sent.
+    pub running_hook_id: Value,
     pub needs_input: bool,
     pub tool_progress: JsRecord<ToolProgressInfo>,
     /// U01j.
@@ -280,7 +291,7 @@ pub struct ChatState {
     pub todos_stale: Value,
     pub todos_auto_cleared: Value,
     /// U01e.
-    pub recent_edits: Vec<Value>,
+    pub recent_edits: Vec<crate::user_events::RecentEdit>,
     pub background_bashes: JsRecord<BackgroundBash>,
     /// U01g.
     pub scheduled_loops: JsRecord<ScheduledLoop>,
@@ -355,7 +366,7 @@ impl ChatState {
             messages: Vec::new(),
             system_entries: Vec::new(),
             running_hook: Value::Null,
-            running_hook_id: None,
+            running_hook_id: Value::Null,
             needs_input: false,
             tool_progress: JsRecord::new(),
             queue: Vec::new(),

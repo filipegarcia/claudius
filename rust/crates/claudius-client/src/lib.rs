@@ -27,6 +27,7 @@
 //! as absent, instead of travelling on as a number or object. The CLI
 //! never writes one; the golden test lists each case where it shows.
 
+pub mod account;
 pub mod api_retry;
 pub mod apply;
 pub mod blocks;
@@ -43,6 +44,7 @@ pub mod messages;
 pub mod parse_init;
 pub mod prompt_queue;
 pub mod prompts;
+pub mod queue;
 pub mod refresh;
 pub mod sdk;
 pub mod sdk_filters;
@@ -51,9 +53,12 @@ pub mod state;
 pub mod status;
 pub mod stream_recovery;
 pub mod system_entries;
+pub mod system_events;
+pub mod task_events;
 pub mod task_status;
 mod text;
 pub mod types;
+pub mod user_events;
 pub mod workflow_meta;
 
 pub use env::{ClientEnv, FixedEnv, SystemEnv};

@@ -15,6 +15,9 @@
 //! `initializationResult()`, host request, `canUseTool` calls, replies and
 //! the error the stream ended with.
 
+#[path = "support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -246,7 +249,7 @@ fn options(
     calls: Option<Arc<Mutex<Vec<Value>>>>,
 ) -> Options {
     let mut opts = Options {
-        path_to_claude_code_executable: Some(PathBuf::from(env!(
+        path_to_claude_code_executable: Some(test_bins::private_copy(env!(
             "CARGO_BIN_EXE_claudius-fake-claude"
         ))),
         cwd: Some(dir.to_path_buf()),

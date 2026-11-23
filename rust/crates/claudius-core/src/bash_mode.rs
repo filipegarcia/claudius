@@ -514,6 +514,8 @@ impl Actor {
         }
         // `detached: true`: Node calls `setsid()`, so the shell leads its
         // own process group (killed as a group) with no controlling tty.
+        // The hook makes this a fork (see `prepare_fork`).
+        claudius_agent::prepare_fork();
         #[cfg(unix)]
         // SAFETY: setsid is async-signal-safe and touches no Rust state.
         unsafe {

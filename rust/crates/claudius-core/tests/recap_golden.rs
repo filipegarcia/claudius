@@ -7,6 +7,9 @@
 //! tool denial) are normalized and compared like `golden-wire.mjs` does.
 //! JS outputs are recorded without lone surrogates, plus their JS length.
 
+#[path = "../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -82,23 +85,7 @@ fn cap_recap_matches() {
 
 fn fake_cli() -> &'static PathBuf {
     static FAKE: OnceLock<PathBuf> = OnceLock::new();
-    FAKE.get_or_init(|| {
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = std::process::Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/claudius-fake-claude")
-    })
+    FAKE.get_or_init(test_bins::fake_claude)
 }
 
 /// `golden-wire.mjs`'s `norm`: the per-run temp dir becomes `$TMP`.

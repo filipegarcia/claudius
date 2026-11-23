@@ -143,7 +143,7 @@ const PROXY_VARS: [&str; 6] = [
 /// store's env exactly `env` (anything else about accounts removed).
 fn spawn(world: &World, base: &str, env: &Value) -> Server {
     let port = free_port();
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+    let mut cmd = Command::new(common::server_bin());
     cmd.args(["--port", &port.to_string(), "--no-next"])
         .current_dir(&world.project)
         .env_remove("RUST_LOG")

@@ -261,7 +261,7 @@ fn spawn(world: &World) -> Server {
     let mut child = Command::new("/bin/sh")
         .arg("-c")
         .arg("umask 022 && exec \"$0\" \"$@\"")
-        .arg(env!("CARGO_BIN_EXE_claudius"))
+        .arg(common::server_bin())
         .args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(world.path("no-such-claude"))
         .current_dir(world.path("project"))

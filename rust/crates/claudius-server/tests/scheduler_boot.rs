@@ -110,7 +110,7 @@ fn the_no_scheduler_flag_turns_it_off() {
     let file = seed(&world);
     let before = std::fs::read(&file).unwrap();
     let port = free_port();
-    let child = Command::new(env!("CARGO_BIN_EXE_claudius"))
+    let child = Command::new(common::server_bin())
         .args(["--port", &port.to_string(), "--no-next", "--no-scheduler"])
         .arg("--claude-bin")
         .arg(fake_bin())
@@ -140,7 +140,7 @@ fn the_flag_boots_it() {
     let file = seed(&world);
     let want = next_fire_after_in(CRON, None, now_ms(), None, Zone::Local).unwrap();
     let port = free_port();
-    let child = Command::new(env!("CARGO_BIN_EXE_claudius"))
+    let child = Command::new(common::server_bin())
         .args(["--port", &port.to_string(), "--no-next", "--scheduler"])
         .arg("--claude-bin")
         .arg(fake_bin())

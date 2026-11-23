@@ -6,37 +6,24 @@
 //! port no leaked listener holds.
 #![allow(dead_code)] // each test binary uses a different subset
 
+#[path = "../../../claudius-agent/tests/support/test_bins.rs"]
+mod test_bins;
+
 use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
-use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
-/// The fake CLI, built once per test process (I24). Even a no-op
-/// `cargo build` removes `target/debug/claudius-fake-claude` and copies it
-/// in again (a new inode), so a build per server spawn let another
-/// thread's exec of the fake fail with ENOENT or not launch (found by I22).
+/// The fake CLI: built once per test process (I24) and spawned from a copy
+/// no `cargo build` replaces (I35); see `claudius-agent/tests/support`.
 pub fn fake_bin() -> PathBuf {
-    static BIN: OnceLock<PathBuf> = OnceLock::new();
-    BIN.get_or_init(|| {
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let st = Command::new(cargo)
-            .args([
-                "build",
-                "-q",
-                "-p",
-                "claudius-agent",
-                "--bin",
-                "claudius-fake-claude",
-            ])
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .status()
-            .unwrap();
-        assert!(st.success());
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/claudius-fake-claude")
-    })
-    .clone()
+    test_bins::fake_claude()
+}
+
+/// The `claudius` binary to spawn: a copy no `cargo build` replaces (I36).
+pub fn server_bin() -> PathBuf {
+    test_bins::private_copy(env!("CARGO_BIN_EXE_claudius"))
 }
 
 /// A port for a server to bind next: the kernel's pick for a listener that
@@ -451,7 +438,7 @@ impl Server {
         env: &[(&str, &str)],
     ) -> Server {
         let port = free_port();
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+        let mut cmd = Command::new(server_bin());
         for (k, _) in std::env::vars_os() {
             let k = k.to_string_lossy();
             if k.starts_with("CLAUDE_")

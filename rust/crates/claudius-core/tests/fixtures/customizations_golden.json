@@ -2763,7 +2763,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"2\":2,\"10\":1,\"id\":\"cust_a00000000001\",\"name\":\"n 01\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"description\":\"d\",\"descriptionIsManual\":true}"
+    "body": "{\"2\":2,\"10\":1,\"id\":\"cust_a00000000001\",\"name\":\"n 01\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"description\":\"d\",\"descriptionIsManual\":true,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_a00000000001/src\"}"
    }
   },
   {
@@ -2774,7 +2774,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"cust_b00000000002\",\"name\":\"B é 😀\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"n\":100,\"f\":1,\"e\":1e+21,\"s\":5e-7}"
+    "body": "{\"id\":\"cust_b00000000002\",\"name\":\"B é 😀\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"n\":100,\"f\":1,\"e\":1e+21,\"s\":5e-7,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_b00000000002/src\"}"
    }
   },
   {
@@ -3126,7 +3126,7 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"2\":2,\"10\":1,\"id\":\"cust_a00000000001\",\"name\":\"Renamed\",\"createdAt\":1,\"updatedAt\":1700219000657,\"baseVersion\":\"0.3.299.0\",\"description\":\"d\",\"descriptionIsManual\":true}"
+    "body": "{\"2\":2,\"10\":1,\"id\":\"cust_a00000000001\",\"name\":\"Renamed\",\"createdAt\":1,\"updatedAt\":1700219000657,\"baseVersion\":\"0.3.299.0\",\"description\":\"d\",\"descriptionIsManual\":true,\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_a00000000001/src\"}"
    }
   },
   {
@@ -3770,7 +3770,7 @@
    "op": "fs",
    "act": "write",
    "path": "$ROOT/home/.claude/.claudius/customizations/index.json",
-   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust a/b;c,=%\",\n      \"name\": \"n =%\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_é\",\n      \"name\": \"n _é\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"-_.!~*'()\",\n      \"name\": \"n ()\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"../escape\",\n      \"name\": \"n pe\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"x/..\",\n      \"name\": \"n ..\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}"
+   "text": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust a/b;c,=%\",\n      \"name\": \"n =%\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_é\",\n      \"name\": \"n _é\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"-_.!~*'()\",\n      \"name\": \"n ()\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"../escape\",\n      \"name\": \"n pe\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"x/..\",\n      \"name\": \"n ..\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"7\": 7,\n      \"id\": \"cust_srcdir\",\n      \"name\": \"n ir\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\",\n      \"srcDir\": \"stale\",\n      \"z\": 1\n    }\n  ],\n  \"publishes\": []\n}"
   },
   {
    "op": "req",
@@ -3780,19 +3780,63 @@
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"cust a/b;c,=%\",\"name\":\"n =%\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\"}"
+    "body": "{\"id\":\"cust a/b;c,=%\",\"name\":\"n =%\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust a/b;c,=%/src\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_%C3%A9",
+   "clock": 1700258000774,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"id\":\"cust_é\",\"name\":\"n _é\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_é/src\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/-_.!~*'()",
+   "clock": 1700259000777,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"id\":\"-_.!~*'()\",\"name\":\"n ()\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/-_.!~*'()/src\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/x%2F..",
+   "clock": 1700260000780,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"id\":\"x/..\",\"name\":\"n ..\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/src\"}"
+   }
+  },
+  {
+   "op": "req",
+   "method": "GET",
+   "path": "/api/customizations/cust_srcdir",
+   "clock": 1700261000783,
+   "got": {
+    "status": 200,
+    "type": "application/json",
+    "body": "{\"7\":7,\"id\":\"cust_srcdir\",\"name\":\"n ir\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_srcdir/src\",\"z\":1}"
    }
   },
   {
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust%20a%2Fb%3Bc%2C%3D%25/select",
-   "clock": 1700258000774,
+   "clock": 1700262000786,
    "got": {
     "status": 200,
     "type": "application/json",
     "cookies": [
-     "claudius.customization=cust%20a%2Fb%3Bc%2C%3D%25; Path=/; Expires=Sat, 16 Nov 2024 21:53:20 GMT; Max-Age=31536000; SameSite=lax",
+     "claudius.customization=cust%20a%2Fb%3Bc%2C%3D%25; Path=/; Expires=Sat, 16 Nov 2024 23:00:00 GMT; Max-Age=31536000; SameSite=lax",
      "claudius.workspace=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
     ],
     "body": "{\"ok\":true,\"id\":\"cust a/b;c,=%\"}"
@@ -3802,12 +3846,12 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_%C3%A9/select",
-   "clock": 1700259000777,
+   "clock": 1700263000789,
    "got": {
     "status": 200,
     "type": "application/json",
     "cookies": [
-     "claudius.customization=cust_%C3%A9; Path=/; Expires=Sat, 16 Nov 2024 22:10:00 GMT; Max-Age=31536000; SameSite=lax",
+     "claudius.customization=cust_%C3%A9; Path=/; Expires=Sat, 16 Nov 2024 23:16:40 GMT; Max-Age=31536000; SameSite=lax",
      "claudius.workspace=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
     ],
     "body": "{\"ok\":true,\"id\":\"cust_é\"}"
@@ -3817,12 +3861,12 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/-_.!~*'()/select",
-   "clock": 1700260000780,
+   "clock": 1700264000792,
    "got": {
     "status": 200,
     "type": "application/json",
     "cookies": [
-     "claudius.customization=-_.!~*'(); Path=/; Expires=Sat, 16 Nov 2024 22:26:40 GMT; Max-Age=31536000; SameSite=lax",
+     "claudius.customization=-_.!~*'(); Path=/; Expires=Sat, 16 Nov 2024 23:33:20 GMT; Max-Age=31536000; SameSite=lax",
      "claudius.workspace=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
     ],
     "body": "{\"ok\":true,\"id\":\"-_.!~*'()\"}"
@@ -3832,7 +3876,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_%C3%A9/publishes",
-   "clock": 1700261000783,
+   "clock": 1700265000795,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -3849,18 +3893,18 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/..%2Fescape",
-   "clock": 1700262000786,
+   "clock": 1700266000798,
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"../escape\",\"name\":\"n pe\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\"}"
+    "body": "{\"id\":\"../escape\",\"name\":\"n pe\",\"createdAt\":1,\"updatedAt\":2,\"baseVersion\":\"0.3.299.0\",\"srcDir\":\"$ROOT/home/.claude/.claudius/escape/src\"}"
    }
   },
   {
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/..%2Fescape/diff",
-   "clock": 1700263000789,
+   "clock": 1700267000801,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -3871,13 +3915,13 @@
    "op": "req",
    "method": "DELETE",
    "path": "/api/customizations/..%2Fescape",
-   "clock": 1700264000792,
+   "clock": 1700268000804,
    "got": {
     "status": 200,
     "type": "application/json",
     "body": "{\"ok\":true}"
    },
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust a/b;c,=%\",\n      \"name\": \"n =%\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_é\",\n      \"name\": \"n _é\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"-_.!~*'()\",\n      \"name\": \"n ()\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"x/..\",\n      \"name\": \"n ..\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust a/b;c,=%\",\n      \"name\": \"n =%\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"cust_é\",\n      \"name\": \"n _é\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"-_.!~*'()\",\n      \"name\": \"n ()\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"id\": \"x/..\",\n      \"name\": \"n ..\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\"\n    },\n    {\n      \"7\": 7,\n      \"id\": \"cust_srcdir\",\n      \"name\": \"n ir\",\n      \"createdAt\": 1,\n      \"updatedAt\": 2,\n      \"baseVersion\": \"0.3.299.0\",\n      \"srcDir\": \"stale\",\n      \"z\": 1\n    }\n  ],\n  \"publishes\": []\n}\n",
    "tree": {
     "customizations": {
      "cust_a00000000001": {},
@@ -3895,7 +3939,7 @@
    "op": "req",
    "method": "DELETE",
    "path": "/api/customizations/x%2F..",
-   "clock": 1700265000795,
+   "clock": 1700269000807,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4237,7 +4281,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000001/diff",
-   "clock": 1700266000798,
+   "clock": 1700270000810,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4248,7 +4292,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000002/diff",
-   "clock": 1700267000801,
+   "clock": 1700271000813,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4259,7 +4303,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/missing/diff",
-   "clock": 1700268000804,
+   "clock": 1700272000816,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4276,7 +4320,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000003/diff",
-   "clock": 1700269000807,
+   "clock": 1700273000819,
    "got": {
     "status": 500,
     "type": "application/json",
@@ -4305,7 +4349,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000004/diff",
-   "clock": 1700270000810,
+   "clock": 1700274000822,
    "got": {
     "status": 500,
     "type": "application/json",
@@ -4340,7 +4384,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000005/diff",
-   "clock": 1700271000813,
+   "clock": 1700275000825,
    "got": {
     "status": 500,
     "type": "application/json",
@@ -4363,7 +4407,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000006/diff",
-   "clock": 1700272000816,
+   "clock": 1700276000828,
    "got": {
     "status": 500,
     "type": "application/json",
@@ -4380,7 +4424,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000007/diff",
-   "clock": 1700273000819,
+   "clock": 1700277000831,
    "got": {
     "status": 500,
     "type": "application/json",
@@ -4397,7 +4441,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000008/diff",
-   "clock": 1700274000822,
+   "clock": 1700278000834,
    "got": {
     "status": 500,
     "type": "application/json",
@@ -4419,7 +4463,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000009/diff",
-   "clock": 1700275000825,
+   "clock": 1700279000837,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4435,7 +4479,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_000000000010/diff",
-   "clock": 1700276000828,
+   "clock": 1700280000840,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4452,7 +4496,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700277000831,
+   "clock": 1700281000843,
    "got": {
     "threw": "Unexpected end of JSON input"
    }
@@ -4461,7 +4505,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700278000834,
+   "clock": 1700282000846,
    "got": {
     "threw": "Unexpected end of JSON input"
    }
@@ -4471,7 +4515,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700279000837,
+   "clock": 1700283000849,
    "got": {
     "threw": "Unexpected end of JSON input"
    }
@@ -4480,7 +4524,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700280000840,
+   "clock": 1700284000852,
    "got": {
     "threw": "Unexpected end of JSON input"
    }
@@ -4489,7 +4533,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700281000843,
+   "clock": 1700285000855,
    "got": {
     "threw": "Unexpected end of JSON input"
    }
@@ -4498,7 +4542,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700282000846,
+   "clock": 1700286000858,
    "got": {
     "threw": "Unexpected end of JSON input"
    }
@@ -4513,7 +4557,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700283000849,
+   "clock": 1700287000861,
    "got": {
     "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
    }
@@ -4522,7 +4566,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700284000852,
+   "clock": 1700288000864,
    "got": {
     "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
    }
@@ -4532,7 +4576,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700285000855,
+   "clock": 1700289000867,
    "got": {
     "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
    }
@@ -4541,7 +4585,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700286000858,
+   "clock": 1700290000870,
    "got": {
     "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
    }
@@ -4550,7 +4594,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700287000861,
+   "clock": 1700291000873,
    "got": {
     "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
    }
@@ -4559,7 +4603,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700288000864,
+   "clock": 1700292000876,
    "got": {
     "threw": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
    }
@@ -4574,7 +4618,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700289000867,
+   "clock": 1700293000879,
    "got": {
     "threw": "Cannot read properties of null (reading 'version')"
    }
@@ -4583,7 +4627,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700290000870,
+   "clock": 1700294000882,
    "got": {
     "threw": "Cannot read properties of null (reading 'version')"
    }
@@ -4593,7 +4637,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700291000873,
+   "clock": 1700295000885,
    "got": {
     "threw": "Cannot read properties of null (reading 'version')"
    }
@@ -4602,7 +4646,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700292000876,
+   "clock": 1700296000888,
    "got": {
     "threw": "Cannot read properties of null (reading 'version')"
    }
@@ -4611,7 +4655,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700293000879,
+   "clock": 1700297000891,
    "got": {
     "threw": "Cannot read properties of null (reading 'version')"
    }
@@ -4620,7 +4664,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700294000882,
+   "clock": 1700298000894,
    "got": {
     "threw": "Cannot read properties of null (reading 'version')"
    }
@@ -4635,7 +4679,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700295000885,
+   "clock": 1700299000897,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4646,7 +4690,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700296000888,
+   "clock": 1700300000900,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4658,7 +4702,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700297000891,
+   "clock": 1700301000903,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4669,7 +4713,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700298000894,
+   "clock": 1700302000906,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4683,7 +4727,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700299000897,
+   "clock": 1700303000909,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4694,7 +4738,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700300000900,
+   "clock": 1700304000912,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4711,7 +4755,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700301000903,
+   "clock": 1700305000915,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4722,7 +4766,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700302000906,
+   "clock": 1700306000918,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4734,7 +4778,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700303000909,
+   "clock": 1700307000921,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4745,7 +4789,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700304000912,
+   "clock": 1700308000924,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4759,7 +4803,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700305000915,
+   "clock": 1700309000927,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4770,7 +4814,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700306000918,
+   "clock": 1700310000930,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4787,7 +4831,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700307000921,
+   "clock": 1700311000933,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4798,7 +4842,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700308000924,
+   "clock": 1700312000936,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4810,7 +4854,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700309000927,
+   "clock": 1700313000939,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4821,7 +4865,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700310000930,
+   "clock": 1700314000942,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4835,7 +4879,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700311000933,
+   "clock": 1700315000945,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4846,7 +4890,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700312000936,
+   "clock": 1700316000948,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4863,7 +4907,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700313000939,
+   "clock": 1700317000951,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4874,7 +4918,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700314000942,
+   "clock": 1700318000954,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4886,7 +4930,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700315000945,
+   "clock": 1700319000957,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4897,7 +4941,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700316000948,
+   "clock": 1700320000960,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4911,7 +4955,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700317000951,
+   "clock": 1700321000963,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4922,7 +4966,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700318000954,
+   "clock": 1700322000966,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4939,7 +4983,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700319000957,
+   "clock": 1700323000969,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -4950,7 +4994,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700320000960,
+   "clock": 1700324000972,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4962,7 +5006,7 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700321000963,
+   "clock": 1700325000975,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4973,7 +5017,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700322000966,
+   "clock": 1700326000978,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4987,7 +5031,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700323000969,
+   "clock": 1700327000981,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -4998,7 +5042,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700324000972,
+   "clock": 1700328000984,
    "got": {
     "status": 404,
     "type": "application/json",
@@ -5015,7 +5059,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700325000975,
+   "clock": 1700329000987,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -5026,11 +5070,11 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700326000978,
+   "clock": 1700330000990,
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"cust_f1\",\"name\":\"one\"}"
+    "body": "{\"id\":\"cust_f1\",\"name\":\"one\",\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_f1/src\"}"
    }
   },
   {
@@ -5038,24 +5082,24 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700327000981,
+   "clock": 1700331000993,
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"cust_f1\",\"name\":\"p\",\"updatedAt\":1700327000981}"
+    "body": "{\"id\":\"cust_f1\",\"name\":\"p\",\"updatedAt\":1700331000993}"
    },
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_f1\",\n      \"name\": \"p\",\n      \"updatedAt\": 1700327000981\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"p\",\n      \"customizationId\": \"cust_f1\"\n    }\n  ]\n}\n"
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_f1\",\n      \"name\": \"p\",\n      \"updatedAt\": 1700331000993\n    }\n  ],\n  \"publishes\": [\n    {\n      \"id\": \"p\",\n      \"customizationId\": \"cust_f1\"\n    }\n  ]\n}\n"
   },
   {
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700328000984,
+   "clock": 1700332000996,
    "got": {
     "status": 200,
     "type": "application/json",
     "cookies": [
-     "claudius.customization=cust_f1; Path=/; Expires=Sun, 17 Nov 2024 17:20:00 GMT; Max-Age=31536000; SameSite=lax",
+     "claudius.customization=cust_f1; Path=/; Expires=Sun, 17 Nov 2024 18:26:40 GMT; Max-Age=31536000; SameSite=lax",
      "claudius.workspace=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
     ],
     "body": "{\"ok\":true,\"id\":\"cust_f1\"}"
@@ -5065,7 +5109,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700329000987,
+   "clock": 1700333000999,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -5076,7 +5120,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700330000990,
+   "clock": 1700334001002,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -5093,7 +5137,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700331000993,
+   "clock": 1700335001005,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -5104,11 +5148,11 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700332000996,
+   "clock": 1700336001008,
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"cust_f1\",\"name\":\"\\ud83dx\"}"
+    "body": "{\"id\":\"cust_f1\",\"name\":\"\\ud83dx\",\"srcDir\":\"$ROOT/home/.claude/.claudius/customizations/cust_f1/src\"}"
    }
   },
   {
@@ -5116,24 +5160,24 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"p\"}",
-   "clock": 1700333000999,
+   "clock": 1700337001011,
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"cust_f1\",\"name\":\"p\",\"updatedAt\":1700333000999}"
+    "body": "{\"id\":\"cust_f1\",\"name\":\"p\",\"updatedAt\":1700337001011}"
    },
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_f1\",\n      \"name\": \"p\",\n      \"updatedAt\": 1700333000999\n    }\n  ],\n  \"publishes\": []\n}\n"
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_f1\",\n      \"name\": \"p\",\n      \"updatedAt\": 1700337001011\n    }\n  ],\n  \"publishes\": []\n}\n"
   },
   {
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700334001002,
+   "clock": 1700338001014,
    "got": {
     "status": 200,
     "type": "application/json",
     "cookies": [
-     "claudius.customization=cust_f1; Path=/; Expires=Sun, 17 Nov 2024 19:00:01 GMT; Max-Age=31536000; SameSite=lax",
+     "claudius.customization=cust_f1; Path=/; Expires=Sun, 17 Nov 2024 20:06:41 GMT; Max-Age=31536000; SameSite=lax",
      "claudius.workspace=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
     ],
     "body": "{\"ok\":true,\"id\":\"cust_f1\"}"
@@ -5143,7 +5187,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/publishes",
-   "clock": 1700335001005,
+   "clock": 1700339001017,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -5154,7 +5198,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700336001008,
+   "clock": 1700340001020,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -5165,7 +5209,7 @@
    "op": "req",
    "method": "DELETE",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700337001011,
+   "clock": 1700341001023,
    "got": {
     "status": 200,
     "type": "application/json",
@@ -5183,7 +5227,7 @@
    "op": "req",
    "method": "DELETE",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700338001014,
+   "clock": 1700342001026,
    "got": {
     "threw": "Cannot read properties of null (reading 'version')"
    }
@@ -5198,7 +5242,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700339001017,
+   "clock": 1700343001029,
    "got": {
     "threw": "Unexpected token '﻿', \"﻿{\"version\"... is not valid JSON"
    }
@@ -5217,7 +5261,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700340001020,
+   "clock": 1700344001032,
    "got": {
     "threw": "EISDIR: illegal operation on a directory, read"
    }
@@ -5226,7 +5270,7 @@
    "op": "req",
    "method": "POST",
    "path": "/api/customizations/cust_f1/select",
-   "clock": 1700341001023,
+   "clock": 1700345001035,
    "got": {
     "threw": "EISDIR: illegal operation on a directory, read"
    }
@@ -5252,7 +5296,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700342001026,
+   "clock": 1700346001038,
    "got": {
     "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customizations/index.json'"
    }
@@ -5261,7 +5305,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1/diff",
-   "clock": 1700343001029,
+   "clock": 1700347001041,
    "got": {
     "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customizations/index.json'"
    }
@@ -5283,9 +5327,9 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"read-only\"}",
-   "clock": 1700344001032,
+   "clock": 1700348001044,
    "got": {
-    "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customizations/index.json.$PID.1700344001032.tmp'"
+    "threw": "EACCES: permission denied, open '$ROOT/home/.claude/.claudius/customizations/index.json.$PID.1700348001044.tmp'"
    }
   },
   {
@@ -5316,13 +5360,13 @@
    "method": "PATCH",
    "path": "/api/customizations/cust_f1",
    "body": "{\"name\":\"through the link\"}",
-   "clock": 1700345001035,
+   "clock": 1700349001047,
    "got": {
     "status": 200,
     "type": "application/json",
-    "body": "{\"id\":\"cust_f1\",\"name\":\"through the link\",\"createdAt\":1,\"updatedAt\":1700345001035,\"baseVersion\":\"0.3.299.0\"}"
+    "body": "{\"id\":\"cust_f1\",\"name\":\"through the link\",\"createdAt\":1,\"updatedAt\":1700349001047,\"baseVersion\":\"0.3.299.0\"}"
    },
-   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_f1\",\n      \"name\": \"through the link\",\n      \"createdAt\": 1,\n      \"updatedAt\": 1700345001035,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
+   "index": "{\n  \"version\": 1,\n  \"customizations\": [\n    {\n      \"id\": \"cust_f1\",\n      \"name\": \"through the link\",\n      \"createdAt\": 1,\n      \"updatedAt\": 1700349001047,\n      \"baseVersion\": \"0.3.299.0\"\n    }\n  ],\n  \"publishes\": []\n}\n",
    "tree": {
     "customizations": {
      "cust_000000000001": {
@@ -5481,7 +5525,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700346001038,
+   "clock": 1700350001050,
    "got": {
     "threw": "ENOTDIR: not a directory, open '$ROOT/home/.claude/.claudius/customizations/index.json'"
    }
@@ -5490,7 +5534,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations/cust_f1",
-   "clock": 1700347001041,
+   "clock": 1700351001053,
    "got": {
     "threw": "ENOTDIR: not a directory, open '$ROOT/home/.claude/.claudius/customizations/index.json'"
    }
@@ -5504,7 +5548,7 @@
    "op": "req",
    "method": "GET",
    "path": "/api/customizations",
-   "clock": 1700348001044,
+   "clock": 1700352001056,
    "got": {
     "status": 200,
     "type": "application/json",

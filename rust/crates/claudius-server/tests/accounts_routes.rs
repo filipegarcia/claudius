@@ -178,7 +178,7 @@ fn headers(v: &Value) -> Vec<(String, String)> {
 fn spawn(world: &World, base: &str, env: &Value, log: &Path) -> Server {
     let port = free_port();
     let out = std::fs::File::create(log).unwrap();
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+    let mut cmd = Command::new(common::server_bin());
     cmd.args(["--port", &port.to_string(), "--no-next"])
         .current_dir(&world.project)
         .env("RUST_LOG", "debug")
@@ -213,7 +213,7 @@ fn fake() -> &'static Path {
 /// sessions get no CLI).
 fn spawn_cli(world: &World, claude_bin: &Path, script: Option<&str>) -> Server {
     let port = free_port();
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_claudius"));
+    let mut cmd = Command::new(common::server_bin());
     cmd.args(["--port", &port.to_string(), "--no-next", "--claude-bin"])
         .arg(claude_bin)
         .current_dir(&world.project)

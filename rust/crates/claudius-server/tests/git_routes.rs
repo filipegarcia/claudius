@@ -98,7 +98,7 @@ impl World {
 
     fn server(&self, path_var: &str) -> Server {
         let port = free_port();
-        let child = Command::new(env!("CARGO_BIN_EXE_claudius"))
+        let child = Command::new(common::server_bin())
             .args(["--port", &port.to_string(), "--no-next"])
             .current_dir(self.path("servercwd"))
             .env_clear()

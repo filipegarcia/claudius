@@ -99,9 +99,18 @@ async fn list() -> Response {
 
 // ---- /api/customizations/:id ------------------------------------------------------
 
+/// `{ ...c, srcDir: customizationSrcDir(id) }` (N03a): the customization chat
+/// is a client page and reads its cwd from here. A match is always an
+/// object (`c.id === id`); a `srcDir` key it already has keeps its place.
 async fn get_one(Path(id): Path<String>) -> Response {
-    match existing(&Store::from_env(), &id, "/[id]") {
-        Ok(c) => json_text(StatusCode::OK, &c),
+    let store = Store::from_env();
+    match existing(&store, &id, "/[id]") {
+        Ok(mut c) => {
+            if let Value::Object(m) = &mut c {
+                m.insert("srcDir".into(), json!(store.customization_src_dir(&id)));
+            }
+            json_text(StatusCode::OK, &c)
+        }
         Err(r) => *r,
     }
 }

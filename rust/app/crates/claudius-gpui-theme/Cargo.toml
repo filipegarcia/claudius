@@ -1,0 +1,24 @@
+[package]
+name = "claudius-gpui-theme"
+description = "The gpui-component Theme of the native UI, built from claudius-theme's design tokens: the seven data-theme palettes, code highlighting, fonts, icons and sizes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+claudius-theme.workspace = true
+gpui-kit.workspace = true
+# gpui-component's theme types (`ThemeConfig`, the highlight styles) are built
+# from their theme-file form.
+serde_json.workspace = true
+
+[dev-dependencies]
+# `TestAppContext` and `#[gpui_kit::test]`: the theme applied in a headless app.
+gpui = { package = "gpui-pre", version = "=0.3.12", features = ["test-support"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+# gpui's CoreText text system, for the font tests: `TestAppContext`'s
+# default text system has no fonts. Already in the tree (gpui-pre-macos).
+gpui_apple = { package = "gpui-pre-apple", version = "=0.3.12", features = ["font-kit"] }
