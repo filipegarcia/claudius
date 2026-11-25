@@ -6,6 +6,7 @@ import { FolderPlus, Radio, LogIn, Loader2 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import { WorkspaceForm } from "@/components/workspaces/WorkspaceForm";
+import { SignInErrorText } from "@/components/accounts/SignInErrorText";
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 
 /**
@@ -38,6 +39,8 @@ export function WelcomeSplash() {
   const [oauthCode, setOauthCode] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  // CC 2.1.330 — the appeal link inside an on-hold sign-in error, if any.
+  const [loginAppealUrl, setLoginAppealUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/accounts")
@@ -84,8 +87,11 @@ export function WelcomeSplash() {
           label: "", // server derives label from the email returned by the token exchange
         }),
       });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Sign-in failed");
+      const data = (await res.json()) as { error?: string; appealUrl?: string };
+      if (!res.ok) {
+        setLoginAppealUrl(typeof data.appealUrl === "string" ? data.appealUrl : null);
+        throw new Error(data.error ?? "Sign-in failed");
+      }
       setHasAccounts(true);
       setOauthFlow(null);
       setOauthCode("");
@@ -156,7 +162,11 @@ export function WelcomeSplash() {
                 )}
                 Sign in with Claude
               </button>
-              {loginError && <p className="mt-2 text-xs text-red-400">{loginError}</p>}
+              {loginError && (
+                <p className="mt-2 text-xs text-red-400" data-testid="welcome-login-error">
+                  <SignInErrorText message={loginError} appealUrl={loginAppealUrl} />
+                </p>
+              )}
             </div>
           )}
 
@@ -211,7 +221,11 @@ export function WelcomeSplash() {
                   Cancel
                 </button>
               </div>
-              {loginError && <p className="mt-2 text-xs text-red-400">{loginError}</p>}
+              {loginError && (
+                <p className="mt-2 text-xs text-red-400" data-testid="welcome-login-error">
+                  <SignInErrorText message={loginError} appealUrl={loginAppealUrl} />
+                </p>
+              )}
             </div>
           )}
 

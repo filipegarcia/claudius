@@ -1,6 +1,7 @@
 "use client";
 
 import { nonExecutionKindOf, USER_REJECTED_KIND } from "@/lib/shared/user-rejected-stamp";
+import type { WebFetchStatus } from "@/lib/shared/web-fetch-outcome";
 import { evictSupersededFromRecord, evictSupersededMessages, supersededUuidsOf } from "@/lib/client/evict-superseded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionStartConnectionLost, sessionStartHttpError } from "@/lib/shared/session-start-error";
@@ -14,7 +15,7 @@ import {
   type SkippedBoot,
 } from "@/lib/client/boot-guard";
 import { usePathname } from "next/navigation";
-import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
+import type { PermissionMode, SDKStartupFailureReason } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AuthFailedNudgeEvent,
   CreateSessionRequest,
@@ -37,7 +38,13 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
-import { readCronNextFireAt, readEndedLoopWakeup } from "@/lib/shared/session-loops";
+import {
+  isForkedCopy,
+  readCronMaxAgeMs,
+  readCronNextFireAt,
+  readCronRecurring,
+  readEndedLoopWakeup,
+} from "@/lib/shared/session-loops";
 import {
   OPUS48_FAST_DEPRECATION_KEY,
   isFastModeCreditsRejectedNotice,
@@ -52,7 +59,12 @@ import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { clearPendingMessages } from "./clear-pending";
 import { ADVISOR_ACTIVE_SENTINEL, prettyModelName } from "@/lib/shared/advisor";
-import { matchesUsageLimitPrefix, modelRequiringCreditsFromText } from "@/lib/shared/rate-limit-prefixes";
+import {
+  isCreditsExhaustedText,
+  isSyntheticApiMessage,
+  matchesUsageLimitPrefix,
+  modelRequiringCreditsFromText,
+} from "@/lib/shared/rate-limit-prefixes";
 import {
   isCompactSummaryContent,
   isImageResizeNoteContent,
@@ -63,6 +75,8 @@ import {
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
+import { taskNotificationNotice } from "./task-notification-notice";
+import type { SpinnerVerbs } from "@/lib/shared/spinner-verbs";
 import { splitLeadingSystemReminders, stripGoalReminder } from "@/lib/shared/user-prompt";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import { dropPrompt, enqueuePrompt, mergeServerPrompts } from "./prompt-queue";
@@ -243,6 +257,19 @@ export function isRateLimitHitText(blocks: DisplayBlock[]): boolean {
 }
 
 /**
+ * CC 2.1.332 — "Fixed replies that start with phrases like "You've used" or
+ * "You've hit your" showing as a red usage limit error". The rate-limit panel
+ * is for the engine's synthetic API-error message only: `error: "rate_limit"`
+ * live, else the limit prose on a message `isSyntheticApiMessage` accepts
+ * (`message.model: "<synthetic>"` survives replay and pagination). Used by the
+ * live/replay `applyEvent` branch and `synthesizeOlder`. Exported for testing.
+ */
+export function isRateLimitHitMessage(msg: unknown, blocks: DisplayBlock[]): boolean {
+  if ((msg as { error?: unknown } | null)?.error === "rate_limit") return true;
+  return isSyntheticApiMessage(msg) && isRateLimitHitText(blocks);
+}
+
+/**
  * Best-effort map the CLI's prose limit label onto the SDK's `rateLimitType`
  * so the inline hit panel can show a meaningful tier headline on the replay
  * path (where the structured payload is gone). Returns undefined when the
@@ -320,7 +347,12 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.327 — as managed_settings_not_delivered, for `--initialize-fields` and the settings / disallowedTools it names.
   initialize_fields_not_delivered:
     "the settings or disallowed-tools fields the session process was told to read from its initialize request could not be delivered — restart the session",
-};
+  // SDK 0.3.331 — managed `disableSideloadFlags` refused a launch that names its own plugins, agents or MCP servers.
+  sideload_flags_disabled:
+    "your organization's managed settings (disableSideloadFlags) don't allow this session to load its own plugins, agents or MCP servers — remove them or ask your administrator",
+  // `satisfies` makes a reason the SDK adds (or renames) a type error here, so an
+  // SDK bump can't leave the banner showing a raw reason code.
+} satisfies Record<SDKStartupFailureReason, string>;
 
 /**
  * Detect the Opus-4 high-demand banner the Anthropic backend emits as
@@ -428,6 +460,17 @@ export function rateLimitHitFromBlocks(
   const creditsModel = modelRequiringCreditsFromText(text);
   if (creditsModel) {
     const hit: NonNullable<DisplayMessage["rateLimitHit"]> = { modelNeedsCredits: creditsModel };
+    if (typeof last?.canUserPurchaseCredits === "boolean") hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
+    if (subscriptionType) hit.subscriptionType = subscriptionType;
+    return hit;
+  }
+  // CC 2.1.328 — "Fixed the error shown when usage credits run out
+  // mid-response, which named a rate limit". "You're out of usage credits…"
+  // is not a plan window either: no tier or countdown from an earlier
+  // rate_limit_event (the prose already prints any reset), just the
+  // buy-credits / ask-your-admin next step.
+  if (isCreditsExhaustedText(text)) {
+    const hit: NonNullable<DisplayMessage["rateLimitHit"]> = { creditsExhausted: true };
     if (typeof last?.canUserPurchaseCredits === "boolean") hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
     if (subscriptionType) hit.subscriptionType = subscriptionType;
     return hit;
@@ -540,8 +583,11 @@ export function buildSubagentMessages(
     } else if (m.type === "user") {
       const uuid = m.uuid ?? crypto.randomUUID();
       if (seenUserUuids.has(uuid)) continue;
-      let text = "";
       const content = m.message?.content;
+      // Same filter as the live subagent branch: a background task's
+      // <task-notification> wake-up isn't a prompt to show in the trail.
+      if (isSyntheticTaskNotification(content)) continue;
+      let text = "";
       if (typeof content === "string") text = content;
       else if (Array.isArray(content)) {
         for (const c of content as Array<{ type?: string; text?: string }>) {
@@ -830,6 +876,7 @@ export function extractToolResult(
   detached?: boolean;
   notRun?: boolean;
   rejected?: boolean;
+  fetchStatus?: WebFetchStatus;
 } | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
@@ -844,6 +891,11 @@ export function extractToolResult(
       const tur = toolUseResult && typeof toolUseResult === "object" ? (toolUseResult as Record<string, unknown>) : null;
       const staged = tur?.staged === true;
       const detached = tur?.detachedToolCall === true;
+      // CC 2.1.332 — WebFetch's HTTP status (`WebFetchOutput.code`/`codeText`).
+      const fetchStatus =
+        typeof tur?.code === "number" && typeof tur.codeText === "string"
+          ? { code: tur.code, codeText: tur.codeText }
+          : undefined;
       const kind = tr.is_error === true ? notRunKind(toolResultMeta, tr.tool_use_id) : null;
       return {
         tool_use_id: tr.tool_use_id,
@@ -851,6 +903,7 @@ export function extractToolResult(
         isError: tr.is_error,
         ...(staged ? { staged } : {}),
         ...(detached ? { detached } : {}),
+        ...(fetchStatus ? { fetchStatus } : {}),
         ...(kind ? { notRun: true } : {}),
         ...(kind === USER_REJECTED_KIND ? { rejected: true } : {}),
       };
@@ -1131,6 +1184,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
   const [tips, setTips] = useState<Tip[]>([]);
+  // CC 2.1.332 — the `spinnerVerbs` setting, carried on the same `tips` frame.
+  const [spinnerVerbs, setSpinnerVerbs] = useState<SpinnerVerbs | null>(null);
   // "Where were we?" recap banner state. Driven by `session_recap` /
   // `session_recap_error` SSE events; cleared on the next user send.
   // Live-only on the wire: the server skips replay so a stale recap never
@@ -1885,6 +1940,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setOpusOverloadNudge(null);
     setApiRetry(null);
     setTips([]);
+    setSpinnerVerbs(null);
     // Reset recap state to idle on session switch — a recap belongs to the
     // session it was generated against, not the next one.
     setSessionRecap({
@@ -2443,6 +2499,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "tips") {
         setTips(ev.tips);
+        setSpinnerVerbs(ev.spinnerVerbs ?? null);
         return;
       }
       if (ev.type === "queue:updated") {
@@ -3048,7 +3105,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // `synthesizeOlder` pagination — and only the message reaches them all.
         const assistantError = (msg as { error?: string }).error;
         const rateLimitHit =
-          assistantError === "rate_limit" || isRateLimitHitText(blocks)
+          isRateLimitHitMessage(msg, blocks)
             ? rateLimitHitFromBlocks(
                 blocks,
                 lastRateLimitInfoRef.current,
@@ -3293,8 +3350,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                   humanSchedule: null,
                   delaySeconds: null,
                   prompt,
-                  recurring: inp.recurring === true,
+                  // CronCreateInput.recurring: "true (default)" — omitted means recurring.
+                  recurring: inp.recurring !== false,
                   durable: false,
+                  // CC 2.1.330 — copied from a fork's source session: that
+                  // session's loop, not this one's (see `isForkedCopy`).
+                  ...(isForkedCopy(msg) ? { inherited: true } : {}),
                   // Anchor to when the loop was originally armed (the
                   // SSE event's `at` is the JSONL timestamp on replay,
                   // or the live broadcast time otherwise). Using
@@ -3401,6 +3462,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // `trackScheduledLoops` for the matching logic).
                 startedAt: ev.at ?? Date.now(),
                 ...(noop ? { noop: true, noopStreak } : {}),
+                // CC 2.1.330 — a wake-up copied from a fork's source session.
+                ...(isForkedCopy(msg) ? { inherited: true } : {}),
               };
               next[b.id] = entry;
               return next;
@@ -3673,6 +3736,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             detached: result.detached,
             notRun: result.notRun,
             rejected: result.rejected,
+            fetchStatus: result.fetchStatus,
           };
           setMessages((prev) =>
             prev.map((m) => ({
@@ -3824,7 +3888,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           //
           //   "Scheduled recurring job 1545ddb6 (Every minute). Session-only
           //    (not written to disk, dies when Claude exits). Auto-expires
-          //    after 7 days. Use CronDelete to cancel sooner."
+          //    after 30 days. Use CronDelete to cancel sooner."
+          //
+          // (CC 2.1.330 raised that from 7 days; jobs made before still say 7.)
           //
           // If parsing fails (text shape changes), we leave the pending
           // entry in place keyed by tool_use_id — visible but with a
@@ -3842,13 +3908,20 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             const humanSchedule = idMatch?.[2] ?? null;
             const durable = !/session[- ]only/i.test(result.text);
             // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
-            const nextFireAt = readCronNextFireAt((msg as { tool_use_result?: unknown }).tool_use_result);
+            const toolUseResult = (msg as { tool_use_result?: unknown }).tool_use_result;
+            const nextFireAt = readCronNextFireAt(toolUseResult);
+            // CC 2.1.330 / SDK 0.3.332 — whether it repeats and when a
+            // recurring job ends. Same reads as the server — keep in sync.
+            const recurring = readCronRecurring(toolUseResult, result.text) ?? pending.recurring;
+            const maxAgeMs = recurring ? readCronMaxAgeMs(toolUseResult, result.text) : undefined;
             const promoted: ScheduledLoop = {
               ...pending,
               id: cronId,
               humanSchedule,
               durable,
+              recurring,
               ...(nextFireAt !== undefined ? { nextFireAt } : {}),
+              ...(maxAgeMs !== undefined ? { maxAgeMs } : {}),
             };
             const copy = { ...prev };
             delete copy[result.tool_use_id];
@@ -3893,6 +3966,11 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // Subagent user-shaped message (typically the spawning prompt). Route to subagent.
         if (parent && inner) {
           const content = inner.content;
+          // When a subagent's background task finishes, the engine wakes the
+          // subagent with a parented <task-notification> wrapper. Drop it here
+          // like the top-level filter below does — it's model context, not a
+          // prompt, and the trail would otherwise show raw XML.
+          if (isSyntheticTaskNotification(content)) return;
           let text = "";
           if (typeof content === "string") text = content;
           else if (Array.isArray(content)) {
@@ -3984,7 +4062,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // for the model, not user-authored prose, and rendering them as a
           // user bubble surfaces XML the user didn't write. The matching
           // system `task_notification` event still updates the TaskBlock UI.
-          if (isSyntheticTaskNotification(content)) return;
+          if (isSyntheticTaskNotification(content)) {
+            // CC 2.1.332 — "[VSCode] Fixed the chat showing no notice when a
+            // background command, agent, workflow or monitor finished while
+            // Claude was idle". A finished task's wrapper becomes a pill with
+            // its summary (the bubble itself stays dropped).
+            const notice = taskNotificationNotice(content);
+            if (notice) {
+              const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
+              const anchor = lastAssistantUuidRef.current;
+              setSystemEntries((prev) => {
+                if (prev.some((e) => e.uuid === uuid)) return prev;
+                return [...prev, { uuid, afterMessageUuid: anchor, kind: "info", label: notice }];
+              });
+            }
+            return;
+          }
           // Same idea for SDK-handled slash commands replayed from disk: a
           // prior `/compact` lives on in the JSONL as a user message, and
           // re-rendering it as user prose would re-introduce the echo bug on
@@ -4885,16 +4978,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           const { hidden, infoLevel } = classifyInformationalLevel(inf.level, inf.prevent_continuation);
           if (hidden) return;
           if (content) {
-            setSystemEntries((prev) => [
-              ...prev,
-              {
-                ...baseEntry,
-                kind: "info",
-                label: content,
-                detail: inf.prevent_continuation ? "blocked" : undefined,
-                ...(infoLevel ? { infoLevel } : {}),
-              },
-            ]);
+            setSystemEntries((prev) =>
+              // CC 2.1.327 — a stitched reconnect can replay the same message
+              // (e.g. the resume-gap warning); keep one entry per uuid.
+              typeof baseEntry.uuid === "string" && baseEntry.uuid && prev.some((e) => e.uuid === baseEntry.uuid)
+                ? prev
+                : [
+                    ...prev,
+                    {
+                      ...baseEntry,
+                      kind: "info",
+                      label: content,
+                      detail: inf.prevent_continuation ? "blocked" : undefined,
+                      ...(infoLevel ? { infoLevel } : {}),
+                    },
+                  ],
+            );
           }
           return;
         }
@@ -6354,18 +6453,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     // CC 2.1.314 — a refused switch (409) leaves the session in the mode it
     // was in. Show that mode and say so, unless a newer pick superseded this
     // request or the user moved to another session meanwhile.
-    if (!res || res.status !== 409) return;
+    // SDK 0.3.332 — a 200 with `substituted`: the engine took the switch but
+    // landed in another mode. Same notice slot, its own wording.
+    if (!res || (res.status !== 409 && !res.ok)) return;
     const body = (await res.json().catch(() => null)) as {
       mode?: PermissionMode;
       refused?: { requested?: PermissionMode; reason?: string };
+      substituted?: { requested?: PermissionMode };
     } | null;
     if (!body?.mode || req !== permissionModeReqRef.current || sessionIdRef.current !== id) return;
+    if (res.status !== 409 && !body.substituted) return;
     setPermissionModeState(body.mode);
     setModeChangeRefusedNotice({
       uuid: crypto.randomUUID(),
-      requested: body.refused?.requested ?? mode,
+      requested: body.refused?.requested ?? body.substituted?.requested ?? mode,
       mode: body.mode,
       reason: body.refused?.reason ?? "",
+      ...(res.status !== 409 ? { kind: "substituted" as const } : {}),
     });
   }, []);
 
@@ -6419,11 +6523,14 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       const data = (await res.json()) as {
         messages: Array<Record<string, unknown>>;
         hasMore: boolean;
+        resumeGap?: { uuid?: unknown; content?: unknown };
       };
       const synth = synthesizeOlder(data.messages);
       // synthesizeOlder drops the compaction summary as plumbing; restore its
       // divider when this page reaches the top of the history (CC 2.1.301).
-      setSystemEntries((prev) => withPagedCompactBoundary(prev, data.messages, data.hasMore));
+      setSystemEntries((prev) =>
+        withPagedResumeGap(withPagedCompactBoundary(prev, data.messages, data.hasMore), data.resumeGap),
+      );
       // Compute fresh prepends against the current list up front so we can
       // tell whether this page actually moved the head cursor. The cursor is
       // always messagesRef.current[0]; if nothing fresh is prepended the head
@@ -7019,6 +7126,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     authFailedNudge,
     tokenExpiringNudge,
     tips,
+    spinnerVerbs,
     sessionRecap,
     errors,
     processExited,
@@ -7287,6 +7395,27 @@ export function withPagedCompactBoundary(
 }
 
 /**
+ * CC 2.1.327 — add the "earlier messages couldn't be loaded" warning that the
+ * paged transcript route returns with the page reaching the top of a resumed
+ * session's history. A reattach replays only the last turns, so on a long
+ * session the copy at the top of the server's replay buffer never arrives
+ * over SSE. Anchorless, so it renders above the first message. No-op when
+ * absent or already shown (same uuid from a replay that included it).
+ */
+export function withPagedResumeGap(
+  prev: SystemEntry[],
+  gap: { uuid?: unknown; content?: unknown } | undefined,
+): SystemEntry[] {
+  if (!gap || typeof gap.uuid !== "string" || !gap.uuid) return prev;
+  if (typeof gap.content !== "string" || !gap.content.trim()) return prev;
+  if (prev.some((e) => e.uuid === gap.uuid)) return prev;
+  return [
+    ...prev,
+    { uuid: gap.uuid, afterMessageUuid: "", kind: "info", label: gap.content.trim(), infoLevel: "warning" },
+  ];
+}
+
+/**
  * Merge compaction metadata / summary onto a single `compact_boundary`
  * divider. The SDK delivers the boundary (token deltas, duration, trigger) and
  * the synthesized summary text as two separate records sharing an anchor;
@@ -7424,7 +7553,9 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         // scope, so `resetsAt` / `fallbackModel` aren't available here — the
         // panel falls back to the reset time already printed in the message
         // text and omits the "Now using <fallback>" takeover line.
-        const rateLimitHit = isRateLimitHitText(newBlocks)
+        // CC 2.1.332 — gated on the synthetic API-error message
+        // (`message.model: "<synthetic>"` survives this path).
+        const rateLimitHit = isRateLimitHitMessage(r, newBlocks)
           ? rateLimitHitFromBlocks(newBlocks, null, null)
           : undefined;
         // Opus-4 high-demand banner — same prose-only signal on the
@@ -7473,6 +7604,7 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
             detached: tr.detached,
             notRun: tr.notRun,
             rejected: tr.rejected,
+            fetchStatus: tr.fetchStatus,
           },
         };
         const blocks = m.blocks.slice();

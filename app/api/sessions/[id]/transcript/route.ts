@@ -22,10 +22,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") ?? "50") || 50));
   let dir = url.searchParams.get("dir") || undefined;
 
-  if (!dir) {
-    const session = sessionManager.get(id);
-    if (session) dir = session.cwd;
-  }
+  const session = sessionManager.get(id);
+  if (!dir && session) dir = session.cwd;
 
   let all;
   try {
@@ -47,8 +45,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   }
   const start = Math.max(0, endIdx - limit);
   const messages = all.slice(start, endIdx);
+  // CC 2.1.327 — the page that reaches the top of the history carries the
+  // "earlier messages couldn't be loaded" line, which the reattach's tail
+  // replay leaves out on a long session.
+  const resumeGap = start === 0 ? session?.resumeGapNotice() : undefined;
   return NextResponse.json({
     messages,
     hasMore: start > 0,
+    ...(resumeGap ? { resumeGap } : {}),
   });
 }

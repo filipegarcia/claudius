@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sessionManager } from "@/lib/server/session-manager";
-import { readSettings, writeSettings, type ClaudeSettings } from "@/lib/server/settings";
+import { readSettings, withSettingsLock, writeSettings, type ClaudeSettings } from "@/lib/server/settings";
 import {
   ADVISOR_PICKABLE_VALUES,
   type AdvisorChoice,
@@ -58,14 +58,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // apply (and vice versa). The Settings page reads/writes the same file.
   const session_cwd = (session as unknown as { cwd: string }).cwd;
   try {
-    const current = await readSettings("user", session_cwd);
-    const next: ClaudeSettings = { ...current };
-    if (choice === null) {
-      delete next.advisorModel;
-    } else {
-      next.advisorModel = choice;
-    }
-    await writeSettings("user", session_cwd, next);
+    // CC 2.1.330 — read and write under the file's lock (settings.ts).
+    await withSettingsLock("user", session_cwd, async () => {
+      const current = await readSettings("user", session_cwd);
+      const next: ClaudeSettings = { ...current };
+      if (choice === null) {
+        delete next.advisorModel;
+      } else {
+        next.advisorModel = choice;
+      }
+      await writeSettings("user", session_cwd, next);
+    });
   } catch (err) {
     console.error("[api/sessions/advisor] settings write failed", err);
     // Continue — we still want the in-memory apply to land so the active

@@ -4,6 +4,7 @@
 
 import type { SDKMessage, PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { Tip } from "./tips";
+import type { SpinnerVerbs } from "./spinner-verbs";
 import type { HookAsk } from "./hook-ask";
 
 export type PermissionRequestEvent = {
@@ -62,6 +63,21 @@ export type PermissionRequestEvent = {
    * only. Absent for every other kind of ask.
    */
   hookAsk?: HookAsk;
+  /**
+   * CC 2.1.329 — why one of the engine's safety checks asks (`canUseTool`'s
+   * `decisionReason` when `decisionReasonType` is `"safetyCheck"`, or
+   * `"subcommandResults"` for a compound Bash command), ANSI-stripped and
+   * length-capped by `safetyAskReason`. Display only. Absent for every other
+   * kind of ask.
+   */
+  safetyReason?: string;
+  /**
+   * CC 2.1.331 — managed settings set `allowManagedPermissionRulesOnly`, so
+   * the engine ignores any allow rule an "Always" button would write (see
+   * `resolveManagedRulesOnly`). The card offers only Allow once and Deny.
+   * Absent when the policy is off or couldn't be read.
+   */
+  managedRulesOnly?: boolean;
   /**
    * CC 2.1.310 — the file this Read/Edit/Write/NotebookEdit ask is about is a
    * symbolic link; `target` is where it leads (resolved server-side by
@@ -468,6 +484,11 @@ export type TokenExpiringNudgeEvent = {
 export type TipsEvent = {
   type: "tips";
   tips: Tip[];
+  /**
+   * CC 2.1.332 — the `spinnerVerbs` setting (user and managed), for the
+   * working row's verb. Absent when unset: the row keeps "Claude is working…".
+   */
+  spinnerVerbs?: SpinnerVerbs;
 };
 
 /**
@@ -640,6 +661,13 @@ export type PlanDecision =
        * rather than what it originally drafted.
        */
       editedPlan?: string;
+      /**
+       * CC 2.1.328 — "Yes, and use auto mode": execute the plan in `auto`
+       * instead of `acceptEdits`. The server falls back to `acceptEdits`
+       * when `disableAutoMode` is set or the model's catalog row says it
+       * can't run auto (see `Session.resolvePlan`).
+       */
+      mode?: "auto";
     }
   | { kind: "reject"; message?: string };
 

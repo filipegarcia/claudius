@@ -245,3 +245,23 @@ export function removePolicyMarketplace(raw: unknown, index: number): unknown[] 
   const next = raw.filter((_, i) => i !== index);
   return next.length ? next : undefined;
 }
+
+/** What the browser saw for a policy entry when Remove was pressed. */
+export type PolicyEntryExpectation = Pick<MarketplaceSourceView, "kind" | "label"> &
+  Partial<Pick<MarketplaceSourceView, "headerKeys" | "hasHeadersHelper">>;
+
+/**
+ * CC 2.1.330 — "Fixed … a double click on Remove or Delete removing a memory,
+ * MCP server or plugin marketplace, without confirmation". Policy entries are
+ * removed by index, so a repeated request (or one sent from a list that has
+ * since changed) would remove whichever entry shifted into that index. True
+ * only when the entry at `index` still has the redacted view the user
+ * clicked on, so the caller can make a stale removal a no-op.
+ */
+export function policyEntryMatches(raw: unknown, index: number, expected: PolicyEntryExpectation): boolean {
+  const view = readPolicyMarketplaces(raw)[index];
+  if (!view || view.kind !== expected.kind || view.label !== expected.label) return false;
+  if (expected.headerKeys && expected.headerKeys.join("\n") !== view.headerKeys.join("\n")) return false;
+  if (expected.hasHeadersHelper !== undefined && expected.hasHeadersHelper !== view.hasHeadersHelper) return false;
+  return true;
+}

@@ -44,6 +44,13 @@ type WalkOptions = {
 };
 
 /**
+ * CC 2.1.331 — `truncated` is true when the walk stopped before covering the
+ * whole tree (entry cap reached with folders left, or folders past the depth
+ * limit not read), so a file that exists may be missing from the results.
+ */
+type WalkResult = { entries: FsEntry[]; truncated: boolean };
+
+/**
  * Walks a directory tree breadth-first, skipping common large/irrelevant
  * folders (node_modules, .git, etc.) and bailing out at a hard cap. Returns
  * relative paths joined with forward slashes — safe for `@path` tokens.
@@ -71,8 +78,9 @@ type WalkOptions = {
  * the access is already implicit in the cwd choice, and gating it
  * would break @-mentions for projects living under `~/Desktop` etc.
  */
-async function walk(root: string, opts: WalkOptions): Promise<FsEntry[]> {
+async function walk(root: string, opts: WalkOptions): Promise<WalkResult> {
   const out: FsEntry[] = [];
+  let truncated = false;
   const queue: Array<{ abs: string; depth: number }> = [{ abs: root, depth: 0 }];
   while (queue.length > 0 && out.length < opts.max) {
     const { abs, depth } = queue.shift()!;
@@ -92,7 +100,10 @@ async function walk(root: string, opts: WalkOptions): Promise<FsEntry[]> {
       continue;
     }
     for (const ent of entries) {
-      if (out.length >= opts.max) break;
+      if (out.length >= opts.max) {
+        truncated = true;
+        break;
+      }
       if (IGNORE.has(ent.name) || ent.name.startsWith(".")) continue;
       const childAbs = join(abs, ent.name);
 
@@ -128,28 +139,55 @@ async function walk(root: string, opts: WalkOptions): Promise<FsEntry[]> {
           if (!crossingIntoProtected) {
             queue.push({ abs: childAbs, depth: depth + 1 });
           }
+        } else {
+          // Past the depth limit: this folder's contents are never searched.
+          truncated = true;
         }
       } else if (ent.isFile()) {
         out.push({ relPath: rel, absPath: childAbs, type: "file" });
       }
     }
   }
-  return out;
+  // Stopped at the entry cap with folders still queued.
+  if (queue.length > 0) truncated = true;
+  return { entries: out, truncated };
 }
 
 export type ListOptions = {
   cwd: string;
   query?: string;
   limit?: number;
+  /** Walk caps; the defaults (5,000 entries, depth 6) suit the @ menu. Tests lower them. */
+  walkMax?: number;
+  walkMaxDepth?: number;
+};
+
+export type ListResult = {
+  entries: FsEntry[];
+  /** CC 2.1.331 — the walk didn't cover the whole tree; see {@link WalkResult}. */
+  truncated: boolean;
 };
 
 export async function listFs(opts: ListOptions): Promise<FsEntry[]> {
+  return (await searchFs(opts)).entries;
+}
+
+/**
+ * {@link listFs} plus whether the search was partial. CC 2.1.331 — "[VSCode]
+ * Fixed the @ menu showing "No files found" … when it couldn't search all files
+ * of a very large workspace, which it now says": the @ menu used to close as
+ * if a file beyond the walk's cap didn't exist.
+ */
+export async function searchFs(opts: ListOptions): Promise<ListResult> {
   const root = resolve(opts.cwd);
   // We always walk broadly (capped at 5000) so a small `limit` doesn't starve
   // queries that match deep paths. The `limit` only applies after scoring.
-  const all = await walk(root, { max: 5000, maxDepth: 6 });
+  const { entries: all, truncated } = await walk(root, {
+    max: opts.walkMax ?? 5000,
+    maxDepth: opts.walkMaxDepth ?? 6,
+  });
   const q = (opts.query ?? "").trim().toLowerCase();
-  if (!q) return all.slice(0, opts.limit ?? 200);
+  if (!q) return { entries: all.slice(0, opts.limit ?? 200), truncated };
   // Score by closest match: prefix > substring > subsequence. On top of
   // that, a match against the entry's own filename outranks one that only
   // exists because a parent folder's name happens to contain the query —
@@ -185,5 +223,5 @@ export async function listFs(opts: ListOptions): Promise<FsEntry[]> {
     }
   }
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, opts.limit ?? 200).map((s) => s.e);
+  return { entries: scored.slice(0, opts.limit ?? 200).map((s) => s.e), truncated };
 }

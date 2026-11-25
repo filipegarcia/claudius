@@ -16,6 +16,7 @@ import {
   type PromptAuditStaleCommand,
   type PromptAuditContradiction,
 } from "@/lib/server/prompt-audit";
+import { configFileChecks, listConfigFileProblems, telemetryEnv } from "@/lib/server/config-file-problems";
 
 const execFileP = promisify(execFile);
 
@@ -49,8 +50,12 @@ type Check = {
    * `/doctor prompt-audit` slash-command deep link (`?section=prompt-audit`)
    * has something stable to scroll to, independent of the general
    * environment checks above.
+   *
+   * CC 2.1.327 parity — `config-files` tags the broken agent/skill file and
+   * keybindings.json checks (see `lib/server/config-file-problems.ts`), shown
+   * in their own "Config files" section that /status links to.
    */
-  category?: "prompt-audit";
+  category?: "prompt-audit" | "config-files";
 };
 
 /**
@@ -318,6 +323,22 @@ async function ignoredProjectEnvChecks(): Promise<Check[]> {
   return checks;
 }
 
+/**
+ * CC 2.1.327 parity — broken agent/skill frontmatter and keybindings.json
+ * errors, across every workspace. Unlike the checks above this doesn't skip
+ * customization workspaces: the engine loads their agents and skills too.
+ */
+async function configFilesChecks(): Promise<Check[]> {
+  let workspaces: Awaited<ReturnType<typeof listWorkspaces>>;
+  try {
+    workspaces = await listWorkspaces();
+  } catch {
+    workspaces = [];
+  }
+  // CC 2.1.328 — plus the OpenTelemetry no-endpoint notice.
+  return configFileChecks(await listConfigFileProblems(workspaces, { env: await telemetryEnv() }));
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await fs.access(path);
@@ -461,6 +482,9 @@ export async function GET() {
 
   // CC 2.1.282 + 2.1.290 parity — see `ignoredProjectEnvChecks` above.
   checks.push(...(await ignoredProjectEnvChecks()));
+
+  // CC 2.1.327 parity — broken agent/skill files and keybindings.json.
+  checks.push(...(await configFilesChecks()));
 
   return NextResponse.json({
     runtime: { node, platform: process.platform, arch: process.arch },

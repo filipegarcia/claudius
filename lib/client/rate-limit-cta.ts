@@ -18,6 +18,7 @@
  */
 export type RateLimitCtaKind =
   | "model-needs-credits"
+  | "credits-exhausted"
   | "buy-credits"
   | "contact-admin-credits"
   | "contact-admin-pool"
@@ -35,8 +36,14 @@ export function rateLimitCtaKind(hit: {
   limitScope?: string;
   subscriptionType?: string;
   modelNeedsCredits?: string;
+  creditsExhausted?: boolean;
 }): RateLimitCtaKind {
   if (hit.modelNeedsCredits) return "model-needs-credits";
+  // CC 2.1.328 — usage credits ran out: buy more, or ask the admin when the
+  // seat can't buy them.
+  if (hit.creditsExhausted) {
+    return hit.canUserPurchaseCredits === false ? "contact-admin-credits" : "credits-exhausted";
+  }
   if (hit.errorCode === "credits_required") {
     return hit.canUserPurchaseCredits !== false ? "buy-credits" : "contact-admin-credits";
   }

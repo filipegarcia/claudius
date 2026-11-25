@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronRight, Wrench, AlertCircle, CheckCircle2, CircleStop, Clock, ExternalLink, MessageCircleQuestion, MessageSquareHeart, MinusCircle, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
+import { useTranscriptFindQuery } from "@/lib/client/transcript-find-context";
 import { buildEditorUrl, pathFromToolInput, useEditor } from "@/lib/client/ide";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, toWorkspaceRelative } from "@/lib/client/file-paths";
@@ -14,7 +15,9 @@ import { settledToolLabel, settledToolTitle, type SettledToolReason } from "@/li
 import { getPreviewType } from "@/lib/shared/file-types";
 import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
 import { splitPathForTruncation } from "@/lib/shared/truncate-path";
+import { toolInputMatches, toolInputTextFields, toolInputTextKeys } from "@/lib/shared/tool-input-search";
 import type { TaskResourceLink } from "@/lib/shared/events";
+import { webFetchOutcome, type WebFetchStatus } from "@/lib/shared/web-fetch-outcome";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
 
@@ -41,12 +44,17 @@ function TruncatedPath({ path }: { path: string }) {
  * `RemoteTriggerInput`, surfaced as the "Schedule" tool). `list_runs` and
  * `get_run_log` arrived in SDK 0.3.227. Falls back to the raw action string
  * for anything not listed, so a future action still shows something sane.
+ *
+ * CC 2.1.332 — "Changed `/schedule`, permission prompts and `/loop`'s cloud
+ * offer to say "cloud scheduled task" instead of "routine" or "cloud
+ * schedule"". The engine's own copy for this tool now reads "cloud scheduled
+ * task" ("Claude wants to create a cloud scheduled task …").
  */
 const SCHEDULE_ACTION_LABELS: Record<string, string> = {
-  list: "List routines",
-  get: "Get routine",
-  create: "Create routine",
-  update: "Update routine",
+  list: "List cloud scheduled tasks",
+  get: "Get cloud scheduled task",
+  create: "Create cloud scheduled task",
+  update: "Update cloud scheduled task",
   run: "Run now",
   create_webhook_trigger: "Create webhook trigger",
   list_runs: "List runs",
@@ -63,6 +71,7 @@ type Props = {
     detached?: boolean;
     notRun?: boolean;
     rejected?: boolean;
+    fetchStatus?: WebFetchStatus;
   };
   /**
    * Client-stamped wall-clock start (epoch ms) for this tool_use, from
@@ -145,6 +154,24 @@ export function ToolCall({
     setPrevDefaultOpen(defaultOpen);
     setOpen(defaultOpen);
   }
+  // CC 2.1.327 — while the find bar's query occurs in an Edit / Write card's
+  // file text, open the card so the text is on screen to highlight. Only a
+  // card the search opened is closed again when the query stops matching (or
+  // the bar closes); one the user opened or closed themselves is left alone.
+  const find = useTranscriptFindQuery();
+  const searchHit = !!find && toolInputMatches(name, input, find.query, find.matchCase);
+  const [prevSearchHit, setPrevSearchHit] = useState(false);
+  const [openedBySearch, setOpenedBySearch] = useState(false);
+  if (prevSearchHit !== searchHit) {
+    setPrevSearchHit(searchHit);
+    if (searchHit && !open) {
+      setOpen(true);
+      setOpenedBySearch(true);
+    } else if (!searchHit && openedBySearch) {
+      setOpen(false);
+      setOpenedBySearch(false);
+    }
+  }
   const { editor } = useEditor();
   const { showPreviews } = useMediaPreferences();
   const status =
@@ -177,6 +204,14 @@ export function ToolCall({
   // now" message reports `detachedToolCall`; it keeps loading in the
   // background and the real result reaches the model in a later turn.
   const detached = !result?.isError && result?.detached === true;
+  // CC 2.1.332 — "[VSCode] Fixed Web Fetch showing "Fetched from" with a
+  // success dot when the site returned an error or a redirect that wasn't
+  // followed". Those come back as non-error results, so `status` stays "ok";
+  // the row shows what happened instead of the green check.
+  const fetchOutcome =
+    name === "WebFetch" && result && !result.isError && !detached
+      ? webFetchOutcome(result.fetchStatus, result.content)
+      : null;
   const fileTarget = pathFromToolInput(input);
   // When the tool operates on a file inside the active workspace, link its
   // path to the in-app Files browser so the user can open it on our own file
@@ -220,6 +255,13 @@ export function ToolCall({
   // the click sends the user's answer as a regular follow-up message, so
   // it's safe to expose even after `result.isError = true`.
   const showAnswerPill = name === "AskUserQuestion" && !!onReopenAsk;
+  // CC 2.1.327 — Edit / Write text shown as plain text (not escaped JSON) so
+  // the find bar can match and highlight it; the other input keys stay JSON.
+  const inputTextFields = toolInputTextFields(name, input);
+  const restInput =
+    inputTextFields.length > 0
+      ? Object.fromEntries(Object.entries(input).filter(([k]) => !toolInputTextKeys(name).includes(k)))
+      : input;
   const elapsedSeconds = useElapsedSeconds(startedAt, status === "running");
   return (
     <div
@@ -239,7 +281,10 @@ export function ToolCall({
       <div className={cn("flex w-full items-center gap-2 pr-3 text-xs", "hover:bg-[var(--panel-2)]")}>
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            setOpen((o) => !o);
+            setOpenedBySearch(false);
+          }}
           className={cn(
             "flex items-center gap-2 py-1.5 pl-3 text-left",
             // When a file path follows, the button hugs its content so the
@@ -257,7 +302,9 @@ export function ToolCall({
           <span className="font-mono">{isFeedbackDraft ? "Feedback draft" : name}</span>
           {planText && <span className="text-[10px] text-[var(--muted)]">— Plan</span>}
           {scheduleAction && (
-            <span className="text-[10px] text-[var(--muted)]">— {scheduleAction}</span>
+            <span data-testid="tool-call-schedule-action" className="text-[10px] text-[var(--muted)]">
+              — {scheduleAction}
+            </span>
           )}
         </button>
         {fileTarget &&
@@ -346,7 +393,27 @@ export function ToolCall({
               <span className={cn("inline-block h-2 w-2 rounded-full bg-[var(--accent)]", disconnected ? "opacity-40" : "animate-pulse")} />
             </>
           )}
-          {status === "ok" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+          {status === "ok" && !fetchOutcome && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+          {status === "ok" && fetchOutcome && (
+            <span
+              data-testid="tool-call-fetch-outcome"
+              data-fetch-outcome={fetchOutcome.kind}
+              className={cn(
+                "inline-flex items-center gap-1 text-[10px]",
+                fetchOutcome.kind === "http-error" ? "text-red-400" : "text-amber-400",
+              )}
+              title={
+                fetchOutcome.kind === "redirect"
+                  ? "The site answered with a redirect that wasn't followed — the page wasn't fetched"
+                  : fetchOutcome.kind === "http-error"
+                    ? "The site answered with an HTTP error — the page wasn't fetched"
+                    : "The page wasn't fetched"
+              }
+            >
+              <AlertCircle className="h-3.5 w-3.5" />
+              {fetchOutcome.label}
+            </span>
+          )}
           {status === "error" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
           {status === "interrupted" && settledReason && (
             <span
@@ -434,9 +501,19 @@ export function ToolCall({
                   </a>
                 )}
               </div>
-              <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
-                {JSON.stringify(input, null, 2)}
-              </pre>
+              {inputTextFields.map((f) => (
+                <div key={f.label} data-testid="tool-call-input-text" data-field={f.label} className="mb-2">
+                  <div className="mb-1 font-mono text-[10px] text-[var(--muted)]">{f.label}</div>
+                  <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
+                    {f.text}
+                  </pre>
+                </div>
+              ))}
+              {(inputTextFields.length === 0 || Object.keys(restInput).length > 0) && (
+                <pre className="max-h-60 overflow-auto rounded bg-[var(--panel-2)] p-2 font-mono text-xs scroll-thin">
+                  {JSON.stringify(restInput, null, 2)}
+                </pre>
+              )}
             </div>
           )}
           {result && (

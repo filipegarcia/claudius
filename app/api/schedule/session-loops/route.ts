@@ -46,6 +46,9 @@ export async function GET() {
       // same way (see `isStaleWakeup`). Filtering here keeps the wire
       // payload honest and avoids the "stuck at due now forever" chip.
       if (isStaleWakeup(loop, now)) continue;
+      // CC 2.1.330 — a fork's copy of its source session's loop runs in the
+      // source (listed under that session), not in the fork.
+      if (loop.inherited) continue;
       loops.push({
         ...loop,
         sessionId: s.id,

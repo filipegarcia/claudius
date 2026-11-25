@@ -12,6 +12,9 @@ import {
   type SlashSuggestion,
 } from "@/lib/shared/slash-commands";
 import { cn } from "@/lib/utils/cn";
+import { isImeComposing } from "@/lib/client/key-match";
+import { isHeldRepeat } from "@/lib/client/composer-keys";
+import { shouldResetHighlight } from "@/lib/shared/picker-highlight";
 
 type Props = {
   value: string;
@@ -150,20 +153,33 @@ export function SlashCommandPicker({
   // resizes — "store previous props" pattern keeps the setState out of
   // a useEffect body.
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
-  const [lastVisibleLen, setLastVisibleLen] = useState(visible.length);
-  if (lastVisibleLen !== visible.length) {
-    setLastVisibleLen(visible.length);
+  // CC 2.1.331 — and whenever the filter text changes: the list is capped at
+  // 16 rows and usually full, so a length-only reset left the highlight on a
+  // slot that now held a different command.
+  const shape = { filter, count: visible.length };
+  const [lastShape, setLastShape] = useState(shape);
+  if (shouldResetHighlight(lastShape, shape)) {
+    setLastShape(shape);
     setHi(0);
   }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (visible.length === 0) return;
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — leave it
       // for PromptInput even while this picker is open (the history walk can
       // start from a draft with the picker open). Plain arrows still move the
       // highlight.
       if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
+      // CC 2.1.330 — a held Enter/Tab's auto-repeat never picks or runs a
+      // command: swallow it. A mid-prompt Enter (no `captureEnter`) is left to
+      // the composer, which ignores repeats too.
+      if (isHeldRepeat(e) && (e.key === "Tab" || captureEnter)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
@@ -247,6 +263,7 @@ export function SlashCommandPicker({
               </div>
             )}
             <button
+              data-testid="slash-command-row"
               ref={(el) => {
                 itemRefs.current[i] = el;
               }}

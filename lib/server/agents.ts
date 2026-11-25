@@ -139,6 +139,51 @@ export async function deleteAgent(scope: AgentScope, projectCwd: string, name: s
 
 const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
+// A plain `key: value` line whose value holds a YAML indicator character or
+// a `: ` — the engine's trigger for quote-wrapping the value.
+const YAML_SPECIAL_VALUE_RE = /[{}[\]*&#!|>%@`]|: /;
+
+function quoteSpecialValues(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const m = /^([a-zA-Z_-]+):\s+(\S.*)$/.exec(line);
+      if (!m) return line;
+      const [, key, value] = m;
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        return line;
+      }
+      if (value.startsWith("[") && value.endsWith("]")) {
+        try {
+          if (Array.isArray(parseYaml(value))) return line;
+        } catch {
+          // Not a valid flow list — fall through to quoting.
+        }
+      }
+      if (!YAML_SPECIAL_VALUE_RE.test(value)) return line;
+      const escaped = value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+      return `${key}: "${escaped}"`;
+    })
+    .join("\n");
+}
+
+/**
+ * Parse frontmatter YAML the way the engine (bundled `claude`) does: strict
+ * YAML first; if that throws, quote-wrap every top-level `key: value` line
+ * whose value contains YAML indicator characters or `: ` (so
+ * `description: Use this agent when… Examples: <example>Context: …` loads),
+ * turn leading tabs into two spaces each, and parse again. Throws only when
+ * the rescued text still doesn't parse.
+ */
+export function parseFrontmatterYaml(text: string): unknown {
+  try {
+    return parseYaml(text);
+  } catch {
+    const rescued = quoteSpecialValues(text).replace(/^\t+/gm, (tabs) => "  ".repeat(tabs.length));
+    return parseYaml(rescued);
+  }
+}
+
 export function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; body: string } {
   // CC 2.1.239 (G4) — a file saved with a UTF-8 BOM keeps the leading `﻿`
   // after `fs.readFile(…,"utf8")`, so the `^---` delimiter never matches and the
@@ -152,14 +197,50 @@ export function parseFrontmatter(raw: string): { frontmatter: Record<string, unk
     // YAML 1.2 core schema (the `yaml` default): booleans/numbers/null parse
     // to their JS types; ISO date strings stay strings (no YAML-1.1 timestamp
     // coercion), so a `model:`/`description:` that looks date-ish is safe.
-    const parsed = parseYaml(m[1]);
+    const parsed = parseFrontmatterYaml(m[1]);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       frontmatter = parsed as Record<string, unknown>;
     }
   } catch {
-    // Malformed YAML frontmatter falls back to empty — matching the prior
-    // parser's tolerance — rather than throwing. The body is still returned
-    // so the agent/skill prompt remains editable in the UI.
+    // Malformed YAML frontmatter (even after the engine's quoting fallback)
+    // falls back to empty — matching the prior parser's tolerance — rather
+    // than throwing. The body is still returned so the agent/skill prompt
+    // remains editable in the UI.
   }
   return { frontmatter, body: m[2] };
+}
+
+/**
+ * CC 2.1.327 parity — "/status lists broken agent, skill … files". The
+ * reason `parseFrontmatter` above would silently drop a file's frontmatter
+ * (so the agent/skill shows up with no description, model or tools), or null
+ * when the frontmatter is fine or absent. Same BOM strip, delimiter regex and
+ * YAML options as `parseFrontmatter`, so "flagged here" means exactly
+ * "parsed as `{}` there". Line numbers count from the top of the file.
+ */
+export function frontmatterError(raw: string): string | null {
+  const text = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+  const m = FM_RE.exec(text);
+  if (!m) {
+    // Opens a frontmatter block but never closes it — the whole file is
+    // treated as body, frontmatter included.
+    // An empty block (`---` straight after `---`) is fine.
+    if (/^---\r?\n---(\r?\n|$)/.test(text)) return null;
+    return /^---\r?\n/.test(text) ? "Frontmatter has no closing --- line" : null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = parseFrontmatterYaml(m[1]);
+  } catch (err) {
+    const e = err as Error & { linePos?: Array<{ line: number; col: number }> };
+    const first = (e.message ?? String(err)).split("\n")[0].replace(/ at line \d+, column \d+:?\s*$/, "").trim();
+    const line = e.linePos?.[0]?.line;
+    // +1 for the opening `---` line, which isn't part of the YAML text.
+    return typeof line === "number" ? `${first} (line ${line + 1})` : first || "Invalid YAML frontmatter";
+  }
+  if (parsed == null) return null;
+  if (typeof parsed !== "object" || Array.isArray(parsed)) {
+    return "Frontmatter is not a list of key: value fields";
+  }
+  return null;
 }

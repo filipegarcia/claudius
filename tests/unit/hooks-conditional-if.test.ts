@@ -62,7 +62,7 @@ describe("conditional hooks (handler-level `if`)", () => {
         { type: "http", url: "https://h/x", if: "Read(*)" },
         { type: "prompt", prompt: "p", if: "Write(*)" },
         { type: "agent", prompt: "a", if: "Edit(*)" },
-        { type: "mcp_tool", tool: "t", if: "Bash(npm *)" },
+        { type: "mcp_tool", server: "s", tool: "t", if: "Bash(npm *)" },
       ],
     });
 

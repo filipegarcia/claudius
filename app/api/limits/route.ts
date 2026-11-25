@@ -43,8 +43,14 @@ export async function PUT(req: Request) {
   if (typeof body.maxSubagents === "number" && body.maxSubagents >= 0) {
     next.maxSubagents = body.maxSubagents;
   }
-  const data = await writeLimits(cwd, next);
-  return NextResponse.json(data);
+  try {
+    const data = await writeLimits(cwd, next);
+    return NextResponse.json(data);
+  } catch (err) {
+    console.error("[api/limits] PUT failed", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Couldn't save limits: ${message}` }, { status: 500 });
+  }
 }
 
 type ActionBody =

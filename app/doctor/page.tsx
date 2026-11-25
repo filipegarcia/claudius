@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 // counter; `setState` happens in Promise callbacks (not sync in the effect
 // body), which is what `react-hooks/set-state-in-effect` wants.
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, CheckCircle2, RefreshCw, Stethoscope, XCircle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, MinusCircle, RefreshCw, Stethoscope, XCircle } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useClaudius } from "@/lib/client/useElectron";
 import { cn } from "@/lib/utils/cn";
@@ -18,8 +18,8 @@ type Check = {
   detail?: string;
   fixable?: boolean;
   link?: { href: string; label: string };
-  /** CC 2.1.283 parity — see `app/api/doctor/route.ts`'s `Check.category`. */
-  category?: "prompt-audit";
+  /** CC 2.1.283 / 2.1.327 parity — see `app/api/doctor/route.ts`'s `Check.category`. */
+  category?: "prompt-audit" | "config-files";
 };
 type Report = {
   runtime: { node: string; platform: string; arch: string };
@@ -40,10 +40,12 @@ export default function DoctorPage() {
   // `/doctor` is a static route (not nested under `[workspaceId]`), and a
   // static page calling `useSearchParams()` without a `<Suspense>` ancestor
   // fails `next build`'s missing-suspense-boundary check.
+  // CC 2.1.327 — /status's Problems row links to `?section=config-files`.
   useEffect(() => {
     if (!report) return;
-    if (new URLSearchParams(window.location.search).get("section") !== "prompt-audit") return;
-    document.getElementById("prompt-audit-section")?.scrollIntoView({ block: "start" });
+    const section = new URLSearchParams(window.location.search).get("section");
+    if (section !== "prompt-audit" && section !== "config-files") return;
+    document.getElementById(`${section}-section`)?.scrollIntoView({ block: "start" });
   }, [report]);
 
   const [refetchTrigger, setRefetchTrigger] = useState(0);
@@ -149,7 +151,28 @@ export default function DoctorPage() {
                   </h2>
                   <ul className="space-y-1.5">
                     {report.checks
-                      .filter((c) => c.category !== "prompt-audit")
+                      .filter((c) => c.category === undefined)
+                      .map((c) => (
+                        <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
+                      ))}
+                  </ul>
+                </section>
+
+                <ApiConnectivitySection refetchTrigger={refetchTrigger} />
+
+                {/*
+                  CC 2.1.327 parity — "/status … list of broken agent,
+                  skill … files, keybinding errors". Own section so the
+                  /status Problems row can deep-link to it.
+                */}
+                <section id="config-files-section" data-testid="doctor-config-files-section">
+                  <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                    Config files
+                  </h2>
+                  {/* `configFileChecks` always adds an ok row when a kind is clean, so the list is never empty. */}
+                  <ul className="space-y-1.5" data-testid="doctor-config-files-list">
+                    {report.checks
+                      .filter((c) => c.category === "config-files")
                       .map((c) => (
                         <CheckRow key={c.id} check={c} fixingId={fixingId} onFix={fixCheck} />
                       ))}
@@ -193,6 +216,67 @@ export default function DoctorPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+type ApiConnectivityReport = { tested: boolean; passed: boolean; lines: string[]; hint?: string };
+
+/**
+ * CC 2.1.331 parity — "Added an API connectivity section to `claude doctor`
+ * that reports whether the API can be reached, with the HTTP status or the
+ * error, or says why it wasn't tested". Fetched on its own
+ * (`/api/doctor/connectivity`) because the test can wait up to 10 s; the
+ * rest of the report doesn't wait for it. Re-runs with the page's Re-run.
+ */
+function ApiConnectivitySection({ refetchTrigger }: { refetchTrigger: number }) {
+  const [result, setResult] = useState<{ trigger: number; report: ApiConnectivityReport | null; error?: string } | null>(
+    null,
+  );
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/doctor/connectivity", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setResult({ trigger: refetchTrigger, report: (await res.json()) as ApiConnectivityReport });
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setResult({ trigger: refetchTrigger, report: null, error: err instanceof Error ? err.message : String(err) });
+      });
+    return () => controller.abort();
+  }, [refetchTrigger]);
+  // A result from an earlier run reads as "testing…" until the new one lands.
+  const current = result?.trigger === refetchTrigger ? result : null;
+  const report = current?.report ?? null;
+  const state = !current ? "testing" : !report ? "error" : !report.tested ? "skipped" : report.passed ? "ok" : "fail";
+  return (
+    <section id="api-connectivity-section" data-testid="doctor-api-connectivity-section" data-state={state}>
+      <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">API connectivity</h2>
+      <div
+        className={cn(
+          "flex items-start gap-2 rounded-md border px-3 py-2 text-xs",
+          state === "ok" && "border-emerald-500/30 bg-emerald-500/5",
+          (state === "fail" || state === "error") && "border-red-500/30 bg-red-500/5",
+          (state === "testing" || state === "skipped") && "border-[var(--border)] bg-[var(--panel)]/40",
+        )}
+      >
+        {state === "ok" && <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />}
+        {(state === "fail" || state === "error") && <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />}
+        {(state === "testing" || state === "skipped") && (
+          <MinusCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--muted)]" />
+        )}
+        <div className="min-w-0 flex-1 space-y-0.5">
+          {state === "testing" && <div className="text-[var(--muted)]">Testing whether the API can be reached…</div>}
+          {state === "error" && <div className="text-red-300">The test couldn&apos;t run: {current?.error}</div>}
+          {report?.lines.map((line) => (
+            <div key={line} className="break-words font-mono text-[11px]" data-testid="doctor-api-connectivity-line">
+              {line}
+            </div>
+          ))}
+          {report?.hint && <div className="pt-1 text-[11px] text-[var(--muted)]">{report.hint}</div>}
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { pathFor, readSettings, writeSettings } from "./settings";
+import { pathFor, readSettings, withSettingsFileLock, writeSettings } from "./settings";
 import { assertWithin } from "./safe-path";
 
 export type McpStdioConfig = {
@@ -57,6 +57,10 @@ export type ConfiguredServer = {
    * newline silently breaks the connection with no visual cue). Empty when
    * clean; omitted from the JSON payload only when there's nothing to warn about. */
   warnings?: string[];
+  /** CC 2.1.327 — a project (`.mcp.json`) server named in
+   * `disabledMcpjsonServers` in any settings file. The engine never starts
+   * it, so it's missing from the live status on purpose. */
+  rejected?: true;
 };
 
 const HAS_EDGE_WHITESPACE = /^\s|\s$/;
@@ -151,6 +155,34 @@ let writeSeq = 0;
 
 type McpJsonShape = { mcpServers?: Record<string, McpServerConfig> };
 
+/**
+ * CC 2.1.327 parity — "Changed claude mcp add --scope project to stop,
+ * instead of overwriting the file, when .mcp.json lists its servers at the
+ * top level with no mcpServers key". Adding into such a file used to leave a
+ * mixed `{ foo, mcpServers: { new } }`, and `listConfigured` (which reads
+ * only `mcpServers`) never showed the hand-written servers. We refuse instead.
+ */
+export class McpJsonShapeError extends Error {
+  constructor() {
+    super('.mcp.json lists its servers at the top level. Move them under "mcpServers" first, then add this server.');
+    this.name = "McpJsonShapeError";
+  }
+}
+
+/** Pure — true when `.mcp.json` has no `mcpServers` key but a top-level
+ * value looks like a server config (an object with command, url or type). */
+export function hasTopLevelServers(json: unknown): boolean {
+  if (!json || typeof json !== "object" || Array.isArray(json)) return false;
+  if ("mcpServers" in json) return false;
+  return Object.values(json).some(
+    (v) =>
+      v !== null &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      ("command" in v || "url" in v || "type" in v),
+  );
+}
+
 export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
   const out: ConfiguredServer[] = [];
 
@@ -177,9 +209,21 @@ export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
     out.push({ scope: "local", name, config: cfg as McpServerConfig });
   }
 
+  // CC 2.1.327 — `disabledMcpjsonServers` merges across user / project /
+  // local, and a listed `.mcp.json` server is never started by the engine.
+  // A project settings.json that doesn't load just contributes nothing here
+  // (the /mcp list shouldn't fail over it).
+  const projectSettings = await readSettings("project", cwd).catch(() => ({}) as Record<string, unknown>);
+  const rejected = new Set<string>();
+  for (const s of [userSettings, projectSettings, localSettings]) {
+    const list = (s as Record<string, unknown>).disabledMcpjsonServers;
+    if (Array.isArray(list)) for (const n of list) if (typeof n === "string") rejected.add(n);
+  }
+
   for (const server of out) {
     const warnings = findConfigWhitespaceWarnings(server.config);
     if (warnings.length > 0) server.warnings = warnings;
+    if (server.scope === "project" && rejected.has(server.name)) server.rejected = true;
   }
 
   return out;
@@ -194,21 +238,11 @@ export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
  * lock — it can't stop the engine (another process) from writing between our
  * read and write, the same limit the engine states for its own fix.
  */
-const fileChains = new Map<string, Promise<unknown>>();
-
-function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
-  const prev = fileChains.get(file) ?? Promise.resolve();
-  const run = prev.then(fn, fn);
-  const tail = run.then(
-    () => {},
-    () => {},
-  );
-  fileChains.set(file, tail);
-  void tail.then(() => {
-    if (fileChains.get(file) === tail) fileChains.delete(file);
-  });
-  return run;
-}
+// CC 2.1.330 — one per-file chain shared with every other settings writer
+// (`withSettingsFileLock`), so an MCP add and a /settings save to the same
+// settings.json no longer race each other either. Re-entrant, so the
+// upsert's own `writeSettings` call inside it doesn't deadlock.
+const withFileLock = withSettingsFileLock;
 
 function mcpTargetFile(scope: McpScope, cwd: string): string {
   if (scope === "project") return projectMcpJsonPath(cwd);
@@ -239,6 +273,7 @@ async function upsertServerUnlocked(
   if (scope === "project") {
     const path = projectMcpJsonPath(cwd);
     const current = (await readJson<McpJsonShape>(path)) ?? {};
+    if (hasTopLevelServers(current)) throw new McpJsonShapeError();
     current.mcpServers = { ...(current.mcpServers ?? {}), [name]: config };
     await writeJson(path, current);
     return;

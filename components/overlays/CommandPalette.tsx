@@ -45,6 +45,7 @@ import { useElectronAction } from "@/lib/client/useElectron";
 import { SLASH_COMMANDS } from "@/lib/shared/slash-commands";
 
 import { Overlay } from "./Overlay";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type ItemKind = "nav" | "slash" | "shortcut";
 
@@ -166,6 +167,7 @@ export function CommandPalette() {
   const binding = useKeydownBinding("nav.commandPalette");
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (isTypingTarget(e.target) && !open) return;
       if (matchBinding(binding, e)) {
         e.preventDefault();
@@ -294,6 +296,7 @@ export function CommandPalette() {
 
   const onInputKey = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (isImeComposing(e.nativeEvent)) return; // CC 2.1.329
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIndex(Math.min(filtered.length - 1, clampedActive + 1));
@@ -321,7 +324,12 @@ export function CommandPalette() {
             type="text"
             placeholder="Type to search nav, slash commands, shortcuts…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // CC 2.1.331 — a new filter re-sorts the list; Enter must not run
+              // whatever now sits at the old highlighted index.
+              setActiveIndex(0);
+            }}
             onKeyDown={onInputKey}
             className="w-full bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none"
             aria-label="Command palette search"
@@ -386,6 +394,7 @@ function PaletteRow({
       onClick={onActivate}
       data-testid="command-palette-row"
       data-kind={item.kind}
+      data-active={active ? "true" : undefined}
     >
       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
       <span className="min-w-0 truncate font-medium">{item.label}</span>

@@ -86,6 +86,10 @@ export default function FilesPage() {
   // extras collapsed (extras are typically less-used dependency dirs that
   // would otherwise crowd the tree on first paint).
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ primary: true });
+  // CC 2.1.332 — a chat link to a folder (`?path=src/lib`): the folder's
+  // tree key (trailing slash, like `Entry.relPath`) so the tree expands and
+  // selects it instead of trying to open it as a file.
+  const [linkedDir, setLinkedDir] = useState<string | null>(null);
 
   const wsId = active?.id ?? null;
 
@@ -139,7 +143,13 @@ export default function FilesPage() {
         // GET responses include the server-resolved rootId so a stale
         // `extra:<n>` selector (root removed since the sidebar last
         // refreshed) won't smuggle the wrong base into our open-file ref.
-        const d = (await res.json()) as FileContent & { rootId?: string };
+        const d = (await res.json()) as FileContent & { rootId?: string; entries?: unknown };
+        if (typeof d.content !== "string" && Array.isArray(d.entries)) {
+          // CC 2.1.332 — the path is a folder (a chat link like `[lib](src/lib/)`):
+          // reveal it in the tree; there's nothing to open in the editor.
+          setLinkedDir(`${d.relPath}/`);
+          return;
+        }
         const ref: FileContent = {
           root: typeof d.rootId === "string" ? d.rootId : rootId,
           relPath: d.relPath,
@@ -193,6 +203,12 @@ export default function FilesPage() {
       }
     }
   }, [wsId, searchParams, onPick]);
+
+  // The tree selection a `?path=` deep link asks for: the folder's key once
+  // the server says it's a folder, else the path itself.
+  const linkedPath = searchParams.get("path");
+  const linkedSelection =
+    linkedPath && linkedDir === `${linkedPath.replace(/\/+$/, "")}/` ? linkedDir : linkedPath;
 
   // A file whose encoding can't be written back losslessly opens read-only
   // (CC 2.1.299 parity). Missing `editable` = older server → editable.
@@ -406,7 +422,7 @@ export default function FilesPage() {
                   open?.root === "primary"
                     ? open.relPath
                     : !open && (searchParams.get("root") ?? "primary") === "primary"
-                      ? searchParams.get("path")
+                      ? linkedSelection
                       : null
                 }
                 query={query}
@@ -432,7 +448,7 @@ export default function FilesPage() {
                     open?.root === r.id
                       ? open.relPath
                       : !open && (searchParams.get("root") ?? "primary") === r.id
-                        ? searchParams.get("path")
+                        ? linkedSelection
                         : null;
                   return (
                     <li key={r.id} className="border-b border-[var(--border)] last:border-b-0">

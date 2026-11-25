@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { stampUserRejectedToolResults } from "@/lib/shared/user-rejected-stamp";
+import { isEngineResumeGapNotice } from "@/lib/shared/resume-gap-notice";
+import { savedModelAfterPick } from "@/lib/shared/default-model-pick";
 import { withGoalMcpServer, withoutGoalMcpServer } from "./mcp-in-process";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
@@ -10,6 +12,7 @@ import {
   getSessionMessages,
   query,
   renameSession,
+  resolveSettings,
   tool,
   type CanUseTool,
   type CwdChangedHookInput,
@@ -48,6 +51,7 @@ import {
   takePendingBashBlocks,
 } from "./pending-bash-output";
 import { dropBashSession, getOrCreateBashSession } from "./bash-mode";
+import { scrubHostEnv } from "./host-env";
 import { validateWorkspaceCwd } from "./workspace-cwd-preflight";
 import { projectConfigRootFor } from "./trusted-cwd";
 import {
@@ -96,7 +100,8 @@ import {
   type TaskResourceLink,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
-import { hookAsk } from "@/lib/shared/hook-ask";
+import { hookAsk, safetyAskReason } from "@/lib/shared/hook-ask";
+import { resolveManagedRulesOnly } from "@/lib/server/managed-permission-policy";
 import { interpretFeedbackResponse } from "@/lib/shared/feedback-refusal";
 import { isMissingTranscriptError, RENAME_MAY_NOT_LAST_WARNING } from "@/lib/shared/rename-warning";
 import { hasLiveBackgroundAgent } from "./background-agent-keepalive";
@@ -110,6 +115,8 @@ import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { hasArmedLoop } from "./loop-keepalive";
+import { readForkedFromByUuid, withForkedFrom, type ForkedFrom } from "./fork-lineage";
+import { normalizeSpinnerVerbs, type SpinnerVerbs } from "@/lib/shared/spinner-verbs";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
 import { syncDisconnectedNotifications } from "./mcp-disconnected-db";
@@ -144,9 +151,16 @@ import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
 import { extractUsageBehaviors, type UsageBehaviors } from "@/lib/shared/usage-behaviors";
 import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
-import { readCronNextFireAt, readEndedLoopWakeup, type SessionLoop } from "@/lib/shared/session-loops";
+import {
+  isForkedCopy,
+  readCronMaxAgeMs,
+  readCronNextFireAt,
+  readCronRecurring,
+  readEndedLoopWakeup,
+  type SessionLoop,
+} from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
-import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
+import { isSyntheticApiMessage, matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
   findModelInfo,
   shouldLeaveAutoForModel,
@@ -155,6 +169,7 @@ import {
 import { unknownModelWarning } from "@/lib/shared/model-recognition";
 import {
   readSettings,
+  withSettingsLock,
   writeSettings,
   type ClaudeSettings,
   isWorkflowSizeGuideline,
@@ -271,6 +286,9 @@ export function isRateLimitHitSdkMessage(message: unknown): boolean {
   // Subagent text shouldn't trigger account rotation — that's an
   // inner conversation, not the main thread the user is watching.
   if (m.parent_tool_use_id) return false;
+  // CC 2.1.332 — only the engine's synthetic API-error message is a limit
+  // stop; a model reply that opens "You've hit your…" must not rotate accounts.
+  if (!isSyntheticApiMessage(message)) return false;
   const content = m.message?.content;
   if (!Array.isArray(content) || content.length === 0) return false;
   // Match the client rule: every block must be a text block AND the
@@ -865,7 +883,8 @@ export function buildQueryEnv(
   restrictedMode?: boolean,
 ): Record<string, string | undefined> {
   return {
-    ...(envOverride ?? process.env),
+    // CC 2.1.331: drop the desktop host's ELECTRON_RUN_AS_NODE (see host-env.ts).
+    ...scrubHostEnv(envOverride ?? process.env),
     CLAUDE_CODE_ENABLE_TODO_TOOLS: "1",
     CLAUDE_CODE_STARTUP_FAILURE_RESULTS: "1",
     // CC 2.1.248 — tell the engine itself this is a restricted session, so
@@ -955,6 +974,24 @@ export function normalizeSpinnerTipsOverride(
 
 /** Max `tipsFile` size read into memory — a spinner-tips list is tiny. */
 const SPINNER_TIPS_FILE_MAX_BYTES = 256 * 1024;
+
+/**
+ * CC 2.1.332 — `spinnerVerbs` as the engine reads it: from the merged settings
+ * (user, project, local and managed; `resolveSettings`, alpha). Falls back to
+ * the user-scope value when resolution fails. `resolve` is injectable for tests.
+ */
+export async function resolveSpinnerVerbsSetting(
+  cwd: string,
+  userValue: unknown,
+  resolve: typeof resolveSettings = resolveSettings,
+): Promise<unknown> {
+  try {
+    const resolved = await resolve({ cwd });
+    return resolved.effective?.spinnerVerbs ?? userValue;
+  } catch {
+    return userValue;
+  }
+}
 
 /**
  * CC 2.1.247 (G6) — load a `spinnerTipsOverride.tipsFile` (an absolute or `~/`
@@ -1850,6 +1887,8 @@ export class Session {
    * mirroring `maxBudgetUsd`'s creation-time-only semantics.
    */
   private toolBudgetLimits: Limits = {};
+  /** CC 2.1.331 — managed `allowManagedPermissionRulesOnly`, read at start(). */
+  private managedRulesOnly = false;
   /** Running per-session counts checked against `toolBudgetLimits`. Reset is
    * implicit: `/clear` starts a brand-new Session instance. */
   private toolBudgetUsed = { webSearches: 0, subagents: 0 };
@@ -1965,6 +2004,12 @@ export class Session {
    * sessions and when no candidate file exists. See `resumedTranscriptPath`.
    */
   private resumedTranscriptFile: string | undefined;
+  /**
+   * CC 2.1.327 — the "earlier messages couldn't be loaded" line `start()`
+   * placed above the replayed history, when the resumed JSONL is cut. See
+   * `resumeGapNotice`.
+   */
+  private resumeGap: { uuid: string; content: string } | undefined;
   private subscribers = new Set<Subscriber>();
   /** Set by `end()` when the SDK process had already died on its own — see `isDead`. */
   private diedOnItsOwn = false;
@@ -2109,6 +2154,12 @@ export class Session {
   private appliedWakeupStops = new Set<string>();
   /** `CronDelete` tool_use ids awaiting their result (SDK 0.3.321 `endedLoopWakeup`). */
   private pendingCronDeletes = new Set<string>();
+  /**
+   * CC 2.1.330 — per transcript id, the `forkedFrom` of each line copied from
+   * a fork's source session (`getSessionMessages` drops it). Read once: the
+   * SDK's `forkSession` writes those lines only when it creates the file.
+   */
+  private forkLineage = new Map<string, Promise<Map<string, ForkedFrom>>>();
   /**
    * `tool_use_id`s of `ScheduleWakeup` ticks recorded into the `loop_ticks`
    * table this turn, awaiting the turn's `result` message so their token
@@ -2503,6 +2554,12 @@ export class Session {
   } = {};
 
   /**
+   * CC 2.1.332 — the `spinnerVerbs` setting, cached at `start()` beside
+   * `spinnerTipsConfig` and sent on the same per-subscriber `tips` frame.
+   */
+  private spinnerVerbs: SpinnerVerbs | undefined;
+
+  /**
    * Default dispatch mode for new user messages — mirrors the user-scope
    * `queueDispatchMode` setting. Cached at `start()` so the per-send hot
    * path (`/api/sessions/[id]/input`) reads it from memory instead of
@@ -2618,6 +2675,15 @@ export class Session {
     const home = homedir();
     return file.startsWith(home + pathSep) ? `~${file.slice(home.length)}` : file;
   }
+  /**
+   * CC 2.1.327 — the cut-history notice for this resume, if any. The replay
+   * buffer carries it at the top, but a reattach only replays the last turns,
+   * so the paged transcript route hands it out again with the page that
+   * reaches the top of the history.
+   */
+  resumeGapNotice(): { uuid: string; content: string } | undefined {
+    return this.resumeGap;
+  }
   async start(): Promise<void> {
     if (this.query) return;
 
@@ -2646,6 +2712,8 @@ export class Session {
     } catch {
       // leave toolBudgetLimits at {} (all caps disabled)
     }
+    // CC 2.1.331 — hide the card's "Always" buttons under managed-only rules.
+    void resolveManagedRulesOnly(this.cwd).then((v) => (this.managedRulesOnly = v));
 
     // Sweep orphaned actionable notification rows for this session. The
     // in-memory `pendingAskQuestions` / `pendingPermissions` / `pendingPlans`
@@ -2722,6 +2790,18 @@ export class Session {
     // "model engaged with this id post-click, take over" semantic.
     this.isReplayingTranscript = true;
     if (this.resumeFrom) {
+      // CC 2.1.327 — read the JSONL's parent links alongside the SDK load, to
+      // tell whether the history it returns starts at a cut (see the notice
+      // below). Never fails the resume: any error just means no notice.
+      const resumeFrom = this.resumeFrom;
+      // CC 2.1.330 — which replayed lines a fork copied from its source.
+      const forkLineage = this.readForkLineage(resumeFrom);
+      const gapLinks = (async () => {
+        const file = await findResumedTranscriptPath(resumeFrom, this.cwd);
+        if (!file) return null;
+        const { readTranscriptLinks } = await import("./session-resume");
+        return readTranscriptLinks(file);
+      })().catch(() => null);
       try {
         const loaded = await getSessionMessages(this.resumeFrom, {
           dir: this.cwd,
@@ -2770,9 +2850,64 @@ export class Session {
         // frozen on the running spinner (their `tool_result` was in the
         // dropped tail). Losing one malformed record is survivable; losing
         // the rest of the conversation is not.
+        // CC 2.1.327 — "Added a line when a resumed session's earlier
+        // messages can't be loaded". The SDK's chain walk stops silently at
+        // a parent missing from the file, so a damaged middle replayed as a
+        // shorter history. When the first loaded message's chain root is such
+        // an orphan (the CLI's rule — see `hasMissingParentAbove`), put the
+        // CLI's warning above it, stamped with the earliest replayed time so
+        // the chronological replay order keeps it on top. Not persisted.
+        try {
+          const links = await gapLinks;
+          const firstUuid = historical.find(
+            (m) => typeof (m as { uuid?: unknown }).uuid === "string",
+          )?.uuid;
+          if (links && firstUuid) {
+            const { hasMissingParentAbove, RESUME_GAP_NOTICE } = await import("./session-resume");
+            if (hasMissingParentAbove(links, firstUuid)) {
+              let earliest: number | undefined;
+              let leadingUndated = 0;
+              for (const m of historical) {
+                const ts = (m as { timestamp?: string }).timestamp;
+                const t = typeof ts === "string" ? Date.parse(ts) : NaN;
+                if (Number.isFinite(t)) {
+                  if (earliest === undefined || t < earliest) earliest = t;
+                } else if (earliest === undefined) {
+                  leadingUndated++;
+                }
+              }
+              // Undated leading rows (older emitters) would otherwise fall to
+              // `Date.now()`, below everything; carry them forward from just
+              // under the notice instead.
+              if (earliest !== undefined && leadingUndated > 0) {
+                earliest -= leadingUndated + 1;
+                carriedAt = earliest;
+              }
+              this.resumeGap = { uuid: `resume-gap-${resumeFrom}`, content: RESUME_GAP_NOTICE };
+              this.broadcast({
+                type: "sdk",
+                message: {
+                  type: "system",
+                  subtype: "informational",
+                  level: "warning",
+                  content: RESUME_GAP_NOTICE,
+                  uuid: this.resumeGap.uuid,
+                  session_id: this.id,
+                } as unknown as SDKMessage,
+                at: earliest,
+              });
+            }
+          }
+        } catch {
+          // best-effort: no notice rather than a broken resume
+        }
         let replayFailures = 0;
         let firstReplayError: string | undefined;
+        const forked = await forkLineage;
         for (const m of historical) {
+          // CC 2.1.332 — an engine copy of the line saved by an earlier
+          // resume; this one already put its own above the history.
+          if (this.resumeGap && isEngineResumeGapNotice(m)) continue;
           const ts = (m as { timestamp?: string }).timestamp;
           const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
           let at: number | undefined;
@@ -2783,7 +2918,9 @@ export class Session {
             carriedAt = carriedAt + 1;
             at = carriedAt;
           }
-          const sdk = m as unknown as SDKMessage;
+          // CC 2.1.330 — put back the `forkedFrom` getSessionMessages drops, so
+          // both loop trackers see a fork's copied history as inherited.
+          const sdk = withForkedFrom(m, forked) as unknown as SDKMessage;
           try {
             this.broadcast({ type: "sdk", message: sdk, at });
             // Replay disk-resident tool_use / tool_result blocks through the
@@ -2959,6 +3096,11 @@ export class Session {
         normalizeSpinnerTipsOverride(userSettings.spinnerTipsOverride),
       ),
     };
+    // CC 2.1.332 — "[VSCode] Fixed `spinnerVerbs` from Claude Code user and
+    // managed settings being ignored".
+    this.spinnerVerbs = normalizeSpinnerVerbs(
+      await resolveSpinnerVerbsSetting(this.cwd, userSettings.spinnerVerbs),
+    );
     // Resolve the queue-dispatch mode from user settings (default "wait").
     // Cached for the lifetime of this Session; a settings change after
     // start() won't retroactively apply — the user already accepted that
@@ -3068,12 +3210,13 @@ export class Session {
       // writing it back could undo a hand edit to settings.json made
       // meanwhile, or recreate a file deleted meanwhile. Only the
       // `advisorModel` key is removed, and only if the file still has it.
-      void (async () => {
+      // CC 2.1.330 — under the file's lock, like every settings writer.
+      void withSettingsLock("user", this.cwd, async () => {
         const fresh = await readSettings("user", this.cwd);
         if (!Object.hasOwn(fresh, "advisorModel")) return;
         delete fresh.advisorModel;
         await writeSettings("user", this.cwd, fresh);
-      })().catch((err) => {
+      }).catch((err) => {
         console.error("[session.start] advisor-fable-incompatible clear failed", err);
       });
       // We don't broadcast here synchronously; the SSE client subscribes
@@ -3289,6 +3432,10 @@ export class Session {
       // the value at the flag layer, which sits above all filesystem layers
       // in precedence — so the choice surfaced in the global Settings page
       // takes effect even when the SDK's disk path has diverged from ours.
+      //
+      // Adding or removing a key here? Update USER_SCOPE_WINS_SETTING_KEYS
+      // in lib/shared/setting-override.ts too: /settings uses it to avoid
+      // saying a project/local value overrides one these keys pin (CC 2.1.327).
       //
       // Both forwarded values share the same `settings` key, so we build
       // ONE object: an earlier `settings: {...}` spread would be clobbered
@@ -3972,6 +4119,12 @@ export class Session {
           ctx.decisionReason,
           (ctx as { decisionReasonType?: unknown }).decisionReasonType,
         ),
+        // CC 2.1.329 — "… not showing why a safety check asks".
+        safetyReason: safetyAskReason(
+          ctx.decisionReason,
+          (ctx as { decisionReasonType?: unknown }).decisionReasonType,
+        ),
+        managedRulesOnly: this.managedRulesOnly || undefined,
         // CC 2.1.235 — show the narrow rule(s) an "Always allow" will write.
         suggestedRules: allowRuleSuggestions(ctx.suggestions).flatMap((u) =>
           u.rules.map((r) => ({
@@ -4270,7 +4423,17 @@ export class Session {
     // red ⚠ icon on the activity rail even though the user had accepted
     // the plan. Returning the setMode as part of the allow lets the SDK
     // perform the transition atomically and the tool returns success.
-    this.permissionMode = "acceptEdits";
+    //
+    // CC 2.1.328 — "Changed plan mode … to use and offer auto mode …;
+    // `disableAutoMode` turns both off". "Accept & use auto mode" executes in
+    // `auto`, behind the same two gates `applyPermissionMode` applies.
+    let mode: "acceptEdits" | "auto" = "acceptEdits";
+    if (decision.mode === "auto") {
+      const gate = await readSettings("user", this.cwd).catch(() => ({}) as ClaudeSettings);
+      const info = isAutoModeDisabled(gate) ? undefined : await this.modelCatalogInfo(this.model ?? this.sdkModel);
+      if (!isAutoModeDisabled(gate) && !shouldLeaveAutoForModel("auto", info)) mode = "auto";
+    }
+    this.permissionMode = mode;
     this.permissionModeSeq++;
     // `updatedInput` is REQUIRED on the allow branch even though sdk.d.ts
     // marks it optional — the SDK's runtime Zod validator rejects
@@ -4288,7 +4451,7 @@ export class Session {
       behavior: "allow",
       updatedInput: rawInput,
       updatedPermissions: [
-        { type: "setMode", mode: "acceptEdits", destination: "session" },
+        { type: "setMode", mode, destination: "session" },
       ],
     };
     // If the user hand-edited the plan in the overlay, ship their version
@@ -4311,7 +4474,7 @@ export class Session {
     // doesn't revive the session in plan from the transcript's last stamp.
     void mergeSessionState(this.cwd, this.id, {
       priorPlan: editedPlan && editedPlan.length > 0 ? editedPlan : pending.plan,
-      ...permissionModeRecord("acceptEdits"),
+      ...permissionModeRecord(mode),
     });
     // Feature 39 parity: arm the post-execution verify nudge. The flag is
     // drained at the next `result` boundary in `consume()` (NOT here, NOT
@@ -4322,7 +4485,7 @@ export class Session {
     // The SDK doesn't echo `setMode` permission updates back through its
     // message iterator — broadcast manually so the client UI's mode badge
     // (plan → acceptEdits) follows along immediately.
-    this.broadcast({ type: "mode_changed", mode: "acceptEdits" });
+    this.broadcast({ type: "mode_changed", mode });
     this.broadcastTurnStatusIfChanged();
     void this.flushQueueIfIdle().catch(() => {});
     return true;
@@ -5502,9 +5665,23 @@ export class Session {
     // `Query.setPermissionMode` rejects. That rejection used to be dropped,
     // so `mode_changed` broadcast the requested mode to every tab while the
     // engine kept the old one. Now roll back and report the refusal.
+    let substitutedFrom: PermissionMode | undefined;
     if (this.query) {
       try {
-        await this.query.setPermissionMode(mode);
+        // SDK 0.3.332: resolves with the mode now in effect, "which is not
+        // always the mode asked for: record `mode`, not the argument"
+        // (undefined on an older engine or an answer that names none, where
+        // the argument stays the best guess). Everything below (reminders,
+        // the `mode_changed` broadcast, the revive record, the return value)
+        // then uses what the engine is really in. Skipped when plan acceptance
+        // wrote the mode during the await, as with the rollback below.
+        const answer = await this.query.setPermissionMode(mode);
+        const effective = answer?.mode;
+        if (effective && effective !== mode && seq === this.permissionModeSeq) {
+          substitutedFrom = mode;
+          mode = effective;
+          this.permissionMode = effective;
+        }
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         // A dead or closing session can't answer at all ("Query closed
@@ -5554,7 +5731,9 @@ export class Session {
     if (mode === "auto" && (this.model ?? this.sdkModel) !== autoCheckedModel) {
       await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel, undefined, { insideModeSwitch: true });
     }
-    return { mode: this.permissionMode };
+    return substitutedFrom
+      ? { mode: this.permissionMode, substituted: { requested: substitutedFrom } }
+      : { mode: this.permissionMode };
   }
 
   getPermissionMode(): PermissionMode {
@@ -5636,6 +5815,19 @@ export class Session {
    */
   getScheduledLoops(): SessionLoop[] {
     return [...this.scheduledLoops.values()];
+  }
+
+  /** See `forkLineage`. Empty for a session that isn't a fork, or on any error. */
+  private readForkLineage(id: string): Promise<Map<string, ForkedFrom>> {
+    let lineage = this.forkLineage.get(id);
+    if (!lineage) {
+      lineage = (async () => {
+        const file = await findResumedTranscriptPath(id, this.cwd);
+        return file ? readForkedFromByUuid(file) : new Map<string, ForkedFrom>();
+      })().catch(() => new Map<string, ForkedFrom>());
+      this.forkLineage.set(id, lineage);
+    }
+    return lineage;
   }
 
   /**
@@ -5796,6 +5988,11 @@ export class Session {
     if (!Array.isArray(content)) return;
 
     if (m.type === "assistant") {
+      // CC 2.1.330 — "[VSCode] Fixed a forked conversation running the
+      // original conversation's `/loop` schedules a second time". A call
+      // copied from a fork's source session armed a loop THERE; track it as
+      // inherited (muted, never armed) rather than as this session's own.
+      const inherited = isForkedCopy(message);
       for (const raw of content) {
         const b = raw as { type?: string };
         if (b.type !== "tool_use") continue;
@@ -5824,10 +6021,12 @@ export class Session {
             humanSchedule: null,
             delaySeconds: null,
             prompt,
-            recurring: inp.recurring === true,
+            // CronCreateInput.recurring: "true (default)" — omitted means recurring.
+            recurring: inp.recurring !== false,
             durable: false,
             startedAt: observedAt,
             cancelled: false,
+            ...(inherited ? { inherited: true } : {}),
           });
           continue;
         }
@@ -5905,6 +6104,7 @@ export class Session {
             startedAt: observedAt,
             cancelled: false,
             ...(noop ? { noop: true, noopStreak } : {}),
+            ...(inherited ? { inherited: true } : {}),
           });
           // Loops breakdown persistence (CC 2.1.243 parity) — record this
           // tick and remember its tool_use_id so the turn's `result`
@@ -5969,14 +6169,22 @@ export class Session {
         const humanSchedule = idMatch?.[2] ?? null;
         const durable = !/session[- ]only/i.test(text);
         // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
-        const nextFireAt = readCronNextFireAt((message as { tool_use_result?: unknown }).tool_use_result);
+        const toolUseResult = (message as { tool_use_result?: unknown }).tool_use_result;
+        const nextFireAt = readCronNextFireAt(toolUseResult);
+        // CC 2.1.330 / SDK 0.3.332 — the result says whether the job repeats
+        // and when a recurring one ends (`maxAgeMs`, else "Auto-expires after
+        // N days"). Same reads as the client reducer — keep in sync.
+        const recurring = readCronRecurring(toolUseResult, text) ?? pending.recurring;
+        const maxAgeMs = recurring ? readCronMaxAgeMs(toolUseResult, text) : undefined;
 
         this.scheduledLoops.set(cronId, {
           ...pending,
           id: cronId,
           humanSchedule,
           durable,
+          recurring,
           ...(nextFireAt !== undefined ? { nextFireAt } : {}),
+          ...(maxAgeMs !== undefined ? { maxAgeMs } : {}),
         });
       }
     }
@@ -6000,18 +6208,26 @@ export class Session {
    */
   private async persistModelToUserSettings(model: string | undefined): Promise<void> {
     try {
-      const current = await readSettings("user", this.cwd);
-      // No-op if the file already matches — avoids touching mtime and
-      // triggering external watchers (Claude Code TUI, MDM tooling).
-      const desired = model || undefined;
-      if (current.model === desired) return;
-      const next: ClaudeSettings = { ...current };
-      if (desired) {
-        next.model = desired;
-      } else {
-        delete next.model;
-      }
-      await writeSettings("user", this.cwd, next);
+      // CC 2.1.329 — the Default row keeps the saved model when it showed it,
+      // else deletes the key; never writes the literal "default". The catalog
+      // is fetched before taking the settings lock (CC 2.1.330) so a slow
+      // engine never holds up other saves to settings.json.
+      const catalog = model === "default" ? await this.query?.supportedModels().catch(() => undefined) : undefined;
+      await withSettingsLock("user", this.cwd, async () => {
+        const current = await readSettings("user", this.cwd);
+        const after = savedModelAfterPick(model, current.model, catalog);
+        // No-op if the file already matches — avoids touching mtime and
+        // triggering external watchers (Claude Code TUI, MDM tooling).
+        if (!after) return;
+        const desired = after.model;
+        const next: ClaudeSettings = { ...current };
+        if (desired) {
+          next.model = desired;
+        } else {
+          delete next.model;
+        }
+        await writeSettings("user", this.cwd, next);
+      });
     } catch (err) {
       console.error("[session.persistModelToUserSettings] write failed", err);
     }
@@ -6035,15 +6251,21 @@ export class Session {
     // No remote/teleport concept exists in Claudius; this is the local
     // analogue of the TUI's host-rejected model switch.
     const previousModel = this.model;
+    let transportGone = false;
     if (this.query) {
       try {
         await this.query.setModel(model);
       } catch (err) {
-        return {
-          ok: false,
-          error: err instanceof Error ? err.message : String(err),
-          model: this.model,
-        };
+        const error = err instanceof Error ? err.message : String(err);
+        // CC 2.1.331 — "Fixed a model pick being ignored for the next message
+        // when Claude's process had ended". A dead or closing process can't
+        // answer, which isn't a refusal: keep the pick (as `setPermissionMode`
+        // does) so the restart the next send triggers (`getRebuildOpts`)
+        // starts on it, and skip the catalog fetch below that it can't answer.
+        if (!this.isDead() && !this.done && !isTransportClosedError(error)) {
+          return { ok: false, error, model: this.model };
+        }
+        transportGone = true;
       }
     }
     this.model = model;
@@ -6086,7 +6308,7 @@ export class Session {
     // entered auto after an earlier switch to this model, and a reset to the
     // default (`model` undefined) is checked against the SDK-resolved model.
     let models: ModelInfo[] | undefined;
-    if (this.query) {
+    if (this.query && !transportGone) {
       try {
         models = await this.query.supportedModels();
       } catch {
@@ -6148,12 +6370,15 @@ export class Session {
     if (this.advisorModel) {
       const previousAdvisor = this.advisorModel;
       try {
-        const current = await readSettings("user", this.cwd);
-        if (current.advisorModel) {
-          const next: ClaudeSettings = { ...current };
-          delete next.advisorModel;
-          await writeSettings("user", this.cwd, next);
-        }
+        // CC 2.1.330 — under the file's lock, like every settings writer.
+        await withSettingsLock("user", this.cwd, async () => {
+          const current = await readSettings("user", this.cwd);
+          if (current.advisorModel) {
+            const next: ClaudeSettings = { ...current };
+            delete next.advisorModel;
+            await writeSettings("user", this.cwd, next);
+          }
+        });
       } catch (err) {
         // Non-fatal: the flag-settings clear below still applies for this
         // session's remaining turns. The file write is best-effort.
@@ -6240,8 +6465,11 @@ export class Session {
       }
     }
     try {
-      const current = await readSettings("local", this.cwd);
-      await writeSettings("local", this.cwd, { ...current, outputStyle: name });
+      // CC 2.1.330 — under the file's lock, like every settings writer.
+      await withSettingsLock("local", this.cwd, async () => {
+        const current = await readSettings("local", this.cwd);
+        await writeSettings("local", this.cwd, { ...current, outputStyle: name });
+      });
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -7387,12 +7615,15 @@ export class Session {
     // falls back to the file when null, so clearing only the flag layer
     // would leave the incompatible value still in effect.
     try {
-      const current = await readSettings("user", this.cwd);
-      if (current.advisorModel) {
-        const next: ClaudeSettings = { ...current };
-        delete next.advisorModel;
-        await writeSettings("user", this.cwd, next);
-      }
+      // CC 2.1.330 — under the file's lock, like every settings writer.
+      await withSettingsLock("user", this.cwd, async () => {
+        const current = await readSettings("user", this.cwd);
+        if (current.advisorModel) {
+          const next: ClaudeSettings = { ...current };
+          delete next.advisorModel;
+          await writeSettings("user", this.cwd, next);
+        }
+      });
     } catch (err) {
       console.error("[session.advisor-compat] settings write failed", err);
     }
@@ -7832,6 +8063,10 @@ export class Session {
         }
         return { added: 0 };
       }
+      // CC 2.1.330 — lines a fork copied from its source (see resume). Read
+      // before the seen-set and the loop, so the broadcasts below run without
+      // yielding and live events can't interleave with replayed history.
+      const forked = await this.readForkLineage(this.id);
       const seen = new Set<string>();
       for (const ev of this.buffer) {
         if (ev.type !== "sdk") continue;
@@ -7863,7 +8098,7 @@ export class Session {
         // ride on the carry-forward so they inherit their turn time
         // instead of falling through to Date.now() in `broadcast()`.
         const at = Number.isFinite(parsed) ? parsed : carriedAt;
-        const sdk = m as unknown as SDKMessage;
+        const sdk = withForkedFrom(m, forked) as unknown as SDKMessage;
         this.broadcast({ type: "sdk", message: sdk, at });
         // External writers (terminal `claude --resume`, another SDK client)
         // can arm or cancel loops on disk; replay them through the tracker
@@ -8078,6 +8313,7 @@ export class Session {
         spinnerTipsEnabled: this.spinnerTipsConfig.enabled,
         spinnerTipsOverride: this.spinnerTipsConfig.override,
       }),
+      ...(this.spinnerVerbs ? { spinnerVerbs: this.spinnerVerbs } : {}),
     });
     // Re-emit the agent's effective working directory for the same
     // tail-truncation reason as `mode_changed`/`turn_status` above. The
@@ -9687,6 +9923,11 @@ export class Session {
     let sawError = false;
     try {
       for await (const raw of this.query as AsyncIterable<SDKMessage>) {
+        // CC 2.1.332 — "Added a notice in VS Code and Desktop's Code tab when
+        // a resumed session's earlier messages weren't loaded". This session
+        // already shows that line above the history (`resumeGap`), so drop
+        // the engine's copy instead of showing it twice.
+        if (this.resumeGap && isEngineResumeGapNotice(raw)) continue;
         // CC 2.1.323 — mark results of calls the user denied as
         // `user-rejected` (the engine stamps a host deny `permission-rule`).
         const message = stampUserRejectedToolResults(raw, this.userRejectedToolUseIds);

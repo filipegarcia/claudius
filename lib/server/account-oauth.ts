@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { ownRequestCertFailureHint } from "@/lib/shared/tls-cert-hint";
+import { accountOnHoldFromTokenError, accountOnHoldSignInNotice } from "@/lib/shared/account-on-hold";
 
 /**
  * Anthropic OAuth manual-flow driver for the account switcher.
@@ -187,7 +188,7 @@ export function isRefusedAuthCode(status: number, bodyText: string): boolean {
   }
   if (!body || typeof body !== "object") return false;
   // The engine excludes an on-hold account: signing in again can't fix that,
-  // so it keeps its own (raw) message instead of "Sign in again".
+  // so it gets the on-hold notice instead (`AccountOnHoldError`).
   if ((body as { error_description?: unknown }).error_description === "account_on_hold") return false;
   const err = (body as { error?: unknown }).error;
   if (err === "invalid_grant") return true;
@@ -198,6 +199,21 @@ export function isRefusedAuthCode(status: number, bodyText: string): boolean {
     ((err as { type?: unknown }).type === "invalid_grant" ||
       (err as { code?: unknown }).code === "invalid_grant")
   );
+}
+
+/**
+ * CC 2.1.330 — "[VSCode] Fixed signing in to an account on hold showing a
+ * generic failure instead of the on-hold notice and appeal link". Thrown by
+ * `exchangeOAuthCode` with the engine's notice as its message;
+ * `appealUrl` is the vetted link (see `lib/shared/account-on-hold.ts`).
+ */
+export class AccountOnHoldError extends Error {
+  readonly appealUrl: string;
+  constructor(appealUrl: string) {
+    super(accountOnHoldSignInNotice(appealUrl));
+    this.name = "AccountOnHoldError";
+    this.appealUrl = appealUrl;
+  }
 }
 
 /**
@@ -276,6 +292,10 @@ export async function exchangeOAuthCode(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    // CC 2.1.330 — an on-hold account gets the notice and appeal link, not
+    // the raw `token exchange failed (400): {…account_on_hold…}`.
+    const onHold = accountOnHoldFromTokenError(text);
+    if (onHold) throw new AccountOnHoldError(onHold.appealUrl);
     if (isRefusedAuthCode(res.status, text)) throw new Error(REFUSED_AUTH_CODE_MESSAGE);
     if (res.status === 401) {
       throw new Error(

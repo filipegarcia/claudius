@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { History, Loader2 } from "lucide-react";
+import { isImeComposing } from "@/lib/client/key-match";
+import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
+import { REWIND_CLIENT_TIMEOUT_MS, rewindTimeoutMessage } from "@/lib/shared/rewind-timeout";
 
 /**
  * "Restore files to here" affordance on a user message (B1.1, option a).
@@ -50,11 +53,25 @@ async function callRewind(
   userMessageId: string,
   dryRun: boolean,
 ): Promise<RewindResult> {
-  const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/rewind`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userMessageId, dryRun }),
-  });
+  // CC 2.1.332 — a hung process used to leave this fetch (and the spinner)
+  // pending forever. The route answers 504 after its own timeout; this abort
+  // is the backstop for a route that never answers at all.
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), REWIND_CLIENT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/rewind`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userMessageId, dryRun }),
+      signal: abort.signal,
+    });
+  } catch (err) {
+    if (abort.signal.aborted) throw new Error(rewindTimeoutMessage(dryRun));
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   const body = (await res.json().catch(() => ({}))) as { result?: RewindResult; error?: string };
   if (!res.ok) throw new Error(body.error ?? `rewind failed: ${res.status}`);
   if (!body.result) throw new Error("malformed rewind response");
@@ -88,6 +105,13 @@ export function RewindFilesButton({
     setPhase({ kind: "loading" });
     try {
       const result = await callRewind(sessionId, messageUuid, false);
+      // CC 2.1.327 — a real rewind where every differing file fails to
+      // restore comes back as `canRewind: false` with `error` (see the SDK's
+      // RewindFilesResult). Say it failed rather than "Files restored".
+      if (!result.canRewind) {
+        setPhase({ kind: "error", message: result.error ?? "None of the files could be restored." });
+        return;
+      }
       setPhase({ kind: "done", result });
     } catch (err) {
       setPhase({ kind: "error", message: err instanceof Error ? err.message : String(err) });
@@ -95,12 +119,16 @@ export function RewindFilesButton({
   };
 
   const close = () => setPhase({ kind: "idle" });
+  // CC 2.1.330 — a selection dragged out of the dialog onto the backdrop
+  // isn't a click outside.
+  const backdropDismiss = useBackdropDismiss(close);
 
   // CC 2.1.326 — Esc cancels the dialog (preview, result or error).
   const dialogOpen = phase.kind === "preview" || phase.kind === "error" || phase.kind === "done";
   useEffect(() => {
     if (!dialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (e.key === "Escape") setPhase({ kind: "idle" });
     };
     window.addEventListener("keydown", onKey);
@@ -130,9 +158,10 @@ export function RewindFilesButton({
       {dialogOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onPointerDown={backdropDismiss.onPointerDown}
           onClick={(e) => {
             e.stopPropagation();
-            close();
+            backdropDismiss.onClick(e);
           }}
         >
           <div

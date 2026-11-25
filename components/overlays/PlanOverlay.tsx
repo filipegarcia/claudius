@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ListChecks, Maximize2, Pencil, X } from "lucide-react";
+import { Check, ListChecks, Maximize2, Pencil, X, Zap } from "lucide-react";
 import { Overlay } from "./Overlay";
 import { Markdown } from "@/components/chat/Markdown";
 import type { PendingPlan } from "@/lib/client/types";
@@ -13,14 +13,21 @@ type Props = {
    * Called when the user accepts the plan. If `editedPlan` is set, it
    * replaces the original plan text in the SDK's ExitPlanMode tool input —
    * see `PermissionResult.updatedInput` handling in session.ts. Pass
-   * undefined to leave the original plan untouched.
+   * undefined to leave the original plan untouched. `mode: "auto"` is the
+   * "Accept & use auto mode" button.
    */
-  onAccept: (editedPlan?: string) => void;
+  onAccept: (editedPlan?: string, mode?: "auto") => void;
   onReject: () => void;
   onClose: () => void;
+  /**
+   * CC 2.1.328 — offer "Accept & use auto mode" (false when the user's
+   * `disableAutoMode` is set). The server still falls back to `acceptEdits`
+   * on a model that can't run auto.
+   */
+  autoModeAvailable?: boolean;
 };
 
-export function PlanOverlay({ plan, onAccept, onReject, onClose }: Props) {
+export function PlanOverlay({ plan, onAccept, onReject, onClose, autoModeAvailable }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(plan.plan);
   const [minimized, setMinimized] = useState(false);
@@ -64,7 +71,14 @@ export function PlanOverlay({ plan, onAccept, onReject, onClose }: Props) {
     >
       <div className="border-b border-violet-500/30 bg-violet-500/10 px-4 py-2 text-[11px] text-violet-200">
         <ListChecks className="mr-1 inline h-3.5 w-3.5 align-middle" />
-        Claude has produced a plan. Accepting will switch this session to <code className="font-mono">acceptEdits</code> so the agent can execute it.
+        Claude has produced a plan. Accepting will switch this session to <code className="font-mono">acceptEdits</code>
+        {autoModeAvailable && (
+          <>
+            {" "}
+            (or <code className="font-mono">auto</code>, with Accept &amp; use auto mode)
+          </>
+        )}{" "}
+        so the agent can execute it.
         {editing && (
           <span className="ml-2 text-violet-100/80">
             · Editing — your changes ship to the SDK as the tool&apos;s effective input.
@@ -101,10 +115,27 @@ export function PlanOverlay({ plan, onAccept, onReject, onClose }: Props) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/50 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--panel-2)]/50 px-4 py-3">
+        {/* CC 2.1.328 — "Changed plan mode … to use and offer auto mode";
+            the CLI's "Yes, and use auto mode" comes first when available. */}
+        {autoModeAvailable && (
+          <button
+            data-testid="plan-accept-auto"
+            onClick={() => onAccept(isDirty ? draft : undefined, "auto")}
+            className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-white hover:opacity-90"
+            title="Accept the plan and let Claude execute it in auto mode"
+          >
+            <Zap className="h-3.5 w-3.5" /> {isDirty ? "Accept edited plan & use auto mode" : "Accept & use auto mode"}
+          </button>
+        )}
         <button
+          data-testid="plan-accept"
           onClick={() => onAccept(isDirty ? draft : undefined)}
-          className="flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-white hover:opacity-90"
+          className={
+            autoModeAvailable
+              ? "flex items-center gap-1 rounded-md border border-[var(--accent)]/50 bg-[var(--panel)] px-3 py-1.5 text-sm text-[var(--accent)] hover:bg-[var(--panel-2)]"
+              : "flex items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm text-white hover:opacity-90"
+          }
         >
           <Check className="h-3.5 w-3.5" /> {isDirty ? "Accept edited plan" : "Accept & execute"}
         </button>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { addGroup, listAll, removeGroup } from "@/lib/server/hooks";
-import { HOOK_EVENT_NAMES, type HookEvent, type HookGroup } from "@/lib/shared/hook-events";
+import { handlerTypeAllowed, HOOK_EVENT_NAMES, type HookEvent, type HookGroup } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
@@ -31,6 +31,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid event" }, { status: 400 });
   if (!body?.group?.hooks?.length)
     return NextResponse.json({ error: "group.hooks required" }, { status: 400 });
+  // SDK 0.3.332 — the engine refuses every skill shell command when a prompt
+  // or agent hook sits on PreSkillShellCommand (CC 2.1.280: agent hooks on
+  // PermissionRequest). Don't write a handler that can't run.
+  const disallowed = body.group.hooks.find((h) => !handlerTypeAllowed(h?.type, body.event));
+  if (disallowed)
+    return NextResponse.json(
+      { error: `${disallowed.type} hooks don't run on ${body.event} — use command or http` },
+      { status: 400 },
+    );
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
   await addGroup(body.scope, cwd, body.event, body.group);

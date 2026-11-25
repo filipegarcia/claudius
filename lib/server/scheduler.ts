@@ -101,7 +101,13 @@ class Scheduler {
       for (const job of jobs) {
         if (job.enabled) this.arm(job);
       }
-    })();
+    })().catch((err: unknown) => {
+      // CC 2.1.328: a jobs.json that can't be read must not leave every job
+      // unarmed until the process restarts. Forget the failed boot so the
+      // next caller (the Schedule page, a route) retries once it's fixed.
+      this.bootPromise = null;
+      throw err;
+    });
     return this.bootPromise;
   }
 

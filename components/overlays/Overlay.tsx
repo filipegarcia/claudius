@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Minus, X } from "lucide-react";
+import { isImeComposing } from "@/lib/client/key-match";
+import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
 
 type Props = {
   title: React.ReactNode;
@@ -69,6 +71,10 @@ export function Overlay({
   const panelRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
   const dragRef = useRef<{ pointerX: number; pointerY: number; start: Offset; box: PanelBox } | null>(null);
+  // CC 2.1.330 — "Fixed dialogs closing, and losing typed text, when a text
+  // selection was dragged past their edge": only a press that starts on the
+  // backdrop closes the overlay, not a drag that ends there.
+  const backdropDismiss = useBackdropDismiss(onClose);
 
   // A window resize moves the panel's centered layout slot, which can push a
   // dragged panel off screen — pull it back inside.
@@ -125,6 +131,7 @@ export function Overlay({
   useEffect(() => {
     if (!dismissOnBackdrop) return;
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
@@ -139,7 +146,7 @@ export function Overlay({
         // meant for the app underneath; the panel opts back in below.
         (backdrop ? "bg-black/60 backdrop-blur-sm" : "pointer-events-none")
       }
-      onClick={backdrop && dismissOnBackdrop ? onClose : undefined}
+      {...(backdrop && dismissOnBackdrop ? backdropDismiss : {})}
     >
       <div
         ref={panelRef}

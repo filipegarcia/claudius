@@ -47,6 +47,7 @@ import { useShowMessageTimestamps } from "@/lib/client/useShowMessageTimestamps"
 import { MessageTimestampsProvider } from "@/lib/client/message-timestamps-context";
 import { ClockOptionsProvider } from "@/lib/client/clock-options-context";
 import { StreamDisconnectedProvider } from "@/lib/client/stream-status-context";
+import { TranscriptFindProvider } from "@/lib/client/transcript-find-context";
 import { useReducedMotionSetting } from "@/lib/client/useReducedMotionSetting";
 import { HelpOverlay } from "@/components/overlays/HelpOverlay";
 import { helpTopic, isGoalClear, isHelpRequest } from "@/lib/shared/slash-help";
@@ -66,7 +67,7 @@ import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
 import type { AttachedImage, SendResult, SessionInfo } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
-import { matchBinding, useShortcut } from "@/lib/client/shortcuts";
+import { isTypingTarget, matchBinding, useBindingPlatform, useShortcut } from "@/lib/client/shortcuts";
 import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
 import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
 import { useLimits } from "@/lib/client/useLimits";
@@ -85,7 +86,7 @@ import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { BashViewer } from "@/components/panels/BashViewer";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { BackgroundBash } from "@/lib/client/types";
-import { isLetterKey } from "@/lib/client/key-match";
+import { isFindChord } from "@/lib/client/composer-keys";
 
 function todayKey(): string {
   const d = new Date();
@@ -491,7 +492,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
 
   const onOverride = useCallback(async () => {
     if (!session.sessionId) return;
-    await limits.setOverride(session.sessionId, true);
+    if (!(await limits.setOverride(session.sessionId, true))) return;
     void limits.audit({
       ts: new Date().toISOString(),
       kind: "override",
@@ -973,9 +974,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // Bumped on every Cmd/Ctrl+F so an already-open find bar re-focuses and
   // selects its text, like the browser's own bar.
   const [findNonce, setFindNonce] = useState(0);
+  const bindingPlatform = useBindingPlatform();
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && isLetterKey(e, "f")) {
+      // CC 2.1.330 — on macOS Ctrl+F in the message box (or any text field)
+      // moves the caret forward; only Cmd+F opens the find bar there.
+      if (isFindChord(e, { mac: bindingPlatform === "mac", typing: isTypingTarget(e.target) })) {
         e.preventDefault();
         setSearchOpen(true);
         setFindNonce((n) => n + 1);
@@ -986,7 +990,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [searchOpen]);
+  }, [searchOpen, bindingPlatform]);
 
   // Focus session title ────────────────────────────────────────────────────
   // The `session.focusTitle` binding (Cmd+Option+T by default) opens the
@@ -2685,6 +2689,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           }}
         />
         <div data-pane-name="message-list" className="flex flex-1 flex-col overflow-hidden">
+          {/* CC 2.1.327 — the find bar shares its query with the transcript so
+              matching Edit / Write cards open themselves. */}
+          <TranscriptFindProvider>
           {searchOpen && (
             <TranscriptSearch
               sessionId={session.sessionId}
@@ -2730,6 +2737,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                 lastShownAt: tipLastShownAt,
               },
             )}
+            spinnerVerbs={session.spinnerVerbs}
             apiRetry={session.apiRetry}
             suggestedUuids={session.suggestedUuids}
             goalUuids={session.goalUuids}
@@ -2815,6 +2823,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
               },
             }}
           />
+          </TranscriptFindProvider>
           {session.errors.length > 0 && (
             <div className="mx-auto w-full max-w-[var(--chat-col)] px-4 pb-2">
               {session.errors.map((e, i) => (
@@ -3095,13 +3104,16 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             void session.resolvePlan({ kind: "reject", message: "User dismissed the plan." });
             showToast("Plan dismissed — still in plan mode");
           }}
-          onAccept={(editedPlan) => {
-            void session.resolvePlan({ kind: "accept", editedPlan });
-            showToast(
-              editedPlan
-                ? "Edited plan accepted — switched to acceptEdits"
-                : "Plan accepted — switched to acceptEdits",
-            );
+          // CC 2.1.328 — "Accept & use auto mode" unless `disableAutoMode`.
+          autoModeAvailable={!autoModeDisabled}
+          onAccept={(editedPlan, mode) => {
+            void session.resolvePlan({ kind: "accept", editedPlan, ...(mode ? { mode } : {}) });
+            // The server can still refuse auto (a model that can't run it, or
+            // a `disableAutoMode` this tab hadn't loaded yet) and use
+            // acceptEdits, so the auto toast doesn't claim a mode: the mode
+            // badge, driven by the server's `mode_changed`, shows which.
+            const accepted = editedPlan ? "Edited plan accepted" : "Plan accepted";
+            showToast(mode === "auto" ? `${accepted} — auto mode requested` : `${accepted} — switched to acceptEdits`);
           }}
           onReject={() => {
             void session.resolvePlan({ kind: "reject" });

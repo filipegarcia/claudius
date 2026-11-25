@@ -15,7 +15,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { test, expect } from "../helpers/test";
 import { activateClaudiusWorkspace } from "./helpers/workspace";
-import { assistantText, initEvent, mockChatBackend, userText, type SdkEvent } from "./helpers/mock-chat";
+import { apiErrorText, initEvent, mockChatBackend, userText, type SdkEvent } from "./helpers/mock-chat";
 
 const SHOTS_DIR = resolve(process.cwd(), "docs/cc-parity/2.1.323");
 mkdirSync(SHOTS_DIR, { recursive: true });
@@ -46,7 +46,7 @@ function transcript(canUserPurchaseCredits?: boolean): SdkEvent[] {
     initEvent("sys-init-323c"),
     userText("u-1", "Review the migration plan with Opus."),
     earlierWarning(canUserPurchaseCredits),
-    assistantText("a-1", "Opus 5 requires usage credits."),
+    apiErrorText("a-1", "Opus 5 requires usage credits."),
     { type: "replay_done", hasMoreAbove: false },
   ];
 }

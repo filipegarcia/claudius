@@ -1,3 +1,4 @@
+import { scrubHostEnv } from "./host-env";
 import { spawn } from "node:child_process";
 import { killProcessGroup } from "./process-group";
 
@@ -101,7 +102,8 @@ export async function execShellCommand(
 
     const child = spawn(SHELL_PATH, ["-c", command], {
       cwd,
-      env: process.env,
+      // CC 2.1.331: no ELECTRON_RUN_AS_NODE from the desktop host (host-env.ts).
+      env: scrubHostEnv(process.env),
       // `detached: true` puts the child (bash) in its own process group,
       // making it the group leader. That lets us kill the WHOLE group on
       // timeout via `process.kill(-pid, sig)` below — without this, a

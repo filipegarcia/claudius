@@ -36,6 +36,7 @@ describe("STARTUP_FAILURE_REASON_LABELS", () => {
     "config_file_invalid",
     "managed_settings_not_delivered",
     "initialize_fields_not_delivered",
+    "sideload_flags_disabled",
   ];
 
   test("covers every reason value the SDK documents", () => {

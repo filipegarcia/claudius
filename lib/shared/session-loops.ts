@@ -59,9 +59,90 @@ export type SessionLoop = {
    * after the job fires. Absent for wake-ups and for older SDKs.
    */
   nextFireAt?: number;
+  /**
+   * Age at which a recurring cron ends, in ms from `startedAt` (SDK 0.3.332
+   * `CronCreateOutput.maxAgeMs`, or the result text's "Auto-expires after N
+   * days"). Absent when neither says; `loopEndsAt` then uses the engine's
+   * 7-day default. Read with `readCronMaxAgeMs`.
+   */
+  maxAgeMs?: number;
+  /**
+   * CC 2.1.330 — armed by a message this session's transcript copied from the
+   * session it was forked from (`forkedFrom`). The loop lives in that source
+   * session, not here: shown muted, never counted as armed.
+   */
+  inherited?: boolean;
   /** True once `CronDelete` (or the equivalent) ran for this loop. */
   cancelled: boolean;
 };
+
+/**
+ * CC 2.1.330 — "[VSCode] Fixed a forked conversation running the original
+ * conversation's `/loop` schedules a second time". True for a replayed message
+ * the server marked as copied from the source session of a fork (see
+ * `lib/server/fork-lineage.ts`); loops it arms are `inherited`.
+ */
+export function isForkedCopy(msg: unknown): boolean {
+  const ff = (msg as { forkedFrom?: unknown } | null)?.forkedFrom;
+  return !!ff && typeof ff === "object";
+}
+
+/**
+ * CC 2.1.330 — "Changed recurring scheduled tasks and `/loop` to run up to 30
+ * days instead of 7 while their session keeps running, and say when they end;
+ * tasks made before this release still end at 7 days".
+ *
+ * The engine ends a recurring job at `min(maxAgeMs ?? 7 days || ∞,
+ * recurringMaxAgeMs || ∞)` after it is created, with `recurringMaxAgeMs` = 30
+ * days. A job written without `maxAgeMs` (older ones) keeps the 7-day default;
+ * `maxAgeMs: 0` ("never") is held to the 30-day ceiling.
+ */
+export const LOOP_DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+export const LOOP_RECURRING_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Read a recurring cron's age limit off its `CronCreate` result: the
+ * structured `tool_use_result.maxAgeMs` (SDK 0.3.332) first, then the result
+ * text's "Auto-expires after N days" (the structured payload doesn't survive
+ * every replay path). `0` resolves to the 30-day ceiling. Undefined when
+ * neither says.
+ */
+export function readCronMaxAgeMs(toolUseResult: unknown, text: string): number | undefined {
+  if (toolUseResult && typeof toolUseResult === "object") {
+    const v = (toolUseResult as { maxAgeMs?: unknown }).maxAgeMs;
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) return v === 0 ? LOOP_RECURRING_MAX_AGE_MS : v;
+  }
+  const days = /Auto-expires after (\d+) days?/i.exec(text)?.[1];
+  if (days && Number(days) > 0) return Number(days) * 24 * 60 * 60 * 1000;
+  return undefined;
+}
+
+/**
+ * Whether a `CronCreate` job repeats, from its result: the structured
+ * `recurring` first, then the result text ("Scheduled recurring job …" /
+ * "Scheduled one-shot task …"). Undefined when neither says — the caller
+ * falls back to the input, where an omitted `recurring` means true.
+ */
+export function readCronRecurring(toolUseResult: unknown, text: string): boolean | undefined {
+  if (toolUseResult && typeof toolUseResult === "object") {
+    const v = (toolUseResult as { recurring?: unknown }).recurring;
+    if (typeof v === "boolean") return v;
+  }
+  if (/Scheduled recurring job/i.test(text)) return true;
+  if (/Scheduled one-shot task/i.test(text)) return false;
+  return undefined;
+}
+
+/**
+ * Epoch ms at which a recurring cron has its last run and ends; null for
+ * wake-ups and one-shot crons (they end after their single fire).
+ */
+export function loopEndsAt(
+  loop: Pick<SessionLoop, "kind" | "recurring" | "startedAt" | "maxAgeMs">,
+): number | null {
+  if (loop.kind !== "cron" || !loop.recurring) return null;
+  return loop.startedAt + (loop.maxAgeMs ?? LOOP_DEFAULT_MAX_AGE_MS);
+}
 
 /**
  * Read `endedLoopWakeup` (SDK 0.3.321 `CronDeleteOutput.endedLoopWakeup`) off

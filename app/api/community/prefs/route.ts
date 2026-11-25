@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readSettings, writeSettings } from "@/lib/server/settings";
+import { readSettings, withSettingsLock, writeSettings } from "@/lib/server/settings";
 
 export const runtime = "nodejs";
 
@@ -61,47 +61,50 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const settings = (await readSettings("user", process.cwd())) as Record<
-    string,
-    unknown
-  >;
+  // CC 2.1.330 — read and write under the file's lock (settings.ts).
+  return withSettingsLock("user", process.cwd(), async () => {
+    const settings = (await readSettings("user", process.cwd())) as Record<
+      string,
+      unknown
+    >;
 
-  // Merge — only touch keys the caller explicitly mentioned. `null`
-  // means "clear this key"; undefined means "leave it alone."
-  if ("consent" in body) {
-    if (body.consent === "yes" || body.consent === "no") {
-      settings.communityConsent = body.consent;
-    } else if (body.consent === null) {
-      delete settings.communityConsent;
-    } else {
-      return NextResponse.json(
-        { error: "consent must be 'yes', 'no', or null" },
-        { status: 400 },
-      );
-    }
-  }
-  if ("nick" in body) {
-    if (typeof body.nick === "string" && body.nick.length > 0) {
-      // Reasonable cap — keep ~/.claude/settings.json from growing on a
-      // pathological input. Matches the nickname regex enforced
-      // client-side and server-side in the chat-server itself.
-      if (body.nick.length > 64) {
+    // Merge — only touch keys the caller explicitly mentioned. `null`
+    // means "clear this key"; undefined means "leave it alone."
+    if ("consent" in body) {
+      if (body.consent === "yes" || body.consent === "no") {
+        settings.communityConsent = body.consent;
+      } else if (body.consent === null) {
+        delete settings.communityConsent;
+      } else {
         return NextResponse.json(
-          { error: "nick too long" },
+          { error: "consent must be 'yes', 'no', or null" },
           { status: 400 },
         );
       }
-      settings.communityNick = body.nick;
-    } else if (body.nick === null || body.nick === "") {
-      delete settings.communityNick;
-    } else {
-      return NextResponse.json(
-        { error: "nick must be a string or null" },
-        { status: 400 },
-      );
     }
-  }
+    if ("nick" in body) {
+      if (typeof body.nick === "string" && body.nick.length > 0) {
+        // Reasonable cap — keep ~/.claude/settings.json from growing on a
+        // pathological input. Matches the nickname regex enforced
+        // client-side and server-side in the chat-server itself.
+        if (body.nick.length > 64) {
+          return NextResponse.json(
+            { error: "nick too long" },
+            { status: 400 },
+          );
+        }
+        settings.communityNick = body.nick;
+      } else if (body.nick === null || body.nick === "") {
+        delete settings.communityNick;
+      } else {
+        return NextResponse.json(
+          { error: "nick must be a string or null" },
+          { status: 400 },
+        );
+      }
+    }
 
-  await writeSettings("user", process.cwd(), settings);
-  return NextResponse.json(readPrefs(settings));
+    await writeSettings("user", process.cwd(), settings);
+    return NextResponse.json(readPrefs(settings));
+  });
 }

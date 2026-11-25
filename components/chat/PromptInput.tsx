@@ -17,13 +17,15 @@ import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
 import { EmojiShortcodePicker } from "./EmojiShortcodePicker";
-import { lookupEmojiShortcode, parseEmojiTrigger } from "@/lib/shared/emoji-shortcodes";
+import { filterEmojiShortcodes, lookupEmojiShortcode, parseEmojiTrigger } from "@/lib/shared/emoji-shortcodes";
+import { atTokenBlocksEnter } from "./at-mention";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { commandNeedsSudo, sendBash } from "@/lib/client/sendBash";
 import { readBridgeOnClient } from "@/lib/client/useElectron";
 import { resolveDroppedPath } from "@/lib/client/file-paths";
+import { bashModeFileInsert } from "@/lib/shared/bash-mode-paths";
 import type { AttachedImage, SendResult } from "@/lib/client/types";
 import {
   BULLET_GLYPH,
@@ -51,7 +53,12 @@ import {
   sendFailedNotice as sendFailedCopy,
   sendOutcome,
 } from "@/lib/client/send-outcome";
-import { historyEntryIndex } from "@/lib/shared/prompt-history";
+import {
+  IDLE_HISTORY_CURSOR,
+  isHistoryRecallKey,
+  stepPromptHistory,
+  type HistoryCursor,
+} from "@/lib/shared/prompt-history";
 import {
   applyEditToRanges,
   diffEdit,
@@ -62,6 +69,7 @@ import {
 } from "@/lib/shared/large-paste";
 import { describeOversizedImages } from "@/lib/client/image-intake";
 import { isLetterKey } from "@/lib/client/key-match";
+import { isHeldRepeat } from "@/lib/client/composer-keys";
 
 type Props = {
   pending: boolean;
@@ -310,6 +318,11 @@ export function PromptInput({
    */
   const [slashAtStart, setSlashAtStart] = useState(false);
   const [atQuery, setAtQuery] = useState<string | null>(null);
+  /**
+   * CC 2.1.331 — the `@` token the file menu last reported as having no rows
+   * (null: it has rows, or is still searching). See `atTokenBlocksEnter`.
+   */
+  const [atNoRowsFor, setAtNoRowsFor] = useState<string | null>(null);
   /** Active `:shortcode` token (leading `:` stripped), or null. Same update-site model as atQuery above. */
   const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
   // Hydration marker — `mounted` reads true on the client, false during SSR
@@ -362,14 +375,14 @@ export function PromptInput({
   const composingRef = useRef(false);
 
   // ── Shell-style prompt history recall (Cmd/Ctrl + ↑/↓) ───────────────────
-  // `histIdxRef` is the cursor into `promptHistory` (null = editing the live
-  // draft, not browsing). Kept in a ref rather than state because every move
-  // already drives a `setValue`, so the cursor never needs to trigger its own
-  // render — and a ref sidesteps the set-state-in-effect rule when we reset on
-  // session change below. `stashedDraftRef` holds whatever was in the composer
-  // when browsing began so Cmd/Ctrl+↓ past the newest entry restores it.
-  const histIdxRef = useRef<number | null>(null);
-  const stashedDraftRef = useRef("");
+  // `histRef` is the cursor into `promptHistory` (`idx` null = editing the
+  // live draft, not browsing), the draft stashed when browsing began (so
+  // Cmd/Ctrl+↓ past the newest entry restores it) and the user's edits to
+  // recalled entries — see `stepPromptHistory`. Kept in a ref rather than
+  // state because every move already drives a `setValue`, so the cursor never
+  // needs to trigger its own render — and a ref sidesteps the
+  // set-state-in-effect rule when we reset on session change below.
+  const histRef = useRef<HistoryCursor>(IDLE_HISTORY_CURSOR);
   // CC 2.1.288 — the draft (text + pasted images) that Ctrl+C / double-Esc last
   // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
   // is stashed (a fresh session, or already restored). CC 2.1.326 — paste
@@ -671,7 +684,7 @@ export function PromptInput({
     userTypedRef.current = false;
     // Switching sessions means a different history — abandon any in-progress
     // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
     // A cleared/replaced draft stashed for ↑-restore belongs to the old
     // session's composer — don't let it surface in this session's tab.
     clearedDraftRef.current = null;
@@ -953,7 +966,7 @@ export function PromptInput({
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
     userTypedRef.current = false;
     // The command is consumed — a session switch must not flush it back.
     pendingDraftRef.current = null;
@@ -1023,7 +1036,57 @@ export function PromptInput({
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
+  }
+
+  /**
+   * What Enter does once no picker claims it, at caret `caret`. Returns true
+   * when it handled the key (the caller prevents the default newline).
+   * Shared by the textarea's own Enter and an Enter the @ menu hands back
+   * (CC 2.1.331, `onUnmatchedEnter`), so both continue a list or send alike.
+   */
+  function applyEnter(caret: number, key: { shiftKey: boolean; repeat: boolean }): boolean {
+    const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
+    const nlIdx = value.indexOf("\n", caret);
+    const lineEnd = nlIdx === -1 ? value.length : nlIdx;
+    const line = value.slice(lineStart, lineEnd);
+
+    const cont = computeListContinuation(line);
+    // List-aware Enter runs for *both* Enter and Shift+Enter: plain Enter
+    // submits, so Shift+Enter is the user's only way to add a newline, and
+    // it must continue the list just like Enter would in any other editor.
+    if (cont) {
+      if (cont.kind === "empty") {
+        // Empty list item → exit the list by clearing this line's marker.
+        // Caret lands at the (now-blank) line start so the next Enter
+        // produces a normal newline. Mirrors VS Code / Slack behaviour.
+        applyEdit(lineStart, lineEnd, "", 0);
+      } else {
+        // Non-empty list item → split at caret and seed the new line
+        // with the continuation marker.
+        applyEdit(caret, caret, "\n" + cont.next, 1 + cont.next.length);
+      }
+      return true;
+    }
+
+    // Outside a list, fall back to original semantics: Enter submits,
+    // Shift+Enter inserts a plain newline (browser default).
+    if (key.shiftKey) return false;
+    // CC 2.1.330 — "Fixed a held-down Enter key sending a half-written
+    // message or running a typed slash command". The first keydown of a
+    // held Enter picks the `@` file or `/` command; its auto-repeats land
+    // here with the picker closed and used to send the half-written message
+    // (or run the just-completed `/compact`). Only a fresh press sends.
+    if (key.repeat) return true;
+    // If the input is empty and there's a queued message, pressing Enter
+    // sends the first queued message immediately (before the current turn
+    // finishes) instead of submitting a no-op.
+    if (!value.trim() && images.length === 0 && onSendQueuedNow) {
+      onSendQueuedNow();
+      return true;
+    }
+    submit();
+    return true;
   }
 
   function submit() {
@@ -1145,7 +1208,7 @@ export function PromptInput({
     // Each prompt is its own ordinal namespace.
     ordinalCounterRef.current = 0;
     // Sending ends any history browse; the just-sent prompt becomes the new tail.
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
     // Submitting consumes the draft. Reset the "typed" flag so subsequent
     // session-switches still seed cleanly, and tell the server to clear.
     userTypedRef.current = false;
@@ -1367,39 +1430,17 @@ export function PromptInput({
    * (and let the caret fall through to its default home/end jump otherwise).
    */
   function recallHistory(dir: -1 | 1): boolean {
-    const history = promptHistory ?? [];
-    if (history.length === 0) return false;
-    let idx = histIdxRef.current;
-    // History can shrink while browsing (e.g. /clear) — clamp a now-stale
-    // cursor back into range so we never index past the end.
-    if (idx !== null && idx > history.length - 1) idx = history.length - 1;
-    if (dir === -1) {
-      if (idx === null) {
-        // Entering history — stash the live draft so ↓ can bring it back.
-        // CC 2.1.295 parity — skip the newest entry when the composer already
-        // holds it (a just-lifted queued message), so the first press recalls
-        // the message that lift displaced.
-        stashedDraftRef.current = value;
-        idx = historyEntryIndex(history, value) ?? history.length - 1;
-      } else if (idx > 0) {
-        idx -= 1;
-      } else {
-        // Already at the oldest entry — swallow so the caret doesn't jump.
-        return true;
-      }
-    } else {
-      if (idx === null) return false; // not browsing — let ↓ move the caret
-      if (idx < history.length - 1) {
-        idx += 1;
-      } else {
-        // Past the newest entry → back to the stashed draft.
-        histIdxRef.current = null;
-        applyRecalledText(stashedDraftRef.current, false);
-        return true;
-      }
-    }
-    histIdxRef.current = idx;
-    applyRecalledText(history[idx]);
+    // CC 2.1.332 — edits to a recalled prompt no longer end the browse (see
+    // `stepPromptHistory`): ↓ still walks back to the stashed draft, and an
+    // edited entry keeps its edit.
+    const step = stepPromptHistory(promptHistory ?? [], histRef.current, value, dir);
+    // Not browsing (or nothing to recall) — let the caret move.
+    if (step.kind === "pass") return false;
+    histRef.current = step.cursor;
+    // At the oldest entry — swallow so the caret doesn't jump.
+    if (step.kind === "stay") return true;
+    // A history entry keeps the menus closed; the restored draft resyncs them.
+    applyRecalledText(step.text, !step.draft);
     return true;
   }
 
@@ -1436,7 +1477,8 @@ export function PromptInput({
     // queue length, and works even mid-turn.
     if (e.ctrlKey && e.key === "Enter" && onSendAllQueuedNow) {
       e.preventDefault();
-      onSendAllQueuedNow();
+      // CC 2.1.330 — a held key's auto-repeats never send (see below).
+      if (!isHeldRepeat(e)) onSendAllQueuedNow();
       return;
     }
 
@@ -1462,7 +1504,13 @@ export function PromptInput({
     // pickers ignore Arrow keys while meta/ctrl is held (see
     // SlashCommandPicker / AtMentionPicker), so there's no conflict.
     if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      if (recallHistory(e.key === "ArrowUp" ? -1 : 1)) e.preventDefault();
+      // CC 2.1.331 — "Fixed the arrow keys replacing typed text with an old
+      // prompt while selecting": ⌘⇧↑/↓ (Ctrl+Shift elsewhere) selects to the
+      // top or bottom, and a selection in progress keeps its keys. Only a
+      // plain Cmd/Ctrl+↑/↓ walks history.
+      const ta = e.currentTarget;
+      const selecting = ta.selectionStart !== ta.selectionEnd;
+      if (isHistoryRecallKey(e, selecting) && recallHistory(e.key === "ArrowUp" ? -1 : 1)) e.preventDefault();
       return;
     }
 
@@ -1481,7 +1529,7 @@ export function PromptInput({
         pickerOpen,
         atActive: atQuery != null,
         emojiActive: emojiQuery != null,
-        browsingHistory: histIdxRef.current !== null,
+        browsingHistory: histRef.current.idx !== null,
         hasStash: failedSendForThisSession() != null || clearedDraftRef.current != null,
       })
     ) {
@@ -1525,44 +1573,20 @@ export function PromptInput({
     // Mid-prompt slash picker (CC 2.1.265): the picker is open but Enter still
     // submits — only a leading slash (`slashAtStart`) captures Enter to run the
     // command, handled in SlashCommandPicker.
-    if (e.key === "Enter" && (!pickerOpen || !slashAtStart) && atQuery == null && emojiQuery == null) {
-      const caret = e.currentTarget.selectionStart ?? 0;
-      const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
-      const nlIdx = value.indexOf("\n", caret);
-      const lineEnd = nlIdx === -1 ? value.length : nlIdx;
-      const line = value.slice(lineStart, lineEnd);
-
-      const cont = computeListContinuation(line);
-      // List-aware Enter runs for *both* Enter and Shift+Enter: plain Enter
-      // submits, so Shift+Enter is the user's only way to add a newline, and
-      // it must continue the list just like Enter would in any other editor.
-      if (cont) {
-        e.preventDefault();
-        if (cont.kind === "empty") {
-          // Empty list item → exit the list by clearing this line's marker.
-          // Caret lands at the (now-blank) line start so the next Enter
-          // produces a normal newline. Mirrors VS Code / Slack behaviour.
-          applyEdit(lineStart, lineEnd, "", 0);
-        } else {
-          // Non-empty list item → split at caret and seed the new line
-          // with the continuation marker.
-          applyEdit(caret, caret, "\n" + cont.next, 1 + cont.next.length);
-        }
-        return;
-      }
-
-      // Outside a list, fall back to original semantics: Enter submits,
-      // Shift+Enter inserts a plain newline (browser default).
-      if (e.shiftKey) return;
-      e.preventDefault();
-      // If the input is empty and there's a queued message, pressing Enter
-      // sends the first queued message immediately (before the current turn
-      // finishes) instead of submitting a no-op.
-      if (!value.trim() && images.length === 0 && onSendQueuedNow) {
-        onSendQueuedNow();
-        return;
-      }
-      submit();
+    // CC 2.1.331 — "Enter not sending a prompt that ends in an @word with no
+    // matching file": an open `@token` (or `:token`) only holds Enter back
+    // while its menu has something to pick.
+    if (
+      e.key === "Enter" &&
+      (!pickerOpen || !slashAtStart) &&
+      !atTokenBlocksEnter(atQuery, atNoRowsFor) &&
+      (emojiQuery == null || filterEmojiShortcodes(emojiQuery).length === 0)
+    ) {
+      const handled = applyEnter(e.currentTarget.selectionStart ?? 0, {
+        shiftKey: e.shiftKey,
+        repeat: isHeldRepeat(e),
+      });
+      if (handled) e.preventDefault();
       return;
     }
 
@@ -1678,6 +1702,32 @@ export function PromptInput({
     // In a regular browser tab the bridge is `null` and we fall back to the
     // basename, which is the most we can recover from the HTML5 File API.
     const bridge = readBridgeOnClient();
+    // CC 2.1.328 — "Fixed an image path pasted into a `!` command becoming an
+    // attachment". In `!` mode every file, image or not, goes into the command
+    // as its shell-quoted path at the caret: no attachment (the bash route
+    // never sends one, so the image was dropped and `[Image #N]` ran as text)
+    // and no `@` (the shell would see it).
+    if (value.startsWith("!")) {
+      const insert = bashModeFileInsert(
+        files.map((f) => resolveDroppedPath(bridge?.files?.getPath(f) || null, f.name, cwd)),
+      );
+      if (!insert) return;
+      const el = taRef.current;
+      const caret = el?.selectionStart ?? value.length;
+      const before = value.slice(0, caret);
+      const after = value.slice(caret);
+      const lead = before && !/\s$/.test(before) ? " " : "";
+      const trail = after && /^\s/.test(after) ? "" : " ";
+      const next = before + lead + insert + trail + after;
+      const pos = before.length + lead.length + insert.length + trail.length;
+      setValue(next);
+      requestAnimationFrame(() => {
+        el?.focus();
+        el?.setSelectionRange(pos, pos);
+        autosize();
+      });
+      return;
+    }
     const droppedPaths: string[] = [];
     type Pending = { data: string; mediaType: string };
     const newImageBlobs: Pending[] = [];
@@ -1970,7 +2020,10 @@ export function PromptInput({
         : null}
       <div className="relative mx-auto max-w-[var(--chat-col)]">
         {images.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
+          <div
+            data-testid={`${testIdPrefix}-attachments`}
+            className="mb-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2"
+          >
             {images.map((img, i) => (
               <div key={i} className="relative">
                 <button
@@ -2135,9 +2188,16 @@ export function PromptInput({
               userTypedRef.current = true;
               // The user is acting on the restored message — the hint did its job.
               if (sendFailed) setSendFailed(null);
-              // Editing the text exits history-browse mode: the next Cmd/Ctrl+↑
-              // should re-stash this edited draft and start again from the tail.
-              histIdxRef.current = null;
+              // CC 2.1.332 — "stop and say why when you edit it". Each
+              // transcript rewrote the box as `baseRef + text`, so a word typed
+              // or deleted while dictating was lost on the next one. An edit
+              // now stops dictation, drops the transcript still in flight, and
+              // keeps the text as it is (the footer notice says so).
+              if (voice.listening) voice.stop({ discardTranscript: true, notice: { kind: "edited" } });
+              // CC 2.1.332 — editing a recalled prompt no longer exits history
+              // browsing: re-stashing the edit on the next Cmd/Ctrl+↑ lost the
+              // unsent draft, and Cmd/Ctrl+↓ couldn't bring it back. The next
+              // step picks the edit up from `value` (`stepPromptHistory`).
               // Atomic-token cleanup: any token present in the prior value but
               // gone (or partially mangled) in the new value drops its image.
               if (!composingRef.current) {
@@ -2340,6 +2400,10 @@ export function PromptInput({
             sessionId={sessionId}
             onSelect={(rel) => insertAtMention(rel)}
             onClose={() => setAtQuery(null)}
+            onNoRows={setAtNoRowsFor}
+            onUnmatchedEnter={() =>
+              applyEnter(taRef.current?.selectionStart ?? value.length, { shiftKey: false, repeat: false })
+            }
           />
         )}
 

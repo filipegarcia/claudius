@@ -2,10 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, File, Folder } from "lucide-react";
+import { isImeComposing } from "@/lib/client/key-match";
+import { isHeldRepeat } from "@/lib/client/composer-keys";
+import { shouldResetHighlight } from "@/lib/shared/picker-highlight";
 import {
   type Agent,
   type PickerItem,
+  atMenuKeyAction,
   filterAgents,
+  heldEnterOutcome,
   itemToken,
   normalizeFileMentionQuery,
   parseAtMentionQuery,
@@ -30,9 +35,24 @@ type Props = {
   sessionId: string | null;
   onSelect: (tokenBody: string) => void;
   onClose: () => void;
+  /**
+   * CC 2.1.331 — called with the query the menu has no rows for (searched,
+   * nothing matched), or null while it has rows or is still searching. The
+   * composer lets Enter send a prompt ending in an unmatched `@word`. Pass a
+   * stable function (a state setter).
+   */
+  onNoRows?: (query: string | null) => void;
+  /**
+   * CC 2.1.331 — a plain Enter with nothing to pick: pressed while the menu
+   * has no rows, or pressed during the search and replayed once it answered
+   * with none. The composer runs its own Enter (send, or continue a list).
+   * Handled here rather than left to the composer's `onNoRows` gate, which
+   * updates a render later and would turn that Enter into a newline.
+   */
+  onUnmatchedEnter?: () => void;
 };
 
-export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Props) {
+export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose, onNoRows, onUnmatchedEnter }: Props) {
   // `@` is already stripped by PromptInput's refreshPickerState, so an
   // agent mention shows up here as e.g. "agent-rev".
   const { agentMode, filter: agentFilter } = parseAtMentionQuery(query);
@@ -47,8 +67,15 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
   // Shown in the picker instead of silently closing it as if nothing matched;
   // a 400 / network failure stays quiet (see `fsListErrorText`).
   const [fileError, setFileError] = useState<string | null>(null);
+  // CC 2.1.331 — the server's walk stopped before covering the whole
+  // workspace, so a file that exists may not be listed. Said in the menu
+  // instead of closing it as if nothing matched.
+  const [truncated, setTruncated] = useState(false);
   const [hi, setHi] = useState(0);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  // CC 2.1.331 — the token a plain Enter was held for while its search ran
+  // (see `heldEnterOutcome`), or null.
+  const heldEnterRef = useRef<string | null>(null);
 
   // Agent list, fetched once per session and cached (mirrors useSdkCommands):
   // each call to the agents endpoint is an SDK control round-trip, so we never
@@ -79,17 +106,23 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
     if (cwd) params.set("cwd", cwd);
     fetch(`/api/fs/list?${params}`, { signal: controller.signal })
       .then(async (r) => {
-        const d = (await r.json().catch(() => ({}))) as { entries?: FsEntry[]; error?: string };
+        const d = (await r.json().catch(() => ({}))) as {
+          entries?: FsEntry[];
+          error?: string;
+          truncated?: boolean;
+        };
         // The swallowed json() error may be the abort — don't apply stale results.
         if (controller.signal.aborted) return;
         setEntries(r.ok ? (d.entries ?? []) : []);
         setFileError(r.ok ? null : fsListErrorText(r.status, d));
+        setTruncated(r.ok && d.truncated === true);
       })
       .catch((err: unknown) => {
         // Network failure / abort — stays quiet (picker closes), as before.
         if (err instanceof DOMException && err.name === "AbortError") return;
         setEntries([]);
         setFileError(null);
+        setTruncated(false);
       })
       .finally(() => {
         if (!controller.signal.aborted) setFileLoading(false);
@@ -140,18 +173,60 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
 
   // Reset highlight to top when the visible result set size changes —
   // same "store previous props" pattern as above to avoid an effect.
-  const [lastVisibleLen, setLastVisibleLen] = useState(visible.length);
-  if (lastVisibleLen !== visible.length) {
-    setLastVisibleLen(visible.length);
+  // CC 2.1.331 — and when the query changes: the list is capped at 30 rows and
+  // usually full, so a length-only reset kept a stale slot highlighted.
+  const shape = { filter: query, count: visible.length };
+  const [lastShape, setLastShape] = useState(shape);
+  if (shouldResetHighlight(lastShape, shape)) {
+    setLastShape(shape);
     setHi(0);
   }
 
+  // CC 2.1.331 — tell the composer when this token has nothing to pick, so
+  // Enter sends `thanks @claude` instead of inserting a newline.
+  const noRows = !loading && visible.length === 0;
+  useEffect(() => {
+    onNoRows?.(noRows ? query : null);
+    // Closing the menu clears the report, so a later token with the same text
+    // starts out holding Enter until its own search answers.
+    return () => onNoRows?.(null);
+  }, [noRows, query, onNoRows]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
+      // CC 2.1.331 — while the search for the token as typed now is still
+      // running, the rows on screen are the previous query's: a quick Tab or
+      // Enter inserted the wrong file. Hold the key until the results land.
+      // With nothing to pick, Enter goes on to the composer, which sends.
+      if (e.key === "Tab" || e.key === "Enter") {
+        const action = atMenuKeyAction({ loading, rows: visible.length });
+        const plainEnter =
+          e.key === "Enter" && !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey && !isHeldRepeat(e);
+        if (action === "hold") {
+          e.preventDefault();
+          e.stopPropagation();
+          // Kept, not lost: replayed if the search finds nothing to pick.
+          if (plainEnter && onUnmatchedEnter) heldEnterRef.current = query;
+          return;
+        }
+        if (action === "pass" && plainEnter && onUnmatchedEnter) {
+          e.preventDefault();
+          e.stopPropagation();
+          onUnmatchedEnter();
+          return;
+        }
+      }
       if (visible.length === 0) return;
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — let it
       // pass through to PromptInput rather than moving this picker's highlight.
       if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
+      // CC 2.1.330 — a held Enter/Tab's auto-repeat never picks: swallow it.
+      if (isHeldRepeat(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
@@ -181,14 +256,29 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [hi, visible, onClose, onSelect]);
+  }, [hi, visible, loading, query, onClose, onSelect, onUnmatchedEnter]);
+
+  // CC 2.1.331 — settle an Enter held during the search: send once it answers
+  // with nothing to pick, drop it if files turned up or the token changed.
+  useEffect(() => {
+    const heldFor = heldEnterRef.current;
+    if (heldFor == null) return;
+    const outcome = heldEnterOutcome({ heldFor, query, loading, rows: visible.length });
+    if (outcome === "wait") return;
+    heldEnterRef.current = null;
+    if (outcome === "send") onUnmatchedEnter?.();
+  }, [query, loading, visible.length, onUnmatchedEnter]);
 
   useEffect(() => {
     itemRefs.current[hi]?.scrollIntoView({ block: "nearest" });
   }, [hi]);
 
   const showFileError = !agentMode && !loading && fileError != null;
-  if (visible.length === 0 && !loading && !showFileError) return null;
+  // CC 2.1.331 — the note replaces the "No files found" close, so it shows
+  // only when nothing matched. The depth limit alone flags most real repos as
+  // partial, so showing it above a list of rows would show it on every query.
+  const showTruncated = !agentMode && !loading && !showFileError && truncated && visible.length === 0;
+  if (visible.length === 0 && !loading && !showFileError && !showTruncated) return null;
 
   const countLabel = loading
     ? "loading…"
@@ -241,6 +331,11 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
           </button>
         );
       })}
+      {showTruncated && (
+        <div data-testid="at-mention-search-truncated" className="px-2 py-1 text-[11px] text-[var(--muted)]">
+          This workspace is too large to search every file — some matches may be missing.
+        </div>
+      )}
     </div>
   );
 }

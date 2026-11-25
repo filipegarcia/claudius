@@ -8,6 +8,8 @@ export type ConfiguredServer = {
   name: string;
   config: McpServerConfig;
   warnings?: string[];
+  /** Project server listed in `disabledMcpjsonServers` (CC 2.1.327). */
+  rejected?: true;
 };
 
 export type LiveStatus = {
@@ -42,6 +44,79 @@ export type LiveStatus = {
   source?: string;
 };
 
+/** CC 2.1.330 — labels for servers that don't come from a file Claudius edits. */
+export const MCP_OTHER_SCOPE_LABELS: Record<string, string> = {
+  claudeai: "claude.ai",
+  dynamic: "Dynamic",
+  managed: "Managed",
+  enterprise: "Enterprise",
+  sdk: "SDK",
+  agent: "Agent",
+};
+
+/**
+ * CC 2.1.330 — "Fixed `claude mcp remove` giving no way forward for a
+ * claude.ai connector: it now says to turn it off in /mcp or remove it on
+ * claude.ai". Claudius can only remove a server from a file it edits (one in
+ * `configured`); for any other row, say where it's managed instead of
+ * offering a Remove that silently does nothing. The claude.ai text adapts the
+ * engine's own `claude mcp remove` message ("…are claude.ai connectors, which
+ * Claude Code can't remove. To stop using one here, turn it off in /mcp. To
+ * remove it from your account, go to …"), with "turn it off in /mcp" read as
+ * this row's Disable button.
+ */
+export function mcpRemoveHint(name: string, scope: string): { label: string; title: string; href?: string } {
+  if (scope === "claudeai" || name.startsWith("claude.ai ")) {
+    return {
+      label: "Remove on claude.ai",
+      title:
+        "A claude.ai connector, which Claude Code can't remove. To stop using it here, Disable it. To remove it from your account, go to claude.ai/customize/connectors.",
+      href: "https://claude.ai/customize/connectors",
+    };
+  }
+  if (name.startsWith("plugin:")) {
+    const plugin = name.split(":")[1] || "a plugin";
+    return {
+      label: "Manage in Plugins",
+      title: `From the plugin ${plugin} — disable or uninstall the plugin to remove it.`,
+      href: "/plugins",
+    };
+  }
+  if (scope === "user" || scope === "project" || scope === "local") {
+    // e.g. a `claude mcp add` server kept in ~/.claude.json, which
+    // `listConfigured` doesn't read.
+    return {
+      label: "Not removable here",
+      title: `Not in a config file Claudius edits. Remove it from a terminal with: claude mcp remove "${name}" -s ${scope}`,
+    };
+  }
+  return {
+    label: "Not removable here",
+    title: `Comes from ${MCP_OTHER_SCOPE_LABELS[scope] ?? scope} configuration, not a file Claudius edits.`,
+  };
+}
+
+/** CC 2.1.330 — one Reconnect press on a /mcp row: the status the row had at
+ * the press (so a refreshed status can be told apart) and the call's error. */
+export type ReconnectAttempt = { before?: LiveStatus; error: string | null };
+
+/**
+ * CC 2.1.330 — "Improved Reconnect in `/mcp` and `/plugin`: a server's page
+ * now stays open, with the cause in view, when the server still fails or
+ * needs sign-in". `stillFailing`: a refreshed status (a new object, not the one seen at the
+ * press) still says failed / needs-auth. `showCause`: the row should open
+ * itself — that, or the reconnect call itself failed.
+ */
+export function reconnectOutcome(
+  attempt: ReconnectAttempt | undefined,
+  status: LiveStatus | undefined,
+): { stillFailing: boolean; showCause: boolean } {
+  if (!attempt) return { stillFailing: false, showCause: false };
+  const stillFailing =
+    status !== attempt.before && (status?.status === "failed" || status?.status === "needs-auth");
+  return { stillFailing, showCause: !!attempt.error || stillFailing };
+}
+
 /**
  * Load configured MCP servers and (optionally) their live connection status
  * for `sessionId`. Pattern matches `useCost` (refetchTrigger +
@@ -51,6 +126,11 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
   const [configured, setConfigured] = useState<ConfiguredServer[]>([]);
   const [status, setStatus] = useState<LiveStatus[]>([]);
   const [statusError, setStatusError] = useState<string | null>(null);
+  // CC 2.1.327 — which session `status` was actually read from. `sessionId`
+  // can change without `loading` going back to true, and a session that
+  // isn't in memory returns `status: null`; the page only says "not loaded
+  // in this session" once this matches the current session.
+  const [statusSessionId, setStatusSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
@@ -63,7 +143,10 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
 
     fetch(`/api/mcp?${params}`, { signal: controller.signal })
       .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+          throw new Error(typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`);
+        }
         return (await res.json()) as {
           configured: ConfiguredServer[];
           status: LiveStatus[] | null;
@@ -74,6 +157,7 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
         setConfigured(d.configured);
         setStatus(d.status ?? []);
         setStatusError(d.statusError);
+        setStatusSessionId(sessionId && d.status != null ? sessionId : null);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -92,39 +176,72 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     setRefetchTrigger((n) => n + 1);
   }, []);
 
+  /** Resolves to `null` on success, or the error text to show (CC 2.1.327:
+   * e.g. the route's 409 when `.mcp.json` lists servers at the top level). */
   const upsert = useCallback(
-    async (scope: McpScope, name: string, config: McpServerConfig) => {
-      const res = await fetch("/api/mcp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope, cwd, name, config }),
-      });
-      if (res.ok) refresh();
-      return res.ok;
+    async (scope: McpScope, name: string, config: McpServerConfig): Promise<string | null> => {
+      try {
+        const res = await fetch("/api/mcp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope, cwd, name, config }),
+        });
+        if (res.ok) {
+          refresh();
+          return null;
+        }
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        return typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`;
+      } catch (err) {
+        return err instanceof Error ? err.message : String(err);
+      }
     },
     [cwd, refresh],
   );
 
+  /** Resolves to `null` on success, or the error text to show (CC 2.1.330:
+   * a Remove that didn't happen used to fail silently). */
   const remove = useCallback(
-    async (scope: McpScope, name: string) => {
-      const params = new URLSearchParams({ scope });
-      if (cwd) params.set("cwd", cwd);
-      const res = await fetch(`/api/mcp/${encodeURIComponent(name)}?${params}`, { method: "DELETE" });
-      if (res.ok) refresh();
-      return res.ok;
+    async (scope: McpScope, name: string): Promise<string | null> => {
+      try {
+        const params = new URLSearchParams({ scope });
+        if (cwd) params.set("cwd", cwd);
+        const res = await fetch(`/api/mcp/${encodeURIComponent(name)}?${params}`, { method: "DELETE" });
+        if (res.ok) {
+          refresh();
+          return null;
+        }
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        return typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`;
+      } catch (err) {
+        return err instanceof Error ? err.message : String(err);
+      }
     },
     [cwd, refresh],
   );
 
+  /**
+   * CC 2.1.330 — "Improved Reconnect in `/mcp` and `/plugin`: a server's
+   * page now stays open, with the cause in view, when the server still fails
+   * or needs sign-in". Returns the route's error so the row can show it (it
+   * used to be dropped).
+   */
   const reconnect = useCallback(
-    async (name: string) => {
-      if (!sessionId) return false;
-      const res = await fetch(
-        `/api/mcp/${encodeURIComponent(name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`,
-        { method: "POST" },
-      );
-      if (res.ok) setTimeout(refresh, 800);
-      return res.ok;
+    async (name: string): Promise<{ ok: boolean; error?: string }> => {
+      if (!sessionId) return { ok: false, error: "no live session" };
+      try {
+        const res = await fetch(
+          `/api/mcp/${encodeURIComponent(name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`,
+          { method: "POST" },
+        );
+        // Refresh either way: a failed reconnect can still change the status.
+        setTimeout(refresh, 800);
+        if (res.ok) return { ok: true };
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        return { ok: false, error: typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}` };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
     },
     [refresh, sessionId],
   );
@@ -136,23 +253,34 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
    * single-server endpoint per server rather than adding a bulk server
    * route — there are only ever a handful of configured servers, and this
    * keeps the debounce/refresh handling in one place (see `reconnect`
-   * above). Returns the count of servers it attempted to reconnect so the
-   * caller can toast something meaningful; servers already `connected`,
+   * above). Returns the servers it attempted to reconnect and the error for
+   * each whose reconnect call failed; servers already `connected`,
    * `pending`, or `disabled` are left alone.
    */
-  const reconnectAll = useCallback(async (): Promise<number> => {
-    if (!sessionId) return 0;
+  const reconnectAll = useCallback(async (): Promise<{ names: string[]; errors: Record<string, string> }> => {
+    if (!sessionId) return { names: [], errors: {} };
     const targets = status.filter((s) => s.status === "failed" || s.status === "needs-auth");
-    if (targets.length === 0) return 0;
+    if (targets.length === 0) return { names: [], errors: {} };
+    // CC 2.1.330 — keep each server's error (it used to be dropped) so its
+    // row can open with the cause in view.
+    const errors: Record<string, string> = {};
     await Promise.all(
-      targets.map((s) =>
-        fetch(`/api/mcp/${encodeURIComponent(s.name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`, {
-          method: "POST",
-        }).catch(() => null),
-      ),
+      targets.map(async (s) => {
+        try {
+          const res = await fetch(
+            `/api/mcp/${encodeURIComponent(s.name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`,
+            { method: "POST" },
+          );
+          if (res.ok) return;
+          const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+          errors[s.name] = typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`;
+        } catch (err) {
+          errors[s.name] = err instanceof Error ? err.message : String(err);
+        }
+      }),
     );
     setTimeout(refresh, 800);
-    return targets.length;
+    return { names: targets.map((s) => s.name), errors };
   }, [refresh, sessionId, status]);
 
   const toggle = useCallback(
@@ -169,5 +297,21 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     [refresh, sessionId],
   );
 
-  return { configured, status, statusError, loading, error, refresh, upsert, remove, reconnect, reconnectAll, toggle };
+  /** True once `status` holds the live list for the current `sessionId`. */
+  const statusLoaded = sessionId != null && statusSessionId === sessionId;
+
+  return {
+    configured,
+    status,
+    statusError,
+    statusLoaded,
+    loading,
+    error,
+    refresh,
+    upsert,
+    remove,
+    reconnect,
+    reconnectAll,
+    toggle,
+  };
 }

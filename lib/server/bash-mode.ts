@@ -1,3 +1,4 @@
+import { scrubHostEnv } from "./host-env";
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { killProcessGroup } from "./process-group";
@@ -94,7 +95,8 @@ export class BashSession {
 
   constructor(
     private readonly cwd: string,
-    private readonly env: NodeJS.ProcessEnv = process.env,
+    // CC 2.1.331: no ELECTRON_RUN_AS_NODE from the desktop host (host-env.ts).
+    private readonly env: NodeJS.ProcessEnv = scrubHostEnv(process.env),
   ) {}
 
   /** Idempotent spawn; called lazily on first exec and after timeout respawn. */

@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { writeSettings, readSettings, type ClaudeSettings } from "./settings";
+import { writeSettings, readSettings, withSettingsLock, type ClaudeSettings } from "./settings";
 import {
   createWorkspace,
   listWorkspaces,
@@ -205,9 +205,13 @@ async function mergeSystem(bundle: SettingsBundle): Promise<void> {
   const sys = bundle.system;
 
   if (sys.userSettings) {
-    const current = await readSettings("user", process.cwd());
-    const next = mergeDeep<ClaudeSettings>(current, sys.userSettings);
-    await writeSettings("user", process.cwd(), next);
+    const userSettings = sys.userSettings;
+    // CC 2.1.330 — read and write under the file's lock (settings.ts).
+    await withSettingsLock("user", process.cwd(), async () => {
+      const current = await readSettings("user", process.cwd());
+      const next = mergeDeep<ClaudeSettings>(current, userSettings);
+      await writeSettings("user", process.cwd(), next);
+    });
   }
 
   if (sys.customizeSettings) {
@@ -394,13 +398,20 @@ async function commitWorkspace(
   // Now write per-workspace settings INTO the healed rootPath. Empty objects
   // in the bundle were already filtered out by the exporter, but check again
   // defensively so we don't create empty `.claude/settings.json` files.
-  if (ws.projectSettings && Object.keys(ws.projectSettings).length > 0) {
-    const current = await readSettings("project", rootPath);
-    await writeSettings("project", rootPath, mergeDeep(current, ws.projectSettings));
+  // CC 2.1.330 — each read and write under its file's lock (settings.ts).
+  const projectSettings = ws.projectSettings;
+  if (projectSettings && Object.keys(projectSettings).length > 0) {
+    await withSettingsLock("project", rootPath, async () => {
+      const current = await readSettings("project", rootPath);
+      await writeSettings("project", rootPath, mergeDeep(current, projectSettings));
+    });
   }
-  if (ws.localSettings && Object.keys(ws.localSettings).length > 0) {
-    const current = await readSettings("local", rootPath);
-    await writeSettings("local", rootPath, mergeDeep(current, ws.localSettings));
+  const localSettings = ws.localSettings;
+  if (localSettings && Object.keys(localSettings).length > 0) {
+    await withSettingsLock("local", rootPath, async () => {
+      const current = await readSettings("local", rootPath);
+      await writeSettings("local", rootPath, mergeDeep(current, localSettings));
+    });
   }
 
   return {

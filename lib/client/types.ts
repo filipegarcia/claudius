@@ -19,6 +19,7 @@ import type {
   TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
+import type { SpinnerVerbs } from "@/lib/shared/spinner-verbs";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 
 /**
@@ -57,6 +58,8 @@ export type DisplayBlock =
         detached?: boolean;
         notRun?: boolean;
         rejected?: boolean;
+        /** CC 2.1.332 — WebFetch's HTTP status (see `lib/shared/web-fetch-outcome.ts`). */
+        fetchStatus?: { code: number; codeText: string };
       };
       /**
        * Client-stamped wall-clock start (epoch ms), set the first time this
@@ -169,6 +172,12 @@ export type DisplayMessage = {
      * usage credits instead of naming a tier or reset.
      */
     modelNeedsCredits?: string;
+    /**
+     * CC 2.1.328 — the hit is the engine's "You're out of usage credits…"
+     * stop, not a plan-tier window: the panel says so instead of naming a
+     * tier and a reset countdown, and offers buying more credits.
+     */
+    creditsExhausted?: true;
   };
   /**
    * Present when this assistant message IS the Anthropic backend's
@@ -750,6 +759,17 @@ export type ScheduledLoop = {
    * after the job fires. Absent for wake-ups and older SDKs.
    */
   nextFireAt?: number;
+  /**
+   * CC 2.1.330 — age at which a recurring cron ends, ms from `startedAt`
+   * (SDK 0.3.332 `CronCreateOutput.maxAgeMs`, or "Auto-expires after N
+   * days"). Absent → the engine's 7-day default; see `loopEndsAt`.
+   */
+  maxAgeMs?: number;
+  /**
+   * CC 2.1.330 — armed in the session this one was forked from (the replayed
+   * message carries `forkedFrom`). It runs there, not here.
+   */
+  inherited?: boolean;
   /** True once the agent has been asked to cancel via CronDelete. */
   cancelled?: boolean;
 };
@@ -1104,6 +1124,8 @@ export type ChatState = {
     requested: PermissionMode;
     mode: PermissionMode;
     reason: string;
+    /** SDK 0.3.332: "substituted" when the engine took the switch but landed in `mode` instead. */
+    kind?: "refused" | "substituted";
   } | null;
   /**
    * Transient toast shown when the server automatically disabled the advisor
@@ -1289,6 +1311,11 @@ export type ChatState = {
    * at which point the renderer prefers it over its built-in defaults.
    */
   tips: Tip[];
+  /**
+   * CC 2.1.332 — the `spinnerVerbs` setting (user and managed) from the same
+   * `tips` frame; null when unset, and the working row keeps its default line.
+   */
+  spinnerVerbs: SpinnerVerbs | null;
   /**
    * Active "where were we?" recap banner state. Set when the server
    * broadcasts a `session_recap` event after a long blur or a manual /recap

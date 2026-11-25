@@ -10,7 +10,9 @@
  * the pill can phrase:
  *
  *   "on"  — extra usage is enabled / already being drawn from
- *   "off" — extra usage is disabled, unavailable, or exhausted
+ *   "off" — extra usage is disabled or unavailable
+ *   "used_up" — extra usage is on but spent for now (CC 2.1.329: out of
+ *            credits, or the org's monthly limit reached)
  *   null  — the event carries no overage signal; say nothing rather than guess
  *
  * SDK 0.3.295 adds `overageEnabled`, the direct answer to "is extra usage on?".
@@ -27,7 +29,7 @@
  * wrong when *this* is the extra-usage limit.
  */
 
-export type ExtraUsageState = "on" | "off";
+export type ExtraUsageState = "on" | "off" | "used_up";
 
 /** Structural subset of `SDKRateLimitInfo` (and Claudius' client mirror). */
 export interface ExtraUsageInfo {
@@ -47,13 +49,23 @@ export interface ExtraUsageInfo {
  */
 const UNREADABLE_DISABLED_REASONS: ReadonlySet<string> = new Set(["fetch_error", "unknown"]);
 
+/**
+ * CC 2.1.329 — "Fixed `/usage` saying usage credits are off when they had run
+ * out or reached the monthly limit". These reasons mean the credits are on
+ * but spent for now (the engine words `org_level_disabled_until` as the
+ * "org's monthly usage limit · resets …"), so they read "used_up", not "off".
+ */
+const USED_UP_DISABLED_REASONS: ReadonlySet<string> = new Set(["out_of_credits", "org_level_disabled_until"]);
+
 export function extraUsageState(info: ExtraUsageInfo | null | undefined): ExtraUsageState | null {
   if (!info) return null;
   if (info.rateLimitType === "overage") return null;
   if (info.overageDisabledReason && !UNREADABLE_DISABLED_REASONS.has(info.overageDisabledReason)) {
-    return "off";
+    return USED_UP_DISABLED_REASONS.has(info.overageDisabledReason) ? "used_up" : "off";
   }
-  if (info.overageStatus === "rejected") return "off";
+  // CC 2.1.329 — a rejected overage bucket on an account with credits turned
+  // on means they ran out, not that they're off.
+  if (info.overageStatus === "rejected") return info.overageEnabled === true ? "used_up" : "off";
   // SDK 0.3.295 — the explicit "extra usage turned on?" flag. `false` is an
   // off signal (wins over the weaker on-signals below); `true` is an on signal.
   if (info.overageEnabled === false) return "off";

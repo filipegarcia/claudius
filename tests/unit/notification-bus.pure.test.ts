@@ -84,7 +84,8 @@ describe("mapEventToKind", () => {
     );
     expect(out).toEqual({
       kind: "permission_request",
-      title: "Claude needs permission",
+      // CC 2.1.332 — the title names the waiting session.
+      title: "Claude needs permission — My session",
       body: "Run a shell command",
       payload: { toolName: "Bash", toolUseId: "tu-1" },
       requestId: "req-1",

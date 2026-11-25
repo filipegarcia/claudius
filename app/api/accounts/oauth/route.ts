@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  AccountOnHoldError,
   exchangeOAuthCode,
   startOAuthFlow,
 } from "@/lib/server/account-oauth";
@@ -88,7 +89,11 @@ export async function POST(req: Request) {
       });
     } catch (err) {
       return NextResponse.json(
-        { error: err instanceof Error ? err.message : "oauth failed" },
+        {
+          error: err instanceof Error ? err.message : "oauth failed",
+          // CC 2.1.330 — the on-hold notice's appeal link, for the UI to link.
+          ...(err instanceof AccountOnHoldError ? { appealUrl: err.appealUrl } : {}),
+        },
         { status: 400 },
       );
     }

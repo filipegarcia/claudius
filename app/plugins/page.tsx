@@ -211,6 +211,7 @@ export default function PluginsPage() {
             <AvailableSection
               plugins={plugins.available}
               loading={plugins.availableLoading}
+              error={plugins.availableError}
               installedRefs={
                 new Set(merged.map((r) => r.id).filter((id) => id.includes("@")))
               }
@@ -271,7 +272,7 @@ export default function PluginsPage() {
                 legacyExtra={active.legacyExtra}
                 onAddExtra={(name, source) => plugins.addExtraMarketplace(scope, name, source)}
                 onRemoveExtra={(name) => plugins.removeExtraMarketplace(scope, name)}
-                onRemovePolicy={(list, index) => plugins.removePolicyMarketplace(scope, list, index)}
+                onRemovePolicy={(list, index, entry) => plugins.removePolicyMarketplace(scope, list, index, entry)}
               />
             )}
           </div>
@@ -464,6 +465,7 @@ function InstallSection({
 function AvailableSection({
   plugins,
   loading,
+  error,
   installedRefs,
   sessionId,
   onInstall,
@@ -471,6 +473,8 @@ function AvailableSection({
 }: {
   plugins: AvailablePlugin[];
   loading: boolean;
+  /** CC 2.1.331 — why the list failed to load, if it did. */
+  error: string | null;
   installedRefs: Set<string>;
   sessionId: string | null;
   onInstall: (ref: string) => Promise<{ ok: boolean; error?: string }>;
@@ -502,7 +506,7 @@ function AvailableSection({
         <Package className="h-4 w-4 text-[var(--accent)]" />
         <h2 className="text-sm font-medium">Available plugins</h2>
         <span className="text-[11px] text-[var(--muted)]">
-          {loading ? "loading…" : `${filtered.length} of ${plugins.length}`}
+          {loading ? "loading…" : error ? "couldn't load" : `${filtered.length} of ${plugins.length}`}
         </span>
         <button
           onClick={() => void onRefresh()}
@@ -555,9 +559,27 @@ function AvailableSection({
         </TrustNote>
       )}
 
-      {plugins.length === 0 && !loading ? (
+      {/* CC 2.1.331 — "Fixed Manage Plugins losing its search box or showing
+          no message when a search has no match, and not saying that the list
+          of available plugins failed to load". */}
+      {error && !loading ? (
+        <div
+          data-testid="plugins-available-error"
+          role="alert"
+          className="flex items-start justify-center gap-1.5 px-4 py-8 text-center text-sm text-red-300"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Couldn&apos;t load the available plugins: {error}. Refresh to try again.</span>
+        </div>
+      ) : plugins.length === 0 && !loading ? (
         <div className="px-4 py-8 text-center text-sm text-[var(--muted)]">
           No marketplaces cached yet. Add one in the Marketplaces section below, then refresh.
+        </div>
+      ) : filtered.length === 0 && !loading ? (
+        <div data-testid="plugins-available-no-match" className="px-4 py-8 text-center text-sm text-[var(--muted)]">
+          {query.trim()
+            ? `No plugins match "${query.trim()}"${category ? ` in ${category}` : ""}.`
+            : `No plugins in ${category ?? "this list"}.`}
         </div>
       ) : (
         <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto scroll-thin">
@@ -1048,6 +1070,7 @@ function MarketplacesSection({
   onRemovePolicy: (
     list: "strict" | "blocked",
     index: number,
+    entry: MarketplaceSourceView,
   ) => Promise<{ ok: boolean; error?: string }>;
 }) {
   void scope;
@@ -1071,13 +1094,15 @@ function MarketplacesSection({
 
       <PolicyList
         title="Allowed sources (strictKnownMarketplaces)"
+        testId="marketplace-policy-strict"
         entries={strict}
-        onRemove={(i) => onRemovePolicy("strict", i)}
+        onRemove={(i, entry) => onRemovePolicy("strict", i, entry)}
       />
       <PolicyList
         title="Blocked sources (blockedMarketplaces)"
+        testId="marketplace-policy-blocked"
         entries={blocked}
-        onRemove={(i) => onRemovePolicy("blocked", i)}
+        onRemove={(i, entry) => onRemovePolicy("blocked", i, entry)}
       />
       <p className="mt-2 text-[10px] text-[var(--muted)]">
         The allowed/blocked lists are enterprise policy — honored only from managed settings. Shown
@@ -1133,6 +1158,8 @@ function ExtraList({
   const [kind, setKind] = useState<"github" | "url">("github");
   const [ref, setRef] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // CC 2.1.330 — the entry whose Remove is in flight (its X is disabled).
+  const [removing, setRemoving] = useState<string | null>(null);
   const refLint = kind === "github" ? lintMarketplaceRef(ref, { allowWildcard: false }) : null;
   const draftSource: MarketplaceSource =
     kind === "github" ? { source: "github", repo: ref.trim() } : { source: "url", url: ref.trim() };
@@ -1167,14 +1194,24 @@ function ExtraList({
             <SourceRow view={m} />
             <button
               onClick={() => {
+                // CC 2.1.330 — "Fixed … a double click on Remove or Delete
+                // removing a memory, MCP server or plugin marketplace,
+                // without confirmation".
+                if (removing !== null) return;
+                if (!confirm(`Remove marketplace "${m.name}"${m.label ? ` (${m.label})` : ""} from settings?`)) return;
                 // CC 2.1.295 parity — surface a refused write (settings file
                 // doesn't load) instead of dropping the result.
                 setError(null);
-                void onRemove(m.name).then((r) => {
-                  if (!r.ok) setError(r.error ?? "Failed to remove");
-                });
+                setRemoving(m.name);
+                void onRemove(m.name)
+                  .then((r) => {
+                    if (!r.ok) setError(r.error ?? "Failed to remove");
+                  })
+                  .finally(() => setRemoving(null));
               }}
-              className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
+              disabled={removing !== null}
+              data-testid={`marketplace-extra-remove-${m.name}`}
+              className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400 disabled:opacity-40"
               title="Remove"
             >
               <X className="h-3 w-3" />
@@ -1264,16 +1301,22 @@ function ExtraList({
 /** A read-only policy list (strict/blocked) with per-row remove. */
 function PolicyList({
   title,
+  testId,
   entries,
   onRemove,
 }: {
   title: string;
+  testId: string;
   entries: MarketplaceSourceView[];
-  onRemove: (index: number) => Promise<{ ok: boolean; error?: string }>;
+  onRemove: (index: number, entry: MarketplaceSourceView) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [error, setError] = useState<string | null>(null);
+  // CC 2.1.330 — a Remove in flight disables every X in the list: removal is
+  // by index, so a second click before the list reloads would aim at a
+  // shifted entry (the server also refuses that, by value).
+  const [removing, setRemoving] = useState(false);
   return (
-    <div className="mt-3">
+    <div className="mt-3" data-testid={testId}>
       <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--muted)]">{title}</div>
       {entries.length === 0 ? (
         <p className="text-[10px] italic text-[var(--muted)]">None.</p>
@@ -1287,12 +1330,20 @@ function PolicyList({
               <SourceRow view={e} />
               <button
                 onClick={() => {
+                  // CC 2.1.330 — confirm, as MCP / memory / hooks do.
+                  if (removing) return;
+                  if (!confirm(`Remove the ${e.kind} source "${e.label || "(empty)"}" from ${title}?`)) return;
                   setError(null);
-                  void onRemove(i).then((r) => {
-                    if (!r.ok) setError(r.error ?? "Failed to remove");
-                  });
+                  setRemoving(true);
+                  void onRemove(i, e)
+                    .then((r) => {
+                      if (!r.ok) setError(r.error ?? "Failed to remove");
+                    })
+                    .finally(() => setRemoving(false));
                 }}
-                className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400"
+                disabled={removing}
+                data-testid={`${testId}-remove-${i}`}
+                className="shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-red-400 disabled:opacity-40"
                 title="Remove"
               >
                 <X className="h-3 w-3" />

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { promises as fs } from "node:fs";
 import { applyRuleDelta } from "@/lib/shared/settings-patch";
 import { homedir } from "node:os";
@@ -165,6 +166,11 @@ export type ClaudeSettings = {
   // leaves it on. Read at session start and forwarded to `selectTips()` via the
   // cached `spinnerTipsConfig` on Session.
   spinnerTipsEnabled?: boolean;
+  // CC 2.1.332 — custom verbs for the working row (CLI shape `{ mode, verbs }`;
+  // "append" adds to the default line, "replace" uses only these). Read at
+  // session start from the merged settings, managed included; see
+  // `lib/shared/spinner-verbs.ts`.
+  spinnerVerbs?: { mode?: "append" | "replace"; verbs?: string[] };
   // Per-user override for the spinner-tip rotation. Mirrors the CLI shape:
   // `{ excludeDefault?: boolean, tips?: (string | SpinnerTipEntry)[] }`. Each
   // entry is mapped to a `custom-tip-${index}` Tip object with no command.
@@ -590,6 +596,13 @@ export async function readSettings(scope: SettingsScope, projectCwd: string): Pr
     if (e.code === "ENOENT") return {};
     throw err;
   }
+  // CC 2.1.331 — "Fixed switching models failing with 'Settings file is not
+  // valid JSON' when settings.json is empty or starts with a byte order
+  // mark". The engine strips a leading U+FEFF and reads an empty file as no
+  // settings; Claudius refused both, so a model pick didn't persist and every
+  // save to the scope was a 422. Writes never emit a BOM.
+  if (buf.charCodeAt(0) === 0xfeff) buf = buf.slice(1);
+  if (buf.trim() === "") return {};
   // Rethrow (never fall back to `{}`) so a malformed file is never
   // overwritten by a write that started from an empty object.
   try {
@@ -614,6 +627,53 @@ export function settingsSaveFailure(scope: SettingsScope, projectCwd: string, er
   }
   const code = typeof (err as NodeJS.ErrnoException | null)?.code === "string" ? (err as NodeJS.ErrnoException).code : undefined;
   return { status: 500, error: settingsSaveFailedMessage(pathFor(scope, projectCwd), { code }) };
+}
+
+/**
+ * CC 2.1.330 parity — "Fixed changes to user settings being lost when several
+ * Claude Code processes saved them at the same time". Every Claudius writer is
+ * a read → change → write with awaits in between, so two saves landing close
+ * together (two quick toggles, a `/settings` save while a session persists a
+ * `/model` pick, two tabs) each read the same old file and the later write
+ * dropped the earlier change. Serialize each file's read-modify-write.
+ *
+ * Re-entrant: a writer that already holds a file's lock (`updatePermissionRuleList`
+ * → `updatePermissions`, an MCP upsert → `writeSettings`) runs straight through
+ * instead of queueing behind itself. Kept on `globalThis` so every route bundle
+ * shares one queue per file. In-process only: it can't stop an engine process
+ * from writing between our read and write — the same limit the 2.1.318 MCP
+ * lock states.
+ */
+declare global {
+  var __claudiusSettingsFileChains: Map<string, Promise<unknown>> | undefined;
+  var __claudiusSettingsLockHeld: AsyncLocalStorage<ReadonlySet<string>> | undefined;
+}
+const settingsFileChains = (globalThis.__claudiusSettingsFileChains ??= new Map<string, Promise<unknown>>());
+const settingsLockHeld = (globalThis.__claudiusSettingsLockHeld ??= new AsyncLocalStorage<ReadonlySet<string>>());
+
+/** Run `fn` holding `file`'s settings lock (re-entrant; see above). */
+export function withSettingsFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
+  const held = settingsLockHeld.getStore();
+  if (held?.has(file)) return fn();
+  const holding = new Set(held ?? []);
+  holding.add(file);
+  const runLocked = () => settingsLockHeld.run(holding, fn);
+  const prev = settingsFileChains.get(file) ?? Promise.resolve();
+  const run = prev.then(runLocked, runLocked);
+  const tail = run.then(
+    () => {},
+    () => {},
+  );
+  settingsFileChains.set(file, tail);
+  void tail.then(() => {
+    if (settingsFileChains.get(file) === tail) settingsFileChains.delete(file);
+  });
+  return run;
+}
+
+/** Run a read-modify-write of one scope's settings file under its lock. */
+export function withSettingsLock<T>(scope: SettingsScope, projectCwd: string, fn: () => Promise<T>): Promise<T> {
+  return withSettingsFileLock(pathFor(scope, projectCwd), fn);
 }
 
 export async function writeSettings(
@@ -677,16 +737,18 @@ export async function updatePermissions(
   projectCwd: string,
   patch: Partial<PermissionRules>,
 ): Promise<ClaudeSettings> {
-  const current = await readSettings(scope, projectCwd);
-  const next: ClaudeSettings = {
-    ...current,
-    permissions: {
-      ...(current.permissions ?? {}),
-      ...patch,
-    },
-  };
-  await writeSettings(scope, projectCwd, next);
-  return next;
+  return withSettingsLock(scope, projectCwd, async () => {
+    const current = await readSettings(scope, projectCwd);
+    const next: ClaudeSettings = {
+      ...current,
+      permissions: {
+        ...(current.permissions ?? {}),
+        ...patch,
+      },
+    };
+    await writeSettings(scope, projectCwd, next);
+    return next;
+  });
 }
 
 /**
@@ -700,9 +762,12 @@ export async function updatePermissionRuleList(
   kind: "allow" | "ask" | "deny",
   delta: { add?: string[]; remove?: string[] },
 ): Promise<ClaudeSettings> {
-  const current = await readSettings(scope, projectCwd);
-  const list = applyRuleDelta(current.permissions?.[kind], delta);
-  return updatePermissions(scope, projectCwd, { [kind]: list });
+  // The read and the write must share one hold of the lock (re-entrant).
+  return withSettingsLock(scope, projectCwd, async () => {
+    const current = await readSettings(scope, projectCwd);
+    const list = applyRuleDelta(current.permissions?.[kind], delta);
+    return updatePermissions(scope, projectCwd, { [kind]: list });
+  });
 }
 
 /**
@@ -716,16 +781,18 @@ export async function updateAutoMode(
   projectCwd: string,
   patch: Partial<AutoModeConfig>,
 ): Promise<ClaudeSettings> {
-  const current = await readSettings("user", projectCwd);
-  const next: ClaudeSettings = {
-    ...current,
-    autoMode: {
-      ...(current.autoMode ?? {}),
-      ...patch,
-    },
-  };
-  await writeSettings("user", projectCwd, next);
-  return next;
+  return withSettingsLock("user", projectCwd, async () => {
+    const current = await readSettings("user", projectCwd);
+    const next: ClaudeSettings = {
+      ...current,
+      autoMode: {
+        ...(current.autoMode ?? {}),
+        ...patch,
+      },
+    };
+    await writeSettings("user", projectCwd, next);
+    return next;
+  });
 }
 
 /**
@@ -735,12 +802,14 @@ export async function updateAutoMode(
  * key was never set.
  */
 export async function resetAutoMode(projectCwd: string): Promise<ClaudeSettings> {
-  const current = await readSettings("user", projectCwd);
-  if (current.autoMode === undefined) return current;
-  const next: ClaudeSettings = { ...current };
-  delete next.autoMode;
-  await writeSettings("user", projectCwd, next);
-  return next;
+  return withSettingsLock("user", projectCwd, async () => {
+    const current = await readSettings("user", projectCwd);
+    if (current.autoMode === undefined) return current;
+    const next: ClaudeSettings = { ...current };
+    delete next.autoMode;
+    await writeSettings("user", projectCwd, next);
+    return next;
+  });
 }
 
 /**
@@ -759,15 +828,17 @@ export async function updateSkillOverride(
   name: string,
   value: SkillOverrideValue,
 ): Promise<ClaudeSettings> {
-  const current = await readSettings("project", projectCwd);
-  const overrides = { ...(current.skillOverrides ?? {}) };
-  if (value === "on") delete overrides[name];
-  else overrides[name] = value;
-  const next: ClaudeSettings = {
-    ...current,
-    ...(Object.keys(overrides).length > 0 ? { skillOverrides: overrides } : { skillOverrides: undefined }),
-  };
-  if (next.skillOverrides === undefined) delete next.skillOverrides;
-  await writeSettings("project", projectCwd, next);
-  return next;
+  return withSettingsLock("project", projectCwd, async () => {
+    const current = await readSettings("project", projectCwd);
+    const overrides = { ...(current.skillOverrides ?? {}) };
+    if (value === "on") delete overrides[name];
+    else overrides[name] = value;
+    const next: ClaudeSettings = {
+      ...current,
+      ...(Object.keys(overrides).length > 0 ? { skillOverrides: overrides } : { skillOverrides: undefined }),
+    };
+    if (next.skillOverrides === undefined) delete next.skillOverrides;
+    await writeSettings("project", projectCwd, next);
+    return next;
+  });
 }

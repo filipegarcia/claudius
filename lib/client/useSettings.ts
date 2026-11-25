@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ClaudeSettings, SettingsScope } from "@/lib/server/settings";
+import { settingsRequestFailedMessage } from "@/lib/shared/settings-load-error";
 import { diffSettings, isEmptyPatch } from "@/lib/shared/settings-patch";
 
 export type ScopedSettings = { scope: SettingsScope; path: string; settings: ClaudeSettings };
@@ -15,6 +16,10 @@ export function useSettings(cwd: string | null) {
   const [scopes, setScopes] = useState<ScopedSettings[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // CC 2.1.327 — why the last save didn't land (the server names the file).
+  // Kept apart from `error` so a refetch can't clear it; only a later save
+  // that lands does.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
@@ -55,24 +60,41 @@ export function useSettings(cwd: string | null) {
    */
   const save = useCallback(
     async (scope: SettingsScope, settings: ClaudeSettings, baseline?: ClaudeSettings) => {
+      const fileFor = (s: SettingsScope) => scopes.find((x) => x.scope === s)?.path ?? `the ${s} settings file`;
       const patch = baseline
         ? diffSettings(baseline as Record<string, unknown>, settings as Record<string, unknown>)
         : null;
       if (patch && isEmptyPatch(patch)) return true;
-      const res = await fetch("/api/settings/full", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch ? { scope, cwd, patch } : { scope, cwd, settings }),
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/settings/full", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch ? { scope, cwd, patch } : { scope, cwd, settings }),
+        });
+      } catch (err) {
+        setSaveError(settingsRequestFailedMessage(fileFor(scope), { error: err }));
+        return false;
+      }
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        setSaveError(
+          typeof body?.error === "string" && body.error
+            ? body.error
+            : settingsRequestFailedMessage(fileFor(scope), { status: res.status }),
+        );
+        return false;
+      }
+      setSaveError(null);
       // Trigger a background refresh; we no longer await the GET response
       // before returning. Callers that rely on `save` completing the round
       // trip now resolve on the PUT, with the new data arriving on the next
       // render via the refetch effect.
-      if (res.ok) refresh();
-      return res.ok;
+      refresh();
+      return true;
     },
-    [cwd, refresh],
+    [cwd, refresh, scopes],
   );
 
-  return { scopes, loading, error, refresh, save };
+  return { scopes, loading, error, saveError, refresh, save };
 }

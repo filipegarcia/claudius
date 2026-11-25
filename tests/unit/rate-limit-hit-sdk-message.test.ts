@@ -8,11 +8,15 @@ import { isRateLimitHitSdkMessage } from "@/lib/server/session";
  * false positives/negatives here have a real consequence (switching, or
  * failing to switch, the active credential) — not just a mis-rendered panel.
  */
+// CC 2.1.332 — a limit stop is the engine's synthetic API-error message
+// (`model: "<synthetic>"`); these fixtures used bare prose, which is exactly
+// the false positive that release fixed. See cc-parity-2.1.332-limit-prose-reply.
 function assistantMessage(text: string, opts?: { parentToolUseId?: string; extraBlocks?: unknown[] }) {
   return {
     type: "assistant",
     parent_tool_use_id: opts?.parentToolUseId,
     message: {
+      model: "<synthetic>",
       content: [{ type: "text", text }, ...(opts?.extraBlocks ?? [])],
     },
   };

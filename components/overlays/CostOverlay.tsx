@@ -6,6 +6,7 @@ import { Overlay } from "./Overlay";
 import type { PlanRateLimits, SessionUsage } from "@/lib/client/types";
 import { computePromptCacheStats } from "@/lib/shared/prompt-cache";
 import { clampPct } from "@/lib/shared/usage-pct";
+import { creditsToMajorUnits, extraUsageAtMonthlyLimit } from "@/lib/shared/plan-usage";
 import {
   USAGE_FLAG_THRESHOLD_PCT,
   filterUsageFlags,
@@ -300,20 +301,27 @@ export function CostOverlay({
           {/* CC parity 2.1.236 — usage-credits ("extra usage") spend row.
               Shown for Team/Enterprise (and anyone with credits enabled); the
               bar reads 0% before any spend. `monthlyLimit`/`usedCredits` are
-              in `currency` (USD unless stated). */}
-          {extraUsage?.isEnabled && (
+              minor units of `currency` (cents for USD; CC 2.1.329).
+              CC 2.1.329 — `isEnabled` also drops once the monthly limit is
+              reached; keep the row then, captioned as reached, rather than
+              hiding it exactly when it matters. */}
+          {extraUsage && (extraUsage.isEnabled || extraUsageAtMonthlyLimit(extraUsage)) && (
             <div data-testid="extra-usage-bar" className="mt-3 border-t border-[var(--border)]/50 pt-3">
               <div className="flex items-baseline justify-between text-[11px]">
                 <span className="text-[var(--muted)]">Usage credits</span>
                 <span className="font-mono text-[var(--foreground)]">
-                  {fmtUsd(extraUsage.usedCredits ?? 0)} /{" "}
-                  {extraUsage.monthlyLimit === null ? "—" : fmtUsd(extraUsage.monthlyLimit)}
+                  {fmtUsd(creditsToMajorUnits(extraUsage.usedCredits ?? 0, extraUsage.currency))} /{" "}
+                  {extraUsage.monthlyLimit === null
+                    ? "—"
+                    : fmtUsd(creditsToMajorUnits(extraUsage.monthlyLimit, extraUsage.currency))}
                   {extraUsage.currency && extraUsage.currency !== "USD" ? ` ${extraUsage.currency}` : ""}
                 </span>
               </div>
               <UsageBar utilization={extraUsage.utilization ?? 0} />
-              <p className="mt-1 text-[10px] text-[var(--muted)]">
-                Extra-usage credits spent this month beyond your plan&apos;s included limits.
+              <p className="mt-1 text-[10px] text-[var(--muted)]" data-testid="extra-usage-caption">
+                {extraUsageAtMonthlyLimit(extraUsage)
+                  ? "Monthly limit reached."
+                  : "Extra-usage credits spent this month beyond your plan's included limits."}
               </p>
             </div>
           )}

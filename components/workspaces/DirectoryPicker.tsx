@@ -11,6 +11,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Overlay } from "@/components/overlays/Overlay";
+import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
 import { tccHeadsUpCopy, type TccCategory } from "@/lib/shared/tcc-protected";
 import { cn } from "@/lib/utils/cn";
 
@@ -548,11 +549,14 @@ function TccHeadsUpModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel, onContinue]);
+  // CC 2.1.330 — a text selection dragged out of the card onto the backdrop
+  // isn't a click outside.
+  const backdropDismiss = useBackdropDismiss(onCancel);
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-start justify-center bg-black/70 px-4 pt-[14vh] backdrop-blur-sm"
-      onClick={onCancel}
+      {...backdropDismiss}
       data-testid="tcc-heads-up-modal"
     >
       <div

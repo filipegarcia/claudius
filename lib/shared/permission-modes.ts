@@ -95,4 +95,15 @@ export function autoModeOffNoticeText(modelDisplayName: string): string {
  * the engine refused the switch — what was asked for and the engine's reason.
  */
 export type PermissionModeRefusal = { requested: PermissionMode; reason: string };
-export type SetPermissionModeResult = { mode: PermissionMode; refused?: PermissionModeRefusal };
+/**
+ * SDK 0.3.332 — `Query.setPermissionMode()` resolves with the mode now in
+ * effect, "which is not always the mode asked for". `substituted` is set when
+ * the engine accepted the switch but landed somewhere else; `mode` is then the
+ * engine's answer.
+ */
+export type PermissionModeSubstitution = { requested: PermissionMode };
+export type SetPermissionModeResult = {
+  mode: PermissionMode;
+  refused?: PermissionModeRefusal;
+  substituted?: PermissionModeSubstitution;
+};

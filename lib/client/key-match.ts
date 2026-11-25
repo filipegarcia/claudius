@@ -25,3 +25,20 @@ export function isLetterKey(e: { key: string; code: string; altKey?: boolean }, 
   if (e.altKey || e.key === "Process") return false;
   return e.code === `Key${want.toUpperCase()}`;
 }
+
+/**
+ * CC 2.1.329 parity — "[VSCode] Fixed keys pressed while an input method (IME)
+ * is composing moving focus on or declining a permission prompt, running menu
+ * rows and closing dialogs", and "an input method's Enter … picking an
+ * @-mentioned file".
+ *
+ * True while the key belongs to an IME composition (Japanese, Chinese,
+ * Korean, …): Esc that cancels a conversion, Enter that commits it, arrows
+ * that walk the candidates. `keyCode === 229` also covers Safari, which
+ * fires compositionend before the committing keydown. A window or
+ * capture-phase key listener should return on this before doing anything,
+ * without `preventDefault`, so the IME keeps the key.
+ */
+export function isImeComposing(e: { isComposing?: boolean; keyCode?: number; key?: string }): boolean {
+  return e.isComposing === true || e.keyCode === 229 || e.key === "Process";
+}

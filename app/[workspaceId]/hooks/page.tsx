@@ -23,9 +23,10 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   handlerBlocksOnFailure,
-  handlerSupportsOnFailure,
+  handlerTypeAllowed,
   HOOK_EVENTS,
   isLegacyAgentHook,
+  isLegacyMcpToolHook,
   legacyAgentHookName,
   type HookCategory,
   type HookEvent,
@@ -33,6 +34,7 @@ import {
   type HookGroup,
   type HookHandler,
   onFailureBlockIgnoredReason,
+  promptHandlerAllowed,
 } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
 import { cn } from "@/lib/utils/cn";
@@ -311,16 +313,41 @@ function EventRow({
                       </span>
                     )}
                     {/* CC 2.1.280 — an agent hook on PermissionRequest won't
-                        run; flag the stale config so the author fixes it. */}
-                    {h.type === "agent" && !isLegacyAgentHook(h) && !agentHandlerAllowed(spec.name) && (
+                        run; flag the stale config so the author fixes it.
+                        SDK 0.3.332 — nor a prompt or agent hook on
+                        PreSkillShellCommand (it refuses every command). */}
+                    {(h.type === "agent" || h.type === "prompt") &&
+                      !isLegacyAgentHook(h) &&
+                      !handlerTypeAllowed(h.type, spec.name) && (
                       <span
-                        title="The engine won't run an agent hook on this event — use command or http"
+                        data-testid="hook-handler-disallowed"
+                        title={`The engine won't run a ${h.type} hook on this event — use command or http`}
                         className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
                       >
                         won&apos;t run on {spec.name}
                       </span>
                     )}
-                    {h.type === "mcp_tool" && <span>{h.tool}</span>}
+                    {h.type === "mcp_tool" && (
+                      <span>{typeof h.server === "string" ? `${h.server} · ${h.tool}` : h.tool}</span>
+                    )}
+                    {/* CC 2.1.328 — the old `{tool: "mcp__srv__tool",
+                        arguments}` shape has no `server`, so the engine skips
+                        it at load; `arguments` is never read (it's `input`). */}
+                    {isLegacyMcpToolHook(h) && (
+                      <span
+                        data-testid="hook-mcp-tool-legacy"
+                        title={
+                          typeof (h as { server?: unknown }).server !== "string"
+                            ? "Saved in an old shape with no server — Claude Code skips it when loading settings, so it never runs. Remove it and add it again with its server and tool."
+                            : "Saved with an \"arguments\" key Claude Code doesn't read (it reads \"input\") — the tool is called without them. Remove it and add it again."
+                        }
+                        className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
+                      >
+                        {typeof (h as { server?: unknown }).server !== "string"
+                          ? "won't run — no server"
+                          : "arguments ignored"}
+                      </span>
+                    )}
                     {"timeout" in h && h.timeout != null && (
                       <span className="ml-2 text-[var(--muted)]">timeout={h.timeout}s</span>
                     )}
@@ -335,8 +362,8 @@ function EventRow({
                         type: h.type,
                         event: spec.name,
                         onFailure: h.onFailure,
-                        async: h.async,
-                        asyncRewake: h.asyncRewake,
+                        async: "async" in h ? h.async : undefined,
+                        asyncRewake: "asyncRewake" in h ? h.asyncRewake : undefined,
                       });
                       return ignored ? (
                         <span
@@ -353,7 +380,11 @@ function EventRow({
                       ) : (
                         <span
                           data-testid="hook-onfailure-badge"
-                          title="If this hook can't start, times out, or exits with an unexpected code, the action is blocked"
+                          title={
+                            h.type === "mcp_tool"
+                              ? "If the server isn't connected or signed in, or the call times out, errors or answers with invalid JSON, the action is blocked"
+                              : "If this hook can't start, times out, or exits with an unexpected code, the action is blocked"
+                          }
                           className="ml-2 text-[var(--muted)]"
                         >
                           onFailure=block
@@ -396,8 +427,11 @@ function AddHookForm({
   const [headersText, setHeadersText] = useState("");
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("");
+  // CC 2.1.328 — an mcp_tool hook names its server and the tool's own name
+  // separately; its arguments go under `input`.
+  const [server, setServer] = useState("");
   const [tool, setTool] = useState("");
-  const [argsText, setArgsText] = useState("");
+  const [inputText, setInputText] = useState("");
   const [timeout, setTimeout] = useState<number | "">("");
   const [async, setAsync] = useState(false);
   const [asyncRewake, setAsyncRewake] = useState(false);
@@ -474,6 +508,10 @@ function AddHookForm({
       };
     } else if (type === "prompt") {
       if (!prompt.trim()) return setError("prompt required");
+      // SDK 0.3.332 — a prompt hook on PreSkillShellCommand refuses every
+      // skill shell command instead of running.
+      if (!promptHandlerAllowed(event))
+        return setError(`prompt hooks don't run on ${event} — use command or http`);
       handler = {
         type: "prompt",
         prompt,
@@ -500,14 +538,22 @@ function AddHookForm({
         ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
     } else {
+      // CC 2.1.328 — the engine's shape is `{server, tool, input?}`; the old
+      // `{tool: "mcp__srv__tool", arguments}` never loaded (no `server`).
+      if (!server.trim()) return setError("server required");
       if (!tool.trim()) return setError("tool required");
-      const args = parseArgs(argsText);
-      if (!args.ok) return setError(`arguments: ${args.error}`);
+      if (tool.trim().startsWith("mcp__"))
+        return setError("tool is the tool's own name on the server (e.g. notify), not mcp__server__tool");
+      const input = parseArgs(inputText);
+      if (!input.ok) return setError(`input: ${input.error}`);
       handler = {
         type: "mcp_tool",
+        server: server.trim(),
         tool: tool.trim(),
-        ...(Object.keys(args.value).length ? { arguments: args.value } : {}),
+        ...(Object.keys(input.value).length ? { input: input.value } : {}),
+        ...(timeout !== "" ? { timeout: Number(timeout) } : {}),
         ...(once ? { once: true } : {}),
+        ...(blockOnFailure ? { onFailure: "block" as const } : {}),
         ...(ifRule.trim() ? { if: ifRule.trim() } : {}),
       };
     }
@@ -545,8 +591,9 @@ function AddHookForm({
               const next = e.target.value as HookEvent;
               setEvent(next);
               // CC 2.1.280 — if `agent` was selected, it's invalid on an
-              // agent-disallowed event; fall back to `command`.
-              if (type === "agent" && !agentHandlerAllowed(next)) setType("command");
+              // agent-disallowed event; fall back to `command`. SDK 0.3.332 —
+              // same for `prompt` (PreSkillShellCommand).
+              if (!handlerTypeAllowed(type, next)) setType("command");
             }}
             className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
           >
@@ -573,17 +620,25 @@ function AddHookForm({
           >
             <option value="command">command</option>
             <option value="http">http</option>
-            <option value="prompt">prompt</option>
+            {/* SDK 0.3.332 — the bundled CLI's "prompt and agent hooks don't
+                run on PreSkillShellCommand": the engine refuses every command. */}
+            {promptHandlerAllowed(event) && <option value="prompt">prompt</option>}
             {/* CC 2.1.280 — `agent` hooks don't run on PermissionRequest; the
                 engine fails them. Don't offer it for those events. */}
             {agentHandlerAllowed(event) && <option value="agent">agent</option>}
             <option value="mcp_tool">mcp_tool</option>
           </select>
-          {!agentHandlerAllowed(event) && (
-            <p className="mt-1 text-[11px] text-[var(--muted)]">
-              <code className="font-mono">agent</code> handlers can&apos;t run on{" "}
-              <code className="font-mono">{event}</code> — use <code className="font-mono">command</code>{" "}
-              or <code className="font-mono">http</code>.
+          {(!agentHandlerAllowed(event) || !promptHandlerAllowed(event)) && (
+            <p data-testid="hook-handler-types-hint" className="mt-1 text-[11px] text-[var(--muted)]">
+              {promptHandlerAllowed(event) ? (
+                <code className="font-mono">agent</code>
+              ) : (
+                <>
+                  <code className="font-mono">prompt</code> and <code className="font-mono">agent</code>
+                </>
+              )}{" "}
+              handlers can&apos;t run on <code className="font-mono">{event}</code> — use{" "}
+              <code className="font-mono">command</code> or <code className="font-mono">http</code>.
             </p>
           )}
         </Field>
@@ -669,28 +724,44 @@ function AddHookForm({
         </div>
       )}
       {type === "mcp_tool" && (
-        <div className="mt-2 grid gap-2">
-          <Field label="MCP tool (mcp__server__tool)">
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Field label="Server (an already-configured MCP server)">
+            <input
+              value={server}
+              onChange={(e) => setServer(e.target.value)}
+              data-testid="hook-mcp-server-input"
+              placeholder="myserver"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+            />
+          </Field>
+          <Field label="Tool (its name on that server)">
             <input
               value={tool}
               onChange={(e) => setTool(e.target.value)}
-              placeholder="mcp__myserver__notify"
+              data-testid="hook-mcp-tool-input"
+              placeholder="notify"
               className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
             />
           </Field>
-          <Field label="Arguments (JSON)">
-            <textarea
-              rows={2}
-              value={argsText}
-              onChange={(e) => setArgsText(e.target.value)}
-              placeholder='{"channel":"alerts"}'
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
-            />
-          </Field>
+          <div className="sm:col-span-2">
+            {/* String values interpolate from the hook input JSON. */}
+            <Field label="Input (JSON)">
+              <textarea
+                rows={2}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                data-testid="hook-mcp-input"
+                placeholder='{"path":"${tool_input.file_path}"}'
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 font-mono text-xs focus:outline-none"
+              />
+            </Field>
+          </div>
         </div>
       )}
 
-      {handlerSupportsOnFailure(type) && (
+      {/* The async toggles exist only on command and http hooks; mcp_tool
+          gets its own grid (and its own onFailure toggle) below. */}
+      {(type === "command" || type === "http") && (
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-5">
           {/* The engine reads a hook's `timeout` in seconds (sdk.d.ts: "Timeout
               in seconds for this specific command/request") — the old "ms"
@@ -736,9 +807,9 @@ function AddHookForm({
       )}
       {(type === "prompt" || type === "agent" || type === "mcp_tool") && (
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {/* Agent and prompt hooks take a timeout too (seconds; an agent
-              hook's default is 60). */}
-          {(type === "prompt" || type === "agent") && (
+          {/* Agent, prompt and mcp_tool hooks take a timeout too (seconds; an
+              agent hook's default is 60). */}
+          {(type === "prompt" || type === "agent" || type === "mcp_tool") && (
             <Field label="Timeout (seconds)">
               <input
                 type="number"
@@ -754,6 +825,40 @@ function AddHookForm({
           <ToggleField label="once" checked={once} onChange={setOnce} />
           {type === "prompt" && (
             <ToggleField label="continueOnBlock" checked={continueOnBlock} onChange={setContinueOnBlock} />
+          )}
+          {/* CC 2.1.328 — "Added `"onFailure": "block"` for `mcp_tool` hooks,
+              as for command and HTTP hooks: a hook whose call fails blocks
+              the action". No async here: mcp_tool hooks don't have it. */}
+          {type === "mcp_tool" && (
+            <ToggleField
+              label="onFailure: block"
+              checked={blockOnFailure}
+              onChange={setBlockOnFailure}
+              testId="hook-onfailure-block-toggle"
+              title="If the server isn't connected or signed in, or the call times out, errors or answers with invalid JSON, block the action. Needs Claude Code 2.1.328 or later; older engines ignore it."
+            />
+          )}
+          {type === "mcp_tool" && blockOnFailure && (
+            <p
+              data-testid={onFailureIgnored === "event" ? "hook-onfailure-event-hint" : "hook-mcp-onfailure-note"}
+              className={cn(
+                "text-[11px] sm:col-span-3",
+                onFailureIgnored === "event" ? "text-amber-300" : "text-[var(--muted)]",
+              )}
+            >
+              {onFailureIgnored === "event" ? (
+                <>
+                  Claude Code ignores <code className="font-mono">onFailure: block</code> on{" "}
+                  <code className="font-mono">{event}</code> — a failure here is reported but never blocks.
+                </>
+              ) : (
+                <>
+                  With <code className="font-mono">block</code>, the tool must answer with a hook&apos;s JSON
+                  output, <code className="font-mono">{"{}"}</code> or nothing — plain text or an image also counts
+                  as a failure (except on PreCompact and WorktreeCreate, where text is the answer).
+                </>
+              )}
+            </p>
           )}
         </div>
       )}

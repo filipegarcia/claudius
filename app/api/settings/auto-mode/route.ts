@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { readSettings, resetAutoMode, updateAutoMode, type AutoModeConfig } from "@/lib/server/settings";
+import {
+  readSettings,
+  resetAutoMode,
+  settingsSaveFailure,
+  updateAutoMode,
+  type AutoModeConfig,
+} from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
@@ -24,8 +30,14 @@ export async function POST(req: Request) {
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  const next = await updateAutoMode(cwd, body.patch);
-  return NextResponse.json({ ok: true, autoMode: next.autoMode ?? {} });
+  // CC 2.1.327 — name ~/.claude/settings.json when the change couldn't be saved.
+  try {
+    const next = await updateAutoMode(cwd, body.patch);
+    return NextResponse.json({ ok: true, autoMode: next.autoMode ?? {} });
+  } catch (err) {
+    const { status, error } = settingsSaveFailure("user", cwd, err);
+    return NextResponse.json({ error }, { status });
+  }
 }
 
 export async function GET(req: Request) {
@@ -45,6 +57,11 @@ export async function DELETE(req: Request) {
   const url = new URL(req.url);
   const cwd = await resolveTrustedCwd(url.searchParams.get("cwd"));
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });
-  await resetAutoMode(cwd);
+  try {
+    await resetAutoMode(cwd);
+  } catch (err) {
+    const { status, error } = settingsSaveFailure("user", cwd, err);
+    return NextResponse.json({ error }, { status });
+  }
   return NextResponse.json({ ok: true, autoMode: {} });
 }

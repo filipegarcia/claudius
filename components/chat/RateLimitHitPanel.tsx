@@ -134,7 +134,10 @@ export function RateLimitHitPanel({
     (hit.rateLimitType === "seven_day_opus" || hit.rateLimitType === "seven_day_sonnet");
 
   return (
-    <div className="my-1 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] leading-5 text-red-200">
+    <div
+      data-testid="rate-limit-hit-panel"
+      className="my-1 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] leading-5 text-red-200"
+    >
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-3.5 w-3.5" />
         {cta === "model-needs-credits" ? (
@@ -142,6 +145,12 @@ export function RateLimitHitPanel({
           // of naming a tier and a reset clock that don't apply.
           <span className="font-medium" data-testid="model-needs-credits-title">
             {hit.modelNeedsCredits} needs usage credits
+          </span>
+        ) : hit.creditsExhausted ? (
+          // CC 2.1.328 — credits ran out; not a plan window, so no tier or
+          // reset clock (the engine's own text above prints any reset).
+          <span className="font-medium" data-testid="credits-exhausted-title">
+            Out of usage credits
           </span>
         ) : (
           <>
@@ -235,6 +244,20 @@ export function RateLimitHitPanel({
               </span>
             </>
           )}
+        </div>
+      ) : cta === "credits-exhausted" ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
+          <span className="opacity-70">To keep going:</span>
+          <a
+            href={PURCHASE_CREDITS_URL}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="credits-exhausted-buy-link"
+            className="font-medium underline underline-offset-2 hover:opacity-80"
+          >
+            Buy more usage credits
+          </a>
+          <span className="opacity-70">or switch models with /model</span>
         </div>
       ) : cta === "buy-credits" ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">

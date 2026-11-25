@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { worktreeBadge } from "@/lib/client/worktree";
+import { planModeModel, planModeNote } from "@/lib/shared/model-recognition";
 import { Overlay } from "./Overlay";
 
 type Props = {
@@ -28,6 +31,69 @@ type Props = {
   account: { label: string; driftFromActive?: { label: string } } | null;
   onClose: () => void;
 };
+
+/**
+ * CC 2.1.327 parity — "Added a list in /status of broken agent, skill …
+ * files, keybinding errors". Counts what `GET /api/doctor/files` reports
+ * across every workspace — the same set /doctor's Config files section
+ * lists, so the count always matches what "Open /doctor" shows.
+ *
+ * CC 2.1.328 — "Added a notice in /status … when an OpenTelemetry exporter
+ * has no endpoint and its data would likely be lost". That notice comes
+ * back as a `telemetry` problem; its text is shown under the count, as the
+ * engine's /status shows it.
+ */
+function useConfigFileProblemCount(): { count: number; notices: string[] } | null {
+  const [count, setCount] = useState<{ count: number; notices: string[] } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/doctor/files", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { problems?: Array<{ kind?: unknown; reason?: unknown }> };
+        const problems = Array.isArray(data.problems) ? data.problems : [];
+        const notices = problems.flatMap((p) =>
+          p && p.kind === "telemetry" && typeof p.reason === "string" ? [p.reason] : [],
+        );
+        setCount({ count: problems.length, notices });
+      })
+      .catch(() => {
+        // Leave the row out rather than guess — /doctor still has the list.
+      });
+    return () => controller.abort();
+  }, []);
+  return count;
+}
+
+/**
+ * CC 2.1.329 — "Fixed `/status` not naming the model that opusplan and haiku
+ * use in plan mode". The session catalog (`GET /api/sessions/:id/model`)
+ * names the Opus / Sonnet version; fetched only for a model that has a
+ * plan-mode model. Until it answers (or if it can't), the note names the
+ * family.
+ */
+function usePlanModeNote(sessionId: string | null, model: string | null): string | null {
+  const wanted = sessionId !== null && planModeModel(model) !== null;
+  const [catalog, setCatalog] = useState<{ key: string; models: Array<{ value: string; resolvedModel?: string }> } | null>(
+    null,
+  );
+  const key = `${sessionId}:${model}`;
+  useEffect(() => {
+    if (!wanted) return;
+    const controller = new AbortController();
+    fetch(`/api/sessions/${sessionId}/model`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { models?: Array<{ value: string; resolvedModel?: string }> };
+        setCatalog({ key, models: Array.isArray(data.models) ? data.models : [] });
+      })
+      .catch(() => {
+        // Name the family only.
+      });
+    return () => controller.abort();
+  }, [wanted, sessionId, key]);
+  return planModeNote(model, catalog?.key === key ? catalog.models : null);
+}
 
 /**
  * Human-readable "kind" of the session — the browser analogue of Claude Code's
@@ -59,6 +125,9 @@ export function StatusOverlay({
   account,
   onClose,
 }: Props) {
+  const problems = useConfigFileProblemCount();
+  const planNote = usePlanModeNote(sessionId, model);
+  const problemCount = problems?.count ?? null;
   return (
     <Overlay title="Session status" subtitle="/status" onClose={onClose} width={520}>
       <dl className="divide-y divide-[var(--border)] text-sm">
@@ -82,13 +151,58 @@ export function StatusOverlay({
         />
         <Row label="Kind" value={sessionKindLabel(mainAgent, cwd, agentCwd)} />
         <Row label="State" value={!ready ? "starting" : pending ? "working" : "idle"} />
-        <Row label="Model" value={<code className="font-mono">{model ?? "—"}</code>} />
+        <Row
+          label="Model"
+          value={
+            <>
+              <code className="font-mono">{model ?? "—"}</code>
+              {planNote && (
+                <span
+                  data-testid="status-plan-mode-model"
+                  className={permissionMode === "plan" ? "text-[var(--accent)]" : "text-[var(--muted)]"}
+                >
+                  {` · ${planNote}`}
+                </span>
+              )}
+            </>
+          }
+        />
         <Row label="Permission mode" value={<code className="font-mono">{permissionMode}</code>} />
         <Row label="Working directory" value={<code className="font-mono break-all">{cwd ?? "—"}</code>} />
         <Row
           label="Capabilities"
           value={`${toolCount} tools · ${slashCount} slash commands · ${agentCount} agents · ${skillCount} skills`}
         />
+        {problemCount !== null && (
+          <Row
+            label="Problems"
+            value={
+              problemCount > 0 ? (
+                <span data-testid="status-problems" className="text-amber-400">
+                  {problemCount} {problemCount === 1 ? "problem" : "problems"}
+                  <span className="text-[var(--muted)]"> · </span>
+                  <Link
+                    href="/doctor?section=config-files"
+                    onClick={onClose}
+                    data-testid="status-problems-link"
+                    className="text-[var(--accent)] hover:underline"
+                  >
+                    Open /doctor
+                  </Link>
+                  {problems?.notices.map((n) => (
+                    <span key={n} data-testid="status-notice" className="mt-1 block text-[var(--muted)]">
+                      {n}
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <span data-testid="status-problems" className="text-[var(--muted)]">
+                  No problems
+                </span>
+              )
+            }
+          />
+        )}
       </dl>
     </Overlay>
   );

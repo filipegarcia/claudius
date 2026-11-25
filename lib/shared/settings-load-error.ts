@@ -63,3 +63,19 @@ export function settingsSaveFailedMessage(path: string, detail: { parseReason?: 
   const hint = errnoHint(detail.code);
   return `Not saved: couldn't write ${path} — ${hint ? `${hint} (${detail.code})` : detail.code}.`;
 }
+
+/**
+ * CC 2.1.327 — the client-side counterpart of `settingsSaveFailedMessage`,
+ * for a settings save whose request never got a usable answer: the fetch
+ * rejected (`{ error }`), or the server replied without a JSON `error`
+ * (`{ status }`). Same "Not saved: … <file> …" shape, so every settings
+ * surface (/settings, Auto mode, Skills) reads alike.
+ */
+export function settingsRequestFailedMessage(
+  path: string,
+  failure: { status: number } | { error: unknown },
+): string {
+  if ("status" in failure) return `Not saved: couldn't update ${path} (HTTP ${failure.status}).`;
+  const detail = failure.error instanceof Error ? failure.error.message : String(failure.error);
+  return `Not saved: couldn't reach Claudius to update ${path} (${detail}).`;
+}

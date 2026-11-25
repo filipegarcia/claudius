@@ -21,12 +21,12 @@ import { makeTempHome, type TmpHome } from "./helpers/tmp-home";
  */
 
 describe("onFailure helpers", () => {
-  test("only command and http handlers support onFailure", () => {
+  test("command, http and (CC 2.1.328) mcp_tool handlers support onFailure", () => {
     expect(handlerSupportsOnFailure("command")).toBe(true);
     expect(handlerSupportsOnFailure("http")).toBe(true);
     expect(handlerSupportsOnFailure("prompt")).toBe(false);
     expect(handlerSupportsOnFailure("agent")).toBe(false);
-    expect(handlerSupportsOnFailure("mcp_tool")).toBe(false);
+    expect(handlerSupportsOnFailure("mcp_tool")).toBe(true);
   });
 
   test("handlerBlocksOnFailure reads the flag on command/http handlers", () => {

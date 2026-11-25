@@ -8,6 +8,11 @@ import {
   type SettingsScope,
 } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
+import {
+  permissionRuleRefusalMessage,
+  validatePermissionRule,
+  type PermissionRuleKind,
+} from "@/lib/shared/permission-rule-lint";
 
 export const runtime = "nodejs";
 
@@ -46,6 +51,22 @@ export async function POST(req: Request) {
     }
   } else if (!body.patch || typeof body.patch !== "object") {
     return NextResponse.json({ error: "patch required" }, { status: 400 });
+  } else if (!RULE_KINDS.every((k) => isStringList(body.patch?.[k]))) {
+    return NextResponse.json({ error: "invalid patch" }, { status: 400 });
+  }
+  // CC 2.1.332 — "Improved `/permissions` to refuse a rule that would be
+  // skipped at the next start, such as `rm -rf` with no tool name, and to
+  // show the reason". Check every rule being added (a delta's `add`, or a
+  // patch's rule lists) against the engine's validator; removals stay
+  // allowed so a bad rule already in the file can be deleted.
+  const adding: Array<[PermissionRuleKind, string]> = delta
+    ? (delta.add ?? []).map((r) => [delta.kind, r])
+    : RULE_KINDS.flatMap((k) => (body.patch?.[k] ?? []).map((r): [PermissionRuleKind, string] => [k, r]));
+  for (const [kind, rule] of adding) {
+    const reason = permissionRuleRefusalMessage(validatePermissionRule(rule, kind));
+    if (reason) {
+      return NextResponse.json({ error: `"${rule}" would be skipped at the next start: ${reason}` }, { status: 400 });
+    }
   }
   const cwd = await resolveTrustedCwd(body.cwd);
   if (!cwd) return NextResponse.json({ error: "unknown cwd" }, { status: 400 });

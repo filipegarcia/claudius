@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, X, Info, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, X, Info, Clock, AlertTriangle, XCircle } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { ScopeToggle, type Scope as IaScope } from "@/components/nav/ScopeToggle";
 import { usePermissions, type RuleKind, type Scope } from "@/lib/client/usePermissions";
@@ -15,6 +15,8 @@ import {
   lintPermissionRule,
   lintTrailingGarbageRule,
   lintWindowsPathParen,
+  permissionRuleRefusalMessage,
+  validatePermissionRule,
 } from "@/lib/shared/permission-rule-lint";
 import { cn } from "@/lib/utils/cn";
 
@@ -58,6 +60,9 @@ export default function PermissionsPage() {
   // only). Forced back to "rules" whenever the user leaves account scope so
   // switching to Project/Local never leaves an unreachable tab selected.
   const [tab, setTab] = useState<"rules" | "auto-mode">("rules");
+  // CC 2.1.327 — the Auto mode tab's last failed save, lifted here so it
+  // shows in the same out-of-scroll strip as a failed rule save.
+  const [autoModeSaveError, setAutoModeSaveError] = useState<string | null>(null);
 
   // Find the live session matching the active workspace CWD so we can surface
   // its recent-denial ring buffer (CC 2.1.193 parity). Same pattern as McpPage.
@@ -96,6 +101,9 @@ export default function PermissionsPage() {
   function add(kind: RuleKind, value: string) {
     const v = value.trim();
     if (!v) return;
+    // CC 2.1.332 — never save a rule the engine skips at start (the column
+    // shows why; the API refuses it too).
+    if (!validatePermissionRule(v, kind).valid) return;
     const cur = rules[scope][kind];
     if (cur.includes(v)) return;
     void updateRules(scope, kind, [...cur, v], { add: [v] });
@@ -128,17 +136,10 @@ export default function PermissionsPage() {
 
         {/* CC 2.1.326 — a rule that didn't reach disk is rolled back; say so,
             and name the settings file, instead of letting it look saved. Out of
-            the scroll area so it's seen wherever the failed edit was made. */}
-        {saveError && (
-          <div
-            role="alert"
-            data-testid="permissions-save-error"
-            className="flex shrink-0 items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span className="min-w-0 [overflow-wrap:anywhere]">{saveError}</span>
-          </div>
-        )}
+            the scroll area so it's seen wherever the failed edit was made.
+            CC 2.1.327 — an Auto mode save that didn't land uses the same strip. */}
+        {saveError && <SaveErrorStrip testId="permissions-save-error" message={saveError} />}
+        {autoModeSaveError && <SaveErrorStrip testId="auto-mode-save-error" message={autoModeSaveError} />}
         <div className="flex-1 overflow-y-auto scroll-thin">
           <div className="mx-auto max-w-4xl px-6 py-6">
             <div className="mb-4 flex items-center gap-2">
@@ -191,7 +192,7 @@ export default function PermissionsPage() {
             )}
 
             {tab === "auto-mode" && iaScope === "account" ? (
-              <AutoModeTab />
+              <AutoModeTab onSaveErrorChange={setAutoModeSaveError} />
             ) : (
               <>
                 {/* CC 2.1.257 parity — "Added a one-time prompt in auto mode
@@ -366,8 +367,26 @@ export default function PermissionsPage() {
  * `$defaults` toggle for whether Anthropic's built-in rules stay in effect
  * alongside the user's own.
  */
-function AutoModeTab() {
-  const { config, loading, error, updateConfig, reset } = useAutoMode();
+function SaveErrorStrip({ testId, message }: { testId: string; message: string }) {
+  return (
+    <div
+      role="alert"
+      data-testid={testId}
+      className="flex shrink-0 items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300"
+    >
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span className="min-w-0 [overflow-wrap:anywhere]">{message}</span>
+    </div>
+  );
+}
+
+function AutoModeTab({ onSaveErrorChange }: { onSaveErrorChange: (message: string | null) => void }) {
+  const { config, loading, error, saveError, updateConfig, reset } = useAutoMode();
+  // CC 2.1.327 — the message survives the rollback refetch; the page shows
+  // it above the scroll area so it's seen wherever the failed edit was made.
+  useEffect(() => {
+    onSaveErrorChange(saveError);
+  }, [saveError, onSaveErrorChange]);
   const hasConfig =
     (["environment", "allow", "soft_deny", "hard_deny"] as const).some(
       (k) => (config[k]?.length ?? 0) > 0,
@@ -537,6 +556,15 @@ type ColumnProps = {
 
 function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) {
   const [draft, setDraft] = useState("");
+  // CC 2.1.332 — "Improved `/permissions` to refuse a rule that would be
+  // skipped at the next start, such as `rm -rf` with no tool name, and to
+  // show the reason". Set when Add is pressed on such a rule; the draft stays
+  // so it can be fixed, and typing clears the message.
+  const [refusal, setRefusal] = useState<{ error: string; suggestion?: string } | null>(null);
+  const draftWouldBeSkipped = !!draft.trim() && !validatePermissionRule(draft.trim(), kind).valid;
+  const stillSaves = draftWouldBeSkipped
+    ? " Claude Code would skip it at the next start, so it can't be added."
+    : " The rule will still save as typed.";
   // CC 2.1.210 parity: `Write(path)` / `NotebookEdit(path)` / `Glob(path)`
   // don't support path scoping — warn (don't block; the rule still saves,
   // matching upstream's "warn at startup" rather than reject) both as the
@@ -579,11 +607,22 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
           const bashLint = kind === "allow" && !envLint ? lintBashWildcardRule(r) : null;
           const trailingLint = lintTrailingGarbageRule(r);
           const winLint = lintWindowsPathParen(r);
+          // CC 2.1.332 — a rule already in the file that the engine drops at
+          // start (hand-edited, or saved before this check) is flagged.
+          const skippedReason = permissionRuleRefusalMessage(validatePermissionRule(r, kind));
           return (
             <div
               key={r}
               className="group flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/60 px-2 py-1"
             >
+              {skippedReason && (
+                <span
+                  data-testid="permission-rule-skipped-icon"
+                  title={`Claude Code skips this rule at start: ${skippedReason}`}
+                >
+                  <XCircle className="h-3 w-3 shrink-0 text-red-400" />
+                </span>
+              )}
               {lint && (
                 <span
                   data-testid="permission-rule-warning-icon"
@@ -638,6 +677,11 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            const check = validatePermissionRule(draft.trim(), kind);
+            if (draft.trim() && !check.valid) {
+              setRefusal({ error: check.error, suggestion: check.suggestion });
+              return;
+            }
             onAdd(draft);
             setDraft("");
           }}
@@ -645,7 +689,11 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
         >
           <input
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setRefusal(null);
+            }}
+            aria-invalid={!!refusal}
             placeholder="add rule"
             className="flex-1 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1 font-mono text-xs focus:border-[var(--accent)]/60 focus:outline-none"
           />
@@ -657,6 +705,19 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
             <Plus className="h-3.5 w-3.5" />
           </button>
         </form>
+        {refusal && (
+          <p
+            data-testid="permission-rule-refused"
+            role="alert"
+            className="flex items-start gap-1 text-[10px] text-red-300"
+          >
+            <XCircle className="mt-px h-3 w-3 shrink-0" />
+            <span>
+              Not added — Claude Code would skip this rule at the next start: {refusal.error}.
+              {refusal.suggestion && <> {refusal.suggestion}.</>}
+            </span>
+          </p>
+        )}
         {draftLint && (
           <p
             data-testid="permission-rule-warning"
@@ -666,7 +727,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
             <span>
               <code className="font-mono">{draftLint.tool}(path)</code> isn&apos;t a supported
               path-scoped rule — use <code className="font-mono">{draftLint.suggestion}</code> instead.
-              The rule will still save as typed.
+              {stillSaves}
             </span>
           </p>
         )}
@@ -679,7 +740,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
             <span>
               The wildcard in <code className="font-mono">{draftBashLint.command}</code> sits before a
               fixed word — it also matches options inserted in between (e.g. a flag), not just the
-              subcommand you intended. The rule will still save as typed.
+              subcommand you intended.{stillSaves}
             </span>
           </p>
         )}
@@ -693,7 +754,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
               <code className="font-mono">{draftEnvLint.rule}</code> has a * in a variable&apos;s value.
               A * also matches spaces, so this rule can also approve a different command that has{" "}
               <code className="font-mono">{draftEnvLint.command}</code> later in the line, without a
-              prompt. Give the variable an exact value instead. The rule will still save as typed.
+              prompt. Give the variable an exact value instead.{stillSaves}
             </span>
           </p>
         )}
@@ -705,8 +766,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
             <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
             <span>
               <code className="font-mono">{draftTrailingLint.trailing}</code> after the closing
-              parenthesis never matches anything — this rule is invalid. The rule will still save as
-              typed.
+              parenthesis never matches anything — this rule is invalid.{stillSaves}
             </span>
           </p>
         )}
@@ -719,7 +779,7 @@ function RuleColumn({ kind, label, tone, rules, onAdd, onRemove }: ColumnProps) 
             <span>
               <code className="font-mono">{draftWinLint.sequence}</code> is ambiguous against the
               rule&apos;s scope parenthesis — in a Windows path use forward slashes (
-              <code className="font-mono">C:/dir/(name)/**</code>). The rule will still save as typed.
+              <code className="font-mono">C:/dir/(name)/**</code>).{stillSaves}
             </span>
           </p>
         )}

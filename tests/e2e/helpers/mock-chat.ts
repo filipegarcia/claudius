@@ -71,3 +71,21 @@ export function assistantText(uuid: string, text: string): SdkEvent {
     message: { type: "assistant", uuid, message: { id: `msg_${uuid}`, role: "assistant", content: [{ type: "text", text }] } },
   };
 }
+
+/**
+ * A usage-limit stop as the engine actually writes it: a synthetic API-error
+ * message (`error` set, `message.model: "<synthetic>"`), not model prose. CC
+ * 2.1.332 — Claudius shows the rate-limit panel only for these, so a fixture
+ * for the panel must use this rather than `assistantText`.
+ */
+export function apiErrorText(uuid: string, text: string, error = "rate_limit"): SdkEvent {
+  return {
+    type: "sdk",
+    message: {
+      type: "assistant",
+      uuid,
+      error,
+      message: { id: `msg_${uuid}`, role: "assistant", model: "<synthetic>", content: [{ type: "text", text }] },
+    },
+  };
+}

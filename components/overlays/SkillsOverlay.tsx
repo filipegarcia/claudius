@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bot, Circle, CircleDot, Cpu, Wand2 } from "lucide-react";
+import { settingsRequestFailedMessage } from "@/lib/shared/settings-load-error";
 import { Overlay } from "./Overlay";
+
+// Skill on/off overrides are written to the project settings file only.
+const SKILL_OVERRIDES_FILE = ".claude/settings.json";
 
 type Props = {
   agents: string[];
@@ -47,6 +51,9 @@ export function SkillsOverlay({
   // different skills back-to-back) without adding file-locking infra that
   // no sibling settings-updater in this codebase has either.
   const [togglePending, setTogglePending] = useState(false);
+  // CC 2.1.327 — why the last toggle didn't save (names the settings file).
+  // The toggle keeps its old state; the next toggle that lands clears this.
+  const [toggleError, setToggleError] = useState<string | null>(null);
   // Set as soon as the first toggle fires. Guards the mount-time overrides
   // GET (below) from clobbering fresher, server-confirmed state with a
   // response that happened to resolve after a toggle already landed — once
@@ -102,7 +109,17 @@ export function SkillsOverlay({
       if (res.ok) {
         const d = (await res.json()) as { skillOverrides?: Record<string, string> };
         setOverrides(d.skillOverrides ?? {});
+        setToggleError(null);
+      } else {
+        const d = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        setToggleError(
+          typeof d?.error === "string" && d.error
+            ? d.error
+            : settingsRequestFailedMessage(SKILL_OVERRIDES_FILE, { status: res.status }),
+        );
       }
+    } catch (err) {
+      setToggleError(settingsRequestFailedMessage(SKILL_OVERRIDES_FILE, { error: err }));
     } finally {
       setTogglePending(false);
     }
@@ -126,6 +143,15 @@ export function SkillsOverlay({
           {cwd && skills.length > 0 && (
             <p className="mb-1.5 text-[10px] text-[var(--muted)]">
               Toggling applies to new sessions, not this one.
+            </p>
+          )}
+          {toggleError && (
+            <p
+              role="alert"
+              data-testid="skills-overlay-toggle-error"
+              className="mb-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] text-red-300 [overflow-wrap:anywhere]"
+            >
+              {toggleError}
             </p>
           )}
           <ul className="space-y-0.5" data-testid="skills-overlay-skill-list">

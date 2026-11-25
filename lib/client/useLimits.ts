@@ -54,14 +54,26 @@ export function useLimits(cwd: string | null) {
   const save = useCallback(
     async (limits: Limits): Promise<boolean> => {
       if (cwd == null) return false;
-      const res = await fetch(`/api/limits?cwd=${encodeURIComponent(cwd)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(limits),
-      });
-      if (!res.ok) return false;
-      setState((await res.json()) as LimitsState);
-      return true;
+      // A refused save surfaces its reason through `error` (and leaves
+      // `state` alone, so the caller's edited inputs aren't re-hydrated).
+      try {
+        const res = await fetch(`/api/limits?cwd=${encodeURIComponent(cwd)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(limits),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: unknown };
+          setError(typeof body.error === "string" && body.error ? body.error : `HTTP ${res.status}`);
+          return false;
+        }
+        setState((await res.json()) as LimitsState);
+        setError(null);
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
+      }
     },
     [cwd],
   );

@@ -10,9 +10,9 @@ import remarkMath from "remark-math";
 import { ChevronDown, ChevronRight, ExternalLink, Globe, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
-import { filesHref, isLocalFileRef, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
+import { filesHref, isLocalFileRef, linkHrefWorkspacePath, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
-import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
+import { isMarkdownTooCostly, isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { hasPathologicalDollarRuns, normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
 import { preserveLoneBackslashes } from "@/lib/shared/lone-backslash";
 import { keepLiteralAsterisks } from "@/lib/shared/user-asterisks";
@@ -72,7 +72,8 @@ const LINK_CLASS = "text-[var(--accent)] underline-offset-2 hover:underline";
 /**
  * Markdown anchor renderer. Two branches:
  *
- *  1. The href looks like a project file path AND resolves inside the active
+ *  1. The href is a relative path (no scheme, query or fragment), or a local
+ *     `file://` / `C:\…` ref, that resolves inside the active
  *     workspace → route through `/<workspaceId>/files?path=…`, same-tab, as a
  *     normal Next route. Critically, this catches `[…](site/og.png)` (and
  *     `[![](path)](path)` linked-image shapes) that would otherwise resolve
@@ -96,11 +97,12 @@ function MarkdownLink({
 }) {
   const fileLink = useFileLink();
   const raw = typeof href === "string" ? href.trim() : "";
-  const stripped = raw ? stripLineSuffix(raw) : "";
-  const rel =
-    fileLink && stripped && looksLikeFilePath(stripped)
-      ? toWorkspaceRelative(stripped, fileLink.cwd)
-      : null;
+  // CC 2.1.332 — "[VSCode] Fixed most links to files without an extension,
+  // to folders, and with a line and column doing nothing". Any relative href
+  // (`Makefile`, `src/lib/`, `./LICENSE:3`) is a workspace path, not only one
+  // with a known file extension; the Files view opens the file or reveals the
+  // folder.
+  const rel = fileLink && raw ? linkHrefWorkspacePath(raw, fileLink.cwd) : null;
   if (rel && fileLink) {
     return (
       <Link href={filesHref(fileLink.workspaceId, rel)} className={LINK_CLASS}>
@@ -507,6 +509,10 @@ export const Markdown = memo(function Markdown({
   // bubble re-renders on every delta. Past the cap, the parser would overflow
   // the stack (quotes) or stall the tab (lists), so render plain text instead.
   const tooDeep = useMemo(() => isMarkdownTooDeep(children), [children]);
+  // CC 2.1.328 — "Fixed markdown rendering freezing on some very long or
+  // malformed input". A paragraph dense with `*`/`_`, a huge table delimiter
+  // row or thousands of table cells make the parser super-linear too.
+  const tooCostly = useMemo(() => !tooDeep && isMarkdownTooCostly(children), [children, tooDeep]);
   // CC 2.1.319 — many unclosed `$$$…` fences make the math parser
   // super-linear on every streaming delta; render that message without math.
   const dollarRunsOk = useMemo(() => !math || !hasPathologicalDollarRuns(children), [children, math]);
@@ -519,7 +525,12 @@ export const Markdown = memo(function Markdown({
     return mathOn ? normalizeMathDelimiters(kept) : kept;
   }, [children, mathOn, literalAsterisks]);
   const remarkPlugins = useMemo(() => {
-    const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [remarkGfm];
+    // CC 2.1.329 — "Fixed a single tilde drawing strikethrough, e.g. in
+    // '3~5 days … 7~10 days'". remark-gfm's default `singleTilde: true` struck
+    // through everything between two lone tildes; `~~text~~` still works.
+    const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [
+      [remarkGfm, { singleTilde: false }],
+    ];
     if (breaks) plugins.push(remarkBreaks);
     if (mathOn) plugins.push(REMARK_MATH);
     return plugins;
@@ -529,6 +540,14 @@ export const Markdown = memo(function Markdown({
       <PlainMarkdownFallback
         text={children}
         note="Shown as plain text: this message nests lists or quotes too deeply to format."
+      />
+    );
+  }
+  if (tooCostly) {
+    return (
+      <PlainMarkdownFallback
+        text={children}
+        note="Shown as plain text: this message is too long and irregular to format quickly."
       />
     );
   }

@@ -32,6 +32,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (result.refused) {
     return NextResponse.json({ ok: false, mode: result.mode, refused: result.refused }, { status: 409 });
   }
+  // SDK 0.3.332: the engine took the switch but landed in another mode.
+  if (result.substituted) {
+    return NextResponse.json({ ok: true, mode: result.mode, substituted: result.substituted });
+  }
   return NextResponse.json({ ok: true, mode: result.mode });
 }
 
