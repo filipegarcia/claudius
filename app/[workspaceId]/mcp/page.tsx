@@ -18,7 +18,13 @@ import {
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { useActiveCwd } from "@/lib/client/useActiveCwd";
-import { useMcp, type ConfiguredServer, type LiveStatus } from "@/lib/client/useMcp";
+import {
+  MCP_OTHER_SCOPE_LABELS,
+  mcpRemoveHint,
+  useMcp,
+  type ConfiguredServer,
+  type LiveStatus,
+} from "@/lib/client/useMcp";
 import type { McpScope, McpServerConfig } from "@/lib/server/mcp";
 import { cn } from "@/lib/utils/cn";
 
@@ -35,6 +41,10 @@ const SCOPE_LABELS: Record<McpScope, string> = {
   project: "Project (.mcp.json)",
   local: "Local (.claude/settings.local.json)",
 };
+
+function scopeLabel(scope: string): string {
+  return SCOPE_LABELS[scope as McpScope] ?? MCP_OTHER_SCOPE_LABELS[scope] ?? scope;
+}
 
 /**
  * SDK 0.3.280 — a tool's `_meta` carries MCP Apps (SEP-1865) metadata under
@@ -95,10 +105,13 @@ export default function McpPage() {
     [mcp.status],
   );
 
+  // CC 2.1.330 — `editable` is whether the server is in a file Claudius
+  // writes (`configured`); a status-only row (claude.ai connector, plugin,
+  // sdk, or a CLI-added server in ~/.claude.json) can't be removed here.
   const merged = useMemo(() => {
-    const map = new Map<string, { server: ConfiguredServer; status?: LiveStatus }>();
+    const map = new Map<string, { server: ConfiguredServer; status?: LiveStatus; editable: boolean }>();
     for (const s of mcp.configured) {
-      map.set(s.name, { server: s });
+      map.set(s.name, { server: s, editable: true });
     }
     for (const st of mcp.status) {
       const ex = map.get(st.name);
@@ -107,10 +120,13 @@ export default function McpPage() {
         map.set(st.name, {
           server: { scope: (st.scope as McpScope) ?? "user", name: st.name, config: { command: "" } },
           status: st,
+          editable: false,
         });
     }
     return [...map.values()].sort((a, b) => a.server.name.localeCompare(b.server.name));
   }, [mcp.configured, mcp.status]);
+  // CC 2.1.330 — the last failed Remove per server, shown on its row.
+  const [removeErrors, setRemoveErrors] = useState<Record<string, string>>({});
 
   return (
     <div className="flex h-full">
@@ -184,18 +200,27 @@ export default function McpPage() {
               </div>
             ) : (
               <ul className="space-y-2">
-                {merged.map(({ server, status }) => (
+                {merged.map(({ server, status, editable }) => (
                   <ServerRow
                     key={server.name}
                     server={server}
                     status={status}
+                    editable={editable}
+                    removeError={removeErrors[server.name] ?? null}
                     sessionId={sessionId}
                     statusLoaded={mcp.statusLoaded}
                     onReconnect={() => mcp.reconnect(server.name)}
                     onToggle={(enabled) => mcp.toggle(server.name, enabled)}
                     onDelete={() => {
                       if (confirm(`Remove MCP server "${server.name}" from ${SCOPE_LABELS[server.scope]}?`)) {
-                        void mcp.remove(server.scope, server.name);
+                        void mcp.remove(server.scope, server.name).then((err) =>
+                          setRemoveErrors((prev) => {
+                            const next = { ...prev };
+                            if (err) next[server.name] = err;
+                            else delete next[server.name];
+                            return next;
+                          }),
+                        );
                       }
                     }}
                   />
@@ -212,6 +237,8 @@ export default function McpPage() {
 function ServerRow({
   server,
   status,
+  editable,
+  removeError,
   sessionId,
   statusLoaded,
   onReconnect,
@@ -220,6 +247,9 @@ function ServerRow({
 }: {
   server: ConfiguredServer;
   status?: LiveStatus;
+  /** In a file Claudius edits, so Remove can work (CC 2.1.330). */
+  editable: boolean;
+  removeError: string | null;
   sessionId: string | null;
   statusLoaded: boolean;
   onReconnect: () => void;
@@ -255,7 +285,9 @@ function ServerRow({
               {status.status}
             </span>
           )}
-          <span className="ml-2 text-[10px] text-[var(--muted)]">{SCOPE_LABELS[server.scope]}</span>
+          <span className="ml-2 text-[10px] text-[var(--muted)]">
+            {server.name.startsWith("plugin:") ? "Plugin" : scopeLabel(server.scope)}
+          </span>
           {status?.source && (
             <span
               data-testid={`mcp-source-badge-${server.name}`}
@@ -299,15 +331,53 @@ function ServerRow({
               {status.status === "disabled" ? "Enable" : "Disable"}
             </button>
           )}
-          <button
-            onClick={onDelete}
-            title="Remove from config"
-            className="flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/20"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+          {editable ? (
+            <button
+              onClick={onDelete}
+              title="Remove from config"
+              data-testid={`mcp-remove-${server.name}`}
+              className="flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/20"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          ) : (
+            // CC 2.1.330 — not in a file Claudius edits: say where it's
+            // managed instead of a Remove that does nothing.
+            (() => {
+              const hint = mcpRemoveHint(server.name, server.scope);
+              const cls = "px-1 text-[11px] text-[var(--muted)]";
+              return hint.href?.startsWith("/") ? (
+                <Link href={hint.href} title={hint.title} data-testid={`mcp-remove-hint-${server.name}`} className={cn(cls, "underline hover:text-[var(--foreground)]")}>
+                  {hint.label}
+                </Link>
+              ) : hint.href ? (
+                <a
+                  href={hint.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={hint.title}
+                  data-testid={`mcp-remove-hint-${server.name}`}
+                  className={cn(cls, "underline hover:text-[var(--foreground)]")}
+                >
+                  {hint.label}
+                </a>
+              ) : (
+                <span title={hint.title} data-testid={`mcp-remove-hint-${server.name}`} className={cls}>
+                  {hint.label}
+                </span>
+              );
+            })()
+          )}
         </div>
       </div>
+      {removeError && (
+        <div
+          data-testid={`mcp-remove-error-${server.name}`}
+          className="mx-3 mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300"
+        >
+          Couldn&apos;t remove: {removeError}
+        </div>
+      )}
       {server.rejected && !status ? (
         // CC 2.1.327 — a project server listed in `disabledMcpjsonServers`
         // is filtered out by the engine; "start a new chat" would be wrong

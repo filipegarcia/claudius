@@ -44,6 +44,58 @@ export type LiveStatus = {
   source?: string;
 };
 
+/** CC 2.1.330 — labels for servers that don't come from a file Claudius edits. */
+export const MCP_OTHER_SCOPE_LABELS: Record<string, string> = {
+  claudeai: "claude.ai",
+  dynamic: "Dynamic",
+  managed: "Managed",
+  enterprise: "Enterprise",
+  sdk: "SDK",
+  agent: "Agent",
+};
+
+/**
+ * CC 2.1.330 — "Fixed `claude mcp remove` giving no way forward for a
+ * claude.ai connector: it now says to turn it off in /mcp or remove it on
+ * claude.ai". Claudius can only remove a server from a file it edits (one in
+ * `configured`); for any other row, say where it's managed instead of
+ * offering a Remove that silently does nothing. The claude.ai text adapts the
+ * engine's own `claude mcp remove` message ("…are claude.ai connectors, which
+ * Claude Code can't remove. To stop using one here, turn it off in /mcp. To
+ * remove it from your account, go to …"), with "turn it off in /mcp" read as
+ * this row's Disable button.
+ */
+export function mcpRemoveHint(name: string, scope: string): { label: string; title: string; href?: string } {
+  if (scope === "claudeai" || name.startsWith("claude.ai ")) {
+    return {
+      label: "Remove on claude.ai",
+      title:
+        "A claude.ai connector, which Claude Code can't remove. To stop using it here, Disable it. To remove it from your account, go to claude.ai/customize/connectors.",
+      href: "https://claude.ai/customize/connectors",
+    };
+  }
+  if (name.startsWith("plugin:")) {
+    const plugin = name.split(":")[1] || "a plugin";
+    return {
+      label: "Manage in Plugins",
+      title: `From the plugin ${plugin} — disable or uninstall the plugin to remove it.`,
+      href: "/plugins",
+    };
+  }
+  if (scope === "user" || scope === "project" || scope === "local") {
+    // e.g. a `claude mcp add` server kept in ~/.claude.json, which
+    // `listConfigured` doesn't read.
+    return {
+      label: "Not removable here",
+      title: `Not in a config file Claudius edits. Remove it from a terminal with: claude mcp remove "${name}" -s ${scope}`,
+    };
+  }
+  return {
+    label: "Not removable here",
+    title: `Comes from ${MCP_OTHER_SCOPE_LABELS[scope] ?? scope} configuration, not a file Claudius edits.`,
+  };
+}
+
 /**
  * Load configured MCP servers and (optionally) their live connection status
  * for `sessionId`. Pattern matches `useCost` (refetchTrigger +
@@ -126,13 +178,23 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     [cwd, refresh],
   );
 
+  /** Resolves to `null` on success, or the error text to show (CC 2.1.330:
+   * a Remove that didn't happen used to fail silently). */
   const remove = useCallback(
-    async (scope: McpScope, name: string) => {
-      const params = new URLSearchParams({ scope });
-      if (cwd) params.set("cwd", cwd);
-      const res = await fetch(`/api/mcp/${encodeURIComponent(name)}?${params}`, { method: "DELETE" });
-      if (res.ok) refresh();
-      return res.ok;
+    async (scope: McpScope, name: string): Promise<string | null> => {
+      try {
+        const params = new URLSearchParams({ scope });
+        if (cwd) params.set("cwd", cwd);
+        const res = await fetch(`/api/mcp/${encodeURIComponent(name)}?${params}`, { method: "DELETE" });
+        if (res.ok) {
+          refresh();
+          return null;
+        }
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        return typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`;
+      } catch (err) {
+        return err instanceof Error ? err.message : String(err);
+      }
     },
     [cwd, refresh],
   );
