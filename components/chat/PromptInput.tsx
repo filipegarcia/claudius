@@ -53,7 +53,7 @@ import {
   sendFailedNotice as sendFailedCopy,
   sendOutcome,
 } from "@/lib/client/send-outcome";
-import { historyEntryIndex } from "@/lib/shared/prompt-history";
+import { historyEntryIndex, isHistoryRecallKey } from "@/lib/shared/prompt-history";
 import {
   applyEditToRanges,
   diffEdit,
@@ -1471,7 +1471,13 @@ export function PromptInput({
     // pickers ignore Arrow keys while meta/ctrl is held (see
     // SlashCommandPicker / AtMentionPicker), so there's no conflict.
     if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      if (recallHistory(e.key === "ArrowUp" ? -1 : 1)) e.preventDefault();
+      // CC 2.1.331 — "Fixed the arrow keys replacing typed text with an old
+      // prompt while selecting": ⌘⇧↑/↓ (Ctrl+Shift elsewhere) selects to the
+      // top or bottom, and a selection in progress keeps its keys. Only a
+      // plain Cmd/Ctrl+↑/↓ walks history.
+      const ta = e.currentTarget;
+      const selecting = ta.selectionStart !== ta.selectionEnd;
+      if (isHistoryRecallKey(e, selecting) && recallHistory(e.key === "ArrowUp" ? -1 : 1)) e.preventDefault();
       return;
     }
 

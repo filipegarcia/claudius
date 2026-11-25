@@ -84,3 +84,21 @@ export function historyEntryIndex(history: readonly string[], draft: string): nu
   if (history[last] === normalizeHistoryText(draft) && last > 0) return last - 1;
   return last;
 }
+
+/**
+ * CC 2.1.331 parity — "[VSCode] Fixed the arrow keys replacing typed text with
+ * an old prompt while selecting".
+ *
+ * Whether a Cmd/Ctrl+↑/↓ keydown walks prompt history. On macOS ⌘⇧↑/↓ is the
+ * standard "select to the start / end" key (Ctrl+Shift+↑/↓ selects elsewhere),
+ * but the composer swapped the typed draft for an old prompt instead. With
+ * Shift held, or a selection already in progress, the browser keeps the key.
+ */
+export function isHistoryRecallKey(
+  e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
+  selecting: boolean,
+): boolean {
+  if (!(e.metaKey || e.ctrlKey)) return false;
+  if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return false;
+  return !e.shiftKey && !selecting;
+}
