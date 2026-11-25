@@ -16,7 +16,7 @@ import {
   type PromptAuditStaleCommand,
   type PromptAuditContradiction,
 } from "@/lib/server/prompt-audit";
-import { configFileChecks, listConfigFileProblems } from "@/lib/server/config-file-problems";
+import { configFileChecks, listConfigFileProblems, telemetryEnv } from "@/lib/server/config-file-problems";
 
 const execFileP = promisify(execFile);
 
@@ -335,7 +335,8 @@ async function configFilesChecks(): Promise<Check[]> {
   } catch {
     workspaces = [];
   }
-  return configFileChecks(await listConfigFileProblems(workspaces));
+  // CC 2.1.328 — plus the OpenTelemetry no-endpoint notice.
+  return configFileChecks(await listConfigFileProblems(workspaces, { env: await telemetryEnv() }));
 }
 
 async function exists(path: string): Promise<boolean> {

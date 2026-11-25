@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getWorkspace, listWorkspaces } from "@/lib/server/workspaces-store";
-import { configFileChecks, listConfigFileProblems } from "@/lib/server/config-file-problems";
+import { configFileChecks, listConfigFileProblems, telemetryEnv } from "@/lib/server/config-file-problems";
 
 export const runtime = "nodejs";
 
@@ -29,6 +29,7 @@ export async function GET(req: Request) {
   } catch {
     // best-effort — still report the user scope and keybindings.json.
   }
-  const problems = await listConfigFileProblems(workspaces);
+  // CC 2.1.328 — plus the OpenTelemetry no-endpoint notice.
+  const problems = await listConfigFileProblems(workspaces, { env: await telemetryEnv() });
   return NextResponse.json({ problems, checks: configFileChecks(problems) });
 }

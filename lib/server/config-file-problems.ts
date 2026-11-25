@@ -1,6 +1,8 @@
 import { frontmatterError, listAgents } from "./agents";
 import { listSkills } from "./skills";
 import { keybindingsPath, readKeybindings } from "./keybindings";
+import { readSettings } from "./settings";
+import { otelEndpointNotices } from "@/lib/shared/telemetry-env";
 
 /**
  * CC 2.1.327 parity — "Added a list in /status of broken agent, skill,
@@ -14,18 +16,23 @@ import { keybindingsPath, readKeybindings } from "./keybindings";
  * checked. Sandbox availability, hook matchers and ignored permission
  * settings are engine knowledge Claudius can't compute.
  *
+ * CC 2.1.328 adds the engine's OpenTelemetry no-endpoint notice
+ * (`kind: "telemetry"`, see `otelEndpointNotices`), so /status counts it
+ * and /doctor lists it in the same section.
+ *
  * Shared by `GET /api/doctor` (the "Config files" section) and the light
  * `GET /api/doctor/files` the /status overlay polls, so the two never
  * disagree about what counts as a problem.
  */
 
-export type ConfigFileKind = "agent" | "skill" | "keybindings";
+export type ConfigFileKind = "agent" | "skill" | "keybindings" | "telemetry";
 
 export type ConfigFileProblem = {
   kind: ConfigFileKind;
   scope: "user" | "project";
-  /** Agent/skill name, or "keybindings.json". */
+  /** Agent/skill name, "keybindings.json", or "OpenTelemetry". */
   name: string;
+  /** The file, or for `telemetry` the dedupe key `env:OpenTelemetry`. */
   path: string;
   reason: string;
   /** Set for project-scope files: the workspace whose `.claude/` holds it. */
@@ -72,12 +79,42 @@ export async function keybindingsProblem(): Promise<ConfigFileProblem | null> {
 }
 
 /**
+ * CC 2.1.328 — the env the engine checks its OpenTelemetry exporters
+ * against: Claudius's process env (what `buildQueryEnv` forwards) with the
+ * user-scope `settings.env` applied on top, as the engine applies it.
+ * Project and local scopes are left out — the engine ignores OTEL keys there
+ * (the 2.1.282 doctor check flags them). Best-effort: an unreadable
+ * settings file leaves just the process env.
+ */
+export async function telemetryEnv(): Promise<Record<string, string | undefined>> {
+  let userEnv: Record<string, string> = {};
+  try {
+    const env = (await readSettings("user", "")).env;
+    if (env && typeof env === "object") userEnv = env as Record<string, string>;
+  } catch {
+    // fall through with the process env alone
+  }
+  return { ...process.env, ...userEnv };
+}
+
+/**
  * Every problem across the user scope, keybindings.json, and the project
  * scope of each given workspace. Deduped by path — a workspace rooted at
  * `$HOME` has the same `.claude/agents` as the user scope.
+ *
+ * `opts.env` (from {@link telemetryEnv}) adds the OpenTelemetry notice; it's
+ * injected rather than read here so a caller's tests don't see the real env.
  */
-export async function listConfigFileProblems(workspaces: ConfigFileWorkspace[]): Promise<ConfigFileProblem[]> {
+export async function listConfigFileProblems(
+  workspaces: ConfigFileWorkspace[],
+  opts: { env?: Record<string, string | undefined> } = {},
+): Promise<ConfigFileProblem[]> {
   const all: ConfigFileProblem[] = [];
+  if (opts.env) {
+    for (const reason of otelEndpointNotices(opts.env)) {
+      all.push({ kind: "telemetry", scope: "user", name: "OpenTelemetry", path: "env:OpenTelemetry", reason });
+    }
+  }
   // User-scope dirs ignore the cwd argument.
   all.push(...(await scopeFileProblems("user", "")));
   const kb = await keybindingsProblem();
@@ -100,6 +137,7 @@ export type ConfigFileCheck = {
 
 function problemLink(p: ConfigFileProblem): { href: string; label: string } {
   if (p.kind === "keybindings") return { href: "/keybindings", label: "Open Keybindings" };
+  if (p.kind === "telemetry") return { href: "/settings", label: "Open Settings → Environment" };
   const page = p.kind === "agent" ? "agents" : "skills";
   const label = p.kind === "agent" ? "Open Agents" : "Open Skills";
   return { href: p.workspace ? `/${p.workspace.id}/${page}` : `/${page}`, label };
@@ -112,6 +150,17 @@ function problemLink(p: ConfigFileProblem): { href: string; label: string } {
  */
 export function configFileChecks(problems: ConfigFileProblem[]): ConfigFileCheck[] {
   const checks: ConfigFileCheck[] = problems.map((p) => {
+    if (p.kind === "telemetry") {
+      // CC 2.1.328 — the engine's notice, verbatim.
+      return {
+        id: "config-file:telemetry",
+        label: "OpenTelemetry exporter has no endpoint",
+        status: "warn",
+        detail: p.reason,
+        link: problemLink(p),
+        category: "config-files",
+      };
+    }
     const where = p.workspace ? p.workspace.name : "user";
     const what = p.kind === "agent" ? "Broken agent" : p.kind === "skill" ? "Broken skill" : "Broken keybindings.json";
     return {
@@ -123,7 +172,7 @@ export function configFileChecks(problems: ConfigFileProblem[]): ConfigFileCheck
       category: "config-files",
     };
   });
-  if (!problems.some((p) => p.kind !== "keybindings")) {
+  if (!problems.some((p) => p.kind === "agent" || p.kind === "skill")) {
     checks.push({
       id: "config-file:agents-skills",
       label: "Agent and skill files",

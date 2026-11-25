@@ -36,16 +36,25 @@ type Props = {
  * files, keybinding errors". Counts what `GET /api/doctor/files` reports
  * across every workspace — the same set /doctor's Config files section
  * lists, so the count always matches what "Open /doctor" shows.
+ *
+ * CC 2.1.328 — "Added a notice in /status … when an OpenTelemetry exporter
+ * has no endpoint and its data would likely be lost". That notice comes
+ * back as a `telemetry` problem; its text is shown under the count, as the
+ * engine's /status shows it.
  */
-function useConfigFileProblemCount(): number | null {
-  const [count, setCount] = useState<number | null>(null);
+function useConfigFileProblemCount(): { count: number; notices: string[] } | null {
+  const [count, setCount] = useState<{ count: number; notices: string[] } | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/doctor/files", { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { problems?: unknown[] };
-        setCount(Array.isArray(data.problems) ? data.problems.length : 0);
+        const data = (await res.json()) as { problems?: Array<{ kind?: unknown; reason?: unknown }> };
+        const problems = Array.isArray(data.problems) ? data.problems : [];
+        const notices = problems.flatMap((p) =>
+          p && p.kind === "telemetry" && typeof p.reason === "string" ? [p.reason] : [],
+        );
+        setCount({ count: problems.length, notices });
       })
       .catch(() => {
         // Leave the row out rather than guess — /doctor still has the list.
@@ -85,7 +94,8 @@ export function StatusOverlay({
   account,
   onClose,
 }: Props) {
-  const problemCount = useConfigFileProblemCount();
+  const problems = useConfigFileProblemCount();
+  const problemCount = problems?.count ?? null;
   return (
     <Overlay title="Session status" subtitle="/status" onClose={onClose} width={520}>
       <dl className="divide-y divide-[var(--border)] text-sm">
@@ -132,6 +142,11 @@ export function StatusOverlay({
                   >
                     Open /doctor
                   </Link>
+                  {problems?.notices.map((n) => (
+                    <span key={n} data-testid="status-notice" className="mt-1 block text-[var(--muted)]">
+                      {n}
+                    </span>
+                  ))}
                 </span>
               ) : (
                 <span data-testid="status-problems" className="text-[var(--muted)]">
