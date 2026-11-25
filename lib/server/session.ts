@@ -98,7 +98,7 @@ import {
   type TaskResourceLink,
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
-import { hookAsk } from "@/lib/shared/hook-ask";
+import { hookAsk, safetyAskReason } from "@/lib/shared/hook-ask";
 import { interpretFeedbackResponse } from "@/lib/shared/feedback-refusal";
 import { isMissingTranscriptError, RENAME_MAY_NOT_LAST_WARNING } from "@/lib/shared/rename-warning";
 import { hasLiveBackgroundAgent } from "./background-agent-keepalive";
@@ -4104,6 +4104,11 @@ export class Session {
         // not declared in the SDK's `.d.ts`, hence the cast. Kept in `meta`,
         // so the reconnect re-emit and /pending-prompts carry it too.
         hookAsk: hookAsk(
+          ctx.decisionReason,
+          (ctx as { decisionReasonType?: unknown }).decisionReasonType,
+        ),
+        // CC 2.1.329 — "… not showing why a safety check asks".
+        safetyReason: safetyAskReason(
           ctx.decisionReason,
           (ctx as { decisionReasonType?: unknown }).decisionReasonType,
         ),

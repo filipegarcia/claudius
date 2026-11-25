@@ -64,6 +64,14 @@ export type PermissionRequestEvent = {
    */
   hookAsk?: HookAsk;
   /**
+   * CC 2.1.329 — why one of the engine's safety checks asks (`canUseTool`'s
+   * `decisionReason` when `decisionReasonType` is `"safetyCheck"`, or
+   * `"subcommandResults"` for a compound Bash command), ANSI-stripped and
+   * length-capped by `safetyAskReason`. Display only. Absent for every other
+   * kind of ask.
+   */
+  safetyReason?: string;
+  /**
    * CC 2.1.310 — the file this Read/Edit/Write/NotebookEdit ask is about is a
    * symbolic link; `target` is where it leads (resolved server-side by
    * `resolvePermissionSymlink`; the SDK doesn't forward the engine's own

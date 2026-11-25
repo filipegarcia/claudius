@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Lightbulb, Link2, Shield, Webhook } from "lucide-react";
+import { ChevronDown, ChevronRight, Lightbulb, Link2, Shield, ShieldAlert, Webhook } from "lucide-react";
 import type { PermissionDecision, PermissionRequestEvent } from "@/lib/shared/events";
 import { visualizeHiddenNameUnicode, visualizeInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import { cn } from "@/lib/utils/cn";
@@ -60,6 +60,16 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // text, so it gets the same invisible-character treatment.
   const hookAsk = request.hookAsk;
   const hookReasonVis = hookAsk?.reason ? visualizeInvisibleUnicode(hookAsk.reason) : null;
+  // CC 2.1.329 — "Fixed the permission prompt for Bash, Edit, Write and other
+  // built-in tools not showing why a safety check asks". The engine's warning
+  // (a sensitive path, an unparseable or compound command) rides
+  // `safetyReason`. It quotes model-chosen paths and commands, so it gets the
+  // invisible-character treatment; skipped when it only repeats the subtitle.
+  const safetyReason =
+    request.safetyReason && request.safetyReason.trim() !== request.description?.trim()
+      ? request.safetyReason
+      : undefined;
+  const safetyReasonVis = safetyReason ? visualizeInvisibleUnicode(safetyReason) : null;
   // CC 2.1.310 — the file this ask is about is a symlink; say where it leads
   // (resolved server-side, see `resolvePermissionSymlink`). The target is a
   // filesystem name the model chose, so it gets the invisible-character
@@ -98,7 +108,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // title, the description, the tool input, or a hook's reason (CC 2.1.301).
   const hiddenCharCount =
     summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount + (hookReasonVis?.count ?? 0) +
-    (symlinkTargetVis?.count ?? 0) + (mcpNameVis?.count ?? 0);
+    (safetyReasonVis?.count ?? 0) + (symlinkTargetVis?.count ?? 0) + (mcpNameVis?.count ?? 0);
   const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -223,6 +233,18 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
                   <span className="min-w-0 break-words">
                     <span className="font-medium">Asked by a hook{hookReasonVis ? ":" : ""}</span>
                     {hookReasonVis && <>{" "}{hookReasonVis.visualized}</>}
+                  </span>
+                </div>
+              )}
+              {safetyReasonVis && (
+                <div
+                  data-testid="permission-safety-reason"
+                  title="One of Claude Code's safety checks flagged this call, so it is asking you"
+                  className="mt-1.5 flex items-start gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-200"
+                >
+                  <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />
+                  <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">
+                    <span className="font-medium">Why Claude Code is asking:</span> {safetyReasonVis.visualized}
                   </span>
                 </div>
               )}

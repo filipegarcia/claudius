@@ -46,3 +46,25 @@ export function hookAsk(decisionReason: unknown, decisionReasonType: unknown): H
     reason: clean.length > HOOK_ASK_REASON_MAX ? `${clean.slice(0, HOOK_ASK_REASON_MAX - 1)}…` : clean,
   };
 }
+
+/**
+ * The engine's explanation for a safety-check ask, cleaned for display, else
+ * `undefined`.
+ *
+ * CC 2.1.329 — "[VSCode] Fixed the permission prompt for Bash, Edit, Write
+ * and other built-in tools not showing why a safety check asks". When one of
+ * the engine's safety checks escalates a call (a sensitive path, a command
+ * it can't parse, a dangerous `rm`), `canUseTool` gets the check's warning as
+ * `decisionReason`, tagged `decisionReasonType: "safetyCheck"`. For a compound
+ * Bash command the tag is `"subcommandResults"` and the text is the nested
+ * check's warning (the SDK types say to treat it like a `safetyCheck`
+ * reason). Claudius dropped it, so the card never said why it was asking.
+ * Same cleaning as a hook's reason: ANSI stripped, length capped. Display
+ * only — it never feeds a permission decision.
+ */
+export function safetyAskReason(decisionReason: unknown, decisionReasonType: unknown): string | undefined {
+  if (decisionReasonType !== "safetyCheck" && decisionReasonType !== "subcommandResults") return undefined;
+  const clean = typeof decisionReason === "string" ? stripAnsi(decisionReason).trim() : "";
+  if (!clean) return undefined;
+  return clean.length > HOOK_ASK_REASON_MAX ? `${clean.slice(0, HOOK_ASK_REASON_MAX - 1)}…` : clean;
+}
