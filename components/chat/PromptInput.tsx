@@ -24,6 +24,7 @@ import { useSdkCommands } from "@/lib/client/useSdkCommands";
 import { commandNeedsSudo, sendBash } from "@/lib/client/sendBash";
 import { readBridgeOnClient } from "@/lib/client/useElectron";
 import { resolveDroppedPath } from "@/lib/client/file-paths";
+import { bashModeFileInsert } from "@/lib/shared/bash-mode-paths";
 import type { AttachedImage, SendResult } from "@/lib/client/types";
 import {
   BULLET_GLYPH,
@@ -1678,6 +1679,32 @@ export function PromptInput({
     // In a regular browser tab the bridge is `null` and we fall back to the
     // basename, which is the most we can recover from the HTML5 File API.
     const bridge = readBridgeOnClient();
+    // CC 2.1.328 — "Fixed an image path pasted into a `!` command becoming an
+    // attachment". In `!` mode every file, image or not, goes into the command
+    // as its shell-quoted path at the caret: no attachment (the bash route
+    // never sends one, so the image was dropped and `[Image #N]` ran as text)
+    // and no `@` (the shell would see it).
+    if (value.startsWith("!")) {
+      const insert = bashModeFileInsert(
+        files.map((f) => resolveDroppedPath(bridge?.files?.getPath(f) || null, f.name, cwd)),
+      );
+      if (!insert) return;
+      const el = taRef.current;
+      const caret = el?.selectionStart ?? value.length;
+      const before = value.slice(0, caret);
+      const after = value.slice(caret);
+      const lead = before && !/\s$/.test(before) ? " " : "";
+      const trail = after && /^\s/.test(after) ? "" : " ";
+      const next = before + lead + insert + trail + after;
+      const pos = before.length + lead.length + insert.length + trail.length;
+      setValue(next);
+      requestAnimationFrame(() => {
+        el?.focus();
+        el?.setSelectionRange(pos, pos);
+        autosize();
+      });
+      return;
+    }
     const droppedPaths: string[] = [];
     type Pending = { data: string; mediaType: string };
     const newImageBlobs: Pending[] = [];
@@ -1970,7 +1997,10 @@ export function PromptInput({
         : null}
       <div className="relative mx-auto max-w-[var(--chat-col)]">
         {images.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2">
+          <div
+            data-testid={`${testIdPrefix}-attachments`}
+            className="mb-2 flex flex-wrap gap-2 rounded-md border border-[var(--border)] bg-[var(--panel-2)]/40 p-2"
+          >
             {images.map((img, i) => (
               <div key={i} className="relative">
                 <button
