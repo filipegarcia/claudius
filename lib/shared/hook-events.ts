@@ -173,8 +173,8 @@ export function hookEventGetsDurablePill(event: string, failed: boolean): boolea
  * CC 2.1.295 parity — `onFailure: "block"` on `command` and `http` hooks makes
  * the hook fail-closed: if it can't start, times out, or exits with an
  * unexpected code, the engine BLOCKS the action instead of letting it through.
- * Absent (the default) keeps the historical fail-open behaviour. Only these two
- * handler types accept it.
+ * Absent (the default) keeps the historical fail-open behaviour. CC 2.1.328
+ * adds it to `mcp_tool` hooks too (see {@link handlerSupportsOnFailure}).
  */
 export type HookOnFailure = "block";
 
@@ -186,7 +186,21 @@ export type HookHandler =
   // default), not a named subagent: `{type:"agent", prompt, model?}` per the
   // engine schema (sdk.d.ts). See `isLegacyAgentHook` for the old shape.
   | { type: "agent"; prompt: string; model?: string; timeout?: number; once?: boolean; if?: string }
-  | { type: "mcp_tool"; tool: string; arguments?: Record<string, unknown>; once?: boolean; if?: string };
+  // CC 2.1.328 — the engine schema (sdk.d.ts) is `{type:"mcp_tool", server,
+  // tool, input?}`: `server` names an already-configured MCP server and `tool`
+  // is the tool's own name on it. See `isLegacyMcpToolHook` for the shape
+  // earlier Claudius builds saved.
+  | {
+      type: "mcp_tool";
+      server: string;
+      tool: string;
+      input?: Record<string, unknown>;
+      timeout?: number;
+      statusMessage?: string;
+      once?: boolean;
+      if?: string;
+      onFailure?: HookOnFailure;
+    };
 
 /**
  * CC 2.1.280 — the engine refuses to RUN an `agent`-type hook on these events
@@ -229,6 +243,20 @@ export function legacyAgentHookName(h: unknown): string | null {
   return typeof name === "string" && name.trim() ? name : null;
 }
 
+/**
+ * CC 2.1.328 — earlier Claudius builds saved `mcp_tool` hooks as
+ * `{type:"mcp_tool", tool:"mcp__server__tool", arguments}`. The engine schema
+ * requires `server` (so such an entry never loads) and reads arguments from
+ * `input` (so `arguments` is dropped). The editor flags these so the user can
+ * re-create them. Takes `unknown` because the legacy shape is outside
+ * `HookHandler`.
+ */
+export function isLegacyMcpToolHook(h: unknown): boolean {
+  if (!h || typeof h !== "object") return false;
+  const o = h as { type?: unknown; server?: unknown };
+  return o.type === "mcp_tool" && (typeof o.server !== "string" || "arguments" in o);
+}
+
 /** Whether an `agent`-type hook handler may be attached to `event`. */
 export function agentHandlerAllowed(event: HookEvent): boolean {
   return !AGENT_HANDLER_DISALLOWED_EVENTS.includes(event);
@@ -246,9 +274,14 @@ export function handlerTypeAllowed(type: HandlerType, event: HookEvent): boolean
   return true;
 }
 
-/** CC 2.1.295 parity — handler types that accept `onFailure: "block"`. */
-export function handlerSupportsOnFailure(type: HandlerType): type is "command" | "http" {
-  return type === "command" || type === "http";
+/**
+ * CC 2.1.295 parity — handler types that accept `onFailure: "block"`. CC 2.1.328
+ * — "Added `"onFailure": "block"` for `mcp_tool` hooks, as for command and HTTP
+ * hooks": the action is blocked while the call fails (server not connected or
+ * not signed in, timeout, error, invalid JSON).
+ */
+export function handlerSupportsOnFailure(type: HandlerType): type is "command" | "http" | "mcp_tool" {
+  return type === "command" || type === "http" || type === "mcp_tool";
 }
 
 /** Whether a saved handler is configured fail-closed (`onFailure: "block"`). */
@@ -270,6 +303,22 @@ export const ON_FAILURE_IGNORED_EVENTS: readonly HookEvent[] = [
   "TeammateIdle",
 ];
 
+/**
+ * CC 2.1.328 — an `mcp_tool` hook's `onFailure` has a wider ignored set than
+ * command/http: the SDK JSDoc reads "Ignored on Setup, SessionStart, Stop,
+ * SubagentStop, TaskCompleted and TeammateIdle".
+ */
+export const MCP_TOOL_ON_FAILURE_IGNORED_EVENTS: readonly HookEvent[] = [
+  "Setup",
+  "SessionStart",
+  ...ON_FAILURE_IGNORED_EVENTS,
+];
+
+/** The events on which the engine ignores `onFailure: "block"` for `type`. */
+export function onFailureIgnoredEvents(type: HandlerType): readonly HookEvent[] {
+  return type === "mcp_tool" ? MCP_TOOL_ON_FAILURE_IGNORED_EVENTS : ON_FAILURE_IGNORED_EVENTS;
+}
+
 /** Why a saved/drafted `onFailure: "block"` has no effect. */
 export type OnFailureIgnoredReason = "async" | "asyncRewake" | "event";
 
@@ -280,7 +329,9 @@ export type OnFailureIgnoredReason = "async" | "asyncRewake" | "event";
  * - a background **command** hook (`async` / `asyncRewake`): the action has
  *   already proceeded by the time the hook fails. The engine only applies this
  *   to `command` handlers — an `http` handler's block holds regardless.
- * - an event in {@link ON_FAILURE_IGNORED_EVENTS}.
+ * - an event in {@link onFailureIgnoredEvents} for the handler type (an
+ *   `mcp_tool` hook has no `async`, and also ignores it on Setup and
+ *   SessionStart — CC 2.1.328).
  * The editor shows a hint for these combos but still lets them save (the engine
  * ignores the key rather than rejecting the hook).
  */
@@ -296,7 +347,7 @@ export function onFailureBlockIgnoredReason(opts: {
     if (opts.async) return "async";
     if (opts.asyncRewake) return "asyncRewake";
   }
-  if (opts.event && ON_FAILURE_IGNORED_EVENTS.includes(opts.event)) return "event";
+  if (opts.event && onFailureIgnoredEvents(opts.type).includes(opts.event)) return "event";
   return null;
 }
 
