@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   describeVoiceSelfStop,
   parseVoiceCloseFrame,
+  VOICE_HIDDEN_STOP_MS,
   type VoiceSelfStop,
 } from "@/lib/shared/voice-stop-notice";
 
@@ -58,9 +59,10 @@ export interface UseVoiceResult {
    * `{ discardTranscript: true }` when the composer has just sent the
    * dictated text (CC 2.1.311 [VSCode] "sending now stops dictation first"):
    * the final transcript that follows would otherwise be written back into
-   * the composer the send just cleared.
+   * the composer the send just cleared. CC 2.1.332 — pass `notice` to say
+   * why dictation stopped (e.g. `{ kind: "edited" }` when the user typed).
    */
-  stop: (opts?: { discardTranscript?: boolean }) => void;
+  stop: (opts?: { discardTranscript?: boolean; notice?: VoiceSelfStop }) => void;
 }
 
 // Feature-detect on every render — `navigator` is undefined during SSR
@@ -380,6 +382,18 @@ export function useVoice(
           return;
         }
         stateRef.current.mediaStream = stream;
+        // CC 2.1.332 — "stop, and say why, when the microphone stops sending
+        // audio". A track ends on its own when the device is unplugged, the
+        // permission is revoked or another program takes the mic (our own
+        // `track.stop()` doesn't fire `ended`). Without this the mic stayed
+        // red until the server's 30-second idle reaper closed the stream.
+        for (const track of stream.getAudioTracks()) {
+          track.addEventListener("ended", () => {
+            if (stateRef.current.sessionId !== sessionId) return;
+            void fetch(`/api/voice/close?id=${sessionId}`, { method: "POST" }).catch(() => {});
+            endOnItsOwn({ kind: "mic-ended" });
+          });
+        }
 
         const Ctx =
           window.AudioContext ??
@@ -451,10 +465,11 @@ export function useVoice(
     })();
   }, [cleanup, endOnItsOwn, flushUpload]);
 
-  const stop = useCallback((opts?: { discardTranscript?: boolean }) => {
+  const stop = useCallback((opts?: { discardTranscript?: boolean; notice?: VoiceSelfStop }) => {
     const sid = stateRef.current.sessionId;
     if (!sid) return;
     stateRef.current.userStopped = true;
+    if (opts?.notice) setNotice(describeVoiceSelfStop(opts.notice));
     if (opts?.discardTranscript) {
       // The dictated text already left with a send: nothing that arrives
       // from here on is wanted, so there's no final transcript to wait for.
@@ -490,6 +505,36 @@ export function useVoice(
       // own close and `cleanup()` will run.
     });
   }, [cleanup, flushUpload]);
+
+  // CC 2.1.332 — "[VSCode] … stop, and say why, when … the panel stays
+  // hidden". Dictating into a page the user can't see (background tab,
+  // minimized or covered window) stops after VOICE_HIDDEN_STOP_MS; coming back
+  // sooner cancels it.
+  useEffect(() => {
+    if (!listening || typeof document === "undefined") return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onVisibility = () => {
+      if (document.visibilityState !== "hidden") {
+        if (timer != null) clearTimeout(timer);
+        timer = null;
+        return;
+      }
+      if (timer != null) return;
+      timer = setTimeout(() => {
+        timer = null;
+        const sid = stateRef.current.sessionId;
+        if (!sid) return;
+        void fetch(`/api/voice/close?id=${sid}`, { method: "POST" }).catch(() => {});
+        endOnItsOwn({ kind: "hidden" });
+      }, VOICE_HIDDEN_STOP_MS);
+    };
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (timer != null) clearTimeout(timer);
+    };
+  }, [listening, endOnItsOwn]);
 
   // Belt-and-braces cleanup if the component unmounts mid-recording.
   // Without this an unmount during dictation leaks the AudioContext

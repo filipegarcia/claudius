@@ -215,12 +215,12 @@ test("a send that bounces keeps dictating", async ({ page }) => {
   await mockVoice(page);
   await page.goto("/");
 
-  const { composer, mic } = await startDictating(page, "hello");
   // A bidi control makes the composer put the cleaned text back for review
   // instead of sending — dictation should carry on. (CC 2.1.316: a plain
   // prompt with only a zero-width space now sends cleaned, so the hold is
-  // driven by a bidi override instead.)
-  await composer.fill("hel\u{202E}lo");
+  // driven by a bidi override instead.) It arrives in the dictated text:
+  // typing it would be an edit, which stops dictation (CC 2.1.332).
+  const { composer, mic } = await startDictating(page, "hel\u{202E}lo");
   await page.getByTestId("prompt-send").click();
   await expect(composer).toHaveValue("hello");
   expect(backend.inputs).toEqual([]);

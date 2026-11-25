@@ -17,10 +17,31 @@
  * pure, with no DOM or React, so the vitest suite can pin the copy.
  */
 
-/** What ended the dictation session, as seen by the client. */
+/**
+ * What ended the dictation session, as seen by the client.
+ *
+ * CC 2.1.332 parity — "Changed tap-mode voice dictation to … stop and say why
+ * when you edit it, a panel covers it, or the connection or a separate
+ * recorder program is lost" and "[VSCode] Changed voice dictation to stop, and
+ * say why, when the microphone stops sending audio or the panel stays
+ * hidden". Three more stops, each with its own sentence:
+ * - `edited`: the user typed in the composer while dictating. The next
+ *   transcript used to overwrite the edit (`baseRef + text`).
+ * - `mic-ended`: the microphone track ended (device unplugged, permission
+ *   revoked, another program took it). The mic used to stay red until the
+ *   server's 30-second idle reaper closed the stream.
+ * - `hidden`: Claudius stayed hidden (tab in the background, window
+ *   minimized or covered) for {@link VOICE_HIDDEN_STOP_MS}.
+ */
 export type VoiceSelfStop =
   | { kind: "close"; code?: number | null; reason?: string | null }
-  | { kind: "gone" };
+  | { kind: "gone" }
+  | { kind: "edited" }
+  | { kind: "mic-ended" }
+  | { kind: "hidden" };
+
+/** CC 2.1.332 — how long Claudius may stay hidden before dictation stops. */
+export const VOICE_HIDDEN_STOP_MS = 30_000;
 
 /** Shared tail, so every variant says the draft survived. */
 export const VOICE_TEXT_KEPT = "The text so far is kept.";
@@ -47,6 +68,15 @@ function cleanReason(reason: string | null | undefined): string | null {
 export function describeVoiceSelfStop(stop: VoiceSelfStop): string {
   if (stop.kind === "gone") {
     return `Dictation stopped — the transcription session ended. ${VOICE_TEXT_KEPT}`;
+  }
+  if (stop.kind === "edited") {
+    return `Dictation stopped because you edited the message. ${VOICE_TEXT_KEPT}`;
+  }
+  if (stop.kind === "mic-ended") {
+    return `Dictation stopped — the microphone stopped sending audio. ${VOICE_TEXT_KEPT}`;
+  }
+  if (stop.kind === "hidden") {
+    return `Dictation stopped — Claudius was hidden for ${VOICE_HIDDEN_STOP_MS / 1000} seconds. ${VOICE_TEXT_KEPT}`;
   }
   const reason = cleanReason(stop.reason);
   if (reason === VOICE_IDLE_TIMEOUT_REASON) {

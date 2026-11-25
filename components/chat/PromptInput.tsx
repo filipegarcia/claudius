@@ -2176,6 +2176,12 @@ export function PromptInput({
               userTypedRef.current = true;
               // The user is acting on the restored message — the hint did its job.
               if (sendFailed) setSendFailed(null);
+              // CC 2.1.332 — "stop and say why when you edit it". Each
+              // transcript rewrote the box as `baseRef + text`, so a word typed
+              // or deleted while dictating was lost on the next one. An edit
+              // now stops dictation, drops the transcript still in flight, and
+              // keeps the text as it is (the footer notice says so).
+              if (voice.listening) voice.stop({ discardTranscript: true, notice: { kind: "edited" } });
               // CC 2.1.332 — editing a recalled prompt no longer exits history
               // browsing: re-stashing the edit on the next Cmd/Ctrl+↑ lost the
               // unsent draft, and Cmd/Ctrl+↓ couldn't bring it back. The next
