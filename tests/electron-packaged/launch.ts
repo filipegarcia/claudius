@@ -15,6 +15,7 @@
  * absolute path). Specs `test.skip` themselves when it's unset so a bare
  * `playwright test` with no artifact is a no-op, not a failure.
  */
+import type { ChildProcess } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -189,6 +190,59 @@ export async function fetchHeartbeat(
  */
 const CLOSE_TIMEOUT_MS = 20_000;
 
+/** How long a killed app gets to release its stdio before we cut it loose. */
+const REAP_TIMEOUT_MS = 10_000;
+
+/**
+ * SIGKILL the packaged app's whole process group, not just its main pid.
+ *
+ * Playwright spawns Electron `detached`, so Electron leads its own process
+ * group, and gives it five piped fds. On Linux, fds 3 and 4 leak into the
+ * children the main process spawns, including the embedded `next-server`
+ * (electron/server.ts spawns it without `detached`, so it shares the group).
+ * Killing only the main pid orphaned `next-server`, which kept Playwright's
+ * pipes open. Playwright never saw the process `close` and waited for it in
+ * worker teardown until the 150 s timeout. That failed the Linux AppImage
+ * smoke for v0.3.332.0 and v0.3.332.2, though every test had passed.
+ * `proc.kill()` also sets `proc.killed`, which makes Playwright skip its own
+ * group kill, so it couldn't clean up after us either.
+ */
+function killProcessGroup(proc: ChildProcess): void {
+  if (process.platform !== "win32" && proc.pid) {
+    try {
+      process.kill(-proc.pid, "SIGKILL");
+      return;
+    } catch (err) {
+      // ESRCH: the whole group is already gone. Anything else: kill the pid.
+      if ((err as NodeJS.ErrnoException).code === "ESRCH") return;
+    }
+  }
+  proc.kill("SIGKILL");
+}
+
+/**
+ * Wait for `close` (exit + every stdio pipe at EOF). If a descendant outside
+ * the group still holds a pipe, destroy our ends so `close` fires anyway.
+ * Playwright waits for that event before it lets the worker exit. Node
+ * counts one close per piped fd, so all of `proc.stdio` must go, not just
+ * stdout and stderr.
+ */
+async function waitForClose(proc: ChildProcess): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const closed = await Promise.race([
+    new Promise<true>((resolve) => proc.once("close", () => resolve(true))),
+    new Promise<false>((resolve) => {
+      timer = setTimeout(() => resolve(false), REAP_TIMEOUT_MS);
+    }),
+  ]);
+  clearTimeout(timer);
+  if (closed) return;
+  console.warn(
+    `[electron-packaged] pid ${proc.pid} stdio still open ${REAP_TIMEOUT_MS}ms after SIGKILL — destroying the pipes`,
+  );
+  for (const stream of proc.stdio) stream?.destroy();
+}
+
 export async function teardownPackaged(
   launched: LaunchedPackaged,
 ): Promise<void> {
@@ -209,9 +263,13 @@ export async function teardownPackaged(
   if (!closed && proc.exitCode === null && proc.signalCode === null) {
     // Loud on purpose: a packaged app that won't quit is worth knowing about,
     // but it isn't what these launch smokes assert, so it mustn't fail them.
+    // The log tail is there to show what the app was doing when it wouldn't
+    // quit.
     console.warn(
-      `[electron-packaged] app.close() still pending after ${CLOSE_TIMEOUT_MS}ms — SIGKILLing pid ${proc.pid}`,
+      `[electron-packaged] app.close() still pending after ${CLOSE_TIMEOUT_MS}ms — SIGKILLing process group ${proc.pid}\n` +
+        `--- captured stdio (last 2 KB) ---\n${launched.readLogs().slice(-2048)}`,
     );
-    proc.kill("SIGKILL");
+    killProcessGroup(proc);
+    await waitForClose(proc);
   }
 }
