@@ -48,6 +48,7 @@ import {
   takePendingBashBlocks,
 } from "./pending-bash-output";
 import { dropBashSession, getOrCreateBashSession } from "./bash-mode";
+import { scrubHostEnv } from "./host-env";
 import { validateWorkspaceCwd } from "./workspace-cwd-preflight";
 import { projectConfigRootFor } from "./trusted-cwd";
 import {
@@ -865,7 +866,8 @@ export function buildQueryEnv(
   restrictedMode?: boolean,
 ): Record<string, string | undefined> {
   return {
-    ...(envOverride ?? process.env),
+    // CC 2.1.331: drop the desktop host's ELECTRON_RUN_AS_NODE (see host-env.ts).
+    ...scrubHostEnv(envOverride ?? process.env),
     CLAUDE_CODE_ENABLE_TODO_TOOLS: "1",
     CLAUDE_CODE_STARTUP_FAILURE_RESULTS: "1",
     // CC 2.1.248 — tell the engine itself this is a restricted session, so
