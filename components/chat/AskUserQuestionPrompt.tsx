@@ -456,15 +456,21 @@ export function AskUserQuestionPrompt({
             )}
           >
             <div className="px-5 pb-3 pt-4">
+              {/* CC 2.1.332 — "Fixed … Hebrew and Arabic questions reading out
+                  of order": the model's text takes its direction from its own
+                  first strong character (`dir="auto"`), as Markdown does. */}
               {q.header && (
                 <p
                   data-testid="ask-question-header"
+                  dir="auto"
                   className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]"
                 >
                   {q.header}
                 </p>
               )}
-              <p className="text-sm font-medium leading-snug">{q.question}</p>
+              <p data-testid="ask-question-text" dir="auto" className="text-sm font-medium leading-snug">
+                {q.question}
+              </p>
               {q.multiSelect && (
                 <p
                   className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-300"
@@ -520,9 +526,11 @@ export function AskUserQuestionPrompt({
                         {selected && <Check className="h-3 w-3" />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm">{opt.label}</span>
+                        <span dir="auto" className="block truncate text-start text-sm">
+                          {opt.label}
+                        </span>
                         {opt.description && (
-                          <span className="mt-0.5 block text-[11px] leading-snug text-[var(--muted)]">
+                          <span dir="auto" className="mt-0.5 block text-start text-[11px] leading-snug text-[var(--muted)]">
                             {opt.description}
                           </span>
                         )}
@@ -580,6 +588,7 @@ export function AskUserQuestionPrompt({
                     <textarea
                       ref={otherInlineInputRef}
                       data-testid="ask-other-input-inline"
+                      dir="auto"
                       value={w.custom}
                       onChange={(e) => setCustom(e.target.value)}
                       onKeyDown={(e) => {
@@ -720,6 +729,7 @@ function OtherPane({
       <textarea
         ref={textareaRef}
         data-testid="ask-other-input"
+        dir="auto"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {

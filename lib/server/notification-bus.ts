@@ -675,11 +675,16 @@ export function mapEventToKind(
   payload?: Record<string, unknown>;
   requestId?: string;
 } | null {
+  // CC 2.1.332 — "Fixed a hidden panel's notice not naming the waiting
+  // session". With several tabs open, "Claude needs permission" didn't say
+  // which one was blocked. The blocked-on-you titles now name the session;
+  // the body keeps the request itself, which the inbox peek leads with.
+  const waitingIn = (title: string) => (ctx.sessionTitle ? `${title} — ${ctx.sessionTitle}` : title);
   switch (event.type) {
     case "permission_request":
       return {
         kind: "permission_request",
-        title: "Claude needs permission",
+        title: waitingIn("Claude needs permission"),
         body: event.title ?? event.toolName,
         payload: {
           toolName: event.toolName,
@@ -693,7 +698,9 @@ export function mapEventToKind(
       // default and under the user's existing per-kind preference.
       return {
         kind: "permission_request",
-        title: event.mode === "url" ? `${event.serverName} needs you to sign in` : `${event.serverName} needs your input`,
+        title: waitingIn(
+          event.mode === "url" ? `${event.serverName} needs you to sign in` : `${event.serverName} needs your input`,
+        ),
         body: firstLine(event.message),
         payload: { serverName: event.serverName, mode: event.mode },
         requestId: event.requestId,
@@ -702,7 +709,7 @@ export function mapEventToKind(
       const first = event.questions?.[0];
       return {
         kind: "ask_user_question",
-        title: "Claude is asking a question",
+        title: waitingIn("Claude is asking a question"),
         body: first?.question ?? undefined,
         payload: { toolUseId: event.toolUseId, header: first?.header },
         requestId: event.requestId,
@@ -711,7 +718,7 @@ export function mapEventToKind(
     case "plan_approval_request":
       return {
         kind: "plan_approval_request",
-        title: "Claude has a plan to review",
+        title: waitingIn("Claude has a plan to review"),
         body: firstLine(event.plan),
         payload: { toolUseId: event.toolUseId },
         requestId: event.requestId,
