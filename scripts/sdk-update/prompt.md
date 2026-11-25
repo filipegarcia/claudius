@@ -635,8 +635,12 @@ believe it would pass. Silence is not success.
    UI, the section says `- No new UI surfaces this release.
    <reason>` and `docs/sdk-updates/{{NEW_VERSION}}/` may be empty.)
 8. The working tree is clean — every file you touched is committed
-   on `{{BRANCH}}` with informative messages, including the run-notes
-   (`git add -f` — `.claudius/` is gitignored).
+   on `{{BRANCH}}` with informative messages, including the run-notes.
+   `.claudius/` is gitignored, so add the notes **by their exact path**:
+   `git add -f .claudius/sdk-updater/run-notes/{{NEW_VERSION}}.md`. **Never**
+   `git add -f .claudius` (or any other path under it): that directory
+   also holds the pipeline's credentials, state and multi-GB logs, and
+   the pre-commit hook rejects the commit.
 9. `git diff main...HEAD | grep -nE '^\+.*(TODO|FIXME|XXX|not
    implemented)'` returns **nothing** — no new unresolved deferral
    markers in the diff, in either code or run-notes (see the
@@ -673,6 +677,8 @@ it produces exactly the empty PR this whole prompt exists to prevent.
   green. If a test is genuinely wrong because the SDK semantics
   changed, rewrite it; don't skip it.
 - **Never** `--no-verify` on commits or `--force` on pushes.
+- **Never** stage anything under `.claudius/` except your own run-notes
+  file (see the clean-tree check above for the exact command).
 - **Never** rewrite history on `main` or on any branch other than
   `{{BRANCH}}`.
 

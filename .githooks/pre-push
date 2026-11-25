@@ -18,14 +18,28 @@
 
 set -eu
 
+# Read the ref list from stdin once (git's pre-push hook protocol:
+# `<local_ref> <local_sha> <remote_ref> <remote_sha>`): both checks below
+# need it.
+refs="$(cat)"
+
+# Recover PATH (git GUIs strip it) and select RUN/RUN_DIRECT. Exits with a
+# friendly error if neither bun nor npx is reachable.
+. "$(dirname "$0")/_runtime.sh"
+
+# Runtime-state guard. It runs even with CLAUDIUS_SKIP_PREPUSH=1, because it
+# protects credentials rather than code quality: refuse to push commits that
+# add the update pipeline's gitignored runtime files (.claudius/sdk-updater/env
+# holds an OAuth token). See scripts/lib/runtime-state.mjs and issue #383.
+if command -v bun >/dev/null 2>&1; then JS=bun; else JS=node; fi
+printf '%s\n' "$refs" | "$JS" "$(dirname "$0")/../scripts/lib/runtime-state.mjs" push
+
 if [ "${CLAUDIUS_SKIP_PREPUSH:-0}" = "1" ]; then
   echo "▶ pre-push: CLAUDIUS_SKIP_PREPUSH=1 set, skipping checks."
   exit 0
 fi
 
-# Read the ref list from stdin (git's pre-push hook protocol:
-# `<local_ref> <local_sha> <remote_ref> <remote_sha>`). If every entry is a
-# deletion there's nothing to type-check.
+# If every entry in the ref list is a deletion there's nothing to type-check.
 #
 # A DELETION is `local_sha` all-zeros — you're pushing nothing at a remote
 # ref. This used to test `remote_sha`, which is all-zeros for a *new
@@ -41,7 +55,9 @@ while read -r _local_ref local_sha _remote_ref _remote_sha; do
     0000000000000000000000000000000000000000) ;;
     *) all_deletions=0 ;;
   esac
-done
+done <<EOF
+$refs
+EOF
 
 # Empty stdin can happen with `git push --no-verify` style invocations or
 # certain test scenarios. Be safe and run the checks anyway.
@@ -49,10 +65,6 @@ if [ "$have_input" = "1" ] && [ "$all_deletions" = "1" ]; then
   echo "▶ pre-push: only deletions in this push, skipping checks."
   exit 0
 fi
-
-# Recover PATH (git GUIs strip it) and select RUN/RUN_DIRECT. Exits with a
-# friendly error if neither bun nor npx is reachable.
-. "$(dirname "$0")/_runtime.sh"
 
 # 1. Type-check. This is the actual class of bug we're trying to stop.
 #    `tsc --noEmit` matches what `bun run build` does internally (Next runs
