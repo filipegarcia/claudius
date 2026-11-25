@@ -13,6 +13,7 @@ import {
 } from "@/lib/shared/slash-commands";
 import { cn } from "@/lib/utils/cn";
 import { isImeComposing } from "@/lib/client/key-match";
+import { isHeldRepeat } from "@/lib/client/composer-keys";
 
 type Props = {
   value: string;
@@ -166,6 +167,14 @@ export function SlashCommandPicker({
       // start from a draft with the picker open). Plain arrows still move the
       // highlight.
       if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
+      // CC 2.1.330 — a held Enter/Tab's auto-repeat never picks or runs a
+      // command: swallow it. A mid-prompt Enter (no `captureEnter`) is left to
+      // the composer, which ignores repeats too.
+      if (isHeldRepeat(e) && (e.key === "Tab" || captureEnter)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();

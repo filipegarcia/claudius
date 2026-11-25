@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { filterEmojiShortcodes } from "@/lib/shared/emoji-shortcodes";
 import { cn } from "@/lib/utils/cn";
 import { isImeComposing } from "@/lib/client/key-match";
+import { isHeldRepeat } from "@/lib/client/composer-keys";
 
 type Props = {
   /** The partial shortcode name typed so far, with the leading `:` already stripped by PromptInput. */
@@ -38,6 +39,12 @@ export function EmojiShortcodePicker({ query, onSelect, onClose }: Props) {
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — let it
       // pass through rather than moving this picker's highlight.
       if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
+      // CC 2.1.330 — a held Enter/Tab's auto-repeat never picks: swallow it.
+      if (isHeldRepeat(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();

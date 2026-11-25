@@ -63,6 +63,7 @@ import {
 } from "@/lib/shared/large-paste";
 import { describeOversizedImages } from "@/lib/client/image-intake";
 import { isLetterKey } from "@/lib/client/key-match";
+import { isHeldRepeat } from "@/lib/client/composer-keys";
 
 type Props = {
   pending: boolean;
@@ -1437,7 +1438,8 @@ export function PromptInput({
     // queue length, and works even mid-turn.
     if (e.ctrlKey && e.key === "Enter" && onSendAllQueuedNow) {
       e.preventDefault();
-      onSendAllQueuedNow();
+      // CC 2.1.330 — a held key's auto-repeats never send (see below).
+      if (!isHeldRepeat(e)) onSendAllQueuedNow();
       return;
     }
 
@@ -1556,6 +1558,12 @@ export function PromptInput({
       // Shift+Enter inserts a plain newline (browser default).
       if (e.shiftKey) return;
       e.preventDefault();
+      // CC 2.1.330 — "Fixed a held-down Enter key sending a half-written
+      // message or running a typed slash command". The first keydown of a
+      // held Enter picks the `@` file or `/` command; its auto-repeats land
+      // here with the picker closed and used to send the half-written message
+      // (or run the just-completed `/compact`). Only a fresh press sends.
+      if (isHeldRepeat(e)) return;
       // If the input is empty and there's a queued message, pressing Enter
       // sends the first queued message immediately (before the current turn
       // finishes) instead of submitting a no-op.

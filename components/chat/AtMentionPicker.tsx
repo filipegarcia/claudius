@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, File, Folder } from "lucide-react";
 import { isImeComposing } from "@/lib/client/key-match";
+import { isHeldRepeat } from "@/lib/client/composer-keys";
 import {
   type Agent,
   type PickerItem,
@@ -154,6 +155,12 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — let it
       // pass through to PromptInput rather than moving this picker's highlight.
       if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
+      // CC 2.1.330 — a held Enter/Tab's auto-repeat never picks: swallow it.
+      if (isHeldRepeat(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
