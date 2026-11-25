@@ -10,6 +10,7 @@ import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 import { isImeComposing } from "@/lib/client/key-match";
 import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
+import { answerDigitIndex } from "@/lib/client/question-keys";
 
 type Props = {
   request: AskUserQuestionEvent;
@@ -281,13 +282,13 @@ export function AskUserQuestionPrompt({
         return;
       }
       if (inField) return;
-      if (/^[1-9]$/.test(e.key)) {
-        const idx = Number(e.key) - 1;
-        if (idx < q.options.length) {
-          e.preventDefault();
-          pick(q.options[idx].label);
-          setFocusedOption(idx);
-        }
+      // CC 2.1.331 — "Fixed shortcuts such as Ctrl+1, Alt+1 … answering an
+      // open dialog": only a bare digit picks; a chord is left to the app.
+      const digitIdx = answerDigitIndex(e, q.options.length);
+      if (digitIdx !== null) {
+        e.preventDefault();
+        pick(q.options[digitIdx].label);
+        setFocusedOption(digitIdx);
         return;
       }
       if (e.key === "ArrowDown") {
