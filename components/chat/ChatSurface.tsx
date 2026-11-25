@@ -67,7 +67,7 @@ import { PlanOverlay } from "@/components/overlays/PlanOverlay";
 import { WorktreesOverlay } from "@/components/overlays/WorktreesOverlay";
 import type { AttachedImage, SendResult, SessionInfo } from "@/lib/client/types";
 import { useSession } from "@/lib/client/use-session";
-import { matchBinding, useShortcut } from "@/lib/client/shortcuts";
+import { isTypingTarget, matchBinding, useBindingPlatform, useShortcut } from "@/lib/client/shortcuts";
 import { useClaudius, useElectronSubscription } from "@/lib/client/useElectron";
 import { parseAskQuestions, type AskAnswer, type AskQuestion } from "@/lib/shared/events";
 import { useLimits } from "@/lib/client/useLimits";
@@ -86,7 +86,7 @@ import { TabClaimBanner } from "@/components/chat/TabClaimBanner";
 import { BashViewer } from "@/components/panels/BashViewer";
 import { ClaudiusMark } from "@/components/brand/ClaudiusMark";
 import type { BackgroundBash } from "@/lib/client/types";
-import { isLetterKey } from "@/lib/client/key-match";
+import { isFindChord } from "@/lib/client/composer-keys";
 
 function todayKey(): string {
   const d = new Date();
@@ -974,9 +974,12 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // Bumped on every Cmd/Ctrl+F so an already-open find bar re-focuses and
   // selects its text, like the browser's own bar.
   const [findNonce, setFindNonce] = useState(0);
+  const bindingPlatform = useBindingPlatform();
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && isLetterKey(e, "f")) {
+      // CC 2.1.330 — on macOS Ctrl+F in the message box (or any text field)
+      // moves the caret forward; only Cmd+F opens the find bar there.
+      if (isFindChord(e, { mac: bindingPlatform === "mac", typing: isTypingTarget(e.target) })) {
         e.preventDefault();
         setSearchOpen(true);
         setFindNonce((n) => n + 1);
@@ -987,7 +990,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [searchOpen]);
+  }, [searchOpen, bindingPlatform]);
 
   // Focus session title ────────────────────────────────────────────────────
   // The `session.focusTitle` binding (Cmd+Option+T by default) opens the
