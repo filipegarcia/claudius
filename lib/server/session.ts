@@ -169,6 +169,7 @@ import {
 import { unknownModelWarning } from "@/lib/shared/model-recognition";
 import {
   readSettings,
+  withSettingsLock,
   writeSettings,
   type ClaudeSettings,
   isWorkflowSizeGuideline,
@@ -3209,12 +3210,13 @@ export class Session {
       // writing it back could undo a hand edit to settings.json made
       // meanwhile, or recreate a file deleted meanwhile. Only the
       // `advisorModel` key is removed, and only if the file still has it.
-      void (async () => {
+      // CC 2.1.330 — under the file's lock, like every settings writer.
+      void withSettingsLock("user", this.cwd, async () => {
         const fresh = await readSettings("user", this.cwd);
         if (!Object.hasOwn(fresh, "advisorModel")) return;
         delete fresh.advisorModel;
         await writeSettings("user", this.cwd, fresh);
-      })().catch((err) => {
+      }).catch((err) => {
         console.error("[session.start] advisor-fable-incompatible clear failed", err);
       });
       // We don't broadcast here synchronously; the SSE client subscribes
@@ -6206,22 +6208,26 @@ export class Session {
    */
   private async persistModelToUserSettings(model: string | undefined): Promise<void> {
     try {
-      const current = await readSettings("user", this.cwd);
       // CC 2.1.329 — the Default row keeps the saved model when it showed it,
-      // else deletes the key; never writes the literal "default".
+      // else deletes the key; never writes the literal "default". The catalog
+      // is fetched before taking the settings lock (CC 2.1.330) so a slow
+      // engine never holds up other saves to settings.json.
       const catalog = model === "default" ? await this.query?.supportedModels().catch(() => undefined) : undefined;
-      const after = savedModelAfterPick(model, current.model, catalog);
-      // No-op if the file already matches — avoids touching mtime and
-      // triggering external watchers (Claude Code TUI, MDM tooling).
-      if (!after) return;
-      const desired = after.model;
-      const next: ClaudeSettings = { ...current };
-      if (desired) {
-        next.model = desired;
-      } else {
-        delete next.model;
-      }
-      await writeSettings("user", this.cwd, next);
+      await withSettingsLock("user", this.cwd, async () => {
+        const current = await readSettings("user", this.cwd);
+        const after = savedModelAfterPick(model, current.model, catalog);
+        // No-op if the file already matches — avoids touching mtime and
+        // triggering external watchers (Claude Code TUI, MDM tooling).
+        if (!after) return;
+        const desired = after.model;
+        const next: ClaudeSettings = { ...current };
+        if (desired) {
+          next.model = desired;
+        } else {
+          delete next.model;
+        }
+        await writeSettings("user", this.cwd, next);
+      });
     } catch (err) {
       console.error("[session.persistModelToUserSettings] write failed", err);
     }
@@ -6364,12 +6370,15 @@ export class Session {
     if (this.advisorModel) {
       const previousAdvisor = this.advisorModel;
       try {
-        const current = await readSettings("user", this.cwd);
-        if (current.advisorModel) {
-          const next: ClaudeSettings = { ...current };
-          delete next.advisorModel;
-          await writeSettings("user", this.cwd, next);
-        }
+        // CC 2.1.330 — under the file's lock, like every settings writer.
+        await withSettingsLock("user", this.cwd, async () => {
+          const current = await readSettings("user", this.cwd);
+          if (current.advisorModel) {
+            const next: ClaudeSettings = { ...current };
+            delete next.advisorModel;
+            await writeSettings("user", this.cwd, next);
+          }
+        });
       } catch (err) {
         // Non-fatal: the flag-settings clear below still applies for this
         // session's remaining turns. The file write is best-effort.
@@ -6456,8 +6465,11 @@ export class Session {
       }
     }
     try {
-      const current = await readSettings("local", this.cwd);
-      await writeSettings("local", this.cwd, { ...current, outputStyle: name });
+      // CC 2.1.330 — under the file's lock, like every settings writer.
+      await withSettingsLock("local", this.cwd, async () => {
+        const current = await readSettings("local", this.cwd);
+        await writeSettings("local", this.cwd, { ...current, outputStyle: name });
+      });
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -7603,12 +7615,15 @@ export class Session {
     // falls back to the file when null, so clearing only the flag layer
     // would leave the incompatible value still in effect.
     try {
-      const current = await readSettings("user", this.cwd);
-      if (current.advisorModel) {
-        const next: ClaudeSettings = { ...current };
-        delete next.advisorModel;
-        await writeSettings("user", this.cwd, next);
-      }
+      // CC 2.1.330 — under the file's lock, like every settings writer.
+      await withSettingsLock("user", this.cwd, async () => {
+        const current = await readSettings("user", this.cwd);
+        if (current.advisorModel) {
+          const next: ClaudeSettings = { ...current };
+          delete next.advisorModel;
+          await writeSettings("user", this.cwd, next);
+        }
+      });
     } catch (err) {
       console.error("[session.advisor-compat] settings write failed", err);
     }
