@@ -519,7 +519,12 @@ export const Markdown = memo(function Markdown({
     return mathOn ? normalizeMathDelimiters(kept) : kept;
   }, [children, mathOn, literalAsterisks]);
   const remarkPlugins = useMemo(() => {
-    const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [remarkGfm];
+    // CC 2.1.329 — "Fixed a single tilde drawing strikethrough, e.g. in
+    // '3~5 days … 7~10 days'". remark-gfm's default `singleTilde: true` struck
+    // through everything between two lone tildes; `~~text~~` still works.
+    const plugins: NonNullable<Parameters<typeof ReactMarkdown>[0]["remarkPlugins"]> = [
+      [remarkGfm, { singleTilde: false }],
+    ];
     if (breaks) plugins.push(remarkBreaks);
     if (mathOn) plugins.push(REMARK_MATH);
     return plugins;
