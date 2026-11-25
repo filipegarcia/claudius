@@ -590,6 +590,13 @@ export async function readSettings(scope: SettingsScope, projectCwd: string): Pr
     if (e.code === "ENOENT") return {};
     throw err;
   }
+  // CC 2.1.331 — "Fixed switching models failing with 'Settings file is not
+  // valid JSON' when settings.json is empty or starts with a byte order
+  // mark". The engine strips a leading U+FEFF and reads an empty file as no
+  // settings; Claudius refused both, so a model pick didn't persist and every
+  // save to the scope was a 422. Writes never emit a BOM.
+  if (buf.charCodeAt(0) === 0xfeff) buf = buf.slice(1);
+  if (buf.trim() === "") return {};
   // Rethrow (never fall back to `{}`) so a malformed file is never
   // overwritten by a write that started from an empty object.
   try {
