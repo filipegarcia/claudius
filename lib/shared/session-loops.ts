@@ -66,9 +66,26 @@ export type SessionLoop = {
    * 7-day default. Read with `readCronMaxAgeMs`.
    */
   maxAgeMs?: number;
+  /**
+   * CC 2.1.330 — armed by a message this session's transcript copied from the
+   * session it was forked from (`forkedFrom`). The loop lives in that source
+   * session, not here: shown muted, never counted as armed.
+   */
+  inherited?: boolean;
   /** True once `CronDelete` (or the equivalent) ran for this loop. */
   cancelled: boolean;
 };
+
+/**
+ * CC 2.1.330 — "[VSCode] Fixed a forked conversation running the original
+ * conversation's `/loop` schedules a second time". True for a replayed message
+ * the server marked as copied from the source session of a fork (see
+ * `lib/server/fork-lineage.ts`); loops it arms are `inherited`.
+ */
+export function isForkedCopy(msg: unknown): boolean {
+  const ff = (msg as { forkedFrom?: unknown } | null)?.forkedFrom;
+  return !!ff && typeof ff === "object";
+}
 
 /**
  * CC 2.1.330 — "Changed recurring scheduled tasks and `/loop` to run up to 30

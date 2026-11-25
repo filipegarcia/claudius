@@ -38,6 +38,7 @@ import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
 import {
+  isForkedCopy,
   readCronMaxAgeMs,
   readCronNextFireAt,
   readCronRecurring,
@@ -3338,6 +3339,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                   // CronCreateInput.recurring: "true (default)" — omitted means recurring.
                   recurring: inp.recurring !== false,
                   durable: false,
+                  // CC 2.1.330 — copied from a fork's source session: that
+                  // session's loop, not this one's (see `isForkedCopy`).
+                  ...(isForkedCopy(msg) ? { inherited: true } : {}),
                   // Anchor to when the loop was originally armed (the
                   // SSE event's `at` is the JSONL timestamp on replay,
                   // or the live broadcast time otherwise). Using
@@ -3444,6 +3448,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                 // `trackScheduledLoops` for the matching logic).
                 startedAt: ev.at ?? Date.now(),
                 ...(noop ? { noop: true, noopStreak } : {}),
+                // CC 2.1.330 — a wake-up copied from a fork's source session.
+                ...(isForkedCopy(msg) ? { inherited: true } : {}),
               };
               next[b.id] = entry;
               return next;

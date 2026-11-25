@@ -111,6 +111,7 @@ import { parseInitSystemMessage, type PluginLoadError } from "@/lib/shared/parse
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { hasArmedLoop } from "./loop-keepalive";
+import { readForkedFromByUuid, withForkedFrom, type ForkedFrom } from "./fork-lineage";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
 import { syncDisconnectedNotifications } from "./mcp-disconnected-db";
@@ -146,6 +147,7 @@ import { extractUsageBehaviors, type UsageBehaviors } from "@/lib/shared/usage-b
 import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import {
+  isForkedCopy,
   readCronMaxAgeMs,
   readCronNextFireAt,
   readCronRecurring,
@@ -2127,6 +2129,12 @@ export class Session {
   /** `CronDelete` tool_use ids awaiting their result (SDK 0.3.321 `endedLoopWakeup`). */
   private pendingCronDeletes = new Set<string>();
   /**
+   * CC 2.1.330 — per transcript id, the `forkedFrom` of each line copied from
+   * a fork's source session (`getSessionMessages` drops it). Read once: the
+   * SDK's `forkSession` writes those lines only when it creates the file.
+   */
+  private forkLineage = new Map<string, Promise<Map<string, ForkedFrom>>>();
+  /**
    * `tool_use_id`s of `ScheduleWakeup` ticks recorded into the `loop_ticks`
    * table this turn, awaiting the turn's `result` message so their token
    * usage can be attached (Claude Code 2.1.243 "Loops breakdown" parity —
@@ -2752,6 +2760,8 @@ export class Session {
       // tell whether the history it returns starts at a cut (see the notice
       // below). Never fails the resume: any error just means no notice.
       const resumeFrom = this.resumeFrom;
+      // CC 2.1.330 — which replayed lines a fork copied from its source.
+      const forkLineage = this.readForkLineage(resumeFrom);
       const gapLinks = (async () => {
         const file = await findResumedTranscriptPath(resumeFrom, this.cwd);
         if (!file) return null;
@@ -2859,6 +2869,7 @@ export class Session {
         }
         let replayFailures = 0;
         let firstReplayError: string | undefined;
+        const forked = await forkLineage;
         for (const m of historical) {
           const ts = (m as { timestamp?: string }).timestamp;
           const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
@@ -2870,7 +2881,9 @@ export class Session {
             carriedAt = carriedAt + 1;
             at = carriedAt;
           }
-          const sdk = m as unknown as SDKMessage;
+          // CC 2.1.330 — put back the `forkedFrom` getSessionMessages drops, so
+          // both loop trackers see a fork's copied history as inherited.
+          const sdk = withForkedFrom(m, forked) as unknown as SDKMessage;
           try {
             this.broadcast({ type: "sdk", message: sdk, at });
             // Replay disk-resident tool_use / tool_result blocks through the
@@ -5745,6 +5758,19 @@ export class Session {
     return [...this.scheduledLoops.values()];
   }
 
+  /** See `forkLineage`. Empty for a session that isn't a fork, or on any error. */
+  private readForkLineage(id: string): Promise<Map<string, ForkedFrom>> {
+    let lineage = this.forkLineage.get(id);
+    if (!lineage) {
+      lineage = (async () => {
+        const file = await findResumedTranscriptPath(id, this.cwd);
+        return file ? readForkedFromByUuid(file) : new Map<string, ForkedFrom>();
+      })().catch(() => new Map<string, ForkedFrom>());
+      this.forkLineage.set(id, lineage);
+    }
+    return lineage;
+  }
+
   /**
    * True while a `/loop` wake-up or session cron armed in this session is
    * still going to fire — the idle reaper must keep the SDK process (which
@@ -5903,6 +5929,11 @@ export class Session {
     if (!Array.isArray(content)) return;
 
     if (m.type === "assistant") {
+      // CC 2.1.330 — "[VSCode] Fixed a forked conversation running the
+      // original conversation's `/loop` schedules a second time". A call
+      // copied from a fork's source session armed a loop THERE; track it as
+      // inherited (muted, never armed) rather than as this session's own.
+      const inherited = isForkedCopy(message);
       for (const raw of content) {
         const b = raw as { type?: string };
         if (b.type !== "tool_use") continue;
@@ -5936,6 +5967,7 @@ export class Session {
             durable: false,
             startedAt: observedAt,
             cancelled: false,
+            ...(inherited ? { inherited: true } : {}),
           });
           continue;
         }
@@ -6013,6 +6045,7 @@ export class Session {
             startedAt: observedAt,
             cancelled: false,
             ...(noop ? { noop: true, noopStreak } : {}),
+            ...(inherited ? { inherited: true } : {}),
           });
           // Loops breakdown persistence (CC 2.1.243 parity) — record this
           // tick and remember its tool_use_id so the turn's `result`
@@ -7979,7 +8012,8 @@ export class Session {
         // ride on the carry-forward so they inherit their turn time
         // instead of falling through to Date.now() in `broadcast()`.
         const at = Number.isFinite(parsed) ? parsed : carriedAt;
-        const sdk = m as unknown as SDKMessage;
+        // CC 2.1.330 — mark lines a fork copied from its source (see resume).
+        const sdk = withForkedFrom(m, await this.readForkLineage(this.id)) as unknown as SDKMessage;
         this.broadcast({ type: "sdk", message: sdk, at });
         // External writers (terminal `claude --resume`, another SDK client)
         // can arm or cancel loops on disk; replay them through the tracker

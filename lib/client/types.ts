@@ -762,6 +762,11 @@ export type ScheduledLoop = {
    * days"). Absent → the engine's 7-day default; see `loopEndsAt`.
    */
   maxAgeMs?: number;
+  /**
+   * CC 2.1.330 — armed in the session this one was forked from (the replayed
+   * message carries `forkedFrom`). It runs there, not here.
+   */
+  inherited?: boolean;
   /** True once the agent has been asked to cancel via CronDelete. */
   cancelled?: boolean;
 };

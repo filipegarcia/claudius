@@ -36,7 +36,9 @@ export const LOOP_KEEPALIVE_MAX_MS = LOOP_RECURRING_MAX_AGE_MS;
 
 /** True when `loop` will still fire, or its tick may still be running. */
 export function isLoopArmed(loop: SessionLoop, now: number): boolean {
-  if (loop.cancelled) return false;
+  // CC 2.1.330 — a loop copied in from a fork's source session runs there;
+  // it must not pin the fork's process.
+  if (loop.cancelled || loop.inherited) return false;
   if (loop.kind === "wakeup") {
     // A `stop: true` call carries no delay — nothing is pending.
     if (loop.delaySeconds == null) return false;

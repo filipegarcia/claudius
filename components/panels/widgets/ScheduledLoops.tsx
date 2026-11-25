@@ -53,7 +53,10 @@ export function ScheduledLoops({
         // 7 for jobs made before); once past, it no longer fires.
         const endsAt = loopEndsAt(loop);
         const ended = endsAt !== null && now >= endsAt;
-        const muted = loop.cancelled || cancelling || ended;
+        // CC 2.1.330 — a loop copied in from the session this one was forked
+        // from runs there, not here.
+        const inherited = loop.inherited === true;
+        const muted = loop.cancelled || cancelling || ended || inherited;
         const tone = muted
           ? "border-[var(--border)] bg-[var(--panel-2)]/40 text-[var(--muted)]"
           : loop.kind === "wakeup"
@@ -68,6 +71,7 @@ export function ScheduledLoops({
           if (loop.kind === "wakeup") {
             // A stopped wake-up will never fire — no countdown / "due now".
             if (loop.cancelled) return "stopped";
+            if (inherited) return "scheduled";
             if (loop.delaySeconds == null) return "scheduled";
             const remaining = loop.delaySeconds - elapsed;
             if (remaining <= 0) return "due now";
@@ -129,7 +133,18 @@ export function ScheduledLoops({
               {/* CC 2.1.295 parity — self-paced (wakeup) loops get the X
                   too; it asks the agent for `ScheduleWakeup { stop: true }`
                   instead of CronDelete. */}
-              {onCancel && !loop.cancelled && !cancelling && !ended && (
+              {/* CC 2.1.330 — "[VSCode] Fixed a forked conversation running
+                  the original conversation's `/loop` schedules a second time". */}
+              {inherited && (
+                <span
+                  data-testid="loop-inherited"
+                  className="ml-auto whitespace-nowrap text-[9px] uppercase tracking-wide opacity-60"
+                  title="Armed in the session this one was forked from. It runs there, not in this fork."
+                >
+                  original session
+                </span>
+              )}
+              {onCancel && !loop.cancelled && !cancelling && !ended && !inherited && (
                 <button
                   type="button"
                   data-testid="scheduled-loop-cancel"
@@ -191,7 +206,7 @@ export function ScheduledLoops({
               {/* CC 2.1.330 — "Changed recurring scheduled tasks and `/loop`
                   to run up to 30 days instead of 7 while their session keeps
                   running, and say when they end". */}
-              {endsAt !== null && !loop.cancelled && (
+              {endsAt !== null && !loop.cancelled && !inherited && (
                 <span
                   data-testid="loop-ends"
                   className="whitespace-nowrap"
