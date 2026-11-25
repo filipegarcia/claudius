@@ -1,3 +1,4 @@
+import { sanitizeJsonParseReason } from "@/lib/shared/settings-load-error";
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -61,16 +62,46 @@ async function ensureRoot(): Promise<void> {
   await fs.mkdir(SCHED_ROOT, { recursive: true });
 }
 
+/**
+ * CC 2.1.328 — "Fixed saving a scheduled task erasing the project's other
+ * saved tasks when the scheduled tasks file can't be read". A `jobs.json` that
+ * parses but has no `jobs` array (a hand edit, a partial restore) used to read
+ * as empty, and the next new job wrote `{ jobs: [thatOne] }` over it. Now it
+ * throws, so every write path (which all read first) refuses instead.
+ */
+export class JobsFileShapeError extends Error {
+  readonly path: string;
+  constructor(path: string, reason = `it doesn't list its jobs under a "jobs" array`) {
+    super(`Couldn't read ${path}: ${reason}. Nothing was saved; fix or move the file.`);
+    this.name = "JobsFileShapeError";
+    this.path = path;
+  }
+}
+
 export async function listJobs(): Promise<Job[]> {
+  let buf: string;
   try {
-    const buf = await fs.readFile(JOBS_FILE, "utf8");
-    const parsed = JSON.parse(buf) as { jobs?: Job[] };
-    return Array.isArray(parsed.jobs) ? parsed.jobs : [];
+    buf = await fs.readFile(JOBS_FILE, "utf8");
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") return [];
     throw err;
   }
+  // A parse error throws too: never fall back to [] over a file we couldn't
+  // read, or the next write replaces it.
+  let parsed: { jobs?: unknown } | null;
+  try {
+    parsed = JSON.parse(buf) as { jobs?: unknown } | null;
+  } catch (err) {
+    throw new JobsFileShapeError(
+      JOBS_FILE,
+      `it isn't valid JSON (${sanitizeJsonParseReason(err instanceof Error ? err.message : String(err))})`,
+    );
+  }
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.jobs)) {
+    throw new JobsFileShapeError(JOBS_FILE);
+  }
+  return parsed.jobs as Job[];
 }
 
 /**

@@ -109,7 +109,11 @@ export default function SchedulePage() {
 
     fetch("/api/schedule", { signal: controller.signal })
       .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          // CC 2.1.328: the route names an unreadable jobs.json.
+          const e = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(e.error ?? `HTTP ${res.status}`);
+        }
         return (await res.json()) as { jobs: Job[] };
       })
       .then((data) => {
