@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { stampUserRejectedToolResults } from "@/lib/shared/user-rejected-stamp";
+import { isEngineResumeGapNotice } from "@/lib/shared/resume-gap-notice";
 import { withGoalMcpServer, withoutGoalMcpServer } from "./mcp-in-process";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
@@ -2902,6 +2903,9 @@ export class Session {
         let firstReplayError: string | undefined;
         const forked = await forkLineage;
         for (const m of historical) {
+          // CC 2.1.332 — an engine copy of the line saved by an earlier
+          // resume; this one already put its own above the history.
+          if (this.resumeGap && isEngineResumeGapNotice(m)) continue;
           const ts = (m as { timestamp?: string }).timestamp;
           const parsed = typeof ts === "string" ? Date.parse(ts) : NaN;
           let at: number | undefined;
@@ -9899,6 +9903,11 @@ export class Session {
     let sawError = false;
     try {
       for await (const raw of this.query as AsyncIterable<SDKMessage>) {
+        // CC 2.1.332 — "Added a notice in VS Code and Desktop's Code tab when
+        // a resumed session's earlier messages weren't loaded". This session
+        // already shows that line above the history (`resumeGap`), so drop
+        // the engine's copy instead of showing it twice.
+        if (this.resumeGap && isEngineResumeGapNotice(raw)) continue;
         // CC 2.1.323 — mark results of calls the user denied as
         // `user-rejected` (the engine stamps a host deny `permission-rule`).
         const message = stampUserRejectedToolResults(raw, this.userRejectedToolUseIds);

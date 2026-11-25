@@ -8,6 +8,7 @@ import {
   pickRecordedPermissionMode,
   readPermissionModeRecord,
 } from "@/lib/shared/permission-mode-record";
+import { resumeGapNotice } from "@/lib/shared/resume-gap-notice";
 import { jsonlLines } from "./jsonl-lines";
 import { sessionManager } from "./session-manager";
 import { info as sessionFileInfo } from "./sessions-store";
@@ -83,9 +84,12 @@ export async function lastRecordedPermissionModeAt(
 /**
  * CC 2.1.327 — "Added a line when a resumed session's earlier messages can't
  * be loaded". The CLI's copy, shown once at the top of the reopened history.
+ *
+ * CC 2.1.329 — "Fixed the line about earlier messages on resume blaming a
+ * damaged file when the file was intact": the old copy said part of the file
+ * was "missing or damaged"; the engine's line no longer names a cause.
  */
-export const RESUME_GAP_NOTICE =
-  "Earlier messages couldn't be loaded because part of this session's file is missing or damaged. Claude won't see them, so repeat anything it still needs.";
+export const RESUME_GAP_NOTICE = resumeGapNotice();
 
 /** One transcript row, reduced to what the cut-off rule reads. */
 type LinkRow = {

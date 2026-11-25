@@ -23,7 +23,7 @@ mkdirSync(SHOTS_DIR, { recursive: true });
 
 const SESSION = "aaaaaaaa-bbbb-cccc-dddd-000002327a01";
 const NOTICE =
-  "Earlier messages couldn't be loaded because part of this session's file is missing or damaged. Claude won't see them, so repeat anything it still needs.";
+  "Earlier messages in this session weren't loaded. Claude won't see them, so repeat anything it still needs.";
 
 const GAP_ROW: SdkEvent = {
   type: "sdk",
@@ -52,7 +52,7 @@ test("a resumed session with a cut history opens with the warning on top", async
   ]);
   await page.goto("/");
 
-  const pill = page.getByTestId("system-pill").filter({ hasText: "Earlier messages couldn't be loaded" });
+  const pill = page.getByTestId("system-pill").filter({ hasText: "Earlier messages in this session weren't loaded" });
   await expect(pill).toBeVisible({ timeout: 15_000 });
   await expect(pill).toHaveText(NOTICE);
   await expect(pill).toHaveAttribute("data-kind", "info");
@@ -101,7 +101,7 @@ test("a long resumed session gets the warning once paging reaches the top", asyn
   await page.goto("/");
 
   await expect(page.getByText("The retry helper now backs off exponentially.")).toBeVisible({ timeout: 15_000 });
-  const pill = page.getByTestId("system-pill").filter({ hasText: "Earlier messages couldn't be loaded" });
+  const pill = page.getByTestId("system-pill").filter({ hasText: "Earlier messages in this session weren't loaded" });
   await expect(pill).toHaveCount(1);
   await expect(pill).toHaveAttribute("data-info-level", "warning");
 });
@@ -116,5 +116,5 @@ test("a healthy resumed session has no warning", async ({ page }) => {
   ]);
   await page.goto("/");
   await expect(page.getByText("Added the retry helper.")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("Earlier messages couldn't be loaded", { exact: false })).toHaveCount(0);
+  await expect(page.getByText("Earlier messages in this session weren't loaded", { exact: false })).toHaveCount(0);
 });
