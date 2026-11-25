@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
 import { filesHref, isLocalFileRef, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
-import { isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
+import { isMarkdownTooCostly, isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { hasPathologicalDollarRuns, normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
 import { preserveLoneBackslashes } from "@/lib/shared/lone-backslash";
 import { keepLiteralAsterisks } from "@/lib/shared/user-asterisks";
@@ -507,6 +507,10 @@ export const Markdown = memo(function Markdown({
   // bubble re-renders on every delta. Past the cap, the parser would overflow
   // the stack (quotes) or stall the tab (lists), so render plain text instead.
   const tooDeep = useMemo(() => isMarkdownTooDeep(children), [children]);
+  // CC 2.1.328 — "Fixed markdown rendering freezing on some very long or
+  // malformed input". A paragraph dense with `*`/`_`, a huge table delimiter
+  // row or thousands of table cells make the parser super-linear too.
+  const tooCostly = useMemo(() => !tooDeep && isMarkdownTooCostly(children), [children, tooDeep]);
   // CC 2.1.319 — many unclosed `$$$…` fences make the math parser
   // super-linear on every streaming delta; render that message without math.
   const dollarRunsOk = useMemo(() => !math || !hasPathologicalDollarRuns(children), [children, math]);
@@ -534,6 +538,14 @@ export const Markdown = memo(function Markdown({
       <PlainMarkdownFallback
         text={children}
         note="Shown as plain text: this message nests lists or quotes too deeply to format."
+      />
+    );
+  }
+  if (tooCostly) {
+    return (
+      <PlainMarkdownFallback
+        text={children}
+        note="Shown as plain text: this message is too long and irregular to format quickly."
       />
     );
   }
