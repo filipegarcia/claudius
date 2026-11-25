@@ -146,6 +146,12 @@ export function RateLimitHitPanel({
           <span className="font-medium" data-testid="model-needs-credits-title">
             {hit.modelNeedsCredits} needs usage credits
           </span>
+        ) : hit.creditsExhausted ? (
+          // CC 2.1.328 — credits ran out; not a plan window, so no tier or
+          // reset clock (the engine's own text above prints any reset).
+          <span className="font-medium" data-testid="credits-exhausted-title">
+            Out of usage credits
+          </span>
         ) : (
           <>
             <span className="font-medium">You&apos;ve hit your {tierLabel}</span>
@@ -238,6 +244,20 @@ export function RateLimitHitPanel({
               </span>
             </>
           )}
+        </div>
+      ) : cta === "credits-exhausted" ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">
+          <span className="opacity-70">To keep going:</span>
+          <a
+            href={PURCHASE_CREDITS_URL}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="credits-exhausted-buy-link"
+            className="font-medium underline underline-offset-2 hover:opacity-80"
+          >
+            Buy more usage credits
+          </a>
+          <span className="opacity-70">or switch models with /model</span>
         </div>
       ) : cta === "buy-credits" ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-current/10 pt-1.5">

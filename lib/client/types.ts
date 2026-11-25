@@ -169,6 +169,12 @@ export type DisplayMessage = {
      * usage credits instead of naming a tier or reset.
      */
     modelNeedsCredits?: string;
+    /**
+     * CC 2.1.328 — the hit is the engine's "You're out of usage credits…"
+     * stop, not a plan-tier window: the panel says so instead of naming a
+     * tier and a reset countdown, and offers buying more credits.
+     */
+    creditsExhausted?: true;
   };
   /**
    * Present when this assistant message IS the Anthropic backend's

@@ -53,6 +53,7 @@ import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { clearPendingMessages } from "./clear-pending";
 import { ADVISOR_ACTIVE_SENTINEL, prettyModelName } from "@/lib/shared/advisor";
 import {
+  isCreditsExhaustedText,
   isSyntheticApiMessage,
   matchesUsageLimitPrefix,
   modelRequiringCreditsFromText,
@@ -450,6 +451,17 @@ export function rateLimitHitFromBlocks(
   const creditsModel = modelRequiringCreditsFromText(text);
   if (creditsModel) {
     const hit: NonNullable<DisplayMessage["rateLimitHit"]> = { modelNeedsCredits: creditsModel };
+    if (typeof last?.canUserPurchaseCredits === "boolean") hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
+    if (subscriptionType) hit.subscriptionType = subscriptionType;
+    return hit;
+  }
+  // CC 2.1.328 — "Fixed the error shown when usage credits run out
+  // mid-response, which named a rate limit". "You're out of usage credits…"
+  // is not a plan window either: no tier or countdown from an earlier
+  // rate_limit_event (the prose already prints any reset), just the
+  // buy-credits / ask-your-admin next step.
+  if (isCreditsExhaustedText(text)) {
+    const hit: NonNullable<DisplayMessage["rateLimitHit"]> = { creditsExhausted: true };
     if (typeof last?.canUserPurchaseCredits === "boolean") hit.canUserPurchaseCredits = last.canUserPurchaseCredits;
     if (subscriptionType) hit.subscriptionType = subscriptionType;
     return hit;
