@@ -1,7 +1,7 @@
 import { frontmatterError, listAgents } from "./agents";
 import { listSkills } from "./skills";
 import { keybindingsPath, readKeybindings } from "./keybindings";
-import { readSettings } from "./settings";
+import { engineEnv } from "./engine-env";
 import { otelEndpointNotices } from "@/lib/shared/telemetry-env";
 
 /**
@@ -83,18 +83,10 @@ export async function keybindingsProblem(): Promise<ConfigFileProblem | null> {
  * against: Claudius's process env (what `buildQueryEnv` forwards) with the
  * user-scope `settings.env` applied on top, as the engine applies it.
  * Project and local scopes are left out — the engine ignores OTEL keys there
- * (the 2.1.282 doctor check flags them). Best-effort: an unreadable
- * settings file leaves just the process env.
+ * (the 2.1.282 doctor check flags them). See `engineEnv`.
  */
-export async function telemetryEnv(): Promise<Record<string, string | undefined>> {
-  let userEnv: Record<string, string> = {};
-  try {
-    const env = (await readSettings("user", "")).env;
-    if (env && typeof env === "object") userEnv = env as Record<string, string>;
-  } catch {
-    // fall through with the process env alone
-  }
-  return { ...process.env, ...userEnv };
+export function telemetryEnv(): Promise<Record<string, string | undefined>> {
+  return engineEnv();
 }
 
 /**
