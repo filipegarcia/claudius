@@ -462,8 +462,12 @@ is red, the run ends as a process-issue with **no PR opened**.
    `docs/cc-parity/{{NEW_VERSION}}/`, and the matching bullet in
    "## New UI surfaces" lists both paths.
 8. The working tree is clean — every file you touched is committed
-   on `{{BRANCH}}` with informative messages, including the run-notes
-   (`git add -f` — `.claudius/` is gitignored).
+   on `{{BRANCH}}` with informative messages, including the run-notes.
+   `.claudius/` is gitignored, so add the notes **by their exact path**:
+   `git add -f .claudius/cc-parity/run-notes/{{NEW_VERSION}}.md`. **Never**
+   `git add -f .claudius` (or any other path under it): that directory
+   also holds the pipeline's credentials, state and multi-GB logs, and
+   the pre-commit hook rejects the commit.
 
 ---
 
@@ -483,6 +487,8 @@ is red, the run ends as a process-issue with **no PR opened**.
   rather than edit.
 - **Never** disable a test, hook, or lint rule to make the suite green.
 - **Never** `--no-verify` on commits or `--force` on pushes.
+- **Never** stage anything under `.claudius/` except your own run-notes
+  file (see the clean-tree check above for the exact command).
 - **Never** rewrite history on `main` or on any branch other than
   `{{BRANCH}}`.
 

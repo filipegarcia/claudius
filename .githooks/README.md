@@ -9,8 +9,31 @@ contributor by default — no opt-in step.
 | File              | Purpose                                                                 |
 | ----------------- | ----------------------------------------------------------------------- |
 | `_runtime.sh`     | PATH recovery + runner selection. Sourced by every hook. **Not a hook.** |
-| `pre-commit`      | Customization guard + secret scan (gitleaks) + lint + related unit tests for staged JS/TS. |
-| `pre-push`        | Whole-tree `tsc --noEmit` + `eslint`.                                    |
+| `pre-commit`      | Runtime-state guard + customization guard + secret scan (gitleaks) + lint + related unit tests for staged JS/TS. |
+| `pre-push`        | Runtime-state guard + whole-tree `tsc --noEmit` + `eslint`.              |
+
+## Runtime-state guard
+
+`.claudius/` is gitignored because it holds the update pipeline's runtime
+state: the credentials file (`sdk-updater/env`, with the OAuth token), both
+updaters' `state.json`, the run lock and multi-GB logs. Only the run-notes
+Markdown under `.claudius/{sdk-updater,cc-parity}/run-notes/` is tracked, and
+it has to be added with `git add -f <exact path>`.
+
+Three update runs (0.3.311, 0.3.318, 0.3.327) ran `git add -f .claudius`
+instead. Once HEAD tracked `state.json`, every hourly firing died on
+`git checkout --detach origin/main` (issue #383). So both hooks run
+`scripts/lib/runtime-state.mjs`:
+
+- `pre-commit` refuses a commit that adds or modifies runtime state.
+  Untracking it (`git rm --cached`) is allowed.
+- `pre-push` refuses commits that add it anywhere in the pushed range, even
+  when a later commit untracks it: the credentials would still be in the
+  history. It runs even with `CLAUDIUS_SKIP_PREPUSH=1`.
+
+The orchestrators enforce the same rule themselves, because their rescue
+commits use `--no-verify`. They also untrack runtime state at preflight, and
+never resume or push a branch that carries it.
 
 ## Customization guard
 

@@ -138,6 +138,11 @@ import {
   type PrMergeFacts,
   type ReviewResult,
 } from "./merge-gate";
+import {
+  isRuntimeStatePath,
+  runtimeStateInRange,
+  trackedRuntimeStatePaths,
+} from "../lib/runtime-state.mjs";
 
 // ── Config ────────────────────────────────────────────────────────────
 
@@ -392,16 +397,175 @@ export function isScreenshotChurn(path: string, ownDocsDir: string): boolean {
   return /^docs\/(cc-parity|sdk-updates)\//.test(path) || path.startsWith("site/screenshots/");
 }
 
-/** Paths the run itself left dirty: changed since `before`, minus screenshot churn. Exported for tests. */
+/**
+ * Paths the run itself left dirty: changed since `before`, minus screenshot
+ * churn and pipeline runtime state (a `git add -f .claudius` makes porcelain
+ * list the credentials file and logs as staged). Exported for tests.
+ */
 export function uncommittedWorkPaths(
   before: DirtySnapshot,
   after: DirtySnapshot,
   ownDocsDir: string,
 ): string[] {
   return [...after]
-    .filter(([path, fingerprint]) => before.get(path) !== fingerprint && !isScreenshotChurn(path, ownDocsDir))
+    .filter(
+      ([path, fingerprint]) =>
+        before.get(path) !== fingerprint && !isScreenshotChurn(path, ownDocsDir) && !isRuntimeStatePath(path),
+    )
     .map(([path]) => path)
     .sort();
+}
+
+// ── Pipeline runtime state never rides a commit ───────────────────────
+//
+// `.claudius/` holds the updaters' credentials (`sdk-updater/env`), their
+// `state.json`, the run lock and multi-GB logs. Only run-notes are tracked
+// (rule: scripts/lib/runtime-state.mjs). On 0.3.311, 0.3.318 and 0.3.327 the
+// agent ran `git add -f .claudius`, and the `--no-verify` rescue commit below
+// committed the whole index. HEAD then tracked `state.json`, every firing
+// rewrote it, and `git checkout --detach origin/main` refused to switch
+// branches, hourly, until a human stepped in (issue #383). Had the file been
+// clean, the checkout would instead have DELETED the credentials and logs
+// from disk. These helpers stop the state being staged, committed, resumed
+// or pushed, and heal a checkout that already tracks it.
+
+/**
+ * Chunked `git rm --cached` so a long path list never hits ARG_MAX. Never
+ * touches the working tree: with `--cached`, `-f` only skips the "staged
+ * content differs from both the file and HEAD" refusal.
+ */
+function unstagePaths(paths: string[], cwd: string, env?: NodeJS.ProcessEnv): void {
+  for (let i = 0; i < paths.length; i += 200) {
+    sh(
+      "git",
+      ["--literal-pathspecs", "rm", "-r", "-f", "--cached", "-q", "--ignore-unmatch", "--", ...paths.slice(i, i + 200)],
+      { cwd, env: env ?? process.env },
+    );
+  }
+}
+
+/**
+ * Stop tracking runtime state without touching a byte of it on disk, so a
+ * checkout can neither refuse to run nor delete it. Returns the paths it
+ * untracked ([] when there were none, which is every normal firing).
+ *
+ * When HEAD's own tree tracks them, unstaging alone isn't enough: the
+ * autostash would record the "deletion" and restore HEAD's copies, and the
+ * next checkout would remove them. So HEAD is detached onto a local-only
+ * commit equal to HEAD minus those paths, built in a throwaway index. No
+ * branch ref moves, nothing is pushed, and the working tree and the rest of
+ * the index stay exactly as they were. Exported for tests.
+ */
+export function untrackRuntimeState(cwd: string = ROOT): string[] {
+  const inHead = trackedRuntimeStatePaths(cwd, "HEAD");
+  const inIndex = trackedRuntimeStatePaths(cwd);
+  const all = [...new Set([...inHead, ...inIndex])].sort();
+  if (all.length === 0) return [];
+  if (inHead.length > 0) {
+    const scratch = mkdtempSync(join(tmpdir(), "claudius-untrack-"));
+    try {
+      const env = { ...process.env, GIT_INDEX_FILE: join(scratch, "index") };
+      sh("git", ["read-tree", "HEAD"], { cwd, env });
+      unstagePaths(inHead, cwd, env);
+      const tree = sh("git", ["write-tree"], { cwd, env });
+      const from = sh("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd });
+      const commit = sh(
+        "git",
+        [
+          "commit-tree",
+          tree,
+          "-p",
+          "HEAD",
+          "-m",
+          `chore: stop tracking pipeline runtime state (local only)\n\n` +
+            `Made by the update orchestrator's preflight: ${from} tracked ` +
+            `${inHead.length} gitignored runtime file(s) under .claudius/. Never push this.`,
+        ],
+        { cwd },
+      );
+      sh("git", ["update-ref", "--no-deref", "-m", "untrack pipeline runtime state", "HEAD", commit], { cwd });
+      log(
+        `WARN ${from} tracks ${inHead.length} pipeline runtime file(s) (${inHead.slice(0, 5).join(", ")}` +
+          `${inHead.length > 5 ? ", …" : ""}). Detached HEAD onto ${commit.slice(0, 8)} (the same tree ` +
+          `minus those files) so the checkout below can't refuse or delete them; their content on disk ` +
+          `is untouched. Never push ${from}: it can carry the credentials file in its history.`,
+      );
+    } finally {
+      rmSync(scratch, { recursive: true, force: true });
+    }
+  }
+  unstagePaths(all, cwd);
+  if (inHead.length === 0) {
+    log(`WARN unstaged ${all.length} pipeline runtime file(s) someone staged (${all.slice(0, 5).join(", ")}…)`);
+  }
+  return all;
+}
+
+/**
+ * Runtime state a branch would carry relative to `base`: paths in `tip`'s
+ * tree, plus any a commit in `base..tip` added or changed. Non-empty means the
+ * branch must not be resumed or pushed. Exported for tests.
+ */
+export function runtimeStateOnBranch(tip: string, base = "origin/main", cwd: string = ROOT): string[] {
+  return runtimeStateInRange(base, tip, cwd);
+}
+
+/**
+ * Resuming a branch that carries runtime state would check its stale copies
+ * of the credentials and state back out over the live ones (git overwrites
+ * ignored files on checkout), and the run could never push. Rename the local
+ * branch out of the resume path instead of deleting it, so any real work on
+ * it can still be cherry-picked. Returns the backup name, or null when the
+ * branch only existed on origin. Exported for tests.
+ */
+export function retirePoisonedBranch(branch: string, paths: string[], cwd: string = ROOT): string | null {
+  const localExists = sh("git", ["branch", "--list", branch], { cwd }).trim() !== "";
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..*$/, "");
+  const backup = `backup/${branch}-runtime-state-${stamp}`;
+  if (localExists) sh("git", ["branch", "-m", branch, backup], { cwd });
+  log(
+    `WARN ${branch} carries ${paths.length} pipeline runtime file(s) (${paths.slice(0, 5).join(", ")}` +
+      `${paths.length > 5 ? ", …" : ""}); not resuming it. ` +
+      (localExists ? `Kept the local branch as ${backup}; cherry-pick any real work from it. ` : "") +
+      `Starting fresh off origin/main.`,
+  );
+  return localExists ? backup : null;
+}
+
+/**
+ * Checking out a commit that tracks runtime state overwrites the live,
+ * gitignored copies on disk without asking. If origin/main ever carries
+ * them, stop before the first checkout instead of clobbering the
+ * credentials and state on every firing.
+ */
+export function assertMainCarriesNoRuntimeState(cwd: string = ROOT): void {
+  const onMain = trackedRuntimeStatePaths(cwd, "origin/main");
+  if (onMain.length === 0) return;
+  throw new Error(
+    `origin/main tracks ${onMain.length} pipeline runtime file(s) under .claudius/ ` +
+      `(${onMain.slice(0, 5).join(", ")}${onMain.length > 5 ? ", …" : ""}). Checking it out would ` +
+      `overwrite the live copies on this host. Untrack them on main first: ` +
+      `\`git rm -r --cached -- <paths>\` in a PR, then rotate any credentials ` +
+      `.claudius/sdk-updater/env exposed.`,
+  );
+}
+
+/**
+ * The last line before anything leaves the machine: refuse to push a branch
+ * whose commits add runtime state. `.claudius/sdk-updater/env` holds the
+ * OAuth token, and a later "untrack" commit would not take it out of the
+ * pushed history. Exported for tests.
+ */
+export function assertNoRuntimeStateToPush(branch: string, cwd: string = ROOT): void {
+  const poisoned = runtimeStateOnBranch("HEAD", "origin/main", cwd);
+  if (poisoned.length === 0) return;
+  throw new Error(
+    `pushBranch: refusing to push ${branch}: its commits add ${poisoned.length} pipeline runtime ` +
+      `file(s) (${poisoned.slice(0, 8).join(", ")}${poisoned.length > 8 ? ", …" : ""}). These can include ` +
+      `the credentials in .claudius/sdk-updater/env. Rewrite the branch so no commit adds them ` +
+      `(\`git rebase -i origin/main\`, drop or edit those commits) and re-run; the next firing ` +
+      `otherwise retires the branch and starts fresh (issue #383).`,
+  );
 }
 
 /** The run-notes live under gitignored `.claudius/`, so porcelain never lists them — ask git directly. */
@@ -426,7 +590,10 @@ function runNotesUncommitted(notesRel: string, cwd: string): boolean {
  *   needs-human path instead of shipping as a clean success.
  *
  * `--no-verify` for the same reason as the crash-recovery snapshot: these
- * preserve work the gates already ran over; they are not a clean ship.
+ * preserve work the gates already ran over; they are not a clean ship. Both
+ * commits name their paths, so they commit only those, never whatever else
+ * sits in the index: the 0.3.327 notes commit swept up the agent's staged
+ * `.claudius/` (credentials, state, an 11 GB log) that way (issue #383).
  */
 export function rescueUncommittedWork(args: {
   before: DirtySnapshot;
@@ -439,16 +606,34 @@ export function rescueUncommittedWork(args: {
   cwd?: string;
 }): string | null {
   const cwd = args.cwd ?? ROOT;
+  // Runtime state the agent staged but HEAD doesn't track: unstage it (it
+  // stays on disk). State HEAD already tracks was committed by the agent
+  // itself; pushBranch refuses that branch.
+  const headTracks = new Set(trackedRuntimeStatePaths(cwd, "HEAD"));
+  const stagedOnly = trackedRuntimeStatePaths(cwd).filter((p) => !headTracks.has(p));
+  if (stagedOnly.length > 0) {
+    unstagePaths(stagedOnly, cwd);
+    log(`WARN unstaged ${stagedOnly.length} pipeline runtime file(s) the agent staged (${stagedOnly.slice(0, 5).join(", ")}…)`);
+  }
   if (runNotesUncommitted(args.notesRel, cwd)) {
     sh("git", ["add", "-f", "--", args.notesRel], { cwd });
-    sh("git", ["commit", "--no-verify", "-m", `docs(${args.scope}): notes for ${args.version}`], { cwd });
+    sh("git", ["commit", "--no-verify", "-m", `docs(${args.scope}): notes for ${args.version}`, "--", args.notesRel], {
+      cwd,
+    });
   }
   const paths = uncommittedWorkPaths(args.before, snapshotDirtyTree(cwd), args.ownDocsDir);
   if (paths.length === 0) return null;
   sh("git", ["add", "-A", "--", ...paths], { cwd });
   sh(
     "git",
-    ["commit", "--no-verify", "-m", `wip(${args.scope}): commit work the agent left uncommitted for ${args.version}`],
+    [
+      "commit",
+      "--no-verify",
+      "-m",
+      `wip(${args.scope}): commit work the agent left uncommitted for ${args.version}`,
+      "--",
+      ...paths,
+    ],
     { cwd },
   );
   const shown = paths.slice(0, 8).join(", ") + (paths.length > 8 ? `, +${paths.length - 8} more` : "");
@@ -805,6 +990,12 @@ export function preflight(): void {
   // stray edit — typically a leftover SDK bump from a prior run), stash
   // the changes aside and continue. The stash is branch-independent and
   // recoverable any time via `git stash list` / `git stash pop`.
+  //
+  // Untrack pipeline runtime state FIRST. If HEAD tracks `state.json` (an
+  // agent's `git add -f .claudius`, issue #383), the stash would revert our
+  // live state, credentials and logs to their committed copies, and the
+  // checkout below would refuse to run every hour.
+  untrackRuntimeState();
   const status = sh("git", ["status", "--porcelain"]);
   if (status.trim() !== "") {
     const label = `sdk-update-autostash ${new Date().toISOString()}`;
@@ -1016,12 +1207,25 @@ function checkoutFreshBranch(
   } catch {
     remoteExists = false;
   }
-  const localExists =
+  let localExists =
     sh("git", ["branch", "--list", branch]).trim() !== "";
+
+  assertMainCarriesNoRuntimeState();
 
   // Detach so we can manipulate any branch (including the one HEAD is
   // currently on) without confusing git.
   sh("git", ["checkout", "--detach", "origin/main"]);
+
+  // Never resume a branch that carries pipeline runtime state (issue #383).
+  if (localExists || remoteExists) {
+    // The same ref the resume below would start from.
+    const poisoned = runtimeStateOnBranch(remoteExists ? `origin/${branch}` : branch);
+    if (poisoned.length > 0) {
+      retirePoisonedBranch(branch, poisoned);
+      localExists = false;
+      remoteExists = false;
+    }
+  }
 
   // Case 1: nothing to resume.
   if (!localExists && !remoteExists) {
@@ -4840,6 +5044,7 @@ export function pushBranch(branch: string): void {
         `branchShipBlocker().`,
     );
   }
+  assertNoRuntimeStateToPush(branch);
   // Idempotency on re-run: a previous firing may have left the branch on
   // origin. We already nuked the local copy in checkoutFreshBranch and built
   // fresh on top of origin/main, so our local tree IS the canonical state and

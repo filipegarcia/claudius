@@ -53,6 +53,7 @@ import {
   addNeedsHumanLabel,
   ALL_GATE_STEPS,
   announceSafe,
+  assertMainCarriesNoRuntimeState,
   autoMergeOrEscalate,
   branchContextNote,
   branchShipBlocker,
@@ -69,9 +70,11 @@ import {
   pushBranch,
   readPrMeta,
   rescueUncommittedWork,
+  retirePoisonedBranch,
   returnToMainBestEffort,
   runClaude,
   runGate,
+  runtimeStateOnBranch,
   sliceChangelog,
   snapshotDirtyTree,
   uncommittedWorkPaths,
@@ -195,10 +198,23 @@ function checkoutFreshBranch(
   } catch {
     remoteExists = false;
   }
-  const localExists =
+  let localExists =
     sh("git", ["branch", "--list", branch]).trim() !== "";
 
+  assertMainCarriesNoRuntimeState();
+
   sh("git", ["checkout", "--detach", "origin/main"]);
+
+  // Never resume a branch that carries pipeline runtime state (issue #383);
+  // see the sdk-update copy of this function.
+  if (localExists || remoteExists) {
+    const poisoned = runtimeStateOnBranch(remoteExists ? `origin/${branch}` : branch);
+    if (poisoned.length > 0) {
+      retirePoisonedBranch(branch, poisoned);
+      localExists = false;
+      remoteExists = false;
+    }
+  }
 
   if (!localExists && !remoteExists) {
     log(`creating ${branch} off origin/main (no prior work to resume)`);
@@ -1099,11 +1115,13 @@ async function draftStrandedWorkSafe(args: {
   const label = kind === "gate" ? "local-gate failure" : "crash recovery";
   try {
     // Snapshot any uncommitted work so it rides along in the draft rather
-    // than being autostashed-and-forgotten next firing. `.claudius/` is
-    // gitignored, so transcripts/run-notes never get swept in here. Screenshot
-    // churn — PNGs e2e runs regenerate for OTHER versions, and the marketing
-    // gallery — is left out: on 2.1.295 a blind `git add -A` here swept 133 of
-    // them into the draft (reverted in 047b38b7).
+    // than being autostashed-and-forgotten next firing. Pipeline runtime
+    // state under `.claudius/` (credentials, state, logs) is filtered out by
+    // uncommittedWorkPaths even when an agent force-staged it, and the commit
+    // names its paths so nothing else in the index rides along (issue #383).
+    // Screenshot churn — PNGs e2e runs regenerate for OTHER versions, and the
+    // marketing gallery — is left out: on 2.1.295 a blind `git add -A` here
+    // swept 133 of them into the draft (reverted in 047b38b7).
     const paths = uncommittedWorkPaths(new Map(), snapshotDirtyTree(), `docs/cc-parity/${args.newVersion}/`);
     if (paths.length > 0) {
       sh("git", ["add", "-A", "--", ...paths]);
@@ -1118,6 +1136,8 @@ async function draftStrandedWorkSafe(args: {
         "--no-verify",
         "-m",
         `wip(cc-parity): crash-recovery snapshot for ${args.newVersion}`,
+        "--",
+        ...paths,
       ]);
       log(`${label}: snapshotted ${paths.length} dirty file(s) into a WIP commit (screenshot churn left out)`);
     }

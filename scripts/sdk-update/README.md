@@ -57,7 +57,10 @@ State lives outside the scripts dir, alongside other Claudius local state:
     └── run-notes/<v>.md   # Claude writes one per upgrade — orchestrator parses into PR body
 ```
 
-Everything under `.claudius/` is already gitignored.
+Everything under `.claudius/` is already gitignored. Only `run-notes/<v>.md` is
+tracked (added with `git add -f` by its exact path). Nothing else under it may
+be committed: the hooks and the orchestrator refuse it (see
+`scripts/lib/runtime-state.mjs`, issue #383).
 
 ---
 
@@ -516,6 +519,7 @@ until green.
 | Green PR has a "🧑‍⚖️ Decision needed" block at the top and `needs-human` | The [merge gate](#auto-merge) found a blocker, or the review wasn't confident | Answer the question in the block: merge, push a fix, or close. The reasons list says which check stopped it. The review's prompt + transcript are in `.claudius/sdk-updater/run-notes/merge-review-pr-<n>.*`. |
 | PR was announced but no pinned "shipped" message | CI failed | The PR-open announce (step 15) always fires; the pinned "shipped" message (step 17) is deliberately withheld until CI is green. Look at the PR's checks tab, then `make sdk-update-fix-pr PR=<n>`. |
 | PR opened but nothing posted to the channel at all | chat-server unreachable, or `CHAT_SERVER_URL` / token wrong | Announce is best-effort — check the cron log for a `WARN community announce failed` line. The PR is unaffected; fix the chat-server config and the next run/fix will post. |
+| `git checkout --detach origin/main` fails every hour: "local changes to … `.claudius/sdk-updater/state.json` would be overwritten" (#383) | the checked-out branch tracks runtime state, after an agent ran `git add -f .claudius` | Fixed automatically now: preflight untracks it and detaches HEAD onto the same tree without it, and the poisoned branch is retired as `backup/<branch>-runtime-state-<ts>`, never resumed or pushed. Cherry-pick any real work off the backup; the files on disk are untouched. |
 | Cron silently does nothing | lock held, env file missing, `check.ts` exited non-zero, or (macOS) `bun`/`gh` not on cron's `PATH` | `make sdk-update-status` + `make sdk-update-logs`. On macOS use the combined `make update-install-cron` so `PATH` is set for cron. |
 
 ---

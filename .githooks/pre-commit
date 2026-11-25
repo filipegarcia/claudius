@@ -10,7 +10,20 @@ set -eu
 # friendly error if neither bun nor npx is reachable.
 . "$(dirname "$0")/_runtime.sh"
 
-# Customization guard first — block commits that stage files owned by an
+# Pick a JS runtime for the guard scripts below. `_runtime.sh` guarantees bun
+# or npx; npx implies node is installed.
+if command -v bun >/dev/null 2>&1; then JS=bun; else JS=node; fi
+
+# Runtime-state guard first: refuse commits that stage the update pipeline's
+# gitignored runtime files (credentials in .claudius/sdk-updater/env, the
+# updaters' state.json, run locks, multi-GB logs). Only run-notes under
+# .claudius/*/run-notes/ are tracked. An agent's `git add -f .claudius`
+# committed all of it three times and wedged the hourly updater (issue #383).
+# It goes first because the secret scan below would crawl those logs for
+# minutes. See scripts/lib/runtime-state.mjs.
+"$JS" "$(dirname "$0")/../scripts/lib/runtime-state.mjs" staged
+
+# Customization guard next: block commits that stage files owned by an
 # ACTIVE customization publish. Publishing copies a customization's files
 # straight into the live source tree (lib/server/customization-publish.ts) so
 # the running app picks them up; git can't tell them from your own edits, so
@@ -18,12 +31,7 @@ set -eu
 # JSON publish records under ~/.claude/.claudius/customizations/ — no app
 # runtime needed. Deliberately upstreaming a customization? Bypass once with
 # CLAUDIUS_ALLOW_CUSTOMIZATION_COMMIT=1. See scripts/customization-commit-guard.mjs.
-if command -v bun >/dev/null 2>&1; then
-  bun "$(dirname "$0")/../scripts/customization-commit-guard.mjs"
-else
-  # _runtime.sh guarantees bun or npx; npx implies node is installed.
-  node "$(dirname "$0")/../scripts/customization-commit-guard.mjs"
-fi
+"$JS" "$(dirname "$0")/../scripts/customization-commit-guard.mjs"
 
 # Secret scan next — block commits that stage credentials. Runs on ALL
 # staged content (not just the JS/TS the lint step below covers): secrets
