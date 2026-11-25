@@ -8012,6 +8012,10 @@ export class Session {
         }
         return { added: 0 };
       }
+      // CC 2.1.330 — lines a fork copied from its source (see resume). Read
+      // before the seen-set and the loop, so the broadcasts below run without
+      // yielding and live events can't interleave with replayed history.
+      const forked = await this.readForkLineage(this.id);
       const seen = new Set<string>();
       for (const ev of this.buffer) {
         if (ev.type !== "sdk") continue;
@@ -8043,8 +8047,7 @@ export class Session {
         // ride on the carry-forward so they inherit their turn time
         // instead of falling through to Date.now() in `broadcast()`.
         const at = Number.isFinite(parsed) ? parsed : carriedAt;
-        // CC 2.1.330 — mark lines a fork copied from its source (see resume).
-        const sdk = withForkedFrom(m, await this.readForkLineage(this.id)) as unknown as SDKMessage;
+        const sdk = withForkedFrom(m, forked) as unknown as SDKMessage;
         this.broadcast({ type: "sdk", message: sdk, at });
         // External writers (terminal `claude --resume`, another SDK client)
         // can arm or cancel loops on disk; replay them through the tracker
