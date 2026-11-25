@@ -211,6 +211,7 @@ export default function PluginsPage() {
             <AvailableSection
               plugins={plugins.available}
               loading={plugins.availableLoading}
+              error={plugins.availableError}
               installedRefs={
                 new Set(merged.map((r) => r.id).filter((id) => id.includes("@")))
               }
@@ -464,6 +465,7 @@ function InstallSection({
 function AvailableSection({
   plugins,
   loading,
+  error,
   installedRefs,
   sessionId,
   onInstall,
@@ -471,6 +473,8 @@ function AvailableSection({
 }: {
   plugins: AvailablePlugin[];
   loading: boolean;
+  /** CC 2.1.331 — why the list failed to load, if it did. */
+  error: string | null;
   installedRefs: Set<string>;
   sessionId: string | null;
   onInstall: (ref: string) => Promise<{ ok: boolean; error?: string }>;
@@ -502,7 +506,7 @@ function AvailableSection({
         <Package className="h-4 w-4 text-[var(--accent)]" />
         <h2 className="text-sm font-medium">Available plugins</h2>
         <span className="text-[11px] text-[var(--muted)]">
-          {loading ? "loading…" : `${filtered.length} of ${plugins.length}`}
+          {loading ? "loading…" : error ? "couldn't load" : `${filtered.length} of ${plugins.length}`}
         </span>
         <button
           onClick={() => void onRefresh()}
@@ -555,9 +559,27 @@ function AvailableSection({
         </TrustNote>
       )}
 
-      {plugins.length === 0 && !loading ? (
+      {/* CC 2.1.331 — "Fixed Manage Plugins losing its search box or showing
+          no message when a search has no match, and not saying that the list
+          of available plugins failed to load". */}
+      {error && !loading ? (
+        <div
+          data-testid="plugins-available-error"
+          role="alert"
+          className="flex items-start justify-center gap-1.5 px-4 py-8 text-center text-sm text-red-300"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Couldn&apos;t load the available plugins: {error}. Refresh to try again.</span>
+        </div>
+      ) : plugins.length === 0 && !loading ? (
         <div className="px-4 py-8 text-center text-sm text-[var(--muted)]">
           No marketplaces cached yet. Add one in the Marketplaces section below, then refresh.
+        </div>
+      ) : filtered.length === 0 && !loading ? (
+        <div data-testid="plugins-available-no-match" className="px-4 py-8 text-center text-sm text-[var(--muted)]">
+          {query.trim()
+            ? `No plugins match "${query.trim()}"${category ? ` in ${category}` : ""}.`
+            : `No plugins in ${category ?? "this list"}.`}
         </div>
       ) : (
         <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto scroll-thin">

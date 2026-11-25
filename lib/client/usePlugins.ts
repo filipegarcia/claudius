@@ -39,6 +39,7 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
   const [pluginErrors, setPluginErrors] = useState<PluginLoadError[]>([]);
   const [available, setAvailable] = useState<AvailablePlugin[]>([]);
   const [availableLoading, setAvailableLoading] = useState(true);
+  const [availableError, setAvailableError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,13 +81,20 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     setAvailableLoading(true);
     try {
       const res = await fetch("/api/plugins/available");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        throw new Error(typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`);
+      }
       const d = (await res.json()) as { plugins: AvailablePlugin[] };
       setAvailable(d.plugins ?? []);
-    } catch {
-      // Best-effort — fall back to an empty list. Cached marketplaces may
-      // simply not be hydrated yet on a fresh install.
+      setAvailableError(null);
+    } catch (err) {
+      // CC 2.1.331 — "Fixed Manage Plugins … not saying that the list of
+      // available plugins failed to load". No cached marketplaces is an
+      // empty 200 (ENOENT); a failure keeps its reason so Discover doesn't
+      // read it as "no marketplaces".
       setAvailable([]);
+      setAvailableError(err instanceof Error ? err.message : String(err));
     } finally {
       setAvailableLoading(false);
     }
@@ -244,6 +252,7 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     pluginErrors,
     available,
     availableLoading,
+    availableError,
     loading,
     error,
     refresh,
