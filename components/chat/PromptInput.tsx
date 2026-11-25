@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils/cn";
 import { SlashCommandPicker } from "./SlashCommandPicker";
 import { AtMentionPicker } from "./AtMentionPicker";
 import { EmojiShortcodePicker } from "./EmojiShortcodePicker";
-import { lookupEmojiShortcode, parseEmojiTrigger } from "@/lib/shared/emoji-shortcodes";
+import { filterEmojiShortcodes, lookupEmojiShortcode, parseEmojiTrigger } from "@/lib/shared/emoji-shortcodes";
+import { atTokenBlocksEnter } from "./at-mention";
 import { ImageLightbox } from "./ImageLightbox";
 import { useVoice } from "@/lib/client/useVoice";
 import { useSdkCommands } from "@/lib/client/useSdkCommands";
@@ -312,6 +313,11 @@ export function PromptInput({
    */
   const [slashAtStart, setSlashAtStart] = useState(false);
   const [atQuery, setAtQuery] = useState<string | null>(null);
+  /**
+   * CC 2.1.331 — the `@` token the file menu last reported as having no rows
+   * (null: it has rows, or is still searching). See `atTokenBlocksEnter`.
+   */
+  const [atNoRowsFor, setAtNoRowsFor] = useState<string | null>(null);
   /** Active `:shortcode` token (leading `:` stripped), or null. Same update-site model as atQuery above. */
   const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
   // Hydration marker — `mounted` reads true on the client, false during SSR
@@ -1528,7 +1534,15 @@ export function PromptInput({
     // Mid-prompt slash picker (CC 2.1.265): the picker is open but Enter still
     // submits — only a leading slash (`slashAtStart`) captures Enter to run the
     // command, handled in SlashCommandPicker.
-    if (e.key === "Enter" && (!pickerOpen || !slashAtStart) && atQuery == null && emojiQuery == null) {
+    // CC 2.1.331 — "Enter not sending a prompt that ends in an @word with no
+    // matching file": an open `@token` (or `:token`) only holds Enter back
+    // while its menu has something to pick.
+    if (
+      e.key === "Enter" &&
+      (!pickerOpen || !slashAtStart) &&
+      !atTokenBlocksEnter(atQuery, atNoRowsFor) &&
+      (emojiQuery == null || filterEmojiShortcodes(emojiQuery).length === 0)
+    ) {
       const caret = e.currentTarget.selectionStart ?? 0;
       const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
       const nlIdx = value.indexOf("\n", caret);
@@ -2378,6 +2392,7 @@ export function PromptInput({
             sessionId={sessionId}
             onSelect={(rel) => insertAtMention(rel)}
             onClose={() => setAtQuery(null)}
+            onNoRows={setAtNoRowsFor}
           />
         )}
 

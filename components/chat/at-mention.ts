@@ -76,3 +76,32 @@ export function filterAgents(agents: Agent[], filter: string): PickerItem[] {
     }))
     .slice(0, PICKER_LIMIT);
 }
+
+/**
+ * CC 2.1.331 parity — "[VSCode] Fixed the @ menu inserting the wrong file on a
+ * quick Tab or Enter, and Enter not sending a prompt that ends in an @word
+ * with no matching file".
+ *
+ * What Tab or Enter does while the @ menu is open:
+ * - `"hold"`: the search for the token as typed now hasn't answered yet. The
+ *   rows on screen belong to the previous query, so picking one inserted the
+ *   wrong file. The key is swallowed.
+ * - `"pass"`: there's nothing to pick. The key goes to the composer, where
+ *   Enter sends (see {@link atTokenBlocksEnter}).
+ * - `"pick"`: insert the highlighted row.
+ */
+export function atMenuKeyAction(state: { loading: boolean; rows: number }): "hold" | "pass" | "pick" {
+  if (state.loading) return "hold";
+  return state.rows === 0 ? "pass" : "pick";
+}
+
+/**
+ * CC 2.1.331 — whether the `@token` before the caret stops Enter from sending.
+ * It used to whenever a token was open, so `thanks @claude` or `@Override`
+ * with no matching file turned Enter into a newline. Now only while the menu
+ * for that token still has rows to pick, or is still searching.
+ * `noRowsFor` is the token the menu last reported as empty (null: none).
+ */
+export function atTokenBlocksEnter(atQuery: string | null, noRowsFor: string | null): boolean {
+  return atQuery != null && noRowsFor !== atQuery;
+}

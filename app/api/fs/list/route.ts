@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listFs } from "@/lib/server/fs-list";
+import { searchFs } from "@/lib/server/fs-list";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
@@ -11,8 +11,9 @@ export async function GET(req: Request) {
   const q = url.searchParams.get("q") ?? "";
   const limit = Number(url.searchParams.get("limit") ?? "200") || 200;
   try {
-    const entries = await listFs({ cwd, query: q, limit });
-    return NextResponse.json({ cwd, entries });
+    // CC 2.1.331 — `truncated` lets the @ menu say the search was partial.
+    const { entries, truncated } = await searchFs({ cwd, query: q, limit });
+    return NextResponse.json({ cwd, entries, truncated });
   } catch (err) {
     // CC 2.1.301 — worded as a failed search so the @-picker never shows it
     // as "no matches".
