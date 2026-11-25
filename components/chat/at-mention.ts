@@ -105,3 +105,25 @@ export function atMenuKeyAction(state: { loading: boolean; rows: number }): "hol
 export function atTokenBlocksEnter(atQuery: string | null, noRowsFor: string | null): boolean {
   return atQuery != null && noRowsFor !== atQuery;
 }
+
+/**
+ * CC 2.1.331 — what becomes of a plain Enter the @ menu held while the search
+ * for its token was still running. Swallowing it outright lost the keypress: a
+ * prompt ending in an `@word` that matched nothing didn't send until Enter was
+ * pressed again.
+ * - `"wait"`: that search hasn't answered yet.
+ * - `"drop"`: the token changed (typed on, or the menu closed), or the search
+ *   found files. The fresh rows show; nothing is inserted or sent.
+ * - `"send"`: the search answered with nothing to pick. The Enter goes to the
+ *   composer as if pressed now.
+ */
+export function heldEnterOutcome(state: {
+  heldFor: string;
+  query: string;
+  loading: boolean;
+  rows: number;
+}): "wait" | "drop" | "send" {
+  if (state.query !== state.heldFor) return "drop";
+  if (state.loading) return "wait";
+  return state.rows === 0 ? "send" : "drop";
+}

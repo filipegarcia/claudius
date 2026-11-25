@@ -12,7 +12,8 @@
  *      previous query's rows stayed on screen and took Tab/Enter, so a quick
  *      Tab inserted the wrong file. Tab/Enter now wait for the results.
  *   2. With a prompt ending in an `@word` nothing matches (`thanks @zzzz`),
- *      Enter inserted a newline. It now sends.
+ *      Enter inserted a newline. It now sends, including an Enter pressed
+ *      while that search was still running, once it answers with no match.
  *   3. The server walk stops at 5,000 entries or depth 6, and a file beyond
  *      that made the menu close as if it didn't exist. When a partial search
  *      matches nothing, the menu now says the search was partial. The note
@@ -110,6 +111,41 @@ test("Enter sends a prompt that ends in an @word with no matching file", async (
   await page.keyboard.press("Enter");
   await expect.poll(() => inputs.length).toBe(1);
   expect(inputs[0]).toBe("thanks @zzzz");
+});
+
+test("an Enter pressed while the search is still running sends once it finds no match", async ({ page }) => {
+  const { inputs } = await setup(page, (q) => ({ body: { entries: [] }, delayMs: q === "zzzz" ? 1500 : 0 }));
+  await page.goto("/");
+
+  const composer = page.getByTestId("prompt-input");
+  await expect(composer).toBeEnabled({ timeout: 15_000 });
+  await composer.focus();
+  await composer.pressSequentially("thanks @zzzz");
+  // The search for `zzzz` hasn't answered: the menu is still loading.
+  await page.keyboard.press("Enter");
+  expect(inputs).toHaveLength(0);
+  await expect(composer).toHaveValue("thanks @zzzz");
+
+  await expect.poll(() => inputs.length, { timeout: 10_000 }).toBe(1);
+  expect(inputs[0]).toBe("thanks @zzzz");
+});
+
+test("an Enter held during a search that finds files sends nothing and inserts nothing", async ({ page }) => {
+  const { inputs } = await setup(page, (q) =>
+    q === "bill" ? { body: { entries: [file("src/billing.ts")] }, delayMs: 1500 } : { body: { entries: [] } },
+  );
+  await page.goto("/");
+
+  const composer = page.getByTestId("prompt-input");
+  await expect(composer).toBeEnabled({ timeout: 15_000 });
+  await composer.focus();
+  await composer.pressSequentially("see @bill");
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByText("src/billing.ts")).toBeVisible();
+  await page.waitForTimeout(300);
+  await expect(composer).toHaveValue("see @bill");
+  expect(inputs).toHaveLength(0);
 });
 
 test("a partial search of a large workspace says so instead of closing the menu", async ({ page }) => {

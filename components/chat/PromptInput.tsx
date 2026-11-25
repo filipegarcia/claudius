@@ -1039,6 +1039,56 @@ export function PromptInput({
     histRef.current = IDLE_HISTORY_CURSOR;
   }
 
+  /**
+   * What Enter does once no picker claims it, at caret `caret`. Returns true
+   * when it handled the key (the caller prevents the default newline).
+   * Shared by the textarea's own Enter and an Enter the @ menu hands back
+   * (CC 2.1.331, `onUnmatchedEnter`), so both continue a list or send alike.
+   */
+  function applyEnter(caret: number, key: { shiftKey: boolean; repeat: boolean }): boolean {
+    const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
+    const nlIdx = value.indexOf("\n", caret);
+    const lineEnd = nlIdx === -1 ? value.length : nlIdx;
+    const line = value.slice(lineStart, lineEnd);
+
+    const cont = computeListContinuation(line);
+    // List-aware Enter runs for *both* Enter and Shift+Enter: plain Enter
+    // submits, so Shift+Enter is the user's only way to add a newline, and
+    // it must continue the list just like Enter would in any other editor.
+    if (cont) {
+      if (cont.kind === "empty") {
+        // Empty list item → exit the list by clearing this line's marker.
+        // Caret lands at the (now-blank) line start so the next Enter
+        // produces a normal newline. Mirrors VS Code / Slack behaviour.
+        applyEdit(lineStart, lineEnd, "", 0);
+      } else {
+        // Non-empty list item → split at caret and seed the new line
+        // with the continuation marker.
+        applyEdit(caret, caret, "\n" + cont.next, 1 + cont.next.length);
+      }
+      return true;
+    }
+
+    // Outside a list, fall back to original semantics: Enter submits,
+    // Shift+Enter inserts a plain newline (browser default).
+    if (key.shiftKey) return false;
+    // CC 2.1.330 — "Fixed a held-down Enter key sending a half-written
+    // message or running a typed slash command". The first keydown of a
+    // held Enter picks the `@` file or `/` command; its auto-repeats land
+    // here with the picker closed and used to send the half-written message
+    // (or run the just-completed `/compact`). Only a fresh press sends.
+    if (key.repeat) return true;
+    // If the input is empty and there's a queued message, pressing Enter
+    // sends the first queued message immediately (before the current turn
+    // finishes) instead of submitting a no-op.
+    if (!value.trim() && images.length === 0 && onSendQueuedNow) {
+      onSendQueuedNow();
+      return true;
+    }
+    submit();
+    return true;
+  }
+
   function submit() {
     if (sendDisabled) return;
     // The dictation self-stop notice is about the draft being sent now —
@@ -1532,49 +1582,11 @@ export function PromptInput({
       !atTokenBlocksEnter(atQuery, atNoRowsFor) &&
       (emojiQuery == null || filterEmojiShortcodes(emojiQuery).length === 0)
     ) {
-      const caret = e.currentTarget.selectionStart ?? 0;
-      const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
-      const nlIdx = value.indexOf("\n", caret);
-      const lineEnd = nlIdx === -1 ? value.length : nlIdx;
-      const line = value.slice(lineStart, lineEnd);
-
-      const cont = computeListContinuation(line);
-      // List-aware Enter runs for *both* Enter and Shift+Enter: plain Enter
-      // submits, so Shift+Enter is the user's only way to add a newline, and
-      // it must continue the list just like Enter would in any other editor.
-      if (cont) {
-        e.preventDefault();
-        if (cont.kind === "empty") {
-          // Empty list item → exit the list by clearing this line's marker.
-          // Caret lands at the (now-blank) line start so the next Enter
-          // produces a normal newline. Mirrors VS Code / Slack behaviour.
-          applyEdit(lineStart, lineEnd, "", 0);
-        } else {
-          // Non-empty list item → split at caret and seed the new line
-          // with the continuation marker.
-          applyEdit(caret, caret, "\n" + cont.next, 1 + cont.next.length);
-        }
-        return;
-      }
-
-      // Outside a list, fall back to original semantics: Enter submits,
-      // Shift+Enter inserts a plain newline (browser default).
-      if (e.shiftKey) return;
-      e.preventDefault();
-      // CC 2.1.330 — "Fixed a held-down Enter key sending a half-written
-      // message or running a typed slash command". The first keydown of a
-      // held Enter picks the `@` file or `/` command; its auto-repeats land
-      // here with the picker closed and used to send the half-written message
-      // (or run the just-completed `/compact`). Only a fresh press sends.
-      if (isHeldRepeat(e)) return;
-      // If the input is empty and there's a queued message, pressing Enter
-      // sends the first queued message immediately (before the current turn
-      // finishes) instead of submitting a no-op.
-      if (!value.trim() && images.length === 0 && onSendQueuedNow) {
-        onSendQueuedNow();
-        return;
-      }
-      submit();
+      const handled = applyEnter(e.currentTarget.selectionStart ?? 0, {
+        shiftKey: e.shiftKey,
+        repeat: isHeldRepeat(e),
+      });
+      if (handled) e.preventDefault();
       return;
     }
 
@@ -2389,6 +2401,9 @@ export function PromptInput({
             onSelect={(rel) => insertAtMention(rel)}
             onClose={() => setAtQuery(null)}
             onNoRows={setAtNoRowsFor}
+            onUnmatchedEnter={() =>
+              applyEnter(taRef.current?.selectionStart ?? value.length, { shiftKey: false, repeat: false })
+            }
           />
         )}
 

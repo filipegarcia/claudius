@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { atMenuKeyAction, atTokenBlocksEnter } from "@/components/chat/at-mention";
+import { atMenuKeyAction, atTokenBlocksEnter, heldEnterOutcome } from "@/components/chat/at-mention";
 import { listFs, searchFs } from "@/lib/server/fs-list";
 
 /**
@@ -46,6 +46,28 @@ describe("atTokenBlocksEnter (CC 2.1.331)", () => {
 
   test("an empty report for an earlier token doesn't unblock a new one", () => {
     expect(atTokenBlocksEnter("claudius", "claude")).toBe(true);
+  });
+});
+
+describe("heldEnterOutcome (CC 2.1.331)", () => {
+  // An Enter pressed while the search for `zzzz` was running used to be
+  // swallowed outright, so the prompt didn't send until Enter was pressed again.
+  test("waits while the search for the held token is still running", () => {
+    expect(heldEnterOutcome({ heldFor: "zzzz", query: "zzzz", loading: true, rows: 0 })).toBe("wait");
+    expect(heldEnterOutcome({ heldFor: "zzzz", query: "zzzz", loading: true, rows: 3 })).toBe("wait");
+  });
+
+  test("sends once that search answers with nothing to pick", () => {
+    expect(heldEnterOutcome({ heldFor: "zzzz", query: "zzzz", loading: false, rows: 0 })).toBe("send");
+  });
+
+  test("drops it when the search found files: the rows show, nothing is inserted or sent", () => {
+    expect(heldEnterOutcome({ heldFor: "src", query: "src", loading: false, rows: 2 })).toBe("drop");
+  });
+
+  test("drops it when the token changed before the search answered", () => {
+    expect(heldEnterOutcome({ heldFor: "zzz", query: "zzzz", loading: true, rows: 0 })).toBe("drop");
+    expect(heldEnterOutcome({ heldFor: "zzz", query: "zzzz", loading: false, rows: 0 })).toBe("drop");
   });
 });
 

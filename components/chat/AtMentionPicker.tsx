@@ -10,6 +10,7 @@ import {
   type PickerItem,
   atMenuKeyAction,
   filterAgents,
+  heldEnterOutcome,
   itemToken,
   normalizeFileMentionQuery,
   parseAtMentionQuery,
@@ -41,9 +42,17 @@ type Props = {
    * stable function (a state setter).
    */
   onNoRows?: (query: string | null) => void;
+  /**
+   * CC 2.1.331 — a plain Enter with nothing to pick: pressed while the menu
+   * has no rows, or pressed during the search and replayed once it answered
+   * with none. The composer runs its own Enter (send, or continue a list).
+   * Handled here rather than left to the composer's `onNoRows` gate, which
+   * updates a render later and would turn that Enter into a newline.
+   */
+  onUnmatchedEnter?: () => void;
 };
 
-export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose, onNoRows }: Props) {
+export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose, onNoRows, onUnmatchedEnter }: Props) {
   // `@` is already stripped by PromptInput's refreshPickerState, so an
   // agent mention shows up here as e.g. "agent-rev".
   const { agentMode, filter: agentFilter } = parseAtMentionQuery(query);
@@ -64,6 +73,9 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose, onNo
   const [truncated, setTruncated] = useState(false);
   const [hi, setHi] = useState(0);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  // CC 2.1.331 — the token a plain Enter was held for while its search ran
+  // (see `heldEnterOutcome`), or null.
+  const heldEnterRef = useRef<string | null>(null);
 
   // Agent list, fetched once per session and cached (mirrors useSdkCommands):
   // each call to the agents endpoint is an SDK control round-trip, so we never
@@ -187,10 +199,23 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose, onNo
       // running, the rows on screen are the previous query's: a quick Tab or
       // Enter inserted the wrong file. Hold the key until the results land.
       // With nothing to pick, Enter goes on to the composer, which sends.
-      if ((e.key === "Tab" || e.key === "Enter") && atMenuKeyAction({ loading, rows: visible.length }) === "hold") {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
+      if (e.key === "Tab" || e.key === "Enter") {
+        const action = atMenuKeyAction({ loading, rows: visible.length });
+        const plainEnter =
+          e.key === "Enter" && !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey && !isHeldRepeat(e);
+        if (action === "hold") {
+          e.preventDefault();
+          e.stopPropagation();
+          // Kept, not lost: replayed if the search finds nothing to pick.
+          if (plainEnter && onUnmatchedEnter) heldEnterRef.current = query;
+          return;
+        }
+        if (action === "pass" && plainEnter && onUnmatchedEnter) {
+          e.preventDefault();
+          e.stopPropagation();
+          onUnmatchedEnter();
+          return;
+        }
       }
       if (visible.length === 0) return;
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — let it
@@ -231,7 +256,18 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose, onNo
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [hi, visible, loading, onClose, onSelect]);
+  }, [hi, visible, loading, query, onClose, onSelect, onUnmatchedEnter]);
+
+  // CC 2.1.331 — settle an Enter held during the search: send once it answers
+  // with nothing to pick, drop it if files turned up or the token changed.
+  useEffect(() => {
+    const heldFor = heldEnterRef.current;
+    if (heldFor == null) return;
+    const outcome = heldEnterOutcome({ heldFor, query, loading, rows: visible.length });
+    if (outcome === "wait") return;
+    heldEnterRef.current = null;
+    if (outcome === "send") onUnmatchedEnter?.();
+  }, [query, loading, visible.length, onUnmatchedEnter]);
 
   useEffect(() => {
     itemRefs.current[hi]?.scrollIntoView({ block: "nearest" });
