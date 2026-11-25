@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { stampUserRejectedToolResults } from "@/lib/shared/user-rejected-stamp";
 import { isEngineResumeGapNotice } from "@/lib/shared/resume-gap-notice";
+import { savedModelAfterPick } from "@/lib/shared/default-model-pick";
 import { withGoalMcpServer, withoutGoalMcpServer } from "./mcp-in-process";
 import { watch as watchFs, readFileSync, type FSWatcher, promises as fsp } from "node:fs";
 import { homedir } from "node:os";
@@ -6206,10 +6207,14 @@ export class Session {
   private async persistModelToUserSettings(model: string | undefined): Promise<void> {
     try {
       const current = await readSettings("user", this.cwd);
+      // CC 2.1.329 — the Default row keeps the saved model when it showed it,
+      // else deletes the key; never writes the literal "default".
+      const catalog = model === "default" ? await this.query?.supportedModels().catch(() => undefined) : undefined;
+      const after = savedModelAfterPick(model, current.model, catalog);
       // No-op if the file already matches — avoids touching mtime and
       // triggering external watchers (Claude Code TUI, MDM tooling).
-      const desired = model || undefined;
-      if (current.model === desired) return;
+      if (!after) return;
+      const desired = after.model;
       const next: ClaudeSettings = { ...current };
       if (desired) {
         next.model = desired;
