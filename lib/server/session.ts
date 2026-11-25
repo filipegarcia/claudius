@@ -4416,7 +4416,17 @@ export class Session {
     // red ⚠ icon on the activity rail even though the user had accepted
     // the plan. Returning the setMode as part of the allow lets the SDK
     // perform the transition atomically and the tool returns success.
-    this.permissionMode = "acceptEdits";
+    //
+    // CC 2.1.328 — "Changed plan mode … to use and offer auto mode …;
+    // `disableAutoMode` turns both off". "Accept & use auto mode" executes in
+    // `auto`, behind the same two gates `applyPermissionMode` applies.
+    let mode: "acceptEdits" | "auto" = "acceptEdits";
+    if (decision.mode === "auto") {
+      const gate = await readSettings("user", this.cwd).catch(() => ({}) as ClaudeSettings);
+      const info = isAutoModeDisabled(gate) ? undefined : await this.modelCatalogInfo(this.model ?? this.sdkModel);
+      if (!isAutoModeDisabled(gate) && !shouldLeaveAutoForModel("auto", info)) mode = "auto";
+    }
+    this.permissionMode = mode;
     this.permissionModeSeq++;
     // `updatedInput` is REQUIRED on the allow branch even though sdk.d.ts
     // marks it optional — the SDK's runtime Zod validator rejects
@@ -4434,7 +4444,7 @@ export class Session {
       behavior: "allow",
       updatedInput: rawInput,
       updatedPermissions: [
-        { type: "setMode", mode: "acceptEdits", destination: "session" },
+        { type: "setMode", mode, destination: "session" },
       ],
     };
     // If the user hand-edited the plan in the overlay, ship their version
@@ -4457,7 +4467,7 @@ export class Session {
     // doesn't revive the session in plan from the transcript's last stamp.
     void mergeSessionState(this.cwd, this.id, {
       priorPlan: editedPlan && editedPlan.length > 0 ? editedPlan : pending.plan,
-      ...permissionModeRecord("acceptEdits"),
+      ...permissionModeRecord(mode),
     });
     // Feature 39 parity: arm the post-execution verify nudge. The flag is
     // drained at the next `result` boundary in `consume()` (NOT here, NOT
@@ -4468,7 +4478,7 @@ export class Session {
     // The SDK doesn't echo `setMode` permission updates back through its
     // message iterator — broadcast manually so the client UI's mode badge
     // (plan → acceptEdits) follows along immediately.
-    this.broadcast({ type: "mode_changed", mode: "acceptEdits" });
+    this.broadcast({ type: "mode_changed", mode });
     this.broadcastTurnStatusIfChanged();
     void this.flushQueueIfIdle().catch(() => {});
     return true;

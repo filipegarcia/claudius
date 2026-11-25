@@ -3104,13 +3104,16 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
             void session.resolvePlan({ kind: "reject", message: "User dismissed the plan." });
             showToast("Plan dismissed — still in plan mode");
           }}
-          onAccept={(editedPlan) => {
-            void session.resolvePlan({ kind: "accept", editedPlan });
-            showToast(
-              editedPlan
-                ? "Edited plan accepted — switched to acceptEdits"
-                : "Plan accepted — switched to acceptEdits",
-            );
+          // CC 2.1.328 — "Accept & use auto mode" unless `disableAutoMode`.
+          autoModeAvailable={!autoModeDisabled}
+          onAccept={(editedPlan, mode) => {
+            void session.resolvePlan({ kind: "accept", editedPlan, ...(mode ? { mode } : {}) });
+            // The server can still refuse auto (a model that can't run it, or
+            // a `disableAutoMode` this tab hadn't loaded yet) and use
+            // acceptEdits, so the auto toast doesn't claim a mode: the mode
+            // badge, driven by the server's `mode_changed`, shows which.
+            const accepted = editedPlan ? "Edited plan accepted" : "Plan accepted";
+            showToast(mode === "auto" ? `${accepted} — auto mode requested` : `${accepted} — switched to acceptEdits`);
           }}
           onReject={() => {
             void session.resolvePlan({ kind: "reject" });

@@ -661,6 +661,13 @@ export type PlanDecision =
        * rather than what it originally drafted.
        */
       editedPlan?: string;
+      /**
+       * CC 2.1.328 — "Yes, and use auto mode": execute the plan in `auto`
+       * instead of `acceptEdits`. The server falls back to `acceptEdits`
+       * when `disableAutoMode` is set or the model's catalog row says it
+       * can't run auto (see `Session.resolvePlan`).
+       */
+      mode?: "auto";
     }
   | { kind: "reject"; message?: string };
 
