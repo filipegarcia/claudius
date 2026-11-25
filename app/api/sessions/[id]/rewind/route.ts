@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import { deadSessionResponse, sessionManager } from "@/lib/server/session-manager";
+import { REWIND_ROUTE_TIMEOUT_MS, TIMED_OUT, rewindTimeoutMessage, withTimeout } from "@/lib/shared/rewind-timeout";
 
 export const runtime = "nodejs";
 
@@ -17,8 +18,9 @@ export const runtime = "nodejs";
  *
  * The SDK's `RewindFilesResult` is returned as `result`. A `canRewind: false`
  * outcome (unknown message id, no checkpoint) is a normal 200 response with
- * `result.error` set, not an HTTP error — only an inactive session (503) or a
- * thrown SDK error (503) map to non-200.
+ * `result.error` set, not an HTTP error — only an inactive session (503), a
+ * thrown SDK error (503) or no answer from the process in time (504) map to
+ * non-200.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -50,7 +52,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       return NextResponse.json({ error: "session not active" }, { status: 503 });
     }
 
-    const result = await query.rewindFiles(userMessageId, { dryRun: body?.dryRun === true });
+    // CC 2.1.332 — "Fixed Rewind staying on 'Checking code changes…' while
+    // Claude's process hung at its start". A process that exists but never
+    // answers left this await (and the button's spinner) hanging forever.
+    const dryRun = body?.dryRun === true;
+    const result = await withTimeout(query.rewindFiles(userMessageId, { dryRun }), REWIND_ROUTE_TIMEOUT_MS);
+    if (result === TIMED_OUT) {
+      return NextResponse.json({ error: rewindTimeoutMessage(dryRun) }, { status: 504 });
+    }
     return NextResponse.json({ result });
   } catch (err) {
     console.error("[api/sessions/rewind] POST failed", err);

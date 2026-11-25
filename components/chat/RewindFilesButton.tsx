@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { History, Loader2 } from "lucide-react";
 import { isImeComposing } from "@/lib/client/key-match";
+import { REWIND_CLIENT_TIMEOUT_MS, rewindTimeoutMessage } from "@/lib/shared/rewind-timeout";
 
 /**
  * "Restore files to here" affordance on a user message (B1.1, option a).
@@ -51,11 +52,25 @@ async function callRewind(
   userMessageId: string,
   dryRun: boolean,
 ): Promise<RewindResult> {
-  const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/rewind`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userMessageId, dryRun }),
-  });
+  // CC 2.1.332 — a hung process used to leave this fetch (and the spinner)
+  // pending forever. The route answers 504 after its own timeout; this abort
+  // is the backstop for a route that never answers at all.
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), REWIND_CLIENT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/rewind`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userMessageId, dryRun }),
+      signal: abort.signal,
+    });
+  } catch (err) {
+    if (abort.signal.aborted) throw new Error(rewindTimeoutMessage(dryRun));
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   const body = (await res.json().catch(() => ({}))) as { result?: RewindResult; error?: string };
   if (!res.ok) throw new Error(body.error ?? `rewind failed: ${res.status}`);
   if (!body.result) throw new Error("malformed rewind response");
