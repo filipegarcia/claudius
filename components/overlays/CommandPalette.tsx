@@ -45,6 +45,7 @@ import { useElectronAction } from "@/lib/client/useElectron";
 import { SLASH_COMMANDS } from "@/lib/shared/slash-commands";
 
 import { Overlay } from "./Overlay";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type ItemKind = "nav" | "slash" | "shortcut";
 
@@ -166,6 +167,7 @@ export function CommandPalette() {
   const binding = useKeydownBinding("nav.commandPalette");
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (isTypingTarget(e.target) && !open) return;
       if (matchBinding(binding, e)) {
         e.preventDefault();
@@ -294,6 +296,7 @@ export function CommandPalette() {
 
   const onInputKey = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (isImeComposing(e.nativeEvent)) return; // CC 2.1.329
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIndex(Math.min(filtered.length - 1, clampedActive + 1));

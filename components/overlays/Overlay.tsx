@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Minus, X } from "lucide-react";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type Props = {
   title: React.ReactNode;
@@ -125,6 +126,7 @@ export function Overlay({
   useEffect(() => {
     if (!dismissOnBackdrop) return;
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);

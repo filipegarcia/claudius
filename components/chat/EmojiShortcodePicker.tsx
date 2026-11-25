@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { filterEmojiShortcodes } from "@/lib/shared/emoji-shortcodes";
 import { cn } from "@/lib/utils/cn";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type Props = {
   /** The partial shortcode name typed so far, with the leading `:` already stripped by PromptInput. */
@@ -32,6 +33,7 @@ export function EmojiShortcodePicker({ query, onSelect, onClose }: Props) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (visible.length === 0) return;
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — let it
       // pass through rather than moving this picker's highlight.

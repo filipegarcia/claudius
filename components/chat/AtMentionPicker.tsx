@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, File, Folder } from "lucide-react";
+import { isImeComposing } from "@/lib/client/key-match";
 import {
   type Agent,
   type PickerItem,
@@ -148,6 +149,7 @@ export function AtMentionPicker({ query, cwd, sessionId, onSelect, onClose }: Pr
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (visible.length === 0) return;
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — let it
       // pass through to PromptInput rather than moving this picker's highlight.

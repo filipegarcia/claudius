@@ -7,6 +7,7 @@ import { visualizeHiddenNameUnicode, visualizeInvisibleUnicode } from "@/lib/sha
 import { cn } from "@/lib/utils/cn";
 import { isTypingInField } from "@/lib/client/typing-focus";
 import { armPrompt, shouldIgnorePromptEscape } from "@/lib/client/prompt-arm";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type Props = {
   request: PermissionRequestEvent;
@@ -112,6 +113,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       // Ignore auto-repeat: with a queue, a held Escape would otherwise deny
       // every stacked request in a row, including ones never seen.
       if (e.key !== "Escape" || e.repeat) return;

@@ -8,6 +8,7 @@ import { readBridgeOnClient } from "@/lib/client/useElectron";
 import { resolveDroppedPath } from "@/lib/client/file-paths";
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type Props = {
   request: AskUserQuestionEvent;
@@ -262,6 +263,7 @@ export function AskUserQuestionPrompt({
   useEffect(() => {
     if (inline) return;
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       // Don't intercept while the user is typing into an input.
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;

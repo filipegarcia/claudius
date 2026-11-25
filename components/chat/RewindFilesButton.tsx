@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { History, Loader2 } from "lucide-react";
+import { isImeComposing } from "@/lib/client/key-match";
 
 /**
  * "Restore files to here" affordance on a user message (B1.1, option a).
@@ -108,6 +109,7 @@ export function RewindFilesButton({
   useEffect(() => {
     if (!dialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (e.key === "Escape") setPhase({ kind: "idle" });
     };
     window.addEventListener("keydown", onKey);

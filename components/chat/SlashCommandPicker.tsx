@@ -12,6 +12,7 @@ import {
   type SlashSuggestion,
 } from "@/lib/shared/slash-commands";
 import { cn } from "@/lib/utils/cn";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type Props = {
   value: string;
@@ -158,6 +159,7 @@ export function SlashCommandPicker({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (visible.length === 0) return;
       // Cmd/Ctrl+↑/↓ is the composer's prompt-history recall chord — leave it
       // for PromptInput even while this picker is open (the history walk can

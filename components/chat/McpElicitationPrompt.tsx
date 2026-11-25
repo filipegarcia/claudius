@@ -13,6 +13,7 @@ import {
 } from "@/lib/shared/elicitation";
 import { cn } from "@/lib/utils/cn";
 import { armPrompt, shouldIgnorePromptEscape } from "@/lib/client/prompt-arm";
+import { isImeComposing } from "@/lib/client/key-match";
 
 type Props = {
   request: McpElicitationRequestEvent;
@@ -65,6 +66,7 @@ export function McpElicitationPrompt({ request, onResolve, queueTotal }: Props) 
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (isImeComposing(e)) return; // CC 2.1.329: the IME owns a composing key
       if (e.key !== "Escape" || e.repeat) return;
       if (shouldIgnorePromptEscape(e, armedAtRef.current)) return;
       onResolve({ action: "cancel" });
