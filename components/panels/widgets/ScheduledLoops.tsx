@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CalendarClock, Repeat, Timer, X } from "lucide-react";
 import type { ScheduledLoop } from "@/lib/client/types";
+import { loopEndsAt } from "@/lib/shared/session-loops";
 import { fmtElapsedSec } from "./format";
 
 /**
@@ -48,7 +49,11 @@ export function ScheduledLoops({
         const elapsed = Math.max(0, (now - loop.startedAt) / 1000);
         const Icon = loop.kind === "wakeup" ? Timer : Repeat;
         const cancelling = cancellingIds.has(loop.id);
-        const muted = loop.cancelled || cancelling;
+        // CC 2.1.330 — a recurring cron ends at its age limit (30 days now,
+        // 7 for jobs made before); once past, it no longer fires.
+        const endsAt = loopEndsAt(loop);
+        const ended = endsAt !== null && now >= endsAt;
+        const muted = loop.cancelled || cancelling || ended;
         const tone = muted
           ? "border-[var(--border)] bg-[var(--panel-2)]/40 text-[var(--muted)]"
           : loop.kind === "wakeup"
@@ -124,7 +129,7 @@ export function ScheduledLoops({
               {/* CC 2.1.295 parity — self-paced (wakeup) loops get the X
                   too; it asks the agent for `ScheduleWakeup { stop: true }`
                   instead of CronDelete. */}
-              {onCancel && !loop.cancelled && !cancelling && (
+              {onCancel && !loop.cancelled && !cancelling && !ended && (
                 <button
                   type="button"
                   data-testid="scheduled-loop-cancel"
@@ -183,6 +188,19 @@ export function ScheduledLoops({
             )}
             <div className="mt-0.5 flex gap-2 text-[9px] opacity-60">
               <span>armed {fmtElapsedSec(elapsed)} ago</span>
+              {/* CC 2.1.330 — "Changed recurring scheduled tasks and `/loop`
+                  to run up to 30 days instead of 7 while their session keeps
+                  running, and say when they end". */}
+              {endsAt !== null && !loop.cancelled && (
+                <span
+                  data-testid="loop-ends"
+                  className="whitespace-nowrap"
+                  title={`${ended ? "Ended" : "Ends"} ${new Date(endsAt).toLocaleString()}`}
+                >
+                  {ended ? "ended" : "ends"}{" "}
+                  {new Date(endsAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </span>
+              )}
               {loop.kind === "cron" && loop.cron && loop.humanSchedule && (
                 <span className="font-mono">{loop.cron}</span>
               )}

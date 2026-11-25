@@ -67,7 +67,7 @@ describe("isLoopArmed — wake-ups", () => {
 });
 
 describe("isLoopArmed — crons", () => {
-  test("a recurring cron is armed, bounded by the keep-alive cap", () => {
+  test("a recurring cron is armed, bounded by its own end (CC 2.1.330)", () => {
     expect(isLoopArmed(cron(), T0 + 3_600_000)).toBe(true);
     expect(isLoopArmed(cron(), T0 + LOOP_KEEPALIVE_MAX_MS + 1)).toBe(false);
     expect(isLoopArmed(cron({ cancelled: true }), T0)).toBe(false);

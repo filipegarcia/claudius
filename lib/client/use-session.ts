@@ -37,7 +37,12 @@ import type {
 import type { Tip } from "@/lib/shared/tips";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 import { costFromTokens } from "@/lib/shared/cost-pricing";
-import { readCronNextFireAt, readEndedLoopWakeup } from "@/lib/shared/session-loops";
+import {
+  readCronMaxAgeMs,
+  readCronNextFireAt,
+  readCronRecurring,
+  readEndedLoopWakeup,
+} from "@/lib/shared/session-loops";
 import {
   OPUS48_FAST_DEPRECATION_KEY,
   isFastModeCreditsRejectedNotice,
@@ -3330,7 +3335,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
                   humanSchedule: null,
                   delaySeconds: null,
                   prompt,
-                  recurring: inp.recurring === true,
+                  // CronCreateInput.recurring: "true (default)" — omitted means recurring.
+                  recurring: inp.recurring !== false,
                   durable: false,
                   // Anchor to when the loop was originally armed (the
                   // SSE event's `at` is the JSONL timestamp on replay,
@@ -3861,7 +3867,9 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           //
           //   "Scheduled recurring job 1545ddb6 (Every minute). Session-only
           //    (not written to disk, dies when Claude exits). Auto-expires
-          //    after 7 days. Use CronDelete to cancel sooner."
+          //    after 30 days. Use CronDelete to cancel sooner."
+          //
+          // (CC 2.1.330 raised that from 7 days; jobs made before still say 7.)
           //
           // If parsing fails (text shape changes), we leave the pending
           // entry in place keyed by tool_use_id — visible but with a
@@ -3879,13 +3887,20 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             const humanSchedule = idMatch?.[2] ?? null;
             const durable = !/session[- ]only/i.test(result.text);
             // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
-            const nextFireAt = readCronNextFireAt((msg as { tool_use_result?: unknown }).tool_use_result);
+            const toolUseResult = (msg as { tool_use_result?: unknown }).tool_use_result;
+            const nextFireAt = readCronNextFireAt(toolUseResult);
+            // CC 2.1.330 / SDK 0.3.332 — whether it repeats and when a
+            // recurring job ends. Same reads as the server — keep in sync.
+            const recurring = readCronRecurring(toolUseResult, result.text) ?? pending.recurring;
+            const maxAgeMs = recurring ? readCronMaxAgeMs(toolUseResult, result.text) : undefined;
             const promoted: ScheduledLoop = {
               ...pending,
               id: cronId,
               humanSchedule,
               durable,
+              recurring,
               ...(nextFireAt !== undefined ? { nextFireAt } : {}),
+              ...(maxAgeMs !== undefined ? { maxAgeMs } : {}),
             };
             const copy = { ...prev };
             delete copy[result.tool_use_id];

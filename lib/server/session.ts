@@ -145,7 +145,13 @@ import { extractWeeklyUsedSkills } from "@/lib/shared/skill-usage";
 import { extractUsageBehaviors, type UsageBehaviors } from "@/lib/shared/usage-behaviors";
 import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/lib/shared/effort-flags";
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
-import { readCronNextFireAt, readEndedLoopWakeup, type SessionLoop } from "@/lib/shared/session-loops";
+import {
+  readCronMaxAgeMs,
+  readCronNextFireAt,
+  readCronRecurring,
+  readEndedLoopWakeup,
+  type SessionLoop,
+} from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
 import { isSyntheticApiMessage, matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
@@ -5925,7 +5931,8 @@ export class Session {
             humanSchedule: null,
             delaySeconds: null,
             prompt,
-            recurring: inp.recurring === true,
+            // CronCreateInput.recurring: "true (default)" — omitted means recurring.
+            recurring: inp.recurring !== false,
             durable: false,
             startedAt: observedAt,
             cancelled: false,
@@ -6070,14 +6077,22 @@ export class Session {
         const humanSchedule = idMatch?.[2] ?? null;
         const durable = !/session[- ]only/i.test(text);
         // SDK 0.3.299 — structured CronCreate output carries `nextFireAt`.
-        const nextFireAt = readCronNextFireAt((message as { tool_use_result?: unknown }).tool_use_result);
+        const toolUseResult = (message as { tool_use_result?: unknown }).tool_use_result;
+        const nextFireAt = readCronNextFireAt(toolUseResult);
+        // CC 2.1.330 / SDK 0.3.332 — the result says whether the job repeats
+        // and when a recurring one ends (`maxAgeMs`, else "Auto-expires after
+        // N days"). Same reads as the client reducer — keep in sync.
+        const recurring = readCronRecurring(toolUseResult, text) ?? pending.recurring;
+        const maxAgeMs = recurring ? readCronMaxAgeMs(toolUseResult, text) : undefined;
 
         this.scheduledLoops.set(cronId, {
           ...pending,
           id: cronId,
           humanSchedule,
           durable,
+          recurring,
           ...(nextFireAt !== undefined ? { nextFireAt } : {}),
+          ...(maxAgeMs !== undefined ? { maxAgeMs } : {}),
         });
       }
     }

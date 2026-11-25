@@ -756,6 +756,12 @@ export type ScheduledLoop = {
    * after the job fires. Absent for wake-ups and older SDKs.
    */
   nextFireAt?: number;
+  /**
+   * CC 2.1.330 — age at which a recurring cron ends, ms from `startedAt`
+   * (SDK 0.3.332 `CronCreateOutput.maxAgeMs`, or "Auto-expires after N
+   * days"). Absent → the engine's 7-day default; see `loopEndsAt`.
+   */
+  maxAgeMs?: number;
   /** True once the agent has been asked to cancel via CronDelete. */
   cancelled?: boolean;
 };

@@ -1,5 +1,5 @@
 import { nextFireMs } from "@/lib/shared/cron";
-import type { SessionLoop } from "@/lib/shared/session-loops";
+import { LOOP_RECURRING_MAX_AGE_MS, loopEndsAt, type SessionLoop } from "@/lib/shared/session-loops";
 
 /**
  * CC 2.1.292 — "Fixed a background session's `/loop` silently stopping when
@@ -27,10 +27,12 @@ import type { SessionLoop } from "@/lib/shared/session-loops";
 export const LOOP_TICK_GRACE_MS = 30 * 60 * 1000;
 
 /**
- * Upper bound on how long an unwatched recurring session cron keeps its
- * session (and SDK process) in memory.
+ * Upper bound on how long an unwatched one-shot session cron keeps its
+ * session (and SDK process) in memory while it waits for its fire. CC 2.1.330
+ * — the engine's longest job life is now 30 days (was 7). A recurring cron is
+ * bounded by its own end instead (`loopEndsAt`).
  */
-export const LOOP_KEEPALIVE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
+export const LOOP_KEEPALIVE_MAX_MS = LOOP_RECURRING_MAX_AGE_MS;
 
 /** True when `loop` will still fire, or its tick may still be running. */
 export function isLoopArmed(loop: SessionLoop, now: number): boolean {
@@ -40,8 +42,13 @@ export function isLoopArmed(loop: SessionLoop, now: number): boolean {
     if (loop.delaySeconds == null) return false;
     return loop.startedAt + loop.delaySeconds * 1000 + LOOP_TICK_GRACE_MS > now;
   }
+  // CC 2.1.330 — "Changed recurring scheduled tasks and `/loop` to run up to
+  // 30 days instead of 7 while their session keeps running … tasks made
+  // before this release still end at 7 days". A recurring cron stays armed
+  // until its own end (maxAgeMs, else 7 days) plus its last tick's grace.
+  const endsAt = loopEndsAt(loop);
+  if (endsAt !== null) return endsAt + LOOP_TICK_GRACE_MS > now;
   if (now - loop.startedAt > LOOP_KEEPALIVE_MAX_MS) return false;
-  if (loop.recurring) return true;
   if (!loop.cron) return false;
   const firstFire = nextFireMs(loop.cron, new Date(loop.startedAt));
   return firstFire != null && firstFire + LOOP_TICK_GRACE_MS > now;
