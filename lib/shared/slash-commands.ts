@@ -264,7 +264,10 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // `/loop <prompt>`, and the bare autonomous `/loop` default. Routing it to
   // the Schedule page (as `/schedule` still does) dropped the arguments.
   { id: "loop", name: "loop", description: "Run a prompt or slash command on an interval, or self-paced.", category: "skill", handler: "sdk", argsHint: "[interval] [prompt]" },
-  { id: "schedule", name: "schedule", aliases: ["routines"], description: "Manage scheduled routines.", category: "skill", handler: "native" },
+  // CC 2.1.332 — the engine stopped calling these "routines" (`/routines`
+  // still works). Claudius's `/schedule` opens its own Schedule page, whose
+  // durable jobs run locally, so it says "scheduled jobs", not "cloud".
+  { id: "schedule", name: "schedule", aliases: ["routines"], description: "Manage scheduled jobs.", category: "skill", handler: "native" },
   // CC 2.1.328 — `/code-review` now reports only bugs and CLAUDE.md
   // violations; `/simplify` owns reuse, simplification and efficiency
   // cleanups. The old copy ("Review files, find issues, apply fixes.") read

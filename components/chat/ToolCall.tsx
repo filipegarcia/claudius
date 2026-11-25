@@ -43,12 +43,17 @@ function TruncatedPath({ path }: { path: string }) {
  * `RemoteTriggerInput`, surfaced as the "Schedule" tool). `list_runs` and
  * `get_run_log` arrived in SDK 0.3.227. Falls back to the raw action string
  * for anything not listed, so a future action still shows something sane.
+ *
+ * CC 2.1.332 — "Changed `/schedule`, permission prompts and `/loop`'s cloud
+ * offer to say "cloud scheduled task" instead of "routine" or "cloud
+ * schedule"". The engine's own copy for this tool now reads "cloud scheduled
+ * task" ("Claude wants to create a cloud scheduled task …").
  */
 const SCHEDULE_ACTION_LABELS: Record<string, string> = {
-  list: "List routines",
-  get: "Get routine",
-  create: "Create routine",
-  update: "Update routine",
+  list: "List cloud scheduled tasks",
+  get: "Get cloud scheduled task",
+  create: "Create cloud scheduled task",
+  update: "Update cloud scheduled task",
   run: "Run now",
   create_webhook_trigger: "Create webhook trigger",
   list_runs: "List runs",
@@ -287,7 +292,9 @@ export function ToolCall({
           <span className="font-mono">{isFeedbackDraft ? "Feedback draft" : name}</span>
           {planText && <span className="text-[10px] text-[var(--muted)]">— Plan</span>}
           {scheduleAction && (
-            <span className="text-[10px] text-[var(--muted)]">— {scheduleAction}</span>
+            <span data-testid="tool-call-schedule-action" className="text-[10px] text-[var(--muted)]">
+              — {scheduleAction}
+            </span>
           )}
         </button>
         {fileTarget &&
