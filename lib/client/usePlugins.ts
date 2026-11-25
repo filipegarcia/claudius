@@ -136,6 +136,9 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
         await refresh();
         return { ok: true };
       }
+      // CC 2.1.330 — 409: the list changed since it was shown (e.g. a
+      // repeated policy Remove); reload it so the next click is current.
+      if (res.status === 409) await refresh();
       const err = (await res.json().catch(() => null)) as { error?: string } | null;
       return { ok: false, error: err?.error ?? `HTTP ${res.status}` };
     },
@@ -151,9 +154,15 @@ export function usePlugins(cwd: string | null, sessionId: string | null) {
     (scope: SettingsScope, name: string) => marketplaceOp({ scope, op: "remove-extra", name }),
     [marketplaceOp],
   );
+  // CC 2.1.330 — `expected` is the redacted entry the user clicked on; the
+  // server removes only if the entry at `index` still matches it.
   const removePolicyMarketplace = useCallback(
-    (scope: SettingsScope, list: "strict" | "blocked", index: number) =>
-      marketplaceOp({ scope, op: "remove-policy", list, index }),
+    (
+      scope: SettingsScope,
+      list: "strict" | "blocked",
+      index: number,
+      expected: { kind: string; label: string; headerKeys: string[]; hasHeadersHelper: boolean },
+    ) => marketplaceOp({ scope, op: "remove-policy", list, index, expected }),
     [marketplaceOp],
   );
 

@@ -78,6 +78,8 @@ type PostBody =
       source?: MarketplaceSource;
       list?: "strict" | "blocked";
       index?: number;
+      /** CC 2.1.330 — the redacted entry the user clicked Remove on. */
+      expected?: { kind?: unknown; label?: unknown; headerKeys?: unknown; hasHeadersHelper?: unknown };
     }
   | {
       // G3 — set/clear one plugin option value (value omitted = clear).
@@ -136,7 +138,25 @@ async function applyPost(body: PostBody, cwd: string): Promise<NextResponse> {
     if (body.op === "remove-policy") {
       if ((body.list !== "strict" && body.list !== "blocked") || typeof body.index !== "number")
         return NextResponse.json({ error: "list and index required" }, { status: 400 });
-      await removePolicyMarketplaceEntry(body.scope, cwd, body.list, body.index);
+      // CC 2.1.330 — identify the entry by value as well as index, so a
+      // double click or a stale list can't remove the entry that shifted
+      // into that index.
+      const exp = body.expected;
+      if (typeof exp?.kind !== "string" || typeof exp.label !== "string")
+        return NextResponse.json({ error: "expected entry (kind and label) required" }, { status: 400 });
+      const removed = await removePolicyMarketplaceEntry(body.scope, cwd, body.list, body.index, {
+        kind: exp.kind,
+        label: exp.label,
+        ...(Array.isArray(exp.headerKeys) && exp.headerKeys.every((k) => typeof k === "string")
+          ? { headerKeys: exp.headerKeys as string[] }
+          : {}),
+        ...(typeof exp.hasHeadersHelper === "boolean" ? { hasHeadersHelper: exp.hasHeadersHelper } : {}),
+      });
+      if (!removed)
+        return NextResponse.json(
+          { error: `That entry is no longer in this list as shown, so nothing was removed. The list has been refreshed.` },
+          { status: 409 },
+        );
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json({ error: "invalid op" }, { status: 400 });

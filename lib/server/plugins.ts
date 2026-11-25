@@ -19,12 +19,14 @@ import {
 import {
   addExtraMarketplace as addExtraEntry,
   readExtraMarketplaces,
+  policyEntryMatches,
   readPolicyMarketplaces,
   removeExtraMarketplace as removeExtraEntry,
   removePolicyMarketplace,
   type ExtraMarketplaceView,
   type MarketplaceSource,
   type MarketplaceSourceView,
+  type PolicyEntryExpectation,
 } from "@/lib/shared/marketplace-settings";
 
 export type PluginsByScope = {
@@ -390,24 +392,35 @@ export async function removeExtraMarketplace(
   await writeSettings(scope, cwd, next as ClaudeSettings);
 }
 
+/**
+ * Remove the policy entry at `index`. With `expected` (CC 2.1.330), only when
+ * that entry is still the one the user clicked on — otherwise nothing is
+ * written and this resolves `false`, so a double click or a stale list can't
+ * remove the entry that shifted into `index`.
+ */
 export async function removePolicyMarketplaceEntry(
   scope: SettingsScope,
   cwd: string,
   list: "strict" | "blocked",
   index: number,
-): Promise<void> {
+  expected?: PolicyEntryExpectation,
+): Promise<boolean> {
   const settings = await readSettings(scope, cwd);
   const next = { ...settings } as Record<string, unknown>;
+  const current =
+    list === "strict"
+      ? aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces")
+      : (settings as { blockedMarketplaces?: unknown }).blockedMarketplaces;
+  if (expected && !policyEntryMatches(current, index, expected)) return false;
+  const value = removePolicyMarketplace(current, index);
   if (list === "strict") {
-    const raw = aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces");
-    const value = removePolicyMarketplace(raw, index);
     delete next.allowedMarketplaces;
     if (value === undefined) delete next.strictKnownMarketplaces;
     else next.strictKnownMarketplaces = value;
   } else {
-    const value = removePolicyMarketplace((settings as { blockedMarketplaces?: unknown }).blockedMarketplaces, index);
     if (value === undefined) delete next.blockedMarketplaces;
     else next.blockedMarketplaces = value;
   }
   await writeSettings(scope, cwd, next as ClaudeSettings);
+  return true;
 }
