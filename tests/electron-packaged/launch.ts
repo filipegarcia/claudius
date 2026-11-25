@@ -145,6 +145,43 @@ export async function waitForMainWindow(
 }
 
 /**
+ * Fetch `/api/heartbeat` from the main window, the way the renderer reaches
+ * the embedded server (through the https/h2 loopback proxy, whose self-signed
+ * certificate only the app trusts, so the test process can't call it itself).
+ *
+ * Retried when a navigation destroys the page mid-call. A fresh profile's
+ * first page is still routing (`/` redirects to `/welcome`), and on a slow
+ * runner that redirect lands as a full page load: "Execution context was
+ * destroyed, most likely because of a navigation". That failed the Linux
+ * AppImage smoke for v0.3.327.1 and v0.3.332.0 though the server was up.
+ * Depending on timing, the same navigation instead aborts the request in
+ * flight ("Failed to fetch"), so that is retried too; a server that is really
+ * down still fails, with that error, at the deadline. Other errors (crash,
+ * closed window) fail straight away, and a non-OK answer is returned as is.
+ */
+export async function fetchHeartbeat(
+  page: Page,
+  timeoutMs = 30_000,
+): Promise<{ ok: boolean; status: number }> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      await page.waitForLoadState("domcontentloaded");
+      return await page.evaluate(async () => {
+        const res = await fetch("/api/heartbeat");
+        return { ok: res.ok, status: res.status };
+      });
+    } catch (err) {
+      const navigated = /Execution context was destroyed|Cannot find context with specified id|Failed to fetch/.test(
+        String(err),
+      );
+      if (!navigated || Date.now() > deadline) throw err;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+}
+
+/**
  * How long `app.close()` gets before the packaged process is SIGKILLed. An
  * unbounded `close()` once hung until the 150 s test timeout fired inside
  * `afterEach`. The test had already passed its assertions, but Playwright
