@@ -145,6 +145,24 @@ export async function waitForMainWindow(
 }
 
 /**
+ * Ask the packaged app's embedded server for `/api/heartbeat`, from the test
+ * process, at the main window's loopback origin.
+ *
+ * Not from the renderer: `page.evaluate(() => fetch(...))` ran while a fresh
+ * profile's first page was still routing (`/` redirects to `/welcome`), and
+ * on a slow runner that redirect lands as a full page load. It destroyed the
+ * page's execution context mid-call ("Execution context was destroyed, most
+ * likely because of a navigation"), failing the Linux AppImage smoke for
+ * v0.3.327.1 and v0.3.332.0 though the server was up. The origin (the
+ * server's random port) stays the same across those navigations.
+ */
+export async function fetchHeartbeat(page: Page): Promise<{ ok: boolean; status: number }> {
+  const origin = new URL(page.url()).origin;
+  const res = await fetch(`${origin}/api/heartbeat`, { signal: AbortSignal.timeout(30_000) });
+  return { ok: res.ok, status: res.status };
+}
+
+/**
  * How long `app.close()` gets before the packaged process is SIGKILLed. An
  * unbounded `close()` once hung until the 150 s test timeout fired inside
  * `afterEach`. The test had already passed its assertions, but Playwright

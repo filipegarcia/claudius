@@ -33,6 +33,7 @@ import { dirname, join } from "node:path";
 import { expect, test } from "@playwright/test";
 
 import {
+  fetchHeartbeat,
   launchPackaged,
   teardownPackaged,
   waitForMainWindow,
@@ -93,13 +94,9 @@ test("packaged macOS app launches and renders the chat shell", async () => {
 
 test("embedded server answers /api/heartbeat", async () => {
   const page = await waitForMainWindow(launched.app);
-  await page.waitForLoadState("domcontentloaded");
-  // Fetch from the renderer's own loopback origin so we don't have to know
-  // the embedded server's randomly-assigned port.
-  const result = await page.evaluate(async () => {
-    const res = await fetch("/api/heartbeat");
-    return { ok: res.ok, status: res.status };
-  });
+  // From the test process, at the window's loopback origin (the server's
+  // random port), not via page.evaluate: see fetchHeartbeat.
+  const result = await fetchHeartbeat(page);
   expect(result.ok, `heartbeat returned ${result.status}`).toBe(true);
 });
 
