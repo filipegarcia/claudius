@@ -27,7 +27,8 @@ describe("extraUsageState (CC 2.1.295)", () => {
 
   test("a disabled reason → off", () => {
     expect(extraUsageState({ overageDisabledReason: "org_level_disabled" })).toBe("off");
-    expect(extraUsageState({ overageDisabledReason: "out_of_credits" })).toBe("off");
+    // CC 2.1.329 — out_of_credits is "used up", not off (see cc-parity-2.1.329-usage-credits-state).
+    expect(extraUsageState({ overageDisabledReason: "out_of_credits" })).toBe("used_up");
   });
 
   test("overage bucket rejected → off", () => {
@@ -37,7 +38,7 @@ describe("extraUsageState (CC 2.1.295)", () => {
   test("off signals win over on signals", () => {
     expect(extraUsageState({ overageStatus: "rejected", isUsingOverage: true })).toBe("off");
     expect(extraUsageState({ overageStatus: "allowed", overageDisabledReason: "out_of_credits" })).toBe(
-      "off",
+      "used_up",
     );
     expect(extraUsageState({ overageInUse: true, overageDisabledReason: "org_level_disabled" })).toBe(
       "off",
@@ -56,8 +57,9 @@ describe("extraUsageState (CC 2.1.295)", () => {
     expect(extraUsageState({ overageEnabled: false })).toBe("off");
     expect(extraUsageState({ overageEnabled: true })).toBe("on");
     expect(extraUsageState({ overageEnabled: false, isUsingOverage: true })).toBe("off");
-    expect(extraUsageState({ overageEnabled: true, overageStatus: "rejected" })).toBe("off");
-    expect(extraUsageState({ overageEnabled: true, overageDisabledReason: "out_of_credits" })).toBe("off");
+    // CC 2.1.329 — credits on but spent read "used_up".
+    expect(extraUsageState({ overageEnabled: true, overageStatus: "rejected" })).toBe("used_up");
+    expect(extraUsageState({ overageEnabled: true, overageDisabledReason: "out_of_credits" })).toBe("used_up");
     expect(extraUsageState({ rateLimitType: "overage", overageEnabled: true })).toBeNull();
   });
 

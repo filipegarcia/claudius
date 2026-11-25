@@ -506,7 +506,9 @@ const RATE_LIMIT_TYPE_LABEL: Record<string, string> = {
 const OVERAGE_DISABLED_COPY: Record<string, string> = {
   out_of_credits: "Out of credits — add funds to keep going.",
   org_level_disabled: "Your org has disabled extra usage.",
-  org_level_disabled_until: "Your org has disabled extra usage for this window.",
+  // CC 2.1.329 — the engine treats this as the org's monthly limit being
+  // reached ("org's monthly usage limit · resets …"), not as credits disabled.
+  org_level_disabled_until: "Your org's monthly usage-credit limit is reached for this period.",
   seat_tier_level_disabled: "Your seat tier doesn't allow extra usage.",
   member_level_disabled: "Extra usage isn't enabled for your account.",
   seat_tier_zero_credit_limit: "Your seat tier has a $0 extra-usage cap.",
@@ -524,6 +526,12 @@ const OVERAGE_DISABLED_COPY: Record<string, string> = {
 // OVERAGE_DISABLED_COPY reason when the event carries one.
 const EXTRA_USAGE_ON_COPY = "Extra usage is on — you'll keep going on extra usage after this limit.";
 const EXTRA_USAGE_OFF_COPY = "Extra usage is off — you'll be paused when this limit is reached.";
+// CC 2.1.329 — credits are on but spent (out of credits / monthly limit):
+// don't call them off.
+const EXTRA_USAGE_USED_UP_COPY = "Usage credits are used up — you'll be paused when this limit is reached.";
+// CC 2.1.329 — "[VSCode] Fixed the limit banner not saying when usage credits
+// are in use": a rejected base limit the session carries on past on credits.
+const ON_USAGE_CREDITS_COPY = "You're now using usage credits.";
 
 // Effort levels considered "high" for the step-down chip. The CLI's soft
 // warning specifically calls out `/effort medium` as the burn-down lever when
@@ -626,7 +634,15 @@ function RateLimitPill({
       ? EXTRA_USAGE_ON_COPY
       : extraUsage === "off"
         ? overageBlockedCopy ?? EXTRA_USAGE_OFF_COPY
-        : null;
+        : extraUsage === "used_up"
+          ? overageBlockedCopy ?? EXTRA_USAGE_USED_UP_COPY
+          : null;
+
+  // CC 2.1.329 — the base limit is rejected but the session keeps going on
+  // usage credits (the CLI shows no stop for it). Say so, and drop the
+  // hard-stop next steps below: nothing is blocked.
+  const onUsageCredits =
+    status === "rejected" && !rejectedAndReset && info.isUsingOverage === true && info.overageStatus !== "rejected";
 
   // Compute reset wall-clock label once per render. Intl will pick the
   // user's locale + timezone automatically — matches the CLI's "6:30pm
@@ -680,8 +696,9 @@ function RateLimitPill({
         </div>
       )}
 
-      {(canSwitchToOverage || overageBlockedCopy || extraUsageCopy) && (
+      {(canSwitchToOverage || overageBlockedCopy || extraUsageCopy || onUsageCredits) && (
         <div className="mt-1.5 border-t border-current/10 pt-1.5 opacity-90">
+          {onUsageCredits && <span data-testid="rate-limit-on-usage-credits">{ON_USAGE_CREDITS_COPY}</span>}
           {canSwitchToOverage && (
             <span>
               Need to keep going? Switch this session to pay-as-you-go billing in your{" "}
@@ -751,7 +768,7 @@ function RateLimitPill({
           contact-admin line. For ordinary plan limits mirror the CLI's
           `/rate-limit-options`: wait for the reset or upgrade to lift the cap.
           Only shown on rejection — a warning isn't a wall yet. */}
-      {rejectedAndReset ? (
+      {onUsageCredits ? null : rejectedAndReset ? (
         <div className="mt-1.5 border-t border-current/10 pt-1.5">
           <span className="opacity-70" data-testid="rate-limit-pill-reset-notice">
             {LIMIT_RESET_NOTICE}
