@@ -9,6 +9,7 @@ import { resolveDroppedPath } from "@/lib/client/file-paths";
 import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 import { isImeComposing } from "@/lib/client/key-match";
+import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
 
 type Props = {
   request: AskUserQuestionEvent;
@@ -72,6 +73,11 @@ export function AskUserQuestionPrompt({
   // Soft dismissal — Esc / click-outside / minimize button. Falls back to
   // `onCancel` for older call sites that don't pass `onMinimize`.
   const dismiss = onMinimize ?? onCancel;
+  // Click outside hides the modal. We prefer minimize (recoverable) over
+  // cancel (sends empty answers) so an accidental click can't throw away the
+  // question while the agent is still waiting. CC 2.1.330 — a selection
+  // dragged out of the Other field onto the backdrop isn't a click outside.
+  const backdropDismiss = useBackdropDismiss(() => void dismiss());
   const [active, setActive] = useState(0);
   const [working, setWorking] = useState<Working[]>(() =>
     request.questions.map(() => emptyWorking()),
@@ -333,16 +339,7 @@ export function AskUserQuestionPrompt({
             "w-full"
           : "fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4",
       )}
-      onClick={
-        inline
-          ? undefined
-          : (e) => {
-              // Click outside hides the modal. We prefer minimize (recoverable)
-              // over cancel (sends empty answers) so an accidental click can't
-              // throw away the question while the agent is still waiting.
-              if (e.target === e.currentTarget) void dismiss();
-            }
-      }
+      {...(inline ? {} : backdropDismiss)}
     >
       <div
         className={cn(

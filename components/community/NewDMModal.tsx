@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MessageSquarePlus, X } from "lucide-react";
 import { isValidNick } from "@/lib/shared/community";
 import type { UseDMs } from "@/lib/client/use-dms";
+import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
 
 type Props = {
   dms: UseDMs;
@@ -24,6 +25,10 @@ export function NewDMModal({ dms, onSent, onClose }: Props) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // CC 2.1.330 — a text selection dragged out of the nick or message field
+  // onto the backdrop isn't a click outside; it used to close the modal and
+  // drop the draft.
+  const backdropDismiss = useBackdropDismiss(onClose);
 
   const submit = async () => {
     const trimmedPeer = peer.trim();
@@ -57,7 +62,7 @@ export function NewDMModal({ dms, onSent, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
+      {...backdropDismiss}
       role="dialog"
       aria-modal="true"
       data-testid="community-new-dm-modal"

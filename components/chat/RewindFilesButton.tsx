@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { History, Loader2 } from "lucide-react";
 import { isImeComposing } from "@/lib/client/key-match";
+import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
 import { REWIND_CLIENT_TIMEOUT_MS, rewindTimeoutMessage } from "@/lib/shared/rewind-timeout";
 
 /**
@@ -118,6 +119,9 @@ export function RewindFilesButton({
   };
 
   const close = () => setPhase({ kind: "idle" });
+  // CC 2.1.330 — a selection dragged out of the dialog onto the backdrop
+  // isn't a click outside.
+  const backdropDismiss = useBackdropDismiss(close);
 
   // CC 2.1.326 — Esc cancels the dialog (preview, result or error).
   const dialogOpen = phase.kind === "preview" || phase.kind === "error" || phase.kind === "done";
@@ -154,9 +158,10 @@ export function RewindFilesButton({
       {dialogOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onPointerDown={backdropDismiss.onPointerDown}
           onClick={(e) => {
             e.stopPropagation();
-            close();
+            backdropDismiss.onClick(e);
           }}
         >
           <div
