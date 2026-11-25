@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SideNav } from "@/components/nav/SideNav";
 import { SpendOverview } from "@/components/cost/SpendOverview";
+import { SignInErrorText } from "@/components/accounts/SignInErrorText";
 import { cn } from "@/lib/utils/cn";
 import {
   ACCOUNT_KIND_LABEL,
@@ -417,8 +418,9 @@ export default function UsagePage() {
                   body: JSON.stringify({ action: "complete", ...input }),
                 });
                 if (!r.ok) {
-                  const e = (await r.json().catch(() => ({}))) as { error?: string };
-                  throw new Error(e.error ?? `HTTP ${r.status}`);
+                  const e = (await r.json().catch(() => ({}))) as { error?: string; appealUrl?: string };
+                  // CC 2.1.330 — carry the on-hold notice's appeal link to the error box.
+                  throw Object.assign(new Error(e.error ?? `HTTP ${r.status}`), { appealUrl: e.appealUrl });
                 }
                 const next = (await r.json()) as { state: AccountsState };
                 setAccounts(next.state);
@@ -633,6 +635,8 @@ function AccountsSection({
   const [addKind, setAddKind] = useState<AccountKind>("oauth-token");
   const [addSecret, setAddSecret] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
+  // CC 2.1.330 — the appeal link inside an on-hold sign-in error, if any.
+  const [addErrorAppealUrl, setAddErrorAppealUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Bedrock form state. Kept flat (one useState per field) to match the
@@ -754,6 +758,8 @@ function AccountsSection({
       reset();
     } catch (err) {
       setAddError(err instanceof Error ? err.message : String(err));
+      const appealUrl = (err as { appealUrl?: unknown } | null)?.appealUrl;
+      setAddErrorAppealUrl(typeof appealUrl === "string" ? appealUrl : null);
       // The server spends the flow on every attempt, so the code box would
       // only answer "flow expired" next time. Drop back to the start button
       // so the user can sign in again, as the error tells them to (CC 2.1.311).
@@ -1319,7 +1325,7 @@ function AccountsSection({
               data-testid="account-add-error"
               className="rounded-md border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-300"
             >
-              {addError}
+              <SignInErrorText message={addError} appealUrl={addErrorAppealUrl} />
             </div>
           )}
 
