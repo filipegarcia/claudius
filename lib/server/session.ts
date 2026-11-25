@@ -5582,9 +5582,23 @@ export class Session {
     // `Query.setPermissionMode` rejects. That rejection used to be dropped,
     // so `mode_changed` broadcast the requested mode to every tab while the
     // engine kept the old one. Now roll back and report the refusal.
+    let substitutedFrom: PermissionMode | undefined;
     if (this.query) {
       try {
-        await this.query.setPermissionMode(mode);
+        // SDK 0.3.332: resolves with the mode now in effect, "which is not
+        // always the mode asked for: record `mode`, not the argument"
+        // (undefined on an older engine or an answer that names none, where
+        // the argument stays the best guess). Everything below (reminders,
+        // the `mode_changed` broadcast, the revive record, the return value)
+        // then uses what the engine is really in. Skipped when plan acceptance
+        // wrote the mode during the await, as with the rollback below.
+        const answer = await this.query.setPermissionMode(mode);
+        const effective = answer?.mode;
+        if (effective && effective !== mode && seq === this.permissionModeSeq) {
+          substitutedFrom = mode;
+          mode = effective;
+          this.permissionMode = effective;
+        }
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         // A dead or closing session can't answer at all ("Query closed
@@ -5634,7 +5648,9 @@ export class Session {
     if (mode === "auto" && (this.model ?? this.sdkModel) !== autoCheckedModel) {
       await this.leaveAutoIfModelUnsupported(this.model ?? this.sdkModel, undefined, { insideModeSwitch: true });
     }
-    return { mode: this.permissionMode };
+    return substitutedFrom
+      ? { mode: this.permissionMode, substituted: { requested: substitutedFrom } }
+      : { mode: this.permissionMode };
   }
 
   getPermissionMode(): PermissionMode {

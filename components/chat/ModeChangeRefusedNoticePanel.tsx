@@ -22,13 +22,24 @@ export type ModeChangeRefusedNotice = {
   requested: PermissionMode;
   mode: PermissionMode;
   reason: string;
+  /**
+   * SDK 0.3.332 — `Query.setPermissionMode()` resolves with the mode now in
+   * effect. "substituted" = the engine took the switch but put the session in
+   * `mode` instead of `requested`. Absent = refused (CC 2.1.314).
+   */
+  kind?: "refused" | "substituted";
 };
 
 const AUTO_DISMISS_MS = 10_000;
 
-export function modeChangeRefusedText(requested: PermissionMode, mode: PermissionMode): string {
+export function modeChangeRefusedText(
+  requested: PermissionMode,
+  mode: PermissionMode,
+  kind: ModeChangeRefusedNotice["kind"] = "refused",
+): string {
   const req = PERMISSION_MODE_META[requested]?.label ?? requested;
   const cur = PERMISSION_MODE_META[mode]?.label ?? mode;
+  if (kind === "substituted") return `Asked for ${req}: the session switched to ${cur} instead.`;
   return `Couldn't switch to ${req}: the session refused. Still in ${cur}.`;
 }
 
@@ -51,12 +62,13 @@ export function ModeChangeRefusedNoticePanel({
     <div
       data-pane-name="mode-change-refused-notice"
       data-testid="mode-change-refused-notice"
+      data-kind={notice.kind ?? "refused"}
       role="status"
       className="border-y border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100"
     >
       <div className="mx-auto flex max-w-[var(--chat-col)] items-center gap-2">
         <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-        <span className="font-medium">{modeChangeRefusedText(notice.requested, notice.mode)}</span>
+        <span className="font-medium">{modeChangeRefusedText(notice.requested, notice.mode, notice.kind)}</span>
         {notice.reason && (
           <span
             data-testid="mode-change-refused-reason"

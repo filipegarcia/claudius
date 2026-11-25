@@ -1104,6 +1104,8 @@ export type ChatState = {
     requested: PermissionMode;
     mode: PermissionMode;
     reason: string;
+    /** SDK 0.3.332: "substituted" when the engine took the switch but landed in `mode` instead. */
+    kind?: "refused" | "substituted";
   } | null;
   /**
    * Transient toast shown when the server automatically disabled the advisor
