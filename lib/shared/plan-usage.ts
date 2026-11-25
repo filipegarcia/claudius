@@ -21,10 +21,13 @@ export type ExtraUsage = {
 };
 
 /**
- * CC 2.1.329 — `monthly_limit` / `used_credits` are minor units of `currency`
- * (cents for USD): the SDK documents it on `SDKUsageReport.extra_usage`, and
- * the CLI's own `/usage` row divides by 100 except for the zero-decimal
- * currencies below. Claudius printed the raw number as dollars (100× too high).
+ * `monthly_limit` / `used_credits` are minor units of `currency`: the SDK's
+ * `SDKUsageReport.extra_usage` doc says "Amounts are in minor units of
+ * `currency` (cents for USD)", and the CLI's own `/usage` row divides by 100
+ * except for the zero-decimal currencies below. Claudius printed the raw
+ * number as dollars (100× too high). Fixed alongside CC 2.1.329 — "Fixed
+ * `/usage` saying usage credits are off when they had run out or reached the
+ * monthly limit".
  */
 const ZERO_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set(["JPY", "KRW", "VND"]);
 
@@ -33,8 +36,10 @@ export function creditsToMajorUnits(amount: number, currency: string | null | un
 }
 
 /**
- * CC 2.1.329 — "is_enabled is false while extra usage cannot cover sends", so
- * the flag also drops when the monthly limit is reached. True for that case,
+ * CC 2.1.329 — "Fixed `/usage` saying usage credits are off when they had run
+ * out or reached the monthly limit". The SDK's `SDKUsageReport.extra_usage`
+ * doc says "is_enabled is false while extra usage cannot cover sends", so the
+ * flag also drops when the monthly limit is reached. True for that case,
  * where `/cost` keeps the row (captioned as reached) instead of hiding it.
  */
 export function extraUsageAtMonthlyLimit(eu: ExtraUsage | null | undefined): boolean {
