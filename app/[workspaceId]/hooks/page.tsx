@@ -24,6 +24,7 @@ import {
   CATEGORY_ORDER,
   handlerBlocksOnFailure,
   handlerSupportsOnFailure,
+  handlerTypeAllowed,
   HOOK_EVENTS,
   isLegacyAgentHook,
   legacyAgentHookName,
@@ -33,6 +34,7 @@ import {
   type HookGroup,
   type HookHandler,
   onFailureBlockIgnoredReason,
+  promptHandlerAllowed,
 } from "@/lib/shared/hook-events";
 import type { SettingsScope } from "@/lib/server/settings";
 import { cn } from "@/lib/utils/cn";
@@ -311,10 +313,15 @@ function EventRow({
                       </span>
                     )}
                     {/* CC 2.1.280 — an agent hook on PermissionRequest won't
-                        run; flag the stale config so the author fixes it. */}
-                    {h.type === "agent" && !isLegacyAgentHook(h) && !agentHandlerAllowed(spec.name) && (
+                        run; flag the stale config so the author fixes it.
+                        SDK 0.3.332 — nor a prompt or agent hook on
+                        PreSkillShellCommand (it refuses every command). */}
+                    {(h.type === "agent" || h.type === "prompt") &&
+                      !isLegacyAgentHook(h) &&
+                      !handlerTypeAllowed(h.type, spec.name) && (
                       <span
-                        title="The engine won't run an agent hook on this event — use command or http"
+                        data-testid="hook-handler-disallowed"
+                        title={`The engine won't run a ${h.type} hook on this event — use command or http`}
                         className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-1 py-0.5 text-[10px] text-amber-300"
                       >
                         won&apos;t run on {spec.name}
@@ -474,6 +481,10 @@ function AddHookForm({
       };
     } else if (type === "prompt") {
       if (!prompt.trim()) return setError("prompt required");
+      // SDK 0.3.332 — a prompt hook on PreSkillShellCommand refuses every
+      // skill shell command instead of running.
+      if (!promptHandlerAllowed(event))
+        return setError(`prompt hooks don't run on ${event} — use command or http`);
       handler = {
         type: "prompt",
         prompt,
@@ -545,8 +556,9 @@ function AddHookForm({
               const next = e.target.value as HookEvent;
               setEvent(next);
               // CC 2.1.280 — if `agent` was selected, it's invalid on an
-              // agent-disallowed event; fall back to `command`.
-              if (type === "agent" && !agentHandlerAllowed(next)) setType("command");
+              // agent-disallowed event; fall back to `command`. SDK 0.3.332 —
+              // same for `prompt` (PreSkillShellCommand).
+              if (!handlerTypeAllowed(type, next)) setType("command");
             }}
             className="w-full rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2 py-1.5 text-xs focus:outline-none"
           >
@@ -573,17 +585,25 @@ function AddHookForm({
           >
             <option value="command">command</option>
             <option value="http">http</option>
-            <option value="prompt">prompt</option>
+            {/* SDK 0.3.332 — the bundled CLI's "prompt and agent hooks don't
+                run on PreSkillShellCommand": the engine refuses every command. */}
+            {promptHandlerAllowed(event) && <option value="prompt">prompt</option>}
             {/* CC 2.1.280 — `agent` hooks don't run on PermissionRequest; the
                 engine fails them. Don't offer it for those events. */}
             {agentHandlerAllowed(event) && <option value="agent">agent</option>}
             <option value="mcp_tool">mcp_tool</option>
           </select>
-          {!agentHandlerAllowed(event) && (
-            <p className="mt-1 text-[11px] text-[var(--muted)]">
-              <code className="font-mono">agent</code> handlers can&apos;t run on{" "}
-              <code className="font-mono">{event}</code> — use <code className="font-mono">command</code>{" "}
-              or <code className="font-mono">http</code>.
+          {(!agentHandlerAllowed(event) || !promptHandlerAllowed(event)) && (
+            <p data-testid="hook-handler-types-hint" className="mt-1 text-[11px] text-[var(--muted)]">
+              {promptHandlerAllowed(event) ? (
+                <code className="font-mono">agent</code>
+              ) : (
+                <>
+                  <code className="font-mono">prompt</code> and <code className="font-mono">agent</code>
+                </>
+              )}{" "}
+              handlers can&apos;t run on <code className="font-mono">{event}</code> — use{" "}
+              <code className="font-mono">command</code> or <code className="font-mono">http</code>.
             </p>
           )}
         </Field>

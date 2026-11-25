@@ -35,6 +35,7 @@ export const HOOK_EVENT_NAMES = [
   "FileChanged",
   "DirectoryAdded",
   "MessageDisplay",
+  "PreSkillShellCommand",
 ] as const;
 
 export type HookEvent = (typeof HOOK_EVENT_NAMES)[number];
@@ -57,6 +58,11 @@ export const HOOK_EVENTS: HookEventSpec[] = [
   { name: "PostToolUse", category: "tool", description: "After successful tool execution. Can assert classifierContext to inform the auto-mode permission classifier.", matcherHint: "tool name or regex" },
   { name: "PostToolUseFailure", category: "tool", description: "After a tool execution that failed.", matcherHint: "tool name or regex" },
   { name: "PostToolBatch", category: "tool", description: "After a batch of tool calls in one assistant turn." },
+  // SDK 0.3.332 — `HOOK_EVENTS` gained it (CC 2.1.332: "Added a
+  // `PreSkillShellCommand` hook event that can refuse a skill or command's
+  // inline shell commands as it loads"). Matched on the shell tool's name,
+  // like PreToolUse.
+  { name: "PreSkillShellCommand", category: "tool", description: "Before a skill or slash command runs an inline shell command as it loads. Can deny (deny, ask and defer all block it). Claude Code 2.1.331 and older show a dialog at start for a settings file naming it.", matcherHint: "Bash | PowerShell", canBlock: true },
 
   // Permissions
   { name: "PermissionRequest", category: "permission", description: "When Claude requests permission to use a tool.", matcherHint: "tool name", canBlock: true },
@@ -188,8 +194,17 @@ export type HookHandler =
  * `PermissionRequest` case is a safety boundary: a sub-agent deciding whether
  * to grant a permission is a privilege-escalation shape. The editor mirrors
  * this — it neither offers nor saves an `agent` handler on such an event.
+ * SDK 0.3.332 adds `PreSkillShellCommand` (see the prompt list below).
  */
-export const AGENT_HANDLER_DISALLOWED_EVENTS: readonly HookEvent[] = ["PermissionRequest"];
+export const AGENT_HANDLER_DISALLOWED_EVENTS: readonly HookEvent[] = ["PermissionRequest", "PreSkillShellCommand"];
+
+/**
+ * SDK 0.3.332 — "prompt and agent hooks don't run on PreSkillShellCommand"
+ * (bundled 2.1.332 CLI). Such a handler isn't skipped: the engine reports it
+ * as a blocking error, so it refuses EVERY skill shell command. The editor
+ * neither offers nor saves a `prompt` handler on these events.
+ */
+export const PROMPT_HANDLER_DISALLOWED_EVENTS: readonly HookEvent[] = ["PreSkillShellCommand"];
 
 /**
  * CC 2.1.300 — earlier Claudius builds saved agent hooks as
@@ -217,6 +232,18 @@ export function legacyAgentHookName(h: unknown): string | null {
 /** Whether an `agent`-type hook handler may be attached to `event`. */
 export function agentHandlerAllowed(event: HookEvent): boolean {
   return !AGENT_HANDLER_DISALLOWED_EVENTS.includes(event);
+}
+
+/** Whether a `prompt`-type hook handler may be attached to `event`. */
+export function promptHandlerAllowed(event: HookEvent): boolean {
+  return !PROMPT_HANDLER_DISALLOWED_EVENTS.includes(event);
+}
+
+/** Whether the engine runs a handler of `type` on `event` (SDK 0.3.332). */
+export function handlerTypeAllowed(type: HandlerType, event: HookEvent): boolean {
+  if (type === "agent") return agentHandlerAllowed(event);
+  if (type === "prompt") return promptHandlerAllowed(event);
+  return true;
 }
 
 /** CC 2.1.295 parity — handler types that accept `onFailure: "block"`. */
