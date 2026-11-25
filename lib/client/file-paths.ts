@@ -141,6 +141,41 @@ export function looksLikeFilePath(s: string): boolean {
   return FILE_EXT_RE.test(t);
 }
 
+/** Any URL scheme (`mailto:`, `https:`, `vscode:`, `data:` …), not only `scheme://`. */
+const ANY_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
+ * CC 2.1.332 — "[VSCode] Fixed most links to files without an extension, to
+ * folders, and with a line and column doing nothing".
+ *
+ * The workspace path a markdown link's href points at, or null when the href
+ * isn't a workspace path. Unlike {@link looksLikeFilePath} (which decides
+ * whether bare inline code is a path, so it needs a file extension), a link
+ * is an explicit reference: any relative href without a scheme, query or
+ * fragment counts — `Makefile`, `src/lib/`, `./LICENSE:3`. Whether it names
+ * a file or a folder is left to the Files view. The `:line[:col]` suffix is
+ * dropped, percent-escapes are decoded (`my%20notes` → `my notes`), and
+ * `file://` / `C:\…` refs resolve as before. Paths outside the workspace,
+ * `..` escapes, `~` and `@scope` stay unlinked (null).
+ */
+export function linkHrefWorkspacePath(href: string, cwd: string): string | null {
+  const raw = href.trim();
+  if (!raw || raw.startsWith("#") || raw.startsWith("//")) return null;
+  const stripped = stripLineSuffix(raw);
+  // Drive letters (`C:\…`, `C:%5C…`) and `file://` before the scheme check —
+  // `C:` reads as a scheme. normalizeLocalPath decodes them itself.
+  if (isLocalFileRef(stripped)) return toWorkspaceRelative(stripped, cwd);
+  if (ANY_SCHEME_RE.test(stripped) || /[?#]/.test(stripped)) return null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(stripped);
+  } catch {
+    return null; // malformed escape
+  }
+  if (/[\u0000-\u001f\u007f]/.test(decoded) || decoded.includes("\\")) return null;
+  return toWorkspaceRelative(decoded, cwd);
+}
+
 /** Build the in-app Files browser URL for a workspace-relative path. */
 export function filesHref(workspaceId: string, relPath: string): string {
   return `/${workspaceId}/files?path=${encodeURIComponent(relPath)}`;

@@ -10,7 +10,7 @@ import remarkMath from "remark-math";
 import { ChevronDown, ChevronRight, ExternalLink, Globe, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useFileLink } from "@/lib/client/file-link-context";
-import { filesHref, isLocalFileRef, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
+import { filesHref, isLocalFileRef, linkHrefWorkspacePath, looksLikeFilePath, normalizeLocalPath, stripLineSuffix, toWorkspaceRelative } from "@/lib/client/file-paths";
 import { IMAGE_EXTS, HTML_EXTS } from "@/lib/shared/file-types";
 import { isMarkdownTooCostly, isMarkdownTooDeep } from "@/lib/shared/markdown-nesting";
 import { hasPathologicalDollarRuns, normalizeMathDelimiters } from "@/lib/shared/math-delimiters";
@@ -72,7 +72,8 @@ const LINK_CLASS = "text-[var(--accent)] underline-offset-2 hover:underline";
 /**
  * Markdown anchor renderer. Two branches:
  *
- *  1. The href looks like a project file path AND resolves inside the active
+ *  1. The href is a relative path (no scheme, query or fragment), or a local
+ *     `file://` / `C:\…` ref, that resolves inside the active
  *     workspace → route through `/<workspaceId>/files?path=…`, same-tab, as a
  *     normal Next route. Critically, this catches `[…](site/og.png)` (and
  *     `[![](path)](path)` linked-image shapes) that would otherwise resolve
@@ -96,11 +97,12 @@ function MarkdownLink({
 }) {
   const fileLink = useFileLink();
   const raw = typeof href === "string" ? href.trim() : "";
-  const stripped = raw ? stripLineSuffix(raw) : "";
-  const rel =
-    fileLink && stripped && looksLikeFilePath(stripped)
-      ? toWorkspaceRelative(stripped, fileLink.cwd)
-      : null;
+  // CC 2.1.332 — "[VSCode] Fixed most links to files without an extension,
+  // to folders, and with a line and column doing nothing". Any relative href
+  // (`Makefile`, `src/lib/`, `./LICENSE:3`) is a workspace path, not only one
+  // with a known file extension; the Files view opens the file or reveals the
+  // folder.
+  const rel = fileLink && raw ? linkHrefWorkspacePath(raw, fileLink.cwd) : null;
   if (rel && fileLink) {
     return (
       <Link href={filesHref(fileLink.workspaceId, rel)} className={LINK_CLASS}>

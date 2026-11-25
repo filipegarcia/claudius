@@ -123,6 +123,11 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
   // One-shot: expand the ancestor folders of the initially deep-linked file so
   // it's revealed in the tree. Later navigation expands via user clicks.
   const didExpandRef = useRef(false);
+  // CC 2.1.332 — a deep-linked folder (`src/lib/`, trailing slash) is only
+  // known to be a folder once the page has asked the server, after the
+  // one-shot walk above ran for the plain path; walk again for it, once, and
+  // expand the folder itself too.
+  const expandedDirRef = useRef<string | null>(null);
 
   const load = useCallback(async (path: string): Promise<Entry[]> => {
     const rootParam = root ? `&root=${encodeURIComponent(root)}` : "";
@@ -176,17 +181,19 @@ export function FileTree({ workspaceId, root, onPick, selectedPath, query }: Pro
   // becomes visible in the tree. Best-effort: a missing/renamed dir just stops
   // the walk. Directory keys carry a trailing slash to match `Entry.relPath`.
   useEffect(() => {
-    if (didExpandRef.current || !selectedPath) return;
+    if (!selectedPath) return;
+    const isDir = selectedPath.endsWith("/");
+    if (isDir ? expandedDirRef.current === selectedPath : didExpandRef.current) return;
+    if (isDir) expandedDirRef.current = selectedPath;
     const segs = selectedPath.split("/").filter(Boolean);
-    if (segs.length <= 1) {
-      didExpandRef.current = true;
-      return;
-    }
+    // A file's ancestors; a folder's ancestors and the folder itself.
+    const walk = isDir ? segs.length : segs.length - 1;
     didExpandRef.current = true;
+    if (walk <= 0) return;
     let cancelled = false;
     void (async () => {
       let prefix = "";
-      for (let i = 0; i < segs.length - 1; i++) {
+      for (let i = 0; i < walk; i++) {
         prefix = prefix ? `${prefix}/${segs[i]}` : segs[i];
         const dirKey = `${prefix}/`;
         try {
@@ -385,6 +392,9 @@ function Row({
             onContextOpen(entry.relPath, ev.clientX, ev.clientY);
           }}
           title={entry.name}
+          data-tree-path={entry.relPath}
+          data-selected={selected === entry.relPath ? "true" : undefined}
+          aria-expanded={entry.kind === "dir" ? Boolean(isOpen) : undefined}
           className={cn(
             "flex w-full min-w-0 items-center gap-1 rounded-md px-2 py-0.5 text-left",
             "hover:bg-[var(--panel-2)]",
