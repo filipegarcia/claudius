@@ -74,6 +74,7 @@ import {
   isSyntheticTaskNotification,
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
+import { taskNotificationNotice } from "./task-notification-notice";
 import { splitLeadingSystemReminders, stripGoalReminder } from "@/lib/shared/user-prompt";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import { dropPrompt, enqueuePrompt, mergeServerPrompts } from "./prompt-queue";
@@ -4047,7 +4048,22 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           // for the model, not user-authored prose, and rendering them as a
           // user bubble surfaces XML the user didn't write. The matching
           // system `task_notification` event still updates the TaskBlock UI.
-          if (isSyntheticTaskNotification(content)) return;
+          if (isSyntheticTaskNotification(content)) {
+            // CC 2.1.332 — "[VSCode] Fixed the chat showing no notice when a
+            // background command, agent, workflow or monitor finished while
+            // Claude was idle". A finished task's wrapper becomes a pill with
+            // its summary (the bubble itself stays dropped).
+            const notice = taskNotificationNotice(content);
+            if (notice) {
+              const uuid = (msg as { uuid?: string }).uuid ?? crypto.randomUUID();
+              const anchor = lastAssistantUuidRef.current;
+              setSystemEntries((prev) => {
+                if (prev.some((e) => e.uuid === uuid)) return prev;
+                return [...prev, { uuid, afterMessageUuid: anchor, kind: "info", label: notice }];
+              });
+            }
+            return;
+          }
           // Same idea for SDK-handled slash commands replayed from disk: a
           // prior `/compact` lives on in the JSONL as a user message, and
           // re-rendering it as user prose would re-introduce the echo bug on
