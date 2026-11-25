@@ -12,6 +12,7 @@ import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 import { SystemPill, type SystemPillLevers } from "./SystemPill";
 import { SpinnerTip } from "./SpinnerTip";
 import type { Tip } from "@/lib/shared/tips";
+import { pickSpinnerVerb, type SpinnerVerbs } from "@/lib/shared/spinner-verbs";
 import { SplashScreen } from "./SplashScreen";
 import { transcriptPlaceholder } from "@/lib/shared/transcript-placeholder";
 import { isRealUserDisplayMessage } from "@/lib/client/sdk-message-filters";
@@ -77,6 +78,11 @@ type Props = {
    * defaults.
    */
   tips?: Tip[];
+  /**
+   * CC 2.1.332 — the `spinnerVerbs` setting (`session.spinnerVerbs`): the
+   * working row shows one of these verbs instead of "Claude is working…".
+   */
+  spinnerVerbs?: SpinnerVerbs | null;
   /**
    * Live retry state (`session.apiRetry`) — when set, the working-row
    * {@link SpinnerTip} shows the retry attempt/reason instead of rotating
@@ -155,6 +161,7 @@ export function MessageList({
   onPickExample,
   onRunCommand,
   tips,
+  spinnerVerbs,
   apiRetry,
   suggestedUuids,
   goalUuids,
@@ -710,13 +717,13 @@ export function MessageList({
                     showing the spinner is misleading and, worse, splits the
                     AskUserQuestion tool-call row from the inline form below it. */}
                 {isLastTurn && pending && !pendingAsk && (
-                  <WorkingRow onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
+                  <WorkingRow onRunCommand={onRunCommand} tips={tips} spinnerVerbs={spinnerVerbs} apiRetry={apiRetry} />
                 )}
               </section>
             );
           })}
           {turns.length === 0 && pending && !pendingAsk && (
-            <WorkingRow onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />
+            <WorkingRow onRunCommand={onRunCommand} tips={tips} spinnerVerbs={spinnerVerbs} apiRetry={apiRetry} />
           )}
           {/* Live question, embedded in the transcript flow so the reader can
               see everything the model said before answering. The agent is
@@ -782,15 +789,22 @@ export function MessageList({
 function WorkingRow({
   onRunCommand,
   tips,
+  spinnerVerbs,
   apiRetry,
 }: {
   onRunCommand?: (command: string) => void;
   tips?: Tip[];
+  spinnerVerbs?: SpinnerVerbs | null;
   apiRetry?: ApiRetryState | null;
 }) {
   // CC 2.1.302 — while the session stream is reconnecting, nothing from the
   // turn can arrive; don't spin "Claude is working…" as if it were.
   const disconnected = useStreamDisconnected();
+  // CC 2.1.332 — "[VSCode] Fixed `spinnerVerbs` from Claude Code user and
+  // managed settings being ignored". One roll per working row (per turn);
+  // cosmetic, so Math.random(). Without the setting the line is unchanged.
+  const [verbRoll] = useState(() => Math.random());
+  const verb = pickSpinnerVerb(spinnerVerbs, verbRoll);
   return (
     <div className="flex flex-col gap-1 text-xs text-[var(--muted)]">
       <div className="flex items-center gap-2" data-testid={disconnected ? "working-row-disconnected" : undefined}>
@@ -800,7 +814,13 @@ function WorkingRow({
           <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
         )}
         <span className="font-medium text-[var(--foreground)]/80">
-          {disconnected ? "Disconnected — reconnecting…" : "Claude is working…"}
+          {disconnected ? (
+            "Disconnected — reconnecting…"
+          ) : verb ? (
+            <span data-testid="spinner-verb">{verb}…</span>
+          ) : (
+            "Claude is working…"
+          )}
         </span>
       </div>
       <SpinnerTip onRunCommand={onRunCommand} tips={tips} apiRetry={apiRetry} />

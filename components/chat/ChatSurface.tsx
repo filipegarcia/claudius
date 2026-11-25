@@ -2737,6 +2737,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
                 lastShownAt: tipLastShownAt,
               },
             )}
+            spinnerVerbs={session.spinnerVerbs}
             apiRetry={session.apiRetry}
             suggestedUuids={session.suggestedUuids}
             goalUuids={session.goalUuids}

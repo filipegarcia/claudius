@@ -165,6 +165,11 @@ export type ClaudeSettings = {
   // leaves it on. Read at session start and forwarded to `selectTips()` via the
   // cached `spinnerTipsConfig` on Session.
   spinnerTipsEnabled?: boolean;
+  // CC 2.1.332 — custom verbs for the working row (CLI shape `{ mode, verbs }`;
+  // "append" adds to the default line, "replace" uses only these). Read at
+  // session start from the merged settings, managed included; see
+  // `lib/shared/spinner-verbs.ts`.
+  spinnerVerbs?: { mode?: "append" | "replace"; verbs?: string[] };
   // Per-user override for the spinner-tip rotation. Mirrors the CLI shape:
   // `{ excludeDefault?: boolean, tips?: (string | SpinnerTipEntry)[] }`. Each
   // entry is mapped to a `custom-tip-${index}` Tip object with no command.

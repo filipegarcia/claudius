@@ -19,6 +19,7 @@ import type {
   TokenExpiringNudgeEvent,
 } from "@/lib/shared/events";
 import type { Tip } from "@/lib/shared/tips";
+import type { SpinnerVerbs } from "@/lib/shared/spinner-verbs";
 import type { ApiRetryState } from "@/lib/client/api-retry";
 
 /**
@@ -1308,6 +1309,11 @@ export type ChatState = {
    * at which point the renderer prefers it over its built-in defaults.
    */
   tips: Tip[];
+  /**
+   * CC 2.1.332 — the `spinnerVerbs` setting (user and managed) from the same
+   * `tips` frame; null when unset, and the working row keeps its default line.
+   */
+  spinnerVerbs: SpinnerVerbs | null;
   /**
    * Active "where were we?" recap banner state. Set when the server
    * broadcasts a `session_recap` event after a long blur or a manual /recap

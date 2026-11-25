@@ -75,6 +75,7 @@ import {
   parseSyntheticCliWrapper,
 } from "./sdk-message-filters";
 import { taskNotificationNotice } from "./task-notification-notice";
+import type { SpinnerVerbs } from "@/lib/shared/spinner-verbs";
 import { splitLeadingSystemReminders, stripGoalReminder } from "@/lib/shared/user-prompt";
 import { parseWorkflowMeta } from "@/lib/shared/workflow-meta";
 import { dropPrompt, enqueuePrompt, mergeServerPrompts } from "./prompt-queue";
@@ -1175,6 +1176,8 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
   // emits the catalog on subscribe; the renderer falls back to its built-in
   // defaults in the meantime.
   const [tips, setTips] = useState<Tip[]>([]);
+  // CC 2.1.332 — the `spinnerVerbs` setting, carried on the same `tips` frame.
+  const [spinnerVerbs, setSpinnerVerbs] = useState<SpinnerVerbs | null>(null);
   // "Where were we?" recap banner state. Driven by `session_recap` /
   // `session_recap_error` SSE events; cleared on the next user send.
   // Live-only on the wire: the server skips replay so a stale recap never
@@ -1929,6 +1932,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     setOpusOverloadNudge(null);
     setApiRetry(null);
     setTips([]);
+    setSpinnerVerbs(null);
     // Reset recap state to idle on session switch — a recap belongs to the
     // session it was generated against, not the next one.
     setSessionRecap({
@@ -2487,6 +2491,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       }
       if (ev.type === "tips") {
         setTips(ev.tips);
+        setSpinnerVerbs(ev.spinnerVerbs ?? null);
         return;
       }
       if (ev.type === "queue:updated") {
@@ -7112,6 +7117,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     authFailedNudge,
     tokenExpiringNudge,
     tips,
+    spinnerVerbs,
     sessionRecap,
     errors,
     processExited,

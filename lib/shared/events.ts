@@ -4,6 +4,7 @@
 
 import type { SDKMessage, PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type { Tip } from "./tips";
+import type { SpinnerVerbs } from "./spinner-verbs";
 import type { HookAsk } from "./hook-ask";
 
 export type PermissionRequestEvent = {
@@ -468,6 +469,11 @@ export type TokenExpiringNudgeEvent = {
 export type TipsEvent = {
   type: "tips";
   tips: Tip[];
+  /**
+   * CC 2.1.332 — the `spinnerVerbs` setting (user and managed), for the
+   * working row's verb. Absent when unset: the row keeps "Claude is working…".
+   */
+  spinnerVerbs?: SpinnerVerbs;
 };
 
 /**

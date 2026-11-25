@@ -10,6 +10,7 @@ import {
   getSessionMessages,
   query,
   renameSession,
+  resolveSettings,
   tool,
   type CanUseTool,
   type CwdChangedHookInput,
@@ -112,6 +113,7 @@ import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { listSessionTasks, saveSessionTask } from "./session-tasks-db";
 import { hasArmedLoop } from "./loop-keepalive";
 import { readForkedFromByUuid, withForkedFrom, type ForkedFrom } from "./fork-lineage";
+import { normalizeSpinnerVerbs, type SpinnerVerbs } from "@/lib/shared/spinner-verbs";
 import { attachLoopTickTokens, recordLoopTick } from "./loop-ticks-db";
 import { syncNeedsAuthNotifications } from "./mcp-needs-auth-db";
 import { syncDisconnectedNotifications } from "./mcp-disconnected-db";
@@ -968,6 +970,24 @@ export function normalizeSpinnerTipsOverride(
 
 /** Max `tipsFile` size read into memory — a spinner-tips list is tiny. */
 const SPINNER_TIPS_FILE_MAX_BYTES = 256 * 1024;
+
+/**
+ * CC 2.1.332 — `spinnerVerbs` as the engine reads it: from the merged settings
+ * (user, project, local and managed; `resolveSettings`, alpha). Falls back to
+ * the user-scope value when resolution fails. `resolve` is injectable for tests.
+ */
+export async function resolveSpinnerVerbsSetting(
+  cwd: string,
+  userValue: unknown,
+  resolve: typeof resolveSettings = resolveSettings,
+): Promise<unknown> {
+  try {
+    const resolved = await resolve({ cwd });
+    return resolved.effective?.spinnerVerbs ?? userValue;
+  } catch {
+    return userValue;
+  }
+}
 
 /**
  * CC 2.1.247 (G6) — load a `spinnerTipsOverride.tipsFile` (an absolute or `~/`
@@ -2528,6 +2548,12 @@ export class Session {
   } = {};
 
   /**
+   * CC 2.1.332 — the `spinnerVerbs` setting, cached at `start()` beside
+   * `spinnerTipsConfig` and sent on the same per-subscriber `tips` frame.
+   */
+  private spinnerVerbs: SpinnerVerbs | undefined;
+
+  /**
    * Default dispatch mode for new user messages — mirrors the user-scope
    * `queueDispatchMode` setting. Cached at `start()` so the per-send hot
    * path (`/api/sessions/[id]/input`) reads it from memory instead of
@@ -3059,6 +3085,11 @@ export class Session {
         normalizeSpinnerTipsOverride(userSettings.spinnerTipsOverride),
       ),
     };
+    // CC 2.1.332 — "[VSCode] Fixed `spinnerVerbs` from Claude Code user and
+    // managed settings being ignored".
+    this.spinnerVerbs = normalizeSpinnerVerbs(
+      await resolveSpinnerVerbsSetting(this.cwd, userSettings.spinnerVerbs),
+    );
     // Resolve the queue-dispatch mode from user settings (default "wait").
     // Cached for the lifetime of this Session; a settings change after
     // start() won't retroactively apply — the user already accepted that
@@ -8228,6 +8259,7 @@ export class Session {
         spinnerTipsEnabled: this.spinnerTipsConfig.enabled,
         spinnerTipsOverride: this.spinnerTipsConfig.override,
       }),
+      ...(this.spinnerVerbs ? { spinnerVerbs: this.spinnerVerbs } : {}),
     });
     // Re-emit the agent's effective working directory for the same
     // tail-truncation reason as `mode_changed`/`turn_status` above. The
