@@ -53,7 +53,12 @@ import {
   sendFailedNotice as sendFailedCopy,
   sendOutcome,
 } from "@/lib/client/send-outcome";
-import { historyEntryIndex, isHistoryRecallKey } from "@/lib/shared/prompt-history";
+import {
+  IDLE_HISTORY_CURSOR,
+  isHistoryRecallKey,
+  stepPromptHistory,
+  type HistoryCursor,
+} from "@/lib/shared/prompt-history";
 import {
   applyEditToRanges,
   diffEdit,
@@ -370,14 +375,14 @@ export function PromptInput({
   const composingRef = useRef(false);
 
   // ── Shell-style prompt history recall (Cmd/Ctrl + ↑/↓) ───────────────────
-  // `histIdxRef` is the cursor into `promptHistory` (null = editing the live
-  // draft, not browsing). Kept in a ref rather than state because every move
-  // already drives a `setValue`, so the cursor never needs to trigger its own
-  // render — and a ref sidesteps the set-state-in-effect rule when we reset on
-  // session change below. `stashedDraftRef` holds whatever was in the composer
-  // when browsing began so Cmd/Ctrl+↓ past the newest entry restores it.
-  const histIdxRef = useRef<number | null>(null);
-  const stashedDraftRef = useRef("");
+  // `histRef` is the cursor into `promptHistory` (`idx` null = editing the
+  // live draft, not browsing), the draft stashed when browsing began (so
+  // Cmd/Ctrl+↓ past the newest entry restores it) and the user's edits to
+  // recalled entries — see `stepPromptHistory`. Kept in a ref rather than
+  // state because every move already drives a `setValue`, so the cursor never
+  // needs to trigger its own render — and a ref sidesteps the
+  // set-state-in-effect rule when we reset on session change below.
+  const histRef = useRef<HistoryCursor>(IDLE_HISTORY_CURSOR);
   // CC 2.1.288 — the draft (text + pasted images) that Ctrl+C / double-Esc last
   // wiped, so a plain ↑ on the empty composer can restore it. Null when nothing
   // is stashed (a fresh session, or already restored). CC 2.1.326 — paste
@@ -679,7 +684,7 @@ export function PromptInput({
     userTypedRef.current = false;
     // Switching sessions means a different history — abandon any in-progress
     // recall so the next Cmd/Ctrl+↑ starts fresh from the new session's tail.
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
     // A cleared/replaced draft stashed for ↑-restore belongs to the old
     // session's composer — don't let it surface in this session's tab.
     clearedDraftRef.current = null;
@@ -961,7 +966,7 @@ export function PromptInput({
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
     userTypedRef.current = false;
     // The command is consumed — a session switch must not flush it back.
     pendingDraftRef.current = null;
@@ -1031,7 +1036,7 @@ export function PromptInput({
     setAtQuery(null);
     setEmojiQuery(null);
     ordinalCounterRef.current = 0;
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
   }
 
   function submit() {
@@ -1153,7 +1158,7 @@ export function PromptInput({
     // Each prompt is its own ordinal namespace.
     ordinalCounterRef.current = 0;
     // Sending ends any history browse; the just-sent prompt becomes the new tail.
-    histIdxRef.current = null;
+    histRef.current = IDLE_HISTORY_CURSOR;
     // Submitting consumes the draft. Reset the "typed" flag so subsequent
     // session-switches still seed cleanly, and tell the server to clear.
     userTypedRef.current = false;
@@ -1375,39 +1380,17 @@ export function PromptInput({
    * (and let the caret fall through to its default home/end jump otherwise).
    */
   function recallHistory(dir: -1 | 1): boolean {
-    const history = promptHistory ?? [];
-    if (history.length === 0) return false;
-    let idx = histIdxRef.current;
-    // History can shrink while browsing (e.g. /clear) — clamp a now-stale
-    // cursor back into range so we never index past the end.
-    if (idx !== null && idx > history.length - 1) idx = history.length - 1;
-    if (dir === -1) {
-      if (idx === null) {
-        // Entering history — stash the live draft so ↓ can bring it back.
-        // CC 2.1.295 parity — skip the newest entry when the composer already
-        // holds it (a just-lifted queued message), so the first press recalls
-        // the message that lift displaced.
-        stashedDraftRef.current = value;
-        idx = historyEntryIndex(history, value) ?? history.length - 1;
-      } else if (idx > 0) {
-        idx -= 1;
-      } else {
-        // Already at the oldest entry — swallow so the caret doesn't jump.
-        return true;
-      }
-    } else {
-      if (idx === null) return false; // not browsing — let ↓ move the caret
-      if (idx < history.length - 1) {
-        idx += 1;
-      } else {
-        // Past the newest entry → back to the stashed draft.
-        histIdxRef.current = null;
-        applyRecalledText(stashedDraftRef.current, false);
-        return true;
-      }
-    }
-    histIdxRef.current = idx;
-    applyRecalledText(history[idx]);
+    // CC 2.1.332 — edits to a recalled prompt no longer end the browse (see
+    // `stepPromptHistory`): ↓ still walks back to the stashed draft, and an
+    // edited entry keeps its edit.
+    const step = stepPromptHistory(promptHistory ?? [], histRef.current, value, dir);
+    // Not browsing (or nothing to recall) — let the caret move.
+    if (step.kind === "pass") return false;
+    histRef.current = step.cursor;
+    // At the oldest entry — swallow so the caret doesn't jump.
+    if (step.kind === "stay") return true;
+    // A history entry keeps the menus closed; the restored draft resyncs them.
+    applyRecalledText(step.text, !step.draft);
     return true;
   }
 
@@ -1496,7 +1479,7 @@ export function PromptInput({
         pickerOpen,
         atActive: atQuery != null,
         emojiActive: emojiQuery != null,
-        browsingHistory: histIdxRef.current !== null,
+        browsingHistory: histRef.current.idx !== null,
         hasStash: failedSendForThisSession() != null || clearedDraftRef.current != null,
       })
     ) {
@@ -2193,9 +2176,10 @@ export function PromptInput({
               userTypedRef.current = true;
               // The user is acting on the restored message — the hint did its job.
               if (sendFailed) setSendFailed(null);
-              // Editing the text exits history-browse mode: the next Cmd/Ctrl+↑
-              // should re-stash this edited draft and start again from the tail.
-              histIdxRef.current = null;
+              // CC 2.1.332 — editing a recalled prompt no longer exits history
+              // browsing: re-stashing the edit on the next Cmd/Ctrl+↑ lost the
+              // unsent draft, and Cmd/Ctrl+↓ couldn't bring it back. The next
+              // step picks the edit up from `value` (`stepPromptHistory`).
               // Atomic-token cleanup: any token present in the prior value but
               // gone (or partially mangled) in the new value drops its image.
               if (!composingRef.current) {
