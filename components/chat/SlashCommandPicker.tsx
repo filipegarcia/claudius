@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { isImeComposing } from "@/lib/client/key-match";
 import { isHeldRepeat } from "@/lib/client/composer-keys";
+import { shouldResetHighlight } from "@/lib/shared/picker-highlight";
 
 type Props = {
   value: string;
@@ -152,9 +153,13 @@ export function SlashCommandPicker({
   // resizes — "store previous props" pattern keeps the setState out of
   // a useEffect body.
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
-  const [lastVisibleLen, setLastVisibleLen] = useState(visible.length);
-  if (lastVisibleLen !== visible.length) {
-    setLastVisibleLen(visible.length);
+  // CC 2.1.331 — and whenever the filter text changes: the list is capped at
+  // 16 rows and usually full, so a length-only reset left the highlight on a
+  // slot that now held a different command.
+  const shape = { filter, count: visible.length };
+  const [lastShape, setLastShape] = useState(shape);
+  if (shouldResetHighlight(lastShape, shape)) {
+    setLastShape(shape);
     setHi(0);
   }
 
@@ -258,6 +263,7 @@ export function SlashCommandPicker({
               </div>
             )}
             <button
+              data-testid="slash-command-row"
               ref={(el) => {
                 itemRefs.current[i] = el;
               }}

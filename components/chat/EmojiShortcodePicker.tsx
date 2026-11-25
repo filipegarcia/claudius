@@ -5,6 +5,7 @@ import { filterEmojiShortcodes } from "@/lib/shared/emoji-shortcodes";
 import { cn } from "@/lib/utils/cn";
 import { isImeComposing } from "@/lib/client/key-match";
 import { isHeldRepeat } from "@/lib/client/composer-keys";
+import { shouldResetHighlight } from "@/lib/shared/picker-highlight";
 
 type Props = {
   /** The partial shortcode name typed so far, with the leading `:` already stripped by PromptInput. */
@@ -25,10 +26,12 @@ export function EmojiShortcodePicker({ query, onSelect, onClose }: Props) {
 
   // Reset the highlight to the top whenever the visible result set resizes —
   // "store previous props" pattern, keeps the setState out of a useEffect
-  // body (same as SlashCommandPicker / AtMentionPicker).
-  const [lastVisibleLen, setLastVisibleLen] = useState(visible.length);
-  if (lastVisibleLen !== visible.length) {
-    setLastVisibleLen(visible.length);
+  // body (same as SlashCommandPicker / AtMentionPicker). CC 2.1.331 — and
+  // whenever the query changes, so a re-sorted list never keeps a stale row.
+  const shape = { filter: query, count: visible.length };
+  const [lastShape, setLastShape] = useState(shape);
+  if (shouldResetHighlight(lastShape, shape)) {
+    setLastShape(shape);
     setHi(0);
   }
 

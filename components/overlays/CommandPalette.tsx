@@ -324,7 +324,12 @@ export function CommandPalette() {
             type="text"
             placeholder="Type to search nav, slash commands, shortcuts…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // CC 2.1.331 — a new filter re-sorts the list; Enter must not run
+              // whatever now sits at the old highlighted index.
+              setActiveIndex(0);
+            }}
             onKeyDown={onInputKey}
             className="w-full bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none"
             aria-label="Command palette search"
@@ -389,6 +394,7 @@ function PaletteRow({
       onClick={onActivate}
       data-testid="command-palette-row"
       data-kind={item.kind}
+      data-active={active ? "true" : undefined}
     >
       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
       <span className="min-w-0 truncate font-medium">{item.label}</span>
