@@ -14,7 +14,7 @@ import {
   type SkippedBoot,
 } from "@/lib/client/boot-guard";
 import { usePathname } from "next/navigation";
-import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
+import type { PermissionMode, SDKStartupFailureReason } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AuthFailedNudgeEvent,
   CreateSessionRequest,
@@ -320,7 +320,12 @@ export const STARTUP_FAILURE_REASON_LABELS: Record<string, string> = {
   // SDK 0.3.327 — as managed_settings_not_delivered, for `--initialize-fields` and the settings / disallowedTools it names.
   initialize_fields_not_delivered:
     "the settings or disallowed-tools fields the session process was told to read from its initialize request could not be delivered — restart the session",
-};
+  // SDK 0.3.331 — managed `disableSideloadFlags` refused a launch that names its own plugins, agents or MCP servers.
+  sideload_flags_disabled:
+    "your organization's managed settings (disableSideloadFlags) don't allow this session to load its own plugins, agents or MCP servers — remove them or ask your administrator",
+  // `satisfies` makes a reason the SDK adds (or renames) a type error here, so an
+  // SDK bump can't leave the banner showing a raw reason code.
+} satisfies Record<SDKStartupFailureReason, string>;
 
 /**
  * Detect the Opus-4 high-demand banner the Anthropic backend emits as
@@ -6368,18 +6373,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     // CC 2.1.314 — a refused switch (409) leaves the session in the mode it
     // was in. Show that mode and say so, unless a newer pick superseded this
     // request or the user moved to another session meanwhile.
-    if (!res || res.status !== 409) return;
+    // SDK 0.3.332 — a 200 with `substituted`: the engine took the switch but
+    // landed in another mode. Same notice slot, its own wording.
+    if (!res || (res.status !== 409 && !res.ok)) return;
     const body = (await res.json().catch(() => null)) as {
       mode?: PermissionMode;
       refused?: { requested?: PermissionMode; reason?: string };
+      substituted?: { requested?: PermissionMode };
     } | null;
     if (!body?.mode || req !== permissionModeReqRef.current || sessionIdRef.current !== id) return;
+    if (res.status !== 409 && !body.substituted) return;
     setPermissionModeState(body.mode);
     setModeChangeRefusedNotice({
       uuid: crypto.randomUUID(),
-      requested: body.refused?.requested ?? mode,
+      requested: body.refused?.requested ?? body.substituted?.requested ?? mode,
       mode: body.mode,
       reason: body.refused?.reason ?? "",
+      ...(res.status !== 409 ? { kind: "substituted" as const } : {}),
     });
   }, []);
 
