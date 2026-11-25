@@ -96,6 +96,27 @@ export function mcpRemoveHint(name: string, scope: string): { label: string; tit
   };
 }
 
+/** CC 2.1.330 — one Reconnect press on a /mcp row: the status the row had at
+ * the press (so a refreshed status can be told apart) and the call's error. */
+export type ReconnectAttempt = { before?: LiveStatus; error: string | null };
+
+/**
+ * CC 2.1.330 — "Improved Reconnect in `/mcp` and `/plugin`: a server's page
+ * now stays open, with the cause in view, when the server still fails or
+ * needs sign-in". `stillFailing`: a refreshed status (a new object, not the one seen at the
+ * press) still says failed / needs-auth. `showCause`: the row should open
+ * itself — that, or the reconnect call itself failed.
+ */
+export function reconnectOutcome(
+  attempt: ReconnectAttempt | undefined,
+  status: LiveStatus | undefined,
+): { stillFailing: boolean; showCause: boolean } {
+  if (!attempt) return { stillFailing: false, showCause: false };
+  const stillFailing =
+    status !== attempt.before && (status?.status === "failed" || status?.status === "needs-auth");
+  return { stillFailing, showCause: !!attempt.error || stillFailing };
+}
+
 /**
  * Load configured MCP servers and (optionally) their live connection status
  * for `sessionId`. Pattern matches `useCost` (refetchTrigger +
@@ -199,15 +220,28 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
     [cwd, refresh],
   );
 
+  /**
+   * CC 2.1.330 — "Improved Reconnect in `/mcp` and `/plugin`: a server's
+   * page now stays open, with the cause in view, when the server still fails
+   * or needs sign-in". Returns the route's error so the row can show it (it
+   * used to be dropped).
+   */
   const reconnect = useCallback(
-    async (name: string) => {
-      if (!sessionId) return false;
-      const res = await fetch(
-        `/api/mcp/${encodeURIComponent(name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`,
-        { method: "POST" },
-      );
-      if (res.ok) setTimeout(refresh, 800);
-      return res.ok;
+    async (name: string): Promise<{ ok: boolean; error?: string }> => {
+      if (!sessionId) return { ok: false, error: "no live session" };
+      try {
+        const res = await fetch(
+          `/api/mcp/${encodeURIComponent(name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`,
+          { method: "POST" },
+        );
+        // Refresh either way: a failed reconnect can still change the status.
+        setTimeout(refresh, 800);
+        if (res.ok) return { ok: true };
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        return { ok: false, error: typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}` };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
     },
     [refresh, sessionId],
   );
@@ -219,23 +253,34 @@ export function useMcp(cwd: string | null, sessionId: string | null) {
    * single-server endpoint per server rather than adding a bulk server
    * route — there are only ever a handful of configured servers, and this
    * keeps the debounce/refresh handling in one place (see `reconnect`
-   * above). Returns the count of servers it attempted to reconnect so the
-   * caller can toast something meaningful; servers already `connected`,
+   * above). Returns the servers it attempted to reconnect and the error for
+   * each whose reconnect call failed; servers already `connected`,
    * `pending`, or `disabled` are left alone.
    */
-  const reconnectAll = useCallback(async (): Promise<number> => {
-    if (!sessionId) return 0;
+  const reconnectAll = useCallback(async (): Promise<{ names: string[]; errors: Record<string, string> }> => {
+    if (!sessionId) return { names: [], errors: {} };
     const targets = status.filter((s) => s.status === "failed" || s.status === "needs-auth");
-    if (targets.length === 0) return 0;
+    if (targets.length === 0) return { names: [], errors: {} };
+    // CC 2.1.330 — keep each server's error (it used to be dropped) so its
+    // row can open with the cause in view.
+    const errors: Record<string, string> = {};
     await Promise.all(
-      targets.map((s) =>
-        fetch(`/api/mcp/${encodeURIComponent(s.name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`, {
-          method: "POST",
-        }).catch(() => null),
-      ),
+      targets.map(async (s) => {
+        try {
+          const res = await fetch(
+            `/api/mcp/${encodeURIComponent(s.name)}/reconnect?sessionId=${encodeURIComponent(sessionId)}`,
+            { method: "POST" },
+          );
+          if (res.ok) return;
+          const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+          errors[s.name] = typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`;
+        } catch (err) {
+          errors[s.name] = err instanceof Error ? err.message : String(err);
+        }
+      }),
     );
     setTimeout(refresh, 800);
-    return targets.length;
+    return { names: targets.map((s) => s.name), errors };
   }, [refresh, sessionId, status]);
 
   const toggle = useCallback(

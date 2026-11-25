@@ -21,9 +21,11 @@ import { useActiveCwd } from "@/lib/client/useActiveCwd";
 import {
   MCP_OTHER_SCOPE_LABELS,
   mcpRemoveHint,
+  reconnectOutcome,
   useMcp,
   type ConfiguredServer,
   type LiveStatus,
+  type ReconnectAttempt,
 } from "@/lib/client/useMcp";
 import type { McpScope, McpServerConfig } from "@/lib/server/mcp";
 import { cn } from "@/lib/utils/cn";
@@ -127,6 +129,32 @@ export default function McpPage() {
   }, [mcp.configured, mcp.status]);
   // CC 2.1.330 — the last failed Remove per server, shown on its row.
   const [removeErrors, setRemoveErrors] = useState<Record<string, string>>({});
+  // CC 2.1.330 — "Improved Reconnect in `/mcp` and `/plugin`: a server's page
+  // now stays open, with the cause in view, when the server still fails or
+  // needs sign-in". Per server: the status it had when Reconnect was pressed (so a
+  // refreshed status can be told apart) and the reconnect call's error.
+  const [reconnects, setReconnects] = useState<Record<string, ReconnectAttempt>>({});
+  function startReconnects(names: string[]) {
+    setReconnects((prev) => {
+      const next = { ...prev };
+      for (const n of names) next[n] = { before: mcp.status.find((s) => s.name === n), error: null };
+      return next;
+    });
+  }
+  function recordReconnectErrors(errors: Record<string, string>) {
+    setReconnects((prev) => {
+      const next = { ...prev };
+      for (const [n, error] of Object.entries(errors)) if (next[n]) next[n] = { ...next[n], error };
+      return next;
+    });
+  }
+  function dismissReconnect(name: string) {
+    setReconnects((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }
 
   return (
     <div className="flex h-full">
@@ -155,8 +183,12 @@ export default function McpPage() {
               disabled={reconnectingAll}
               onClick={async () => {
                 setReconnectingAll(true);
+                startReconnects(
+                  mcp.status.filter((s) => s.status === "failed" || s.status === "needs-auth").map((s) => s.name),
+                );
                 try {
-                  await mcp.reconnectAll();
+                  const { errors } = await mcp.reconnectAll();
+                  recordReconnectErrors(errors);
                 } finally {
                   setReconnectingAll(false);
                 }
@@ -207,9 +239,16 @@ export default function McpPage() {
                     status={status}
                     editable={editable}
                     removeError={removeErrors[server.name] ?? null}
+                    reconnect={reconnects[server.name]}
+                    onDismissReconnect={() => dismissReconnect(server.name)}
                     sessionId={sessionId}
                     statusLoaded={mcp.statusLoaded}
-                    onReconnect={() => mcp.reconnect(server.name)}
+                    onReconnect={() => {
+                      startReconnects([server.name]);
+                      void mcp.reconnect(server.name).then((r) => {
+                        if (!r.ok) recordReconnectErrors({ [server.name]: r.error ?? "Reconnect failed" });
+                      });
+                    }}
                     onToggle={(enabled) => mcp.toggle(server.name, enabled)}
                     onDelete={() => {
                       if (confirm(`Remove MCP server "${server.name}" from ${SCOPE_LABELS[server.scope]}?`)) {
@@ -239,6 +278,8 @@ function ServerRow({
   status,
   editable,
   removeError,
+  reconnect,
+  onDismissReconnect,
   sessionId,
   statusLoaded,
   onReconnect,
@@ -250,6 +291,8 @@ function ServerRow({
   /** In a file Claudius edits, so Remove can work (CC 2.1.330). */
   editable: boolean;
   removeError: string | null;
+  reconnect?: ReconnectAttempt;
+  onDismissReconnect: () => void;
   sessionId: string | null;
   statusLoaded: boolean;
   onReconnect: () => void;
@@ -257,6 +300,10 @@ function ServerRow({
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  // CC 2.1.330 — after Reconnect, the row opens itself with the cause in
+  // view when the call failed or the server still fails / needs sign-in.
+  const { stillFailing, showCause } = reconnectOutcome(reconnect, status);
+  const isOpen = open || showCause;
   const cfg = server.config as McpServerConfig & { url?: string; command?: string; args?: string[] };
   const transport =
     cfg.type === "http" || cfg.type === "sse"
@@ -269,8 +316,18 @@ function ServerRow({
   return (
     <li className="rounded-lg border border-[var(--border)] bg-[var(--panel)]/40">
       <div className="flex items-center gap-3 px-3 py-2">
-        <button onClick={() => setOpen((o) => !o)} className="flex flex-1 items-center gap-2 text-left">
-          {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <button
+          onClick={() => {
+            if (isOpen) {
+              setOpen(false);
+              if (showCause) onDismissReconnect();
+            } else setOpen(true);
+          }}
+          aria-expanded={isOpen}
+          data-testid={`mcp-row-toggle-${server.name}`}
+          className="flex flex-1 items-center gap-2 text-left"
+        >
+          {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           <Plug className="h-3.5 w-3.5 text-[var(--accent)]" />
           <span className="font-medium">{server.name}</span>
           <span className="font-mono text-[10px] text-[var(--muted)]">[{transport}]</span>
@@ -413,14 +470,40 @@ function ServerRow({
           )}
         </div>
       )}
-      {open && (
+      {isOpen && (
         <div className="border-t border-[var(--border)] px-3 py-2 text-xs">
           {target && (
             <div className="mb-2 break-all font-mono text-[11px] text-[var(--muted)]">{target}</div>
           )}
+          {reconnect?.error && (
+            <div
+              data-testid={`mcp-reconnect-error-${server.name}`}
+              className="mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300"
+            >
+              Reconnect failed: {reconnect.error}
+            </div>
+          )}
           {status?.error && (
-            <div className="mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">
+            <div
+              data-testid={`mcp-status-error-${server.name}`}
+              className="mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300"
+            >
               {status.error}
+            </div>
+          )}
+          {stillFailing && !status?.error && (
+            <div
+              data-testid={`mcp-reconnect-still-failing-${server.name}`}
+              className={cn(
+                "mb-2 rounded-md border px-2 py-1 text-[11px]",
+                status?.status === "needs-auth"
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                  : "border-red-500/30 bg-red-500/10 text-red-300",
+              )}
+            >
+              {status?.status === "needs-auth"
+                ? "Still needs sign-in — this server won't connect until you authenticate it."
+                : "Still failing to connect, and the server gave no reason."}
             </div>
           )}
           {server.warnings && server.warnings.length > 0 && (
