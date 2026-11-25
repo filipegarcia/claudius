@@ -6215,15 +6215,21 @@ export class Session {
     // No remote/teleport concept exists in Claudius; this is the local
     // analogue of the TUI's host-rejected model switch.
     const previousModel = this.model;
+    let transportGone = false;
     if (this.query) {
       try {
         await this.query.setModel(model);
       } catch (err) {
-        return {
-          ok: false,
-          error: err instanceof Error ? err.message : String(err),
-          model: this.model,
-        };
+        const error = err instanceof Error ? err.message : String(err);
+        // CC 2.1.331 — "Fixed a model pick being ignored for the next message
+        // when Claude's process had ended". A dead or closing process can't
+        // answer, which isn't a refusal: keep the pick (as `setPermissionMode`
+        // does) so the restart the next send triggers (`getRebuildOpts`)
+        // starts on it, and skip the catalog fetch below that it can't answer.
+        if (!this.isDead() && !this.done && !isTransportClosedError(error)) {
+          return { ok: false, error, model: this.model };
+        }
+        transportGone = true;
       }
     }
     this.model = model;
@@ -6266,7 +6272,7 @@ export class Session {
     // entered auto after an earlier switch to this model, and a reset to the
     // default (`model` undefined) is checked against the SDK-resolved model.
     let models: ModelInfo[] | undefined;
-    if (this.query) {
+    if (this.query && !transportGone) {
       try {
         models = await this.query.supportedModels();
       } catch {

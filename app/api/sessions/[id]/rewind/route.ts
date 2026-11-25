@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Query } from "@anthropic-ai/claude-agent-sdk";
-import { sessionManager } from "@/lib/server/session-manager";
+import { deadSessionResponse, sessionManager } from "@/lib/server/session-manager";
 
 export const runtime = "nodejs";
 
@@ -23,19 +23,29 @@ export const runtime = "nodejs";
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
-    const session = sessionManager.get(id);
-    if (!session) return NextResponse.json({ error: "session not found" }, { status: 404 });
-
+    // Validate before any restart below, so a malformed (or cross-origin)
+    // POST can't spawn an SDK child just to be told 400.
     const body = (await req.json()) as { userMessageId?: string; dryRun?: boolean };
     const userMessageId = body?.userMessageId;
     if (!userMessageId || typeof userMessageId !== "string") {
       return NextResponse.json({ error: "userMessageId required" }, { status: 400 });
     }
 
+    // CC 2.1.331 — "Fixed Rewind showing 'No active session' after Claude's
+    // process had ended". The dead process's `query` can't answer the
+    // control request, so the restore failed with a raw transport error.
+    // Restart a dead session first, as the input route does (the rebuilt one
+    // resumes the transcript, checkpoints included), then rewind on it.
+    const live = await sessionManager.restartIfDead(id);
+    if (!live.ok) {
+      const { error, status } = deadSessionResponse(live);
+      return NextResponse.json({ error }, { status });
+    }
+
     // Read the SDK `Query` instance field directly rather than the Session
     // wrapper method — instance fields survive Next.js Fast Refresh whereas
     // prototype methods don't (same rationale as the model/agents routes).
-    const query = (session as unknown as { query: Query | null }).query;
+    const query = (live.session as unknown as { query: Query | null }).query;
     if (!query) {
       return NextResponse.json({ error: "session not active" }, { status: 503 });
     }

@@ -16,6 +16,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
  *     `canRewind: false` case (that is NOT an HTTP error).
  *   - dryRun flag is forwarded to the SDK.
  *   - 503 with the SDK's error message when `rewindFiles` throws.
+ *   - CC 2.1.331: a dead session goes through `restartIfDead` first, and the
+ *     rewind runs on the rebuilt session.
  */
 
 type FakeQuery = {
@@ -23,13 +25,23 @@ type FakeQuery = {
 };
 type FakeSession = { query: FakeQuery | null };
 
+type RestartResult =
+  | { ok: true; session: FakeSession; restarted: boolean }
+  | { ok: false; reason: "gone" | "max_attempts" | "failed" | "skipped"; error?: string };
+
 const mockManager = {
   get: vi.fn<(id: string) => FakeSession | undefined>(),
+  // Default: hand back whatever `get` holds, like a live session; unknown
+  // ids are "gone". CC 2.1.331 tests override it for a dead session.
+  restartIfDead: vi.fn<(id: string) => Promise<RestartResult>>(),
 };
 
-vi.mock("@/lib/server/session-manager", () => ({
-  sessionManager: mockManager,
-}));
+vi.mock("@/lib/server/session-manager", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/server/session-manager")>(
+    "@/lib/server/session-manager",
+  );
+  return { sessionManager: mockManager, deadSessionResponse: actual.deadSessionResponse };
+});
 
 const { POST } = await import("@/app/api/sessions/[id]/rewind/route");
 
@@ -48,6 +60,11 @@ function makeReq(body: unknown): Request {
 describe("POST /api/sessions/[id]/rewind", () => {
   beforeEach(() => {
     mockManager.get.mockReset();
+    mockManager.restartIfDead.mockReset();
+    mockManager.restartIfDead.mockImplementation(async (id: string) => {
+      const session = mockManager.get(id);
+      return session ? { ok: true, session, restarted: false } : { ok: false, reason: "gone" };
+    });
   });
 
   afterEach(() => {
@@ -149,5 +166,47 @@ describe("POST /api/sessions/[id]/rewind", () => {
     const body = (await res.json()) as { error?: string };
     expect(body.error).toBe("checkpoint store corrupt");
     expect(errSpy).toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/sessions/[id]/rewind after the process ended (CC 2.1.331)", () => {
+  beforeEach(() => {
+    mockManager.get.mockReset();
+    mockManager.restartIfDead.mockReset();
+  });
+
+  test("a dead session is restarted first and the rewind runs on the rebuilt one", async () => {
+    const deadRewind = vi.fn().mockRejectedValue(new Error("ProcessTransport is not ready for writing"));
+    const liveRewind = vi.fn().mockResolvedValue({ canRewind: true, filesChanged: ["a.ts"] });
+    mockManager.get.mockReturnValue({ query: { rewindFiles: deadRewind } });
+    mockManager.restartIfDead.mockResolvedValue({
+      ok: true,
+      session: { query: { rewindFiles: liveRewind } },
+      restarted: true,
+    });
+
+    const res = await POST(makeReq({ userMessageId: "u1", dryRun: true }), makeCtx("dead"));
+
+    expect(res.status).toBe(200);
+    expect(mockManager.restartIfDead).toHaveBeenCalledWith("dead");
+    expect(liveRewind).toHaveBeenCalledWith("u1", { dryRun: true });
+    expect(deadRewind).not.toHaveBeenCalled();
+  });
+
+  test("a restart that fails answers with the input route's dead-session error", async () => {
+    mockManager.restartIfDead.mockResolvedValue({ ok: false, reason: "failed", error: "spawn ENOENT" });
+
+    const res = await POST(makeReq({ userMessageId: "u1" }), makeCtx("dead"));
+
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error?: string };
+    expect(body.error).toBe("Couldn't restart the session: spawn ENOENT");
+  });
+
+  test("a malformed body is refused before anything is restarted", async () => {
+    const res = await POST(makeReq({ dryRun: true }), makeCtx("dead"));
+
+    expect(res.status).toBe(400);
+    expect(mockManager.restartIfDead).not.toHaveBeenCalled();
   });
 });
