@@ -52,7 +52,11 @@ import { hookEventGetsDurablePill } from "@/lib/shared/hook-events";
 import { commandNamesFromChanged } from "@/lib/shared/slash-commands";
 import { clearPendingMessages } from "./clear-pending";
 import { ADVISOR_ACTIVE_SENTINEL, prettyModelName } from "@/lib/shared/advisor";
-import { matchesUsageLimitPrefix, modelRequiringCreditsFromText } from "@/lib/shared/rate-limit-prefixes";
+import {
+  isSyntheticApiMessage,
+  matchesUsageLimitPrefix,
+  modelRequiringCreditsFromText,
+} from "@/lib/shared/rate-limit-prefixes";
 import {
   isCompactSummaryContent,
   isImageResizeNoteContent,
@@ -240,6 +244,19 @@ export function isRateLimitHitText(blocks: DisplayBlock[]): boolean {
   if (!blocks.every((b) => b.kind === "text")) return false;
   const first = blocks.find((b) => b.kind === "text");
   return !!first && matchesUsageLimitPrefix(first.text);
+}
+
+/**
+ * CC 2.1.332 — "Fixed replies that start with phrases like "You've used" or
+ * "You've hit your" showing as a red usage limit error". The rate-limit panel
+ * is for the engine's synthetic API-error message only: `error: "rate_limit"`
+ * live, else the limit prose on a message `isSyntheticApiMessage` accepts
+ * (`message.model: "<synthetic>"` survives replay and pagination). Used by the
+ * live/replay `applyEvent` branch and `synthesizeOlder`. Exported for testing.
+ */
+export function isRateLimitHitMessage(msg: unknown, blocks: DisplayBlock[]): boolean {
+  if ((msg as { error?: unknown } | null)?.error === "rate_limit") return true;
+  return isSyntheticApiMessage(msg) && isRateLimitHitText(blocks);
 }
 
 /**
@@ -3056,7 +3073,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // `synthesizeOlder` pagination — and only the message reaches them all.
         const assistantError = (msg as { error?: string }).error;
         const rateLimitHit =
-          assistantError === "rate_limit" || isRateLimitHitText(blocks)
+          isRateLimitHitMessage(msg, blocks)
             ? rateLimitHitFromBlocks(
                 blocks,
                 lastRateLimitInfoRef.current,
@@ -7472,7 +7489,9 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
         // scope, so `resetsAt` / `fallbackModel` aren't available here — the
         // panel falls back to the reset time already printed in the message
         // text and omits the "Now using <fallback>" takeover line.
-        const rateLimitHit = isRateLimitHitText(newBlocks)
+        // CC 2.1.332 — gated on the synthetic API-error message
+        // (`message.model: "<synthetic>"` survives this path).
+        const rateLimitHit = isRateLimitHitMessage(r, newBlocks)
           ? rateLimitHitFromBlocks(newBlocks, null, null)
           : undefined;
         // Opus-4 high-demand banner — same prose-only signal on the

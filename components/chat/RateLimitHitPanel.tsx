@@ -134,7 +134,10 @@ export function RateLimitHitPanel({
     (hit.rateLimitType === "seven_day_opus" || hit.rateLimitType === "seven_day_sonnet");
 
   return (
-    <div className="my-1 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] leading-5 text-red-200">
+    <div
+      data-testid="rate-limit-hit-panel"
+      className="my-1 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] leading-5 text-red-200"
+    >
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-3.5 w-3.5" />
         {cta === "model-needs-credits" ? (

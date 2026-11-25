@@ -147,7 +147,7 @@ import { buildEffortFlagSettings, parseAppliedEffort, type EffortTier } from "@/
 import { normalizeExtraUsage, type ExtraUsage } from "@/lib/shared/plan-usage";
 import { readCronNextFireAt, readEndedLoopWakeup, type SessionLoop } from "@/lib/shared/session-loops";
 import { isScheduleWakeupStop } from "@/lib/shared/stop-self-paced-loop";
-import { matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
+import { isSyntheticApiMessage, matchesUsageLimitPrefix } from "@/lib/shared/rate-limit-prefixes";
 import {
   findModelInfo,
   shouldLeaveAutoForModel,
@@ -272,6 +272,9 @@ export function isRateLimitHitSdkMessage(message: unknown): boolean {
   // Subagent text shouldn't trigger account rotation — that's an
   // inner conversation, not the main thread the user is watching.
   if (m.parent_tool_use_id) return false;
+  // CC 2.1.332 — only the engine's synthetic API-error message is a limit
+  // stop; a model reply that opens "You've hit your…" must not rotate accounts.
+  if (!isSyntheticApiMessage(message)) return false;
   const content = m.message?.content;
   if (!Array.isArray(content) || content.length === 0) return false;
   // Match the client rule: every block must be a text block AND the

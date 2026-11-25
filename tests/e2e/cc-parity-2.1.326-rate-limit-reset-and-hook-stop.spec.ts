@@ -23,7 +23,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { test, expect, type Page } from "../helpers/test";
 import { activateClaudiusWorkspace } from "./helpers/workspace";
-import { assistantText, initEvent, mockChatBackend, userText, type SdkEvent } from "./helpers/mock-chat";
+import { apiErrorText, assistantText, initEvent, mockChatBackend, userText, type SdkEvent } from "./helpers/mock-chat";
 
 const SHOTS_DIR = resolve(process.cwd(), "docs/cc-parity/2.1.326");
 mkdirSync(SHOTS_DIR, { recursive: true });
@@ -64,7 +64,7 @@ function rateLimitTranscript(): SdkEvent[] {
         rate_limit_info: { status: "rejected", rateLimitType: "five_hour", resetsAt: RESET_PASSED_AT },
       },
     },
-    assistantText("a-hit-326", "You've hit your session limit · resets 3pm"),
+    apiErrorText("a-hit-326", "You've hit your session limit · resets 3pm"),
   ];
 }
 

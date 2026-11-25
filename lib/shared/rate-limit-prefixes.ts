@@ -82,6 +82,22 @@ export function matchesUsageLimitPrefix(text: string): boolean {
  * doesn't read as a limit hit (this also feeds the server's account
  * auto-rotate).
  */
+/**
+ * CC 2.1.332 — "Fixed replies that start with phrases like "You've used" or
+ * "You've hit your" showing as a red usage limit error". The engine writes a
+ * usage-limit stop as a synthetic API-error message, never as model prose: it
+ * carries `error` (live) and `message.model: "<synthetic>"` (live, and on disk,
+ * where `getSessionMessages` keeps `message` but drops `error`). A real reply
+ * that merely opens with a limit prefix has a real model id and no `error`, so
+ * the prose match must sit behind this check.
+ */
+export function isSyntheticApiMessage(msg: unknown): boolean {
+  if (!msg || typeof msg !== "object") return false;
+  const m = msg as { error?: unknown; message?: { model?: unknown } | null };
+  if (typeof m.error === "string" && m.error !== "") return true;
+  return m.message?.model === "<synthetic>";
+}
+
 // Group 1 is the model name (CC 2.1.323, `modelRequiringCreditsFromText`).
 const MODEL_REQUIRES_CREDITS_RE = /^((?:Fable|Haiku|Mythos|Opus|Sonnet)(?: [^\u00B7\n]{1,40})?) requires usage credits\./;
 
