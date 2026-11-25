@@ -23,6 +23,7 @@ import { RateLimitWarningSection } from "@/components/settings/RateLimitWarningS
 import { ContextWarningSection } from "@/components/settings/ContextWarningSection";
 import { ResumeFromSummarySection } from "@/components/settings/ResumeFromSummarySection";
 import { GoalBannerSection } from "@/components/settings/GoalBannerSection";
+import { LayoutSection } from "@/components/settings/LayoutSection";
 import { BackupSection } from "@/components/settings/BackupSection";
 import { ChatSizeSection } from "@/components/settings/ChatSizeSection";
 import { FilePermissionsSection } from "@/components/settings/FilePermissionsSection";
@@ -213,6 +214,7 @@ export default function SettingsPage() {
   const sContext = show("context window warning compact banner threshold nudge chat");
   const sResumeSummary = show("resume from summary idle stale session compact tokens prompt cache don't ask again");
   const sGoalBanner = show("session goal prompt banner hide show header objective chat");
+  const sLayout = show("layout tab placement session tabs strip bar vertical horizontal left right top dock sidebar activity panel right rail collapse hide show");
   const sBackup = show("backup restore export import config bundle json snapshot");
   // macOS file-permission priming — desktop-app only (the bridge doesn't
   // exist in the browser build), so fold the platform gate into visibility
@@ -260,7 +262,7 @@ export default function SettingsPage() {
     .filter(([, visible]) => visible.length > 0);
 
   const anyMatch =
-    sEditor || sTheme || sPreviews || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sResumeSummary || sGoalBanner ||
+    sEditor || sTheme || sPreviews || sChatSize || sLinkTarget || sUpdater || sShortcuts || sRateLimit || sContext || sResumeSummary || sGoalBanner || sLayout ||
     sBackup || sFilePerms || sWorktree || sModelUi || sMemory || sChat || sEnv || sPlugins || sOther ||
     catalogEntries.length > 0;
   const noMatches = !!q && !anyMatch;
@@ -556,6 +558,12 @@ export default function SettingsPage() {
                 goal" prompt in the chat header. A Claudius UI knob, separate
                 from the goal data itself (which lives per-project). */}
             {sGoalBanner && <GoalBannerSection />}
+
+            {/* Browser-local chat layout: dock position for the session tab
+                strip (IntelliJ's Top / Left / Right, also on the strip's
+                right-click menu) and whether the Activity panel is expanded
+                or collapsed (also on the panel's header). */}
+            {sLayout && <LayoutSection />}
 
             {/* Backup / restore the full Claudius config as one JSON bundle.
                 Outside the scope tabs because it spans every scope and

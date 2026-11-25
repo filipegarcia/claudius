@@ -17,13 +17,15 @@ async function waitForBoundSession(page: Page, opts: { not?: string } = {}): Pro
 }
 
 /**
- * Verify that when more session tabs are open than the bar can fit, the
- * overflow is surfaced behind a chevron with a count, NOT via a horizontal
- * scrollbar. Picking a hidden tab from the popover activates it and brings
- * it into the visible portion of the bar.
+ * Verify the IntelliJ "scroll tabs" overflow: when more session tabs are open
+ * than the bar can fit, the strip scrolls horizontally (every tab stays
+ * rendered — nothing is `display: none`d) and a chevron with a count lists
+ * the tabs that are currently out of view. Picking one from the popover
+ * activates it and scrolls it into view; a vertical mouse wheel over the
+ * strip scrolls it sideways.
  */
-test.describe("Session tabs — overflow into chevron popover", () => {
-  test("opens many tabs in a narrow viewport, the chevron lists hidden ones", async ({ page, baseURL }) => {
+test.describe("Session tabs — overflow scrolls, chevron lists out-of-view tabs", () => {
+  test("opens many tabs in a narrow viewport, scrolls the strip, the chevron lists hidden ones", async ({ page, baseURL }) => {
     test.setTimeout(120_000);
 
     // Reset persisted tab strip so leftover tabs from prior runs don't
@@ -57,7 +59,21 @@ test.describe("Session tabs — overflow into chevron popover", () => {
     const count = Number((await overflowBtn.textContent())?.trim());
     expect(count).toBeGreaterThan(0);
 
-    // Total tabs = visible (DOM data-tab-hidden=false) + hidden (true).
+    // Every tab is still laid out (scrolled, not hidden): the scroller's
+    // content is wider than its viewport and each tab has a real width.
+    const scroller = page.getByTestId("session-tabs-scroller");
+    const dims = await scroller.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(dims.scrollWidth).toBeGreaterThan(dims.clientWidth);
+    const widths = await page
+      .locator('[data-testid="session-tab"]')
+      .evaluateAll((els) => els.map((el) => (el as HTMLElement).offsetWidth));
+    expect(widths).toHaveLength(ids.length);
+    for (const w of widths) expect(w).toBeGreaterThan(0);
+
+    // Total tabs = in view (data-tab-hidden=false) + out of view (true).
     const visibleTabs = page.locator(
       '[data-testid="session-tab"][data-tab-hidden="false"]',
     );
@@ -98,9 +114,29 @@ test.describe("Session tabs — overflow into chevron popover", () => {
     await expect(newlyActive).toHaveAttribute("data-tab-active", "true", { timeout: 5_000 });
     await expect(newlyActive).toHaveAttribute("data-tab-hidden", "false");
 
-    // The bar itself never scrolls horizontally — its scrollWidth equals
-    // its clientWidth (modulo a px or two of rounding on retina).
-    const stripBox = await page.locator(".flex.h-8").first().boundingBox();
-    expect(stripBox).toBeTruthy();
+    // ── Vertical wheel over the strip scrolls it sideways (IntelliJ). The
+    // picked tab (ids[0]) is at the start, so wheeling "down" scrolls right
+    // until the last tab comes into view and the first goes out of view.
+    const scrollBefore = await scroller.evaluate((el) => el.scrollLeft);
+    await scroller.hover();
+    await page.mouse.wheel(0, 4000);
+    await expect
+      .poll(() => scroller.evaluate((el) => el.scrollLeft), { timeout: 5_000 })
+      .toBeGreaterThan(scrollBefore);
+    const lastId = ids[ids.length - 1];
+    await expect(
+      page.locator(`[data-testid="session-tab"][data-tab-id="${lastId}"]`),
+    ).toHaveAttribute("data-tab-hidden", "false");
+    await expect(newlyActive).toHaveAttribute("data-tab-hidden", "true");
+    // Scrolling never changes the selection.
+    await expect(newlyActive).toHaveAttribute("data-tab-active", "true");
+
+    // ── Clicking the active tab's entry in the chevron (it's now out of
+    // view) scrolls it back without re-selecting anything else.
+    await overflowBtn.click();
+    await page
+      .locator(`[data-testid="session-tabs-overflow-item"][data-tab-id="${firstHidden}"]`)
+      .click();
+    await expect(newlyActive).toHaveAttribute("data-tab-hidden", "false", { timeout: 5_000 });
   });
 });

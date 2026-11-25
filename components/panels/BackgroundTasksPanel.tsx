@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, Bot, Brain, Check, CircleStop, Eraser, Loader2, MinusCircle, Plus, Terminal, WifiOff, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Bell, Bot, Brain, Check, CircleStop, Eraser, Loader2, MinusCircle, PanelRightClose, PanelRightOpen, Plus, Terminal, WifiOff, Wrench } from "lucide-react";
 import { useStreamDisconnected } from "@/lib/client/stream-status-context";
+import { useActivityPanelCollapsed } from "@/lib/client/useActivityPanelCollapsed";
+import { useNotificationsContext } from "@/components/notifications/NotificationsProvider";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AgentTodo,
@@ -515,6 +517,78 @@ export function BackgroundTasksPanel({
   // CC 2.1.302 — while the session stream is reconnecting nothing about the
   // turn or its background work can arrive; say so instead of spinning.
   const disconnected = useStreamDisconnected();
+  // Collapse to a slim stripe (persisted per browser; also toggled from
+  // Settings → Layout). The stripe keeps the busy / attention / unread cues.
+  const { collapsed, setCollapsed } = useActivityPanelCollapsed();
+  const { totalUnread } = useNotificationsContext();
+
+  if (collapsed) {
+    return (
+      <div
+        data-pane-name="right-rail"
+        data-testid="activity-panel-collapsed"
+        className="flex h-full w-9 shrink-0 flex-col items-center border-l border-[var(--border)] bg-[var(--panel)]"
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          title="Show Activity panel"
+          aria-label="Show Activity panel"
+          data-testid="activity-panel-expand"
+          className="flex h-9 w-full shrink-0 items-center justify-center border-b border-[var(--border)] text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+        >
+          <PanelRightOpen className="h-3.5 w-3.5" />
+        </button>
+        {/* The whole stripe below the toggle is one big expand target, with
+            the cues the full header would have shown stacked vertically. */}
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          title={
+            busy && disconnected
+              ? "Activity — reconnecting…"
+              : busy
+                ? `Activity — ${!ready ? "starting…" : "working…"}`
+                : "Activity"
+          }
+          aria-label="Show Activity panel"
+          className="flex w-full flex-1 flex-col items-center gap-2 pt-2 text-[10px] text-[var(--muted)] hover:bg-[var(--panel-2)]/60"
+        >
+          <Activity className="h-3.5 w-3.5 text-[var(--accent)]" />
+          {busy &&
+            (disconnected ? (
+              <WifiOff className="h-3 w-3 text-amber-300" aria-label="Reconnecting" />
+            ) : (
+              <Loader2
+                className="h-3 w-3 animate-spin text-[var(--accent)]"
+                aria-label={!ready ? "Starting session" : "Claude is working"}
+              />
+            ))}
+          {attention > 0 && (
+            <span
+              data-testid="activity-panel-collapsed-attention"
+              title={`${attention} item${attention === 1 ? "" : "s"} needing attention`}
+              className="font-mono tabular-nums text-[var(--foreground)]"
+            >
+              {attention}
+            </span>
+          )}
+          {totalUnread > 0 && (
+            <span
+              data-testid="activity-panel-collapsed-unread"
+              title={`${totalUnread} unread notification${totalUnread === 1 ? "" : "s"}`}
+              className="flex flex-col items-center gap-0.5"
+            >
+              <Bell className="h-3 w-3" />
+              <span className="rounded-full bg-[var(--accent)]/85 px-1 py-px text-[9px] font-semibold leading-none tabular-nums text-[var(--background)]">
+                {totalUnread > 99 ? "99+" : totalUnread}
+              </span>
+            </span>
+          )}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div data-pane-name="right-rail" className="flex h-full w-64 shrink-0 flex-col border-l border-[var(--border)] bg-[var(--panel)] lg:w-72">
@@ -572,6 +646,16 @@ export function BackgroundTasksPanel({
         <span className={cn("text-[var(--muted)]", runningBg > 0 ? "ml-1" : "ml-auto")}>
           {attention}
         </span>
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          title="Hide Activity panel"
+          aria-label="Hide Activity panel"
+          data-testid="activity-panel-collapse"
+          className="-mr-1 shrink-0 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-[var(--foreground)]"
+        >
+          <PanelRightClose className="h-3.5 w-3.5" />
+        </button>
       </div>
       {/* Notifications inbox sits OUTSIDE the scroll container — the rail's
           `overflow-y-auto` would otherwise clip the popover horizontally and

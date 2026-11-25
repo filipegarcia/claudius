@@ -156,6 +156,7 @@ import {
 import { useWorkspaces } from "@/lib/client/useWorkspaces";
 import { useVerbose } from "@/lib/client/useVerbose";
 import { useFocusMode } from "@/lib/client/useFocusMode";
+import { useTabPlacement } from "@/lib/client/useTabPlacement";
 import { useStartupCount } from "@/lib/client/useStartupCount";
 import { useTipLastShown } from "@/lib/client/useTipLastShown";
 
@@ -415,6 +416,9 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
   // stored per-workspace level (see `effectiveVerbose`) so exiting restores the
   // user's saved verbosity.
   const { focusLevel, isFocus, isZen, cycleFocus, setFocusLevel } = useFocusMode();
+  // IntelliJ-style "Tab placement" for the session strip (top / left / right).
+  // Per-browser; switchable from the strip's right-click menu or Settings.
+  const { placement: tabPlacement, setPlacement: setTabPlacement } = useTabPlacement();
   const effectiveVerbose = isFocus ? "ultra-compact" : verbose.verbose;
   // Per-browser launch counter for first-run tip gating. `< 10` mirrors the
   // Claude Code TUI's `numStartups < 10` first-run gate on the `/powerup`
@@ -2311,6 +2315,85 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
     return extras.length === 0 ? session.sessions : [...session.sessions, ...extras];
   }, [session.sessions, openTabs, openTabTitles]);
 
+  // The session tab strip, built once and mounted in one of three spots
+  // depending on the IntelliJ-style "Tab placement" pref: above the chat
+  // column ("top", inside <main>), or as a vertical column beside it
+  // ("left" — between the side nav and the chat; "right" — between the chat
+  // and the activity panel). Switching placement remounts the strip, which
+  // only resets its transient UI (scroll offset, open menus).
+  const sessionTabs = (
+    <SessionTabs
+      tabs={openTabs.map((id) => {
+        // Status resolution for the dot on each tab:
+        //   - active tab → derive from local useSession state (freshest;
+        //     pending flips before the next server poll lands).
+        //   - non-active but in `session.sessions` → use the server's
+        //     in-memory status. Refreshed on the active session's
+        //     `result` event and on visibilitychange, so the dots track
+        //     real state without a dedicated SSE per tab.
+        //   - reaped (id missing from the live list) → "background". The
+        //     SDK process is gone; clicking the tab will resume from
+        //     disk via /api/sessions/:id/stream.
+        let status: TabStatus;
+        if (id === session.sessionId) {
+          status = activeTabStatus({
+            ready: session.ready,
+            pending: session.pending,
+            hasError: session.errors.length > 0,
+            needsInput: session.needsInput,
+          });
+        } else {
+          const live = session.sessions.find((s) => s.id === id);
+          status = live?.status ?? "background";
+        }
+        return {
+          id,
+          label:
+            id === session.sessionId
+              ? tabLabelFor(id, sessionsForTabs, session.sessionTitle)
+              : tabLabelFor(id, sessionsForTabs),
+          status,
+          unread: notifications.unreadBySession[id],
+          pinned: pinnedSet.has(id),
+        };
+      })}
+      activeId={session.sessionId}
+      onSelect={(id) => {
+        if (id !== session.sessionId) session.switchSession(id);
+        // "Selecting" a tab implies "I'm looking at this session now" —
+        // clear its unread badge AND its contribution to the bell-tile
+        // total. Re-selecting the current tab is harmless: the action
+        // exits early when the per-session count is already 0.
+        void notifications.markSessionRead(id);
+      }}
+      onClose={(id) => {
+        // Closing a tab implies "I'm done with this session". Clear the
+        // session's unread notifications so they don't linger as ghosts
+        // on the workspace badge — orphaned counts were the symptom that
+        // surfaced this code path. markSessionRead exits cheaply when the
+        // per-session count is already 0, so the order doesn't matter.
+        void notifications.markSessionRead(id);
+        closeTab(id);
+      }}
+      onCloseAll={() => {
+        // Same contract as onClose, but across every currently-open tab.
+        // closeAllTabs returns the ids it actually closed (empty when the
+        // user cancels its confirm), so we only mark notifications read
+        // for tabs that really went away.
+        const closed = closeAllTabs();
+        for (const id of closed) void notifications.markSessionRead(id);
+      }}
+      onNew={() => void session.createNewSession()}
+      onReopen={reopenClosedTab}
+      onReorder={reorderTab}
+      onTogglePin={togglePin}
+      labelMaxWidth={tabLabelMaxWidth ?? undefined}
+      onLabelWidthChange={onTabLabelWidthChange}
+      placement={tabPlacement}
+      onPlacementChange={setTabPlacement}
+    />
+  );
+
   return (
     <ClockOptionsProvider value={clockOptions}>
     <MessageTimestampsProvider value={showMessageTimestamps}>
@@ -2323,79 +2406,13 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
           but keeps the workspace rail; zen hides the workspace rail too.
           SideNav handles the split internally. */}
       <SideNav running={session.pending} focusLevel={focusLevel} />
+      {tabPlacement === "left" && sessionTabs}
       <main
         data-pane-name="chat-area"
         className="relative flex h-full min-w-0 flex-1 flex-col"
         style={proseMaxWidth ? ({ "--prose-max-width": proseMaxWidth } as CSSProperties) : undefined}
       >
-        <SessionTabs
-          tabs={openTabs.map((id) => {
-            // Status resolution for the dot on each tab:
-            //   - active tab → derive from local useSession state (freshest;
-            //     pending flips before the next server poll lands).
-            //   - non-active but in `session.sessions` → use the server's
-            //     in-memory status. Refreshed on the active session's
-            //     `result` event and on visibilitychange, so the dots track
-            //     real state without a dedicated SSE per tab.
-            //   - reaped (id missing from the live list) → "background". The
-            //     SDK process is gone; clicking the tab will resume from
-            //     disk via /api/sessions/:id/stream.
-            let status: TabStatus;
-            if (id === session.sessionId) {
-              status = activeTabStatus({
-                ready: session.ready,
-                pending: session.pending,
-                hasError: session.errors.length > 0,
-                needsInput: session.needsInput,
-              });
-            } else {
-              const live = session.sessions.find((s) => s.id === id);
-              status = live?.status ?? "background";
-            }
-            return {
-              id,
-              label:
-                id === session.sessionId
-                  ? tabLabelFor(id, sessionsForTabs, session.sessionTitle)
-                  : tabLabelFor(id, sessionsForTabs),
-              status,
-              unread: notifications.unreadBySession[id],
-              pinned: pinnedSet.has(id),
-            };
-          })}
-          activeId={session.sessionId}
-          onSelect={(id) => {
-            if (id !== session.sessionId) session.switchSession(id);
-            // "Selecting" a tab implies "I'm looking at this session now" —
-            // clear its unread badge AND its contribution to the bell-tile
-            // total. Re-selecting the current tab is harmless: the action
-            // exits early when the per-session count is already 0.
-            void notifications.markSessionRead(id);
-          }}
-          onClose={(id) => {
-            // Closing a tab implies "I'm done with this session". Clear the
-            // session's unread notifications so they don't linger as ghosts
-            // on the workspace badge — orphaned counts were the symptom that
-            // surfaced this code path. markSessionRead exits cheaply when the
-            // per-session count is already 0, so the order doesn't matter.
-            void notifications.markSessionRead(id);
-            closeTab(id);
-          }}
-          onCloseAll={() => {
-            // Same contract as onClose, but across every currently-open tab.
-            // closeAllTabs returns the ids it actually closed (empty when the
-            // user cancels its confirm), so we only mark notifications read
-            // for tabs that really went away.
-            const closed = closeAllTabs();
-            for (const id of closed) void notifications.markSessionRead(id);
-          }}
-          onNew={() => void session.createNewSession()}
-          onReopen={reopenClosedTab}
-          onReorder={reorderTab}
-          onTogglePin={togglePin}
-          labelMaxWidth={tabLabelMaxWidth ?? undefined}
-          onLabelWidthChange={onTabLabelWidthChange}
-        />
+        {tabPlacement === "top" && sessionTabs}
         {openTabs.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-center">
             <div className="flex max-w-sm flex-col items-center px-6 py-12">
@@ -2943,6 +2960,7 @@ export default function ChatSurface({ kind, id: contextId, cwd: contextCwd }: Ch
         </>
         )}
       </main>
+      {tabPlacement === "right" && sessionTabs}
       {!isFocus && (
       <BackgroundTasksPanel
         account={costAccount}
