@@ -3,6 +3,7 @@ import {
   pathFor,
   readSettings,
   settingsSaveFailure,
+  withSettingsLock,
   writeSettings,
   type ClaudeSettings,
   type SettingsScope,
@@ -49,8 +50,11 @@ export async function PUT(req: Request) {
   // can't be written) returns a message naming the file instead of a bare 500.
   try {
     if (patch) {
-      const current = await readSettings(body.scope, cwd);
-      await writeSettings(body.scope, cwd, applySettingsPatch(current as Record<string, unknown>, patch) as ClaudeSettings);
+      // CC 2.1.330 — read and write under the file's lock (settings.ts).
+      await withSettingsLock(body.scope, cwd, async () => {
+        const current = await readSettings(body.scope, cwd);
+        await writeSettings(body.scope, cwd, applySettingsPatch(current as Record<string, unknown>, patch) as ClaudeSettings);
+      });
     } else {
       await writeSettings(body.scope, cwd, body.settings as ClaudeSettings);
     }

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { pathFor, readSettings, writeSettings } from "./settings";
+import { pathFor, readSettings, withSettingsFileLock, writeSettings } from "./settings";
 import { assertWithin } from "./safe-path";
 
 export type McpStdioConfig = {
@@ -238,21 +238,11 @@ export async function listConfigured(cwd: string): Promise<ConfiguredServer[]> {
  * lock — it can't stop the engine (another process) from writing between our
  * read and write, the same limit the engine states for its own fix.
  */
-const fileChains = new Map<string, Promise<unknown>>();
-
-function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
-  const prev = fileChains.get(file) ?? Promise.resolve();
-  const run = prev.then(fn, fn);
-  const tail = run.then(
-    () => {},
-    () => {},
-  );
-  fileChains.set(file, tail);
-  void tail.then(() => {
-    if (fileChains.get(file) === tail) fileChains.delete(file);
-  });
-  return run;
-}
+// CC 2.1.330 — one per-file chain shared with every other settings writer
+// (`withSettingsFileLock`), so an MCP add and a /settings save to the same
+// settings.json no longer race each other either. Re-entrant, so the
+// upsert's own `writeSettings` call inside it doesn't deadlock.
+const withFileLock = withSettingsFileLock;
 
 function mcpTargetFile(scope: McpScope, cwd: string): string {
   if (scope === "project") return projectMcpJsonPath(cwd);

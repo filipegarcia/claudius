@@ -1,6 +1,7 @@
 import {
   pathFor,
   readSettings,
+  withSettingsLock,
   writeSettings,
   type ClaudeSettings,
   type SettingsScope,
@@ -41,12 +42,14 @@ export async function addGroup(
   event: HookEvent,
   group: HookGroup,
 ): Promise<void> {
-  const settings = await readSettings(scope, cwd);
-  const hooks = readHooks(settings);
-  const arr = (hooks[event] ?? []).slice();
-  arr.push(group);
-  const next: ClaudeSettings = { ...settings, hooks: { ...hooks, [event]: arr } as Record<string, unknown> };
-  await writeSettings(scope, cwd, next);
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const hooks = readHooks(settings);
+    const arr = (hooks[event] ?? []).slice();
+    arr.push(group);
+    const next: ClaudeSettings = { ...settings, hooks: { ...hooks, [event]: arr } as Record<string, unknown> };
+    await writeSettings(scope, cwd, next);
+  });
 }
 
 export async function removeGroup(
@@ -55,17 +58,19 @@ export async function removeGroup(
   event: HookEvent,
   index: number,
 ): Promise<boolean> {
-  const settings = await readSettings(scope, cwd);
-  const hooks = readHooks(settings);
-  const arr = (hooks[event] ?? []).slice();
-  if (index < 0 || index >= arr.length) return false;
-  arr.splice(index, 1);
-  const nextHooks = { ...hooks } as HooksMap;
-  if (arr.length === 0) delete nextHooks[event];
-  else nextHooks[event] = arr;
-  const next: ClaudeSettings = { ...settings, hooks: nextHooks as Record<string, unknown> };
-  await writeSettings(scope, cwd, next);
-  return true;
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const hooks = readHooks(settings);
+    const arr = (hooks[event] ?? []).slice();
+    if (index < 0 || index >= arr.length) return false;
+    arr.splice(index, 1);
+    const nextHooks = { ...hooks } as HooksMap;
+    if (arr.length === 0) delete nextHooks[event];
+    else nextHooks[event] = arr;
+    const next: ClaudeSettings = { ...settings, hooks: nextHooks as Record<string, unknown> };
+    await writeSettings(scope, cwd, next);
+    return true;
+  });
 }
 
 export async function setDisableAllHooks(
@@ -73,8 +78,10 @@ export async function setDisableAllHooks(
   cwd: string,
   disabled: boolean,
 ): Promise<void> {
-  const settings = await readSettings(scope, cwd);
-  const next: ClaudeSettings = { ...settings, disableAllHooks: disabled };
-  if (!disabled && "disableAllHooks" in next) delete next.disableAllHooks;
-  await writeSettings(scope, cwd, next);
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const next: ClaudeSettings = { ...settings, disableAllHooks: disabled };
+    if (!disabled && "disableAllHooks" in next) delete next.disableAllHooks;
+    await writeSettings(scope, cwd, next);
+  });
 }

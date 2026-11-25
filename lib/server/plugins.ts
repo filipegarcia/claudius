@@ -12,6 +12,7 @@ import {
   pathFor,
   readSettings,
   SettingsParseError,
+  withSettingsLock,
   writeSettings,
   type ClaudeSettings,
   type SettingsScope,
@@ -214,17 +215,19 @@ export async function setPluginOptionValue(
   name: string,
   value: PluginOptionValue | undefined,
 ): Promise<void> {
-  const settings = await readSettings(scope, cwd);
-  const next = { ...settings } as Record<string, unknown>;
-  const updated = setPluginOption(
-    (settings as { pluginConfigs?: unknown }).pluginConfigs,
-    pluginId,
-    name,
-    value,
-  );
-  if (updated === undefined) delete next.pluginConfigs;
-  else next.pluginConfigs = updated;
-  await writeSettings(scope, cwd, next as ClaudeSettings);
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const next = { ...settings } as Record<string, unknown>;
+    const updated = setPluginOption(
+      (settings as { pluginConfigs?: unknown }).pluginConfigs,
+      pluginId,
+      name,
+      value,
+    );
+    if (updated === undefined) delete next.pluginConfigs;
+    else next.pluginConfigs = updated;
+    await writeSettings(scope, cwd, next as ClaudeSettings);
+  });
 }
 
 export async function setEnabled(
@@ -233,19 +236,21 @@ export async function setEnabled(
   pluginId: string,
   enabled: boolean,
 ): Promise<void> {
-  const settings = await readSettings(scope, cwd);
-  const ep =
-    typeof settings.enabledPlugins === "object" && settings.enabledPlugins
-      ? { ...(settings.enabledPlugins as Record<string, unknown>) }
-      : {};
-  if (enabled) ep[pluginId] = true;
-  else delete ep[pluginId];
-  const next: ClaudeSettings = {
-    ...settings,
-    enabledPlugins: Object.keys(ep).length ? ep : undefined,
-  };
-  if (next.enabledPlugins === undefined) delete next.enabledPlugins;
-  await writeSettings(scope, cwd, next);
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const ep =
+      typeof settings.enabledPlugins === "object" && settings.enabledPlugins
+        ? { ...(settings.enabledPlugins as Record<string, unknown>) }
+        : {};
+    if (enabled) ep[pluginId] = true;
+    else delete ep[pluginId];
+    const next: ClaudeSettings = {
+      ...settings,
+      enabledPlugins: Object.keys(ep).length ? ep : undefined,
+    };
+    if (next.enabledPlugins === undefined) delete next.enabledPlugins;
+    await writeSettings(scope, cwd, next);
+  });
 }
 
 /**
@@ -366,15 +371,17 @@ export async function addExtraMarketplace(
   name: string,
   source: MarketplaceSource,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const settings = await readSettings(scope, cwd);
-  const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
-  const res = addExtraEntry(raw, name, source);
-  if (!res.ok) return res;
-  const next = { ...settings } as Record<string, unknown>;
-  delete next.additionalMarketplaces;
-  next.extraKnownMarketplaces = res.value;
-  await writeSettings(scope, cwd, next as ClaudeSettings);
-  return { ok: true };
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
+    const res = addExtraEntry(raw, name, source);
+    if (!res.ok) return res;
+    const next = { ...settings } as Record<string, unknown>;
+    delete next.additionalMarketplaces;
+    next.extraKnownMarketplaces = res.value;
+    await writeSettings(scope, cwd, next as ClaudeSettings);
+    return { ok: true };
+  });
 }
 
 export async function removeExtraMarketplace(
@@ -382,14 +389,16 @@ export async function removeExtraMarketplace(
   cwd: string,
   name: string,
 ): Promise<void> {
-  const settings = await readSettings(scope, cwd);
-  const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
-  const value = removeExtraEntry(raw, name);
-  const next = { ...settings } as Record<string, unknown>;
-  delete next.additionalMarketplaces;
-  if (value === undefined) delete next.extraKnownMarketplaces;
-  else next.extraKnownMarketplaces = value;
-  await writeSettings(scope, cwd, next as ClaudeSettings);
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const raw = aliased(settings, "extraKnownMarketplaces", "additionalMarketplaces");
+    const value = removeExtraEntry(raw, name);
+    const next = { ...settings } as Record<string, unknown>;
+    delete next.additionalMarketplaces;
+    if (value === undefined) delete next.extraKnownMarketplaces;
+    else next.extraKnownMarketplaces = value;
+    await writeSettings(scope, cwd, next as ClaudeSettings);
+  });
 }
 
 /**
@@ -405,22 +414,24 @@ export async function removePolicyMarketplaceEntry(
   index: number,
   expected?: PolicyEntryExpectation,
 ): Promise<boolean> {
-  const settings = await readSettings(scope, cwd);
-  const next = { ...settings } as Record<string, unknown>;
-  const current =
-    list === "strict"
-      ? aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces")
-      : (settings as { blockedMarketplaces?: unknown }).blockedMarketplaces;
-  if (expected && !policyEntryMatches(current, index, expected)) return false;
-  const value = removePolicyMarketplace(current, index);
-  if (list === "strict") {
-    delete next.allowedMarketplaces;
-    if (value === undefined) delete next.strictKnownMarketplaces;
-    else next.strictKnownMarketplaces = value;
-  } else {
-    if (value === undefined) delete next.blockedMarketplaces;
-    else next.blockedMarketplaces = value;
-  }
-  await writeSettings(scope, cwd, next as ClaudeSettings);
-  return true;
+  return withSettingsLock(scope, cwd, async () => {
+    const settings = await readSettings(scope, cwd);
+    const next = { ...settings } as Record<string, unknown>;
+    const current =
+      list === "strict"
+        ? aliased(settings, "strictKnownMarketplaces", "allowedMarketplaces")
+        : (settings as { blockedMarketplaces?: unknown }).blockedMarketplaces;
+    if (expected && !policyEntryMatches(current, index, expected)) return false;
+    const value = removePolicyMarketplace(current, index);
+    if (list === "strict") {
+      delete next.allowedMarketplaces;
+      if (value === undefined) delete next.strictKnownMarketplaces;
+      else next.strictKnownMarketplaces = value;
+    } else {
+      if (value === undefined) delete next.blockedMarketplaces;
+      else next.blockedMarketplaces = value;
+    }
+    await writeSettings(scope, cwd, next as ClaudeSettings);
+    return true;
+  });
 }

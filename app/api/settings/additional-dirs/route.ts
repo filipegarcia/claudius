@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readSettings, settingsSaveFailure, writeSettings, type SettingsScope } from "@/lib/server/settings";
+import { readSettings, settingsSaveFailure, withSettingsLock, writeSettings, type SettingsScope } from "@/lib/server/settings";
 import { resolveTrustedCwd } from "@/lib/server/trusted-cwd";
 
 export const runtime = "nodejs";
@@ -54,26 +54,28 @@ export async function POST(req: Request) {
 }
 
 async function saveAdditionalDirs(body: Body, cwd: string): Promise<NextResponse> {
-  const settings = await readSettings(body.scope, cwd);
-  const current = new Set(
-    Array.isArray(settings.permissions?.additionalDirectories)
-      ? (settings.permissions?.additionalDirectories as string[])
-      : [],
-  );
-  for (const a of body.add ?? []) current.add(a);
-  for (const r of body.remove ?? []) current.delete(r);
-  const arr = [...current];
-  const next = {
-    ...settings,
-    permissions: {
-      ...(settings.permissions ?? {}),
-      additionalDirectories: arr.length ? arr : undefined,
-    },
-  };
-  // Strip empty permissions block to keep the file tidy.
-  if (next.permissions && Object.keys(next.permissions).every((k) => (next.permissions as Record<string, unknown>)[k] == null)) {
-    delete (next as { permissions?: unknown }).permissions;
-  }
-  await writeSettings(body.scope, cwd, next);
-  return NextResponse.json({ ok: true, additionalDirectories: arr });
+  return withSettingsLock(body.scope, cwd, async () => {
+    const settings = await readSettings(body.scope, cwd);
+    const current = new Set(
+      Array.isArray(settings.permissions?.additionalDirectories)
+        ? (settings.permissions?.additionalDirectories as string[])
+        : [],
+    );
+    for (const a of body.add ?? []) current.add(a);
+    for (const r of body.remove ?? []) current.delete(r);
+    const arr = [...current];
+    const next = {
+      ...settings,
+      permissions: {
+        ...(settings.permissions ?? {}),
+        additionalDirectories: arr.length ? arr : undefined,
+      },
+    };
+    // Strip empty permissions block to keep the file tidy.
+    if (next.permissions && Object.keys(next.permissions).every((k) => (next.permissions as Record<string, unknown>)[k] == null)) {
+      delete (next as { permissions?: unknown }).permissions;
+    }
+    await writeSettings(body.scope, cwd, next);
+    return NextResponse.json({ ok: true, additionalDirectories: arr });
+  });
 }
