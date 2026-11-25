@@ -265,11 +265,15 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   // the Schedule page (as `/schedule` still does) dropped the arguments.
   { id: "loop", name: "loop", description: "Run a prompt or slash command on an interval, or self-paced.", category: "skill", handler: "sdk", argsHint: "[interval] [prompt]" },
   { id: "schedule", name: "schedule", aliases: ["routines"], description: "Manage scheduled routines.", category: "skill", handler: "native" },
-  { id: "simplify", name: "simplify", description: "Review files, find issues, apply fixes.", category: "skill", handler: "sdk", argsHint: "[focus]" },
+  // CC 2.1.328 — `/code-review` now reports only bugs and CLAUDE.md
+  // violations; `/simplify` owns reuse, simplification and efficiency
+  // cleanups. The old copy ("Review files, find issues, apply fixes.") read
+  // as the bug hunt it no longer is.
+  { id: "simplify", name: "simplify", description: "Clean up changed code: reuse, simplification, efficiency (no bug hunt; use /code-review).", category: "skill", handler: "sdk", argsHint: "[focus]" },
   // CC 2.1.223 — `/review` is now an alias of `/code-review`: it reviews the
   // current branch (or a PR number), takes a severity level, and `ultra` runs
   // the multi-agent cloud review. Old copy ("Review a pull request") was stale.
-  { id: "review", name: "review", aliases: ["code-review"], description: "Review the current branch or a PR (alias of /code-review).", category: "skill", handler: "sdk", argsHint: "[level] [PR] | ultra" },
+  { id: "review", name: "review", aliases: ["code-review"], description: "Review the current branch or a PR for bugs and CLAUDE.md violations (alias of /code-review).", category: "skill", handler: "sdk", argsHint: "[level] [PR] | ultra" },
   { id: "security-review", name: "security-review", description: "Security review of pending changes.", category: "skill", handler: "sdk" },
   // `ultraplan` was removed upstream in Claude Code 2.1.222 — the bundled SDK
   // no longer registers the skill, so surfacing `/ultraplan` here would forward
