@@ -94,8 +94,8 @@ test("packaged macOS app launches and renders the chat shell", async () => {
 
 test("embedded server answers /api/heartbeat", async () => {
   const page = await waitForMainWindow(launched.app);
-  // From the test process, at the window's loopback origin (the server's
-  // random port), not via page.evaluate: see fetchHeartbeat.
+  // Retries if the window's first-boot routing reloads the page mid-call:
+  // see fetchHeartbeat.
   const result = await fetchHeartbeat(page);
   expect(result.ok, `heartbeat returned ${result.status}`).toBe(true);
 });
