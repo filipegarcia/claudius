@@ -10,7 +10,7 @@ import { stripInvisibleUnicode } from "@/lib/shared/invisible-unicode";
 import type { AskAnswer, AskUserQuestionEvent } from "@/lib/shared/events";
 import { isImeComposing } from "@/lib/client/key-match";
 import { useBackdropDismiss } from "@/lib/client/backdrop-dismiss";
-import { answerDigitIndex } from "@/lib/client/question-keys";
+import { answerDigitIndex, arrowOutOfOther, enterPickLabel } from "@/lib/client/question-keys";
 
 type Props = {
   request: AskUserQuestionEvent;
@@ -113,10 +113,13 @@ export function AskUserQuestionPrompt({
   // "Store previous props" pattern — the React 19 way to reset state on
   // prop/state change without a setState-in-effect cascade.
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  // CC 2.1.330 — "answered questions reopen on your pick": going back to a
+  // question highlights its picked option rather than option 0.
   const [lastActive, setLastActive] = useState(active);
   if (lastActive !== active) {
     setLastActive(active);
-    setFocusedOption(0);
+    const picked = working[active]?.selectedLabels ?? [];
+    setFocusedOption(Math.max(0, q.options.findIndex((o) => picked.includes(o.label))));
   }
 
   // Focus the Other input when revealed (or after a paste was routed into
@@ -181,17 +184,22 @@ export function AskUserQuestionPrompt({
     if (paths.length) appendToOther(paths.join(" "));
   }
 
-  // Modal variant: put focus on the first option once per question, so the
-  // keyboard shortcuts and a paste have an anchor inside the card (focus
+  // Modal variant: put focus on the highlighted option once per question, so
+  // the keyboard shortcuts and a paste have an anchor inside the card (focus
   // otherwise stays on the transcript row that reopened it). Like
   // PermissionPrompt, never steal focus from a field the user is typing in.
-  const firstOptionRef = useRef<HTMLButtonElement>(null);
+  // One ref per option row so the arrow keys can move real focus along with
+  // the highlight (CC 2.1.330, see the keyboard handler). On a question
+  // returned to, the highlighted row is its pick (see `lastActive` above).
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const otherButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (inline || isTypingInField(document.activeElement)) return;
-    firstOptionRef.current?.focus();
-    // Once per request — `requestId` is a stable per-question identity.
+    optionRefs.current[focusedOption]?.focus();
+    // Once per request (`requestId` is a stable per-question identity) and
+    // per question within it — not on every highlight move.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request.requestId]);
+  }, [request.requestId, active]);
 
   function update(qIdx: number, fn: (cur: Working) => Working) {
     setWorking((prev) => prev.map((w, i) => (i === qIdx ? fn(w) : w)));
@@ -235,8 +243,10 @@ export function AskUserQuestionPrompt({
     update(active, (cur) => ({ ...cur, custom: text }));
   }
 
-  function isReady(idx: number): boolean {
-    const cur = working[idx];
+  // `from` lets the Enter key check and submit the answers it has just
+  // picked, before React re-renders with them (CC 2.1.330).
+  function isReady(idx: number, from: Working[] = working): boolean {
+    const cur = from[idx];
     if (!cur) return false;
     if (cur.showOther && cur.custom.trim()) return true;
     return cur.selectedLabels.length > 0;
@@ -245,9 +255,9 @@ export function AskUserQuestionPrompt({
   const allReady = working.every((_, i) => isReady(i));
   const isLast = active === total - 1;
 
-  async function submit() {
-    if (!allReady) return;
-    const answers: AskAnswer[] = working.map((cur, i) => {
+  async function submit(from: Working[] = working) {
+    if (!from.every((_, i) => isReady(i, from))) return;
+    const answers: AskAnswer[] = from.map((cur, i) => {
       const question = request.questions[i];
       const out: AskAnswer = {};
       if (question.multiSelect) {
@@ -281,31 +291,70 @@ export function AskUserQuestionPrompt({
         void dismiss();
         return;
       }
-      if (inField) return;
+      // The highlight follows real focus, so Space/Enter and the arrows all
+      // act on the row the user sees highlighted.
+      const moveHighlight = (idx: number) => {
+        setFocusedOption(idx);
+        optionRefs.current[idx]?.focus();
+      };
+      if (inField) {
+        // CC 2.1.330 — "… arrow keys not working after an 'Other' answer":
+        // from the edge of Other's text, the arrows go back to the options.
+        const otherField =
+          target === otherInputRef.current || target === otherInlineInputRef.current
+            ? (target as HTMLTextAreaElement)
+            : null;
+        const out = otherField ? arrowOutOfOther(e, otherField) : null;
+        if (!out) return;
+        e.preventDefault();
+        moveHighlight(out === "up" ? q.options.length - 1 : 0);
+        return;
+      }
       // CC 2.1.331 — "Fixed shortcuts such as Ctrl+1, Alt+1 … answering an
       // open dialog": only a bare digit picks; a chord is left to the app.
       const digitIdx = answerDigitIndex(e, q.options.length);
       if (digitIdx !== null) {
         e.preventDefault();
         pick(q.options[digitIdx].label);
-        setFocusedOption(digitIdx);
+        moveHighlight(digitIdx);
         return;
       }
-      if (e.key === "ArrowDown") {
+      const optionIdx = optionRefs.current.indexOf(target as HTMLButtonElement);
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
-        setFocusedOption((cur) => Math.min(q.options.length - 1, cur + 1));
-        return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setFocusedOption((cur) => Math.max(0, cur - 1));
+        // Step from the highlighted row; from the Other row (just past the
+        // last option), Up goes to the last option.
+        const from = target === otherButtonRef.current ? q.options.length : focusedOption;
+        moveHighlight(
+          e.key === "ArrowDown" ? Math.min(q.options.length - 1, from + 1) : Math.max(0, from - 1),
+        );
         return;
       }
       if (e.key === "Enter") {
         e.preventDefault();
+        // CC 2.1.330 — "Fixed Enter on a question card sending your earlier
+        // answer instead of picking the focused one". Pick the highlighted
+        // option first (single-select), then advance or submit from the
+        // updated answers — `working` in this closure is still the old pick.
+        // Enter on one of the card's other buttons keeps its old meaning.
+        const onOtherControl = target instanceof HTMLButtonElement && optionIdx < 0;
+        const label = onOtherControl
+          ? null
+          : enterPickLabel({
+              multiSelect: !!q.multiSelect,
+              options: q.options,
+              highlighted: focusedOption,
+              selectedLabels: w.selectedLabels,
+              showOther: w.showOther,
+            });
+        let next = working;
+        if (label) {
+          next = working.map((cur, i) => (i === active ? { ...cur, selectedLabels: [label], showOther: false } : cur));
+          setWorking(next);
+        }
         if (isLast) {
-          if (allReady) void submit();
-        } else if (isReady(active)) {
+          void submit(next);
+        } else if (isReady(active, next)) {
           setActive((a) => Math.min(total - 1, a + 1));
         }
         return;
@@ -321,7 +370,7 @@ export function AskUserQuestionPrompt({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, q, allReady, isLast, total, working, inline]);
+  }, [active, q, allReady, isLast, total, working, inline, focusedOption]);
 
   return (
     <div
@@ -493,7 +542,9 @@ export function AskUserQuestionPrompt({
                 return (
                   <li key={opt.label}>
                     <button
-                      ref={i === 0 ? firstOptionRef : undefined}
+                      ref={(el) => {
+                        optionRefs.current[i] = el;
+                      }}
                       onClick={() => {
                         pick(opt.label);
                         setFocusedOption(i);
@@ -546,6 +597,7 @@ export function AskUserQuestionPrompt({
                   model NOT to include an Other option, leaving the form to provide it). */}
               <li>
                 <button
+                  ref={otherButtonRef}
                   onClick={pickOther}
                   className={cn(
                     "mb-1 flex w-full items-start gap-3 rounded-lg border px-3 py-2 text-left transition",
