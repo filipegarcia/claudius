@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { PermissionMode } from "@anthropic-ai/claude-agent-sdk";
 import { worktreeBadge } from "@/lib/client/worktree";
+import { planModeModel, planModeNote } from "@/lib/shared/model-recognition";
 import { Overlay } from "./Overlay";
 
 type Props = {
@@ -65,6 +66,36 @@ function useConfigFileProblemCount(): { count: number; notices: string[] } | nul
 }
 
 /**
+ * CC 2.1.329 — "Fixed `/status` not naming the model that opusplan and haiku
+ * use in plan mode". The session catalog (`GET /api/sessions/:id/model`)
+ * names the Opus / Sonnet version; fetched only for a model that has a
+ * plan-mode model. Until it answers (or if it can't), the note names the
+ * family.
+ */
+function usePlanModeNote(sessionId: string | null, model: string | null): string | null {
+  const wanted = sessionId !== null && planModeModel(model) !== null;
+  const [catalog, setCatalog] = useState<{ key: string; models: Array<{ value: string; resolvedModel?: string }> } | null>(
+    null,
+  );
+  const key = `${sessionId}:${model}`;
+  useEffect(() => {
+    if (!wanted) return;
+    const controller = new AbortController();
+    fetch(`/api/sessions/${sessionId}/model`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { models?: Array<{ value: string; resolvedModel?: string }> };
+        setCatalog({ key, models: Array.isArray(data.models) ? data.models : [] });
+      })
+      .catch(() => {
+        // Name the family only.
+      });
+    return () => controller.abort();
+  }, [wanted, sessionId, key]);
+  return planModeNote(model, catalog?.key === key ? catalog.models : null);
+}
+
+/**
  * Human-readable "kind" of the session — the browser analogue of Claude Code's
  * `/status` session-kind line. Every Claudius session is SDK-driven, so instead
  * of the TUI's interactive/print/sdk distinction we surface the launch context
@@ -95,6 +126,7 @@ export function StatusOverlay({
   onClose,
 }: Props) {
   const problems = useConfigFileProblemCount();
+  const planNote = usePlanModeNote(sessionId, model);
   const problemCount = problems?.count ?? null;
   return (
     <Overlay title="Session status" subtitle="/status" onClose={onClose} width={520}>
@@ -119,7 +151,22 @@ export function StatusOverlay({
         />
         <Row label="Kind" value={sessionKindLabel(mainAgent, cwd, agentCwd)} />
         <Row label="State" value={!ready ? "starting" : pending ? "working" : "idle"} />
-        <Row label="Model" value={<code className="font-mono">{model ?? "—"}</code>} />
+        <Row
+          label="Model"
+          value={
+            <>
+              <code className="font-mono">{model ?? "—"}</code>
+              {planNote && (
+                <span
+                  data-testid="status-plan-mode-model"
+                  className={permissionMode === "plan" ? "text-[var(--accent)]" : "text-[var(--muted)]"}
+                >
+                  {` · ${planNote}`}
+                </span>
+              )}
+            </>
+          }
+        />
         <Row label="Permission mode" value={<code className="font-mono">{permissionMode}</code>} />
         <Row label="Working directory" value={<code className="font-mono break-all">{cwd ?? "—"}</code>} />
         <Row

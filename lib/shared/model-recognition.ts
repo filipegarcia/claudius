@@ -31,6 +31,7 @@
  */
 
 import { stripOneMTag } from "./model-id";
+import { prettyModelName } from "./advisor";
 
 /** Docs anchor the engine links (verbatim, `fIo` in the 2.1.316 bundle). */
 export const UNKNOWN_MODEL_WINDOW_DOCS_URL =
@@ -189,4 +190,34 @@ export function unknownModelWarning(opts: {
   if (isRecognizedModel(model, opts.models, opts.settings?.modelOverrides)) return null;
   if (unknownModelWarningSuppressed(model, opts.env, opts.settings)) return null;
   return unknownModelWarningText(model, unknownModelAssumedWindow(opts.env));
+}
+
+/**
+ * CC 2.1.329 — "Fixed `/status` not naming the model that opusplan and haiku
+ * use in plan mode".
+ *
+ * The engine's `ype()`: `opusplan` / `opusplan[1m]` run plan-mode turns on
+ * Opus (only while the context is under 200k tokens — past that the main
+ * model stays), the bare `haiku` alias runs them on Sonnet. Any other
+ * setting (`sonnet`, `claude-haiku-4-5`, an id) has no plan-mode model.
+ */
+export function planModeModel(setting: string | null | undefined): { family: "opus" | "sonnet"; upTo200k: boolean } | null {
+  if (setting === "opusplan" || setting === "opusplan[1m]") return { family: "opus", upTo200k: true };
+  if (setting === "haiku") return { family: "sonnet", upTo200k: false };
+  return null;
+}
+
+/**
+ * The engine's /status suffix for `setting` (`HFa`), without its leading
+ * ` · `: "Opus 5.5 in plan mode, up to 200k tokens" / "Sonnet 5.5 in plan
+ * mode", or null. The model is named from the session catalog's `opus`
+ * (`opus[1m]` for `opusplan[1m]`) or `sonnet` row; without one, by family.
+ */
+export function planModeNote(setting: string | null | undefined, models?: readonly CatalogRow[] | null): string | null {
+  const plan = planModeModel(setting);
+  if (!plan) return null;
+  const rowValue = setting === "opusplan[1m]" ? ["opus[1m]", "opus"] : [plan.family];
+  const row = rowValue.map((v) => models?.find((m) => m.value === v)).find((m) => m?.resolvedModel);
+  const name = row?.resolvedModel ? prettyModelName(row.resolvedModel) : plan.family === "opus" ? "Opus" : "Sonnet";
+  return `${name} in plan mode${plan.upTo200k ? ", up to 200k tokens" : ""}`;
 }
