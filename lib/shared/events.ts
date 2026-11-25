@@ -72,6 +72,13 @@ export type PermissionRequestEvent = {
    */
   safetyReason?: string;
   /**
+   * CC 2.1.331 — managed settings set `allowManagedPermissionRulesOnly`, so
+   * the engine ignores any allow rule an "Always" button would write (see
+   * `resolveManagedRulesOnly`). The card offers only Allow once and Deny.
+   * Absent when the policy is off or couldn't be read.
+   */
+  managedRulesOnly?: boolean;
+  /**
    * CC 2.1.310 — the file this Read/Edit/Write/NotebookEdit ask is about is a
    * symbolic link; `target` is where it leads (resolved server-side by
    * `resolvePermissionSymlink`; the SDK doesn't forward the engine's own

@@ -99,6 +99,7 @@ import {
   type TaskSnapshotEntry,
 } from "@/lib/shared/events";
 import { hookAsk, safetyAskReason } from "@/lib/shared/hook-ask";
+import { resolveManagedRulesOnly } from "@/lib/server/managed-permission-policy";
 import { interpretFeedbackResponse } from "@/lib/shared/feedback-refusal";
 import { isMissingTranscriptError, RENAME_MAY_NOT_LAST_WARNING } from "@/lib/shared/rename-warning";
 import { hasLiveBackgroundAgent } from "./background-agent-keepalive";
@@ -1883,6 +1884,8 @@ export class Session {
    * mirroring `maxBudgetUsd`'s creation-time-only semantics.
    */
   private toolBudgetLimits: Limits = {};
+  /** CC 2.1.331 — managed `allowManagedPermissionRulesOnly`, read at start(). */
+  private managedRulesOnly = false;
   /** Running per-session counts checked against `toolBudgetLimits`. Reset is
    * implicit: `/clear` starts a brand-new Session instance. */
   private toolBudgetUsed = { webSearches: 0, subagents: 0 };
@@ -2706,6 +2709,8 @@ export class Session {
     } catch {
       // leave toolBudgetLimits at {} (all caps disabled)
     }
+    // CC 2.1.331 — hide the card's "Always" buttons under managed-only rules.
+    void resolveManagedRulesOnly(this.cwd).then((v) => (this.managedRulesOnly = v));
 
     // Sweep orphaned actionable notification rows for this session. The
     // in-memory `pendingAskQuestions` / `pendingPermissions` / `pendingPlans`
@@ -4112,6 +4117,7 @@ export class Session {
           ctx.decisionReason,
           (ctx as { decisionReasonType?: unknown }).decisionReasonType,
         ),
+        managedRulesOnly: this.managedRulesOnly || undefined,
         // CC 2.1.235 — show the narrow rule(s) an "Always allow" will write.
         suggestedRules: allowRuleSuggestions(ctx.suggestions).flatMap((u) =>
           u.rules.map((r) => ({

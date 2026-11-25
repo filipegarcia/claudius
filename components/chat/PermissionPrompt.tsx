@@ -91,7 +91,13 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   // standing grant (switches the whole session into Auto mode), so it's
   // hidden under the same flag — and also under `defaultToNo`, since it's a
   // one-key approve shortcut that flag explicitly rules out.
-  const hideAlwaysButtons = !!request.suppressAlwaysAllowRule;
+  //
+  // CC 2.1.331 — "Changed permission cards to show only Yes and No when
+  // `allowManagedPermissionRulesOnly` is set and the card would offer an allow
+  // rule". Under that managed policy the engine ignores the rule an Always
+  // click writes, so the next identical call would ask again; hide them (and
+  // the rule hint and auto-mode tip with them) the same way.
+  const hideAlwaysButtons = !!request.suppressAlwaysAllowRule || !!request.managedRulesOnly;
   // CC 2.1.235 — the narrow rule(s) an "Always allow" click will actually
   // write, from the SDK's suggestions. Rendered as `Tool(ruleContent)` so the
   // user sees they're granting `Bash(git status:*)`, not all of `Bash`.
@@ -109,7 +115,7 @@ export function PermissionPrompt({ request, onResolve, autoModeAvailable, onSwit
   const hiddenCharCount =
     summaryVis.count + (descriptionVis?.count ?? 0) + inputHiddenCount + (hookReasonVis?.count ?? 0) +
     (safetyReasonVis?.count ?? 0) + (symlinkTargetVis?.count ?? 0) + (mcpNameVis?.count ?? 0);
-  const hideAutoModeTip = !!request.suppressAlwaysAllowRule || !!request.defaultToNo;
+  const hideAutoModeTip = hideAlwaysButtons || !!request.defaultToNo;
   const denyButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // CC 2.1.318 / 2.1.327 — when this request appeared (see `prompt-arm.ts`).
