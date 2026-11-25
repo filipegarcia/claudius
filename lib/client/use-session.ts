@@ -1,6 +1,7 @@
 "use client";
 
 import { nonExecutionKindOf, USER_REJECTED_KIND } from "@/lib/shared/user-rejected-stamp";
+import type { WebFetchStatus } from "@/lib/shared/web-fetch-outcome";
 import { evictSupersededFromRecord, evictSupersededMessages, supersededUuidsOf } from "@/lib/client/evict-superseded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionStartConnectionLost, sessionStartHttpError } from "@/lib/shared/session-start-error";
@@ -875,6 +876,7 @@ export function extractToolResult(
   detached?: boolean;
   notRun?: boolean;
   rejected?: boolean;
+  fetchStatus?: WebFetchStatus;
 } | null {
   if (!Array.isArray(content)) return null;
   for (const raw of content as SDKContentBlock[]) {
@@ -889,6 +891,11 @@ export function extractToolResult(
       const tur = toolUseResult && typeof toolUseResult === "object" ? (toolUseResult as Record<string, unknown>) : null;
       const staged = tur?.staged === true;
       const detached = tur?.detachedToolCall === true;
+      // CC 2.1.332 — WebFetch's HTTP status (`WebFetchOutput.code`/`codeText`).
+      const fetchStatus =
+        typeof tur?.code === "number" && typeof tur.codeText === "string"
+          ? { code: tur.code, codeText: tur.codeText }
+          : undefined;
       const kind = tr.is_error === true ? notRunKind(toolResultMeta, tr.tool_use_id) : null;
       return {
         tool_use_id: tr.tool_use_id,
@@ -896,6 +903,7 @@ export function extractToolResult(
         isError: tr.is_error,
         ...(staged ? { staged } : {}),
         ...(detached ? { detached } : {}),
+        ...(fetchStatus ? { fetchStatus } : {}),
         ...(kind ? { notRun: true } : {}),
         ...(kind === USER_REJECTED_KIND ? { rejected: true } : {}),
       };
@@ -3728,6 +3736,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
             detached: result.detached,
             notRun: result.notRun,
             rejected: result.rejected,
+            fetchStatus: result.fetchStatus,
           };
           setMessages((prev) =>
             prev.map((m) => ({
@@ -7595,6 +7604,7 @@ export function synthesizeOlder(raw: Array<Record<string, unknown>>): {
             detached: tr.detached,
             notRun: tr.notRun,
             rejected: tr.rejected,
+            fetchStatus: tr.fetchStatus,
           },
         };
         const blocks = m.blocks.slice();

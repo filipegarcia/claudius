@@ -58,6 +58,8 @@ export type DisplayBlock =
         detached?: boolean;
         notRun?: boolean;
         rejected?: boolean;
+        /** CC 2.1.332 — WebFetch's HTTP status (see `lib/shared/web-fetch-outcome.ts`). */
+        fetchStatus?: { code: number; codeText: string };
       };
       /**
        * Client-stamped wall-clock start (epoch ms), set the first time this

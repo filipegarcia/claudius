@@ -17,6 +17,7 @@ import { extractFeedbackDraftText } from "@/lib/shared/feedback-draft";
 import { splitPathForTruncation } from "@/lib/shared/truncate-path";
 import { toolInputMatches, toolInputTextFields, toolInputTextKeys } from "@/lib/shared/tool-input-search";
 import type { TaskResourceLink } from "@/lib/shared/events";
+import { webFetchOutcome, type WebFetchStatus } from "@/lib/shared/web-fetch-outcome";
 import { Markdown } from "./Markdown";
 import { FilePreview } from "./FilePreview";
 
@@ -70,6 +71,7 @@ type Props = {
     detached?: boolean;
     notRun?: boolean;
     rejected?: boolean;
+    fetchStatus?: WebFetchStatus;
   };
   /**
    * Client-stamped wall-clock start (epoch ms) for this tool_use, from
@@ -202,6 +204,14 @@ export function ToolCall({
   // now" message reports `detachedToolCall`; it keeps loading in the
   // background and the real result reaches the model in a later turn.
   const detached = !result?.isError && result?.detached === true;
+  // CC 2.1.332 — "[VSCode] Fixed Web Fetch showing "Fetched from" with a
+  // success dot when the site returned an error or a redirect that wasn't
+  // followed". Those come back as non-error results, so `status` stays "ok";
+  // the row shows what happened instead of the green check.
+  const fetchOutcome =
+    name === "WebFetch" && result && !result.isError && !detached
+      ? webFetchOutcome(result.fetchStatus, result.content)
+      : null;
   const fileTarget = pathFromToolInput(input);
   // When the tool operates on a file inside the active workspace, link its
   // path to the in-app Files browser so the user can open it on our own file
@@ -383,7 +393,27 @@ export function ToolCall({
               <span className={cn("inline-block h-2 w-2 rounded-full bg-[var(--accent)]", disconnected ? "opacity-40" : "animate-pulse")} />
             </>
           )}
-          {status === "ok" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+          {status === "ok" && !fetchOutcome && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+          {status === "ok" && fetchOutcome && (
+            <span
+              data-testid="tool-call-fetch-outcome"
+              data-fetch-outcome={fetchOutcome.kind}
+              className={cn(
+                "inline-flex items-center gap-1 text-[10px]",
+                fetchOutcome.kind === "http-error" ? "text-red-400" : "text-amber-400",
+              )}
+              title={
+                fetchOutcome.kind === "redirect"
+                  ? "The site answered with a redirect that wasn't followed — the page wasn't fetched"
+                  : fetchOutcome.kind === "http-error"
+                    ? "The site answered with an HTTP error — the page wasn't fetched"
+                    : "The page wasn't fetched"
+              }
+            >
+              <AlertCircle className="h-3.5 w-3.5" />
+              {fetchOutcome.label}
+            </span>
+          )}
           {status === "error" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
           {status === "interrupted" && settledReason && (
             <span
