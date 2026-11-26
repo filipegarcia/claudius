@@ -1,0 +1,35 @@
+[package]
+name = "claudius-app"
+description = "The native app shell (U04): window, side nav, workspace switcher, session tabs and routing, over the ShellData trait"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "claudius-app"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+# `readableSessionLabel`'s local date and time ("Jun 30 at 2:15 PM").
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+claudius-gpui-theme.workspace = true
+claudius-theme.workspace = true
+futures = "0.3"
+gpui-kit.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+
+[dev-dependencies]
+# `TestAppContext`, `VisualTestContext::debug_bounds` and the headless
+# window's `render_to_image` (as claudius-gpui-theme: gpui-kit's own
+# `test-support` doesn't resolve).
+gpui = { package = "gpui-pre", version = "=0.3.12", features = ["test-support"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+# CoreText (real glyph widths in the tests) and the offscreen Metal renderer
+# the screenshot example draws with, which needs no Screen Recording grant.
+gpui_apple = { package = "gpui-pre-apple", version = "=0.3.12", features = ["font-kit", "test-support"] }

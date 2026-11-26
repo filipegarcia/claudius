@@ -1,17 +1,17 @@
 //! The React UI's icons (lucide-react) as GPUI Kit icons.
 //!
-//! `components/`, `app/` and `lib/` import 183 names from `lucide-react`
+//! `components/`, `app/` and `lib/` import 182 names from `lucide-react`
 //! 1.14.0 (bun.lock). Five are aliases of another imported name
 //! (`AlertTriangle` / `TriangleAlert`, `StopCircle` / `CircleStop`,
 //! `GitCommit` / `GitCommitHorizontal`, `ImageIcon` / `Image`, `Wand2` /
-//! `WandSparkles`), so they are 178 icons. GPUI Kit 0.10's
+//! `WandSparkles`), so they are 177 icons. GPUI Kit 0.10's
 //! `gpui-kit-assets` bundles the whole Lucide 1.43.0 catalog, and every one
-//! of the 178 is in it. 25 React names are lucide-react's deprecated
+//! of the 177 is in it. 25 React names are lucide-react's deprecated
 //! aliases (`AlertCircle`, `Loader2`, `Home`, …) and two icons were renamed
 //! in Lucide 1.x (`History` is `rotate-ccw-clock`, `Trash2` is `trash`, with
 //! identical paths): [`ICONS`] names the catalog variant for each.
 //!
-//! Lucide redrew five of the 178 between 1.14 and 1.43 (`book-open`,
+//! Lucide redrew five of the 177 between 1.14 and 1.43 (`book-open`,
 //! `calendar`, `calendar-clock`, `circle-check`, `zap`): the catalog draws
 //! them differently from the React UI. [`REACT_DRAWINGS`] vendors
 //! lucide-react's drawings of those (generated from its `__iconNode` by
@@ -20,8 +20,8 @@
 //! checks, when lucide-react is installed, that no icon is served with a
 //! drawing other than the React UI's.
 //!
-//! Only 50 of the 178 are in gpui-kit-assets' default `Assets` (the 101
-//! icons gpui-component uses itself); [`IconAssets`] serves all 178 and falls
+//! Only 50 of the 177 are in gpui-kit-assets' default `Assets` (the 101
+//! icons gpui-component uses itself); [`IconAssets`] serves all 177 and falls
 //! back to `Assets` for the components' own paths.
 
 mod lucide_1_14;
@@ -34,7 +34,7 @@ use gpui_kit::{
 };
 
 /// `(lucide-react import name, GPUI Kit icon)`, sorted by the React name.
-pub const ICONS: [(&str, IconName); 183] = [
+pub const ICONS: [(&str, IconName); 182] = [
     ("Activity", IconName::Activity),
     ("AlertCircle", IconName::CircleAlert),
     ("AlertTriangle", IconName::TriangleAlert),
@@ -132,7 +132,6 @@ pub const ICONS: [(&str, IconName); 183] = [
     ("LayoutPanelTop", IconName::LayoutPanelTop),
     ("LifeBuoy", IconName::LifeBuoy),
     ("Lightbulb", IconName::Lightbulb),
-    ("Link", IconName::Link),
     ("Link2", IconName::Link2),
     ("ListChecks", IconName::ListChecks),
     ("Loader2", IconName::LoaderCircle),
@@ -317,7 +316,6 @@ icon_assets!(
         LayoutPanelTop,
         LifeBuoy,
         Lightbulb,
-        Link,
         Link2,
         ListChecks,
         LoaderCircle,

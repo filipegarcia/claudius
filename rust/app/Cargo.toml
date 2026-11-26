@@ -4,7 +4,7 @@
 # root crates by path. CI: .github/workflows/rust-app.yml (macOS, Metal).
 [workspace]
 resolver = "3"
-members = ["crates/claudius-gpui-theme"]
+members = ["crates/claudius-app", "crates/claudius-gpui-theme"]
 
 [workspace.package]
 version = "0.1.0"

@@ -1,0 +1,172 @@
+{
+  "workspaces": {
+    "workspaces": [
+      {
+        "id": "wks_3f2a9c81d0e4",
+        "name": "claudius",
+        "rootPath": "/Users/demo/src/claudius",
+        "icon": {
+          "kind": "letter",
+          "letter": "C",
+          "color": "#d97757"
+        },
+        "createdAt": 1780391640000,
+        "updatedAt": 1795722000000,
+        "lastOpenedAt": 1795722000000,
+        "defaults": {
+          "model": "opus",
+          "permissionMode": "default"
+        }
+      },
+      {
+        "id": "wks_7b41e05c92aa",
+        "name": "rust-port",
+        "rootPath": "/Users/demo/src/claudius-rust",
+        "icon": {
+          "kind": "letter",
+          "letter": "R",
+          "color": "#5588dd"
+        },
+        "createdAt": 1794693660000,
+        "updatedAt": 1795716300000,
+        "lastOpenedAt": 1795716300000,
+        "navOrder": [
+          "nav.chat",
+          "nav.git",
+          "nav.files",
+          "nav.sessions"
+        ]
+      },
+      {
+        "id": "wks_c09d4e7f1b36",
+        "name": "docs-site",
+        "rootPath": "/Users/demo/src/docs-site",
+        "icon": {
+          "kind": "letter",
+          "letter": "D",
+          "color": "#2e9d8f"
+        },
+        "createdAt": 1790004600000,
+        "updatedAt": 1795518720000,
+        "lastOpenedAt": 1795518720000
+      }
+    ],
+    "activeId": "wks_3f2a9c81d0e4"
+  },
+  "openTabs": {
+    "wks_3f2a9c81d0e4": {
+      "tabs": [
+        "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70",
+        "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+        "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e",
+        "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a",
+        "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d",
+        "0f4b8c2a-7e6d-4c5b-9a3f-2e1d0c9b8a7f"
+      ],
+      "activeId": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+      "labelMaxWidth": 180,
+      "titles": {
+        "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70": "Release checklist",
+        "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162": "Port the app shell to GPUI",
+        "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d": "Investigate the SSE memory leak"
+      },
+      "pinned": [
+        "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70"
+      ]
+    },
+    "wks_7b41e05c92aa": {
+      "tabs": [
+        "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+        "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f",
+        "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e"
+      ],
+      "activeId": "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+      "labelMaxWidth": 160,
+      "titles": {
+        "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f": "U02 transport trait",
+        "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e": "Golden recorder for open-tabs"
+      },
+      "pinned": []
+    },
+    "wks_c09d4e7f1b36": {
+      "tabs": [
+        "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a"
+      ],
+      "activeId": "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a",
+      "labelMaxWidth": 180,
+      "titles": {},
+      "pinned": []
+    }
+  },
+  "sessions": [
+    {
+      "id": "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70",
+      "cwd": "/Users/demo/src/claudius",
+      "model": "claude-opus-4-5",
+      "title": "Release checklist",
+      "createdAt": 1795680120000,
+      "status": "idle"
+    },
+    {
+      "id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+      "cwd": "/Users/demo/src/claudius",
+      "model": "claude-opus-4-5",
+      "title": "Port the app shell to GPUI",
+      "createdAt": 1795715100000,
+      "status": "running"
+    },
+    {
+      "id": "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e",
+      "cwd": "/Users/demo/src/claudius",
+      "model": "claude-sonnet-4-5",
+      "title": "Fix flaky e2e: session tabs",
+      "createdAt": 1795641000000,
+      "status": "needs_input"
+    },
+    {
+      "id": "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a",
+      "cwd": "/Users/demo/src/claudius",
+      "title": null,
+      "createdAt": 1795702500000,
+      "status": "idle"
+    },
+    {
+      "id": "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+      "cwd": "/Users/demo/src/claudius-rust",
+      "model": "claude-opus-4-5",
+      "title": "U02 transport trait",
+      "createdAt": 1795710000000,
+      "status": "idle",
+      "accountId": "acc_work",
+      "accountLabel": "Work"
+    },
+    {
+      "id": "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f",
+      "cwd": "/Users/demo/src/claudius-rust",
+      "title": "Clippy sweep",
+      "createdAt": 1795694400000,
+      "status": "running"
+    },
+    {
+      "id": "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a",
+      "cwd": "/Users/demo/src/docs-site",
+      "title": null,
+      "createdAt": 1795518720000,
+      "status": "idle"
+    }
+  ],
+  "activeSession": {
+    "wks_7b41e05c92aa": {
+      "ready": true,
+      "pending": false,
+      "hasError": true,
+      "needsInput": false
+    },
+    "wks_c09d4e7f1b36": {
+      "ready": false,
+      "pending": false,
+      "hasError": false,
+      "needsInput": false
+    }
+  }
+}

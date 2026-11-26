@@ -53,7 +53,7 @@ fn every_icon_is_served() {
         );
     }
     let distinct: BTreeSet<_> = ICONS.iter().map(|(_, n)| n.path()).collect();
-    assert_eq!(distinct.len(), 178);
+    assert_eq!(distinct.len(), 177);
 }
 
 #[test]
