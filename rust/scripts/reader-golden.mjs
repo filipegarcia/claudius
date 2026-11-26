@@ -27,6 +27,7 @@ import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { scannerSafeJson } from "./scanner-safe-json.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const rustDir = resolve(here, "..");
@@ -148,6 +149,6 @@ if (process.platform !== "darwin") throw new Error("record on macOS: the os-tagg
 const fake = buildFake();
 const cases = await Promise.all(CASES.map((c) => record(fake, c)));
 const file = join(rustDir, "crates/claudius-agent/tests/fixtures/reader_golden.json");
-writeFileSync(file, `${JSON.stringify({ sdkVersion, cases }, null, 2)}\n`);
+writeFileSync(file, scannerSafeJson(`${JSON.stringify({ sdkVersion, cases }, null, 2)}\n`));
 for (const c of cases) console.log(`${c.name.padEnd(36)} ${JSON.stringify(c.yielded.slice(1))} ${JSON.stringify(c.error)}`);
 console.log(`wrote ${file.slice(repo.length + 1)}`);

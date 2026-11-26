@@ -19,6 +19,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { scannerSafeJson } from "./scanner-safe-json.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const rustDir = resolve(here, "..");
@@ -210,6 +211,6 @@ const cases = inputs.map((input) => ({ input, output: up(input) }));
 const redacted = cases.filter((c) => c.input !== c.output).length;
 
 const file = join(rustDir, "crates/claudius-agent/tests/fixtures/redact_golden.json");
-writeFileSync(file, `${JSON.stringify({ sdkVersion, patterns, cases }, null, 1)}\n`);
+writeFileSync(file, scannerSafeJson(`${JSON.stringify({ sdkVersion, patterns, cases }, null, 1)}\n`));
 console.log(`${patterns.length} patterns, ${cases.length} cases (${redacted} changed by up())`);
 console.log(`wrote ${file.slice(repo.length + 1)}`);

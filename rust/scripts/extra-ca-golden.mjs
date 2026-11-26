@@ -54,6 +54,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { scannerSafeJson } from "./scanner-safe-json.mjs";
 
 // Nothing above loads `node:tls`: the child's first `tls` or `fetch` step
 // must be what reads the bundle.
@@ -406,5 +407,5 @@ const runs = [0, 1].map(() => {
   }
 });
 if (runs[0] !== runs[1]) throw new Error("the two recordings differ");
-writeFileSync(out, runs[0]);
+writeFileSync(out, scannerSafeJson(runs[0]));
 console.log(`wrote ${out.slice(repo.length + 1)}: ${JSON.parse(runs[0]).cases.length} cases (stable)`);

@@ -10,12 +10,16 @@ useDefault = true
 # seed (see rust/scripts/redact-golden.mjs). Scoped to exactly these files so a
 # real credential anywhere else, including in any other golden fixture, still
 # blocks the commit.
+#
+# The generators write these strings \u-escaped (rust/scripts/
+# scanner-safe-json.mjs) so GitHub push protection doesn't refuse the push.
+# gitleaks decodes \u escapes and base64 before matching, so it still sees
+# them and the allowlist stays.
 [[allowlists]]
 description = "Synthetic secrets in the Rust redaction/reader golden corpora"
 paths = [
   '''^rust/crates/claudius-agent/tests/fixtures/redact_golden\.json$''',
   '''^rust/crates/claudius-agent/tests/fixtures/reader_golden\.json$''',
-  '''^rust/scripts/reader-golden\.mjs$''',
   # The extra-CA golden's throwaway P-256 leaf key (CN=localhost), made by
   # `rust/scripts/extra-ca-golden.mjs --make-certs` with openssl in a temp dir.
   '''^rust/crates/claudius-core/tests/fixtures/extra_ca_golden\.json$''',
