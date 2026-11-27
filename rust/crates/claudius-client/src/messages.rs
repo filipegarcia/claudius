@@ -233,18 +233,7 @@ pub fn sort_messages_by_chronology(messages: &mut Vec<DisplayMessage>) -> bool {
     if messages.len() <= 1 {
         return false;
     }
-    let mut last_known = f64::NEG_INFINITY;
-    let effective: Vec<f64> = messages
-        .iter()
-        .map(|m| match m.created_at {
-            Some(at) if at.is_finite() => {
-                last_known = at;
-                at
-            }
-            _ if last_known == f64::NEG_INFINITY => 0.0,
-            _ => last_known,
-        })
-        .collect();
+    let effective: Vec<f64> = effective_times(messages).collect();
     let mut order: Vec<usize> = (0..messages.len()).collect();
     // `-0` and `0` tie, as `!==` sees them.
     order.sort_by(|&a, &b| {
@@ -263,6 +252,41 @@ pub fn sort_messages_by_chronology(messages: &mut Vec<DisplayMessage>) -> bool {
             .map(|j| slots[j].take().expect("a permutation")),
     );
     true
+}
+
+/// Each message's sort key in [`sort_messages_by_chronology`]: its
+/// `createdAt`, else the last known one before it (0 before any).
+fn effective_times(messages: &[DisplayMessage]) -> impl Iterator<Item = f64> + '_ {
+    let mut last_known = f64::NEG_INFINITY;
+    messages.iter().map(move |m| match m.created_at {
+        Some(at) if at.is_finite() => {
+            last_known = at;
+            at
+        }
+        _ if last_known == f64::NEG_INFINITY => 0.0,
+        _ => last_known,
+    })
+}
+
+/// The first message `pred` accepts in the order
+/// [`sort_messages_by_chronology`] gives, without sorting a copy: that order
+/// is total on (effective time, index), so it is the accepted message with
+/// the smallest effective time, the earliest on a tie (`-0` ties `0`, as in
+/// the sort). One pass and no clone, so the per-event lookups over
+/// `messagesRef.current` (the transcript as last rendered, i.e. sorted)
+/// stay linear (U05e: a cloned, sorted copy per tool result made a replay
+/// quadratic in deep clones).
+pub fn first_chronological(
+    messages: &[DisplayMessage],
+    mut pred: impl FnMut(&DisplayMessage) -> bool,
+) -> Option<&DisplayMessage> {
+    let mut best: Option<(f64, &DisplayMessage)> = None;
+    for (at, m) in effective_times(messages).zip(messages) {
+        if best.is_none_or(|(b, _)| at < b) && pred(m) {
+            best = Some((at, m));
+        }
+    }
+    best.map(|(_, m)| m)
 }
 
 /// `applyToolResultToList`: set `result` on every `tool_use` block with

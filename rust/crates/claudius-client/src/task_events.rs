@@ -69,11 +69,11 @@ use crate::loops::{
     ScheduledLoop, ScheduledLoopKind, is_schedule_wakeup_stop, mark_wakeups_stopped,
     read_cron_next_fire_at,
 };
-use crate::messages::{build_subagent_messages, sort_messages_by_chronology};
+use crate::messages::build_subagent_messages;
 use crate::state::{ChatState, Then};
 use crate::task_status::{
     TaskInfo, TaskResourceLink, drop_provisional_for_tool_use, find_tool_use_block,
-    seed_task_status, should_recover_orphan_task,
+    find_tool_use_block_sorted, seed_task_status, should_recover_orphan_task,
 };
 use crate::text::{AsciiCi, as_num, as_str, js_pattern, prop, to_js_string, truthy};
 use crate::{
@@ -144,13 +144,6 @@ fn error_message(e: &str) -> &str {
 }
 
 impl ChatState {
-    /// The transcript as last rendered (`messagesRef.current`).
-    fn sorted_messages(&self) -> Vec<DisplayMessage> {
-        let mut sorted = self.messages.clone();
-        sort_messages_by_chronology(&mut sorted);
-        sorted
-    }
-
     // --------------------------------------------------------- events
 
     /// `todos_auto_cleared`: the server cleared the to-do list on its own.
@@ -251,14 +244,15 @@ impl ChatState {
             }
         }
         // Pills the transcript doesn't hold: page back for them, or stand
-        // in for the ones compaction dropped.
-        let sorted = self.sorted_messages();
+        // in for the ones compaction dropped. (Only whether a block is
+        // there: `messagesRef.current`'s order doesn't matter.)
+        let messages = &self.messages;
         let unlinked: Vec<(String, Value)> = entries
             .iter()
             .filter_map(|t| {
                 let id = as_str(prop(Some(*t), "toolUseId"))?;
                 let status = as_str(prop(Some(*t), "status"));
-                should_recover_orphan_task(Some(id), status, &sorted)
+                should_recover_orphan_task(Some(id), status, messages)
                     .then(|| (id.to_owned(), (*t).clone()))
             })
             .collect();
@@ -277,9 +271,9 @@ impl ChatState {
         if hunt.pages >= HUNT_PAGE_CAP {
             return;
         }
-        let sorted = self.sorted_messages();
+        let messages = &self.messages;
         hunt.tasks
-            .retain(|(id, _)| find_tool_use_block(id, &[&sorted]).is_none());
+            .retain(|(id, _)| find_tool_use_block(id, &[messages]).is_none());
         if hunt.tasks.is_empty() {
             return;
         }
@@ -357,7 +351,7 @@ impl ChatState {
                 let tool_use_id = as_str(prop(m, "tool_use_id"));
                 // The Task's result may have landed first: seed its status.
                 let block = match tool_use_id.filter(|id| !id.is_empty()) {
-                    Some(id) => find_tool_use_block(id, &[&self.sorted_messages()]).cloned(),
+                    Some(id) => find_tool_use_block_sorted(id, &self.messages).cloned(),
                     None => None,
                 };
                 let status = seed_task_status(block.as_ref())?;

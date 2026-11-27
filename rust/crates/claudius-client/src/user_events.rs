@@ -49,8 +49,7 @@ use crate::blocks::{
 use crate::compact::merge_compact_boundary;
 use crate::idle_reconcile::apply_thinking_tokens_estimate;
 use crate::messages::{
-    apply_tool_result_to_list, apply_tool_result_to_trails, sort_messages_by_chronology,
-    trailing_bubble_uuid,
+    apply_tool_result_to_list, apply_tool_result_to_trails, trailing_bubble_uuid,
 };
 use crate::sdk_filters::{
     CliWrapper, is_compact_summary_content, is_image_resize_note_content,
@@ -59,7 +58,7 @@ use crate::sdk_filters::{
 };
 use crate::state::ChatState;
 use crate::task_status::{
-    TaskInfo, find_tool_use_block, is_backgrounded_tool_use, reconcile_tasks_on_tool_result,
+    TaskInfo, find_tool_use_block_sorted, is_backgrounded_tool_use, reconcile_tasks_on_tool_result,
     upsert_provisional_task,
 };
 use crate::text::{AsciiCi, as_num, as_str, js_pattern, prop, push_js, to_js_string, truthy};
@@ -335,11 +334,7 @@ impl ChatState {
         };
         // `findToolUseBlock(id, messagesRef.current)`: the main transcript
         // as last rendered (sorted), before this result lands on it.
-        let block = {
-            let mut sorted = self.messages.clone();
-            sort_messages_by_chronology(&mut sorted);
-            find_tool_use_block(id, &[&sorted]).cloned()
-        };
+        let block = find_tool_use_block_sorted(id, &self.messages).cloned();
         apply_tool_result_to_list(&mut self.messages, id, Some(&result));
         apply_tool_result_to_trails(&mut self.subagent_messages, id, Some(&result));
         self.tool_progress.shift_remove(id);

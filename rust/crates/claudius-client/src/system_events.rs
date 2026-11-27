@@ -64,7 +64,7 @@ use crate::compact::{
 use crate::effect::{Action, Effect, FetchOutcome};
 use crate::event::JsObject;
 use crate::labels::conversation_reset_detail;
-use crate::messages::{sort_messages_by_chronology, synthesize_older};
+use crate::messages::{first_chronological, synthesize_older};
 use crate::parse_init::parse_init_system_message;
 use crate::sdk_filters::is_suppressed_system_event;
 use crate::shared::{
@@ -609,9 +609,7 @@ impl ChatState {
             return false;
         }
         self.loading_older = true;
-        let mut sorted = self.messages.clone();
-        sort_messages_by_chronology(&mut sorted);
-        let head = sorted.first().map(|b| {
+        let head = first_chronological(&self.messages, |_| true).map(|b| {
             b.folded_sdk_uuids
                 .as_ref()
                 .and_then(|s| s.first())
@@ -683,17 +681,13 @@ impl ChatState {
     /// `resolve()`: the primary uuid of the first bubble (oldest first)
     /// holding `uuid`.
     fn resolve_uuid(&self, uuid: &str) -> Option<String> {
-        let mut sorted = self.messages.clone();
-        sort_messages_by_chronology(&mut sorted);
-        sorted
-            .into_iter()
-            .find(|m| {
-                m.uuid == uuid
-                    || m.folded_sdk_uuids
-                        .as_ref()
-                        .is_some_and(|f| f.contains(uuid))
-            })
-            .map(|m| m.uuid)
+        first_chronological(&self.messages, |m| {
+            m.uuid == uuid
+                || m.folded_sdk_uuids
+                    .as_ref()
+                    .is_some_and(|f| f.contains(uuid))
+        })
+        .map(|m| m.uuid.clone())
     }
 
     fn jump_step(&mut self, jump: Jump, cx: &mut Cx<'_>) {

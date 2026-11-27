@@ -174,6 +174,24 @@ pub fn find_tool_use_block<'a>(
         .find(|b| b.tool_use_id() == Some(tool_use_id))
 }
 
+/// `findToolUseBlock(id, [messages])` over `messages` as last rendered
+/// (chronologically sorted), without sorting a copy: the first matching
+/// block of the first message, in that order, that holds one.
+pub fn find_tool_use_block_sorted<'a>(
+    tool_use_id: &str,
+    messages: &'a [DisplayMessage],
+) -> Option<&'a DisplayBlock> {
+    let holds = |m: &DisplayMessage| {
+        m.blocks
+            .iter()
+            .any(|b| b.tool_use_id() == Some(tool_use_id))
+    };
+    crate::messages::first_chronological(messages, holds)?
+        .blocks
+        .iter()
+        .find(|b| b.tool_use_id() == Some(tool_use_id))
+}
+
 /// `shouldRecoverOrphanTask(task, messages)`: a snapshot task with a
 /// (non-empty) `toolUseId` that isn't `running` and whose tool_use block
 /// isn't in `messages`.
