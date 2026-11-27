@@ -111,6 +111,29 @@ mod shots {
                 },
                 play: 0,
             },
+            // The pickers (U07b): a filtered slash list with its matched
+            // letters, the `@` files and agents, the `:shortcode:` list.
+            Scene {
+                name: "slash-picker",
+                setup: |view, window, cx| {
+                    view.update(cx, |v, cx| v.inject("/co", window, cx));
+                },
+                play: 0,
+            },
+            Scene {
+                name: "at-picker",
+                setup: |view, window, cx| {
+                    view.update(cx, |v, cx| v.inject("Look at @co", window, cx));
+                },
+                play: 0,
+            },
+            Scene {
+                name: "emoji-picker",
+                setup: |view, window, cx| {
+                    view.update(cx, |v, cx| v.inject("Nice work :smi", window, cx));
+                },
+                play: 0,
+            },
         ]
     }
 

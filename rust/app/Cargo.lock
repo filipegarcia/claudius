@@ -1076,6 +1076,7 @@ dependencies = [
  "claudius-composer",
  "claudius-core",
  "claudius-files",
+ "claudius-git",
  "claudius-gpui-theme",
  "claudius-prompts",
  "claudius-server",
@@ -1137,6 +1138,7 @@ dependencies = [
  "claudius-agent",
  "claudius-chat",
  "claudius-client",
+ "claudius-core",
  "claudius-gpui-theme",
  "claudius-theme",
  "futures",
@@ -1197,6 +1199,27 @@ dependencies = [
  "gpui-kit",
  "gpui-pre",
  "gpui-pre-apple",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "claudius-git"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "claudius-gpui-theme",
+ "claudius-theme",
+ "claudius-transport",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-apple",
+ "http",
+ "icu_collator",
+ "image",
+ "serde",
  "serde_json",
  "tokio",
 ]

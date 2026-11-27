@@ -1,6 +1,6 @@
 [package]
 name = "claudius-composer"
-description = "The chat composer (U07): PromptInput's editing, history, drafts, send / queue / stop, `!` bash mode and the queue strip, as a pure model over claudius-client and its GPUI view"
+description = "The chat composer (U07): PromptInput's editing, history, drafts, send / queue / stop, `!` bash mode, the queue strip and the slash / @ / :emoji pickers, as a pure model over claudius-client and its GPUI view"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,6 +14,9 @@ claudius-agent.workspace = true
 claudius-client.workspace = true
 # The fixture target replays its event logs (`FixtureTranscripts`, `Script`).
 claudius-chat.workspace = true
+# `localeCompare` (the pickers' sorts), and the slash registry's lookup
+# half the golden replay checks the composer's table against.
+claudius-core.workspace = true
 claudius-gpui-theme.workspace = true
 # The prompt accent (`/color`) and the composer frame (`prompt.rs`).
 claudius-theme.workspace = true

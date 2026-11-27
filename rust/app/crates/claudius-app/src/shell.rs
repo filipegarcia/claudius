@@ -183,6 +183,8 @@ pub struct Shell {
     pub(crate) now_year: i32,
     /// The sessions browser (U11), when [`Shell::with_sessions`] added it.
     pub(crate) sessions: Option<gpui_kit::Entity<crate::sessions::view::SessionsScreen>>,
+    /// The Git page (U12a), when [`Shell::set_git_data`] added it.
+    pub(crate) git: Option<Entity<claudius_git::view::GitScreen>>,
     /// The Files page (U12c), once [`Shell::set_files_data`] gave it data.
     pub(crate) files: crate::files::FilesSlot,
     pub(crate) chat: Option<ChatSlot>,
@@ -330,6 +332,7 @@ impl Shell {
             hidden: Vec::new(),
             now_year: crate::tabs::current_year(),
             sessions: None,
+            git: None,
             files: Default::default(),
             chat: None,
             icons: HashMap::new(),
@@ -774,9 +777,65 @@ impl Shell {
             }
         }
         crate::sessions::view::sync(self, cx);
+        self.sync_git(cx);
         self.sync_chat(cx);
         self.persist_ui();
         cx.notify();
+    }
+
+    /// Adds the Git page over `data` (its route draws a placeholder
+    /// without it); its links go through [`Shell::open_url`].
+    pub fn set_git_data(
+        &mut self,
+        data: Arc<dyn claudius_git::data::GitData>,
+        cx: &mut Context<Self>,
+    ) {
+        let screen = cx.new(|cx| claudius_git::view::GitScreen::new(data, cx));
+        let sub = cx.subscribe(
+            &screen,
+            |this: &mut Shell, _, ev: &claudius_git::view::GitEvent, cx| {
+                if let claudius_git::view::GitEvent::Navigate(url) = ev {
+                    this.open_url(url, cx);
+                }
+            },
+        );
+        self._subscriptions.push(sub);
+        self.git = Some(screen);
+        self.sync_git(cx);
+    }
+
+    /// The Git page, when the shell has one.
+    pub fn git_screen(&self) -> Option<&Entity<claudius_git::view::GitScreen>> {
+        self.git.as_ref()
+    }
+
+    /// After every state change: the Git page follows the route (mounted on
+    /// `/<ws>/git`, unmounted elsewhere), as the sessions browser does.
+    fn sync_git(&mut self, cx: &mut Context<Self>) {
+        let Some(screen) = self.git.clone() else {
+            return;
+        };
+        let state = &self.state;
+        let scope =
+            match state.route() {
+                Route::Workspace {
+                    id,
+                    page: WorkspacePage::Git,
+                } => state.workspaces().iter().find(|w| &w.id == id).map(|w| {
+                    claudius_git::page::Scope {
+                        id: w.id.clone(),
+                        name: w.name.clone(),
+                        root_path: w.root_path.clone(),
+                        commit_prefix: w
+                            .extra
+                            .get("commitPrefix")
+                            .and_then(claudius_git::types::CommitPrefixConfig::from_value),
+                    }
+                }),
+                _ => None,
+            };
+        let theme = self.theme;
+        screen.update(cx, |s, cx| s.sync(scope, theme, cx));
     }
 
     /// Focus mode and the route memory into the store (`useFocusMode`'s

@@ -31,6 +31,19 @@ pub fn utf16_len(s: &str) -> usize {
     s.encode_utf16().count()
 }
 
+/// `encodeURIComponent`.
+pub fn encode_uri_component(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        if b.is_ascii_alphanumeric() || b"-_.!~*'()".contains(&b) {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
 /// JS `\s` (`WhiteSpace` + `LineTerminator`).
 pub fn is_js_space(c: char) -> bool {
     (c.is_whitespace() && c != '\u{85}') || c == '\u{feff}'

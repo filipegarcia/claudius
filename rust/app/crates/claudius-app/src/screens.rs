@@ -42,6 +42,13 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
             page: WorkspacePage::Files { .. },
             ..
         } => crate::files::element(this).unwrap_or_else(|| placeholder(route, c)),
+        Route::Workspace {
+            page: WorkspacePage::Git,
+            ..
+        } => this
+            .git
+            .clone()
+            .map_or_else(|| placeholder(route, c), IntoElement::into_any_element),
         _ => placeholder(route, c),
     };
     // The transcript scrolls itself (a virtualized list), the Files page

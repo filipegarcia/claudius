@@ -15,9 +15,16 @@
 //! and fetches on tasks whose results come back into the model, timers on
 //! the executor's clock.
 //!
+//! The pickers (U07b) open over the box from [`Composer::menu`], anchored
+//! to the composer's column as the TS's `absolute bottom-full` panels are:
+//! the slash commands (category headers with no filter, the matched
+//! characters bold), the `@` files / agents (the count, the failed
+//! search's row), the `:shortcode:` emoji. The highlighted row scrolls into
+//! view; a hover moves the highlight, a press picks without taking focus
+//! from the editor.
+//!
 //! Seams: the paste hook (`Textarea::on_paste`) and the paperclip are
-//! where U07c's attachments come in; the pickers (U07b) open over the box
-//! from [`Composer::picker`].
+//! where U07c's attachments come in.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -34,13 +41,13 @@ use gpui_kit::component::input::{Input, InputEvent, InputState, Textarea, Textar
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, AppContext as _, Context, Div, Entity, EntityInputHandler as _, FocusHandle,
-    Focusable as _, FontWeight, Hsla, InteractiveElement as _, IntoElement, Keystroke,
-    ParentElement as _, Render, StatefulInteractiveElement as _, Styled as _, Subscription, Task,
-    Window, div, px,
+    Focusable as _, FontWeight, HighlightStyle, Hsla, InteractiveElement as _, IntoElement,
+    Keystroke, ParentElement as _, Render, ScrollHandle, StatefulInteractiveElement as _,
+    Styled as _, StyledText, Subscription, Task, Window, deferred, div, px,
 };
 use serde_json::json;
 
-use crate::model::{Composer, Key, Out, SessionView};
+use crate::model::{AtMenuView, Composer, EmojiMenu, Key, Menu, Out, SessionView, SlashMenu};
 use crate::rules::{self, HintState};
 use crate::target::{ComposerTarget, SessionCall};
 
@@ -90,6 +97,9 @@ pub struct ComposerView {
     started: Instant,
     timers: HashMap<TimerId, Task<()>>,
     focus_on_bind: bool,
+    /// The open picker's scroll, and the row it last scrolled to.
+    menu_scroll: ScrollHandle,
+    scrolled_to: Option<(&'static str, usize)>,
     _subs: Vec<Subscription>,
     _listen: Task<()>,
 }
@@ -177,6 +187,8 @@ impl ComposerView {
             started: Instant::now(),
             timers: HashMap::new(),
             focus_on_bind: true,
+            menu_scroll: ScrollHandle::new(),
+            scrolled_to: None,
             _subs: vec![on_edit, on_sudo, intercept, on_release, on_quit],
             _listen: listen,
         }
@@ -290,14 +302,16 @@ impl ComposerView {
             self.target.read(id, &mut |s| view = SessionView::of(s));
         }
         self.view = view;
-        self.sync_editor(window, cx);
-        cx.notify();
+        let outs = self.model.observe(&self.view);
+        self.run(outs, window, cx);
     }
 
     /// The bound session changed: re-reads it, and redraws only when what
     /// the composer shows of it changed. A streaming reply changes nothing
     /// here, and redrawing on each of its snapshots (up to 60 a second)
-    /// would be wasted work.
+    /// would be wasted work. The pickers read the cwd and the init's
+    /// command names off the same [`SessionView`], so they follow it here
+    /// too ([`Composer::observe`]).
     fn on_session_change(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let mut view = SessionView::default();
         if let Some(id) = self.model.session_id() {
@@ -305,8 +319,8 @@ impl ComposerView {
         }
         if view != self.view {
             self.view = view;
-            self.sync_editor(window, cx);
-            cx.notify();
+            let outs = self.model.observe(&self.view);
+            self.run(outs, window, cx);
         }
     }
 
@@ -377,6 +391,13 @@ impl ComposerView {
             handled = true;
         }
         handled
+    }
+
+    /// A picker row pressed: it picks at the editor's caret.
+    fn pick_row(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
+        let caret = self.editor.update(cx, |s, _| s.selected_range().start);
+        let outs = self.model.menu_pick(index, caret);
+        self.run(outs, window, cx);
     }
 
     fn on_editor_change(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -1077,6 +1098,299 @@ fn epoch_ms() -> f64 {
         .map_or(0.0, |d| d.as_secs_f64() * 1000.0)
 }
 
+impl ComposerView {
+    /// The open picker, over the column (`absolute bottom-full left-0
+    /// right-0 mb-2`, painted above the transcript).
+    fn menu(&mut self, c: &Colors, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let menu = self.model.menu()?;
+        // `scrollIntoView({ block: "nearest" })` when the highlight moves.
+        let (kind, hi, child) = match &menu {
+            Menu::Slash(m) => ("slash", m.hi, m.hi + 1),
+            Menu::At(m) => ("at", m.hi, m.hi + 1 + usize::from(m.error.is_some())),
+            Menu::Emoji(m) => ("emoji", m.hi, m.hi + 1),
+        };
+        if self.scrolled_to != Some((kind, hi)) {
+            self.scrolled_to = Some((kind, hi));
+            self.menu_scroll.scroll_to_item(child);
+        }
+        let (id, max_h, body) = match menu {
+            Menu::Slash(m) => ("composer-slash-picker", 384., self.slash_menu(m, c, cx)),
+            Menu::At(m) => ("composer-at-picker", 288., self.at_menu(m, c, cx)),
+            Menu::Emoji(m) => ("composer-emoji-picker", 288., self.emoji_menu(m, c, cx)),
+        };
+        Some(
+            deferred(
+                div()
+                    .id(id)
+                    .debug_selector(move || id.into())
+                    .occlude()
+                    .absolute()
+                    .left_0()
+                    .right_0()
+                    .bottom_full()
+                    .mb(px(8.))
+                    .max_h(px(max_h))
+                    .overflow_y_scroll()
+                    .track_scroll(&self.menu_scroll)
+                    .rounded(px(12.))
+                    .border_1()
+                    .border_color(h(c.border))
+                    .bg(h(c.panel))
+                    .p(px(4.))
+                    .shadow_2xl()
+                    .text_color(h(c.foreground))
+                    .children(body),
+            )
+            .with_priority(1)
+            .into_any_element(),
+        )
+    }
+
+    /// A row: hover highlights, a press picks (the editor keeps focus).
+    fn menu_row(
+        &self,
+        id: (&'static str, usize),
+        i: usize,
+        selected: bool,
+        c: &Colors,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<Div> {
+        div()
+            .id(id)
+            .w_full()
+            .flex()
+            .gap(px(8.))
+            .rounded(px(6.))
+            .px(px(8.))
+            .when(selected, |d| d.bg(h(c.panel_2)))
+            .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
+                if *hovered {
+                    this.model.menu_hover(i);
+                    cx.notify();
+                }
+            }))
+            .on_mouse_down(
+                gpui_kit::MouseButton::Left,
+                cx.listener(move |this, _, window, cx| {
+                    cx.stop_propagation();
+                    this.pick_row(i, window, cx);
+                }),
+            )
+    }
+
+    /// The `❯` that marks the selected row (CC 2.1.290).
+    fn pointer(selected: bool, c: &Colors) -> Div {
+        div()
+            .w(px(10.))
+            .flex_none()
+            .flex()
+            .justify_center()
+            .text_size(px(11.))
+            .line_height(px(16.))
+            .text_color(h(c.accent))
+            .child(if selected { "\u{276f}" } else { "" })
+    }
+
+    fn slash_menu(&self, m: SlashMenu, c: &Colors, cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let header = div()
+            .px(px(8.))
+            .pb(px(4.))
+            .pt(px(6.))
+            .text_size(px(10.))
+            .text_color(h(c.muted))
+            .child(crate::slash::HEADER.to_uppercase())
+            .into_any_element();
+        let rows = m.rows.into_iter().enumerate().map(|(i, row)| {
+            let selected = i == m.hi;
+            let s = &row.suggestion;
+            let (fg, bg, icon_name) = match s.handler {
+                crate::slash::Handler::Native => {
+                    (h(step("emerald-300")), a(step("emerald-500"), 10.), "Zap")
+                }
+                crate::slash::Handler::Sdk => (h(step("sky-300")), a(step("sky-500"), 10.), "Cpu"),
+                crate::slash::Handler::External => (h(c.muted), h(c.panel_2), "ExternalLink"),
+            };
+            let mut text = String::new();
+            let mut bold = Vec::new();
+            for (piece, b) in &row.name {
+                if *b {
+                    bold.push((
+                        text.len()..text.len() + piece.len(),
+                        HighlightStyle {
+                            font_weight: Some(FontWeight::SEMIBOLD),
+                            ..HighlightStyle::default()
+                        },
+                    ));
+                }
+                text.push_str(piece);
+            }
+            let category = row.header.map(|label| {
+                div()
+                    .mt(px(4.))
+                    .px(px(8.))
+                    .py(px(2.))
+                    .text_size(px(10.))
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(a(c.muted, 80.))
+                    .child(label.to_uppercase())
+            });
+            let name = div()
+                .flex()
+                .font_family(fonts::MONO)
+                .text_size(px(14.))
+                .child(div().text_color(h(c.accent)).child("/"))
+                .child(StyledText::new(text).with_highlights(bold));
+            let line = div()
+                .flex()
+                .items_baseline()
+                .gap(px(8.))
+                .child(name)
+                .children(s.args_hint.clone().map(|hint| {
+                    div()
+                        .font_family(fonts::MONO)
+                        .text_size(px(10.))
+                        .text_color(h(c.muted))
+                        .child(hint)
+                }))
+                .when(s.builtin, |d| {
+                    d.child(
+                        div()
+                            .debug_selector(|| "composer-slash-builtin-badge".into())
+                            .rounded(px(4.))
+                            .bg(h(c.panel_2))
+                            .px(px(4.))
+                            .py(px(2.))
+                            .text_size(px(9.))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(h(c.muted))
+                            .child(crate::slash::BUILTIN_BADGE.to_uppercase()),
+                    )
+                });
+            div()
+                .children(category)
+                .child(
+                    self.menu_row(("slash-row", i), i, selected, c, cx)
+                        .debug_selector(move || format!("composer-slash-row-{i}"))
+                        .items_start()
+                        .py(px(6.))
+                        .child(Self::pointer(selected, c).mt(px(2.)))
+                        .child(
+                            div()
+                                .mt(px(2.))
+                                .size(px(16.))
+                                .flex_none()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .rounded(px(4.))
+                                .bg(bg)
+                                .children(icon(icon_name, 10., fg)),
+                        )
+                        .child(
+                            div().flex_1().min_w_0().child(line).child(
+                                div()
+                                    .truncate()
+                                    .text_size(px(11.))
+                                    .text_color(h(c.muted))
+                                    .child(s.description.clone()),
+                            ),
+                        ),
+                )
+                .into_any_element()
+        });
+        std::iter::once(header).chain(rows).collect()
+    }
+
+    fn at_menu(&self, m: AtMenuView, c: &Colors, cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let header = div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .px(px(8.))
+            .py(px(4.))
+            .text_size(px(10.))
+            .text_color(h(c.muted))
+            .child(crate::mention::HEADER.to_uppercase())
+            .child(
+                div()
+                    .debug_selector(|| "composer-at-count".into())
+                    .child(m.count.to_uppercase()),
+            )
+            .into_any_element();
+        let error = m.error.map(|e| {
+            div()
+                .debug_selector(|| "composer-at-search-error".into())
+                .px(px(8.))
+                .py(px(4.))
+                .text_size(px(12.))
+                .text_color(h(step("red-300")))
+                .child(e)
+                .into_any_element()
+        });
+        let rows = m.rows.into_iter().enumerate().map(|(i, item)| {
+            let selected = i == m.hi;
+            self.menu_row(("at-row", i), i, selected, c, cx)
+                .debug_selector(move || format!("composer-at-row-{i}"))
+                .items_center()
+                .py(px(4.))
+                .text_size(px(12.))
+                .child(Self::pointer(selected, c))
+                .children(icon(item.icon(), 12., h(c.muted)))
+                .child(
+                    div()
+                        .min_w_0()
+                        .truncate()
+                        .font_family(fonts::MONO)
+                        .child(item.label().to_owned()),
+                )
+                .children(item.aside().map(|aside| {
+                    div()
+                        .ml_auto()
+                        .min_w_0()
+                        .truncate()
+                        .pl(px(8.))
+                        .text_size(px(10.))
+                        .text_color(h(c.muted))
+                        .child(aside.to_owned())
+                }))
+                .into_any_element()
+        });
+        std::iter::once(header).chain(error).chain(rows).collect()
+    }
+
+    fn emoji_menu(&self, m: EmojiMenu, c: &Colors, cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let header = div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .px(px(8.))
+            .py(px(4.))
+            .text_size(px(10.))
+            .text_color(h(c.muted))
+            .child(crate::emoji::HEADER.to_uppercase())
+            .child(m.count.to_uppercase())
+            .into_any_element();
+        let rows = m.rows.into_iter().enumerate().map(|(i, (name, emoji))| {
+            self.menu_row(("emoji-row", i), i, i == m.hi, c, cx)
+                .debug_selector(move || format!("composer-emoji-row-{i}"))
+                .items_center()
+                .py(px(4.))
+                .text_size(px(12.))
+                .child(div().text_size(px(16.)).line_height(px(16.)).child(emoji))
+                .child(
+                    div()
+                        .min_w_0()
+                        .truncate()
+                        .font_family(fonts::MONO)
+                        .text_color(h(c.muted))
+                        .child(format!(":{name}:")),
+                )
+                .into_any_element()
+        });
+        std::iter::once(header).chain(rows).collect()
+    }
+}
+
 impl Render for ComposerView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let c = self.colors();
@@ -1095,6 +1409,10 @@ impl Render for ComposerView {
                 .child(t)
         });
         let sudo = self.sudo_modal(&c, cx);
+        let menu = self.menu(&c, cx);
+        if menu.is_none() {
+            self.scrolled_to = None;
+        }
         let frame = self.frame(&c, text, window, cx);
         let footer = self.footer(&c, text, cx);
         div()
@@ -1114,10 +1432,11 @@ impl Render for ComposerView {
                     .px(px(16.))
                     .py(px(12.))
                     .child(
-                        column(div())
+                        column(div().relative())
                             .children(toast)
                             .children(sudo)
                             .child(frame)
+                            .children(menu)
                             .child(footer),
                     ),
             )

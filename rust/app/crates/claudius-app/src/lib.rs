@@ -41,4 +41,5 @@ pub fn init(theme: ThemeName, cx: &mut App) {
     shortcuts::bind(cx);
     sessions::view::bind(cx);
     claudius_files::view::bind(cx);
+    claudius_git::view::bind(cx);
 }

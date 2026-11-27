@@ -1,0 +1,13817 @@
+{
+ "registry": [
+  {
+   "id": "clear",
+   "name": "clear",
+   "aliases": [
+    "reset",
+    "new"
+   ],
+   "description": "Start a fresh session (clears context).",
+   "category": "session",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "compact",
+   "name": "compact",
+   "aliases": [],
+   "description": "Compact the conversation to free up context.",
+   "category": "session",
+   "handler": "sdk",
+   "argsHint": "[focus instructions]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "resume",
+   "name": "resume",
+   "aliases": [
+    "continue"
+   ],
+   "description": "Open the session picker / resume a session.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": "[id]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "fork",
+   "name": "fork",
+   "aliases": [
+    "branch"
+   ],
+   "description": "Fork the current session at the latest message.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": "[name]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "rename",
+   "name": "rename",
+   "aliases": [],
+   "description": "Rename the current session.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": "[title]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "export",
+   "name": "export",
+   "aliases": [],
+   "description": "Download the current session as plain text.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": "[filename]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "rewind",
+   "name": "rewind",
+   "aliases": [
+    "checkpoint",
+    "undo"
+   ],
+   "description": "Rewind to a previous user message (use the \u21ba buttons).",
+   "category": "session",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "goal",
+   "name": "goal",
+   "aliases": [
+    "objective"
+   ],
+   "description": "Set a goal for this session \u2014 shown prominently and tracked until achieved. /goal clear removes it.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": "[goal text | clear]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "exit",
+   "name": "exit",
+   "aliases": [
+    "quit"
+   ],
+   "description": "End the current session.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "permissions",
+   "name": "permissions",
+   "aliases": [
+    "allowed-tools"
+   ],
+   "description": "Manage allow/ask/deny rules across scopes.",
+   "category": "permissions",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "sandbox",
+   "name": "sandbox",
+   "aliases": [],
+   "description": "Toggle sandbox mode (OS-level filesystem/network isolation).",
+   "category": "permissions",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "agents",
+   "name": "agents",
+   "aliases": [],
+   "description": "Manage subagent configurations.",
+   "category": "tools",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "hooks",
+   "name": "hooks",
+   "aliases": [],
+   "description": "View hook configurations.",
+   "category": "tools",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "mcp",
+   "name": "mcp",
+   "aliases": [],
+   "description": "Manage MCP servers and OAuth.",
+   "category": "tools",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "plugin",
+   "name": "plugin",
+   "aliases": [],
+   "description": "Manage plugins.",
+   "category": "tools",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "reload-plugins",
+   "name": "reload-plugins",
+   "aliases": [],
+   "description": "Reload plugins to apply changes.",
+   "category": "tools",
+   "handler": "native",
+   "argsHint": "[force]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "reload-skills",
+   "name": "reload-skills",
+   "aliases": [],
+   "description": "Pick up skills added or changed on disk during this session.",
+   "category": "tools",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "tasks",
+   "name": "tasks",
+   "aliases": [
+    "bashes"
+   ],
+   "description": "List and manage background tasks.",
+   "category": "tools",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "skills",
+   "name": "skills",
+   "aliases": [],
+   "description": "List available skills.",
+   "category": "tools",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "memory",
+   "name": "memory",
+   "aliases": [],
+   "description": "Edit CLAUDE.md, browse memory, toggle auto-memory.",
+   "category": "memory",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "context",
+   "name": "context",
+   "aliases": [],
+   "description": "Visualize context window usage.",
+   "category": "memory",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "skill-doctor",
+   "name": "skill-doctor",
+   "aliases": [],
+   "description": "Show per-skill context cost, so you can prune what's not worth it.",
+   "category": "memory",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "init",
+   "name": "init",
+   "aliases": [],
+   "description": "Initialize a CLAUDE.md for this project.",
+   "category": "memory",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "recap",
+   "name": "recap",
+   "aliases": [],
+   "description": "Generate a one-line session summary.",
+   "category": "memory",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "btw",
+   "name": "btw",
+   "aliases": [],
+   "description": "Side question \u2014 ephemeral, no tools, no history.",
+   "category": "memory",
+   "handler": "sdk",
+   "argsHint": "<question>",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "model",
+   "name": "model",
+   "aliases": [],
+   "description": "Switch model (e.g. claude-opus-4-7 / claude-sonnet-4-6), or open the picker with no args.",
+   "category": "model",
+   "handler": "native",
+   "argsHint": "[model-id]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "effort",
+   "name": "effort",
+   "aliases": [],
+   "description": "Set effort level, or toggle ultracode; open the picker with no args.",
+   "category": "model",
+   "handler": "native",
+   "argsHint": "[level] | ultracode on|off",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "fast",
+   "name": "fast",
+   "aliases": [],
+   "description": "Toggle fast mode, or open the picker with no args.",
+   "category": "model",
+   "handler": "native",
+   "argsHint": "[on|off]",
+   "forwardsArgsToSdk": true
+  },
+  {
+   "id": "advisor",
+   "name": "advisor",
+   "aliases": [],
+   "description": "Set the Advisor model (opus/sonnet/fable/off), or open the picker with no args.",
+   "category": "model",
+   "handler": "native",
+   "argsHint": "[model|off]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "settings",
+   "name": "settings",
+   "aliases": [
+    "config"
+   ],
+   "description": "Open the settings editor.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "theme",
+   "name": "theme",
+   "aliases": [],
+   "description": "Pick a color theme.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "statusline",
+   "name": "statusline",
+   "aliases": [],
+   "description": "Configure the status line.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "keybindings",
+   "name": "keybindings",
+   "aliases": [],
+   "description": "Edit keybindings.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "color",
+   "name": "color",
+   "aliases": [],
+   "description": "Set prompt accent color.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": "[color|default]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "diff",
+   "name": "diff",
+   "aliases": [],
+   "description": "Show uncommitted changes as an overlay.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "focus",
+   "name": "focus",
+   "aliases": [],
+   "description": "Cycle focus mode (off \u2192 focus \u2192 zen).",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": "[off|focus|zen]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "output-style",
+   "name": "output-style",
+   "aliases": [],
+   "description": "List or switch the response output style.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": "[name]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "zen",
+   "name": "zen",
+   "aliases": [],
+   "description": "Toggle Zen mode \u2014 hide everything but the chat.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "tui",
+   "name": "tui",
+   "aliases": [],
+   "description": "Switch UI renderer.",
+   "category": "ui",
+   "handler": "external",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "cost",
+   "name": "cost",
+   "aliases": [],
+   "description": "Show session cost & usage as an overlay.",
+   "category": "cost",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "usage",
+   "name": "usage",
+   "aliases": [
+    "stats"
+   ],
+   "description": "Open the Usage & account page.",
+   "category": "cost",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "extra-usage",
+   "name": "extra-usage",
+   "aliases": [],
+   "description": "Configure extra usage for rate-limit recovery.",
+   "category": "cost",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "rate-limit-options",
+   "name": "rate-limit-options",
+   "aliases": [],
+   "description": "Show options for handling a usage limit (Usage page).",
+   "category": "cost",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "login",
+   "name": "login",
+   "aliases": [],
+   "description": "Sign in to Anthropic.",
+   "category": "auth",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "logout",
+   "name": "logout",
+   "aliases": [],
+   "description": "Sign out (helper).",
+   "category": "auth",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "setup-bedrock",
+   "name": "setup-bedrock",
+   "aliases": [],
+   "description": "Configure Amazon Bedrock.",
+   "category": "auth",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "setup-vertex",
+   "name": "setup-vertex",
+   "aliases": [],
+   "description": "Configure Google Vertex AI.",
+   "category": "auth",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "ide",
+   "name": "ide",
+   "aliases": [],
+   "description": "Claudius is the IDE \u2014 opens the Files browser.",
+   "category": "integrations",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "install-github-app",
+   "name": "install-github-app",
+   "aliases": [],
+   "description": "Install Claude GitHub Actions.",
+   "category": "integrations",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "install-slack-app",
+   "name": "install-slack-app",
+   "aliases": [],
+   "description": "Install Claude Slack app.",
+   "category": "integrations",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "chrome",
+   "name": "chrome",
+   "aliases": [],
+   "description": "Configure Chrome integration (no-op \u2014 Claudius runs in Chromium).",
+   "category": "integrations",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "web-setup",
+   "name": "web-setup",
+   "aliases": [],
+   "description": "Connect GitHub for web sessions on claude.ai.",
+   "category": "integrations",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "desktop",
+   "name": "desktop",
+   "aliases": [
+    "app"
+   ],
+   "description": "Open or recommend the Claudius desktop app.",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "mobile",
+   "name": "mobile",
+   "aliases": [
+    "ios",
+    "android"
+   ],
+   "description": "Open the Claude mobile app page.",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "passes",
+   "name": "passes",
+   "aliases": [],
+   "description": "Share free week with friends (CLI only).",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "stickers",
+   "name": "stickers",
+   "aliases": [],
+   "description": "Order Claude Code stickers.",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "teleport",
+   "name": "teleport",
+   "aliases": [
+    "tp"
+   ],
+   "description": "Pull a web session into the terminal (CLI only).",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "remote-control",
+   "name": "remote-control",
+   "aliases": [
+    "rc"
+   ],
+   "description": "Enable remote control from claude.ai (CLI only).",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "remote-env",
+   "name": "remote-env",
+   "aliases": [],
+   "description": "Configure default remote environment on claude.ai.",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "upgrade",
+   "name": "upgrade",
+   "aliases": [],
+   "description": "Open the Claude plan upgrade page.",
+   "category": "platform",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "voice",
+   "name": "voice",
+   "aliases": [],
+   "description": "Voice dictation mode.",
+   "category": "platform",
+   "handler": "external",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "help",
+   "name": "help",
+   "aliases": [],
+   "description": "Show all slash commands and shortcuts.",
+   "category": "info",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "status",
+   "name": "status",
+   "aliases": [],
+   "description": "Show session/account/connectivity status.",
+   "category": "info",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "release-notes",
+   "name": "release-notes",
+   "aliases": [],
+   "description": "Open the changelog.",
+   "category": "info",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "feedback",
+   "name": "feedback",
+   "aliases": [
+    "bug"
+   ],
+   "description": "Submit feedback via GitHub Issues.",
+   "category": "info",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "insights",
+   "name": "insights",
+   "aliases": [],
+   "description": "Generate report on session patterns.",
+   "category": "info",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "team-onboarding",
+   "name": "team-onboarding",
+   "aliases": [],
+   "description": "Generate team onboarding guide.",
+   "category": "info",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "heapdump",
+   "name": "heapdump",
+   "aliases": [],
+   "description": "Write a heap snapshot + diagnostics report (agent subprocess).",
+   "category": "info",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "doctor",
+   "name": "doctor",
+   "aliases": [
+    "checkup"
+   ],
+   "description": "Full setup checkup \u2014 diagnose and fix installation/auth/git/permissions issues.",
+   "category": "info",
+   "handler": "native",
+   "argsHint": "[prompt-audit]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "powerup",
+   "name": "powerup",
+   "aliases": [],
+   "description": "Open the Release notes (Claudius's feature-tour surface).",
+   "category": "info",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "add-dir",
+   "name": "add-dir",
+   "aliases": [],
+   "description": "Add a working directory to this session.",
+   "category": "info",
+   "handler": "native",
+   "argsHint": "<path>",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "worktrees",
+   "name": "worktrees",
+   "aliases": [
+    "worktree"
+   ],
+   "description": "Open a chat session in a git worktree.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "files",
+   "name": "files",
+   "aliases": [],
+   "description": "Browse files in the active workspace.",
+   "category": "session",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "batch",
+   "name": "batch",
+   "aliases": [],
+   "description": "Large-scale changes across the codebase.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": "<instruction>",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "claude-api",
+   "name": "claude-api",
+   "aliases": [],
+   "description": "Claude API reference / migration helper.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "debug",
+   "name": "debug",
+   "aliases": [],
+   "description": "Enable debug logging and troubleshoot.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "fewer-permission-prompts",
+   "name": "fewer-permission-prompts",
+   "aliases": [],
+   "description": "Allowlist common read-only tools.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "loop",
+   "name": "loop",
+   "aliases": [],
+   "description": "Run a prompt or slash command on an interval, or self-paced.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": "[interval] [prompt]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "schedule",
+   "name": "schedule",
+   "aliases": [
+    "routines"
+   ],
+   "description": "Manage scheduled routines.",
+   "category": "skill",
+   "handler": "native",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "simplify",
+   "name": "simplify",
+   "aliases": [],
+   "description": "Review files, find issues, apply fixes.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": "[focus]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "review",
+   "name": "review",
+   "aliases": [
+    "code-review"
+   ],
+   "description": "Review the current branch or a PR (alias of /code-review).",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": "[level] [PR] | ultra",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "security-review",
+   "name": "security-review",
+   "aliases": [],
+   "description": "Security review of pending changes.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": null,
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "ultrareview",
+   "name": "ultrareview",
+   "aliases": [],
+   "description": "Deep multi-agent code review.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": "[PR]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "autofix-pr",
+   "name": "autofix-pr",
+   "aliases": [],
+   "description": "Watch PR and auto-fix CI failures.",
+   "category": "skill",
+   "handler": "sdk",
+   "argsHint": "[prompt]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "plan",
+   "name": "plan",
+   "aliases": [],
+   "description": "Enter plan mode (read-only planning).",
+   "category": "experimental",
+   "handler": "native",
+   "argsHint": "[description]",
+   "forwardsArgsToSdk": false
+  },
+  {
+   "id": "copy",
+   "name": "copy",
+   "aliases": [],
+   "description": "Copy the last response to clipboard.",
+   "category": "ui",
+   "handler": "native",
+   "argsHint": "[N]",
+   "forwardsArgsToSdk": false
+  }
+ ],
+ "categoryLabels": {
+  "session": "Session",
+  "permissions": "Permissions",
+  "tools": "Tools",
+  "memory": "Memory & context",
+  "model": "Model",
+  "ui": "Interface",
+  "cost": "Cost & usage",
+  "skill": "Skills",
+  "info": "Info",
+  "auth": "Auth",
+  "integrations": "Integrations",
+  "platform": "Platform",
+  "experimental": "Experimental"
+ },
+ "categoryOrder": [
+  "session",
+  "permissions",
+  "tools",
+  "memory",
+  "model",
+  "ui",
+  "cost",
+  "skill",
+  "info",
+  "auth",
+  "integrations",
+  "platform",
+  "experimental"
+ ],
+ "mergeSuggestions": [
+  {
+   "args": [
+    null,
+    null,
+    null
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [],
+    [],
+    []
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [
+     "compact",
+     "clear",
+     "reset",
+     "my-cmd"
+    ],
+    [],
+    null
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    {
+     "id": "sdk:my-cmd",
+     "name": "my-cmd",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [
+     "zeta",
+     "Alpha",
+     "beta",
+     "_under",
+     "10x",
+     "9x",
+     "plugin:tool",
+     "a-b",
+     "a_b",
+     "ab",
+     "\u00e9t\u00e9",
+     "Zed"
+    ],
+    [],
+    null
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    {
+     "id": "sdk:_under",
+     "name": "_under",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:10x",
+     "name": "10x",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:9x",
+     "name": "9x",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:a_b",
+     "name": "a_b",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:a-b",
+     "name": "a-b",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:ab",
+     "name": "ab",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:Alpha",
+     "name": "Alpha",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:beta",
+     "name": "beta",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:\u00e9t\u00e9",
+     "name": "\u00e9t\u00e9",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    "plan",
+    {
+     "id": "sdk:plugin:tool",
+     "name": "plugin:tool",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:Zed",
+     "name": "Zed",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:zeta",
+     "name": "zeta",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     "deploy",
+     "lint"
+    ],
+    [
+     "deploy",
+     "pdf"
+    ],
+    null
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    {
+     "id": "sdk:deploy",
+     "name": "deploy",
+     "description": "Skill provided by the SDK.",
+     "category": "skill",
+     "handler": "sdk",
+     "source": "skill"
+    },
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    {
+     "id": "sdk:lint",
+     "name": "lint",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [
+     "deploy"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "  Ship it.  ",
+      "argumentHint": " <env> ",
+      "aliases": [
+       "ship"
+      ],
+      "builtin": true
+     }
+    ]
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    {
+     "id": "sdk:deploy",
+     "name": "deploy",
+     "description": "Ship it.",
+     "category": "skill",
+     "handler": "sdk",
+     "source": "skill",
+     "argsHint": "<env>",
+     "aliases": [
+      "ship"
+     ],
+     "builtin": true
+    },
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [],
+    [],
+    [
+     {
+      "name": "only-rich",
+      "description": "From the rich list."
+     },
+     {
+      "name": "dup",
+      "description": "first"
+     },
+     {
+      "name": "dup",
+      "description": "second"
+     }
+    ]
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    {
+     "id": "sdk:dup",
+     "name": "dup",
+     "description": "second",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:only-rich",
+     "name": "only-rich",
+     "description": "From the rich list.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [
+     "x"
+    ],
+    [],
+    [
+     {
+      "name": "x",
+      "description": "   "
+     },
+     {
+      "name": "y",
+      "argumentHint": "   ",
+      "aliases": []
+     },
+     null,
+     {
+      "name": 7
+     },
+     {
+      "description": "nameless"
+     },
+     {
+      "name": "z",
+      "builtin": 1
+     },
+     {
+      "name": "w",
+      "builtin": false
+     }
+    ]
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    "plan",
+    {
+     "id": "sdk:w",
+     "name": "w",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:x",
+     "name": "x",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:y",
+     "name": "y",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:z",
+     "name": "z",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk",
+     "builtin": true
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     "review",
+     "code-review",
+     "help"
+    ],
+    [
+     "review"
+    ],
+    [
+     {
+      "name": "review",
+      "description": "SDK review",
+      "builtin": true
+     }
+    ]
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [
+     "mcp__srv__tool",
+     "mcp__srv__other"
+    ],
+    [],
+    [
+     {
+      "name": "mcp__srv__tool",
+      "description": "An MCP prompt.",
+      "argumentHint": "[q]"
+     }
+    ]
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    {
+     "id": "sdk:mcp__srv__other",
+     "name": "mcp__srv__other",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    {
+     "id": "sdk:mcp__srv__tool",
+     "name": "mcp__srv__tool",
+     "description": "An MCP prompt.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk",
+     "argsHint": "[q]"
+    },
+    "plan"
+   ]
+  },
+  {
+   "args": [
+    [
+     "dup",
+     "dup"
+    ],
+    [
+     "skill-a"
+    ],
+    [
+     {
+      "name": "skill-a"
+     }
+    ]
+   ],
+   "out": [
+    "clear",
+    "compact",
+    "exit",
+    "export",
+    "files",
+    "fork",
+    "goal",
+    "rename",
+    "resume",
+    "rewind",
+    "worktrees",
+    "permissions",
+    "sandbox",
+    "agents",
+    "hooks",
+    "mcp",
+    "plugin",
+    "reload-plugins",
+    "reload-skills",
+    "skills",
+    "tasks",
+    "btw",
+    "context",
+    "init",
+    "memory",
+    "recap",
+    "skill-doctor",
+    "advisor",
+    "effort",
+    "fast",
+    "model",
+    "color",
+    "copy",
+    "diff",
+    "focus",
+    "keybindings",
+    "output-style",
+    "settings",
+    "statusline",
+    "theme",
+    "tui",
+    "zen",
+    "cost",
+    "extra-usage",
+    "rate-limit-options",
+    "usage",
+    "autofix-pr",
+    "batch",
+    "claude-api",
+    "debug",
+    "fewer-permission-prompts",
+    "loop",
+    "review",
+    "schedule",
+    "security-review",
+    "simplify",
+    {
+     "id": "sdk:skill-a",
+     "name": "skill-a",
+     "description": "Skill provided by the SDK.",
+     "category": "skill",
+     "handler": "sdk",
+     "source": "skill"
+    },
+    "ultrareview",
+    "add-dir",
+    "doctor",
+    "feedback",
+    "heapdump",
+    "help",
+    "insights",
+    "powerup",
+    "release-notes",
+    "status",
+    "team-onboarding",
+    "login",
+    "logout",
+    "setup-bedrock",
+    "setup-vertex",
+    "chrome",
+    "ide",
+    "install-github-app",
+    "install-slack-app",
+    "web-setup",
+    "desktop",
+    "mobile",
+    "passes",
+    "remote-control",
+    "remote-env",
+    "stickers",
+    "teleport",
+    "upgrade",
+    "voice",
+    {
+     "id": "sdk:dup",
+     "name": "dup",
+     "description": "Provided by the SDK.",
+     "category": "experimental",
+     "handler": "sdk",
+     "source": "sdk"
+    },
+    "plan"
+   ]
+  }
+ ],
+ "slashTokenBeforeCaret": [
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "/co"
+   ],
+   "out": "co"
+  },
+  {
+   "args": [
+    "a /co"
+   ],
+   "out": "co"
+  },
+  {
+   "args": [
+    "a/co"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "https://x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    " /"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "x\n/re"
+   ],
+   "out": "re"
+  },
+  {
+   "args": [
+    "/a/b"
+   ],
+   "out": "a/b"
+  },
+  {
+   "args": [
+    "x /a b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x /a "
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/\ud83d\ude00"
+   ],
+   "out": "\ud83d\ude00"
+  },
+  {
+   "args": [
+    "\t/x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "\u00a0/x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "\u3000/x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "\ufeff/x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "\u0085/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u2028/x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "@"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@src"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a @src/lib"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a@b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@a@b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x @"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x @ "
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "e@mail @x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@\ud83d\ude00"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a :smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a:smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "10:30"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "::smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":sm-i_+1"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":sm.i"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":SMI"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x :\u00e9"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":heart:"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x\n:fi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u00a0:x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u0085:x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/x @y"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@x /y"
+   ],
+   "out": "y"
+  },
+  {
+   "args": [
+    ":x /y"
+   ],
+   "out": "y"
+  }
+ ],
+ "atToken": [
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/co"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a /co"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a/co"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "https://x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    " /"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x\n/re"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/a/b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x /a b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x /a "
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/\ud83d\ude00"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\t/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u00a0/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u3000/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\ufeff/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u0085/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u2028/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "@src"
+   ],
+   "out": "src"
+  },
+  {
+   "args": [
+    "a @src/lib"
+   ],
+   "out": "src/lib"
+  },
+  {
+   "args": [
+    "a@b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@a@b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x @"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "x @ "
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "e@mail @x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "@\ud83d\ude00"
+   ],
+   "out": "\ud83d\ude00"
+  },
+  {
+   "args": [
+    ":"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a :smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a:smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "10:30"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "::smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":sm-i_+1"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":sm.i"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":SMI"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x :\u00e9"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":heart:"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x\n:fi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u00a0:x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u0085:x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/x @y"
+   ],
+   "out": "y"
+  },
+  {
+   "args": [
+    "@x /y"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":x /y"
+   ],
+   "out": null
+  }
+ ],
+ "parseEmojiTrigger": [
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/co"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a /co"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a/co"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "https://x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    " /"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x\n/re"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/a/b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x /a b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x /a "
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/\ud83d\ude00"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\t/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u00a0/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u3000/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\ufeff/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u0085/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u2028/x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@src"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a @src/lib"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a@b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@a@b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x @"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x @ "
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "e@mail @x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@\ud83d\ude00"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    ":smi"
+   ],
+   "out": "smi"
+  },
+  {
+   "args": [
+    "a :smi"
+   ],
+   "out": "smi"
+  },
+  {
+   "args": [
+    "a:smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "10:30"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "::smi"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":sm-i_+1"
+   ],
+   "out": "sm-i_+1"
+  },
+  {
+   "args": [
+    ":sm.i"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":SMI"
+   ],
+   "out": "SMI"
+  },
+  {
+   "args": [
+    "x :\u00e9"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":heart:"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x\n:fi"
+   ],
+   "out": "fi"
+  },
+  {
+   "args": [
+    "\u00a0:x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "\u0085:x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/x @y"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@x /y"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":x /y"
+   ],
+   "out": null
+  }
+ ],
+ "slashAtStart": [
+  {
+   "args": [
+    ""
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "/"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "/co"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "  /co"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\n/co"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "/co x"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "/co\n"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "x /co"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u00a0/co"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u0085/co"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "/\ud83d\ude00"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "//"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "/a/b"
+   ],
+   "out": true
+  }
+ ],
+ "insertSlashCommand": [
+  {
+   "args": [
+    "/co",
+    3,
+    "compact"
+   ],
+   "out": {
+    "next": "/compact ",
+    "caret": 9
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    7,
+    "compact"
+   ],
+   "out": {
+    "next": "fix /compact  please",
+    "caret": 13
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    14,
+    "compact"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 14
+   }
+  },
+  {
+   "args": [
+    "/co",
+    1,
+    "compact"
+   ],
+   "out": {
+    "next": "/compact co",
+    "caret": 9
+   }
+  },
+  {
+   "args": [
+    "a\n/re",
+    5,
+    "compact"
+   ],
+   "out": {
+    "next": "a\n/compact ",
+    "caret": 11
+   }
+  },
+  {
+   "args": [
+    "x/co",
+    4,
+    "compact"
+   ],
+   "out": {
+    "next": "x/co",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "",
+    0,
+    "compact"
+   ],
+   "out": {
+    "next": "",
+    "caret": 0
+   }
+  },
+  {
+   "args": [
+    "see @src",
+    8,
+    "compact"
+   ],
+   "out": {
+    "next": "see @src",
+    "caret": 8
+   }
+  },
+  {
+   "args": [
+    "see @src and",
+    8,
+    "compact"
+   ],
+   "out": {
+    "next": "see @src and",
+    "caret": 8
+   }
+  },
+  {
+   "args": [
+    "a@b",
+    3,
+    "compact"
+   ],
+   "out": {
+    "next": "a@b",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "@a@b",
+    4,
+    "compact"
+   ],
+   "out": {
+    "next": "@a@b",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "hi :smi",
+    7,
+    "compact"
+   ],
+   "out": {
+    "next": "hi :smi",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "hi :smi there",
+    7,
+    "compact"
+   ],
+   "out": {
+    "next": "hi :smi there",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "10:30",
+    5,
+    "compact"
+   ],
+   "out": {
+    "next": "10:30",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "\ud83d\ude00 /co",
+    6,
+    "compact"
+   ],
+   "out": {
+    "next": "\ud83d\ude00 /compact ",
+    "caret": 12
+   }
+  },
+  {
+   "args": [
+    "\u00e9 @x",
+    4,
+    "compact"
+   ],
+   "out": {
+    "next": "\u00e9 @x",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    3,
+    "compact"
+   ],
+   "out": {
+    "next": "/compact  @x :y",
+    "caret": 9
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    6,
+    "compact"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    9,
+    "compact"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 9
+   }
+  }
+ ],
+ "insertAtMention": [
+  {
+   "args": [
+    "/co",
+    3,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "/co",
+    3,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    7,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    7,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    14,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 14
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    14,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 14
+   }
+  },
+  {
+   "args": [
+    "/co",
+    1,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 1
+   }
+  },
+  {
+   "args": [
+    "/co",
+    1,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 1
+   }
+  },
+  {
+   "args": [
+    "a\n/re",
+    5,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "a\n/re",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "a\n/re",
+    5,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "a\n/re",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "x/co",
+    4,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "x/co",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "x/co",
+    4,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "x/co",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "",
+    0,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "",
+    "caret": 0
+   }
+  },
+  {
+   "args": [
+    "",
+    0,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "",
+    "caret": 0
+   }
+  },
+  {
+   "args": [
+    "see @src",
+    8,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "see @src/lib.rs ",
+    "caret": 16
+   }
+  },
+  {
+   "args": [
+    "see @src",
+    8,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "see @agent-reviewer ",
+    "caret": 20
+   }
+  },
+  {
+   "args": [
+    "see @src and",
+    8,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "see @src/lib.rs  and",
+    "caret": 16
+   }
+  },
+  {
+   "args": [
+    "see @src and",
+    8,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "see @agent-reviewer  and",
+    "caret": 20
+   }
+  },
+  {
+   "args": [
+    "a@b",
+    3,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "a@b",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "a@b",
+    3,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "a@b",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "@a@b",
+    4,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "@a@b",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "@a@b",
+    4,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "@a@b",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "hi :smi",
+    7,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "hi :smi",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "hi :smi",
+    7,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "hi :smi",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "hi :smi there",
+    7,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "hi :smi there",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "hi :smi there",
+    7,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "hi :smi there",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "10:30",
+    5,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "10:30",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "10:30",
+    5,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "10:30",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "\ud83d\ude00 /co",
+    6,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "\ud83d\ude00 /co",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "\ud83d\ude00 /co",
+    6,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "\ud83d\ude00 /co",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "\u00e9 @x",
+    4,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "\u00e9 @src/lib.rs ",
+    "caret": 14
+   }
+  },
+  {
+   "args": [
+    "\u00e9 @x",
+    4,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "\u00e9 @agent-reviewer ",
+    "caret": 18
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    3,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    3,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    6,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "/co @src/lib.rs  :y",
+    "caret": 16
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    6,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "/co @agent-reviewer  :y",
+    "caret": 20
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    9,
+    "src/lib.rs"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 9
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    9,
+    "agent-reviewer"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 9
+   }
+  }
+ ],
+ "insertEmojiShortcode": [
+  {
+   "args": [
+    "/co",
+    3,
+    "smile"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "/co",
+    3,
+    "love"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "/co",
+    3,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "fix /co please",
+    7,
+    "smile"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    7,
+    "love"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 7
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    7,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "fix /co please",
+    14,
+    "smile"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 14
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    14,
+    "love"
+   ],
+   "out": {
+    "next": "fix /co please",
+    "caret": 14
+   }
+  },
+  {
+   "args": [
+    "fix /co please",
+    14,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/co",
+    1,
+    "smile"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 1
+   }
+  },
+  {
+   "args": [
+    "/co",
+    1,
+    "love"
+   ],
+   "out": {
+    "next": "/co",
+    "caret": 1
+   }
+  },
+  {
+   "args": [
+    "/co",
+    1,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a\n/re",
+    5,
+    "smile"
+   ],
+   "out": {
+    "next": "a\n/re",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "a\n/re",
+    5,
+    "love"
+   ],
+   "out": {
+    "next": "a\n/re",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "a\n/re",
+    5,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x/co",
+    4,
+    "smile"
+   ],
+   "out": {
+    "next": "x/co",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "x/co",
+    4,
+    "love"
+   ],
+   "out": {
+    "next": "x/co",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "x/co",
+    4,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "",
+    0,
+    "smile"
+   ],
+   "out": {
+    "next": "",
+    "caret": 0
+   }
+  },
+  {
+   "args": [
+    "",
+    0,
+    "love"
+   ],
+   "out": {
+    "next": "",
+    "caret": 0
+   }
+  },
+  {
+   "args": [
+    "",
+    0,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "see @src",
+    8,
+    "smile"
+   ],
+   "out": {
+    "next": "see @src",
+    "caret": 8
+   }
+  },
+  {
+   "args": [
+    "see @src",
+    8,
+    "love"
+   ],
+   "out": {
+    "next": "see @src",
+    "caret": 8
+   }
+  },
+  {
+   "args": [
+    "see @src",
+    8,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "see @src and",
+    8,
+    "smile"
+   ],
+   "out": {
+    "next": "see @src and",
+    "caret": 8
+   }
+  },
+  {
+   "args": [
+    "see @src and",
+    8,
+    "love"
+   ],
+   "out": {
+    "next": "see @src and",
+    "caret": 8
+   }
+  },
+  {
+   "args": [
+    "see @src and",
+    8,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a@b",
+    3,
+    "smile"
+   ],
+   "out": {
+    "next": "a@b",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "a@b",
+    3,
+    "love"
+   ],
+   "out": {
+    "next": "a@b",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "a@b",
+    3,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "@a@b",
+    4,
+    "smile"
+   ],
+   "out": {
+    "next": "@a@b",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "@a@b",
+    4,
+    "love"
+   ],
+   "out": {
+    "next": "@a@b",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "@a@b",
+    4,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "hi :smi",
+    7,
+    "smile"
+   ],
+   "out": {
+    "next": "hi \ud83d\ude04 ",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "hi :smi",
+    7,
+    "love"
+   ],
+   "out": {
+    "next": "hi \u2764\ufe0f ",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "hi :smi",
+    7,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "hi :smi there",
+    7,
+    "smile"
+   ],
+   "out": {
+    "next": "hi \ud83d\ude04  there",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "hi :smi there",
+    7,
+    "love"
+   ],
+   "out": {
+    "next": "hi \u2764\ufe0f  there",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "hi :smi there",
+    7,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "10:30",
+    5,
+    "smile"
+   ],
+   "out": {
+    "next": "10:30",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "10:30",
+    5,
+    "love"
+   ],
+   "out": {
+    "next": "10:30",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "10:30",
+    5,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\ud83d\ude00 /co",
+    6,
+    "smile"
+   ],
+   "out": {
+    "next": "\ud83d\ude00 /co",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "\ud83d\ude00 /co",
+    6,
+    "love"
+   ],
+   "out": {
+    "next": "\ud83d\ude00 /co",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "\ud83d\ude00 /co",
+    6,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u00e9 @x",
+    4,
+    "smile"
+   ],
+   "out": {
+    "next": "\u00e9 @x",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "\u00e9 @x",
+    4,
+    "love"
+   ],
+   "out": {
+    "next": "\u00e9 @x",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    "\u00e9 @x",
+    4,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/co @x :y",
+    3,
+    "smile"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    3,
+    "love"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    3,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/co @x :y",
+    6,
+    "smile"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    6,
+    "love"
+   ],
+   "out": {
+    "next": "/co @x :y",
+    "caret": 6
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    6,
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "/co @x :y",
+    9,
+    "smile"
+   ],
+   "out": {
+    "next": "/co @x \ud83d\ude04 ",
+    "caret": 10
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    9,
+    "love"
+   ],
+   "out": {
+    "next": "/co @x \u2764\ufe0f ",
+    "caret": 10
+   }
+  },
+  {
+   "args": [
+    "/co @x :y",
+    9,
+    "nope"
+   ],
+   "out": null
+  }
+ ],
+ "emojiCompleteOnClose": [
+  {
+   "args": [
+    ":heart",
+    ":heart:",
+    7
+   ],
+   "out": {
+    "next": "\u2764\ufe0f",
+    "caret": 2
+   }
+  },
+  {
+   "args": [
+    "hi :heart",
+    "hi :heart:",
+    10
+   ],
+   "out": {
+    "next": "hi \u2764\ufe0f",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    "hi :heart there",
+    "hi :heart: there",
+    10
+   ],
+   "out": {
+    "next": "hi \u2764\ufe0f there",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    ":HEART",
+    ":HEART:",
+    7
+   ],
+   "out": {
+    "next": "\u2764\ufe0f",
+    "caret": 2
+   }
+  },
+  {
+   "args": [
+    ":love",
+    ":love:",
+    6
+   ],
+   "out": {
+    "next": "\u2764\ufe0f",
+    "caret": 2
+   }
+  },
+  {
+   "args": [
+    ":nope",
+    ":nope:",
+    6
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":",
+    "::",
+    2
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a:heart",
+    "a:heart:",
+    8
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":heart",
+    ":heart::",
+    8
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":hea",
+    ":hea:",
+    5
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":+1",
+    ":+1:",
+    4
+   ],
+   "out": {
+    "next": "\ud83d\udc4d",
+    "caret": 2
+   }
+  },
+  {
+   "args": [
+    ":100",
+    ":100:",
+    5
+   ],
+   "out": {
+    "next": "\ud83d\udcaf",
+    "caret": 2
+   }
+  },
+  {
+   "args": [
+    "x\n:fire",
+    "x\n:fire:",
+    8
+   ],
+   "out": {
+    "next": "x\n\ud83d\udd25",
+    "caret": 4
+   }
+  },
+  {
+   "args": [
+    ":heart",
+    "x:heart",
+    1
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":heart",
+    ":heart:x",
+    7
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\ud83d\ude00 :fire",
+    "\ud83d\ude00 :fire:",
+    9
+   ],
+   "out": {
+    "next": "\ud83d\ude00 \ud83d\udd25",
+    "caret": 5
+   }
+  },
+  {
+   "args": [
+    ":fire",
+    ":fire:",
+    5
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ":smile",
+    ":smile:",
+    7
+   ],
+   "out": {
+    "next": "\ud83d\ude04",
+    "caret": 2
+   }
+  },
+  {
+   "args": [
+    "\u00a0:fire",
+    "\u00a0:fire:",
+    7
+   ],
+   "out": {
+    "next": "\u00a0\ud83d\udd25",
+    "caret": 3
+   }
+  },
+  {
+   "args": [
+    "\u0085:fire",
+    "\u0085:fire:",
+    7
+   ],
+   "out": null
+  }
+ ],
+ "fuzzyScore": [
+  {
+   "args": [
+    "",
+    "compact"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "Compact"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "COMPACT"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "reload-plugins"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "a"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    ""
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "plugin:tool"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "\ud83d\ude00x"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "x\ud83d\ude00"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "e\u0301"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "c",
+    "compact"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "c",
+    "Compact"
+   ],
+   "out": 55
+  },
+  {
+   "args": [
+    "c",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "c",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": 58
+  },
+  {
+   "args": [
+    "co",
+    "compact"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "co",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "co",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "compact"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "com",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "com",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "compact"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "compact",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "compact",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "compact"
+   ],
+   "out": 3
+  },
+  {
+   "args": [
+    "cmp",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "cmp",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "clr",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "reload-plugins"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "re",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "re",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "reset",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "rev",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mo",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "model",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "zz",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "\ud83d\ude00x"
+   ],
+   "out": 58
+  },
+  {
+   "args": [
+    "x",
+    "x\ud83d\ude00"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "x",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": 58
+  },
+  {
+   "args": [
+    "x",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "x",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "fork",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "branch",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "skill",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "doc",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "free",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "reload-plugins"
+   ],
+   "out": 2
+  },
+  {
+   "args": [
+    "ui",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "plugin:tool"
+   ],
+   "out": 2
+  },
+  {
+   "args": [
+    "ui",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ui",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "reload-plugins"
+   ],
+   "out": 53
+  },
+  {
+   "args": [
+    "plugin",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "plugin:tool"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "plugin",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "plugin",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "plugin:tool"
+   ],
+   "out": 53
+  },
+  {
+   "args": [
+    "tool",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "tool",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ctx",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "usage",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "compact"
+   ],
+   "out": 56
+  },
+  {
+   "args": [
+    "a",
+    "Compact"
+   ],
+   "out": 56
+  },
+  {
+   "args": [
+    "a",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "reload-plugins"
+   ],
+   "out": 56
+  },
+  {
+   "args": [
+    "a",
+    "a"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "a",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "a",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "e",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "reload-plugins"
+   ],
+   "out": 59
+  },
+  {
+   "args": [
+    "e",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "e",
+    "e\u0301"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "e",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "reload-plugins"
+   ],
+   "out": 47
+  },
+  {
+   "args": [
+    "s",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "s",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "reload-plugins"
+   ],
+   "out": 54
+  },
+  {
+   "args": [
+    "-",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "-",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "_",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "1",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "plugin:tool"
+   ],
+   "out": 54
+  },
+  {
+   "args": [
+    ":",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    ":",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "\ud83d\ude00x"
+   ],
+   "out": 100
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "x\ud83d\ude00"
+   ],
+   "out": 59
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": 57
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "\u00e9",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "mcp",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "srv",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "deploy",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "Compact"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "COMPACT"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "reload-plugins"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "a"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    ""
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "plugin:tool"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "\ud83d\ude00x"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "\ud83d\ude01x\ud83d\ude00"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "e\u0301"
+   ],
+   "out": -1
+  },
+  {
+   "args": [
+    "ship",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
+   ],
+   "out": -1
+  }
+ ],
+ "descriptionWordPrefixScore": [
+  {
+   "args": [
+    "co",
+    "Compact the conversation to free up context."
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "fr",
+    "Compact the conversation to free up context."
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "o",
+    "Compact the conversation"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "ree",
+    "free"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "",
+    "anything"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "CO",
+    "compact"
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "k",
+    "\u212aelvin"
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "i",
+    "\u0130stanbul"
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "\u00e9",
+    "caf\u00e9 au lait"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "lait",
+    "caf\u00e9lait"
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "x",
+    ""
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "toggle",
+    "Toggle fast mode, or open the picker with no args."
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "v2",
+    "see v2.1"
+   ],
+   "out": 10
+  },
+  {
+   "args": [
+    "2",
+    "v2"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "-",
+    "a-b"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "\u03c3",
+    "\u03a3x"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    "as",
+    "A\u03a3"
+   ],
+   "out": 0
+  }
+ ],
+ "fuzzySlashMatchIndices": [
+  {
+   "args": [
+    "co",
+    "compact"
+   ],
+   "out": [
+    0,
+    1
+   ]
+  },
+  {
+   "args": [
+    "cmp",
+    "compact"
+   ],
+   "out": [
+    0,
+    2,
+    3
+   ]
+  },
+  {
+   "args": [
+    "ct",
+    "compact"
+   ],
+   "out": [
+    5,
+    6
+   ]
+  },
+  {
+   "args": [
+    "zz",
+    "compact"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "",
+    "compact"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "CO",
+    "Compact"
+   ],
+   "out": [
+    0,
+    1
+   ]
+  },
+  {
+   "args": [
+    "co",
+    "COMPACT"
+   ],
+   "out": [
+    0,
+    1
+   ]
+  },
+  {
+   "args": [
+    "rl",
+    "reload-plugins"
+   ],
+   "out": [
+    0,
+    2
+   ]
+  },
+  {
+   "args": [
+    "x",
+    "\ud83d\ude00x"
+   ],
+   "out": [
+    1
+   ]
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "a\ud83d\ude00b"
+   ],
+   "out": [
+    1
+   ]
+  },
+  {
+   "args": [
+    "e",
+    "e\u0301x"
+   ],
+   "out": [
+    0
+   ]
+  },
+  {
+   "args": [
+    "\u0301",
+    "e\u0301"
+   ],
+   "out": [
+    1
+   ]
+  },
+  {
+   "args": [
+    "i",
+    "\u0130x"
+   ],
+   "out": [
+    0
+   ]
+  },
+  {
+   "args": [
+    "a",
+    "banana"
+   ],
+   "out": [
+    1
+   ]
+  },
+  {
+   "args": [
+    "an",
+    "banana"
+   ],
+   "out": [
+    1,
+    2
+   ]
+  },
+  {
+   "args": [
+    "nn",
+    "banana"
+   ],
+   "out": [
+    2,
+    4
+   ]
+  },
+  {
+   "args": [
+    "k",
+    "\u212a"
+   ],
+   "out": [
+    0
+   ]
+  },
+  {
+   "args": [
+    "tool",
+    "plugin:tool"
+   ],
+   "out": [
+    7,
+    8,
+    9,
+    10
+   ]
+  },
+  {
+   "args": [
+    "pt",
+    "plugin:tool"
+   ],
+   "out": [
+    0,
+    7
+   ]
+  }
+ ],
+ "toRuns": [
+  {
+   "args": [
+    []
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    [
+     0
+    ]
+   ],
+   "out": [
+    [
+     0,
+     1
+    ]
+   ]
+  },
+  {
+   "args": [
+    [
+     0,
+     1,
+     2
+    ]
+   ],
+   "out": [
+    [
+     0,
+     3
+    ]
+   ]
+  },
+  {
+   "args": [
+    [
+     0,
+     2,
+     3,
+     5
+    ]
+   ],
+   "out": [
+    [
+     0,
+     1
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     5,
+     6
+    ]
+   ]
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     4
+    ]
+   ],
+   "out": [
+    [
+     1,
+     3
+    ],
+    [
+     4,
+     5
+    ]
+   ]
+  },
+  {
+   "args": [
+    [
+     5
+    ]
+   ],
+   "out": [
+    [
+     5,
+     6
+    ]
+   ]
+  }
+ ],
+ "highlight": [
+  {
+   "args": [
+    "co",
+    "compact"
+   ],
+   "out": [
+    [
+     "co",
+     true
+    ],
+    [
+     "mpact",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "cmp",
+    "compact"
+   ],
+   "out": [
+    [
+     "c",
+     true
+    ],
+    [
+     "o",
+     false
+    ],
+    [
+     "mp",
+     true
+    ],
+    [
+     "act",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "",
+    "compact"
+   ],
+   "out": [
+    [
+     "compact",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "zz",
+    "compact"
+   ],
+   "out": [
+    [
+     "compact",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "rl",
+    "reload-plugins"
+   ],
+   "out": [
+    [
+     "r",
+     true
+    ],
+    [
+     "e",
+     false
+    ],
+    [
+     "l",
+     true
+    ],
+    [
+     "oad-plugins",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "e",
+    "e\u0301x"
+   ],
+   "out": [
+    [
+     "e",
+     true
+    ],
+    [
+     "\u0301x",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "i",
+    "\u0130stanbul"
+   ],
+   "out": [
+    [
+     "\u0130",
+     true
+    ],
+    [
+     "stanbul",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "st",
+    "\u0130stanbul"
+   ],
+   "out": [
+    [
+     "\u0130s",
+     false
+    ],
+    [
+     "ta",
+     true
+    ],
+    [
+     "nbul",
+     false
+    ]
+   ]
+  },
+  {
+   "args": [
+    "x",
+    "\ud83d\ude00x"
+   ],
+   "out": [
+    [
+     "\ud83d\ude00",
+     false
+    ],
+    [
+     "x",
+     true
+    ]
+   ]
+  },
+  {
+   "args": [
+    "ab",
+    "a\ud83d\ude00b"
+   ],
+   "out": [
+    [
+     "a",
+     true
+    ],
+    [
+     "\ud83d\ude00",
+     false
+    ],
+    [
+     "b",
+     true
+    ]
+   ]
+  },
+  {
+   "args": [
+    "Co",
+    "COMPACT"
+   ],
+   "out": [
+    [
+     "CO",
+     true
+    ],
+    [
+     "MPACT",
+     false
+    ]
+   ]
+  }
+ ],
+ "isConfidentSlashMatch": [
+  {
+   "args": [
+    "co",
+    "compact",
+    []
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "",
+    "compact",
+    []
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "cm",
+    "compact",
+    []
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "re",
+    "clear",
+    [
+     "reset",
+     "new"
+    ]
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "new",
+    "clear",
+    [
+     "reset",
+     "new"
+    ]
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "tool",
+    "plugin:tool",
+    []
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "plugin",
+    "plugin:tool",
+    []
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "t",
+    "a:b:tool",
+    []
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "co",
+    "Compact",
+    []
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "Co",
+    "Compact",
+    []
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "x",
+    "plugin:",
+    []
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    ":",
+    "a:b",
+    []
+   ],
+   "out": false
+  }
+ ],
+ "ranked": [
+  {
+   "args": [
+    "",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "",
+    "names": [
+     "clear",
+     "compact",
+     "exit",
+     "export",
+     "files",
+     "fork",
+     "goal",
+     "rename",
+     "resume",
+     "rewind",
+     "worktrees",
+     "permissions",
+     "sandbox",
+     "agents",
+     "hooks",
+     "mcp",
+     "plugin",
+     "reload-plugins",
+     "reload-skills",
+     "skills",
+     "tasks",
+     "btw",
+     "context",
+     "init",
+     "memory",
+     "recap",
+     "skill-doctor",
+     "advisor",
+     "effort",
+     "fast",
+     "model",
+     "color",
+     "copy",
+     "diff",
+     "focus",
+     "keybindings",
+     "output-style",
+     "settings",
+     "statusline",
+     "theme",
+     "tui",
+     "zen",
+     "cost",
+     "extra-usage",
+     "rate-limit-options",
+     "usage",
+     "autofix-pr",
+     "batch",
+     "claude-api",
+     "debug",
+     "deploy",
+     "fewer-permission-prompts",
+     "loop",
+     "review",
+     "schedule",
+     "security-review",
+     "simplify",
+     "ultrareview",
+     "add-dir",
+     "doctor",
+     "feedback",
+     "heapdump",
+     "help",
+     "insights",
+     "powerup",
+     "release-notes",
+     "status",
+     "team-onboarding",
+     "login",
+     "logout",
+     "setup-bedrock",
+     "setup-vertex",
+     "chrome",
+     "ide",
+     "install-github-app",
+     "install-slack-app",
+     "web-setup",
+     "desktop",
+     "mobile",
+     "passes",
+     "remote-control",
+     "remote-env",
+     "stickers",
+     "teleport",
+     "upgrade",
+     "voice",
+     "my-review",
+     "plan",
+     "plugin:tool",
+     "Upper"
+    ]
+   }
+  },
+  {
+   "args": [
+    "c",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "c",
+    "names": [
+     "clear",
+     "compact",
+     "resume",
+     "rewind",
+     "context",
+     "color",
+     "copy",
+     "settings",
+     "cost",
+     "claude-api",
+     "review",
+     "doctor",
+     "chrome",
+     "mcp",
+     "schedule",
+     "remote-control",
+     "recap",
+     "focus",
+     "security-review",
+     "batch",
+     "stickers",
+     "voice",
+     "fork",
+     "goal",
+     "feedback",
+     "skill-doctor",
+     "setup-bedrock",
+     "install-slack-app",
+     "exit",
+     "export",
+     "rename",
+     "worktrees",
+     "agents",
+     "hooks",
+     "reload-plugins",
+     "reload-skills",
+     "init",
+     "memory",
+     "model",
+     "diff",
+     "statusline",
+     "theme",
+     "zen",
+     "extra-usage",
+     "autofix-pr",
+     "fewer-permission-prompts",
+     "loop",
+     "ultrareview",
+     "help",
+     "powerup",
+     "release-notes",
+     "status",
+     "setup-vertex",
+     "ide",
+     "install-github-app",
+     "web-setup",
+     "desktop",
+     "mobile",
+     "passes",
+     "remote-env",
+     "teleport",
+     "upgrade"
+    ]
+   }
+  },
+  {
+   "args": [
+    "co",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "co",
+    "names": [
+     "compact",
+     "resume",
+     "context",
+     "color",
+     "copy",
+     "settings",
+     "cost",
+     "review",
+     "remote-control",
+     "clear",
+     "agents",
+     "hooks",
+     "skill-doctor",
+     "statusline",
+     "theme",
+     "extra-usage",
+     "batch",
+     "fewer-permission-prompts",
+     "loop",
+     "ultrareview",
+     "help",
+     "status",
+     "setup-bedrock",
+     "setup-vertex",
+     "chrome",
+     "web-setup",
+     "remote-env",
+     "stickers",
+     "rewind",
+     "doctor"
+    ]
+   }
+  },
+  {
+   "args": [
+    "com",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "com",
+    "names": [
+     "compact",
+     "fewer-permission-prompts",
+     "loop",
+     "help",
+     "chrome"
+    ]
+   }
+  },
+  {
+   "args": [
+    "compact",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "compact",
+    "names": [
+     "compact"
+    ]
+   }
+  },
+  {
+   "args": [
+    "cmp",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "cmp",
+    "names": [
+     "compact"
+    ]
+   }
+  },
+  {
+   "args": [
+    "clr",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "clr",
+    "names": [
+     "clear",
+     "color"
+    ]
+   }
+  },
+  {
+   "args": [
+    "re",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "re",
+    "names": [
+     "clear",
+     "rename",
+     "resume",
+     "rewind",
+     "reload-plugins",
+     "reload-skills",
+     "recap",
+     "review",
+     "release-notes",
+     "remote-control",
+     "remote-env",
+     "my-review",
+     "worktrees",
+     "ultrareview",
+     "security-review",
+     "goal",
+     "copy",
+     "output-style",
+     "tui",
+     "extra-usage",
+     "claude-api",
+     "fewer-permission-prompts",
+     "simplify",
+     "heapdump",
+     "insights",
+     "powerup",
+     "desktop",
+     "plan",
+     "rate-limit-options",
+     "schedule",
+     "setup-vertex",
+     "chrome",
+     "upgrade"
+    ]
+   }
+  },
+  {
+   "args": [
+    "reset",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "reset",
+    "names": [
+     "clear",
+     "release-notes"
+    ]
+   }
+  },
+  {
+   "args": [
+    "rev",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "rev",
+    "names": [
+     "review",
+     "my-review",
+     "ultrareview",
+     "security-review",
+     "simplify",
+     "remote-env"
+    ]
+   }
+  },
+  {
+   "args": [
+    "mo",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "mo",
+    "names": [
+     "model",
+     "mobile",
+     "memory",
+     "remote-control",
+     "remote-env",
+     "sandbox",
+     "advisor",
+     "fast",
+     "focus",
+     "zen",
+     "voice",
+     "plan",
+     "permissions",
+     "rate-limit-options",
+     "fewer-permission-prompts",
+     "team-onboarding"
+    ]
+   }
+  },
+  {
+   "args": [
+    "model",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "model",
+    "names": [
+     "model",
+     "advisor"
+    ]
+   }
+  },
+  {
+   "args": [
+    "zz",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "zz",
+    "names": []
+   }
+  },
+  {
+   "args": [
+    "x",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "x",
+    "names": [
+     "exit",
+     "export",
+     "extra-usage",
+     "context",
+     "sandbox",
+     "autofix-pr",
+     "setup-vertex"
+    ]
+   }
+  },
+  {
+   "args": [
+    "fork",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "fork",
+    "names": [
+     "fork"
+    ]
+   }
+  },
+  {
+   "args": [
+    "branch",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "branch",
+    "names": [
+     "fork",
+     "review"
+    ]
+   }
+  },
+  {
+   "args": [
+    "skill",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "skill",
+    "names": [
+     "skills",
+     "skill-doctor",
+     "reload-skills"
+    ]
+   }
+  },
+  {
+   "args": [
+    "doc",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "doc",
+    "names": [
+     "doctor",
+     "skill-doctor",
+     "setup-bedrock"
+    ]
+   }
+  },
+  {
+   "args": [
+    "free",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "free",
+    "names": [
+     "compact",
+     "passes"
+    ]
+   }
+  },
+  {
+   "args": [
+    "ui",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "ui",
+    "names": [
+     "exit",
+     "tui",
+     "plugin",
+     "reload-plugins",
+     "statusline",
+     "autofix-pr",
+     "claude-api",
+     "schedule",
+     "security-review",
+     "ultrareview",
+     "plugin:tool"
+    ]
+   }
+  },
+  {
+   "args": [
+    "plugin",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "plugin",
+    "names": [
+     "plugin",
+     "plugin:tool",
+     "reload-plugins"
+    ]
+   }
+  },
+  {
+   "args": [
+    "tool",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "tool",
+    "names": [
+     "plugin:tool",
+     "permissions",
+     "btw",
+     "fewer-permission-prompts",
+     "remote-control"
+    ]
+   }
+  },
+  {
+   "args": [
+    "ctx",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "ctx",
+    "names": [
+     "context"
+    ]
+   }
+  },
+  {
+   "args": [
+    "usage",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "usage",
+    "names": [
+     "usage",
+     "extra-usage",
+     "context",
+     "cost",
+     "rate-limit-options"
+    ]
+   }
+  },
+  {
+   "args": [
+    "a",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "a",
+    "names": [
+     "permissions",
+     "agents",
+     "advisor",
+     "autofix-pr",
+     "add-dir",
+     "desktop",
+     "mobile",
+     "sandbox",
+     "tasks",
+     "fast",
+     "rate-limit-options",
+     "batch",
+     "passes",
+     "fork",
+     "goal",
+     "statusline",
+     "usage",
+     "claude-api",
+     "heapdump",
+     "status",
+     "team-onboarding",
+     "plan",
+     "clear",
+     "rename",
+     "recap",
+     "compact",
+     "reload-plugins",
+     "reload-skills",
+     "extra-usage",
+     "ultrareview",
+     "release-notes",
+     "install-github-app",
+     "install-slack-app",
+     "upgrade",
+     "feedback",
+     "export",
+     "files",
+     "resume",
+     "rewind",
+     "worktrees",
+     "mcp",
+     "skills",
+     "init",
+     "memory",
+     "effort",
+     "model",
+     "color",
+     "diff",
+     "theme",
+     "cost",
+     "debug",
+     "deploy",
+     "fewer-permission-prompts",
+     "loop",
+     "review",
+     "simplify",
+     "doctor",
+     "help",
+     "login",
+     "setup-bedrock",
+     "setup-vertex",
+     "web-setup",
+     "remote-control",
+     "remote-env",
+     "teleport"
+    ]
+   }
+  },
+  {
+   "args": [
+    "e",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "e",
+    "names": [
+     "exit",
+     "export",
+     "effort",
+     "extra-usage",
+     "clear",
+     "rename",
+     "resume",
+     "rewind",
+     "permissions",
+     "reload-plugins",
+     "reload-skills",
+     "memory",
+     "recap",
+     "keybindings",
+     "settings",
+     "zen",
+     "debug",
+     "deploy",
+     "fewer-permission-prompts",
+     "review",
+     "security-review",
+     "feedback",
+     "heapdump",
+     "help",
+     "release-notes",
+     "team-onboarding",
+     "setup-bedrock",
+     "setup-vertex",
+     "web-setup",
+     "desktop",
+     "remote-control",
+     "remote-env",
+     "teleport",
+     "agents",
+     "theme",
+     "doctor",
+     "ide",
+     "files",
+     "goal",
+     "model",
+     "rate-limit-options",
+     "schedule",
+     "powerup",
+     "Upper",
+     "tasks",
+     "context",
+     "usage",
+     "passes",
+     "voice",
+     "my-review",
+     "claude-api",
+     "chrome",
+     "mobile",
+     "stickers",
+     "worktrees",
+     "ultrareview",
+     "upgrade",
+     "statusline",
+     "output-style",
+     "btw",
+     "plan"
+    ]
+   }
+  },
+  {
+   "args": [
+    "s",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "s",
+    "names": [
+     "sandbox",
+     "skills",
+     "skill-doctor",
+     "settings",
+     "statusline",
+     "usage",
+     "deploy",
+     "schedule",
+     "security-review",
+     "simplify",
+     "status",
+     "setup-bedrock",
+     "setup-vertex",
+     "stickers",
+     "clear",
+     "resume",
+     "tasks",
+     "fast",
+     "cost",
+     "insights",
+     "install-github-app",
+     "install-slack-app",
+     "desktop",
+     "mobile",
+     "passes",
+     "files",
+     "hooks",
+     "advisor",
+     "focus",
+     "web-setup",
+     "permissions",
+     "agents",
+     "release-notes",
+     "reload-skills",
+     "output-style",
+     "extra-usage",
+     "worktrees",
+     "keybindings",
+     "fewer-permission-prompts",
+     "reload-plugins",
+     "rate-limit-options",
+     "exit",
+     "export",
+     "fork",
+     "goal",
+     "rename",
+     "mcp",
+     "btw",
+     "recap",
+     "effort",
+     "model",
+     "color",
+     "diff",
+     "tui",
+     "batch",
+     "loop",
+     "add-dir",
+     "doctor",
+     "feedback",
+     "heapdump",
+     "help",
+     "powerup",
+     "login",
+     "logout",
+     "teleport",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ]
+   }
+  },
+  {
+   "args": [
+    "-",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "-",
+    "names": [
+     "my-review",
+     "add-dir",
+     "web-setup",
+     "rate-limit-options",
+     "review",
+     "team-onboarding",
+     "skill-doctor",
+     "extra-usage",
+     "fewer-permission-prompts",
+     "setup-bedrock",
+     "setup-vertex",
+     "reload-plugins",
+     "reload-skills",
+     "output-style",
+     "claude-api",
+     "remote-control",
+     "remote-env",
+     "permissions",
+     "autofix-pr",
+     "release-notes",
+     "install-github-app",
+     "install-slack-app",
+     "security-review"
+    ]
+   }
+  },
+  {
+   "args": [
+    "_",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "_",
+    "names": []
+   }
+  },
+  {
+   "args": [
+    "1",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "1",
+    "names": []
+   }
+  },
+  {
+   "args": [
+    ":",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": ":",
+    "names": [
+     "plugin:tool"
+    ]
+   }
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "\ud83d\ude00",
+    "names": []
+   }
+  },
+  {
+   "args": [
+    "\u00e9",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "\u00e9",
+    "names": []
+   }
+  },
+  {
+   "args": [
+    "mcp",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "mcp",
+    "names": [
+     "mcp"
+    ]
+   }
+  },
+  {
+   "args": [
+    "srv",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "srv",
+    "names": [
+     "security-review"
+    ]
+   }
+  },
+  {
+   "args": [
+    "deploy",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "deploy",
+    "names": [
+     "deploy"
+    ]
+   }
+  },
+  {
+   "args": [
+    "ship",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "ship",
+    "names": [
+     "deploy"
+    ]
+   }
+  },
+  {
+   "args": [
+    "CO",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "co",
+    "names": [
+     "compact",
+     "resume",
+     "context",
+     "color",
+     "copy",
+     "settings",
+     "cost",
+     "review",
+     "remote-control",
+     "clear",
+     "agents",
+     "hooks",
+     "skill-doctor",
+     "statusline",
+     "theme",
+     "extra-usage",
+     "batch",
+     "fewer-permission-prompts",
+     "loop",
+     "ultrareview",
+     "help",
+     "status",
+     "setup-bedrock",
+     "setup-vertex",
+     "chrome",
+     "web-setup",
+     "remote-env",
+     "stickers",
+     "rewind",
+     "doctor"
+    ]
+   }
+  },
+  {
+   "args": [
+    "Re",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "re",
+    "names": [
+     "clear",
+     "rename",
+     "resume",
+     "rewind",
+     "reload-plugins",
+     "reload-skills",
+     "recap",
+     "review",
+     "release-notes",
+     "remote-control",
+     "remote-env",
+     "my-review",
+     "worktrees",
+     "ultrareview",
+     "security-review",
+     "goal",
+     "copy",
+     "output-style",
+     "tui",
+     "extra-usage",
+     "claude-api",
+     "fewer-permission-prompts",
+     "simplify",
+     "heapdump",
+     "insights",
+     "powerup",
+     "desktop",
+     "plan",
+     "rate-limit-options",
+     "schedule",
+     "setup-vertex",
+     "chrome",
+     "upgrade"
+    ]
+   }
+  },
+  {
+   "args": [
+    "Upper",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "upper",
+    "names": []
+   }
+  },
+  {
+   "args": [
+    "upper",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "upper",
+    "names": []
+   }
+  },
+  {
+   "args": [
+    "MY",
+    [
+     "deploy",
+     "my-review",
+     "plugin:tool",
+     "Upper"
+    ],
+    [
+     "deploy"
+    ],
+    [
+     {
+      "name": "deploy",
+      "description": "Ship the build to an environment.",
+      "aliases": [
+       "ship"
+      ]
+     }
+    ]
+   ],
+   "out": {
+    "filter": "my",
+    "names": [
+     "my-review",
+     "memory",
+     "simplify"
+    ]
+   }
+  }
+ ],
+ "parseAtMentionQuery": [
+  {
+   "args": [
+    ""
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "src"
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "agent"
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "agent-"
+   ],
+   "out": {
+    "agentMode": true,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "agent-rev"
+   ],
+   "out": {
+    "agentMode": true,
+    "filter": "rev"
+   }
+  },
+  {
+   "args": [
+    "agent-agent-"
+   ],
+   "out": {
+    "agentMode": true,
+    "filter": "agent-"
+   }
+  },
+  {
+   "args": [
+    "Agent-x"
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "./src"
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "."
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "./"
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "././a"
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  },
+  {
+   "args": [
+    "../x"
+   ],
+   "out": {
+    "agentMode": false,
+    "filter": ""
+   }
+  }
+ ],
+ "normalizeFileMentionQuery": [
+  {
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "src"
+   ],
+   "out": "src"
+  },
+  {
+   "args": [
+    "agent"
+   ],
+   "out": "agent"
+  },
+  {
+   "args": [
+    "agent-"
+   ],
+   "out": "agent-"
+  },
+  {
+   "args": [
+    "agent-rev"
+   ],
+   "out": "agent-rev"
+  },
+  {
+   "args": [
+    "agent-agent-"
+   ],
+   "out": "agent-agent-"
+  },
+  {
+   "args": [
+    "Agent-x"
+   ],
+   "out": "Agent-x"
+  },
+  {
+   "args": [
+    "./src"
+   ],
+   "out": "src"
+  },
+  {
+   "args": [
+    "."
+   ],
+   "out": "."
+  },
+  {
+   "args": [
+    "./"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "././a"
+   ],
+   "out": "./a"
+  },
+  {
+   "args": [
+    "../x"
+   ],
+   "out": "../x"
+  }
+ ],
+ "itemToken": [
+  {
+   "args": [
+    {
+     "kind": "file",
+     "relPath": "src/lib.rs",
+     "type": "file"
+    }
+   ],
+   "out": "src/lib.rs"
+  },
+  {
+   "args": [
+    {
+     "kind": "file",
+     "relPath": "src",
+     "type": "dir"
+    }
+   ],
+   "out": "src"
+  },
+  {
+   "args": [
+    {
+     "kind": "agent",
+     "name": "reviewer"
+    }
+   ],
+   "out": "agent-reviewer"
+  }
+ ],
+ "filterAgents": [
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    ""
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "_internal",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "10x",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "9x",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "a_agent",
+     "description": null,
+     "model": "haiku"
+    },
+    {
+     "kind": "agent",
+     "name": "b-agent",
+     "description": "Writes DOCS",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "\u00e9clair",
+     "description": "caf\u00e9",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "Explore",
+     "description": "Read-only search agent.",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "general-purpose",
+     "description": "General agent.",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "reviewer",
+     "description": "Reviews diffs.",
+     "model": "sonnet"
+    },
+    {
+     "kind": "agent",
+     "name": "Zed",
+     "description": null,
+     "model": null
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "re"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "Explore",
+     "description": "Read-only search agent.",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "reviewer",
+     "description": "Reviews diffs.",
+     "model": "sonnet"
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "RE"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "Explore",
+     "description": "Read-only search agent.",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "reviewer",
+     "description": "Reviews diffs.",
+     "model": "sonnet"
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "agent"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "a_agent",
+     "description": null,
+     "model": "haiku"
+    },
+    {
+     "kind": "agent",
+     "name": "b-agent",
+     "description": "Writes DOCS",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "Explore",
+     "description": "Read-only search agent.",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "general-purpose",
+     "description": "General agent.",
+     "model": null
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "docs"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "b-agent",
+     "description": "Writes DOCS",
+     "model": null
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "search"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "Explore",
+     "description": "Read-only search agent.",
+     "model": null
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "x"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "10x",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "9x",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "Explore",
+     "description": "Read-only search agent.",
+     "model": null
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "zz"
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "\u00e9"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "\u00e9clair",
+     "description": "caf\u00e9",
+     "model": null
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "-"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "b-agent",
+     "description": "Writes DOCS",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "Explore",
+     "description": "Read-only search agent.",
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "general-purpose",
+     "description": "General agent.",
+     "model": null
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "reviewer",
+      "description": "Reviews diffs.",
+      "model": "sonnet"
+     },
+     {
+      "name": "Explore",
+      "description": "Read-only search agent."
+     },
+     {
+      "name": "general-purpose",
+      "description": "General agent."
+     },
+     {
+      "name": "_internal"
+     },
+     {
+      "name": "b-agent",
+      "description": "Writes DOCS"
+     },
+     {
+      "name": "a_agent",
+      "model": "haiku"
+     },
+     {
+      "name": "Zed"
+     },
+     {
+      "name": "\u00e9clair",
+      "description": "caf\u00e9"
+     },
+     {
+      "name": "10x"
+     },
+     {
+      "name": "9x"
+     }
+    ],
+    "_"
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "_internal",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "a_agent",
+     "description": null,
+     "model": "haiku"
+    }
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "name": "agent00"
+     },
+     {
+      "name": "agent01"
+     },
+     {
+      "name": "agent02"
+     },
+     {
+      "name": "agent03"
+     },
+     {
+      "name": "agent04"
+     },
+     {
+      "name": "agent05"
+     },
+     {
+      "name": "agent06"
+     },
+     {
+      "name": "agent07"
+     },
+     {
+      "name": "agent08"
+     },
+     {
+      "name": "agent09"
+     },
+     {
+      "name": "agent10"
+     },
+     {
+      "name": "agent11"
+     },
+     {
+      "name": "agent12"
+     },
+     {
+      "name": "agent13"
+     },
+     {
+      "name": "agent14"
+     },
+     {
+      "name": "agent15"
+     },
+     {
+      "name": "agent16"
+     },
+     {
+      "name": "agent17"
+     },
+     {
+      "name": "agent18"
+     },
+     {
+      "name": "agent19"
+     },
+     {
+      "name": "agent20"
+     },
+     {
+      "name": "agent21"
+     },
+     {
+      "name": "agent22"
+     },
+     {
+      "name": "agent23"
+     },
+     {
+      "name": "agent24"
+     },
+     {
+      "name": "agent25"
+     },
+     {
+      "name": "agent26"
+     },
+     {
+      "name": "agent27"
+     },
+     {
+      "name": "agent28"
+     },
+     {
+      "name": "agent29"
+     },
+     {
+      "name": "agent30"
+     },
+     {
+      "name": "agent31"
+     },
+     {
+      "name": "agent32"
+     },
+     {
+      "name": "agent33"
+     },
+     {
+      "name": "agent34"
+     },
+     {
+      "name": "agent35"
+     },
+     {
+      "name": "agent36"
+     },
+     {
+      "name": "agent37"
+     },
+     {
+      "name": "agent38"
+     },
+     {
+      "name": "agent39"
+     }
+    ],
+    ""
+   ],
+   "out": [
+    {
+     "kind": "agent",
+     "name": "agent00",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent01",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent02",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent03",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent04",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent05",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent06",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent07",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent08",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent09",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent10",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent11",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent12",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent13",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent14",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent15",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent16",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent17",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent18",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent19",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent20",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent21",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent22",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent23",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent24",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent25",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent26",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent27",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent28",
+     "description": null,
+     "model": null
+    },
+    {
+     "kind": "agent",
+     "name": "agent29",
+     "description": null,
+     "model": null
+    }
+   ]
+  }
+ ],
+ "fsListErrorText": [
+  {
+   "args": [
+    403,
+    {
+     "error": "Search failed: permission denied"
+    }
+   ],
+   "out": "Search failed: permission denied"
+  },
+  {
+   "args": [
+    403,
+    {}
+   ],
+   "out": "Search failed (HTTP 403)"
+  },
+  {
+   "args": [
+    500,
+    {
+     "error": "boom"
+    }
+   ],
+   "out": "boom"
+  },
+  {
+   "args": [
+    500,
+    {}
+   ],
+   "out": "Search failed (HTTP 500)"
+  },
+  {
+   "args": [
+    503,
+    {
+     "error": null
+    }
+   ],
+   "out": "Search failed (HTTP 503)"
+  },
+  {
+   "args": [
+    400,
+    {
+     "error": "unknown cwd"
+    }
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    404,
+    {}
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    200,
+    {}
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    499,
+    {
+     "error": "x"
+    }
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    502,
+    {
+     "error": 7
+    }
+   ],
+   "out": 7
+  },
+  {
+   "args": [
+    500,
+    {
+     "error": ""
+    }
+   ],
+   "out": ""
+  }
+ ],
+ "fsListUrl": [
+  {
+   "args": [
+    "",
+    null
+   ],
+   "out": "/api/fs/list?q=&limit=50"
+  },
+  {
+   "args": [
+    "src",
+    "/w/p"
+   ],
+   "out": "/api/fs/list?q=src&limit=50&cwd=%2Fw%2Fp"
+  },
+  {
+   "args": [
+    "./src",
+    "/w/p"
+   ],
+   "out": "/api/fs/list?q=src&limit=50&cwd=%2Fw%2Fp"
+  },
+  {
+   "args": [
+    "a b",
+    "/w/my project"
+   ],
+   "out": "/api/fs/list?q=a+b&limit=50&cwd=%2Fw%2Fmy+project"
+  },
+  {
+   "args": [
+    "a+b&c=d",
+    ""
+   ],
+   "out": "/api/fs/list?q=a%2Bb%26c%3Dd&limit=50"
+  },
+  {
+   "args": [
+    "\u00e9t\u00e9/\ud83d\ude00",
+    "/w/\u00e9"
+   ],
+   "out": "/api/fs/list?q=%C3%A9t%C3%A9%2F%F0%9F%98%80&limit=50&cwd=%2Fw%2F%C3%A9"
+  },
+  {
+   "args": [
+    "*-._~!'()",
+    "/x"
+   ],
+   "out": "/api/fs/list?q=*-._%7E%21%27%28%29&limit=50&cwd=%2Fx"
+  },
+  {
+   "args": [
+    "%41",
+    null
+   ],
+   "out": "/api/fs/list?q=%2541&limit=50"
+  },
+  {
+   "args": [
+    "#frag?q",
+    "/a#b"
+   ],
+   "out": "/api/fs/list?q=%23frag%3Fq&limit=50&cwd=%2Fa%23b"
+  }
+ ],
+ "agentsUrl": [
+  {
+   "args": [
+    "s1"
+   ],
+   "out": "/api/sessions/s1/agents"
+  },
+  {
+   "args": [
+    "a b"
+   ],
+   "out": "/api/sessions/a%20b/agents"
+  },
+  {
+   "args": [
+    "x/y"
+   ],
+   "out": "/api/sessions/x%2Fy/agents"
+  },
+  {
+   "args": [
+    "\u00e9"
+   ],
+   "out": "/api/sessions/%C3%A9/agents"
+  }
+ ],
+ "commandsUrl": [
+  {
+   "args": [
+    "s1"
+   ],
+   "out": "/api/sessions/s1/commands"
+  },
+  {
+   "args": [
+    "a b"
+   ],
+   "out": "/api/sessions/a%20b/commands"
+  },
+  {
+   "args": [
+    "x/y"
+   ],
+   "out": "/api/sessions/x%2Fy/commands"
+  },
+  {
+   "args": [
+    "\u00e9"
+   ],
+   "out": "/api/sessions/%C3%A9/commands"
+  }
+ ],
+ "atCountLabel": [
+  {
+   "args": [
+    true,
+    false,
+    0
+   ],
+   "out": "loading\u2026"
+  },
+  {
+   "args": [
+    true,
+    true,
+    3
+   ],
+   "out": "loading\u2026"
+  },
+  {
+   "args": [
+    false,
+    false,
+    0
+   ],
+   "out": "0 files"
+  },
+  {
+   "args": [
+    false,
+    false,
+    1
+   ],
+   "out": "1 file"
+  },
+  {
+   "args": [
+    false,
+    false,
+    2
+   ],
+   "out": "2 files"
+  },
+  {
+   "args": [
+    false,
+    true,
+    1
+   ],
+   "out": "1 agent"
+  },
+  {
+   "args": [
+    false,
+    true,
+    30
+   ],
+   "out": "30 agents"
+  }
+ ],
+ "emojiShortcodes": [
+  [
+   "100",
+   "\ud83d\udcaf"
+  ],
+  [
+   "smile",
+   "\ud83d\ude04"
+  ],
+  [
+   "smiley",
+   "\ud83d\ude03"
+  ],
+  [
+   "grin",
+   "\ud83d\ude01"
+  ],
+  [
+   "laughing",
+   "\ud83d\ude06"
+  ],
+  [
+   "joy",
+   "\ud83d\ude02"
+  ],
+  [
+   "rofl",
+   "\ud83e\udd23"
+  ],
+  [
+   "slightly_smiling_face",
+   "\ud83d\ude42"
+  ],
+  [
+   "wink",
+   "\ud83d\ude09"
+  ],
+  [
+   "blush",
+   "\ud83d\ude0a"
+  ],
+  [
+   "innocent",
+   "\ud83d\ude07"
+  ],
+  [
+   "relaxed",
+   "\u263a\ufe0f"
+  ],
+  [
+   "heart_eyes",
+   "\ud83d\ude0d"
+  ],
+  [
+   "kissing_heart",
+   "\ud83d\ude18"
+  ],
+  [
+   "thinking",
+   "\ud83e\udd14"
+  ],
+  [
+   "neutral_face",
+   "\ud83d\ude10"
+  ],
+  [
+   "expressionless",
+   "\ud83d\ude11"
+  ],
+  [
+   "no_mouth",
+   "\ud83d\ude36"
+  ],
+  [
+   "smirk",
+   "\ud83d\ude0f"
+  ],
+  [
+   "unamused",
+   "\ud83d\ude12"
+  ],
+  [
+   "roll_eyes",
+   "\ud83d\ude44"
+  ],
+  [
+   "grimacing",
+   "\ud83d\ude2c"
+  ],
+  [
+   "lying_face",
+   "\ud83e\udd25"
+  ],
+  [
+   "relieved",
+   "\ud83d\ude0c"
+  ],
+  [
+   "pensive",
+   "\ud83d\ude14"
+  ],
+  [
+   "sleepy",
+   "\ud83d\ude2a"
+  ],
+  [
+   "sleeping",
+   "\ud83d\ude34"
+  ],
+  [
+   "mask",
+   "\ud83d\ude37"
+  ],
+  [
+   "sunglasses",
+   "\ud83d\ude0e"
+  ],
+  [
+   "nerd_face",
+   "\ud83e\udd13"
+  ],
+  [
+   "confused",
+   "\ud83d\ude15"
+  ],
+  [
+   "worried",
+   "\ud83d\ude1f"
+  ],
+  [
+   "slightly_frowning_face",
+   "\ud83d\ude41"
+  ],
+  [
+   "frowning",
+   "\u2639\ufe0f"
+  ],
+  [
+   "persevere",
+   "\ud83d\ude23"
+  ],
+  [
+   "confounded",
+   "\ud83d\ude16"
+  ],
+  [
+   "tired_face",
+   "\ud83d\ude2b"
+  ],
+  [
+   "weary",
+   "\ud83d\ude29"
+  ],
+  [
+   "cry",
+   "\ud83d\ude22"
+  ],
+  [
+   "sob",
+   "\ud83d\ude2d"
+  ],
+  [
+   "triumph",
+   "\ud83d\ude24"
+  ],
+  [
+   "angry",
+   "\ud83d\ude20"
+  ],
+  [
+   "rage",
+   "\ud83d\ude21"
+  ],
+  [
+   "scream",
+   "\ud83d\ude31"
+  ],
+  [
+   "fearful",
+   "\ud83d\ude28"
+  ],
+  [
+   "cold_sweat",
+   "\ud83d\ude30"
+  ],
+  [
+   "astonished",
+   "\ud83d\ude32"
+  ],
+  [
+   "flushed",
+   "\ud83d\ude33"
+  ],
+  [
+   "dizzy_face",
+   "\ud83d\ude35"
+  ],
+  [
+   "exploding_head",
+   "\ud83e\udd2f"
+  ],
+  [
+   "zany_face",
+   "\ud83e\udd2a"
+  ],
+  [
+   "hugs",
+   "\ud83e\udd17"
+  ],
+  [
+   "shushing_face",
+   "\ud83e\udd2b"
+  ],
+  [
+   "eyes",
+   "\ud83d\udc40"
+  ],
+  [
+   "eye",
+   "\ud83d\udc41\ufe0f"
+  ],
+  [
+   "see_no_evil",
+   "\ud83d\ude48"
+  ],
+  [
+   "hear_no_evil",
+   "\ud83d\ude49"
+  ],
+  [
+   "speak_no_evil",
+   "\ud83d\ude4a"
+  ],
+  [
+   "poop",
+   "\ud83d\udca9"
+  ],
+  [
+   "clown_face",
+   "\ud83e\udd21"
+  ],
+  [
+   "skull",
+   "\ud83d\udc80"
+  ],
+  [
+   "ghost",
+   "\ud83d\udc7b"
+  ],
+  [
+   "alien",
+   "\ud83d\udc7d"
+  ],
+  [
+   "robot",
+   "\ud83e\udd16"
+  ],
+  [
+   "heart",
+   "\u2764\ufe0f"
+  ],
+  [
+   "orange_heart",
+   "\ud83e\udde1"
+  ],
+  [
+   "yellow_heart",
+   "\ud83d\udc9b"
+  ],
+  [
+   "green_heart",
+   "\ud83d\udc9a"
+  ],
+  [
+   "blue_heart",
+   "\ud83d\udc99"
+  ],
+  [
+   "purple_heart",
+   "\ud83d\udc9c"
+  ],
+  [
+   "black_heart",
+   "\ud83d\udda4"
+  ],
+  [
+   "broken_heart",
+   "\ud83d\udc94"
+  ],
+  [
+   "two_hearts",
+   "\ud83d\udc95"
+  ],
+  [
+   "sparkling_heart",
+   "\ud83d\udc96"
+  ],
+  [
+   "heartbeat",
+   "\ud83d\udc93"
+  ],
+  [
+   "heartpulse",
+   "\ud83d\udc97"
+  ],
+  [
+   "cupid",
+   "\ud83d\udc98"
+  ],
+  [
+   "sparkles",
+   "\u2728"
+  ],
+  [
+   "star",
+   "\u2b50"
+  ],
+  [
+   "star2",
+   "\ud83c\udf1f"
+  ],
+  [
+   "boom",
+   "\ud83d\udca5"
+  ],
+  [
+   "fire",
+   "\ud83d\udd25"
+  ],
+  [
+   "zap",
+   "\u26a1"
+  ],
+  [
+   "dizzy",
+   "\ud83d\udcab"
+  ],
+  [
+   "thumbsup",
+   "\ud83d\udc4d"
+  ],
+  [
+   "+1",
+   "\ud83d\udc4d"
+  ],
+  [
+   "thumbsdown",
+   "\ud83d\udc4e"
+  ],
+  [
+   "-1",
+   "\ud83d\udc4e"
+  ],
+  [
+   "clap",
+   "\ud83d\udc4f"
+  ],
+  [
+   "wave",
+   "\ud83d\udc4b"
+  ],
+  [
+   "raised_hands",
+   "\ud83d\ude4c"
+  ],
+  [
+   "pray",
+   "\ud83d\ude4f"
+  ],
+  [
+   "muscle",
+   "\ud83d\udcaa"
+  ],
+  [
+   "ok_hand",
+   "\ud83d\udc4c"
+  ],
+  [
+   "v",
+   "\u270c\ufe0f"
+  ],
+  [
+   "crossed_fingers",
+   "\ud83e\udd1e"
+  ],
+  [
+   "point_up",
+   "\u261d\ufe0f"
+  ],
+  [
+   "point_down",
+   "\ud83d\udc47"
+  ],
+  [
+   "point_left",
+   "\ud83d\udc48"
+  ],
+  [
+   "point_right",
+   "\ud83d\udc49"
+  ],
+  [
+   "handshake",
+   "\ud83e\udd1d"
+  ],
+  [
+   "writing_hand",
+   "\u270d\ufe0f"
+  ],
+  [
+   "raised_hand",
+   "\u270b"
+  ],
+  [
+   "facepunch",
+   "\ud83d\udc4a"
+  ],
+  [
+   "fist",
+   "\u270a"
+  ],
+  [
+   "rocket",
+   "\ud83d\ude80"
+  ],
+  [
+   "tada",
+   "\ud83c\udf89"
+  ],
+  [
+   "confetti_ball",
+   "\ud83c\udf8a"
+  ],
+  [
+   "balloon",
+   "\ud83c\udf88"
+  ],
+  [
+   "gift",
+   "\ud83c\udf81"
+  ],
+  [
+   "trophy",
+   "\ud83c\udfc6"
+  ],
+  [
+   "medal",
+   "\ud83c\udfc5"
+  ],
+  [
+   "checkered_flag",
+   "\ud83c\udfc1"
+  ],
+  [
+   "warning",
+   "\u26a0\ufe0f"
+  ],
+  [
+   "no_entry",
+   "\u26d4"
+  ],
+  [
+   "x",
+   "\u274c"
+  ],
+  [
+   "white_check_mark",
+   "\u2705"
+  ],
+  [
+   "heavy_check_mark",
+   "\u2714\ufe0f"
+  ],
+  [
+   "question",
+   "\u2753"
+  ],
+  [
+   "exclamation",
+   "\u2757"
+  ],
+  [
+   "bulb",
+   "\ud83d\udca1"
+  ],
+  [
+   "bug",
+   "\ud83d\udc1b"
+  ],
+  [
+   "wrench",
+   "\ud83d\udd27"
+  ],
+  [
+   "hammer",
+   "\ud83d\udd28"
+  ],
+  [
+   "gear",
+   "\u2699\ufe0f"
+  ],
+  [
+   "lock",
+   "\ud83d\udd12"
+  ],
+  [
+   "unlock",
+   "\ud83d\udd13"
+  ],
+  [
+   "key",
+   "\ud83d\udd11"
+  ],
+  [
+   "mag",
+   "\ud83d\udd0d"
+  ],
+  [
+   "bookmark",
+   "\ud83d\udd16"
+  ],
+  [
+   "memo",
+   "\ud83d\udcdd"
+  ],
+  [
+   "pencil2",
+   "\u270f\ufe0f"
+  ],
+  [
+   "computer",
+   "\ud83d\udcbb"
+  ],
+  [
+   "keyboard",
+   "\u2328\ufe0f"
+  ],
+  [
+   "package",
+   "\ud83d\udce6"
+  ],
+  [
+   "incoming_envelope",
+   "\ud83d\udce8"
+  ],
+  [
+   "email",
+   "\u2709\ufe0f"
+  ],
+  [
+   "calendar",
+   "\ud83d\udcc5"
+  ],
+  [
+   "hourglass",
+   "\u23f3"
+  ],
+  [
+   "alarm_clock",
+   "\u23f0"
+  ],
+  [
+   "stopwatch",
+   "\u23f1\ufe0f"
+  ],
+  [
+   "coffee",
+   "\u2615"
+  ],
+  [
+   "pizza",
+   "\ud83c\udf55"
+  ],
+  [
+   "hamburger",
+   "\ud83c\udf54"
+  ],
+  [
+   "beer",
+   "\ud83c\udf7a"
+  ],
+  [
+   "tada2",
+   "\ud83c\udf8a"
+  ],
+  [
+   "moon",
+   "\ud83c\udf19"
+  ],
+  [
+   "sun",
+   "\u2600\ufe0f"
+  ],
+  [
+   "cloud",
+   "\u2601\ufe0f"
+  ],
+  [
+   "rainbow",
+   "\ud83c\udf08"
+  ],
+  [
+   "snowflake",
+   "\u2744\ufe0f"
+  ],
+  [
+   "dog",
+   "\ud83d\udc36"
+  ],
+  [
+   "cat",
+   "\ud83d\udc31"
+  ],
+  [
+   "monkey",
+   "\ud83d\udc12"
+  ],
+  [
+   "unicorn",
+   "\ud83e\udd84"
+  ],
+  [
+   "turtle",
+   "\ud83d\udc22"
+  ],
+  [
+   "octopus",
+   "\ud83d\udc19"
+  ],
+  [
+   "seedling",
+   "\ud83c\udf31"
+  ],
+  [
+   "tree",
+   "\ud83c\udf33"
+  ],
+  [
+   "palm_tree",
+   "\ud83c\udf34"
+  ],
+  [
+   "four_leaf_clover",
+   "\ud83c\udf40"
+  ],
+  [
+   "earth_americas",
+   "\ud83c\udf0e"
+  ],
+  [
+   "globe_with_meridians",
+   "\ud83c\udf10"
+  ],
+  [
+   "car",
+   "\ud83d\ude97"
+  ],
+  [
+   "airplane",
+   "\u2708\ufe0f"
+  ],
+  [
+   "house",
+   "\ud83c\udfe0"
+  ],
+  [
+   "office",
+   "\ud83c\udfe2"
+  ],
+  [
+   "camera",
+   "\ud83d\udcf7"
+  ],
+  [
+   "telephone",
+   "\u260e\ufe0f"
+  ],
+  [
+   "loudspeaker",
+   "\ud83d\udce2"
+  ],
+  [
+   "bell",
+   "\ud83d\udd14"
+  ],
+  [
+   "no_bell",
+   "\ud83d\udd15"
+  ],
+  [
+   "recycle",
+   "\u267b\ufe0f"
+  ],
+  [
+   "infinity",
+   "\u267e\ufe0f"
+  ],
+  [
+   "arrows_counterclockwise",
+   "\ud83d\udd04"
+  ],
+  [
+   "arrow_right",
+   "\u27a1\ufe0f"
+  ],
+  [
+   "arrow_left",
+   "\u2b05\ufe0f"
+  ],
+  [
+   "arrow_up",
+   "\u2b06\ufe0f"
+  ],
+  [
+   "arrow_down",
+   "\u2b07\ufe0f"
+  ]
+ ],
+ "emojiAliases": [
+  [
+   "love",
+   "heart"
+  ],
+  [
+   "satisfied",
+   "laughing"
+  ],
+  [
+   "collision",
+   "boom"
+  ]
+ ],
+ "filterEmojiShortcodes": [
+  {
+   "args": [
+    ""
+   ],
+   "out": [
+    {
+     "name": "-1",
+     "emoji": "\ud83d\udc4e"
+    },
+    {
+     "name": "+1",
+     "emoji": "\ud83d\udc4d"
+    },
+    {
+     "name": "100",
+     "emoji": "\ud83d\udcaf"
+    },
+    {
+     "name": "airplane",
+     "emoji": "\u2708\ufe0f"
+    },
+    {
+     "name": "alarm_clock",
+     "emoji": "\u23f0"
+    },
+    {
+     "name": "alien",
+     "emoji": "\ud83d\udc7d"
+    },
+    {
+     "name": "angry",
+     "emoji": "\ud83d\ude20"
+    },
+    {
+     "name": "arrow_down",
+     "emoji": "\u2b07\ufe0f"
+    },
+    {
+     "name": "arrow_left",
+     "emoji": "\u2b05\ufe0f"
+    },
+    {
+     "name": "arrow_right",
+     "emoji": "\u27a1\ufe0f"
+    },
+    {
+     "name": "arrow_up",
+     "emoji": "\u2b06\ufe0f"
+    },
+    {
+     "name": "arrows_counterclockwise",
+     "emoji": "\ud83d\udd04"
+    },
+    {
+     "name": "astonished",
+     "emoji": "\ud83d\ude32"
+    },
+    {
+     "name": "balloon",
+     "emoji": "\ud83c\udf88"
+    },
+    {
+     "name": "beer",
+     "emoji": "\ud83c\udf7a"
+    },
+    {
+     "name": "bell",
+     "emoji": "\ud83d\udd14"
+    },
+    {
+     "name": "black_heart",
+     "emoji": "\ud83d\udda4"
+    },
+    {
+     "name": "blue_heart",
+     "emoji": "\ud83d\udc99"
+    },
+    {
+     "name": "blush",
+     "emoji": "\ud83d\ude0a"
+    },
+    {
+     "name": "bookmark",
+     "emoji": "\ud83d\udd16"
+    },
+    {
+     "name": "boom",
+     "emoji": "\ud83d\udca5"
+    },
+    {
+     "name": "broken_heart",
+     "emoji": "\ud83d\udc94"
+    },
+    {
+     "name": "bug",
+     "emoji": "\ud83d\udc1b"
+    },
+    {
+     "name": "bulb",
+     "emoji": "\ud83d\udca1"
+    },
+    {
+     "name": "calendar",
+     "emoji": "\ud83d\udcc5"
+    },
+    {
+     "name": "camera",
+     "emoji": "\ud83d\udcf7"
+    },
+    {
+     "name": "car",
+     "emoji": "\ud83d\ude97"
+    },
+    {
+     "name": "cat",
+     "emoji": "\ud83d\udc31"
+    },
+    {
+     "name": "checkered_flag",
+     "emoji": "\ud83c\udfc1"
+    },
+    {
+     "name": "clap",
+     "emoji": "\ud83d\udc4f"
+    }
+   ]
+  },
+  {
+   "args": [
+    "smi"
+   ],
+   "out": [
+    {
+     "name": "smile",
+     "emoji": "\ud83d\ude04"
+    },
+    {
+     "name": "smiley",
+     "emoji": "\ud83d\ude03"
+    },
+    {
+     "name": "smirk",
+     "emoji": "\ud83d\ude0f"
+    },
+    {
+     "name": "slightly_smiling_face",
+     "emoji": "\ud83d\ude42"
+    }
+   ]
+  },
+  {
+   "args": [
+    "SMI"
+   ],
+   "out": [
+    {
+     "name": "smile",
+     "emoji": "\ud83d\ude04"
+    },
+    {
+     "name": "smiley",
+     "emoji": "\ud83d\ude03"
+    },
+    {
+     "name": "smirk",
+     "emoji": "\ud83d\ude0f"
+    },
+    {
+     "name": "slightly_smiling_face",
+     "emoji": "\ud83d\ude42"
+    }
+   ]
+  },
+  {
+   "args": [
+    "s"
+   ],
+   "out": [
+    {
+     "name": "satisfied",
+     "emoji": "\ud83d\ude06"
+    },
+    {
+     "name": "scream",
+     "emoji": "\ud83d\ude31"
+    },
+    {
+     "name": "see_no_evil",
+     "emoji": "\ud83d\ude48"
+    },
+    {
+     "name": "seedling",
+     "emoji": "\ud83c\udf31"
+    },
+    {
+     "name": "shushing_face",
+     "emoji": "\ud83e\udd2b"
+    },
+    {
+     "name": "skull",
+     "emoji": "\ud83d\udc80"
+    },
+    {
+     "name": "sleeping",
+     "emoji": "\ud83d\ude34"
+    },
+    {
+     "name": "sleepy",
+     "emoji": "\ud83d\ude2a"
+    },
+    {
+     "name": "slightly_frowning_face",
+     "emoji": "\ud83d\ude41"
+    },
+    {
+     "name": "slightly_smiling_face",
+     "emoji": "\ud83d\ude42"
+    },
+    {
+     "name": "smile",
+     "emoji": "\ud83d\ude04"
+    },
+    {
+     "name": "smiley",
+     "emoji": "\ud83d\ude03"
+    },
+    {
+     "name": "smirk",
+     "emoji": "\ud83d\ude0f"
+    },
+    {
+     "name": "snowflake",
+     "emoji": "\u2744\ufe0f"
+    },
+    {
+     "name": "sob",
+     "emoji": "\ud83d\ude2d"
+    },
+    {
+     "name": "sparkles",
+     "emoji": "\u2728"
+    },
+    {
+     "name": "sparkling_heart",
+     "emoji": "\ud83d\udc96"
+    },
+    {
+     "name": "speak_no_evil",
+     "emoji": "\ud83d\ude4a"
+    },
+    {
+     "name": "star",
+     "emoji": "\u2b50"
+    },
+    {
+     "name": "star2",
+     "emoji": "\ud83c\udf1f"
+    },
+    {
+     "name": "stopwatch",
+     "emoji": "\u23f1\ufe0f"
+    },
+    {
+     "name": "sun",
+     "emoji": "\u2600\ufe0f"
+    },
+    {
+     "name": "sunglasses",
+     "emoji": "\ud83d\ude0e"
+    },
+    {
+     "name": "arrows_counterclockwise",
+     "emoji": "\ud83d\udd04"
+    },
+    {
+     "name": "astonished",
+     "emoji": "\ud83d\ude32"
+    },
+    {
+     "name": "blush",
+     "emoji": "\ud83d\ude0a"
+    },
+    {
+     "name": "cold_sweat",
+     "emoji": "\ud83d\ude30"
+    },
+    {
+     "name": "collision",
+     "emoji": "\ud83d\udca5"
+    },
+    {
+     "name": "confused",
+     "emoji": "\ud83d\ude15"
+    },
+    {
+     "name": "crossed_fingers",
+     "emoji": "\ud83e\udd1e"
+    }
+   ]
+  },
+  {
+   "args": [
+    "heart"
+   ],
+   "out": [
+    {
+     "name": "heart",
+     "emoji": "\u2764\ufe0f"
+    },
+    {
+     "name": "heart_eyes",
+     "emoji": "\ud83d\ude0d"
+    },
+    {
+     "name": "heartbeat",
+     "emoji": "\ud83d\udc93"
+    },
+    {
+     "name": "heartpulse",
+     "emoji": "\ud83d\udc97"
+    },
+    {
+     "name": "black_heart",
+     "emoji": "\ud83d\udda4"
+    },
+    {
+     "name": "blue_heart",
+     "emoji": "\ud83d\udc99"
+    },
+    {
+     "name": "broken_heart",
+     "emoji": "\ud83d\udc94"
+    },
+    {
+     "name": "green_heart",
+     "emoji": "\ud83d\udc9a"
+    },
+    {
+     "name": "kissing_heart",
+     "emoji": "\ud83d\ude18"
+    },
+    {
+     "name": "orange_heart",
+     "emoji": "\ud83e\udde1"
+    },
+    {
+     "name": "purple_heart",
+     "emoji": "\ud83d\udc9c"
+    },
+    {
+     "name": "sparkling_heart",
+     "emoji": "\ud83d\udc96"
+    },
+    {
+     "name": "two_hearts",
+     "emoji": "\ud83d\udc95"
+    },
+    {
+     "name": "yellow_heart",
+     "emoji": "\ud83d\udc9b"
+    }
+   ]
+  },
+  {
+   "args": [
+    "he"
+   ],
+   "out": [
+    {
+     "name": "hear_no_evil",
+     "emoji": "\ud83d\ude49"
+    },
+    {
+     "name": "heart",
+     "emoji": "\u2764\ufe0f"
+    },
+    {
+     "name": "heart_eyes",
+     "emoji": "\ud83d\ude0d"
+    },
+    {
+     "name": "heartbeat",
+     "emoji": "\ud83d\udc93"
+    },
+    {
+     "name": "heartpulse",
+     "emoji": "\ud83d\udc97"
+    },
+    {
+     "name": "heavy_check_mark",
+     "emoji": "\u2714\ufe0f"
+    },
+    {
+     "name": "astonished",
+     "emoji": "\ud83d\ude32"
+    },
+    {
+     "name": "black_heart",
+     "emoji": "\ud83d\udda4"
+    },
+    {
+     "name": "blue_heart",
+     "emoji": "\ud83d\udc99"
+    },
+    {
+     "name": "broken_heart",
+     "emoji": "\ud83d\udc94"
+    },
+    {
+     "name": "checkered_flag",
+     "emoji": "\ud83c\udfc1"
+    },
+    {
+     "name": "exploding_head",
+     "emoji": "\ud83e\udd2f"
+    },
+    {
+     "name": "flushed",
+     "emoji": "\ud83d\ude33"
+    },
+    {
+     "name": "green_heart",
+     "emoji": "\ud83d\udc9a"
+    },
+    {
+     "name": "kissing_heart",
+     "emoji": "\ud83d\ude18"
+    },
+    {
+     "name": "orange_heart",
+     "emoji": "\ud83e\udde1"
+    },
+    {
+     "name": "purple_heart",
+     "emoji": "\ud83d\udc9c"
+    },
+    {
+     "name": "sparkling_heart",
+     "emoji": "\ud83d\udc96"
+    },
+    {
+     "name": "two_hearts",
+     "emoji": "\ud83d\udc95"
+    },
+    {
+     "name": "white_check_mark",
+     "emoji": "\u2705"
+    },
+    {
+     "name": "yellow_heart",
+     "emoji": "\ud83d\udc9b"
+    }
+   ]
+  },
+  {
+   "args": [
+    "love"
+   ],
+   "out": [
+    {
+     "name": "love",
+     "emoji": "\u2764\ufe0f"
+    },
+    {
+     "name": "four_leaf_clover",
+     "emoji": "\ud83c\udf40"
+    }
+   ]
+  },
+  {
+   "args": [
+    "lo"
+   ],
+   "out": [
+    {
+     "name": "lock",
+     "emoji": "\ud83d\udd12"
+    },
+    {
+     "name": "loudspeaker",
+     "emoji": "\ud83d\udce2"
+    },
+    {
+     "name": "love",
+     "emoji": "\u2764\ufe0f"
+    },
+    {
+     "name": "alarm_clock",
+     "emoji": "\u23f0"
+    },
+    {
+     "name": "arrows_counterclockwise",
+     "emoji": "\ud83d\udd04"
+    },
+    {
+     "name": "balloon",
+     "emoji": "\ud83c\udf88"
+    },
+    {
+     "name": "cloud",
+     "emoji": "\u2601\ufe0f"
+    },
+    {
+     "name": "clown_face",
+     "emoji": "\ud83e\udd21"
+    },
+    {
+     "name": "exploding_head",
+     "emoji": "\ud83e\udd2f"
+    },
+    {
+     "name": "four_leaf_clover",
+     "emoji": "\ud83c\udf40"
+    },
+    {
+     "name": "globe_with_meridians",
+     "emoji": "\ud83c\udf10"
+    },
+    {
+     "name": "incoming_envelope",
+     "emoji": "\ud83d\udce8"
+    },
+    {
+     "name": "unlock",
+     "emoji": "\ud83d\udd13"
+    },
+    {
+     "name": "yellow_heart",
+     "emoji": "\ud83d\udc9b"
+    }
+   ]
+  },
+  {
+   "args": [
+    "+"
+   ],
+   "out": [
+    {
+     "name": "+1",
+     "emoji": "\ud83d\udc4d"
+    }
+   ]
+  },
+  {
+   "args": [
+    "+1"
+   ],
+   "out": [
+    {
+     "name": "+1",
+     "emoji": "\ud83d\udc4d"
+    }
+   ]
+  },
+  {
+   "args": [
+    "-1"
+   ],
+   "out": [
+    {
+     "name": "-1",
+     "emoji": "\ud83d\udc4e"
+    }
+   ]
+  },
+  {
+   "args": [
+    "1"
+   ],
+   "out": [
+    {
+     "name": "100",
+     "emoji": "\ud83d\udcaf"
+    },
+    {
+     "name": "-1",
+     "emoji": "\ud83d\udc4e"
+    },
+    {
+     "name": "+1",
+     "emoji": "\ud83d\udc4d"
+    }
+   ]
+  },
+  {
+   "args": [
+    "100"
+   ],
+   "out": [
+    {
+     "name": "100",
+     "emoji": "\ud83d\udcaf"
+    }
+   ]
+  },
+  {
+   "args": [
+    "_"
+   ],
+   "out": [
+    {
+     "name": "alarm_clock",
+     "emoji": "\u23f0"
+    },
+    {
+     "name": "arrow_down",
+     "emoji": "\u2b07\ufe0f"
+    },
+    {
+     "name": "arrow_left",
+     "emoji": "\u2b05\ufe0f"
+    },
+    {
+     "name": "arrow_right",
+     "emoji": "\u27a1\ufe0f"
+    },
+    {
+     "name": "arrow_up",
+     "emoji": "\u2b06\ufe0f"
+    },
+    {
+     "name": "arrows_counterclockwise",
+     "emoji": "\ud83d\udd04"
+    },
+    {
+     "name": "black_heart",
+     "emoji": "\ud83d\udda4"
+    },
+    {
+     "name": "blue_heart",
+     "emoji": "\ud83d\udc99"
+    },
+    {
+     "name": "broken_heart",
+     "emoji": "\ud83d\udc94"
+    },
+    {
+     "name": "checkered_flag",
+     "emoji": "\ud83c\udfc1"
+    },
+    {
+     "name": "clown_face",
+     "emoji": "\ud83e\udd21"
+    },
+    {
+     "name": "cold_sweat",
+     "emoji": "\ud83d\ude30"
+    },
+    {
+     "name": "confetti_ball",
+     "emoji": "\ud83c\udf8a"
+    },
+    {
+     "name": "crossed_fingers",
+     "emoji": "\ud83e\udd1e"
+    },
+    {
+     "name": "dizzy_face",
+     "emoji": "\ud83d\ude35"
+    },
+    {
+     "name": "earth_americas",
+     "emoji": "\ud83c\udf0e"
+    },
+    {
+     "name": "exploding_head",
+     "emoji": "\ud83e\udd2f"
+    },
+    {
+     "name": "four_leaf_clover",
+     "emoji": "\ud83c\udf40"
+    },
+    {
+     "name": "globe_with_meridians",
+     "emoji": "\ud83c\udf10"
+    },
+    {
+     "name": "green_heart",
+     "emoji": "\ud83d\udc9a"
+    },
+    {
+     "name": "hear_no_evil",
+     "emoji": "\ud83d\ude49"
+    },
+    {
+     "name": "heart_eyes",
+     "emoji": "\ud83d\ude0d"
+    },
+    {
+     "name": "heavy_check_mark",
+     "emoji": "\u2714\ufe0f"
+    },
+    {
+     "name": "incoming_envelope",
+     "emoji": "\ud83d\udce8"
+    },
+    {
+     "name": "kissing_heart",
+     "emoji": "\ud83d\ude18"
+    },
+    {
+     "name": "lying_face",
+     "emoji": "\ud83e\udd25"
+    },
+    {
+     "name": "nerd_face",
+     "emoji": "\ud83e\udd13"
+    },
+    {
+     "name": "neutral_face",
+     "emoji": "\ud83d\ude10"
+    },
+    {
+     "name": "no_bell",
+     "emoji": "\ud83d\udd15"
+    },
+    {
+     "name": "no_entry",
+     "emoji": "\u26d4"
+    }
+   ]
+  },
+  {
+   "args": [
+    "face"
+   ],
+   "out": [
+    {
+     "name": "facepunch",
+     "emoji": "\ud83d\udc4a"
+    },
+    {
+     "name": "clown_face",
+     "emoji": "\ud83e\udd21"
+    },
+    {
+     "name": "dizzy_face",
+     "emoji": "\ud83d\ude35"
+    },
+    {
+     "name": "lying_face",
+     "emoji": "\ud83e\udd25"
+    },
+    {
+     "name": "nerd_face",
+     "emoji": "\ud83e\udd13"
+    },
+    {
+     "name": "neutral_face",
+     "emoji": "\ud83d\ude10"
+    },
+    {
+     "name": "shushing_face",
+     "emoji": "\ud83e\udd2b"
+    },
+    {
+     "name": "slightly_frowning_face",
+     "emoji": "\ud83d\ude41"
+    },
+    {
+     "name": "slightly_smiling_face",
+     "emoji": "\ud83d\ude42"
+    },
+    {
+     "name": "tired_face",
+     "emoji": "\ud83d\ude2b"
+    },
+    {
+     "name": "zany_face",
+     "emoji": "\ud83e\udd2a"
+    }
+   ]
+  },
+  {
+   "args": [
+    "x"
+   ],
+   "out": [
+    {
+     "name": "x",
+     "emoji": "\u274c"
+    },
+    {
+     "name": "exclamation",
+     "emoji": "\u2757"
+    },
+    {
+     "name": "exploding_head",
+     "emoji": "\ud83e\udd2f"
+    },
+    {
+     "name": "expressionless",
+     "emoji": "\ud83d\ude11"
+    },
+    {
+     "name": "relaxed",
+     "emoji": "\u263a\ufe0f"
+    }
+   ]
+  },
+  {
+   "args": [
+    "zzz"
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    "thumbs"
+   ],
+   "out": [
+    {
+     "name": "thumbsdown",
+     "emoji": "\ud83d\udc4e"
+    },
+    {
+     "name": "thumbsup",
+     "emoji": "\ud83d\udc4d"
+    }
+   ]
+  },
+  {
+   "args": [
+    "fire"
+   ],
+   "out": [
+    {
+     "name": "fire",
+     "emoji": "\ud83d\udd25"
+    }
+   ]
+  },
+  {
+   "args": [
+    "e"
+   ],
+   "out": [
+    {
+     "name": "earth_americas",
+     "emoji": "\ud83c\udf0e"
+    },
+    {
+     "name": "email",
+     "emoji": "\u2709\ufe0f"
+    },
+    {
+     "name": "exclamation",
+     "emoji": "\u2757"
+    },
+    {
+     "name": "exploding_head",
+     "emoji": "\ud83e\udd2f"
+    },
+    {
+     "name": "expressionless",
+     "emoji": "\ud83d\ude11"
+    },
+    {
+     "name": "eye",
+     "emoji": "\ud83d\udc41\ufe0f"
+    },
+    {
+     "name": "eyes",
+     "emoji": "\ud83d\udc40"
+    },
+    {
+     "name": "airplane",
+     "emoji": "\u2708\ufe0f"
+    },
+    {
+     "name": "alien",
+     "emoji": "\ud83d\udc7d"
+    },
+    {
+     "name": "arrow_left",
+     "emoji": "\u2b05\ufe0f"
+    },
+    {
+     "name": "arrows_counterclockwise",
+     "emoji": "\ud83d\udd04"
+    },
+    {
+     "name": "astonished",
+     "emoji": "\ud83d\ude32"
+    },
+    {
+     "name": "beer",
+     "emoji": "\ud83c\udf7a"
+    },
+    {
+     "name": "bell",
+     "emoji": "\ud83d\udd14"
+    },
+    {
+     "name": "black_heart",
+     "emoji": "\ud83d\udda4"
+    },
+    {
+     "name": "blue_heart",
+     "emoji": "\ud83d\udc99"
+    },
+    {
+     "name": "broken_heart",
+     "emoji": "\ud83d\udc94"
+    },
+    {
+     "name": "calendar",
+     "emoji": "\ud83d\udcc5"
+    },
+    {
+     "name": "camera",
+     "emoji": "\ud83d\udcf7"
+    },
+    {
+     "name": "checkered_flag",
+     "emoji": "\ud83c\udfc1"
+    },
+    {
+     "name": "clown_face",
+     "emoji": "\ud83e\udd21"
+    },
+    {
+     "name": "coffee",
+     "emoji": "\u2615"
+    },
+    {
+     "name": "cold_sweat",
+     "emoji": "\ud83d\ude30"
+    },
+    {
+     "name": "computer",
+     "emoji": "\ud83d\udcbb"
+    },
+    {
+     "name": "confetti_ball",
+     "emoji": "\ud83c\udf8a"
+    },
+    {
+     "name": "confounded",
+     "emoji": "\ud83d\ude16"
+    },
+    {
+     "name": "confused",
+     "emoji": "\ud83d\ude15"
+    },
+    {
+     "name": "crossed_fingers",
+     "emoji": "\ud83e\udd1e"
+    },
+    {
+     "name": "dizzy_face",
+     "emoji": "\ud83d\ude35"
+    },
+    {
+     "name": "facepunch",
+     "emoji": "\ud83d\udc4a"
+    }
+   ]
+  },
+  {
+   "args": [
+    "a"
+   ],
+   "out": [
+    {
+     "name": "airplane",
+     "emoji": "\u2708\ufe0f"
+    },
+    {
+     "name": "alarm_clock",
+     "emoji": "\u23f0"
+    },
+    {
+     "name": "alien",
+     "emoji": "\ud83d\udc7d"
+    },
+    {
+     "name": "angry",
+     "emoji": "\ud83d\ude20"
+    },
+    {
+     "name": "arrow_down",
+     "emoji": "\u2b07\ufe0f"
+    },
+    {
+     "name": "arrow_left",
+     "emoji": "\u2b05\ufe0f"
+    },
+    {
+     "name": "arrow_right",
+     "emoji": "\u27a1\ufe0f"
+    },
+    {
+     "name": "arrow_up",
+     "emoji": "\u2b06\ufe0f"
+    },
+    {
+     "name": "arrows_counterclockwise",
+     "emoji": "\ud83d\udd04"
+    },
+    {
+     "name": "astonished",
+     "emoji": "\ud83d\ude32"
+    },
+    {
+     "name": "balloon",
+     "emoji": "\ud83c\udf88"
+    },
+    {
+     "name": "black_heart",
+     "emoji": "\ud83d\udda4"
+    },
+    {
+     "name": "blue_heart",
+     "emoji": "\ud83d\udc99"
+    },
+    {
+     "name": "bookmark",
+     "emoji": "\ud83d\udd16"
+    },
+    {
+     "name": "broken_heart",
+     "emoji": "\ud83d\udc94"
+    },
+    {
+     "name": "calendar",
+     "emoji": "\ud83d\udcc5"
+    },
+    {
+     "name": "camera",
+     "emoji": "\ud83d\udcf7"
+    },
+    {
+     "name": "car",
+     "emoji": "\ud83d\ude97"
+    },
+    {
+     "name": "cat",
+     "emoji": "\ud83d\udc31"
+    },
+    {
+     "name": "checkered_flag",
+     "emoji": "\ud83c\udfc1"
+    },
+    {
+     "name": "clap",
+     "emoji": "\ud83d\udc4f"
+    },
+    {
+     "name": "clown_face",
+     "emoji": "\ud83e\udd21"
+    },
+    {
+     "name": "cold_sweat",
+     "emoji": "\ud83d\ude30"
+    },
+    {
+     "name": "confetti_ball",
+     "emoji": "\ud83c\udf8a"
+    },
+    {
+     "name": "dizzy_face",
+     "emoji": "\ud83d\ude35"
+    },
+    {
+     "name": "earth_americas",
+     "emoji": "\ud83c\udf0e"
+    },
+    {
+     "name": "email",
+     "emoji": "\u2709\ufe0f"
+    },
+    {
+     "name": "exclamation",
+     "emoji": "\u2757"
+    },
+    {
+     "name": "exploding_head",
+     "emoji": "\ud83e\udd2f"
+    },
+    {
+     "name": "facepunch",
+     "emoji": "\ud83d\udc4a"
+    }
+   ]
+  }
+ ],
+ "lookupEmojiShortcode": [
+  {
+   "args": [
+    "smile"
+   ],
+   "out": "\ud83d\ude04"
+  },
+  {
+   "args": [
+    "SMILE"
+   ],
+   "out": "\ud83d\ude04"
+  },
+  {
+   "args": [
+    "heart"
+   ],
+   "out": "\u2764\ufe0f"
+  },
+  {
+   "args": [
+    "love"
+   ],
+   "out": "\u2764\ufe0f"
+  },
+  {
+   "args": [
+    "LOVE"
+   ],
+   "out": "\u2764\ufe0f"
+  },
+  {
+   "args": [
+    "satisfied"
+   ],
+   "out": "\ud83d\ude06"
+  },
+  {
+   "args": [
+    "collision"
+   ],
+   "out": "\ud83d\udca5"
+  },
+  {
+   "args": [
+    "+1"
+   ],
+   "out": "\ud83d\udc4d"
+  },
+  {
+   "args": [
+    "-1"
+   ],
+   "out": "\ud83d\udc4e"
+  },
+  {
+   "args": [
+    "100"
+   ],
+   "out": "\ud83d\udcaf"
+  },
+  {
+   "args": [
+    "nope"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "telephone"
+   ],
+   "out": "\u260e\ufe0f"
+  },
+  {
+   "args": [
+    "thumbsup"
+   ],
+   "out": "\ud83d\udc4d"
+  }
+ ],
+ "emojiPrototypeQuirk": [
+  {
+   "name": "constructor",
+   "type": "function"
+  },
+  {
+   "name": "__proto__",
+   "type": "object"
+  },
+  {
+   "name": "CONSTRUCTOR",
+   "type": "function"
+  }
+ ],
+ "emojiCountLabel": [
+  {
+   "args": [
+    0
+   ],
+   "out": "0 matches"
+  },
+  {
+   "args": [
+    1
+   ],
+   "out": "1 match"
+  },
+  {
+   "args": [
+    2
+   ],
+   "out": "2 matches"
+  },
+  {
+   "args": [
+    30
+   ],
+   "out": "30 matches"
+  }
+ ],
+ "emojiEnabledOf": [
+  {
+   "args": [
+    {
+     "settings": {}
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "settings": {
+      "emojiCompletionEnabled": false
+     }
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "settings": {
+      "emojiCompletionEnabled": true
+     }
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "settings": {
+      "emojiCompletionEnabled": 0
+     }
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "settings": {
+      "emojiCompletionEnabled": null
+     }
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "settings": {
+      "emojiCompletionEnabled": "false"
+     }
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "settings": null
+    }
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    {}
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    5
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    []
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    {
+     "settings": 5
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "settings": []
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "settings": "s"
+    }
+   ],
+   "out": true
+  }
+ ],
+ "settingsUrl": [
+  {
+   "args": [
+    "/w/p"
+   ],
+   "out": "/api/settings?scope=user&cwd=%2Fw%2Fp"
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": "/api/settings?scope=user&cwd="
+  },
+  {
+   "args": [
+    "/w/my project"
+   ],
+   "out": "/api/settings?scope=user&cwd=%2Fw%2Fmy%20project"
+  },
+  {
+   "args": [
+    "/w/\u00e9"
+   ],
+   "out": "/api/settings?scope=user&cwd=%2Fw%2F%C3%A9"
+  }
+ ],
+ "sdkCommandsOf": [
+  {
+   "args": [
+    {
+     "commands": [
+      {
+       "name": "a"
+      },
+      {
+       "name": "b",
+       "description": "B"
+      }
+     ]
+    }
+   ],
+   "out": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "args": [
+    {
+     "commands": []
+    }
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    {}
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    {
+     "commands": "x"
+    }
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    {
+     "commands": {}
+    }
+   ],
+   "out": null
+  }
+ ],
+ "agentsOf": [
+  {
+   "args": [
+    {
+     "agents": [
+      {
+       "name": "a"
+      }
+     ]
+    }
+   ],
+   "out": [
+    "a"
+   ]
+  },
+  {
+   "args": [
+    {
+     "agents": []
+    }
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    {}
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    null
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    {
+     "agents": "x"
+    }
+   ],
+   "out": []
+  }
+ ],
+ "copy": {
+  "slashHeader": "Slash commands \u00b7 Tab to insert",
+  "builtinBadge": "built-in",
+  "badgeApp": "native: { label: \"app\"",
+  "badgeSdk": "sdk: { label: \"sdk\"",
+  "badgeExternal": "external: { label: \"external\"",
+  "pointer": "{i === hi ? \"\u276f\" : \"\"}",
+  "atHeader": "@-mention \u00b7 Tab to insert",
+  "atLoading": "? \"loading\u2026\"",
+  "emojiHeader": "Emoji \u00b7 Tab to insert",
+  "skillFallback": "\"Skill provided by the SDK.\"",
+  "sdkFallback": "\"Provided by the SDK.\""
+ }
+}

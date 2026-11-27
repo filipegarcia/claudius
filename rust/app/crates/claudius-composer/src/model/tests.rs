@@ -120,7 +120,12 @@ fn bind_seeds_the_draft_then_loads_the_color() {
     let mut c = Composer::new();
     let outs = c.bind(Some("s1"));
     let r = reqs(&outs);
-    assert_eq!(r.len(), 2);
+    // ... and the slash picker's command list (`useSdkCommands`).
+    assert_eq!(r.len(), 3);
+    assert_eq!(
+        (r[2].method, r[2].url.as_str()),
+        ("GET", "/api/sessions/s1/commands")
+    );
     assert_eq!(
         (r[0].method, r[0].url.as_str()),
         ("GET", "/api/sessions/s1/prompt-draft")

@@ -9,6 +9,7 @@ members = [
     "crates/claudius-chat",
     "crates/claudius-composer",
     "crates/claudius-files",
+    "crates/claudius-git",
     "crates/claudius-gpui-theme",
     "crates/claudius-prompts",
     "crates/claudius-status",
@@ -33,6 +34,8 @@ claudius-chat = { path = "crates/claudius-chat" }
 claudius-composer = { path = "crates/claudius-composer" }
 # The Files page (U12c): the tree, the preview / editor, find in file / folder.
 claudius-files = { path = "crates/claudius-files" }
+# The native Git page (U12a).
+claudius-git = { path = "crates/claudius-git" }
 # The engine in-process (U04b): the server's state and router, and the
 # transport that joins it to the chat's state machine.
 claudius-agent = { path = "../crates/claudius-agent" }

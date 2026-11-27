@@ -10,7 +10,9 @@
 //! the real reducer builds. A send while a reply plays is queued as the
 //! server queues it (`queue:updated`), and the queue's actions edit that
 //! list; a turn's end starts the next queued prompt. The composer's own
-//! requests (the draft row, the prompt color, `!` bash) answer from memory.
+//! requests (the draft row, the prompt color, `!` bash) answer from memory,
+//! and so do the pickers' (U07b): the SDK's command list, the agents, the
+//! `@` file search over a canned tree, and the emoji setting.
 //!
 //! With `autoplay`, a thread plays each reply (one batch per tick);
 //! without it, [`FixtureComposer::advance`] steps it (the tests).
@@ -49,13 +51,118 @@ struct Fx {
     running: bool,
 }
 
-#[derive(Default)]
 struct Inner {
     sessions: HashMap<String, Fx>,
     drafts: HashMap<String, Value>,
     colors: HashMap<String, String>,
+    /// `GET /api/sessions/<id>/commands`' `commands` (any session).
+    commands: Value,
+    /// `GET /api/sessions/<id>/agents`' `agents`.
+    agents: Value,
+    /// The `@` search's tree: `(relPath, is a folder)`.
+    files: Vec<(String, bool)>,
+    /// A failed search's answer: status and `error`.
+    fs_failure: Option<(u16, String)>,
+    /// The user-scope `emojiCompletionEnabled`.
+    emoji_completion: Option<bool>,
     /// Every request the fixture answered (method, url, body), for tests.
     requests: Vec<(String, String, Option<String>)>,
+}
+
+impl Default for Inner {
+    fn default() -> Self {
+        Inner {
+            sessions: HashMap::new(),
+            drafts: HashMap::new(),
+            colors: HashMap::new(),
+            commands: demo_commands(),
+            agents: demo_agents(),
+            files: DEMO_FILES
+                .iter()
+                .map(|(p, d)| ((*p).to_owned(), *d))
+                .collect(),
+            fs_failure: None,
+            emoji_completion: None,
+            requests: Vec::new(),
+        }
+    }
+}
+
+/// What the demo's `supportedCommands()` adds to the registry: a project
+/// command, a plugin's, and an SDK built-in.
+fn demo_commands() -> Value {
+    json!([
+        {"name": "deploy", "description": "Ship the current branch to staging or production.",
+         "argumentHint": "<staging|production>"},
+        {"name": "release-notes-draft", "description": "Draft release notes from the merged PRs.",
+         "argumentHint": "[since-tag]"},
+        {"name": "lint:fix", "description": "Run the linters and apply their fixes (plugin)."},
+        {"name": "compact", "description": "Compact the conversation.", "builtin": true},
+    ])
+}
+
+/// The demo session's `supportedAgents()`.
+fn demo_agents() -> Value {
+    json!([
+        {"name": "general-purpose", "description": "General-purpose agent for multi-step tasks.",
+         "model": "inherit"},
+        {"name": "Explore", "description": "Read-only search agent for broad fan-out searches.",
+         "model": "haiku"},
+        {"name": "code-reviewer", "description": "Independent review of the current diff.",
+         "model": "sonnet"},
+        {"name": "docs-writer", "description": "Drafts README and CHANGELOG updates."},
+    ])
+}
+
+/// A fresh session's folder.
+pub const DEMO_CWD: &str = "/demo/claudius";
+
+/// The `@` search's demo tree.
+const DEMO_FILES: &[(&str, bool)] = &[
+    ("README.md", false),
+    ("rust", true),
+    ("rust/app", true),
+    ("rust/app/crates/claudius-composer/src/model.rs", false),
+    ("rust/app/crates/claudius-composer/src/view.rs", false),
+    ("rust/app/crates/claudius-composer/src/slash.rs", false),
+    ("rust/app/crates/claudius-composer/src/mention.rs", false),
+    ("rust/app/crates/claudius-composer/src/emoji.rs", false),
+    ("rust/crates/claudius-server/src/fs_routes.rs", false),
+    ("components/chat/PromptInput.tsx", false),
+    ("components/chat/SlashCommandPicker.tsx", false),
+    ("components/chat/AtMentionPicker.tsx", false),
+    ("lib/shared/slash-commands.ts", false),
+    ("package.json", false),
+];
+
+/// `URLSearchParams.get(name)` on a query string.
+fn search_param(query: &str, name: &str) -> Option<String> {
+    query.split('&').find_map(|pair| {
+        let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
+        (k == name).then(|| form_decode(v))
+    })
+}
+
+fn form_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        let hex = (b[i] == b'%')
+            .then(|| s.get(i + 1..i + 3))
+            .flatten()
+            .and_then(|h| u8::from_str_radix(h, 16).ok());
+        match (b[i], hex) {
+            (b'+', _) => out.push(b' '),
+            (_, Some(v)) => {
+                out.push(v);
+                i += 2;
+            }
+            (c, None) => out.push(c),
+        }
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// The fixture "server" behind the native composer.
@@ -171,6 +278,33 @@ impl FixtureComposer {
     pub fn set_color(&self, id: &str, name: &str) {
         let mut inner = self.inner.lock().unwrap();
         inner.colors.insert(id.to_owned(), name.to_owned());
+    }
+
+    /// What `GET /api/sessions/<id>/commands` answers (`commands`).
+    pub fn set_sdk_commands(&self, commands: Value) {
+        self.inner.lock().unwrap().commands = commands;
+    }
+
+    /// What `GET /api/sessions/<id>/agents` answers (`agents`).
+    pub fn set_agents(&self, agents: Value) {
+        self.inner.lock().unwrap().agents = agents;
+    }
+
+    /// The `@` search's tree: `(relPath, is a folder)`.
+    pub fn set_files(&self, files: &[(&str, bool)]) {
+        self.inner.lock().unwrap().files =
+            files.iter().map(|(p, d)| ((*p).to_owned(), *d)).collect();
+    }
+
+    /// Makes the `@` search fail with `status` and `{ error }` (`None`:
+    /// answer again).
+    pub fn fail_file_search(&self, failure: Option<(u16, &str)>) {
+        self.inner.lock().unwrap().fs_failure = failure.map(|(s, e)| (s, e.to_owned()));
+    }
+
+    /// The user-scope `emojiCompletionEnabled` (`None`: unset).
+    pub fn set_emoji_completion(&self, on: Option<bool>) {
+        self.inner.lock().unwrap().emoji_completion = on;
     }
 
     /// Whether a reply is playing (or queued prompts wait) in `id`.
@@ -430,6 +564,34 @@ impl FixtureComposer {
         inner
             .requests
             .push((req.method.to_owned(), req.url.clone(), req.body.clone()));
+        if let Some(query) = req.url.strip_prefix("/api/fs/list?") {
+            if let Some((status, error)) = &inner.fs_failure {
+                return FetchOutcome::Response {
+                    status: *status,
+                    body: json!({ "error": error }).to_string(),
+                };
+            }
+            // A case-insensitive substring of the path (the real search
+            // ranks a fuzzy match).
+            let q = search_param(query, "q").unwrap_or_default().to_lowercase();
+            let entries: Vec<Value> = inner
+                .files
+                .iter()
+                .filter(|(p, _)| p.to_lowercase().contains(&q))
+                .map(|(p, dir)| {
+                    json!({"relPath": p, "absPath": format!("/demo/{p}"),
+                        "type": if *dir { "dir" } else { "file" }})
+                })
+                .collect();
+            return ok_json(json!({ "cwd": search_param(query, "cwd"), "entries": entries }));
+        }
+        if req.url.starts_with("/api/settings?") {
+            let mut settings = serde_json::Map::new();
+            if let Some(on) = inner.emoji_completion {
+                settings.insert("emojiCompletionEnabled".into(), json!(on));
+            }
+            return ok_json(json!({ "settings": settings }));
+        }
         let parts: Vec<&str> = req.url.trim_start_matches('/').split('/').collect();
         let (id, route) = match parts.as_slice() {
             ["api", "sessions", id, route] => ((*id).to_owned(), *route),
@@ -466,6 +628,8 @@ impl FixtureComposer {
                 ok_json(json!({"ok": true}))
             }
             ("GET", "prompt-color") => ok_json(json!({"color": inner.colors.get(&id)})),
+            ("GET", "commands") => ok_json(json!({ "commands": inner.commands })),
+            ("GET", "agents") => ok_json(json!({ "agents": inner.agents })),
             ("POST", "bash") => {
                 let command = body
                     .get("command")
@@ -506,10 +670,11 @@ impl ComposerTarget for FixtureComposer {
         if self.transcripts.read(session_id, f) {
             return true;
         }
-        // A tab with no log yet: a fresh, ready session.
+        // A tab with no log yet: a fresh, ready session in the demo folder.
         let mut state = ChatState::new(session_id);
         state.session_id = Some(session_id.to_owned());
         state.ready = true;
+        state.cwd = json!(DEMO_CWD);
         f(&state);
         true
     }

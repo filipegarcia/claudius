@@ -16,7 +16,9 @@
 //! the composer sends into them through `FixtureComposer` (a scripted
 //! reply); over a live chat the shell sets its own (U07e). The Files page
 //! (U12c) reads the engine's file routes through each workspace's page
-//! transport, or over the fixture claudius-files' bundled demo tree.
+//! transport, or over the fixture claudius-files' bundled demo tree. The
+//! Git page (U12a) reads the engine's git routes, or over the fixture
+//! claudius-git's demo repository.
 //! `CLAUDIUS_APP_PROMPTS` puts sample prompt cards on the fixture's demo
 //! session (comma-separated: `permission`, `permission-queue`, `plan`,
 //! `plan-mode`, `elicitation`, `elicitation-url`, `ask`).
@@ -41,9 +43,12 @@ use claudius_composer::fixture::FixtureComposer;
 use claudius_files::FilesData;
 use claudius_files::fixture::FixtureFilesData;
 use claudius_files::live::LiveFilesData;
+use claudius_git::data::{GitData, TransportGitData};
+use claudius_git::fixture::FixtureGitData;
 use claudius_gpui_theme::{ThemeName, icons::IconAssets};
 use claudius_prompts::target::samples;
 use claudius_prompts::{FixturePromptSource, PromptSource};
+use claudius_transport::CookieJar;
 
 fn main() -> anyhow::Result<()> {
     let mut backend: Option<Arc<Backend>> = None;
@@ -150,6 +155,15 @@ fn main() -> anyhow::Result<()> {
                 })
                 .detach();
             }
+            // The Git page (U12a): the engine's git routes, or the demo
+            // repository over the fixture.
+            let git: Arc<dyn GitData> = match &backend {
+                Some(b) => Arc::new(TransportGitData::new(
+                    b.transport(Arc::new(CookieJar::new())),
+                    b.handle(),
+                )),
+                None => Arc::new(FixtureGitData::demo()),
+            };
             match open_main_window(data, transcripts, sessions, appearance, store, cx) {
                 Ok(shell) => shell.update(cx, |s, cx| {
                     if let Some(composer) = composer {
@@ -159,6 +173,7 @@ fn main() -> anyhow::Result<()> {
                         s.set_prompt_source(prompts, cx);
                     }
                     s.set_files_data(files, cx);
+                    s.set_git_data(git, cx);
                 }),
                 Err(e) => {
                     eprintln!("claudius-app: opening the window: {e:#}");

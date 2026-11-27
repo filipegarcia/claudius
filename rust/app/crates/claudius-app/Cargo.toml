@@ -24,6 +24,8 @@ claudius-core.workspace = true
 claudius-composer.workspace = true
 # The Files route (U12c).
 claudius-files.workspace = true
+# The Git page (U12a).
+claudius-git.workspace = true
 claudius-gpui-theme.workspace = true
 # The prompt cards (U08a) and their `PromptSource`.
 claudius-prompts.workspace = true

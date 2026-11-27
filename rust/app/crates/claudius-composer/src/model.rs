@@ -25,12 +25,19 @@
 //! own writes (a send clearing the box, a recalled prompt) when
 //! [`Composer::text_rev`] moves, with the caret at [`Composer::caret`].
 //!
-//! **Seams.** The pickers (U07b) plug into [`Composer::refresh_picker_state`]
-//! and [`PickerState`]; until then no menu opens and the key rules see
-//! them closed. Images, inline pastes and voice (U07c) ride the
-//! `images` field and the paste ranges' absence: an image restored with a
-//! draft or a lifted queued message is kept and sent, but nothing attaches
-//! one yet.
+//! **Pickers (U07b).** [`Composer::refresh_picker_state`] fills
+//! [`PickerState`] from the token under the caret on every write;
+//! `menus.rs` mounts the slash / `@` / `:emoji` picker it opens (its
+//! highlight, the `@` search and agent list), takes the keys it takes
+//! before the rules below, and hands the view the [`Menu`] to draw. The
+//! command list (`useSdkCommands`) loads on [`Composer::bind`], the cwd and
+//! the emoji setting arrive through [`Composer::observe`].
+//!
+//! **Seams.** Images, inline pastes and voice (U07c) ride the `images`
+//! field and the paste ranges' absence: an image restored with a draft or
+//! a lifted queued message is kept and sent, but nothing attaches one yet.
+//! A picked slash command is inserted as the TS inserts it; its dispatch
+//! (U07d) is still a plain send.
 
 use std::collections::HashMap;
 
@@ -42,8 +49,15 @@ use claudius_client::types::{DisplayBlock, Role};
 use claudius_theme::prompt::{PromptColor, PromptColorState};
 use serde_json::{Value, json};
 
-use crate::rules::{self, FailedSendPlacement, LiftedPrompt, NoticePlacement, PendingDraft};
+use crate::rules::{
+    self, FailedSendPlacement, LiftedPrompt, NoticePlacement, PendingDraft, encode_uri_component,
+};
 use crate::target::SessionCall;
+use crate::{emoji, mention, slash};
+
+mod menus;
+
+pub use menus::{AtMenuView, EmojiMenu, Menu, SlashMenu, SlashRow};
 
 /// The debounced draft save's delay (PromptInput.tsx:775).
 pub const DRAFT_SAVE_MS: f64 = 500.0;
@@ -92,6 +106,11 @@ pub struct SessionView {
     pub suggestions: Vec<String>,
     /// The transcript's user prompts, oldest first (ChatSurface.tsx:2108).
     pub sent: Vec<rules::SentPrompt>,
+    /// The init's `slash_commands` and `skills` (the slash picker's list).
+    pub slash_commands: Vec<String>,
+    pub skills: Vec<String>,
+    /// `session.cwd` (the `@` search's, and the emoji setting's).
+    pub cwd: Option<String>,
 }
 
 /// A row of the queue strip (`QueuedMessage`).
@@ -141,6 +160,9 @@ impl SessionView {
             sdk_queued_turns: state.sdk_queued_turns.as_f64().unwrap_or(0.0),
             suggestions: state.prompt_suggestions.clone(),
             sent,
+            slash_commands: state.slash_commands.clone(),
+            skills: state.skills.clone(),
+            cwd: state.cwd.as_str().map(str::to_owned),
         }
     }
 }
@@ -221,6 +243,14 @@ enum Req {
     Color(String),
     /// `restoreUndelivered`'s "save-to-origin" read of the origin's draft.
     SaveToOrigin { origin: String, sent: Stash },
+    /// `useSdkCommands`' list, for this session.
+    Commands(String),
+    /// The `@` picker's file search.
+    FsList,
+    /// The `@` picker's agent list, for this session.
+    Agents(String),
+    /// `useEmojiCompletionEnabled`'s settings read.
+    EmojiSetting,
 }
 
 /// What a call's resolution continues with.
@@ -270,6 +300,22 @@ pub struct Composer {
     dismissed_hints: Vec<&'static str>,
     ordinal_counter: f64,
     prompt_color: PromptColorState,
+    // ---- the pickers (menus.rs) ----
+    slash_menu: Option<menus::ListMenu>,
+    at_menu: Option<menus::AtMenu>,
+    emoji_menu: Option<menus::ListMenu>,
+    /// `useSdkCommands`' state: the session it loaded for, and its list.
+    sdk_commands: Option<(String, Option<Vec<slash::SdkCommand>>)>,
+    /// `emojiCompletionEnabled` (on until the setting says otherwise).
+    emoji_enabled: bool,
+    /// The setting effect's dep (`[cwd]`) when it last ran, and its request.
+    emoji_dep: Option<Option<String>>,
+    emoji_fetch: Option<FetchId>,
+    cwd: Option<String>,
+    slash_commands: Vec<String>,
+    skills: Vec<String>,
+    /// The pickers' requests, out with the entry point's effects.
+    menu_out: Vec<Out>,
     // ---- bookkeeping ----
     /// The effect deps changed since the last commit.
     dirty: bool,
@@ -289,19 +335,6 @@ impl Default for Composer {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// `encodeURIComponent`.
-fn encode_uri_component(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for b in s.bytes() {
-        if b.is_ascii_alphanumeric() || b"-_.!~*'()".contains(&b) {
-            out.push(b as char);
-        } else {
-            out.push_str(&format!("%{b:02X}"));
-        }
-    }
-    out
 }
 
 fn draft_url(id: &str) -> String {
@@ -436,6 +469,17 @@ impl Composer {
             dismissed_hints: Vec::new(),
             ordinal_counter: 0.0,
             prompt_color: PromptColorState::default(),
+            slash_menu: None,
+            at_menu: None,
+            emoji_menu: None,
+            sdk_commands: None,
+            emoji_enabled: true,
+            emoji_dep: None,
+            emoji_fetch: None,
+            cwd: None,
+            slash_commands: Vec::new(),
+            skills: Vec::new(),
+            menu_out: Vec::new(),
             dirty: false,
             next_id: 0,
             fetches: HashMap::new(),
@@ -600,16 +644,31 @@ impl Composer {
         self.dirty = true;
     }
 
-    /// `refreshPickerState(value, caret)` (PromptInput.tsx:1257): U07b
-    /// fills it (`slashTokenBeforeCaret`, the `@` and `:emoji` tokens);
-    /// until then no menu opens.
-    pub fn refresh_picker_state(&mut self, _value: &str, _caret: usize) {
-        self.picker = PickerState::default();
+    /// `refreshPickerState(value, caret)` (PromptInput.tsx:1257): the slash
+    /// token under the caret (`slashTokenBeforeCaret`, and whether the
+    /// whole input is that one `/word`), the `@` token, and the `:emoji`
+    /// token when emoji completion is on. Every write calls it.
+    pub fn refresh_picker_state(&mut self, value: &str, caret: usize) {
+        let before = &value[..slash::floor_boundary(value, caret)];
+        let slash_tok = slash::slash_token_before_caret(before);
+        self.picker = PickerState {
+            open: slash_tok.is_some(),
+            slash_query: slash_tok.map(str::to_owned),
+            slash_at_start: slash_tok.is_some() && slash::slash_at_start(value),
+            at_query: mention::at_token_before_caret(before).map(str::to_owned),
+            emoji_query: if self.emoji_enabled {
+                emoji::parse_emoji_trigger(before).map(str::to_owned)
+            } else {
+                None
+            },
+        };
+        self.sync_menus();
     }
 
     /// `closePickers` (PromptInput.tsx:1291).
     fn close_pickers(&mut self) {
         self.picker = PickerState::default();
+        self.sync_menus();
     }
 
     fn delete_draft(&mut self, out: &mut Vec<Out>) {
@@ -627,6 +686,8 @@ impl Composer {
     }
 
     fn commit_into(&mut self, out: &mut Vec<Out>) {
+        // The pickers' effects (children's effects run before the parent's).
+        out.append(&mut self.menu_out);
         // The render-time guard (:687): an injection before the first seed
         // counts as typed, on every render.
         if self.seeded_for.is_none() && self.injection_applied {
@@ -702,6 +763,11 @@ impl Composer {
             let url = format!("/api/sessions/{id}/prompt-color");
             self.fetch(&mut out, "GET", url, None, Req::Color(id));
         }
+        // `useSdkCommands(sessionId)` (fired first in the TS: the three are
+        // concurrent GETs), and the `@` picker's agent list if it is open.
+        self.load_sdk_commands(&mut out);
+        self.sync_menus();
+        out.append(&mut self.menu_out);
         out
     }
 
@@ -781,7 +847,16 @@ impl Composer {
                     return out;
                 }
             }
-            // The `:shortcode:` auto-complete (:2194) is U07b's.
+            // Typing the closing `:` of a known `:name:` swaps it for the
+            // emoji (:2197).
+            if self.emoji_enabled
+                && let Some((replaced, at)) = emoji::complete_on_close(&self.value, next, caret)
+            {
+                self.set_value(replaced.clone(), at);
+                self.refresh_picker_state(&replaced, at);
+                self.commit_into(&mut out);
+                return out;
+            }
         }
         if next != self.value {
             self.dirty = true;
@@ -890,6 +965,10 @@ impl Composer {
         let mut o = KeyOutcome::default();
         if composing {
             return o;
+        }
+        // An open picker's listener runs first (window, capture phase).
+        if let Some(taken) = self.menu_key(k, sel) {
+            return taken;
         }
         // Ctrl+C (:1414): interrupt a running turn, else clear the box.
         if k.ctrl && rules::is_letter_key(&k.key, &k.code, k.alt, 'c') && sel.start == sel.end {
@@ -1032,7 +1111,28 @@ impl Composer {
             self.commit_into(&mut o.out);
             return o;
         }
+        // What the browser does with a key every rule above left alone (a
+        // picker is open, so Enter and Tab stepped aside): Enter breaks the
+        // line (Shift+Enter is the editor's own), Tab moves focus.
+        if k.key == "Enter" && !k.shift && !k.meta {
+            o.handled = true;
+            o.out = self.type_newline(sel);
+        } else if k.key == "Tab" {
+            o.handled = true;
+            o.move_focus = Some(!k.shift);
+        }
         o
+    }
+
+    /// The textarea's own newline: the selection becomes `\n` and the edit
+    /// runs as typed (`onChange`), then lands in the editor.
+    fn type_newline(&mut self, sel: Selection) -> Vec<Out> {
+        let end = slash::floor_boundary(&self.value, sel.end);
+        let start = slash::floor_boundary(&self.value, sel.start.min(end));
+        let next = format!("{}\n{}", &self.value[..start], &self.value[end..]);
+        let out = self.edited(&next, start + 1, false);
+        self.text_rev += 1;
+        out
     }
 
     // ------------------------------------------------------------ send
@@ -1483,6 +1583,10 @@ impl Composer {
                     self.fetch(&mut out, r.method, r.url, Some(r.body), Req::Ignore);
                 }
             }
+            Req::Commands(for_id) => self.commands_settled(for_id, outcome),
+            Req::FsList => self.fs_list_settled(id, outcome),
+            Req::Agents(for_id) => self.agents_settled(id, for_id, outcome),
+            Req::EmojiSetting => self.emoji_setting_settled(id, outcome),
         }
         self.commit_into(&mut out);
         out

@@ -1,0 +1,37 @@
+[package]
+name = "claudius-git"
+description = "The Git page (U12a): the changes, the diff, the commit box, the branch switcher and the sync buttons of app/[workspaceId]/git/page.tsx, as a pure model over the GitData trait and its GPUI view"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+claudius-gpui-theme.workspace = true
+claudius-theme.workspace = true
+# The live `GitData`: the page's requests through a `Transport`.
+claudius-transport.workspace = true
+futures = "0.3"
+gpui-kit.workspace = true
+# `Intl.Collator(undefined, { numeric: true, sensitivity: "base" })`, the
+# Group-By-Directory tree's order (the same ICU4X claudius-core collates with).
+icu_collator = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+# The transport's futures need the engine's runtime (as the shell's do).
+tokio.workspace = true
+
+[dev-dependencies]
+anyhow = "1"
+# The answer readers' tests build `Response`s.
+bytes = "1"
+http = "1"
+# `TestAppContext` and `VisualTestContext` (as claudius-app's tests).
+gpui = { package = "gpui-pre", version = "=0.3.12", features = ["test-support"] }
+# The screenshot example's PNGs.
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+# CoreText (real glyph widths) and the offscreen Metal renderer.
+gpui_apple = { package = "gpui-pre-apple", version = "=0.3.12", features = ["font-kit", "test-support"] }
