@@ -1974,7 +1974,7 @@ impl Session {
                 // head into a CLI that never reads it. (The auto-mode
                 // `supportedModels` check rejects there: nothing to run.)
                 self.start_jsonl_watcher();
-                self.flush_queue_if_idle();
+                self.flush_queue_if_idle(true);
                 self.spawn_failed(message);
                 return;
             }
@@ -2013,7 +2013,9 @@ impl Session {
         // External writers (`claude --resume <id>` in a terminal) reach every
         // open tab without a manual refresh.
         self.start_jsonl_watcher();
-        self.spawn_flush_queue();
+        // `drainQueueOnStart` (CC 2.1.316): a head the user stopped behind
+        // stays queued, as the replaced Session would have left it.
+        self.spawn_drain_queue_on_start();
     }
 
     /// A CLI that can't be launched. The SDK spawns on its own and reports
@@ -2934,7 +2936,7 @@ impl Session {
                 if let Some(reason) = todo_clear {
                     self.clear_todos(reason);
                 }
-                self.spawn_flush_queue();
+                self.spawn_drain_queue_after_success();
             }
         }
     }
@@ -3394,7 +3396,40 @@ impl Session {
 
     fn spawn_flush_queue(&self) {
         let me = self.arc();
-        tokio::spawn(async move { me.flush_queue_if_idle() });
+        tokio::spawn(async move { me.flush_queue_if_idle(false) });
+    }
+
+    /// `drainQueueOnStart`: the drain at the end of `start()`, which leaves
+    /// a head held by a Stop (`unlessHeld`, CC 2.1.316).
+    fn spawn_drain_queue_on_start(&self) {
+        let me = self.arc();
+        tokio::spawn(async move { me.flush_queue_if_idle(true) });
+    }
+
+    /// `drainQueueAfterSuccess`: a successful turn ends any Stop hold
+    /// ([`Self::release_queue_holds`]), then drains as a Session that was
+    /// never replaced does.
+    fn spawn_drain_queue_after_success(&self) {
+        let me = self.arc();
+        tokio::spawn(async move {
+            me.release_queue_holds();
+            me.flush_queue_if_idle(false);
+        });
+    }
+
+    /// `releaseQueueHolds` (CC 2.1.316): clear the Stop hold on this
+    /// session's queue, only right before the success drain. The cache
+    /// mirrors the DB's flag, so nothing is written when nothing is held,
+    /// and a failed write leaves the cache held like the DB.
+    fn release_queue_holds(&self) {
+        self.load_queue_if_needed();
+        if !self.with(|st| st.queue.iter().any(|r| r.held_by_stop)) {
+            return;
+        }
+        if queue_db::release_holds(&self.cwd, &self.id).is_err() {
+            return;
+        }
+        self.with(|st| st.queue.iter_mut().for_each(|r| r.held_by_stop = false));
     }
 
     /// `reseedReadPathsAfterCompact` (B2.3): replay every Read path through
@@ -3470,9 +3505,15 @@ impl Session {
         transcript::session_messages(&text, include_system)
     }
 
-    /// `flushQueueIfIdle`.
-    pub fn flush_queue_if_idle(&self) {
-        if self.with(|st| st.done || st.status() != TurnStatus::Idle) {
+    /// `flushQueueIfIdle(opts)`. `unless_held` is `opts.unlessHeld`, the
+    /// `start()` drain's (CC 2.1.316): a head held by a Stop stays queued.
+    pub fn flush_queue_if_idle(&self, unless_held: bool) {
+        // CC 2.1.318: a session scheduled for thinking-replay recovery is
+        // about to be rebuilt with the failed prompt re-sent; the queue
+        // waits for the rebuilt session.
+        if self.with(|st| {
+            st.done || st.thinking_replay_recovery_scheduled || st.status() != TurnStatus::Idle
+        }) {
             return;
         }
         if self.draining.swap(true, Ordering::AcqRel) {
@@ -3483,7 +3524,7 @@ impl Session {
         if self.with(|st| st.queue.is_empty() || st.status() != TurnStatus::Idle) {
             return;
         }
-        let Ok(Some(head)) = queue_db::pop_head(&self.cwd, &self.id, false) else {
+        let Ok(Some(head)) = queue_db::pop_head(&self.cwd, &self.id, unless_held) else {
             return;
         };
         self.with(|st| st.queue.retain(|r| r.uuid != head.uuid));
@@ -3860,10 +3901,22 @@ impl Session {
     // ───────────────────────── mode / model / misc ────────────────────────
 
     /// `interrupt()` → still-queued uuids from the CLI's receipt.
+    ///
+    /// CC 2.1.316: a Stop on a working turn marks what's queued behind it as
+    /// held, so a replacement Session's `start()` drain (dead-process
+    /// restart, account switch, idle revival, server restart) leaves it. The
+    /// hold lasts until a turn here succeeds, or the user sends a held row
+    /// (Send now / send-all). The status is read before any await, and a DB
+    /// failure never stops the interrupt.
     pub async fn interrupt(&self) -> Vec<String> {
         let Some(h) = self.handle() else {
             return vec![];
         };
+        if self.with(|st| st.status() != TurnStatus::Idle)
+            && queue_db::hold_all(&self.cwd, &self.id).is_ok()
+        {
+            self.with(|st| st.queue.iter_mut().for_each(|r| r.held_by_stop = true));
+        }
         h.interrupt().await.unwrap_or_default()
     }
 

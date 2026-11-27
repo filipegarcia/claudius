@@ -1,0 +1,111 @@
+diff --git a/rust/crates/claudius-core/tests/session_start_golden.rs b/rust/crates/claudius-core/tests/session_start_golden.rs
+index af5e08df..33ef37f2 100644
+--- a/rust/crates/claudius-core/tests/session_start_golden.rs
++++ b/rust/crates/claudius-core/tests/session_start_golden.rs
+@@ -350,6 +350,10 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
+             })
+             .unwrap();
+     }
++    // A Stop's hold on them (CC 2.1.316).
++    if case["held"] == json!(true) {
++        queue_db::hold_all(&cwd, id).unwrap();
++    }
+     let projects = e
+         .config
+         .join("projects")
+@@ -593,7 +597,10 @@ async fn run(i: usize, case: &Value) -> Map<String, Value> {
+     if case["queued"].is_array() {
+         let rows: Vec<Value> = queue_db::list_queue(&cwd, id)
+             .into_iter()
+-            .map(|r| json!({"uuid": r.uuid, "text": r.text, "createdAtMs": r.created_at_ms}))
++            .map(|r| {
++                json!({"uuid": r.uuid, "text": r.text, "createdAtMs": r.created_at_ms,
++                       "heldByStop": r.held_by_stop})
++            })
+             .collect();
+         got.insert("queueAfter".into(), Value::Array(rows));
+     }
+diff --git a/rust/scripts/session-start-golden.mjs b/rust/scripts/session-start-golden.mjs
+index 8bc5b360..412c3d5a 100644
+--- a/rust/scripts/session-start-golden.mjs
++++ b/rust/scripts/session-start-golden.mjs
+@@ -186,7 +186,7 @@ const { Session } = await import(join(repo, "lib/server/session.ts"));
+ const { setSessionGoal } = await import(join(repo, "lib/server/sessions-db.ts"));
+ const { upsertDbAgent } = await import(join(repo, "lib/server/db-agents.ts"));
+ const { openDb } = await import(join(repo, "lib/server/db.ts"));
+-const { enqueueTail, listQueue } = await import(join(repo, "lib/server/queued-messages-db.ts"));
++const { enqueueTail, listQueue, holdAll } = await import(join(repo, "lib/server/queued-messages-db.ts"));
+ const sdkVersion = JSON.parse(readFileSync(join(dirname(fileURLToPath(realSdk)), "package.json"), "utf8")).version;
+ 
+ // Non-ASCII without escapes in this file.
+@@ -398,7 +398,8 @@ const LONG_NAME = "x".repeat(300);
+ // ([name, definition]), cwd (a kind, see `cwdFor`), bin, resume
+ // ("readable" | "unreadable" | "invalid utf-8" | "dates"), and (S27a) id
+ // (the session id), queued ([uuid, text] rows seeded into the session's
+-// queue), projects (create the CLI's project dir first, so the JSONL watcher
++// queue), held (then hold them, as a Stop does: CC 2.1.316), projects
++// (create the CLI's project dir first, so the JSONL watcher
+ // can start) and external (then append the `e-` timestamp chain to the
+ // session's transcript, as `claude --resume <id>` in a terminal would).
+ const CASES = [
+@@ -533,6 +534,30 @@ const CASES = [
+       ],
+     },
+   ],
++  // CC 2.1.316: rows a Stop held stay queued through start()'s drain
++  // (`unlessHeld`), after a CLI that can't be launched and after one that runs.
++  [
++    "binary missing, queued and held",
++    {},
++    {
++      id: "5c6d7e8f-9a0b-4c1d-8e2f-3a4b5c6d7e8f",
++      bin: "/nonexistent/claude",
++      queued: [
++        ["6d7e8f9a-0b1c-4d2e-9f3a-4b5c6d7e8f9a", "first"],
++        ["7e8f9a0b-1c2d-4e3f-8a4b-5c6d7e8f9a0b", "second"],
++      ],
++      held: true,
++    },
++  ],
++  [
++    "queued and held",
++    {},
++    {
++      id: "8f9a0b1c-2d3e-4f4a-9b5c-6d7e8f9a0b1c",
++      queued: [["9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d", "first"]],
++      held: true,
++    },
++  ],
+   ["binary missing, auto mode", { permissionMode: "auto", model: "claude-haiku-4-5" }, { bin: "/nonexistent/claude" }],
+   // S27c: the replay's `at` through `Date.parse`.
+   ["resume dates", { resume: RESUME_ID }, { resume: "dates" }],
+@@ -697,6 +722,7 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
+     await enqueueTail(cwd, { sessionId: id, uuid, text });
+     (await openDb(cwd)).prepare("UPDATE queued_messages SET created_at_ms = ? WHERE uuid = ?").run(QUEUED_AT, uuid);
+   }
++  if (extras.held) await holdAll(cwd, id);
+   const projects = join(process.env.CLAUDE_CONFIG_DIR, "projects", cwd.replace(/[^a-zA-Z0-9]/g, "-"));
+   if (extras.projects) {
+     mkdirSync(projects, { recursive: true });
+@@ -797,6 +823,7 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
+     resume: extras.resume ?? null,
+     transcriptHex: transcript === null ? null : transcript.toString("hex"),
+     ...(extras.queued ? { queued: extras.queued } : {}),
++    ...(extras.held ? { held: true } : {}),
+     ...(extras.projects ? { projects: true } : {}),
+     ...(extras.external ? { externalHex: Buffer.from(externalLines.map((l) => `${l}\n`).join("")).toString("hex") } : {}),
+     threw,
+@@ -824,7 +851,12 @@ for (const [i, [name, options, extras = {}]] of CASES.entries()) {
+       : {}),
+     ...(extras.queued
+       ? {
+-          queueAfter: (await listQueue(cwd, id)).map((r) => ({ uuid: r.uuid, text: r.text, createdAtMs: r.createdAtMs })),
++          queueAfter: (await listQueue(cwd, id)).map((r) => ({
++            uuid: r.uuid,
++            text: r.text,
++            createdAtMs: r.createdAtMs,
++            heldByStop: r.heldByStop,
++          })),
+           sent: s.buffer
+             .filter((e) => e.type === "sdk" && extras.queued.some(([uuid]) => uuid === e.message?.uuid))
+             .map((e) => e.message),

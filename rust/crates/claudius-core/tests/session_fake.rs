@@ -4442,3 +4442,179 @@ async fn a_dangerous_rm_in_bypass_mode_is_denied_at_once() {
         f.mgr.remove(&s.id).await;
     }
 }
+
+/// R14b (CC 2.1.316, "a message sent while Claude was working being answered
+/// after a Stop, once the session's process had been replaced"): a Stop on a
+/// working turn holds what's queued behind it; the stopped Session doesn't
+/// drain it (the turn didn't succeed); a replacement Session's `start()`
+/// drain leaves the held head; the next successful turn releases the hold
+/// and drains it.
+#[tokio::test]
+async fn a_stop_holds_the_queue_until_a_successful_turn() {
+    let script = json!({
+        "control": {"interrupt": {"$response": {"still_queued": []}, "$emit": [
+            {"type": "result", "subtype": "error_during_execution", "is_error": true,
+             "duration_ms": 1, "duration_api_ms": 1, "num_turns": 1, "total_cost_usd": 0.0,
+             "usage": {"input_tokens": 0, "output_tokens": 0}}]}},
+        "turns": [{"match": "hang", "steps": [{"$text": "thinking…"}], "result": false}]
+    });
+    let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+    let s = f.create(SessionOptions::default()).await;
+    let id = s.id.clone();
+    let mut sub = s.subscribe(None, Some("tab-1".into()));
+    until(&mut sub, is("holder_changed")).await;
+    s.send_input("please hang", &[], SendOptions::default());
+    until(&mut sub, |e| assistant_text(e) == Some("thinking…")).await;
+    // The first drained row hangs too, so the second stays queued for the
+    // release check below.
+    s.enqueue_message(
+        &json!("hang after the stop"),
+        None,
+        None,
+        false,
+        false,
+        false,
+    )
+    .unwrap();
+    s.enqueue_message(&json!("second"), None, None, false, false, false)
+        .unwrap();
+    s.interrupt().await;
+    until(&mut sub, |e| {
+        e["type"] == "turn_status" && e["status"] == "idle"
+    })
+    .await;
+    let rows = claudius_core::queue_db::list_queue(&f.cwd(), &id);
+    assert_eq!(rows.len(), 2);
+    assert!(
+        rows.iter().all(|r| r.held_by_stop),
+        "the Stop held both rows"
+    );
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert_eq!(s.queue_length(), 2, "a failed turn doesn't drain");
+    drop(sub);
+
+    // The account switch's rebuild: a new Session under the same id.
+    f.mgr.restart_in_place(&id).await.expect("restart");
+    let r = f.mgr.get(&id).expect("the replacement");
+    let mut sub = r.subscribe(None, Some("tab-1".into()));
+    until(&mut sub, is("holder_changed")).await;
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert_eq!(r.queue_length(), 2, "start()'s drain left the held head");
+    assert!(
+        claudius_core::queue_db::list_queue(&f.cwd(), &id)
+            .iter()
+            .all(|r| r.held_by_stop)
+    );
+
+    // A successful turn releases every hold, then drains the head (which
+    // hangs); the row behind it is queued and no longer held.
+    r.send_input("fresh", &[], SendOptions::default());
+    let evs = until(&mut sub, |e| assistant_text(e) == Some("thinking…")).await;
+    assert!(evs.iter().any(|e| assistant_text(e) == Some("echo:fresh")));
+    let rows = claudius_core::queue_db::list_queue(&f.cwd(), &id);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].text, json!("second"));
+    assert!(
+        !rows[0].held_by_stop,
+        "the successful turn released the hold"
+    );
+    assert_eq!(r.queue_length(), 1);
+    f.mgr.remove(&id).await;
+}
+
+/// R14b: a session whose CLI can't be launched (a replacement after a Stop,
+/// say) runs `start()`'s tail before the stream's error (S27a), and that
+/// flush is `unlessHeld` too: rows a Stop held stay queued and held. (The start golden's
+/// "binary missing, queued" case covers the unheld pop; it can't take a
+/// held case until R14d re-records it.)
+#[tokio::test]
+async fn a_session_that_cannot_launch_leaves_held_rows() {
+    let f = fixture();
+    let id = "5c6d7e8f-9a0b-4c1d-8e2f-3a4b5c6d7e8f";
+    for (uuid, text) in [("q-held-1", "first"), ("q-held-2", "second")] {
+        claudius_core::queue_db::enqueue_tail(
+            &f.cwd(),
+            claudius_core::queue_db::NewQueued {
+                session_id: id,
+                uuid: json!(uuid),
+                text: json!(text),
+                images: None,
+                slash: false,
+                from_suggestion: false,
+                from_goal: false,
+            },
+        )
+        .unwrap();
+    }
+    claudius_core::queue_db::hold_all(&f.cwd(), id).unwrap();
+    f.mgr.runtime.lock().unwrap().claude_bin = Some(PathBuf::from("/nonexistent/claude"));
+    let s = f
+        .create(SessionOptions {
+            id: Some(id.into()),
+            ..Default::default()
+        })
+        .await;
+    let mut sub = s.subscribe(None, Some("tab-1".into()));
+    until(&mut sub, |e| {
+        e["type"] == "error" && e["sessionEnded"] == true
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    let rows = claudius_core::queue_db::list_queue(&f.cwd(), id);
+    let texts: Vec<_> = rows.iter().map(|r| r.text.clone()).collect();
+    assert_eq!(texts, vec![json!("first"), json!("second")]);
+    assert!(rows.iter().all(|r| r.held_by_stop), "still held");
+    f.mgr.remove(id).await;
+}
+
+/// R14b: a Stop on an idle session holds nothing (`getStatus()` is read
+/// first), so a replacement still drains the queue at `start()`.
+#[tokio::test]
+async fn a_stop_while_idle_holds_nothing() {
+    // The interrupt ends in an error result, so no success drain races the
+    // check.
+    let script = json!({
+        "control": {"interrupt": {"$response": {"still_queued": []}, "$emit": [
+            {"type": "result", "subtype": "error_during_execution", "is_error": true,
+             "duration_ms": 1, "duration_api_ms": 1, "num_turns": 1, "total_cost_usd": 0.0,
+             "usage": {"input_tokens": 0, "output_tokens": 0}}]}}
+    });
+    let f = fixture_with(&[("FAKE_CLAUDE_SCRIPT", script.to_string())]);
+    let s = f.create(SessionOptions::default()).await;
+    let id = s.id.clone();
+    let mut sub = s.subscribe(None, Some("tab-1".into()));
+    until(&mut sub, is("holder_changed")).await;
+    // A turn first, so `start()`'s drain and the success drain have run
+    // (each is spawned) before the row lands.
+    s.send_input("warm up", &[], SendOptions::default());
+    until(&mut sub, |e| assistant_text(e) == Some("echo:warm up")).await;
+    until(&mut sub, |e| {
+        e["type"] == "turn_status" && e["status"] == "idle"
+    })
+    .await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    // Queued straight into the store, as a row left by an earlier boot.
+    claudius_core::queue_db::enqueue_tail(
+        &f.cwd(),
+        claudius_core::queue_db::NewQueued {
+            session_id: &id,
+            uuid: json!("q-idle"),
+            text: json!("left over"),
+            images: None,
+            slash: false,
+            from_suggestion: false,
+            from_goal: false,
+        },
+    )
+    .unwrap();
+    s.interrupt().await;
+    let rows = claudius_core::queue_db::list_queue(&f.cwd(), &id);
+    assert_eq!(rows.len(), 1);
+    assert!(!rows[0].held_by_stop, "an idle Stop holds nothing");
+    drop(sub);
+    f.mgr.restart_in_place(&id).await.expect("restart");
+    let r = f.mgr.get(&id).expect("the replacement");
+    let mut sub = r.subscribe(None, Some("tab-1".into()));
+    until(&mut sub, |e| assistant_text(e) == Some("echo:left over")).await;
+    f.mgr.remove(&id).await;
+}
