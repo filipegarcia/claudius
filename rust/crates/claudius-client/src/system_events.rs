@@ -34,10 +34,9 @@
 //!   the top (`withPagedCompactBoundary`).
 //! - `jumpToUuid`: `loadOlder` until a bubble holds the uuid (at most 200
 //!   pages); the outcome is an [`Effect::ActionResolved`]. Each page is
-//!   looked at once it is folded in. The TS reads refs that its commit
-//!   updates only after the `await` has continued, so in a browser it
-//!   re-fetches each page once and gives up after the first (the U01h
-//!   note); that race isn't ported.
+//!   looked at once it is folded in, and the next cursor is taken from it
+//!   (the TS since U01o; before, it read refs React updates only after the
+//!   `await` continued, and re-fetched the first cursor).
 //!
 //! Deliberate, with the crate's convention for fields the TS copies
 //! unchecked: a non-string `uuid` reads as `""`; a non-string `detail`
@@ -668,10 +667,9 @@ impl ChatState {
     /// outcome is an [`Effect::ActionResolved`], now or after the last page
     /// it needed.
     ///
-    /// The TS reads `messagesRef` / `hasMoreAboveRef`, which a page's
-    /// commit updates only after its `await loadOlder()` has continued, so
-    /// in a browser it looks one page behind (see the U01h note); this
-    /// looks at each page once it is folded in.
+    /// Each page is resolved against once it is folded in, as the TS does
+    /// since U01o (it keeps the pages it merged rather than reading
+    /// `messagesRef`, which catches up only after React commits).
     pub fn jump_to_uuid(&mut self, uuid: &str, env: &mut dyn ClientEnv) -> Vec<Effect> {
         let mut cx = Cx::new(env);
         let jump = Jump {

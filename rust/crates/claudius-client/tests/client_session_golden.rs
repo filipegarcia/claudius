@@ -551,6 +551,10 @@ fn replays_the_ts_golden() {
                     "setModel" | "setEffort" | "setUltracode" | "setFast" | "setAdvisorModel"
                     | "reEnableAdvisor" | "setAgent" => status_action(&mut h, action, args),
                     "loadOlder" => h.state.load_older(&mut h.env),
+                    "jumpToUuid" => {
+                        let target = args[0].as_str().unwrap();
+                        h.state.jump_to_uuid(target, &mut h.env)
+                    }
                     "clearTodos" => h.state.clear_todos(&mut h.env),
                     "updateTodoItem" => {
                         let s = |i: usize| args[i].as_str().unwrap();

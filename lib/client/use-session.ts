@@ -6395,20 +6395,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
     }).catch(() => {});
   }, []);
 
-  const loadOlder = useCallback(async () => {
-    const id = sessionIdRef.current;
-    if (!id) return;
-    if (!hasMoreAbove) return;
-    if (loadingOlder) return;
-    setLoadingOlder(true);
-    try {
+  // One transcript page before `list`'s oldest bubble, merged into
+  // `messages`. Resolves to the page's fresh bubbles and whether more history
+  // is above, or null when the page couldn't be read. Takes the list to page
+  // from rather than reading `messagesRef`, which only catches up once React
+  // commits: `jumpToUuid` pages again before that (U01o).
+  const fetchOlderPage = useCallback(
+    async (
+      id: string,
+      list: DisplayMessage[],
+    ): Promise<{ fresh: DisplayMessage[]; hasMore: boolean } | null> => {
       // The transcript route looks up `before` against the JSONL's raw
       // wrapper uuids — pass an SDK wrapper uuid (the first split folded
       // into the head bubble) instead of the bubble's primary identity
       // (which is the Anthropic `message.id`, not present in JSONL records'
       // top-level `uuid` field). For user-message heads, the primary uuid
       // IS the wrapper uuid, so the fallback works without extra cases.
-      const headBubble = messagesRef.current[0];
+      const headBubble = list[0];
       const head =
         headBubble?.foldedSdkUuids?.values().next().value ?? headBubble?.uuid;
       const url = head
@@ -6423,7 +6426,7 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
         // IntersectionObserver stops re-firing loadOlder in a tight loop
         // (the "Loading older messages…" / "Scroll up" flicker).
         setHasMoreAbove(false);
-        return;
+        return null;
       }
       const data = (await res.json()) as {
         messages: Array<Record<string, unknown>>;
@@ -6433,12 +6436,12 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       // synthesizeOlder drops the compaction summary as plumbing; restore its
       // divider when this page reaches the top of the history (CC 2.1.301).
       setSystemEntries((prev) => withPagedCompactBoundary(prev, data.messages, data.hasMore));
-      // Compute fresh prepends against the current list up front so we can
-      // tell whether this page actually moved the head cursor. The cursor is
-      // always messagesRef.current[0]; if nothing fresh is prepended the head
-      // can't change, so a subsequent loadOlder would re-fetch this exact
-      // page forever — the second source of the flicker.
-      const seen = new Set(messagesRef.current.map((m) => m.uuid));
+      // Compute fresh prepends against the list up front so we can tell
+      // whether this page actually moved the head cursor. The cursor is
+      // always the list's oldest bubble; if nothing fresh is prepended the
+      // head can't change, so a subsequent loadOlder would re-fetch this
+      // exact page forever — the second source of the flicker.
+      const seen = new Set(list.map((m) => m.uuid));
       const fresh = synth.messages.filter((m) => !seen.has(m.uuid));
       if (fresh.length > 0) {
         setMessages((prev) => {
@@ -6449,15 +6452,28 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
           return stillFresh.length > 0 ? [...stillFresh, ...prev] : prev;
         });
         setHasMoreAbove(data.hasMore);
-      } else {
-        // Page resolved but every record dedupes against what's already
-        // loaded — no forward progress is possible. Stop paginating.
-        setHasMoreAbove(false);
+        return { fresh, hasMore: data.hasMore };
       }
+      // Page resolved but every record dedupes against what's already
+      // loaded — no forward progress is possible. Stop paginating.
+      setHasMoreAbove(false);
+      return { fresh, hasMore: false };
+    },
+    [],
+  );
+
+  const loadOlder = useCallback(async () => {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    if (!hasMoreAbove) return;
+    if (loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      await fetchOlderPage(id, messagesRef.current);
     } finally {
       setLoadingOlder(false);
     }
-  }, [hasMoreAbove, loadingOlder]);
+  }, [hasMoreAbove, loadingOlder, fetchOlderPage]);
 
   // Stable ref that always points to the latest `loadOlder` closure. Used by
   // `loadUntilTasksFoundRef` below so that function doesn't go stale when
@@ -6556,8 +6572,23 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
    */
   const jumpToUuid = useCallback(
     async (uuid: string): Promise<string | null> => {
+      // The pages this jump merged, oldest first. `messagesRef` and
+      // `hasMoreAboveRef` only catch up once React commits, which is after
+      // each `await` below has continued, so the jump keeps its own view:
+      // reading the refs alone re-fetched the same cursor and gave up after
+      // the first page (U01o).
+      let loaded: DisplayMessage[] = [];
+      const known = (): DisplayMessage[] => {
+        const committed = messagesRef.current;
+        if (loaded.length === 0) return committed;
+        const seen = new Set(committed.map((m) => m.uuid));
+        return sortMessagesByChronology([
+          ...loaded.filter((m) => !seen.has(m.uuid)),
+          ...committed,
+        ]);
+      };
       const resolve = (): string | null => {
-        for (const m of messagesRef.current) {
+        for (const m of known()) {
           if (m.uuid === uuid) return m.uuid;
           if (m.foldedSdkUuids?.has(uuid)) return m.uuid;
         }
@@ -6565,17 +6596,30 @@ export function useSession(opts?: { defaultCwd?: string | null }): ChatState & C
       };
       const first = resolve();
       if (first) return first;
+      // loadOlder's guards: no session, or a page already in flight.
+      const id = sessionIdRef.current;
+      if (!id || loadingOlder) return null;
+      let more = hasMoreAboveRef.current;
       // Cap iterations defensively — transcripts above ~10k messages are
       // pathological enough that we'd rather give up than spin.
       for (let i = 0; i < 200; i++) {
-        if (!hasMoreAboveRef.current) break;
-        await loadOlder();
+        if (!more) break;
+        setLoadingOlder(true);
+        let page: { fresh: DisplayMessage[]; hasMore: boolean } | null;
+        try {
+          page = await fetchOlderPage(id, known());
+        } finally {
+          setLoadingOlder(false);
+        }
+        if (!page) break;
+        loaded = [...page.fresh, ...loaded];
+        more = page.hasMore;
         const next = resolve();
         if (next) return next;
       }
       return resolve();
     },
-    [loadOlder],
+    [loadingOlder, fetchOlderPage],
   );
 
   const setModel = useCallback(

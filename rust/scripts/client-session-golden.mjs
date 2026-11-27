@@ -2478,6 +2478,8 @@ const JU = (uuid, content, extra = {}) => ({ type: "user", uuid, message: { role
 const JA = (uuid, id, content, extra = {}) => ({ type: "assistant", uuid, message: { id, role: "assistant", content }, ...extra });
 const PAGE_URL = "^/api/sessions/[^/]+/transcript";
 const page = (messages, hasMore) => ({ status: 200, body: { messages, hasMore } });
+/** `jumpToUuid(uuid)`, recording what it resolved to (U01o). */
+const jump = (uuid) => ({ ...call("jumpToUuid", uuid), resolve: true });
 
 scenarios.push(
   {
@@ -2888,6 +2890,60 @@ scenarios.push(
       call("loadOlder"),
       ev({ type: "replay_done", hasMoreAbove: true }),
       call("loadOlder"),
+    ],
+  },
+  // U01o: `jumpToUuid` pages older history in until a bubble holds the uuid
+  // (its own, or a folded SDK uuid), each page resolved once it's merged
+  // and the next cursor taken from it.
+  {
+    name: "system-jumpToUuid",
+    routes: [
+      [
+        "GET",
+        PAGE_URL,
+        [
+          page(
+            [
+              JU("k-u3", "third", { timestamp: "2025-11-16T12:30:00.000Z" }),
+              JA("k-a3", "msg_K3", [{ type: "text", text: "three" }]),
+            ],
+            true,
+          ),
+          page(
+            [
+              JU("k-u2", "second", { timestamp: "2025-11-16T12:20:00.000Z" }),
+              JA("k-a2a", "msg_K2", [{ type: "text", text: "two" }]),
+              JA("k-a2b", "msg_K2", [{ type: "tool_use", id: "toolu_K", name: "Bash", input: { command: "ls" } }]),
+              JU("k-r2", [{ type: "tool_result", tool_use_id: "toolu_K", content: "a" }]),
+            ],
+            true,
+          ),
+          page([JU("k-u1", "first", { timestamp: "2025-11-16T12:10:00.000Z" })], false),
+        ],
+      ],
+    ],
+    steps: [
+      ev(READY),
+      A("k-live", M("msg_KL", [{ type: "text", text: "live" }]), { at: NOW + 3000 }),
+      ev({ type: "replay_done", hasMoreAbove: true }),
+      jump("msg_KL"),
+      jump("k-a2b"),
+      jump("msg_K3"),
+      jump("nope"),
+      jump("nope"),
+      jump("k-u1"),
+    ],
+  },
+  {
+    name: "system-jumpToUuid stops when the cursor can't move",
+    routes: [["GET", PAGE_URL, [{ status: 400, body: { error: "before uuid not found" } }]]],
+    steps: [
+      jump("gone"),
+      ev(READY),
+      A("g-a", M("msg_G", [{ type: "text", text: "head" }]), { at: NOW + 2000 }),
+      ev({ type: "replay_done", hasMoreAbove: true }),
+      jump("gone"),
+      jump("gone"),
     ],
   },
 );

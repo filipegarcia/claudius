@@ -76347,6 +76347,980 @@
    ]
   },
   {
+   "name": "system-jumpToUuid",
+   "routes": [
+    [
+     "GET",
+     "^/api/sessions/[^/]+/transcript",
+     [
+      {
+       "status": 200,
+       "body": {
+        "messages": [
+         {
+          "type": "user",
+          "uuid": "k-u3",
+          "message": {
+           "role": "user",
+           "content": "third"
+          },
+          "timestamp": "2025-11-16T12:30:00.000Z"
+         },
+         {
+          "type": "assistant",
+          "uuid": "k-a3",
+          "message": {
+           "id": "msg_K3",
+           "role": "assistant",
+           "content": [
+            {
+             "type": "text",
+             "text": "three"
+            }
+           ]
+          }
+         }
+        ],
+        "hasMore": true
+       }
+      },
+      {
+       "status": 200,
+       "body": {
+        "messages": [
+         {
+          "type": "user",
+          "uuid": "k-u2",
+          "message": {
+           "role": "user",
+           "content": "second"
+          },
+          "timestamp": "2025-11-16T12:20:00.000Z"
+         },
+         {
+          "type": "assistant",
+          "uuid": "k-a2a",
+          "message": {
+           "id": "msg_K2",
+           "role": "assistant",
+           "content": [
+            {
+             "type": "text",
+             "text": "two"
+            }
+           ]
+          }
+         },
+         {
+          "type": "assistant",
+          "uuid": "k-a2b",
+          "message": {
+           "id": "msg_K2",
+           "role": "assistant",
+           "content": [
+            {
+             "type": "tool_use",
+             "id": "toolu_K",
+             "name": "Bash",
+             "input": {
+              "command": "ls"
+             }
+            }
+           ]
+          }
+         },
+         {
+          "type": "user",
+          "uuid": "k-r2",
+          "message": {
+           "role": "user",
+           "content": [
+            {
+             "type": "tool_result",
+             "tool_use_id": "toolu_K",
+             "content": "a"
+            }
+           ]
+          }
+         }
+        ],
+        "hasMore": true
+       }
+      },
+      {
+       "status": 200,
+       "body": {
+        "messages": [
+         {
+          "type": "user",
+          "uuid": "k-u1",
+          "message": {
+           "role": "user",
+           "content": "first"
+          },
+          "timestamp": "2025-11-16T12:10:00.000Z"
+         }
+        ],
+        "hasMore": false
+       }
+      }
+     ]
+    ]
+   ],
+   "prelude": {
+    "eventSource": "/api/sessions/sess-1/stream?tail=20&tabId=tab-0b30557a9fc4e90e",
+    "uuids": 0,
+    "at": 1763300000000,
+    "state": {
+     "sessionId": "sess-1",
+     "ready": false,
+     "pending": false,
+     "backgroundTasks": 0,
+     "turnStartedAt": null,
+     "lastTurnCompletedAt": null,
+     "readOnly": false,
+     "messages": [],
+     "systemEntries": [],
+     "runningHook": null,
+     "needsInput": false,
+     "toolProgress": [],
+     "queue": [],
+     "pendingPermission": null,
+     "pendingPermissionCount": 0,
+     "pendingAsk": null,
+     "pendingAskCount": 0,
+     "pendingElicitation": null,
+     "pendingElicitationCount": 0,
+     "feedbackSurvey": null,
+     "opusOverloadNudge": null,
+     "apiRetry": null,
+     "longContextCreditsNudge": null,
+     "authFailedNudge": null,
+     "tokenExpiringNudge": null,
+     "tips": [],
+     "sessionRecap": {
+      "status": "idle",
+      "text": null,
+      "at": null,
+      "origin": null,
+      "errorReason": null
+     },
+     "errors": [],
+     "processExited": false,
+     "createError": null,
+     "slashCommands": [],
+     "agents": [],
+     "mainAgent": null,
+     "account": null,
+     "transcriptPath": null,
+     "skippedBootSession": null,
+     "accountsConfigured": 0,
+     "permissionMode": "default",
+     "model": null,
+     "effort": "auto",
+     "appliedEffort": {
+      "$undefined": true
+     },
+     "effortChangeWaits": false,
+     "ultracode": false,
+     "fastMode": false,
+     "advisorModel": null,
+     "sessions": [
+      {
+       "id": "sess-1",
+       "cwd": "/work/proj",
+       "title": null,
+       "lastModified": 1763299000000,
+       "status": "idle"
+      }
+     ],
+     "skills": [],
+     "cwd": "/work/proj",
+     "agentCwd": null,
+     "usage": null,
+     "planUsage": null,
+     "tasks": [],
+     "liveBackgroundTaskIds": null,
+     "subagentMessages": [],
+     "pendingPlan": null,
+     "fastModeState": null,
+     "fastModeDisabledReason": null,
+     "fastModeNotice": null,
+     "modelSwitchNotice": null,
+     "chatCommandModelNotice": null,
+     "advisorDisabledNotice": null,
+     "autoModeOffNotice": null,
+     "modeChangeRefusedNotice": null,
+     "promptSuggestions": [],
+     "suggestedUuids": [],
+     "goalUuids": [],
+     "replaying": true,
+     "streamStatus": "live",
+     "hasMoreAbove": false,
+     "catchingUp": true,
+     "loadingOlder": false,
+     "latestTodos": [],
+     "todosStale": false,
+     "recentEdits": [],
+     "backgroundBashes": [],
+     "scheduledLoops": [],
+     "sdkQueuedTurns": 0,
+     "toolHistory": [],
+     "sessionTitle": null,
+     "goal": null,
+     "todosAutoCleared": null
+    },
+    "fetches": [
+     {
+      "method": "POST",
+      "url": "/api/sessions",
+      "headers": {
+       "Content-Type": "application/json"
+      },
+      "body": "{\"resume\":\"sess-1\"}",
+      "response": {
+       "status": 200,
+       "body": "{\"id\":\"sess-1\",\"cwd\":\"/work/proj\"}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/sess-1/advisor",
+      "response": {
+       "status": 200,
+       "body": "{\"model\":null}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions",
+      "response": {
+       "status": 200,
+       "body": "[{\"id\":\"sess-1\",\"cwd\":\"/work/proj\",\"title\":null,\"status\":\"idle\"}]"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/all?limit=25",
+      "response": {
+       "status": 200,
+       "body": "{\"sessions\":[{\"sessionId\":\"sess-1\",\"cwd\":\"/work/proj\",\"lastModified\":1763299000000}],\"accountsConfigured\":0}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/sess-1/suggested-messages",
+      "response": {
+       "status": 200,
+       "body": "{\"uuids\":[]}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/sess-1/goal-messages",
+      "response": {
+       "status": 200,
+       "body": "{\"uuids\":[]}"
+      }
+     }
+    ],
+    "timers": [
+     {
+      "op": "set",
+      "id": 1,
+      "kind": "interval",
+      "ms": 30000
+     }
+    ],
+    "windowEvents": [
+     {
+      "type": "claudius:session-bound",
+      "detail": {
+       "sessionId": "sess-1"
+      }
+     }
+    ],
+    "streams": [
+     {
+      "op": "open",
+      "es": 0,
+      "url": "/api/sessions/sess-1/stream?tail=20&tabId=tab-0b30557a9fc4e90e"
+     }
+    ],
+    "storage": {
+     "claudius:boot-pending": "{\"id\":\"sess-1\",\"at\":1763300000000,\"load\":1763299995000}"
+    }
+   },
+   "steps": [
+    {
+     "data": "{\"type\":\"ready\",\"sessionId\":\"sess-1\"}",
+     "at": 1763300001000,
+     "state": {
+      "ready": true
+     }
+    },
+    {
+     "data": "{\"type\":\"sdk\",\"message\":{\"session_id\":\"sess-1\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_KL\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-opus-4-5\",\"content\":[{\"type\":\"text\",\"text\":\"live\"}],\"stop_reason\":null,\"usage\":{\"input_tokens\":10,\"output_tokens\":5,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0}},\"parent_tool_use_id\":null,\"uuid\":\"k-live\"},\"at\":1763300003000}",
+     "at": 1763300002000,
+     "state": {
+      "pending": true,
+      "turnStartedAt": 1763300002000,
+      "messages": [
+       {
+        "uuid": "msg_KL",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "live"
+         }
+        ],
+        "streaming": true,
+        "foldedSdkUuids": [
+         "k-live"
+        ],
+        "createdAt": 1763300003000
+       }
+      ],
+      "usage": {
+       "totalCostUsd": 0.000525,
+       "numTurns": 0,
+       "durationMs": 0,
+       "durationApiMs": 0,
+       "inputTokens": 10,
+       "outputTokens": 5,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    {
+     "data": "{\"type\":\"replay_done\",\"hasMoreAbove\":true}",
+     "at": 1763300003000,
+     "state": {
+      "pending": false,
+      "turnStartedAt": null,
+      "lastTurnCompletedAt": 1763300003000,
+      "messages": [
+       {
+        "uuid": "msg_KL",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "live"
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "k-live"
+        ],
+        "createdAt": 1763300003000
+       }
+      ],
+      "replaying": false,
+      "hasMoreAbove": true,
+      "catchingUp": false
+     },
+     "fetches": [
+      {
+       "method": "GET",
+       "url": "/api/sessions/sess-1/pending-prompts",
+       "response": {
+        "status": 200,
+        "body": "{\"asks\":[],\"permissions\":[],\"elicitations\":[]}"
+       }
+      }
+     ],
+     "storage": {}
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "msg_KL"
+     ],
+     "resolved": "msg_KL",
+     "at": 1763300004000,
+     "state": {}
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "k-a2b"
+     ],
+     "resolved": "msg_K2",
+     "at": 1763300005000,
+     "state": {
+      "messages": [
+       {
+        "uuid": "k-u2",
+        "role": "user",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "second"
+         }
+        ],
+        "createdAt": 1763295600000
+       },
+       {
+        "uuid": "msg_K2",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "two"
+         },
+         {
+          "kind": "tool_use",
+          "id": "toolu_K",
+          "name": "Bash",
+          "input": {
+           "command": "ls"
+          },
+          "startedAt": 1763300005000,
+          "result": {
+           "content": "a"
+          }
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "k-a2a",
+         "k-a2b"
+        ],
+        "createdAt": 1763295600000
+       },
+       {
+        "uuid": "k-u3",
+        "role": "user",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "third"
+         }
+        ],
+        "createdAt": 1763296200000
+       },
+       {
+        "uuid": "msg_K3",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "three"
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "k-a3"
+        ],
+        "createdAt": 1763296200000
+       },
+       {
+        "uuid": "msg_KL",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "live"
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "k-live"
+        ],
+        "createdAt": 1763300003000
+       }
+      ]
+     },
+     "fetches": [
+      {
+       "method": "GET",
+       "url": "/api/sessions/sess-1/transcript?before=k-live&limit=50",
+       "response": {
+        "status": 200,
+        "body": "{\"messages\":[{\"type\":\"user\",\"uuid\":\"k-u3\",\"message\":{\"role\":\"user\",\"content\":\"third\"},\"timestamp\":\"2025-11-16T12:30:00.000Z\"},{\"type\":\"assistant\",\"uuid\":\"k-a3\",\"message\":{\"id\":\"msg_K3\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"three\"}]}}],\"hasMore\":true}"
+       }
+      },
+      {
+       "method": "GET",
+       "url": "/api/sessions/sess-1/transcript?before=k-u3&limit=50",
+       "response": {
+        "status": 200,
+        "body": "{\"messages\":[{\"type\":\"user\",\"uuid\":\"k-u2\",\"message\":{\"role\":\"user\",\"content\":\"second\"},\"timestamp\":\"2025-11-16T12:20:00.000Z\"},{\"type\":\"assistant\",\"uuid\":\"k-a2a\",\"message\":{\"id\":\"msg_K2\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"two\"}]}},{\"type\":\"assistant\",\"uuid\":\"k-a2b\",\"message\":{\"id\":\"msg_K2\",\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_K\",\"name\":\"Bash\",\"input\":{\"command\":\"ls\"}}]}},{\"type\":\"user\",\"uuid\":\"k-r2\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"toolu_K\",\"content\":\"a\"}]}}],\"hasMore\":true}"
+       }
+      }
+     ]
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "msg_K3"
+     ],
+     "resolved": "msg_K3",
+     "at": 1763300006000,
+     "state": {}
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "nope"
+     ],
+     "resolved": null,
+     "at": 1763300007000,
+     "state": {
+      "messages": [
+       {
+        "uuid": "k-u1",
+        "role": "user",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "first"
+         }
+        ],
+        "createdAt": 1763295000000
+       },
+       {
+        "uuid": "k-u2",
+        "role": "user",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "second"
+         }
+        ],
+        "createdAt": 1763295600000
+       },
+       {
+        "uuid": "msg_K2",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "two"
+         },
+         {
+          "kind": "tool_use",
+          "id": "toolu_K",
+          "name": "Bash",
+          "input": {
+           "command": "ls"
+          },
+          "startedAt": 1763300005000,
+          "result": {
+           "content": "a"
+          }
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "k-a2a",
+         "k-a2b"
+        ],
+        "createdAt": 1763295600000
+       },
+       {
+        "uuid": "k-u3",
+        "role": "user",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "third"
+         }
+        ],
+        "createdAt": 1763296200000
+       },
+       {
+        "uuid": "msg_K3",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "three"
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "k-a3"
+        ],
+        "createdAt": 1763296200000
+       },
+       {
+        "uuid": "msg_KL",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "live"
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "k-live"
+        ],
+        "createdAt": 1763300003000
+       }
+      ],
+      "hasMoreAbove": false
+     },
+     "fetches": [
+      {
+       "method": "GET",
+       "url": "/api/sessions/sess-1/transcript?before=k-u2&limit=50",
+       "response": {
+        "status": 200,
+        "body": "{\"messages\":[{\"type\":\"user\",\"uuid\":\"k-u1\",\"message\":{\"role\":\"user\",\"content\":\"first\"},\"timestamp\":\"2025-11-16T12:10:00.000Z\"}],\"hasMore\":false}"
+       }
+      }
+     ]
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "nope"
+     ],
+     "resolved": null,
+     "at": 1763300008000,
+     "state": {}
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "k-u1"
+     ],
+     "resolved": "k-u1",
+     "at": 1763300009000,
+     "state": {}
+    }
+   ]
+  },
+  {
+   "name": "system-jumpToUuid stops when the cursor can't move",
+   "routes": [
+    [
+     "GET",
+     "^/api/sessions/[^/]+/transcript",
+     [
+      {
+       "status": 400,
+       "body": {
+        "error": "before uuid not found"
+       }
+      }
+     ]
+    ]
+   ],
+   "prelude": {
+    "eventSource": "/api/sessions/sess-1/stream?tail=20&tabId=tab-0b30557a9fc4e90e",
+    "uuids": 0,
+    "at": 1763300000000,
+    "state": {
+     "sessionId": "sess-1",
+     "ready": false,
+     "pending": false,
+     "backgroundTasks": 0,
+     "turnStartedAt": null,
+     "lastTurnCompletedAt": null,
+     "readOnly": false,
+     "messages": [],
+     "systemEntries": [],
+     "runningHook": null,
+     "needsInput": false,
+     "toolProgress": [],
+     "queue": [],
+     "pendingPermission": null,
+     "pendingPermissionCount": 0,
+     "pendingAsk": null,
+     "pendingAskCount": 0,
+     "pendingElicitation": null,
+     "pendingElicitationCount": 0,
+     "feedbackSurvey": null,
+     "opusOverloadNudge": null,
+     "apiRetry": null,
+     "longContextCreditsNudge": null,
+     "authFailedNudge": null,
+     "tokenExpiringNudge": null,
+     "tips": [],
+     "sessionRecap": {
+      "status": "idle",
+      "text": null,
+      "at": null,
+      "origin": null,
+      "errorReason": null
+     },
+     "errors": [],
+     "processExited": false,
+     "createError": null,
+     "slashCommands": [],
+     "agents": [],
+     "mainAgent": null,
+     "account": null,
+     "transcriptPath": null,
+     "skippedBootSession": null,
+     "accountsConfigured": 0,
+     "permissionMode": "default",
+     "model": null,
+     "effort": "auto",
+     "appliedEffort": {
+      "$undefined": true
+     },
+     "effortChangeWaits": false,
+     "ultracode": false,
+     "fastMode": false,
+     "advisorModel": null,
+     "sessions": [
+      {
+       "id": "sess-1",
+       "cwd": "/work/proj",
+       "title": null,
+       "lastModified": 1763299000000,
+       "status": "idle"
+      }
+     ],
+     "skills": [],
+     "cwd": "/work/proj",
+     "agentCwd": null,
+     "usage": null,
+     "planUsage": null,
+     "tasks": [],
+     "liveBackgroundTaskIds": null,
+     "subagentMessages": [],
+     "pendingPlan": null,
+     "fastModeState": null,
+     "fastModeDisabledReason": null,
+     "fastModeNotice": null,
+     "modelSwitchNotice": null,
+     "chatCommandModelNotice": null,
+     "advisorDisabledNotice": null,
+     "autoModeOffNotice": null,
+     "modeChangeRefusedNotice": null,
+     "promptSuggestions": [],
+     "suggestedUuids": [],
+     "goalUuids": [],
+     "replaying": true,
+     "streamStatus": "live",
+     "hasMoreAbove": false,
+     "catchingUp": true,
+     "loadingOlder": false,
+     "latestTodos": [],
+     "todosStale": false,
+     "recentEdits": [],
+     "backgroundBashes": [],
+     "scheduledLoops": [],
+     "sdkQueuedTurns": 0,
+     "toolHistory": [],
+     "sessionTitle": null,
+     "goal": null,
+     "todosAutoCleared": null
+    },
+    "fetches": [
+     {
+      "method": "POST",
+      "url": "/api/sessions",
+      "headers": {
+       "Content-Type": "application/json"
+      },
+      "body": "{\"resume\":\"sess-1\"}",
+      "response": {
+       "status": 200,
+       "body": "{\"id\":\"sess-1\",\"cwd\":\"/work/proj\"}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/sess-1/advisor",
+      "response": {
+       "status": 200,
+       "body": "{\"model\":null}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions",
+      "response": {
+       "status": 200,
+       "body": "[{\"id\":\"sess-1\",\"cwd\":\"/work/proj\",\"title\":null,\"status\":\"idle\"}]"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/all?limit=25",
+      "response": {
+       "status": 200,
+       "body": "{\"sessions\":[{\"sessionId\":\"sess-1\",\"cwd\":\"/work/proj\",\"lastModified\":1763299000000}],\"accountsConfigured\":0}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/sess-1/suggested-messages",
+      "response": {
+       "status": 200,
+       "body": "{\"uuids\":[]}"
+      }
+     },
+     {
+      "method": "GET",
+      "url": "/api/sessions/sess-1/goal-messages",
+      "response": {
+       "status": 200,
+       "body": "{\"uuids\":[]}"
+      }
+     }
+    ],
+    "timers": [
+     {
+      "op": "set",
+      "id": 1,
+      "kind": "interval",
+      "ms": 30000
+     }
+    ],
+    "windowEvents": [
+     {
+      "type": "claudius:session-bound",
+      "detail": {
+       "sessionId": "sess-1"
+      }
+     }
+    ],
+    "streams": [
+     {
+      "op": "open",
+      "es": 0,
+      "url": "/api/sessions/sess-1/stream?tail=20&tabId=tab-0b30557a9fc4e90e"
+     }
+    ],
+    "storage": {
+     "claudius:boot-pending": "{\"id\":\"sess-1\",\"at\":1763300000000,\"load\":1763299995000}"
+    }
+   },
+   "steps": [
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "gone"
+     ],
+     "resolved": null,
+     "at": 1763300001000,
+     "state": {}
+    },
+    {
+     "data": "{\"type\":\"ready\",\"sessionId\":\"sess-1\"}",
+     "at": 1763300002000,
+     "state": {
+      "ready": true
+     }
+    },
+    {
+     "data": "{\"type\":\"sdk\",\"message\":{\"session_id\":\"sess-1\",\"type\":\"assistant\",\"message\":{\"id\":\"msg_G\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-opus-4-5\",\"content\":[{\"type\":\"text\",\"text\":\"head\"}],\"stop_reason\":null,\"usage\":{\"input_tokens\":10,\"output_tokens\":5,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0}},\"parent_tool_use_id\":null,\"uuid\":\"g-a\"},\"at\":1763300002000}",
+     "at": 1763300003000,
+     "state": {
+      "pending": true,
+      "turnStartedAt": 1763300003000,
+      "messages": [
+       {
+        "uuid": "msg_G",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "head"
+         }
+        ],
+        "streaming": true,
+        "foldedSdkUuids": [
+         "g-a"
+        ],
+        "createdAt": 1763300002000
+       }
+      ],
+      "usage": {
+       "totalCostUsd": 0.000525,
+       "numTurns": 0,
+       "durationMs": 0,
+       "durationApiMs": 0,
+       "inputTokens": 10,
+       "outputTokens": 5,
+       "cacheReadInputTokens": 0,
+       "cacheCreationInputTokens": 0
+      }
+     }
+    },
+    {
+     "data": "{\"type\":\"replay_done\",\"hasMoreAbove\":true}",
+     "at": 1763300004000,
+     "state": {
+      "pending": false,
+      "turnStartedAt": null,
+      "lastTurnCompletedAt": 1763300004000,
+      "messages": [
+       {
+        "uuid": "msg_G",
+        "role": "assistant",
+        "blocks": [
+         {
+          "kind": "text",
+          "text": "head"
+         }
+        ],
+        "streaming": false,
+        "foldedSdkUuids": [
+         "g-a"
+        ],
+        "createdAt": 1763300002000
+       }
+      ],
+      "replaying": false,
+      "hasMoreAbove": true,
+      "catchingUp": false
+     },
+     "fetches": [
+      {
+       "method": "GET",
+       "url": "/api/sessions/sess-1/pending-prompts",
+       "response": {
+        "status": 200,
+        "body": "{\"asks\":[],\"permissions\":[],\"elicitations\":[]}"
+       }
+      }
+     ],
+     "storage": {}
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "gone"
+     ],
+     "resolved": null,
+     "at": 1763300005000,
+     "state": {
+      "hasMoreAbove": false
+     },
+     "fetches": [
+      {
+       "method": "GET",
+       "url": "/api/sessions/sess-1/transcript?before=g-a&limit=50",
+       "response": {
+        "status": 400,
+        "body": "{\"error\":\"before uuid not found\"}"
+       }
+      }
+     ]
+    },
+    {
+     "action": "jumpToUuid",
+     "args": [
+      "gone"
+     ],
+     "resolved": null,
+     "at": 1763300006000,
+     "state": {}
+    }
+   ]
+  },
+  {
    "name": "task-todos from tool calls",
    "prelude": {
     "eventSource": "/api/sessions/sess-1/stream?tail=20&tabId=tab-0b30557a9fc4e90e",
