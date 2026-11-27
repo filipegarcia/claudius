@@ -203,19 +203,27 @@ pub enum LiveStatus {
     NeedsInput,
 }
 
-/// One row of `GET /api/sessions`: a session the server holds in memory.
+/// One row of `GET /api/sessions` (a session the server holds in memory),
+/// or of a live chat's merged list (`useSession().sessions`, U04e), whose
+/// disk-only rows have no status, no `createdAt` and maybe no `cwd`.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSummary {
     pub id: String,
+    /// `""` when the row has none (`undefined` in the TS: no root matches).
+    #[serde(default)]
     pub cwd: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     /// The user's (or the SDK's) title; `null` until there is one.
+    #[serde(default)]
     pub title: Option<String>,
-    /// Epoch ms the server built the session.
+    /// Epoch ms the server built the session; `0` when unknown.
+    #[serde(default)]
     pub created_at: f64,
-    pub status: LiveStatus,
+    /// `None` on a disk-only row: its tab's dot is "background".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<LiveStatus>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub account_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -526,6 +526,15 @@ impl Shell {
     }
 
     fn load_sessions(&mut self, workspace: String, cx: &mut Context<Self>) {
+        // The mounted chat's workspace reads the chat's merged list, as
+        // `ChatSurface` reads `session.sessions` (U04e); the others ask the
+        // data source.
+        if let Some(slot) = self.chat.as_ref().filter(|c| c.workspace == workspace) {
+            let rows = crate::chat::session_rows(&slot.chat.state().sessions);
+            self.state.sessions_loaded(&workspace, rows);
+            cx.notify();
+            return;
+        }
         let fut = self.data.sessions(&workspace);
         cx.spawn(async move |this, cx| {
             if let Ok(rows) = fut.await {

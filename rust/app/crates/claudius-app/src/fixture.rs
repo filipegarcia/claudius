@@ -206,7 +206,7 @@ impl ShellData for FixtureShellData {
                     model: None,
                     title: None,
                     created_at,
-                    status: LiveStatus::Idle,
+                    status: Some(LiveStatus::Idle),
                     account_id: None,
                     account_label: None,
                 });

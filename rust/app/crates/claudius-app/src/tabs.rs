@@ -317,8 +317,8 @@ impl TabStrip {
             sessions
                 .iter()
                 .find(|s| s.id == id)
-                .map(|s| s.status.into())
-                .unwrap_or(TabStatus::Background)
+                .and_then(|s| s.status)
+                .map_or(TabStatus::Background, Into::into)
         };
         TabView {
             id: id.to_owned(),

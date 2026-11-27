@@ -36,10 +36,11 @@ use world::{slow_turn, world};
 const LIMIT: Duration = Duration::from_secs(30);
 
 /// The engine's data, keeping the active tab of each strip the shell
-/// persists.
+/// persists, and which workspaces' session lists the shell fetched.
 struct Recorded {
     inner: Arc<TransportShellData>,
     actives: Mutex<Vec<Option<String>>>,
+    session_reads: Mutex<Vec<String>>,
 }
 
 impl ShellData for Recorded {
@@ -59,6 +60,7 @@ impl ShellData for Recorded {
         self.inner.put_open_tabs(ws, body)
     }
     fn sessions(&self, ws: &str) -> DataFuture<Vec<SessionSummary>> {
+        self.session_reads.lock().unwrap().push(ws.to_owned());
         self.inner.sessions(ws)
     }
     fn create_session(&self, ws: &str) -> DataFuture<String> {
@@ -212,6 +214,7 @@ fn the_shell_runs_over_the_in_process_engine() {
     let recorded = Arc::new(Recorded {
         inner: w.data.clone(),
         actives: Mutex::default(),
+        session_reads: Mutex::default(),
     });
     let data: Arc<dyn ShellData> = recorded.clone();
     let store = LocalStore::open(&store_path);
@@ -226,6 +229,7 @@ fn the_shell_runs_over_the_in_process_engine() {
         let t = tabs(s);
         (t.len() == 1 && t[0].0 == id && t[0].2).then_some(id)
     });
+    let reads_at_mount = recorded.session_reads.lock().unwrap().len();
     cx.read(|cx| {
         let s = shell.read(cx);
         assert_eq!(s.state().route(), &Route::chat(&w1.id));
@@ -296,6 +300,20 @@ fn the_shell_runs_over_the_in_process_engine() {
     // The other tab's dot is the server's list (the chat refreshed it).
     wait(cx, &shell, "the first tab idle from the list", |s| {
         (tabs(s)[0].1 == TabStatus::Idle).then_some(())
+    });
+    // U04e: those dots read the chat's merged list (`session.sessions`),
+    // not a re-fetch of the workspace's: no read of w1's list since the
+    // chat mounted, and the strip's rows are the chat's.
+    assert!(
+        !recorded.session_reads.lock().unwrap()[reads_at_mount..].contains(&w1.id),
+        "{:?}",
+        recorded.session_reads.lock().unwrap()
+    );
+    cx.read(|cx| {
+        let s = shell.read(cx);
+        let merged = claudius_app::chat::session_rows(&s.live_chat().unwrap().state().sessions);
+        assert!(merged.iter().any(|r| r.id == s1));
+        assert_eq!(s.state().sessions(&w1.id), merged.as_slice());
     });
 
     // ── selecting the other tab mid-turn switches the chat. While it

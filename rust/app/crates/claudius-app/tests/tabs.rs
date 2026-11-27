@@ -38,7 +38,7 @@ fn session(id: &str, cwd: &str, title: Option<&str>, status: LiveStatus) -> Sess
         model: None,
         title: title.map(str::to_owned),
         created_at: 0.,
-        status,
+        status: Some(status),
         account_id: None,
         account_label: None,
     }
@@ -426,6 +426,50 @@ fn statuses_follow_the_chat_then_the_live_list() {
     assert!(v.pinned && v.compact());
     assert_eq!(TabStatus::NeedsInput.as_str(), "needs_input");
     assert_eq!(TabStatus::Background.as_str(), "background");
+}
+
+/// U04e: over a live chat the strip reads the chat's merged list
+/// (`session.sessions`): live rows carry a status; disk-only rows (the
+/// last 25 on disk) carry a title but no status, so their tab is
+/// "background" and still takes its label from the row.
+#[test]
+fn the_chats_merged_list_drives_the_dots_and_lends_disk_titles() {
+    let merged = [
+        json!({"id": "live", "cwd": "/r", "title": null, "createdAt": 5.0,
+               "status": "running", "lastModified": 9}),
+        json!({"id": "disk", "cwd": "/r", "title": "From disk", "lastModified": 7,
+               "accountId": "acc"}),
+        json!({"id": "bare"}),
+        json!({"title": "no id, skipped"}),
+    ];
+    let rows = claudius_app::chat::session_rows(&merged);
+    assert_eq!(
+        rows.iter()
+            .map(|r| (r.id.as_str(), r.status))
+            .collect::<Vec<_>>(),
+        [
+            ("live", Some(LiveStatus::Running)),
+            ("disk", None),
+            ("bare", None)
+        ]
+    );
+    assert_eq!(rows[1].account_id.as_deref(), Some("acc"));
+    assert_eq!((rows[2].cwd.as_str(), rows[2].created_at), ("", 0.));
+
+    let strip = hydrated(&["live", "disk", "bare", "gone"], &[], "live");
+    let v = |id| strip.view(id, &rows, None, 2026);
+    assert_eq!(v("live").status, TabStatus::Running);
+    let d = v("disk");
+    assert_eq!(
+        (d.status, d.label.as_str()),
+        (TabStatus::Background, "From disk")
+    );
+    assert_eq!(v("bare").label, "bare");
+    assert_eq!(v("gone").status, TabStatus::Background);
+    // A row with no cwd isn't the workspace's: its tab isn't saved, as
+    // `sess.cwd === root` is false for `undefined`. No row at all keeps it.
+    let put = strip.persist("/r", &rows).unwrap();
+    assert_eq!(put.tabs, Some(ids(&["live", "disk", "gone"])));
 }
 
 #[test]

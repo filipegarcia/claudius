@@ -171,6 +171,17 @@ pub fn bound_tab_state(chat: &ChatState, bound: Option<&str>) -> ActiveSessionSt
 }
 
 /// `newTabId()`: `tab-` and 16 hex digits.
+/// The chat's merged session list (`useSession().sessions`: the live rows
+/// over the last 25 on disk) as the strip reads it (U04e). `ChatSurface`
+/// reads a tab's dot and label from that list, not from `/api/sessions`;
+/// a row without an id is skipped.
+pub fn session_rows(sessions: &[serde_json::Value]) -> Vec<crate::data::SessionSummary> {
+    sessions
+        .iter()
+        .filter_map(|v| serde_json::from_value(v.clone()).ok())
+        .collect()
+}
+
 pub fn new_tab_id() -> String {
     let id = uuid::Uuid::new_v4();
     let hex: String = id.as_bytes()[..8]

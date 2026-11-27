@@ -120,7 +120,7 @@ mod shots {
             wait_for("idle", LIMIT, || {
                 let rows = block_on(w.data.sessions(ws)).ok()?;
                 rows.iter()
-                    .any(|r| r.id == id && r.status == claudius_app::data::LiveStatus::Idle)
+                    .any(|r| r.id == id && r.status == Some(claudius_app::data::LiveStatus::Idle))
                     .then_some(())
             });
             w.input(ws, &id, prompt);
@@ -137,7 +137,7 @@ mod shots {
         wait_for("the turns' end", LIMIT, || {
             let rows = block_on(w.data.sessions(ws)).ok()?;
             rows.iter()
-                .all(|r| r.status == claudius_app::data::LiveStatus::Idle)
+                .all(|r| r.status == Some(claudius_app::data::LiveStatus::Idle))
                 .then_some(())
         });
         block_on(w.data.put_open_tabs(

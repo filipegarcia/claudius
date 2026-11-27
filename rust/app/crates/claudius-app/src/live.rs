@@ -28,8 +28,10 @@
 //!   workspace's chat re-read its session list (`refreshSessions`: after a
 //!   switch or a create, on each turn's `result`, on `visibilitychange`, and
 //!   by the hook's 30 s poll while anything runs). That is what moves the
-//!   React strip's dots for the tabs the chat isn't bound to; the bound
-//!   tab's dot reads the chat's own state, which its stream keeps live.
+//!   React strip's dots for the tabs the chat isn't bound to: the shell
+//!   then takes the chat's merged list itself (`session.sessions`, U04e)
+//!   for that workspace, and fetches only the others'. The bound tab's dot
+//!   reads the chat's own state, which its stream keeps live.
 //! - [`ShellChange::OpenTabs`] after a `PUT`.
 //!
 //! The server pushes nothing else the shell reads: the notifications

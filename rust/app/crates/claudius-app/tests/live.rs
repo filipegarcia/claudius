@@ -69,7 +69,7 @@ fn status_of(data: &TransportShellData, ws: &str, sid: &str) -> Option<LiveStatu
         .unwrap()
         .into_iter()
         .find(|s| s.id == sid)
-        .map(|s| s.status)
+        .and_then(|s| s.status)
 }
 
 #[test]
