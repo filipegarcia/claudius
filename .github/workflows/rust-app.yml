@@ -2,13 +2,19 @@
 #
 # rust/app is its own cargo workspace (GPUI + gpui-component, see
 # rust/docs/adr-ui-toolkit.md), so rust.yml's root `--workspace` gate never
-# builds gpui and this job never builds the server crates. macOS only: gpui
-# renders with Metal, and the theme tests run a headless gpui app
-# (`TestAppContext`). It triggers on:
+# builds gpui; this job builds the root crates the app depends on by path.
+# macOS only: gpui renders with Metal, and the theme tests run a headless
+# gpui app (`TestAppContext`). It triggers on:
 #   - rust/app/**                    the workspace itself (and its Cargo.lock)
-#   - rust/crates/claudius-theme/**  the design tokens claudius-gpui-theme
-#                                    builds the theme from (a path dependency)
-#   - rust/Cargo.toml                claudius-theme inherits its package
+#   - rust/crates/**                 the root crates the app builds by path:
+#                                    claudius-theme (the design tokens
+#                                    claudius-gpui-theme builds the theme
+#                                    from), and claudius-client /
+#                                    claudius-core / claudius-agent, whose
+#                                    ChatState claudius-chat renders (U05a)
+#   - lib/server/db-migrations/**    claudius-core embeds the TS migrations
+#                                    at build time
+#   - rust/Cargo.toml                the root crates inherit their package
 #                                    fields from the root workspace
 #   - components/**, app/**/*.tsx    the icon drift test checks that every
 #                                    `lucide-react` import there has a GPUI
@@ -25,7 +31,8 @@ on:
     branches: [main]
     paths:
       - "rust/app/**"
-      - "rust/crates/claudius-theme/**"
+      - "rust/crates/**"
+      - "lib/server/db-migrations/**"
       - "rust/Cargo.toml"
       - "components/**"
       - "app/**/*.tsx"
@@ -34,7 +41,8 @@ on:
   pull_request:
     paths:
       - "rust/app/**"
-      - "rust/crates/claudius-theme/**"
+      - "rust/crates/**"
+      - "lib/server/db-migrations/**"
       - "rust/Cargo.toml"
       - "components/**"
       - "app/**/*.tsx"

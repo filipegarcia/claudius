@@ -4,10 +4,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use claudius_chat::fixture::FixtureTranscripts;
+use claudius_chat::{TranscriptSource, TranscriptView};
 use claudius_gpui_theme::ThemeName;
 use futures::StreamExt as _;
 use gpui_kit::{
-    App, AppContext as _, Context, FocusHandle, InteractiveElement as _, IntoElement,
+    App, AppContext as _, Context, Entity, FocusHandle, InteractiveElement as _, IntoElement,
     ParentElement as _, Render, Styled as _, Task, Window, WindowAppearance, div,
 };
 
@@ -70,9 +72,17 @@ pub struct Confirm {
     pub message: String,
 }
 
+/// Transcript views kept for recently shown tabs (each keeps its scroll
+/// position and parsed markdown while you switch away and back).
+const KEPT_CHAT_VIEWS: usize = 8;
+
 pub struct Shell {
     pub(crate) state: ShellState,
     pub(crate) data: Arc<dyn ShellData>,
+    /// The chat transcripts' states (U05; U04b's live transport).
+    transcripts: Arc<dyn TranscriptSource>,
+    /// One view per recently shown tab, most recent last.
+    chat_views: Vec<(String, Entity<TranscriptView>)>,
     pub(crate) focus: FocusHandle,
     pub(crate) appearance: Appearance,
     pub(crate) theme: ThemeName,
@@ -88,8 +98,26 @@ pub struct Shell {
 }
 
 impl Shell {
+    /// The shell with no transcripts: every session shows the splash.
     pub fn new(
         data: Arc<dyn ShellData>,
+        appearance: Appearance,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        Self::with_transcripts(
+            data,
+            Arc::new(FixtureTranscripts::new()),
+            appearance,
+            window,
+            cx,
+        )
+    }
+
+    /// The shell over a data source and the transcripts' source.
+    pub fn with_transcripts(
+        data: Arc<dyn ShellData>,
+        transcripts: Arc<dyn TranscriptSource>,
         appearance: Appearance,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -115,6 +143,8 @@ impl Shell {
         let mut shell = Shell {
             state: ShellState::new(),
             data,
+            transcripts,
+            chat_views: Vec::new(),
             focus,
             appearance,
             theme,
@@ -129,6 +159,52 @@ impl Shell {
         };
         shell.load_workspaces(cx);
         shell
+    }
+
+    /// The chat route's bound session: the active tab of the active
+    /// workspace, when the route is the chat.
+    pub fn chat_tab(&self) -> Option<String> {
+        let state = &self.state;
+        if !matches!(
+            state.route(),
+            Route::Workspace {
+                page: crate::route::WorkspacePage::Chat { .. },
+                ..
+            }
+        ) {
+            return None;
+        }
+        let ws = state.active_workspace()?;
+        let bound = self.data.active_session_state(&ws.id);
+        let views = state.tab_views(bound, self.now_year);
+        views.into_iter().find(|t| t.active).map(|t| t.id)
+    }
+
+    /// The transcript view of a tab, when it was shown recently.
+    pub fn chat_view(&self, tab_id: &str) -> Option<Entity<TranscriptView>> {
+        self.chat_views
+            .iter()
+            .find(|(id, _)| id == tab_id)
+            .map(|(_, v)| v.clone())
+    }
+
+    /// Makes the bound tab's transcript view (and keeps the recent ones).
+    fn sync_chat_view(&mut self, cx: &mut Context<Self>) {
+        let Some(tab) = self.chat_tab() else { return };
+        let theme = self.theme;
+        if let Some(i) = self.chat_views.iter().position(|(id, _)| *id == tab) {
+            let entry = self.chat_views.remove(i);
+            entry.1.update(cx, |v, cx| v.set_theme(theme, cx));
+            self.chat_views.push(entry);
+            return;
+        }
+        let source = self.transcripts.clone();
+        let id = tab.clone();
+        let view = cx.new(|cx| TranscriptView::new(source, id, theme, cx));
+        self.chat_views.push((tab, view));
+        if self.chat_views.len() > KEPT_CHAT_VIEWS {
+            self.chat_views.remove(0);
+        }
     }
 
     /// The state, for tests and the screens.
@@ -489,6 +565,7 @@ pub(crate) fn on_actions(
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.refit();
+        self.sync_chat_view(cx);
         let root = div().track_focus(&self.focus).size_full();
         on_actions(root, cx).child(crate::ui::shell(self, window, cx))
     }
@@ -503,9 +580,10 @@ pub fn focus_label(level: FocusLevel) -> &'static str {
     }
 }
 
-/// Opens the main window over a data source.
+/// Opens the main window over a data source and the transcripts' source.
 pub fn open_main_window(
     data: Arc<dyn ShellData>,
+    transcripts: Arc<dyn TranscriptSource>,
     appearance: Appearance,
     cx: &mut App,
 ) -> anyhow::Result<gpui_kit::Entity<Shell>> {
@@ -524,7 +602,7 @@ pub fn open_main_window(
         ..Default::default()
     };
     let (_, shell) = gpui_kit::open_window(options, cx, move |window, cx| {
-        cx.new(|cx| Shell::new(data, appearance, window, cx))
+        cx.new(|cx| Shell::with_transcripts(data, transcripts, appearance, window, cx))
     })?;
     Ok(shell)
 }

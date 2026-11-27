@@ -4,7 +4,7 @@
 # root crates by path. CI: .github/workflows/rust-app.yml (macOS, Metal).
 [workspace]
 resolver = "3"
-members = ["crates/claudius-app", "crates/claudius-gpui-theme"]
+members = ["crates/claudius-app", "crates/claudius-chat", "crates/claudius-gpui-theme"]
 
 [workspace.package]
 version = "0.1.0"
@@ -16,6 +16,11 @@ rust-version = "1.88"
 
 [workspace.dependencies]
 claudius-theme = { path = "../crates/claudius-theme" }
+# The chat state machine (U01) the transcript (U05) renders; it pulls
+# claudius-core in, as the in-process transport (U02) does anyway.
+claudius-client = { path = "../crates/claudius-client" }
+claudius-core = { path = "../crates/claudius-core" }
+claudius-chat = { path = "crates/claudius-chat" }
 claudius-gpui-theme = { path = "crates/claudius-gpui-theme" }
 
 # GPUI Kit publishes gpui-component and pins the gpui-pre (Zed snapshot)

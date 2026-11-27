@@ -3676,9 +3676,23 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
   - system rows, hooks rows, peer messages, verbose mode
 
   deps: U04
-  - [~] **U05a** (2026-11-26: agent, clone `par/U05a`; starts on U04a's shell, not U04b's wiring, under the user's GUI-first rule) Everything above except math, as a new `rust/app/crates/claudius-chat`: a pure `rows(&ChatState, &ViewOptions)` model, the virtualized list, bubbles, markdown and code, folding, system / hook / peer rows, verbose mode, `push_str` streaming; tool uses as one placeholder row (U06). Wired into claudius-app's chat route through a `TranscriptSource` trait with a replaying fixture. deps: U04a
+  - [x] **U05a** (2026-11-26: agent, clone `par/U05a`; starts on U04a's shell, not U04b's wiring, under the user's GUI-first rule) Everything above except math, as a new `rust/app/crates/claudius-chat`: a pure `rows(&ChatState, &ViewOptions)` model, the virtualized list, bubbles, markdown and code, folding, system / hook / peer rows, verbose mode, `push_str` streaming; tool uses as one placeholder row (U06). Wired into claudius-app's chat route through a `TranscriptSource` trait with a replaying fixture. deps: U04a
+    - Done 2026-11-27 (background agent, clone `par/U05a`): new crate `rust/app/crates/claudius-chat`, ~4.6k lines of code and 1.4k of tests.
+      - **Row model:** `RowBuilder::build(&ChatState, &ViewOptions)` is pure, with no GPUI. It mirrors `MessageList` / `AssistantMessage` / `UserMessage` / `SystemPill` / `verbose.ts`, and each rule cites its source. A message that hasn't changed keeps its `Arc`'d row; rebuilding 10k messages takes ~2.2 ms.
+      - **`TranscriptView`:** GPUI `list` (virtualized, variable heights); bubbles; `TextView` markdown; syntect code in Shiki's github-dark-default; folding over 4 KB with Show more / Show less; thinking, hook, peer and system rows; five verbose levels; `push_str` streaming; a 128-entry markdown LRU near the viewport; `FollowMode::Tail` stick-to-bottom; Jump to latest.
+      - **Source:** the `TranscriptSource` trait plus `FixtureTranscripts`, which replays event logs through `ChatState::on_message`. The demo session streams when the app runs. claudius-app's chat route shows the bound tab's transcript and keeps the 8 most recent views.
+      - **Tests:** 80 unit, 11 headless view and 3 shell (`tests/chat.rs`). Mutation 36/37 killed; the survivor `memo-ignores-kept` is equivalent (the message comparison already covers it). Flake 0/20.
+      - **Merge:** applied cleanly. The app gate ran on the main tree with U01k's lifecycle client (the clone had the pre-U01k one): fmt and clippy `-D warnings` clean, 194 passed, 0 failed (claudius-app 63, claudius-chat 91, claudius-gpui-theme 40).
+      - **CI:** `rust-app.yml` now also triggers on `rust/crates/**` and `lib/server/db-migrations/**`, the root crates the app now builds by path.
+    - **Bench** (release, thread CPU per frame, machine load 10–99):
+      - Scrolling 10,001 rows at 100 px/frame: p95 3.4–4.4 ms, p99 4.7–6.8 ms, 0–0.1% of frames over 8.33 ms. The ADR's U00a measured p95 7.1 ms, p99 10.0 ms, 2.7% over.
+      - A stream delta over a 10k-row history: p95 9.1–17.1 ms, against the ADR's 3.8 ms; U05d is the fix.
+    - The screenshots are in `rust/target/par/U05a/shots/`.
+  - [ ] **U05c** Transcript parity left from U05a: the markdown pre-passes (`keepLiteralAsterisks`, `preserveLoneBackslashes`, `isMarkdownTooDeep`, `splitCompactSummaryTools`), the sticky pinned prompt, hover timestamps, image thumbnails (now text tokens), `notificationColor` on peer rows, and the rate-limit pill's detail lines. deps: U05a
+  - [ ] **U05d** Per-message change hints from `TranscriptSource` (a revision or changed range) so a stream delta rebuilds only the rows it changed: at 10k rows a delta costs 5–17 ms CPU against the ADR's 3.8 ms p95. deps: U05a, U04b
+  - [ ] **U05e** `claudius-client`'s replay is O(n²): `on_user` clones the message list on every event, so replaying 22k events takes 12–38 s in release (U05a's bench). deps: U01k
   - [ ] **U05b** Math: RaTeX (as U00a prototyped) matched against KaTeX on a golden set; until then math renders as raw TeX. deps: U05a
-- [ ] **U06** Tool call cards: Bash, Edit/Write (diff), Read, Grep/Glob, Task/subagents, Workflow, WebFetch/Search, MCP tools, elapsed timers; diff overlay. deps: U05
+- [~] **U06** (2026-11-27: agent, clone `par/U06`; on U05a's row model, under the GUI-first rule, while U05b (math) waits) Tool call cards: Bash, Edit/Write (diff), Read, Grep/Glob, Task/subagents, Workflow, WebFetch/Search, MCP tools, elapsed timers; diff overlay. The branch's TS renders every tool through one generic `ToolCall.tsx` card (plus `TaskBlock` / `WorkflowBlock` / `ProposeGoalBlock` / `JsonBlock` / `FilePreview`); the diff overlay is `components/overlays` (U10). deps: U05
 - [ ] **U07** Composer:
   - editing: multiline editor, history, drafts (prompt-draft), prompt color
   - pickers: slash commands (fuzzy, highlight), `@` file/agent mentions, emoji shortcodes

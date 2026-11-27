@@ -1,4 +1,5 @@
-//! Screenshots of the shell over the bundled fixture, light and dark,
+//! Screenshots of the shell over the bundled fixture (and claudius-chat's
+//! bundled transcripts), light and dark,
 //! drawn offscreen by gpui's headless Metal renderer (no window on screen,
 //! no Screen Recording grant).
 //!
@@ -25,6 +26,8 @@ mod shots {
     use claudius_app::nav::FocusLevel;
     use claudius_app::route::{Route, WorkspacePage};
     use claudius_app::shell::{Appearance, Shell};
+    use claudius_chat::TranscriptSource;
+    use claudius_chat::fixture::FixtureTranscripts;
     use claudius_gpui_theme::{ThemeName, icons::IconAssets};
     use gpui::{
         AnyWindowHandle, AppContext as _, Bounds, Entity, HeadlessAppContext, WindowBounds,
@@ -121,6 +124,7 @@ mod shots {
         );
         cx.update(|cx| claudius_app::init(theme, cx));
         let data: Arc<dyn ShellData> = Arc::new(FixtureShellData::builtin());
+        let transcripts: Arc<dyn TranscriptSource> = FixtureTranscripts::builtin();
         let (handle, shell): (AnyWindowHandle, Entity<Shell>) = cx.update(|cx| {
             gpui_kit::open_window(
                 WindowOptions {
@@ -133,7 +137,17 @@ mod shots {
                     ..Default::default()
                 },
                 cx,
-                |window, cx| cx.new(|cx| Shell::new(data, Appearance::Fixed(theme), window, cx)),
+                |window, cx| {
+                    cx.new(|cx| {
+                        Shell::with_transcripts(
+                            data,
+                            transcripts,
+                            Appearance::Fixed(theme),
+                            window,
+                            cx,
+                        )
+                    })
+                },
             )
         })?;
         draw(&mut cx, handle)?;

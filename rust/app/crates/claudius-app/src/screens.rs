@@ -1,6 +1,7 @@
 //! The content area. Every route is a placeholder naming its page and
 //! parameters until its unit ports the screen; the chat shows the bound
-//! session (or `ChatSurface`'s empty state).
+//! session's transcript (claudius-chat's `TranscriptView`), or
+//! `ChatSurface`'s empty state.
 
 use claudius_gpui_theme::fonts;
 use gpui_kit::prelude::FluentBuilder as _;
@@ -10,18 +11,24 @@ use gpui_kit::{
 };
 
 use crate::route::{Route, WorkspacePage};
-use crate::shell::{Shell, focus_label};
+use crate::shell::Shell;
 use crate::ui::Colors;
 
 pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyElement {
     let route = this.state.route();
-    let content = match route {
+    let is_chat = matches!(
+        route,
         Route::Workspace {
             page: WorkspacePage::Chat { .. },
             ..
-        } => chat(this, c, cx),
-        _ => placeholder(route, c),
+        }
+    );
+    let content = if is_chat {
+        chat(this, c, cx)
+    } else {
+        placeholder(route, c)
     };
+    // The transcript scrolls itself (a virtualized list).
     div()
         .id("screen")
         .debug_selector(|| "screen".into())
@@ -29,7 +36,7 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
         .flex_col()
         .flex_1()
         .min_h_0()
-        .overflow_y_scroll()
+        .when(!is_chat, |d| d.overflow_y_scroll())
         .child(content)
         .into_any_element()
 }
@@ -158,49 +165,15 @@ fn chat(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyElement {
             )
             .into_any_element();
     };
-    let session = state.sessions(&ws.id).iter().find(|s| s.id == tab.id);
-    let title = session
-        .and_then(|s| s.title.clone())
-        .or_else(|| {
-            state
-                .strip(&ws.id)
-                .and_then(|s| s.saved_title(&tab.id))
-                .map(str::to_owned)
-        })
-        .unwrap_or_else(|| "(untitled)".into());
-    let route = state.route();
-    let body = card(c)
+    // The bound session's transcript (U05); the composer lands with U07.
+    let transcript = this.chat_view(&tab.id);
+    div()
         .debug_selector(|| "chat-session".into())
-        .child(
-            div()
-                .text_size(px(11.))
-                .text_color(c.muted)
-                .child("CHAT · SESSION"),
-        )
-        .child(
-            div()
-                .text_size(px(18.))
-                .font_weight(FontWeight::SEMIBOLD)
-                .child(title),
-        )
-        .child(row("session", tab.id.clone(), c))
-        .child(row("tab label", tab.label.clone(), c))
-        .child(row("status", tab.status.as_str(), c))
-        .child(row("workspace", format!("{} ({})", ws.name, ws.id), c))
-        .child(row("cwd", ws.root_path.clone(), c))
-        .child(row("route", route.path(), c))
-        .child(row("focus", focus_label(state.focus()), c))
-        .children(
-            session
-                .and_then(|s| s.model.clone())
-                .map(|m| row("model", m, c)),
-        )
-        .child(
-            div()
-                .pt(px(4.))
-                .text_size(px(11.))
-                .text_color(c.muted)
-                .child("The transcript and composer land with U05/U06."),
-        );
-    centered().child(body).into_any_element()
+        .flex()
+        .flex_col()
+        .flex_1()
+        .min_h_0()
+        .size_full()
+        .children(transcript)
+        .into_any_element()
 }
