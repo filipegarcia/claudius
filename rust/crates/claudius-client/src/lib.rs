@@ -39,6 +39,7 @@ pub mod env;
 pub mod event;
 pub mod idle_reconcile;
 pub mod labels;
+pub mod lifecycle;
 pub mod loops;
 pub mod messages;
 pub mod parse_init;
@@ -51,6 +52,7 @@ pub mod sdk_filters;
 pub mod shared;
 pub mod state;
 pub mod status;
+pub mod stream;
 pub mod stream_recovery;
 pub mod system_entries;
 pub mod system_events;
@@ -61,7 +63,7 @@ pub mod types;
 pub mod user_events;
 pub mod workflow_meta;
 
-pub use env::{ClientEnv, FixedEnv, SystemEnv};
+pub use env::{ClientEnv, FixedEnv, MemStorage, SystemEnv};
 pub use types::*;
 
 /// A JS exception: what the TS helper throws for the same input (V8's

@@ -42,7 +42,9 @@
 //! `replay_done` with the pending-prompts merge (U01k / U01f), the 30 s
 //! poll and `refreshSessions` (U01k), and the `requestRecap` /
 //! `dismissRecap` actions (U01j). U01d adds the `sdk` messages that build
-//! the transcript (`sdk.rs`).
+//! the transcript (`sdk.rs`). U01k adds the session's lifecycle (mount,
+//! boot, bind, switch, create, the stream and its recovery) and the
+//! `useEffect`s that run after a commit (`lifecycle.rs`, `stream.rs`).
 
 use indexmap::{IndexMap, IndexSet};
 use serde::Serialize;
@@ -149,6 +151,15 @@ impl Keyed for Prompt {
 pub enum TimerFn {
     /// The 30 s safety-net poll (`setInterval(..., 30_000)` on mount).
     SessionsPoll,
+    /// `scheduleStreamRecovery`'s backoff: rebind the dead stream (U01k).
+    StreamRecovery,
+    /// The "Reconnecting" badge's debounce (U01k).
+    ReconnectBadge,
+    /// The boot's `?prompt=` seed (U01k): the 100 ms wait for a bound
+    /// session (`wait`), then the 600 / 250 ms ticks until the turn is idle.
+    PromptSeed { wait: bool },
+    /// The URL writer's 500 ms deferral of `?session=` (U01k).
+    UrlWriter,
 }
 
 /// What a settled fetch continues with.
@@ -176,15 +187,21 @@ pub(crate) enum Then {
     Account,
     /// A queue or send action's fetch (U01j, `queue.rs`).
     Queue(crate::queue::QueueThen),
+    /// A boot, bind, switch or create fetch (U01k, `lifecycle.rs`).
+    Life(crate::lifecycle::LifeThen),
 }
 
 /// What runs after a `refreshSessions` settles.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum AfterRefresh {
     /// The poll: settle a turn the server says is over.
     Poll,
     /// `result`'s `void refreshSessions()`.
     Nothing,
+    /// `createSession`'s `await refreshSessions(); return id` (U01k).
+    Created(crate::lifecycle::Created),
+    /// The `refreshSessions()` action: its promise's value (U01k).
+    Resolve,
 }
 
 /// A `refreshSessions` waiting for its two fetches (`Promise.allSettled`).
@@ -272,6 +289,9 @@ pub struct ChatState {
     pub chat_command_model_notice: Value,
     pub advisor_disabled_notice: Value,
     pub auto_mode_off_notice: Value,
+    /// A refused permission-mode switch (`setPermissionMode`'s 409; its
+    /// writer is not ported yet, U01q).
+    pub mode_change_refused_notice: Value,
     /// `prevFastModeStateRef` (U01i).
     pub prev_fast_mode_state: Value,
     pub prompt_suggestions: Vec<String>,
@@ -285,6 +305,9 @@ pub struct ChatState {
     pub stream_status: &'static str,
     /// `replay_done`'s `hasMoreAbove`, as sent (also `hasMoreAboveRef`).
     pub has_more_above: Field,
+    /// "Catching up…": an existing session was switched to or resumed and
+    /// hasn't replayed yet (U01k).
+    pub catching_up: bool,
     pub loading_older: bool,
     /// U01g.
     pub latest_todos: Vec<AgentTodo>,
@@ -321,8 +344,29 @@ pub struct ChatState {
     pub stream_down_since: Option<f64>,
     pub badge_timer: Option<TimerId>,
     pub switch_gen: u64,
-    /// `document.hidden`, which the host keeps current.
+    /// `document.hidden`, which the host keeps current (or reports with
+    /// `visibility_changed`, which also runs the hook's listener).
     pub hidden: bool,
+    /// The machine's mirror of `window.location.href` (U01k): set by
+    /// `mount`, by the machine's own `replaceState`s and by the host's
+    /// `set_location` for a navigation it made.
+    pub location: String,
+    /// `performance.timeOrigin`: this page load's id for the boot guard.
+    pub page_load: f64,
+    /// `usePathname()`: the committed route (`None` off the Next router).
+    /// Set it before `mount`; later changes go through `set_pathname`.
+    pub pathname: Option<String>,
+    /// The URL writer's pending `?session=` write (U01k).
+    pub(crate) url_write: Option<crate::lifecycle::UrlWrite>,
+    /// The session the armed stream recovery rebinds (its closure's `id`).
+    pub reconnect_session: String,
+    /// `eventSourceRef.current`.
+    pub event_source: Option<crate::effect::StreamId>,
+    /// Every `EventSource` the machine opened, with what its callbacks
+    /// close over.
+    pub streams: IndexMap<crate::effect::StreamId, crate::stream::Stream>,
+    /// The boot's `?prompt=` text and the wait's start (U01k).
+    pub prompt_seed: Option<(String, f64)>,
     // ---- refs the message reducer reads (U01d, U01e, U01h) ----
     /// `scratchRef`: per-message stream delta scratch.
     pub scratch: IndexMap<String, DeltaScratch>,
@@ -341,6 +385,11 @@ pub struct ChatState {
     // ---- the machine's own bookkeeping ----
     pub(crate) next_fetch: u64,
     pub(crate) next_timer: u64,
+    pub(crate) next_stream: u64,
+    /// What the last commit's effects saw (U01k, `lifecycle.rs`).
+    pub(crate) committed: Option<crate::lifecycle::Committed>,
+    /// The boot effect's cleanup ran (`cancelled`).
+    pub(crate) unmounted: bool,
     pub(crate) next_refresh: u64,
     pub(crate) in_flight: IndexMap<FetchId, Then>,
     pub(crate) refreshes: IndexMap<u64, Refresh>,
@@ -406,6 +455,7 @@ impl ChatState {
             chat_command_model_notice: Value::Null,
             advisor_disabled_notice: Value::Null,
             auto_mode_off_notice: Value::Null,
+            mode_change_refused_notice: Value::Null,
             prev_fast_mode_state: Value::Null,
             prompt_suggestions: Vec::new(),
             suggested_uuids: IndexSet::new(),
@@ -414,6 +464,7 @@ impl ChatState {
             skipped_boot: None,
             stream_status: "live",
             has_more_above: Some(Value::Bool(false)),
+            catching_up: false,
             loading_older: false,
             latest_todos: Vec::new(),
             todos_stale: Value::Bool(false),
@@ -442,6 +493,14 @@ impl ChatState {
             badge_timer: None,
             switch_gen: 0,
             hidden: false,
+            location: String::new(),
+            page_load: 0.0,
+            pathname: None,
+            url_write: None,
+            reconnect_session: String::new(),
+            event_source: None,
+            streams: IndexMap::new(),
+            prompt_seed: None,
             scratch: IndexMap::new(),
             last_assistant_uuid: String::new(),
             counted_usage: IndexSet::new(),
@@ -455,6 +514,9 @@ impl ChatState {
             scope_message_id: IndexMap::new(),
             next_fetch: 0,
             next_timer: 0,
+            next_stream: 0,
+            committed: None,
+            unmounted: false,
             next_refresh: 0,
             in_flight: IndexMap::new(),
             refreshes: IndexMap::new(),
@@ -520,7 +582,7 @@ impl ChatState {
                 "achievedAt": g.achieved_at,
             })
         });
-        let entries: [(&str, Value); 79] = [
+        let entries: [(&str, Value); 81] = [
             ("sessionId", opt(&self.session_id)),
             ("ready", json!(self.ready)),
             ("pending", json!(self.pending)),
@@ -609,12 +671,17 @@ impl ChatState {
                 self.advisor_disabled_notice.clone(),
             ),
             ("autoModeOffNotice", self.auto_mode_off_notice.clone()),
+            (
+                "modeChangeRefusedNotice",
+                self.mode_change_refused_notice.clone(),
+            ),
             ("promptSuggestions", ser(&self.prompt_suggestions)),
             ("suggestedUuids", set(&self.suggested_uuids)),
             ("goalUuids", set(&self.goal_uuids)),
             ("replaying", json!(self.replaying)),
             ("streamStatus", json!(self.stream_status)),
             ("hasMoreAbove", field(&self.has_more_above)),
+            ("catchingUp", json!(self.catching_up)),
             ("loadingOlder", json!(self.loading_older)),
             ("latestTodos", ser(&self.latest_todos)),
             ("todosStale", self.todos_stale.clone()),
@@ -701,7 +768,7 @@ mod tests {
     fn a_fresh_snapshot_has_every_key_once() {
         let snap = ChatState::new("tab-1").snapshot();
         let keys = snap.as_object().unwrap();
-        assert_eq!(keys.len(), 79);
+        assert_eq!(keys.len(), 81);
         assert_eq!(keys["appliedEffort"], json!({ "$undefined": true }));
         assert_eq!(keys["readOnly"], json!(false));
     }

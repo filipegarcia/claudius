@@ -3,23 +3,31 @@
 //! clock / timers) by `rust/scripts/client-session-golden.mjs`, through
 //! `ChatState`.
 //!
-//! Each scenario starts from its recorded prelude (mount, bind, the stream's
-//! `open`). The boot and the bind are U01k's, so the harness seeds their
-//! outcome instead: a fresh `ChatState` for the stream URL's tab id, with
-//! the cells the prelude changed copied from its snapshot (only the ones
-//! `seed` knows; any other is a failure), the poll timer the mount armed,
-//! and the recorded clock and uuid count. Then every step runs as the
-//! recorder ran it: `hidden` sets `document.hidden`, the clock moves by
-//! `dt`, firing each timer that falls due (`timer_fired`), then the step's
-//! SSE message (`on_message`) or action goes in. Every fetch an effect starts is answered with the recorded
-//! response at the same position, in issue order, until none is left.
+//! Each scenario starts with its recorded prelude (U01k): a fresh
+//! `ChatState` for the stream URL's tab id is mounted on the scenario's page
+//! URL (with its `sessionStorage` and default cwd), which arms the poll and
+//! boots (the open-tabs lookup, the boot guard, the create, the bind), and
+//! the stream it opened reports `open` unless the scenario says not to.
+//! Then every step runs as the recorder ran it: `hidden` sets
+//! `document.hidden`, the clock moves by `dt`, firing each timer that falls
+//! due (`timer_fired`), then the step's input goes in: an SSE message on a
+//! stream (`event_source_message`; the newest unless `source` names one),
+//! an `open` / `error` callback (`event_source_open` / `_error`), a
+//! `visibilitychange`, or an action. Every fetch an effect starts is
+//! answered with the recorded response at the same position, in issue
+//! order, until none is left.
 //!
-//! After each step the whole snapshot is compared with the recorded one
-//! (as canonical text: keys sorted, JS number text), and so are the
-//! fetches (method, url, headers, body), the timer log (set / clear / fire),
-//! the window events, the history writes and the console output. Only
-//! `storage` is not: the boot guard's sessionStorage marker is U01k's (the
-//! harness checks that it is the only key written).
+//! After the prelude and each step the whole snapshot is compared with the
+//! recorded one (as canonical text: keys sorted, JS number text), and so
+//! are the fetches (method, url, headers, body), the timer log (set /
+//! clear / fire), the window events, the history writes (`replaceState`
+//! and U01k's `location.assign`), the console output, the streams opened
+//! and closed, and `sessionStorage`.
+//!
+//! The fixture is recorded from the TS in the tree, which main's
+//! 2026-11-23 merge changed after the slices before U01k were ported:
+//! [`DRIFT`] lists the snapshot keys of the steps that still show it (to
+//! port: U01q). Each listed key must differ, and nothing else in its step.
 //!
 //! U01d's scenarios (after U01c's 27) feed `sdk` messages in the SDK's
 //! shapes: unstreamed and streamed turns, stream edge cases, interleaved
@@ -36,7 +44,8 @@
 use std::collections::VecDeque;
 
 use claudius_client::FixedEnv;
-use claudius_client::effect::{Action, Effect, FetchOutcome, TimerId};
+use claudius_client::effect::{Action, Effect, FetchOutcome, ReadyState, StreamId, TimerId};
+use claudius_client::lifecycle::Mount;
 use claudius_client::state::ChatState;
 use claudius_core::js_string;
 use serde_json::{Map, Value, json};
@@ -88,6 +97,8 @@ struct Log {
     window_events: Vec<Value>,
     history: Vec<Value>,
     logs: Vec<Value>,
+    /// `EventSource`s opened and closed (U01k).
+    streams: Vec<Value>,
     /// The promise values the step's action resolved with (U01n / U01j).
     resolved: Vec<Value>,
 }
@@ -101,6 +112,8 @@ struct Harness<'f> {
     log: Log,
     data: String,
     at: String,
+    /// The streams the machine opened, by the recorder's index.
+    sources: Vec<StreamId>,
 }
 
 impl<'f> Harness<'f> {
@@ -186,6 +199,20 @@ impl<'f> Harness<'f> {
                         .logs
                         .push(json!({ "level": "unhandledRejection", "text": error }));
                 }
+                Effect::OpenEventSource { id, url } => {
+                    let es = self.sources.len();
+                    self.sources.push(id);
+                    self.log
+                        .streams
+                        .push(json!({ "op": "open", "es": es, "url": url }));
+                }
+                Effect::CloseEventSource { id } => {
+                    let es = self.sources.iter().position(|s| *s == id).unwrap();
+                    self.log.streams.push(json!({ "op": "close", "es": es }));
+                }
+                Effect::AssignUrl { url } => {
+                    self.log.history.push(json!({ "op": "assign", "url": url }));
+                }
             }
         }
     }
@@ -217,37 +244,54 @@ impl<'f> Harness<'f> {
     }
 }
 
-/// The boot's outcome (U01k): copy the cells the prelude changed.
-fn seed(state: &mut ChatState, key: &str, v: &Value, scenario: &str) {
-    match key {
-        "sessionId" => state.session_id = v.as_str().map(str::to_owned),
-        "cwd" => state.cwd = v.clone(),
-        "sessions" => state.sessions = v.as_array().unwrap().clone(),
-        "accountsConfigured" => state.accounts_configured = v.as_f64().unwrap(),
-        "advisorModel" => state.advisor_model = v.as_str().map(str::to_owned),
-        "suggestedUuids" | "goalUuids" => {
-            let set = v
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|u| u.as_str().unwrap().to_owned())
-                .collect();
-            if key == "goalUuids" {
-                state.goal_uuids = set;
-            } else {
-                state.suggested_uuids = set;
-            }
-        }
-        _ => panic!("{scenario}: the prelude changed `{key}`, which the harness can't seed (U01k)"),
-    }
-}
+/// The steps whose snapshot still shows main's 2026-11-23 changes to
+/// `use-session.ts`, which the slices before U01k haven't followed yet
+/// (U01q): `(scenario, step, key)`. Each key must differ from the
+/// recording, and nothing else in the step.
+const DRIFT: &[(&str, usize, &str)] = &[
+    // `MODEL_UNAVAILABLE_MESSAGE` names Fable 5.2, and
+    // `modelUnavailableMessage` names the Fable the prose names.
+    (
+        "rate-limit, high-demand and model-unavailable texts",
+        8,
+        "messages",
+    ),
+    (
+        "rate-limit, high-demand and model-unavailable texts",
+        9,
+        "messages",
+    ),
+    // A `model_changed` from another source to another model drops the
+    // "Switched to X" notice.
+    (
+        "status-model_changed and the advisor",
+        6,
+        "chatCommandModelNotice",
+    ),
+    (
+        "status-model_changed and the advisor",
+        9,
+        "chatCommandModelNotice",
+    ),
+];
 
-fn diff_keys(got: &Value, want: &Value) -> Vec<String> {
+/// The recorder's page URL when a scenario names none, and its
+/// `performance.timeOrigin` (`NOW - 5000`).
+const DEFAULT_URL: &str = "http://localhost:3000/?session=sess-1";
+
+fn diff_keys(got: &Value, want: &Value, drift: &[&str]) -> Vec<String> {
     let (g, w) = (got.as_object().unwrap(), want.as_object().unwrap());
     let mut out = Vec::new();
     for (k, wv) in w {
         let gv = g.get(k).cloned().unwrap_or(Value::Null);
-        if canon(&gv) != canon(wv) {
+        let same = canon(&gv) == canon(wv);
+        if drift.contains(&k.as_str()) {
+            if same {
+                out.push(format!(
+                    "  {k}: listed in DRIFT, but now matches (unlist it)"
+                ));
+            }
+        } else if !same {
             out.push(format!(
                 "  {k}:\n    got  {}\n    want {}",
                 canon(&gv),
@@ -275,69 +319,160 @@ fn check_list(at: &str, what: &str, got: &[Value], want: &[Value], failures: &mu
     }
 }
 
+/// `sessionStorage` as the recorder dumps it.
+fn storage_of(env: &FixedEnv) -> Value {
+    Value::Object(
+        env.storage
+            .0
+            .iter()
+            .map(|(k, v)| (k.clone(), json!(v)))
+            .collect(),
+    )
+}
+
+impl Harness<'_> {
+    /// Compare what the prelude or a step did with its record; `expected`
+    /// is the full recorded snapshot so far.
+    fn check(
+        &mut self,
+        rec: &Value,
+        expected: &mut Value,
+        storage: &mut Value,
+        drift: &[&str],
+        failures: &mut Vec<String>,
+    ) {
+        let at = self.at.clone();
+        assert_eq!(self.env.now, rec["at"].as_f64().unwrap(), "{at}: clock");
+        for (k, v) in rec["state"].as_object().unwrap() {
+            expected[k] = v.clone();
+        }
+        let d = diff_keys(&self.state.snapshot(), expected, drift);
+        if !d.is_empty() {
+            failures.push(format!("{at}: state differs\n{}", d.join("\n")));
+            // The logs of a step whose state is off would only repeat it.
+            self.log = Log::default();
+            return;
+        }
+        if let Some(s) = rec.get("storage") {
+            *storage = s.clone();
+        }
+        check_list(
+            &at,
+            "sessionStorage",
+            &[storage_of(&self.env)],
+            std::slice::from_ref(storage),
+            failures,
+        );
+        let log = std::mem::take(&mut self.log);
+        for (what, got, key) in [
+            ("fetches", &log.fetches, "fetches"),
+            ("timers", &log.timers, "timers"),
+            ("window events", &log.window_events, "windowEvents"),
+            ("history", &log.history, "history"),
+            ("logs", &log.logs, "logs"),
+            ("streams", &log.streams, "streams"),
+        ] {
+            check_list(&at, what, got, list(rec, key), failures);
+        }
+        // U01n / U01j: the promise value of an action that has one.
+        let want: Vec<Value> = rec.get("resolved").map_or_else(Vec::new, |v| {
+            vec![json!({ "action": rec["action"], "outcome": v })]
+        });
+        check_list(&at, "resolved", &log.resolved, &want, failures);
+    }
+
+    /// The stream a step's callback is for: `source`, else the newest.
+    fn source(&self, step: &Value) -> StreamId {
+        match step.get("source").and_then(Value::as_u64) {
+            Some(i) => self.sources[i as usize],
+            None => *self.sources.last().expect("a stream is open"),
+        }
+    }
+}
+
 #[test]
 fn replays_the_ts_golden() {
     let fx = fixture();
     let scenarios = fx["scenarios"].as_array().unwrap();
     // U01c's 27, then U01d's.
     assert!(scenarios.len() >= 39, "{} scenarios", scenarios.len());
+    // Every scenario's tab id is the same (`getRandomValues` is counted
+    // from 0 per scenario); a boot that opens no stream has no URL to show it.
+    let any_url = scenarios
+        .iter()
+        .find_map(|sc| sc["prelude"]["eventSource"].as_str())
+        .unwrap();
+    let tab = any_url.split("tabId=").nth(1).unwrap().to_owned();
     let mut failures = Vec::new();
     let mut steps = 0;
+    let mut drift_seen = 0;
     for sc in scenarios {
         let name = sc["name"].as_str().unwrap();
         let prelude = &sc["prelude"];
-        let url = prelude["eventSource"].as_str().unwrap();
-        let tab = url.split("tabId=").nth(1).unwrap();
-        let mut state = ChatState::new(tab);
-        let fresh = state.snapshot();
-        let mut expected = prelude["state"].clone();
-        for (k, v) in expected.as_object().unwrap() {
-            if canon(&fresh[k]) != canon(v) {
-                seed(&mut state, k, v, name);
-            }
+        if let Some(url) = prelude["eventSource"].as_str() {
+            assert_eq!(url.split("tabId=").nth(1), Some(tab.as_str()), "{name}");
         }
-        let d = diff_keys(&state.snapshot(), &expected);
-        assert!(
-            d.is_empty(),
-            "{name}: seeded prelude differs:\n{}",
-            d.join("\n")
-        );
-        // The mount arms the poll first; it's the prelude's only timer.
-        let poll = state.start_sessions_poll();
-        let recorded: Vec<&Value> = list(prelude, "timers").iter().collect();
-        assert_eq!(recorded.len(), 1, "{name}: prelude timers {recorded:?}");
-        let Effect::SetTimer { id, ms, repeat } = poll[0] else {
-            panic!("{name}: the poll armed {poll:?}");
-        };
-        assert_eq!(
-            canon(recorded[0]),
-            canon(&json!({ "op": "set", "id": id.0, "kind": "interval", "ms": ms })),
-            "{name}"
-        );
-        assert!(repeat);
-        let now = prelude["at"].as_f64().unwrap();
+        let now = fx["now"].as_f64().unwrap();
         let mut env = FixedEnv::new(now);
-        env.uuids = prelude["uuids"].as_u64().unwrap();
+        let mut storage = json!({});
+        if let Some(preset) = sc.get("storage").and_then(Value::as_object) {
+            for (k, v) in preset {
+                env.storage
+                    .0
+                    .insert(k.clone(), v.as_str().unwrap().to_owned());
+            }
+            storage = Value::Object(preset.clone());
+        }
+        let mut state = ChatState::new(tab.clone());
+        state.default_cwd = sc
+            .get("defaultCwd")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
+        state.pathname = sc
+            .get("pathname")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
         let mut h = Harness {
             state,
             env,
-            timers: vec![Armed {
-                id,
-                due: now + ms,
-                ms,
-                repeat,
-            }],
-            replies: &[],
+            timers: Vec::new(),
+            replies: list(prelude, "fetches"),
             log: Log::default(),
             data: String::new(),
-            at: String::new(),
+            at: format!("{name} / prelude"),
+            sources: Vec::new(),
         };
+        let href = sc.get("url").and_then(Value::as_str).unwrap_or(DEFAULT_URL);
+        let fx_mount = h.state.mount(
+            Mount {
+                href,
+                page_load: now - 5000.0,
+            },
+            &mut h.env,
+        );
+        h.run(fx_mount);
+        let no_open = sc.get("noOpen").and_then(Value::as_bool).unwrap_or(false);
+        if let (Some(&es), false) = (h.sources.last(), no_open) {
+            let fx_open = h.state.event_source_open(es, &mut h.env);
+            h.run(fx_open);
+        }
+        assert_eq!(
+            h.env.uuids,
+            prelude["uuids"].as_u64().unwrap(),
+            "{name}: uuids"
+        );
+        let mut expected = json!({});
+        h.check(prelude, &mut expected, &mut storage, &[], &mut failures);
 
         for (i, step) in sc["steps"].as_array().unwrap().iter().enumerate() {
             steps += 1;
             let input = step
                 .get("data")
                 .or_else(|| step.get("action"))
+                .or_else(|| step.get("es"))
+                .or_else(|| step.get("visibility"))
+                .or_else(|| step.get("pathname"))
+                .or_else(|| step.get("pushState"))
                 .map_or_else(|| "wait".to_owned(), canon);
             h.at = format!(
                 "{name} / step {i} ({})",
@@ -355,8 +490,39 @@ fn replays_the_ts_golden() {
             }
             h.advance(step.get("dt").and_then(Value::as_f64).unwrap_or(1000.0));
             if let Some(data) = step.get("data").and_then(Value::as_str) {
-                let fx = h.state.on_message(data, &mut h.env);
+                let es = h.source(step);
+                let fx = h.state.event_source_message(es, data, &mut h.env);
                 h.run(fx);
+            } else if let Some(kind) = step.get("es").and_then(Value::as_str) {
+                let es = h.source(step);
+                let fx = match kind {
+                    "open" => h.state.event_source_open(es, &mut h.env),
+                    "error" => {
+                        let rs = match step["readyState"].as_u64().unwrap() {
+                            0 => ReadyState::Connecting,
+                            1 => ReadyState::Open,
+                            _ => ReadyState::Closed,
+                        };
+                        h.state.event_source_error(es, rs, &mut h.env)
+                    }
+                    other => panic!("{}: es {other}", h.at),
+                };
+                h.run(fx);
+            } else if let Some(v) = step.get("visibility").and_then(Value::as_str) {
+                let fx = h.state.visibility_changed(v == "hidden", &mut h.env);
+                h.run(fx);
+            } else if let Some(p) = step.get("pathname").and_then(Value::as_str) {
+                let fx = h.state.set_pathname(Some(p), &mut h.env);
+                h.run(fx);
+            } else if step.get("navIntent").is_some() {
+                h.state.navigation_intent();
+            } else if let Some(to) = step.get("pushState").and_then(Value::as_str) {
+                let href = url::Url::parse(&h.state.location)
+                    .unwrap()
+                    .join(to)
+                    .unwrap();
+                h.state.set_location(href.as_str());
+                h.log.history.push(json!({ "op": "pushState", "url": to }));
             } else if let Some(action) = step.get("action").and_then(Value::as_str) {
                 let args = list(step, "args");
                 let fx = match action {
@@ -391,6 +557,7 @@ fn replays_the_ts_golden() {
                         h.state.update_todo_item(s(0), s(1), &mut h.env)
                     }
                     q if QUEUE_ACTIONS.contains(&q) => queue_action(&mut h, q, args),
+                    l if LIFE_ACTIONS.contains(&l) => life_action(&mut h, l, args),
                     d if d.starts_with("dismiss") => {
                         dismiss(&mut h.state, d);
                         Vec::new()
@@ -399,49 +566,65 @@ fn replays_the_ts_golden() {
                 };
                 h.run(fx);
             }
-            let at = h.at.clone();
-            assert_eq!(h.env.now, step["at"].as_f64().unwrap(), "{at}: clock");
-            for (k, v) in step["state"].as_object().unwrap() {
-                expected[k] = v.clone();
+            let drift: Vec<&str> = DRIFT
+                .iter()
+                .filter(|(s, n, _)| *s == name && *n == i)
+                .map(|(_, _, k)| *k)
+                .collect();
+            drift_seen += drift.len();
+            h.check(step, &mut expected, &mut storage, &drift, &mut failures);
+            if !drift.is_empty() {
+                // The recording, not the port, carries on.
+                let want = expected.clone();
+                h.state = rebase(&h.state, &want, &drift);
             }
-            let d = diff_keys(&h.state.snapshot(), &expected);
-            if !d.is_empty() {
-                failures.push(format!("{at}: state differs\n{}", d.join("\n")));
-                // The logs of a step whose state is off would only repeat it.
-                continue;
-            }
-            // The only sessionStorage writer so far is the boot guard
-            // (U01k), clearing its marker once the replay settles.
-            if let Some(storage) = step.get("storage").and_then(Value::as_object) {
-                let keys: Vec<&String> = storage.keys().collect();
-                assert!(
-                    keys.iter().all(|k| *k == "claudius:boot-pending"),
-                    "{at}: sessionStorage {keys:?}: a writer the port doesn't cover"
-                );
-            }
-            let log = std::mem::take(&mut h.log);
-            for (what, got, key) in [
-                ("fetches", &log.fetches, "fetches"),
-                ("timers", &log.timers, "timers"),
-                ("window events", &log.window_events, "windowEvents"),
-                ("history", &log.history, "history"),
-                ("logs", &log.logs, "logs"),
-            ] {
-                check_list(&at, what, got, list(step, key), &mut failures);
-            }
-            // U01n / U01j: the promise value of an action that has one.
-            let want: Vec<Value> = step.get("resolved").map_or_else(Vec::new, |v| {
-                vec![json!({ "action": step["action"], "outcome": v })]
-            });
-            check_list(&at, "resolved", &log.resolved, &want, &mut failures);
         }
     }
+    assert_eq!(drift_seen, DRIFT.len(), "a DRIFT entry names no step");
     assert!(
         failures.is_empty(),
         "{} of {steps} steps differ:\n{}",
         failures.len(),
         failures.join("\n")
     );
+}
+
+/// After a [`DRIFT`] step, carry on from the TS's value of the drifted
+/// cells, so the steps after it compare what they change themselves.
+fn rebase(state: &ChatState, want: &Value, keys: &[&str]) -> ChatState {
+    let mut s = state.clone();
+    for k in keys {
+        match *k {
+            "messages" => s.messages = serde_json::from_value(want[*k].clone()).unwrap(),
+            "chatCommandModelNotice" => s.chat_command_model_notice = want[*k].clone(),
+            other => panic!("DRIFT key {other} can't be rebased"),
+        }
+    }
+    s
+}
+
+/// The lifecycle actions U01k ports.
+const LIFE_ACTIONS: &[&str] = &[
+    "switchSession",
+    "createNewSession",
+    "createSessionAt",
+    "createNewSessionWithDraft",
+    "openSkippedBootSession",
+    "refreshSessions",
+];
+
+fn life_action(h: &mut Harness<'_>, action: &str, args: &[Value]) -> Vec<Effect> {
+    let s = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or_default();
+    let (state, env) = (&mut h.state, &mut h.env);
+    match action {
+        "switchSession" => state.switch_session(s(0), env),
+        "createNewSession" => state.create_new_session(env),
+        "createSessionAt" => state.create_session_at(s(0), env),
+        "createNewSessionWithDraft" => state.create_new_session_with_draft(s(0), env),
+        "openSkippedBootSession" => state.open_skipped_boot_session(env),
+        "refreshSessions" => state.refresh_session_list(env),
+        other => unreachable!("{other}"),
+    }
 }
 
 /// U01i's status actions.
@@ -481,6 +664,7 @@ fn dismiss(state: &mut ChatState, action: &str) {
         "dismissAdvisorDisabledNotice" => state.dismiss_advisor_disabled_notice(),
         "dismissAutoModeOffNotice" => state.dismiss_auto_mode_off_notice(),
         "dismissTodosAutoCleared" => state.dismiss_todos_auto_cleared(),
+        "dismissSkippedBootSession" => state.dismiss_skipped_boot_session(),
         other => panic!("no port of the action {other}"),
     }
 }
@@ -518,6 +702,8 @@ fn resolution(action: &Action, outcome: Value) -> Value {
         Action::SetGoal => "setGoal",
         Action::ClearGoal => "clearGoal",
         Action::SubmitFeedback => "submitFeedback",
+        Action::CreateNewSession => "createNewSession",
+        Action::RefreshSessions => "refreshSessions",
     };
     json!({ "action": name, "outcome": outcome })
 }

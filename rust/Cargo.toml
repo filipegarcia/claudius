@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/claudius-agent", "crates/claudius-client", "crates/claudius-core", "crates/claudius-server", "crates/claudius-theme"]
+members = ["crates/claudius-agent", "crates/claudius-client", "crates/claudius-core", "crates/claudius-server", "crates/claudius-theme", "crates/claudius-transport"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,7 +11,9 @@ rust-version = "1.85"
 
 [workspace.dependencies]
 claudius-agent = { path = "crates/claudius-agent" }
+claudius-client = { path = "crates/claudius-client" }
 claudius-core = { path = "crates/claudius-core" }
+claudius-server = { path = "crates/claudius-server" }
 
 anyhow = "1"
 async-trait = "0.1"
@@ -35,6 +37,9 @@ icu_collator = "2"
 # `/u` property classes from ICU (lib/shared/skill-names.ts).
 icu_properties = "2"
 indexmap = "2"
+# Request / response heads for `claudius-transport` (already in the tree
+# through hyper and axum).
+http = "1"
 http-body-util = "0.1"
 # The dictation socket's handshake response (`claudius_core::voice_ws`), as
 # Node's HTTP parser reads it. Already in the tree through hyper.
@@ -73,6 +78,9 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["tls12"
 tokio-stream = { version = "0.1", features = ["sync"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 tower-http = { version = "0.6", features = ["trace", "cors"] }
+# `ServiceExt::oneshot`: `claudius-transport` dispatches a request through the
+# server's router in-process. Already in the tree through axum.
+tower = { version = "0.5", default-features = false, features = ["util"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 # The dictation proxy's upstream WebSocket (`claudius_core::voice_ws`, TS's

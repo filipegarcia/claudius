@@ -1,0 +1,35 @@
+[package]
+name = "claudius-transport"
+description = "The native UI's I/O host for claudius-client: fetch and a browser-faithful EventSource, in-process (the server's router, no sockets) or remote (HTTP to a claudius server)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+axum.workspace = true
+bytes.workspace = true
+# A cookie's `Expires` (the server deletes one with an `Expires` in 1970).
+chrono.workspace = true
+# The state machine the driver runs, and its fetch request / outcome types.
+claudius-client.workspace = true
+# `claudius_server::app(state)`: the router the in-process transport calls.
+claudius-server.workspace = true
+futures.workspace = true
+http.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower.workspace = true
+# WHATWG URL parsing: a request URL is resolved against the origin as the
+# browser's `fetch` / `EventSource` resolve it.
+url.workspace = true
+
+[dev-dependencies]
+claudius-core.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["test-util"] }

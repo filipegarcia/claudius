@@ -12,7 +12,8 @@
 // - `window` / `document` with in-memory storage, `history` and a location
 //   (`http://localhost:3000/?session=sess-1` unless the scenario says);
 // - a fake `EventSource` (the test opens it and pushes `data` text to
-//   `onmessage`, exactly what the SSE route sends);
+//   `onmessage`, exactly what the SSE route sends, or fires its `onopen` /
+//   `onerror` with a scripted `readyState`);
 // - a scripted `fetch` (per-scenario routes first, then the defaults below;
 //   a route's response is `{ status, body }`, `{ status, text }` for a raw
 //   body, `{ reject }` for a network error, or a list used in turn);
@@ -31,11 +32,12 @@
 // SSE message (`data`), or a hook action (`action` with `args`; with
 // `resolve`, the step also records what its promise resolved to, as
 // `resolved`). Later slices add scenarios (and step kinds) to `scenarios`
-// below.
+// below; U01k's block documents the page, storage and stream inputs it
+// added (a scenario that sets none of them gets the prelude above).
 //
 // The prelude also records the stream URL (`eventSource`, which carries the
-// tab id) and the uuids used so far (`uuids`). After the prelude and after
-// each step it records:
+// tab id, when the boot bound a session) and the uuids used so far
+// (`uuids`). After the prelude and after each step it records:
 // - `state`: the hook's return value minus its functions, as the client's
 //   snapshot JSON (see `enc`). The prelude has every key; a step has only
 //   the keys that changed.
@@ -44,9 +46,12 @@
 //   received);
 // - `timers`: `{ op: "set", id, kind, ms }`, `{ op: "clear", id }` (only of
 //   a live timer) and `{ op: "fire", id }`, in order;
+// - `streams`: `{ op: "open", es, url }` (`new EventSource`, `es` counts
+//   them from 0) and `{ op: "close", es }`, in order;
 // - `windowEvents` (`dispatchEvent`), `history` (`replaceState` /
-//   `pushState`), `storage` (sessionStorage after the step, when it changed)
-//   and `logs` (console output; an Error prints as `<name>: <message>`).
+//   `pushState`, and `assign` for `location.assign`), `storage`
+//   (sessionStorage after the step, when it changed) and `logs` (console
+//   output; an Error prints as `<name>: <message>`).
 // Empty lists are left out.
 //
 // Snapshot JSON: a top-level `undefined` is `{"$undefined": true}`, a nested
@@ -148,7 +153,7 @@ register(`data:text/javascript,${encodeURIComponent(hook)}`);
 /** What the current scenario has seen since the last record. */
 let rec = null;
 function freshRec() {
-  return { fetches: [], timers: [], windowEvents: [], history: [], logs: [] };
+  return { fetches: [], timers: [], windowEvents: [], history: [], logs: [], streams: [] };
 }
 
 function errText(e) {
@@ -300,6 +305,11 @@ const DEFAULT_ROUTES = [
   ["GET", "^/api/sessions/[^/]+/pending-prompts$", { status: 200, body: { asks: [], permissions: [], elicitations: [] } }],
   ["POST", "^/api/sessions/[^/]+/recap$", { status: 200, body: { ok: true } }],
 ];
+/**
+ * The null-body statuses `new Response` accepts (the Fetch spec's 101 and
+ * 103 are below its 200-599 range, so no scenario can script them).
+ */
+const NULL_BODY_STATUSES = new Set([204, 205, 304]);
 /** [method, RegExp, spec, calls] for the current scenario. */
 let routes = [];
 function setRoutes(extra = []) {
@@ -321,7 +331,11 @@ globalThis.fetch = async (input, init = {}) => {
   }
   const text = spec.text ?? JSON.stringify(spec.body);
   entry.response = { status: spec.status, body: text };
-  return new Response(text, { status: spec.status, headers: { "content-type": "application/json" } });
+  // A null-body status (204, 205, 304) takes no body: undici's
+  // `new Response("", { status: 204 })` throws "Invalid response status
+  // code 204", which reached the hook as a rejected fetch (U01p).
+  const body = NULL_BODY_STATUSES.has(spec.status) ? null : text;
+  return new Response(body, { status: spec.status, headers: { "content-type": "application/json" } });
 };
 
 // ---------------------------- fake EventSource ----------------------------
@@ -337,10 +351,13 @@ class FakeEventSource {
     this.onopen = null;
     this.onmessage = null;
     this.onerror = null;
+    this.index = sources.length;
     sources.push(this);
+    rec.streams.push({ op: "open", es: this.index, url });
   }
   close() {
     this.readyState = 2;
+    rec.streams.push({ op: "close", es: this.index });
   }
   addEventListener(type) {
     throw new Error(`unexpected EventSource.addEventListener(${type})`);
@@ -361,6 +378,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const React = (await import(pathToFileURL(REAL_NM + "react/index.js").href)).default;
 const { createRoot } = (await import(pathToFileURL(REAL_NM + "react-dom/client.js").href)).default;
 const { useSession } = await import(pathToFileURL(join(repo, "lib/client/use-session.ts")).href);
+// The same module instance the hook reads (U01k's URL writer).
+const { markNavigating } = await import(pathToFileURL(join(repo, "lib/client/nav-intent.ts")).href);
 const { act } = React;
 if (typeof act !== "function") throw new Error("React.act missing (production build?)");
 const { PathnameContext } = (
@@ -451,8 +470,10 @@ function snapshot(hookValue) {
 // --------------------------------- driver ---------------------------------
 
 let latest = null;
+/** The scenario's `useSession` options (U01k: `defaultCwd`). */
+let probeOpts;
 function Probe() {
-  latest = useSession();
+  latest = useSession(probeOpts);
   return null;
 }
 
@@ -466,13 +487,18 @@ async function runScenario(sc) {
   sessionStorage.clear();
   localStorage.clear();
   locationObj = new URL(sc.url ?? "http://localhost:3000/?session=sess-1");
+  // "Open anyway" loads the page anew (U01k).
+  locationObj.assign = (url) => rec.history.push({ op: "assign", url: String(url) });
   history.state = null;
   document.hidden = false;
-  setRoutes();
+  document.visibilityState = "visible";
+  for (const [k, v] of Object.entries(sc.storage ?? {})) sessionStorage.setItem(k, v);
+  probeOpts = sc.defaultCwd !== undefined ? { defaultCwd: sc.defaultCwd } : undefined;
+  setRoutes(sc.bootRoutes);
   rec = freshRec();
 
   let prevState = {};
-  let prevStorage = "{}";
+  let prevStorage = JSON.stringify(sessionStorage.dump());
   const record = (extra) => {
     const full = snapshot(latest);
     const state = {};
@@ -496,15 +522,21 @@ async function runScenario(sc) {
     root.render(el);
     await drain();
   });
+  // A boot that binds nothing (U01k: `noStream`) opens no EventSource;
+  // `noOpen` leaves the one it opened connecting.
   const es = sources.at(-1);
-  if (!es) throw new Error(`${sc.name}: the prelude opened no EventSource`);
-  await act(async () => {
-    es.open();
-    await drain();
-  });
-  const tabId = new URL(es.url, "http://localhost:3000").searchParams.get("tabId");
-  const prelude = record({ eventSource: es.url, uuids: uuidN });
+  if (!es && !sc.noStream) throw new Error(`${sc.name}: the prelude opened no EventSource`);
+  if (es && !sc.noOpen) {
+    await act(async () => {
+      es.open();
+      await drain();
+    });
+  }
+  const tabId = es ? new URL(es.url, "http://localhost:3000").searchParams.get("tabId") : null;
+  const prelude = record({ ...(es ? { eventSource: es.url } : {}), uuids: uuidN });
   setRoutes(sc.routes);
+  // The step's EventSource: `source` (its index), else the newest.
+  const src = (i) => sources[i ?? sources.length - 1];
 
   const steps = [];
   for (const raw of sc.steps) {
@@ -513,10 +545,57 @@ async function runScenario(sc) {
     if (st.hidden !== undefined) document.hidden = st.hidden;
     await advance(dt);
     const input = {};
+    if (st.source !== undefined) input.source = st.source;
     if (st.data !== undefined) {
       input.data = st.data;
       await act(async () => {
-        es.send(st.data);
+        src(st.source).send(st.data);
+        await drain();
+      });
+    } else if (st.es !== undefined) {
+      // U01k: the browser's `open` / `error` on an EventSource, with the
+      // readyState it has when `onerror` runs.
+      input.es = st.es;
+      const s = src(st.source);
+      if (st.es === "error") input.readyState = st.readyState;
+      await act(async () => {
+        if (st.es === "open") s.open();
+        else {
+          s.readyState = st.readyState;
+          s.onerror?.({ type: "error" });
+        }
+        await drain();
+      });
+    } else if (st.pathname !== undefined) {
+      // U01k: a render with another committed route (the scenario must
+      // have set `pathname`, so the tree keeps its shape).
+      if (sc.pathname === undefined) throw new Error(`${sc.name}: a pathname step needs sc.pathname`);
+      input.pathname = st.pathname;
+      await act(async () => {
+        root.render(React.createElement(PathnameContext.Provider, { value: st.pathname }, React.createElement(Probe)));
+        await drain();
+      });
+    } else if (st.navIntent) {
+      // U01k: a programmatic push (`useNavIntentRouter`) is about to start.
+      input.navIntent = true;
+      await act(async () => {
+        markNavigating();
+        await drain();
+      });
+    } else if (st.pushState !== undefined) {
+      // U01k: the router moved the page.
+      input.pushState = st.pushState;
+      await act(async () => {
+        history.pushState(null, "", st.pushState);
+        await drain();
+      });
+    } else if (st.visibility !== undefined) {
+      // U01k: the tab is hidden or shown (`visibilitychange`).
+      input.visibility = st.visibility;
+      document.hidden = st.visibility === "hidden";
+      document.visibilityState = st.visibility;
+      await act(async () => {
+        document.dispatchEvent(new Event("visibilitychange"));
         await drain();
       });
     } else if (st.action) {
@@ -542,7 +621,11 @@ async function runScenario(sc) {
   });
   if (timers.size !== 0) throw new Error(`${sc.name}: timers left after unmount: ${[...timers.keys()]}`);
   rec = null;
-  return { name: sc.name, ...(sc.routes ? { routes: sc.routes } : {}), prelude, steps };
+  const boot = {};
+  for (const k of ["url", "pathname", "defaultCwd", "storage", "bootRoutes", "noOpen", "noStream"]) {
+    if (sc[k] !== undefined) boot[k] = sc[k];
+  }
+  return { name: sc.name, ...(sc.routes ? { routes: sc.routes } : {}), ...boot, prelude, steps };
 }
 
 // -------------------------------- scenarios -------------------------------
@@ -3637,6 +3720,359 @@ scenarios.push(
       ...Array.from({ length: 9 }, (_, i) => callR("submitFeedback", { rating: "up", comment: `try ${i}` })),
       call("dismissFeedback"),
     ],
+  },
+);
+
+// ---- U01k: mount, boot, switch / create and the stream lifecycle ----
+// A scenario may set the page `url`, preset `storage` (sessionStorage), a
+// `defaultCwd`, `bootRoutes` (the prelude's routes, before the defaults),
+// `noOpen` (the prelude's stream stays connecting) and `noStream` (the
+// boot binds nothing). Steps add `es: "open" | "error"` (with the
+// `readyState` `onerror` sees), `visibility: "hidden" | "visible"` (a
+// `visibilitychange`), `source` (which EventSource, by index), `pathname`
+// (a re-render on another route), `navIntent` (`markNavigating()`) and
+// `pushState` (the router moved the page).
+const POST_SESSIONS = "^/api/sessions$";
+const created = (id, cwd) => ({ status: 200, body: cwd === undefined ? { id } : { id, cwd } });
+const MARKER = "claudius:boot-pending";
+const marker = (id, at, load) => JSON.stringify({ id, at, load });
+const esOpen = (o = {}) => ({ es: "open", ...o });
+const esError = (readyState, o = {}) => ({ es: "error", readyState, ...o });
+const onSource = (source, step) => ({ ...step, source });
+const FRESH_URL = "http://localhost:3000/";
+
+scenarios.push(
+  {
+    name: "life-boot resumes ?session= at ?at=",
+    url: "http://localhost:3000/?session=sess-1&at=u-7",
+    steps: [ev(READY), ev(REPLAYED)],
+  },
+  {
+    name: "life-boot asks for the last active tab",
+    url: FRESH_URL,
+    bootRoutes: [
+      ["GET", "^/api/sessions/open-tabs$", { status: 200, body: { activeId: "sess-7" } }],
+      ["POST", POST_SESSIONS, created("sess-7", "/work/seven")],
+      ["GET", "^/api/sessions/sess-7/advisor$", { status: 200, body: { model: "claude-opus-4-5" } }],
+      ["GET", "^/api/sessions/sess-7/suggested-messages$", { status: 200, body: { uuids: ["u-1", "u-2"] } }],
+      ["GET", "^/api/sessions/sess-7/goal-messages$", { status: 200, body: { uuids: ["g-1"] } }],
+    ],
+    steps: [ev({ ...READY, sessionId: "sess-7" }), ev(REPLAYED)],
+  },
+  {
+    name: "life-boot creates fresh without an active tab",
+    url: FRESH_URL,
+    defaultCwd: "/work/default",
+    steps: [ev(READY), ev(REPLAYED)],
+  },
+  ...[
+    ["a failed lookup", { reject: "Failed to fetch" }],
+    ["a 500 lookup", { status: 500, body: { activeId: "sess-9" } }],
+    ["a lookup that isn't JSON", { status: 200, text: "nope" }],
+    ["a null lookup", { status: 200, text: "null" }],
+    ["a numeric activeId", { status: 200, body: { activeId: 5 } }],
+    ["an empty activeId", { status: 200, body: { activeId: "" } }],
+  ].map(([what, reply]) => ({
+    name: `life-boot creates fresh after ${what}`,
+    url: FRESH_URL,
+    bootRoutes: [["GET", "^/api/sessions/open-tabs$", reply]],
+    steps: [],
+  })),
+  {
+    name: "life-boot ?new=1 strips the session params",
+    url: "http://localhost:3000/?new=1&session=sess-1&at=u-1&tab=a%20b&x=%E2%9C%93&y=1+2#frag",
+    steps: [ev(READY)],
+  },
+  {
+    name: "life-boot ?new=1 alone",
+    url: "http://localhost:3000/wks_ab12?new=1",
+    defaultCwd: "",
+    steps: [],
+  },
+  {
+    name: "life-boot guard skips a crash-looping session",
+    url: "http://localhost:3000/?session=sess-1&at=u-3&keep=1",
+    storage: { [MARKER]: marker("sess-1", NOW - 60_000, NOW - 900_000) },
+    bootRoutes: [["POST", POST_SESSIONS, created("sess-2", "/work/proj")]],
+    routes: [["POST", POST_SESSIONS, created("sess-x")]],
+    steps: [
+      ev({ ...READY, sessionId: "sess-2" }),
+      // The marker names the skipped session, so the fresh replay keeps it.
+      ev(REPLAYED),
+      call("openSkippedBootSession"),
+      call("switchSession", "sess-1"),
+      esOpen(),
+      ev(REPLAYED),
+      // The notice went for good once another session was bound.
+      call("switchSession", "sess-2"),
+      call("openSkippedBootSession"),
+    ],
+  },
+  {
+    name: "life-boot guard is dismissed",
+    storage: { [MARKER]: marker("sess-1", NOW - 60_000, NOW - 900_000) },
+    bootRoutes: [["POST", POST_SESSIONS, created("sess-2")]],
+    steps: [call("dismissSkippedBootSession"), call("openSkippedBootSession")],
+  },
+  {
+    name: "life-boot guard is forced open",
+    storage: { [MARKER]: marker("sess-1", NOW - 60_000, NOW - 900_000), "claudius:boot-force": "sess-1" },
+    steps: [ev(READY), ev(REPLAYED)],
+  },
+  {
+    name: "life-boot guard ignores an expired marker",
+    storage: { [MARKER]: marker("sess-1", NOW - 31 * 60_000, NOW - 900_000) },
+    steps: [ev(REPLAYED)],
+  },
+  {
+    name: "life-boot guard drops the notice when the create fails",
+    storage: { [MARKER]: marker("sess-1", NOW - 60_000, NOW - 900_000) },
+    bootRoutes: [["POST", POST_SESSIONS, { reject: "Failed to fetch" }]],
+    noStream: true,
+    steps: [],
+  },
+  {
+    name: "life-create failures",
+    url: FRESH_URL,
+    bootRoutes: [["POST", POST_SESSIONS, { reject: "Failed to fetch" }]],
+    noStream: true,
+    routes: [
+      [
+        "POST",
+        POST_SESSIONS,
+        [
+          { status: 500, body: { error: "spawn failed", name: "Error" } },
+          { status: 503, body: {} },
+          { status: 502, body: { error: "  " } },
+          { status: 404, body: { error: "  not here  " } },
+          { status: 400, text: "nope" },
+          { status: 409, body: { error: 5, name: "Conflict" } },
+          { status: 422, body: { error: 5 } },
+          { status: 403, body: { error: ["a", "b"], name: { n: 1 } } },
+          { status: 401, text: "null" },
+          { status: 200, text: "not json" },
+          { status: 200, text: "" },
+          { status: 200, text: "null" },
+          { status: 201, body: { id: "sess-3", cwd: 7 } },
+        ],
+      ],
+    ],
+    steps: [
+      ...Array.from({ length: 12 }, () => callR("createNewSession")),
+      callR("createNewSession"),
+      esOpen(),
+      ev({ ...READY, sessionId: "sess-3" }),
+    ],
+  },
+  {
+    name: "life-createNewSession, createSessionAt and drafts",
+    defaultCwd: "/work/default",
+    routes: [
+      [
+        "POST",
+        POST_SESSIONS,
+        [created("sess-2", "/work/two"), created("sess-3", ""), created("sess-4"), created("sess-5", "/w/5")],
+      ],
+    ],
+    steps: [
+      ev(READY),
+      ev(REPLAYED),
+      callR("createNewSession"),
+      esOpen(),
+      ev({ ...READY, sessionId: "sess-2" }),
+      call("createSessionAt", "/tmp/x"),
+      call("createNewSessionWithDraft", "draft text"),
+      call("createNewSessionWithDraft", ""),
+      callR("refreshSessions"),
+    ],
+  },
+  {
+    name: "life-switchSession",
+    routes: [["POST", POST_SESSIONS, [created("sess-ignored"), { reject: "Failed to fetch" }, { status: 500, text: "x" }]]],
+    steps: [
+      ev(READY),
+      ev(RUNNING),
+      ev(REPLAYED),
+      call("switchSession", "sess-1"),
+      call("switchSession", "sess-2"),
+      esOpen(),
+      ev({ ...READY, sessionId: "sess-2" }),
+      // The old socket's late callbacks: its session isn't bound any more.
+      onSource(0, ev({ type: "session_title", title: "from the old stream" })),
+      onSource(0, esError(2)),
+      onSource(0, esOpen()),
+      ev(REPLAYED),
+      // A failed wake POST still binds.
+      call("switchSession", "sess-1"),
+      call("switchSession", "sess-3"),
+      esOpen(),
+      ev(REPLAYED),
+    ],
+  },
+  {
+    name: "life-the browser reconnects a dropped stream",
+    steps: [
+      ev(READY),
+      ev(REPLAYED),
+      ev(RUNNING),
+      esError(0),
+      // Back within the badge's 4 s: no badge, no rebuild.
+      esOpen(),
+      esError(0),
+      wait(5000),
+      esError(0, { dt: 5000 }),
+      esError(1),
+      // Down 16 s: the transcript is rebuilt from the replay.
+      esOpen({ dt: 5000 }),
+      ev(READY),
+      ev(REPLAYED),
+      esError(0),
+      esOpen({ dt: 14_000 }),
+    ],
+  },
+  {
+    name: "life-a closed stream is rebuilt with backoff",
+    routes: [["POST", POST_SESSIONS, created("sess-2")]],
+    steps: [
+      ev(READY),
+      ev(REPLAYED),
+      ev(RUNNING),
+      esError(2),
+      // 1 s, then the rebind.
+      wait(1000),
+      esError(2),
+      wait(2000),
+      esError(2),
+      wait(3000),
+      wait(1000),
+      esOpen(),
+      ev(READY),
+      ev(REPLAYED),
+      // The backoff starts over once a socket opened.
+      esError(2),
+      esError(2),
+      // A switch takes over: its bind disarms the retry.
+      call("switchSession", "sess-2"),
+      wait(2000),
+      esOpen(),
+    ],
+  },
+  {
+    name: "life-visibility revives a dead stream",
+    routes: [["GET", "^/api/sessions$", [sessionsAs("idle")]]],
+    steps: [
+      ev(READY),
+      ev(REPLAYED),
+      ev(RUNNING),
+      { visibility: "visible" },
+      ev(RUNNING),
+      { visibility: "hidden" },
+      esError(2),
+      { visibility: "hidden", dt: 200 },
+      { visibility: "visible", dt: 200 },
+      esOpen(),
+      esError(0),
+      { visibility: "visible" },
+      esOpen(),
+    ],
+  },
+  {
+    name: "life-a stale socket of the same session still applies",
+    steps: [
+      ev(READY),
+      ev(REPLAYED),
+      esError(2),
+      wait(1000),
+      onSource(0, ev({ type: "session_title", title: "late but applied" })),
+      onSource(0, esOpen()),
+      esOpen(),
+      ev(READY),
+      onSource(0, esError(0)),
+      onSource(1, esError(2)),
+    ],
+  },
+  {
+    name: "life-a ?prompt= seed waits for the turn",
+    url: "http://localhost:3000/?session=sess-1&prompt=hello%20there",
+    routes: [["POST", "^/api/sessions/[^/]+/input$", { status: 200, body: { ok: true } }]],
+    steps: [{ ...ev(RUNNING), dt: 100 }, wait(500), wait(500), ev(IDLE), wait(500)],
+  },
+  {
+    name: "life-a ?prompt= seed whose POST fails",
+    url: "http://localhost:3000/?prompt=go&new=1",
+    routes: [["POST", "^/api/sessions/[^/]+/input$", { reject: "Failed to fetch" }]],
+    steps: [wait(1000)],
+  },
+  {
+    name: "life-the URL writer reflects ?session=",
+    pathname: "/",
+    url: "http://localhost:3000/?session=sess-1&at=u-3",
+    steps: [
+      wait(1000),
+      call("switchSession", "sess-2"),
+      wait(1000),
+      call("switchSession", "sess-3"),
+      { navIntent: true, dt: 100 },
+      wait(1000),
+      call("switchSession", "sess-4"),
+      { pushState: "/wks_ab12/git", dt: 100 },
+      wait(1000),
+      { pushState: "/wks_ab12?x=1", dt: 100 },
+      call("switchSession", "sess-5"),
+      wait(1000),
+      call("switchSession", "sess-6"),
+      { pathname: "/settings", dt: 100 },
+      wait(1000),
+      { pathname: "/wks_ab12/" },
+      wait(1000),
+      { pathname: "/wks_AB12" },
+      call("switchSession", "sess-7"),
+      wait(1000),
+    ],
+  },
+  {
+    name: "life-the URL writer leaves a matching URL",
+    pathname: "/",
+    steps: [wait(1000), ev(READY)],
+  },
+  {
+    name: "life-the URL writer on a customize chat",
+    pathname: "/customize/cust_0f/chat",
+    url: "http://localhost:3000/customize/cust_0f/chat",
+    steps: [wait(1000)],
+  },
+  {
+    name: "life-advisor and badge seeds",
+    bootRoutes: [
+      ["GET", "^/api/sessions/sess-1/advisor$", { status: 200, body: { model: "claude-opus-4-5" } }],
+      ["GET", "^/api/sessions/sess-1/suggested-messages$", { status: 200, body: { uuids: ["u-1"] } }],
+      ["GET", "^/api/sessions/sess-1/goal-messages$", { status: 200, body: { uuids: ["g-1", "g-2"] } }],
+    ],
+    routes: [
+      [
+        "GET",
+        "^/api/sessions/[^/]+/advisor$",
+        [
+          { status: 500, body: { model: "claude-x" } },
+          { status: 200, text: "nope" },
+          { status: 200, text: "null" },
+          { status: 200, text: "0" },
+          { status: 200, body: { model: "" } },
+          { status: 200, body: { model: 5 } },
+          { status: 200, text: "true" },
+          { status: 200, body: { model: "claude-sonnet-4-5" } },
+        ],
+      ],
+      [
+        "GET",
+        "^/api/sessions/[^/]+/suggested-messages$",
+        [{ reject: "Failed to fetch" }, { status: 500, body: { uuids: ["x"] } }, { status: 200, text: "nope" }, { status: 200, text: "null" }, { status: 200, body: { uuids: "u-9" } }, { status: 200, body: { uuids: [] } }, { status: 200, body: {} }, { status: 200, body: { uuids: ["s-8", "s-8", "s-9"] } }],
+      ],
+      ["GET", "^/api/sessions/[^/]+/goal-messages$", { status: 200, body: { uuids: ["g-3"] } }],
+    ],
+    steps: ["sess-2", "sess-3", "sess-4", "sess-5", "sess-6", "sess-7", "sess-8", "sess-9"].map((id) =>
+      call("switchSession", id),
+    ),
   },
 );
 

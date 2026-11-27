@@ -1,0 +1,1747 @@
+{
+ "node": "v22.23.3",
+ "undici": "7.25.0",
+ "scenarios": [
+  {
+   "name": "one message then the end",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "retry and ids across reconnects",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "72657472793a2033300a69643a20310a646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20620a0a69643a20320a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": "31"
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": "32"
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "1",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "b",
+     "lastEventId": "1",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "framing",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "efbb",
+      "bf",
+      "3a2068656c6c6f0d",
+      "0a646174613a206f6e650d0a646174613a2074776f0d0a0d",
+      "0a",
+      "6576656e743a20637573746f6d0d646174610d0d",
+      "69643a20350a69643a206e6f0070650a646174613a780a0a",
+      "72657472793a20736f6f6e0a72657472793a0a72657472793a20312e350a",
+      "646174613a0a0a6576656e743a20780a0a",
+      "756e6b6e6f776e3a206669656c640a64617461203a206e6f7420646174610a646174613a2061667465720a0a",
+      "69643a20360a646174613a20756e66696e6973686564"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "efbbbf",
+      "646174613a20626f6d20616761696e0a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": "35"
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": "35"
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "one\ntwo",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "custom",
+     "data": "",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "x",
+     "lastEventId": "5",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "",
+     "lastEventId": "5",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "after",
+     "lastEventId": "5",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "bom again",
+     "lastEventId": "5",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "line endings",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20610d0d646174613a20620d0a0d0a646174613a20630a0a646174613a20640d0a0a646174613a20650a0d0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "b",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "c",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "d",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "e",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "a CRLF split across chunks",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20610d",
+      "0a",
+      "0d",
+      "0a646174613a20620d",
+      "0d"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "b",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "data lines and empty data",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a206f6e650a646174613a74776f0a646174613a202074687265650a646174610a0a646174610a0a646174613a0a646174613a0a0a6576656e743a20650a0a646174613a207a0a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "one\ntwo\n three\n",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "\n",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "z",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "event types",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "6576656e743a206164640a646174613a20310a0a6576656e743a0a646174613a20320a0a6576656e743a202073700a646174613a20330a0a6576656e743a20610a6576656e743a20620a646174613a20340a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "add",
+     "data": "1",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "2",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": " sp",
+     "data": "3",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "b",
+     "data": "4",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "ids",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "69643a20310a646174613a20610a0a646174613a20620a0a69643a20320a0a69640a646174613a20630a0a69643a207800790a646174613a20640a0a69643a20330a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "69643a20710a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a2061667465720a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": "71"
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": "71"
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "1",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "b",
+     "lastEventId": "1",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "c",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "d",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "after",
+     "lastEventId": "q",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "non-ASCII data",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20c3a9f09f98800a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "é😀",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "bad UTF-8",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a2061ff62e2820a646174613a20f09f98800a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a�b�\n😀",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "a BOM only at the start",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "efbbbfefbbbf",
+      "646174613a20610a0a646174613a20efbbbf780a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "efbb",
+      "646174613a20630a0a646174613a20640a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "﻿x",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "d",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "comments and unknown fields",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "3a2070696e670a3a0a646174613a20610a3a206d69640a666f6f3a206261720a64617461203a206e6f0a20646174613a206e6f0a444154413a206e6f0a0a646174613a613a620a646174613a2020630a646174613a09640a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a:b\n c\n\td",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "retry 0",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "72657472793a20300a646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20620a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "b",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "an unfinished last event",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20610a0a646174613a20620a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a2063"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "status 500",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 500,
+     "contentType": "text/event-stream",
+     "chunks": [],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "status 404",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 404,
+     "contentType": "text/event-stream",
+     "chunks": [],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "status 204",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 204,
+     "contentType": "text/event-stream",
+     "chunks": [],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "status 201",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 201,
+     "contentType": "text/event-stream",
+     "chunks": [],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "status 301",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 301,
+     "contentType": "text/event-stream",
+     "chunks": [],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "status 307",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 307,
+     "contentType": "text/event-stream",
+     "chunks": [],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type text/plain",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/plain",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type null",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": null,
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type text/event-streamx",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-streamx",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type application/json",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "application/json",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type text/event",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type TEXT/Event-Stream",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "TEXT/Event-Stream",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type text/event-stream; charset=utf-8",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream; charset=utf-8",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type text/event-stream;charset=latin1",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream;charset=latin1",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "content type text/event-stream ;x=y",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream ;x=y",
+     "chunks": [
+      "646174613a20610a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  },
+  {
+   "name": "close mid-stream",
+   "defaultRetry": 20,
+   "closeAfter": 2,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20310a0a"
+     ],
+     "end": "hold",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "1",
+     "lastEventId": "",
+     "readyState": 1
+    }
+   ]
+  },
+  {
+   "name": "close after a reconnect error",
+   "defaultRetry": 20,
+   "closeAfter": 3,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20310a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "1",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    }
+   ]
+  },
+  {
+   "name": "a body that breaks off",
+   "defaultRetry": 20,
+   "closeAfter": null,
+   "conns": [
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20610a0a646174613a2068616c66"
+     ],
+     "end": "destroy",
+     "waitBeforeEnd": 100
+    },
+    {
+     "status": 200,
+     "contentType": "text/event-stream",
+     "chunks": [
+      "646174613a20620a0a"
+     ],
+     "end": "close",
+     "waitBeforeEnd": 0
+    }
+   ],
+   "requests": [
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    },
+    {
+     "accept": "746578742f6576656e742d73747265616d",
+     "cacheControl": "6e6f2d6361636865",
+     "pragma": "6e6f2d6361636865",
+     "lastEventId": null
+    }
+   ],
+   "events": [
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "a",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "open",
+     "readyState": 1
+    },
+    {
+     "type": "message",
+     "eventType": "message",
+     "data": "b",
+     "lastEventId": "",
+     "readyState": 1
+    },
+    {
+     "type": "error",
+     "readyState": 0
+    },
+    {
+     "type": "error",
+     "readyState": 2
+    }
+   ]
+  }
+ ]
+}

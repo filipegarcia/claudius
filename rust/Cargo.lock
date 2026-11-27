@@ -234,6 +234,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "url",
  "uuid",
 ]
 
@@ -311,6 +312,30 @@ name = "claudius-theme"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+]
+
+[[package]]
+name = "claudius-transport"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "claudius-client",
+ "claudius-core",
+ "claudius-server",
+ "futures",
+ "http",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tower",
+ "url",
 ]
 
 [[package]]

@@ -22,6 +22,32 @@
 //! resolve in the order their fetches settle. An action whose promise is `void`
 //! (`cancelQueued`, `interrupt`, ...) emits none, and one that rejects
 //! with nothing catching it emits [`Effect::UnhandledRejection`] instead.
+//!
+//! **The session stream (U01k).** `new EventSource(url)` is
+//! [`Effect::OpenEventSource`] with a [`StreamId`] the machine chose, and
+//! `es.close()` is [`Effect::CloseEventSource`] with that id. `url` is
+//! relative to the server's origin, exactly as the hook builds it:
+//! `/api/sessions/<id>/stream?tail=20&tabId=<tabId>`. The host runs a
+//! browser `EventSource` for each open one (auto-reconnect with the
+//! server's `retry`, `Last-Event-ID`, the readyState transitions) and
+//! reports its callbacks with the same id:
+//! [`ChatState::event_source_open`](crate::state::ChatState::event_source_open)
+//! for `onopen`,
+//! [`ChatState::event_source_message`](crate::state::ChatState::event_source_message)
+//! for `onmessage` (the `MessageEvent.data` text; the machine parses it),
+//! and [`ChatState::event_source_error`](crate::state::ChatState::event_source_error)
+//! for `onerror`, with the [`ReadyState`] the source has when the callback
+//! runs (the hook branches on it). The machine emulates none of the
+//! `EventSource` itself. A callback for a stream it closed or replaced runs
+//! as the hook's closure for that stream does: it acts only while that
+//! stream's session is still the bound one (the TS guards on the session
+//! id, not on the socket), so a late message from a socket the machine
+//! rebound for the same session is still applied. An id the machine never
+//! opened is ignored, and so is every callback after `unmount`. `close` is emitted each time the hook calls it, also
+//! on a source the host already reported `Closed`. The page around the
+//! stream is input too: the mount and unmount, the URL and route, and the
+//! tab's visibility (see `lifecycle.rs` and
+//! [`ChatState::visibility_changed`](crate::state::ChatState::visibility_changed)).
 
 use serde_json::Value;
 
@@ -35,6 +61,22 @@ pub struct FetchId(pub u64);
 /// page), so a recorded log's ids line up.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TimerId(pub u64);
+
+/// An `EventSource` the machine opened; the host reports its callbacks
+/// with this id.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct StreamId(pub u64);
+
+/// `EventSource.readyState` when a callback runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ReadyState {
+    /// `CONNECTING` (0): the source is retrying on its own.
+    Connecting,
+    /// `OPEN` (1).
+    Open,
+    /// `CLOSED` (2): the source gave up (or was closed) and won't retry.
+    Closed,
+}
 
 /// `fetch(url, { method, headers, body })`.
 #[derive(Debug, Clone, PartialEq)]
@@ -109,6 +151,13 @@ pub enum Effect {
     /// A promise-valued action's promise resolved with `outcome` (see the
     /// module docs).
     ActionResolved { action: Action, outcome: Value },
+    /// `new EventSource(url)` (see the module docs).
+    OpenEventSource { id: StreamId, url: String },
+    /// `es.close()`.
+    CloseEventSource { id: StreamId },
+    /// `window.location.assign(url)`: load the page anew at `url`
+    /// (`openSkippedBootSession`'s "Open anyway").
+    AssignUrl { url: String },
 }
 
 /// The action an [`Effect::ActionResolved`] settles, and its outcome's
@@ -142,4 +191,10 @@ pub enum Action {
     ClearGoal,
     /// `submitFeedback(input)` (U01j): `{ ok, stored, forwarded, reason? }`.
     SubmitFeedback,
+    /// `createNewSession()` (U01k): the new session's id, or `null` when
+    /// the create failed or a newer switch or create superseded it.
+    CreateNewSession,
+    /// `refreshSessions()` (U01k): the merged list it stored, or `[]` when
+    /// a reply threw.
+    RefreshSessions,
 }

@@ -17,6 +17,9 @@
 //! U01g: `task_snapshot`, `todos_auto_cleared` and the todo actions
 //! (`task_events.rs`).
 //! U01j: `queue:updated` and the send / queue actions (`queue.rs`).
+//! U01k: the stream's callbacks (`stream.rs`) and the mount, boot, switch
+//! and create inputs (`lifecycle.rs`); every input ends with the hook's
+//! commit effects (`ChatState::commit` in `lifecycle.rs`).
 //! Every other event is accepted and ignored until its slice lands.
 
 use serde_json::{Value, json};
@@ -60,6 +63,7 @@ pub fn apply(state: &mut ChatState, ev: ServerEvent, env: &mut dyn ClientEnv) ->
     if let Err(error) = state.apply_event(ev, &mut cx) {
         cx.out.push(Effect::BadPayload { error });
     }
+    state.commit(&mut cx);
     cx.out
 }
 
@@ -114,8 +118,10 @@ impl ChatState {
                 Then::Queue(then) => self.queue_settled(then, &outcome, &mut cx),
                 Then::Todos(then) => self.todos_settled(then, &outcome, &mut cx),
                 Then::TaskPage(hunt) => self.task_page_settled(hunt, &outcome, &mut cx),
+                Then::Life(then) => self.life_settled(then, outcome, &mut cx),
             }
         }
+        self.commit(&mut cx);
         cx.out
     }
 
@@ -131,7 +137,12 @@ impl ChatState {
         }
         match f {
             TimerFn::SessionsPoll => self.sessions_poll(&mut cx),
+            TimerFn::StreamRecovery => self.stream_recovery_fired(&mut cx),
+            TimerFn::ReconnectBadge => self.reconnect_badge_fired(),
+            TimerFn::PromptSeed { wait } => self.prompt_seed_fired(wait, &mut cx),
+            TimerFn::UrlWriter => self.url_write_fired(&mut cx),
         }
+        self.commit(&mut cx);
         cx.out
     }
 
@@ -205,7 +216,6 @@ impl ChatState {
 
     /// `clearTimeout(id)` / `clearInterval(id)`: an effect only while the
     /// timer is armed (clearing a spent or unknown id does nothing).
-    #[allow(dead_code)] // U01k's reconnect and badge timers
     pub(crate) fn clear_timer(&mut self, out: &mut Vec<Effect>, id: TimerId) {
         if self.timers.shift_remove(&id).is_some() {
             out.push(Effect::ClearTimer { id });
@@ -291,6 +301,7 @@ impl ChatState {
             ServerEvent::ReplayDone(e) => {
                 self.replaying = false;
                 self.has_more_above = e.has_more_above;
+                self.catching_up = false;
                 // Replayed history isn't streaming any more.
                 clear_streaming(&mut self.messages);
                 self.set_pending_tracked(false, cx);
@@ -490,6 +501,11 @@ impl AfterRefresh {
                 }
             }
             AfterRefresh::Nothing => {}
+            AfterRefresh::Created(c) => state.created(c, cx),
+            AfterRefresh::Resolve => cx.out.push(Effect::ActionResolved {
+                action: crate::effect::Action::RefreshSessions,
+                outcome: Value::Array(merged.to_vec()),
+            }),
         }
     }
 }
