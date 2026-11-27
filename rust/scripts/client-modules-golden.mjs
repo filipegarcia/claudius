@@ -128,10 +128,15 @@ const HOOK_IMPORTS = {
   "@/lib/shared/workflow-meta": ["parseWorkflowMeta"],
   "@/lib/shared/system-informational": ["classifyInformationalLevel"],
   "@/lib/shared/hook-events": ["hookEventGetsDurablePill"],
-  "@/lib/shared/fast-mode": ["isFastModeCreditsRejectedNotice"],
-  "@/lib/shared/advisor": ["ADVISOR_ACTIVE_SENTINEL"],
+  "@/lib/shared/fast-mode": [
+    "OPUS48_FAST_DEPRECATION_KEY",
+    "isFastModeCreditsRejectedNotice",
+    "notificationColor",
+    "opus48FastDeprecationText",
+  ],
+  "@/lib/shared/advisor": ["ADVISOR_ACTIVE_SENTINEL", "prettyModelName"],
   "@/lib/shared/cost-pricing": ["costFromTokens"],
-  "@/lib/shared/session-loops": ["readCronNextFireAt"],
+  "@/lib/shared/session-loops": ["readCronNextFireAt", "readEndedLoopWakeup"],
 };
 {
   const imports = new Map();
@@ -991,6 +996,20 @@ section("readCronNextFireAt", sl.readCronNextFireAt, [
   ["bare number", [NOW]],
   ["bare string", ["nextFireAt"]],
 ]);
+// R14c: CronDelete's `endedLoopWakeup` (SDK 0.3.321).
+section("readEndedLoopWakeup", sl.readEndedLoopWakeup, [
+  ["undefined", []],
+  ["null", [null]],
+  ["empty", [{}]],
+  ["true", [{ endedLoopWakeup: true }]],
+  ["false", [{ endedLoopWakeup: false }]],
+  ["one", [{ endedLoopWakeup: 1 }]],
+  ["string", [{ endedLoopWakeup: "true" }]],
+  ["nested", [{ result: { endedLoopWakeup: true } }]],
+  ["array", [[true]]],
+  ["bare true", [true]],
+  ["bare string", ["endedLoopWakeup"]],
+]);
 
 // ---- workflow-meta.ts
 
@@ -1084,6 +1103,75 @@ section("isFastModeCreditsRejectedNotice", fm.isFastModeCreditsRejectedNotice, [
   ["sdk event", [{ type: "sdk", message: { type: "system", subtype: "notification", key: "fast-mode-overage-rejected" } }]],
 ]);
 sections.ADVISOR_ACTIVE_SENTINEL = adv.ADVISOR_ACTIVE_SENTINEL;
+
+// R14c: the Opus 4.8 fast-mode deprecation (CC 2.1.316), the
+// `canonicalModelId` it reads, and `prettyModelName`. The hook passes `notificationColor` the SDK
+// message, always an object.
+sections.OPUS48_FAST_DEPRECATION_KEY = fm.OPUS48_FAST_DEPRECATION_KEY;
+const DEPRECATION = fm.OPUS48_FAST_DEPRECATION_KEY;
+section("notificationColor", fm.notificationColor, [
+  ["empty", [{}]],
+  ["warning", [{ color: "warning" }]],
+  ["error", [{ color: "error" }]],
+  ["info", [{ color: "info" }]],
+  ["upper", [{ color: "WARNING" }]],
+  ["number", [{ color: 5 }]],
+  ["deprecation", [{ key: DEPRECATION, priority: "immediate" }]],
+  ["deprecation error", [{ key: DEPRECATION, color: "error" }]],
+  ["deprecation info", [{ key: DEPRECATION, color: "info" }]],
+  ["deprecation upper", [{ key: DEPRECATION.toUpperCase() }]],
+  ["other key", [{ key: "other", color: "success" }]],
+  ["string", ["warning"]],
+  ["array", [["warning"]]],
+]);
+const REMOVAL = Date.parse("2026-11-30");
+const IDS = [
+  "claude-opus-4-8",
+  "claude-opus-4.8",
+  "claude-opus-4-8[1m]",
+  "claude-opus-4-8-20251101",
+  "us.anthropic.claude-opus-4-8-v1:0",
+  "CLAUDE-OPUS-4-8",
+  "claude-opus-4-80",
+  "claude-opus-48",
+  "claude-opus-4-7",
+  "claude-sonnet-4-8",
+  "claude-opus-4",
+  "xclaude-opus-4-8",
+  "claude-opus-4-8.5",
+  "claude-opus-5-5",
+  "claude-fable-5-2",
+  "claude-mythos-5",
+  "claude-opus-",
+  "opus",
+  "",
+  null,
+  undefined,
+  5,
+  "\u0130claude-opus-4-8",
+];
+section(
+  "canonicalModelId",
+  adv.canonicalModelId,
+  IDS.map((id, i) => [`${i} ${String(id)}`, id === undefined ? [] : [id]]),
+);
+// The hook passes `prettyModelName` a lower-cased id (a string); a
+// non-string comes back as itself, which the typed port doesn't take.
+section(
+  "prettyModelName",
+  adv.prettyModelName,
+  IDS.flatMap((id, i) =>
+    typeof id === "number" ? [] : [[`${i} ${String(id)}`, id === undefined ? [] : [id]]],
+  ),
+);
+section("opus48FastDeprecationText", fm.opus48FastDeprecationText, [
+  ...IDS.map((id, i) => [`${i} ${String(id)}`, [id ?? null]]),
+  ["now before", ["claude-opus-4-8", REMOVAL - 1]],
+  ["now at", ["claude-opus-4-8", REMOVAL]],
+  ["now after", ["claude-opus-4-8", REMOVAL + 1]],
+  ["now null", ["claude-opus-4-8", null]],
+  ["now 0", ["claude-opus-4-8", 0]],
+]);
 
 // ---- cost-pricing.ts
 

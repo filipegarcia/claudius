@@ -2942,7 +2942,20 @@ The port was built on the `rust-port` branch, cut from `860dd77c` (cc-parity/2.1
       - `success-drain-unless-held` is equivalent: the release clears every hold first.
       - `no-replay-guard` is unreachable until the 2.1.318 recovery schedules (R14).
     - The start golden can take held cases (patch in `rust/scripts/patches/r14b-start-golden-held.patch`). Re-recording it now would also record main's other start drift, so it waits for R14d.
-  - [ ] **R14c** `client-modules-golden.mjs` no longer re-records: main's `use-session.ts` imports `OPUS48_FAST_DEPRECATION_KEY`, `notificationColor` and `opus48FastDeprecationText` from `@/lib/shared/fast-mode` too (recorder line 150 stops on it). The Rust test still passes against the old fixture. Client-side drift: update the recorder's import table, port the new fast-mode helpers to `claudius-client`, re-record. Overlaps U01 (the client port). deps: R14a
+  - [x] **R14c** `client-modules-golden.mjs` no longer re-records: main's `use-session.ts` imports `OPUS48_FAST_DEPRECATION_KEY`, `notificationColor` and `opus48FastDeprecationText` from `@/lib/shared/fast-mode` too (recorder line 150 stops on it). The Rust test still passes against the old fixture. Client-side drift: update the recorder's import table, port the new fast-mode helpers to `claudius-client`, re-record. Overlaps U01 (the client port). deps: R14a
+    - Done 2026-11-27 (main tree): the recorder's import table follows the hook again.
+    - The hook's new imports from the modules the fixture covers turned out to be three groups, not one:
+      - from `fast-mode.ts`: `OPUS48_FAST_DEPRECATION_KEY`, `notificationColor` and `opus48FastDeprecationText`;
+      - from `advisor.ts`: `prettyModelName`;
+      - from `session-loops.ts`: `readEndedLoopWakeup`.
+    - Ported, as pure helpers:
+      - `claudius_client::shared`: `notification_color`, `opus48_fast_deprecation_text` (the removal instant and its `Nov 30` label as constants), and `canonical_model_id` / `pretty_model_name` from `advisor.ts`, with the `(?!\d)` lookaheads by hand;
+      - `claudius_core::session_loops`: `read_ended_loop_wakeup`, re-exported by `claudius_client::loops`.
+    - The recorder gains 6 sections (98 cases): 651 cases in 46 sections. The 40 old sections re-record unchanged, twice, byte-identical.
+    - Mutation: 4/4 killed (the minor's digit lookahead, the deprecation-key tone, `>=` removal, a truthy `endedLoopWakeup`).
+    - Wiring them into the state machine (`setFast`'s deprecation notice, the tone of notification pills, CronDelete ending a wake-up) is U01q's.
+    - `prettyModelName` isn't recorded with a non-string: the hook passes a lower-cased id, and the TS returns a number as is.
+    - The hook's other new imports come from modules this recorder doesn't cover (`invalid-config-file`, `session-writes-lost`, `slash-commands`, `clear-pending`); they are U01q's.
   - [ ] **R14d** Start drift: re-recording `session_start_golden` (2026-11-27) changes every case's argv and env in two ways:
     - `CLAUDE_AGENT_SDK_VERSION` is 0.3.327, the branch's `node_modules` SDK; `claudius_agent::SDK_VERSION` is still 0.3.312. Port the SDK changes in between (main's `feat(sdk-0.3.323)`, 07366b56, among them).
     - `--allowedTools` gains `mcp__claudius_goal__report_goal_achieved` (`SESSION_ALLOWED_TOOLS`, `session.ts:835`).

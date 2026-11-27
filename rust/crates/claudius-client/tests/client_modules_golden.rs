@@ -31,13 +31,16 @@ use claudius_client::idle_reconcile::{
 use claudius_client::labels::{CONVERSATION_RESET_TRIGGER_LABEL, conversation_reset_detail};
 use claudius_client::loops::{
     ScheduledLoop, is_schedule_wakeup_stop, mark_wakeups_stopped, read_cron_next_fire_at,
+    read_ended_loop_wakeup,
 };
 use claudius_client::parse_init::parse_init_system_message;
 use claudius_client::prompt_queue::{Keyed, drop_prompt, enqueue_prompt, merge_server_prompts};
 use claudius_client::sdk_filters::{is_real_user_display_message, is_suppressed_system_event};
 use claudius_client::shared::{
-    ADVISOR_ACTIVE_SENTINEL, TokenBreakdown, classify_informational_level, cost_from_tokens,
-    hook_event_gets_durable_pill, is_fast_mode_credits_rejected_notice, parse_task_list_result,
+    ADVISOR_ACTIVE_SENTINEL, OPUS48_FAST_DEPRECATION_KEY, TokenBreakdown, canonical_model_id,
+    classify_informational_level, cost_from_tokens, hook_event_gets_durable_pill,
+    is_fast_mode_credits_rejected_notice, notification_color, opus48_fast_deprecation_text,
+    parse_task_list_result, pretty_model_name,
 };
 use claudius_client::stream_recovery::{
     STREAM_BADGE_AFTER_MS, STREAM_REBUILD_AFTER_MS, STREAM_RECOVERY_MAX_DELAY_MS,
@@ -160,6 +163,9 @@ fn n(v: &Value) -> f64 {
 }
 
 const UNDEFINED: &str = r#"{"$undefined":true}"#;
+
+/// The recorder's `Date.now()`.
+const RECORDER_NOW_MS: f64 = 1_763_300_000_000.0;
 
 fn undefined() -> Value {
     serde_json::from_str(UNDEFINED).unwrap()
@@ -371,6 +377,7 @@ fn replay(section: &str, args: &[Value]) -> Value {
         "readCronNextFireAt" => {
             out(read_cron_next_fire_at(a(0)).map_or_else(undefined, num::to_value))
         }
+        "readEndedLoopWakeup" => out(json!(read_ended_loop_wakeup(a(0)))),
         "parseWorkflowMeta" => out(to_v(&parse_workflow_meta(a(0)))),
         "classifyInformationalLevel" => {
             let (hidden, level) = classify_informational_level(s(0));
@@ -388,6 +395,17 @@ fn replay(section: &str, args: &[Value]) -> Value {
         "isFastModeCreditsRejectedNotice" => out(json!(
             a(0).is_some_and(is_fast_mode_credits_rejected_notice)
         )),
+        "notificationColor" => {
+            out(notification_color(&args[0]).map_or_else(undefined, |c| json!(c)))
+        }
+        "canonicalModelId" => out(canonical_model_id(s(0)).map_or(Value::Null, Value::String)),
+        "prettyModelName" => out(json!(pretty_model_name(s(0)))),
+        "opus48FastDeprecationText" => {
+            // `now` defaults to `Date.now()` (the recorder's clock); `null`
+            // compares as 0.
+            let now = a(1).map_or(RECORDER_NOW_MS, |v| v.as_f64().unwrap_or(0.0));
+            out(opus48_fast_deprecation_text(s(0), now).map_or(Value::Null, Value::String))
+        }
         "costFromTokens" => out(num::to_value(cost_from_tokens(s(0), &tokens(&args[1])))),
         "conversationResetDetail" => out(json!(conversation_reset_detail(s(0)))),
         other => panic!("no replay for section {other}"),
@@ -542,6 +560,9 @@ fn replays_the_ts_modules() {
             "NO_EFFORT_WAIT" => check(name.clone(), cases_v, &to_v(&NO_EFFORT_WAIT)),
             "ADVISOR_ACTIVE_SENTINEL" => {
                 check(name.clone(), cases_v, &json!(ADVISOR_ACTIVE_SENTINEL))
+            }
+            "OPUS48_FAST_DEPRECATION_KEY" => {
+                check(name.clone(), cases_v, &json!(OPUS48_FAST_DEPRECATION_KEY))
             }
             "CONVERSATION_RESET_TRIGGER_LABEL" => {
                 let got = Value::Array(

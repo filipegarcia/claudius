@@ -12,7 +12,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{JsRecord, num};
 
-pub use claudius_core::session_loops::{is_schedule_wakeup_stop, read_cron_next_fire_at};
+pub use claudius_core::session_loops::{
+    is_schedule_wakeup_stop, read_cron_next_fire_at, read_ended_loop_wakeup,
+};
 
 /// `ScheduledLoop["kind"]`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

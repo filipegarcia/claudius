@@ -9778,6 +9778,97 @@
     }
    }
   ],
+  "readEndedLoopWakeup": [
+   {
+    "name": "undefined",
+    "args": [],
+    "out": false
+   },
+   {
+    "name": "null",
+    "args": [
+     null
+    ],
+    "out": false
+   },
+   {
+    "name": "empty",
+    "args": [
+     {}
+    ],
+    "out": false
+   },
+   {
+    "name": "true",
+    "args": [
+     {
+      "endedLoopWakeup": true
+     }
+    ],
+    "out": true
+   },
+   {
+    "name": "false",
+    "args": [
+     {
+      "endedLoopWakeup": false
+     }
+    ],
+    "out": false
+   },
+   {
+    "name": "one",
+    "args": [
+     {
+      "endedLoopWakeup": 1
+     }
+    ],
+    "out": false
+   },
+   {
+    "name": "string",
+    "args": [
+     {
+      "endedLoopWakeup": "true"
+     }
+    ],
+    "out": false
+   },
+   {
+    "name": "nested",
+    "args": [
+     {
+      "result": {
+       "endedLoopWakeup": true
+      }
+     }
+    ],
+    "out": false
+   },
+   {
+    "name": "array",
+    "args": [
+     [
+      true
+     ]
+    ],
+    "out": false
+   },
+   {
+    "name": "bare true",
+    "args": [
+     true
+    ],
+    "out": false
+   },
+   {
+    "name": "bare string",
+    "args": [
+     "endedLoopWakeup"
+    ],
+    "out": false
+   }
+  ],
   "parseWorkflowMeta": [
    {
     "name": "undefined",
@@ -10644,6 +10735,660 @@
    }
   ],
   "ADVISOR_ACTIVE_SENTINEL": "(active)",
+  "OPUS48_FAST_DEPRECATION_KEY": "opus48-fast-mode-deprecation",
+  "notificationColor": [
+   {
+    "name": "empty",
+    "args": [
+     {}
+    ],
+    "out": {
+     "$undefined": true
+    }
+   },
+   {
+    "name": "warning",
+    "args": [
+     {
+      "color": "warning"
+     }
+    ],
+    "out": "warning"
+   },
+   {
+    "name": "error",
+    "args": [
+     {
+      "color": "error"
+     }
+    ],
+    "out": "error"
+   },
+   {
+    "name": "info",
+    "args": [
+     {
+      "color": "info"
+     }
+    ],
+    "out": {
+     "$undefined": true
+    }
+   },
+   {
+    "name": "upper",
+    "args": [
+     {
+      "color": "WARNING"
+     }
+    ],
+    "out": {
+     "$undefined": true
+    }
+   },
+   {
+    "name": "number",
+    "args": [
+     {
+      "color": 5
+     }
+    ],
+    "out": {
+     "$undefined": true
+    }
+   },
+   {
+    "name": "deprecation",
+    "args": [
+     {
+      "key": "opus48-fast-mode-deprecation",
+      "priority": "immediate"
+     }
+    ],
+    "out": "warning"
+   },
+   {
+    "name": "deprecation error",
+    "args": [
+     {
+      "key": "opus48-fast-mode-deprecation",
+      "color": "error"
+     }
+    ],
+    "out": "error"
+   },
+   {
+    "name": "deprecation info",
+    "args": [
+     {
+      "key": "opus48-fast-mode-deprecation",
+      "color": "info"
+     }
+    ],
+    "out": "warning"
+   },
+   {
+    "name": "deprecation upper",
+    "args": [
+     {
+      "key": "OPUS48-FAST-MODE-DEPRECATION"
+     }
+    ],
+    "out": {
+     "$undefined": true
+    }
+   },
+   {
+    "name": "other key",
+    "args": [
+     {
+      "key": "other",
+      "color": "success"
+     }
+    ],
+    "out": {
+     "$undefined": true
+    }
+   },
+   {
+    "name": "string",
+    "args": [
+     "warning"
+    ],
+    "out": {
+     "$undefined": true
+    }
+   },
+   {
+    "name": "array",
+    "args": [
+     [
+      "warning"
+     ]
+    ],
+    "out": {
+     "$undefined": true
+    }
+   }
+  ],
+  "canonicalModelId": [
+   {
+    "name": "0 claude-opus-4-8",
+    "args": [
+     "claude-opus-4-8"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "1 claude-opus-4.8",
+    "args": [
+     "claude-opus-4.8"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "2 claude-opus-4-8[1m]",
+    "args": [
+     "claude-opus-4-8[1m]"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "3 claude-opus-4-8-20251101",
+    "args": [
+     "claude-opus-4-8-20251101"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "4 us.anthropic.claude-opus-4-8-v1:0",
+    "args": [
+     "us.anthropic.claude-opus-4-8-v1:0"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "5 CLAUDE-OPUS-4-8",
+    "args": [
+     "CLAUDE-OPUS-4-8"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "6 claude-opus-4-80",
+    "args": [
+     "claude-opus-4-80"
+    ],
+    "out": "claude-opus-4"
+   },
+   {
+    "name": "7 claude-opus-48",
+    "args": [
+     "claude-opus-48"
+    ],
+    "out": "claude-opus-48"
+   },
+   {
+    "name": "8 claude-opus-4-7",
+    "args": [
+     "claude-opus-4-7"
+    ],
+    "out": "claude-opus-4-7"
+   },
+   {
+    "name": "9 claude-sonnet-4-8",
+    "args": [
+     "claude-sonnet-4-8"
+    ],
+    "out": "claude-sonnet-4-8"
+   },
+   {
+    "name": "10 claude-opus-4",
+    "args": [
+     "claude-opus-4"
+    ],
+    "out": "claude-opus-4"
+   },
+   {
+    "name": "11 xclaude-opus-4-8",
+    "args": [
+     "xclaude-opus-4-8"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "12 claude-opus-4-8.5",
+    "args": [
+     "claude-opus-4-8.5"
+    ],
+    "out": "claude-opus-4-8"
+   },
+   {
+    "name": "13 claude-opus-5-5",
+    "args": [
+     "claude-opus-5-5"
+    ],
+    "out": "claude-opus-5-5"
+   },
+   {
+    "name": "14 claude-fable-5-2",
+    "args": [
+     "claude-fable-5-2"
+    ],
+    "out": "claude-fable-5-2"
+   },
+   {
+    "name": "15 claude-mythos-5",
+    "args": [
+     "claude-mythos-5"
+    ],
+    "out": "claude-mythos-5"
+   },
+   {
+    "name": "16 claude-opus-",
+    "args": [
+     "claude-opus-"
+    ],
+    "out": null
+   },
+   {
+    "name": "17 opus",
+    "args": [
+     "opus"
+    ],
+    "out": null
+   },
+   {
+    "name": "18 ",
+    "args": [
+     ""
+    ],
+    "out": null
+   },
+   {
+    "name": "19 null",
+    "args": [
+     null
+    ],
+    "out": null
+   },
+   {
+    "name": "20 undefined",
+    "args": [],
+    "out": null
+   },
+   {
+    "name": "21 5",
+    "args": [
+     5
+    ],
+    "out": null
+   },
+   {
+    "name": "22 İclaude-opus-4-8",
+    "args": [
+     "İclaude-opus-4-8"
+    ],
+    "out": "claude-opus-4-8"
+   }
+  ],
+  "prettyModelName": [
+   {
+    "name": "0 claude-opus-4-8",
+    "args": [
+     "claude-opus-4-8"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "1 claude-opus-4.8",
+    "args": [
+     "claude-opus-4.8"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "2 claude-opus-4-8[1m]",
+    "args": [
+     "claude-opus-4-8[1m]"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "3 claude-opus-4-8-20251101",
+    "args": [
+     "claude-opus-4-8-20251101"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "4 us.anthropic.claude-opus-4-8-v1:0",
+    "args": [
+     "us.anthropic.claude-opus-4-8-v1:0"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "5 CLAUDE-OPUS-4-8",
+    "args": [
+     "CLAUDE-OPUS-4-8"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "6 claude-opus-4-80",
+    "args": [
+     "claude-opus-4-80"
+    ],
+    "out": "Opus 4"
+   },
+   {
+    "name": "7 claude-opus-48",
+    "args": [
+     "claude-opus-48"
+    ],
+    "out": "Opus 48"
+   },
+   {
+    "name": "8 claude-opus-4-7",
+    "args": [
+     "claude-opus-4-7"
+    ],
+    "out": "Opus 4.7"
+   },
+   {
+    "name": "9 claude-sonnet-4-8",
+    "args": [
+     "claude-sonnet-4-8"
+    ],
+    "out": "Sonnet 4.8"
+   },
+   {
+    "name": "10 claude-opus-4",
+    "args": [
+     "claude-opus-4"
+    ],
+    "out": "Opus 4"
+   },
+   {
+    "name": "11 xclaude-opus-4-8",
+    "args": [
+     "xclaude-opus-4-8"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "12 claude-opus-4-8.5",
+    "args": [
+     "claude-opus-4-8.5"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "name": "13 claude-opus-5-5",
+    "args": [
+     "claude-opus-5-5"
+    ],
+    "out": "Opus 5.5"
+   },
+   {
+    "name": "14 claude-fable-5-2",
+    "args": [
+     "claude-fable-5-2"
+    ],
+    "out": "Fable 5.2"
+   },
+   {
+    "name": "15 claude-mythos-5",
+    "args": [
+     "claude-mythos-5"
+    ],
+    "out": "Mythos 5"
+   },
+   {
+    "name": "16 claude-opus-",
+    "args": [
+     "claude-opus-"
+    ],
+    "out": "claude-opus-"
+   },
+   {
+    "name": "17 opus",
+    "args": [
+     "opus"
+    ],
+    "out": "opus"
+   },
+   {
+    "name": "18 ",
+    "args": [
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "name": "19 null",
+    "args": [
+     null
+    ],
+    "out": ""
+   },
+   {
+    "name": "20 undefined",
+    "args": [],
+    "out": ""
+   },
+   {
+    "name": "22 İclaude-opus-4-8",
+    "args": [
+     "İclaude-opus-4-8"
+    ],
+    "out": "Opus 4.8"
+   }
+  ],
+  "opus48FastDeprecationText": [
+   {
+    "name": "0 claude-opus-4-8",
+    "args": [
+     "claude-opus-4-8"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "1 claude-opus-4.8",
+    "args": [
+     "claude-opus-4.8"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "2 claude-opus-4-8[1m]",
+    "args": [
+     "claude-opus-4-8[1m]"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "3 claude-opus-4-8-20251101",
+    "args": [
+     "claude-opus-4-8-20251101"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "4 us.anthropic.claude-opus-4-8-v1:0",
+    "args": [
+     "us.anthropic.claude-opus-4-8-v1:0"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "5 CLAUDE-OPUS-4-8",
+    "args": [
+     "CLAUDE-OPUS-4-8"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "6 claude-opus-4-80",
+    "args": [
+     "claude-opus-4-80"
+    ],
+    "out": null
+   },
+   {
+    "name": "7 claude-opus-48",
+    "args": [
+     "claude-opus-48"
+    ],
+    "out": null
+   },
+   {
+    "name": "8 claude-opus-4-7",
+    "args": [
+     "claude-opus-4-7"
+    ],
+    "out": null
+   },
+   {
+    "name": "9 claude-sonnet-4-8",
+    "args": [
+     "claude-sonnet-4-8"
+    ],
+    "out": null
+   },
+   {
+    "name": "10 claude-opus-4",
+    "args": [
+     "claude-opus-4"
+    ],
+    "out": null
+   },
+   {
+    "name": "11 xclaude-opus-4-8",
+    "args": [
+     "xclaude-opus-4-8"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "12 claude-opus-4-8.5",
+    "args": [
+     "claude-opus-4-8.5"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "13 claude-opus-5-5",
+    "args": [
+     "claude-opus-5-5"
+    ],
+    "out": null
+   },
+   {
+    "name": "14 claude-fable-5-2",
+    "args": [
+     "claude-fable-5-2"
+    ],
+    "out": null
+   },
+   {
+    "name": "15 claude-mythos-5",
+    "args": [
+     "claude-mythos-5"
+    ],
+    "out": null
+   },
+   {
+    "name": "16 claude-opus-",
+    "args": [
+     "claude-opus-"
+    ],
+    "out": null
+   },
+   {
+    "name": "17 opus",
+    "args": [
+     "opus"
+    ],
+    "out": null
+   },
+   {
+    "name": "18 ",
+    "args": [
+     ""
+    ],
+    "out": null
+   },
+   {
+    "name": "19 null",
+    "args": [
+     null
+    ],
+    "out": null
+   },
+   {
+    "name": "20 undefined",
+    "args": [
+     null
+    ],
+    "out": null
+   },
+   {
+    "name": "21 5",
+    "args": [
+     5
+    ],
+    "out": null
+   },
+   {
+    "name": "22 İclaude-opus-4-8",
+    "args": [
+     "İclaude-opus-4-8"
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "now before",
+    "args": [
+     "claude-opus-4-8",
+     1795996799999
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "now at",
+    "args": [
+     "claude-opus-4-8",
+     1795996800000
+    ],
+    "out": null
+   },
+   {
+    "name": "now after",
+    "args": [
+     "claude-opus-4-8",
+     1795996800001
+    ],
+    "out": null
+   },
+   {
+    "name": "now null",
+    "args": [
+     "claude-opus-4-8",
+     null
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   },
+   {
+    "name": "now 0",
+    "args": [
+     "claude-opus-4-8",
+     0
+    ],
+    "out": "Opus 4.8 fast mode is deprecated and will be removed on Nov 30"
+   }
+  ],
   "costFromTokens": [
    {
     "name": "null million each",

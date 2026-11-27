@@ -123,6 +123,17 @@ pub fn read_cron_next_fire_at(tool_use_result: Option<&Value>) -> Option<f64> {
     finite_ms(tool_use_result?.get("nextFireAt"))
 }
 
+/// `readEndedLoopWakeup(toolUseResult)` (SDK 0.3.321
+/// `CronDeleteOutput.endedLoopWakeup`): whether the id a `CronDelete`
+/// deleted was the session's self-paced (`ScheduleWakeup`) wake-up rather
+/// than a cron job. Only a literal `true` on an object counts (R14c).
+pub fn read_ended_loop_wakeup(tool_use_result: Option<&Value>) -> bool {
+    tool_use_result
+        .and_then(Value::as_object)
+        .and_then(|o| o.get("endedLoopWakeup"))
+        == Some(&Value::Bool(true))
+}
+
 /// `isScheduleWakeupStop`: a strict `stop: true`.
 pub fn is_schedule_wakeup_stop(input: Option<&Value>) -> bool {
     input.and_then(|i| i.get("stop")) == Some(&Value::Bool(true))
