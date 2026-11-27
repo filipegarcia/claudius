@@ -129,10 +129,11 @@ struct AutoMode {
     subscribers: Vec<UnboundedSender<()>>,
 }
 
-/// The hook's `.then`: the answer, or `None` to keep the last one (a
-/// non-2xx returns early; a body that isn't JSON, or a `null` one whose
-/// `.settings` throws, goes to the `.catch`).
-fn auto_mode_answer(outcome: &FetchOutcome) -> Option<bool> {
+/// A settings hook's `if (!res.ok) return; const data = await res.json()`:
+/// the parsed body (`res.json()` skips a BOM), or `None` where the hook
+/// keeps its last answer (a failed request, a non-2xx, a body that isn't
+/// JSON, or a `null` one, whose `.settings` throws into the `.catch`).
+pub(crate) fn settings_reply(outcome: &FetchOutcome) -> Option<Value> {
     let FetchOutcome::Response { body, .. } = outcome else {
         return None;
     };
@@ -141,9 +142,13 @@ fn auto_mode_answer(outcome: &FetchOutcome) -> Option<bool> {
     }
     let text = body.strip_prefix('\u{feff}').unwrap_or(body);
     let data = claudius_core::js_string::parse(text).ok()?;
-    if data.is_null() {
-        return None;
-    }
+    (!data.is_null()).then_some(data)
+}
+
+/// The hook's `.then`: the answer, or `None` to keep the last one
+/// ([`settings_reply`]).
+fn auto_mode_answer(outcome: &FetchOutcome) -> Option<bool> {
+    let data = settings_reply(outcome)?;
     let settings = claudius_agent::js::prop(Some(&data), "settings");
     Some(claudius_core::auto_mode_disabled::is_auto_mode_disabled(
         settings,

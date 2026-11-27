@@ -150,7 +150,7 @@ pub struct Shell {
     pub(crate) state: ShellState,
     pub(crate) data: Arc<dyn ShellData>,
     /// The chat transcripts' states (U05; U04b's live transport).
-    transcripts: Arc<dyn TranscriptSource>,
+    pub(crate) transcripts: Arc<dyn TranscriptSource>,
     /// Over a live chat, the mounted chat's transcripts (U04h); then
     /// `transcripts` is this.
     live_transcripts: Option<LiveTranscripts>,
@@ -158,6 +158,8 @@ pub struct Shell {
     live_composer: Option<Arc<LiveComposer>>,
     /// One view per recently shown tab, most recent last.
     chat_views: Vec<(String, Entity<TranscriptView>)>,
+    /// What the transcripts' cards read from their host (U06a).
+    pub(crate) cards: crate::card_host::CardHost,
     /// Over a live chat, the mounted chat for the status line (U09a), and
     /// its view once the chat route showed it.
     live_status: Option<LiveStatus>,
@@ -312,6 +314,7 @@ impl Shell {
             composer_target: live_composer.clone().map(|c| c as Arc<dyn ComposerTarget>),
             live_composer,
             chat_views: Vec::new(),
+            cards: Default::default(),
             live_status,
             status_view: None,
             composer: None,
@@ -419,23 +422,33 @@ impl Shell {
         }
     }
 
-    /// Makes the bound tab's transcript view (and keeps the recent ones).
+    /// Makes the bound tab's transcript view (and keeps the recent ones),
+    /// and hands it what its cards read from the host (U06a).
     fn sync_chat_view(&mut self, cx: &mut Context<Self>) {
         let Some(tab) = self.chat_tab() else { return };
         let theme = self.theme;
-        if let Some(i) = self.chat_views.iter().position(|(id, _)| *id == tab) {
+        let view = if let Some(i) = self.chat_views.iter().position(|(id, _)| *id == tab) {
             let entry = self.chat_views.remove(i);
             entry.1.update(cx, |v, cx| v.set_theme(theme, cx));
+            let view = entry.1.clone();
             self.chat_views.push(entry);
-            return;
-        }
-        let source = self.transcripts.clone();
-        let id = tab.clone();
-        let view = cx.new(|cx| TranscriptView::new(source, id, theme, cx));
-        self.chat_views.push((tab, view));
-        if self.chat_views.len() > KEPT_CHAT_VIEWS {
-            self.chat_views.remove(0);
-        }
+            view
+        } else {
+            let source = self.transcripts.clone();
+            let on_action = crate::card_host::on_action(cx.entity().downgrade(), tab.clone());
+            let id = tab.clone();
+            let view = cx.new(|cx| {
+                let mut v = TranscriptView::new(source, id, theme, cx);
+                v.set_on_action(on_action);
+                v
+            });
+            self.chat_views.push((tab, view.clone()));
+            if self.chat_views.len() > KEPT_CHAT_VIEWS {
+                self.chat_views.remove(0);
+            }
+            view
+        };
+        crate::card_host::sync(self, &view, cx);
     }
 
     /// The status line's view (U09a): over a live chat, made the first

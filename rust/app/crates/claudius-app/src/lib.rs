@@ -6,6 +6,7 @@
 //! strip, focus mode) without GPUI; [`shell::Shell`] puts it on screen and
 //! runs its effects against the data source.
 
+mod card_host;
 pub mod chat;
 pub mod data;
 pub mod engine;

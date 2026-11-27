@@ -3777,7 +3777,24 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
     - **Tests:** 49 model, 29 helper and 12 headless. Flake 20/20. Mutation 29/30; the survivor is equivalent (`cmp == cmp_root` next to the `startsWith(root + "/")` check, kept as the TS has it).
     - **Bench (release):** scrolling stays under 8.33 ms a frame, cards open or closed (p95 1.4–3.2 ms). Streaming: p95 8.45 ms, 6.2% of frames over budget (U05d).
     - **After the merge** the app gate passed: fmt and clippy -D warnings clean, cargo test --workspace 377 passed, 0 failed (with U04g). Screenshots: `rust/target/par/U06/shots/`.
-  - [ ] **U06a** Wire the cards into `claudius-app`: `set_file_link` from the active workspace; `set_card_settings` from Settings (show previews, editor, workflow size); `set_on_action` to the Files route, the editor URL and U08's question modal. deps: U04b, U06, U08
+  - [x] **U06a** Wire the cards into `claudius-app`: `set_file_link` from the active workspace; `set_card_settings` from Settings (show previews, editor, workflow size); `set_on_action` to the Files route, the editor URL and U08's question modal. deps: U04b, U06, U08 — done 2026-11-27 (the loop, main tree):
+    - New `claudius-app/src/card_host.rs`. The shell's `sync_chat_view` hands the bound transcript view, on every render (the view refreshes only on a change):
+      - its file link: the route's workspace and its root, as `MessageList`'s `fileLink` from `useWorkspaces()`;
+      - `showPreviews` from `localStorage` `claudius.showPreviews` (anything but `"false"` is on, as `useMediaPreferences`' `readSnapshot`);
+      - the editor from `claudius.editor` (an id `EDITORS` knows, else `vscode`, as `ide.ts`);
+      - the workflow size from `GET /api/settings?scope=user&cwd=<root>` over the live chat's transport (`useWorkflowSizeGuideline(fileLink.cwd)`; `medium` until an answer, and a failed request, a non-2xx, a body that isn't JSON or a nullish `settings` keep the last one). Over the fixture there is no transport, so it stays `medium`.
+    - Each new view gets `set_on_action`: a path opens the Files route through the shell's router (`Shell::open_url(href)`), "Open" opens the editor URL (`cx.open_url`), and the ask pill runs ChatSurface's `onReopenAsk` (the row's tool_use input from the transcript, then `ChatPrompts::reopen_ask`). The shell's part is deferred past the view's click.
+    - Deliberate differences:
+      - One settings request per workspace root, not one per mounted WorkflowBlock; a later root's answer wins (the hook's abort).
+      - The live ask's own pill scrolls nothing: the native inline ask sits under the transcript, always in view.
+      - The settings are read from the store on each render; nothing in the native app writes them yet (Settings is U13), so there is no `storage` event to follow.
+    - `targets.rs`: `settings_reply` (the settings hooks' `res.ok` / `res.json()` / `null` rules) is now shared by the auto-mode and workflow-size answers.
+    - Tests:
+      - `tests/cards_host.rs` (7, fixture): a path opens the Files route (`?path=src/main.rs`) in the route's workspace; "Open" goes to the saved editor's URL, or `vscode` for an unknown id; a written page shows its preview, and `showPreviews` `"false"` hides it; an answered question's pill resurrects it, and one with no questions toasts.
+      - `tests/live_cards.rs` (1, the in-process engine, temporary HOME, fake CLI): the boot chat's cards link into the workspace, and `workflowSizeGuideline: "large"` in the user settings lands as the view's size.
+      - Unit tests: the `showPreviews`, editor and workflow-size answer rules.
+    - Gate: GATE
+    - Closes U08d.
   - [ ] **U06b** Port use-session's `USER_REJECTED_KIND` (`rejected` on `ToolResult`) to `claudius-client`, then remove the hard-coded `false` in `cards::call_card` ("Not run · rejected"). deps: U01q
   - [ ] **U06c** HTML and image previews through the preview route in U12's WebView. deps: U12
   - [ ] **U06d** Pulse animation, and horizontal scrolling for the ToolCall input / result, JSON and Workflow script `<pre>`s (they wrap today). deps: U06
@@ -3840,7 +3857,7 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
       - Unit tests: the reply rules.
     - The status line reads the same setting with its own request (U09a), and so does the TS: one hook for the status line and the card in ChatSurface, plus `useMaxEffortLevel`'s.
     - Gate: GATE
-  - [ ] **U08d** The transcript's "Reopen" pill on ask rows calls `ChatPrompts::reopen_ask` (`true`: scroll to the inline ask). deps: U06, U08a
+  - [x] **U08d** The transcript's "Reopen" pill on ask rows calls `ChatPrompts::reopen_ask` (`true`: scroll to the inline ask). deps: U06, U08a — done 2026-11-27 with U06a (`card_host.rs`; the native inline ask is always in view, so `true` scrolls nothing).
   - [ ] **U08e** The composer sets `PromptOverlays::set_field_probe` (the mid-draft focus guard, the ask's in-field check); a paste outside any field goes to `AskView::paste`; file drops. deps: U07a, U08a
 - [~] **U09** Status line + session card:
   - pickers: model, effort, advisor, mode, fast, output style
