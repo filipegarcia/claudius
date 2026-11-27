@@ -24,6 +24,7 @@ use std::sync::Arc;
 use claudius_chat::fixture::FixtureTranscripts;
 use claudius_chat::{TranscriptSource, TranscriptView};
 use claudius_client::effect::Effect as ChatEffect;
+use claudius_composer::{ComposerTarget, ComposerView};
 use claudius_gpui_theme::ThemeName;
 use futures::StreamExt as _;
 use gpui_kit::{
@@ -152,6 +153,10 @@ pub struct Shell {
     live_transcripts: Option<LiveTranscripts>,
     /// One view per recently shown tab, most recent last.
     chat_views: Vec<(String, Entity<TranscriptView>)>,
+    /// The chat route's composer (U07), once a target is set: one view,
+    /// bound to whichever tab is shown.
+    composer_target: Option<Arc<dyn ComposerTarget>>,
+    composer: Option<Entity<ComposerView>>,
     pub(crate) focus: FocusHandle,
     pub(crate) appearance: Appearance,
     pub(crate) theme: ThemeName,
@@ -282,6 +287,8 @@ impl Shell {
             transcripts,
             live_transcripts,
             chat_views: Vec::new(),
+            composer_target: None,
+            composer: None,
             focus,
             appearance,
             theme,
@@ -354,6 +361,36 @@ impl Shell {
         if self.chat_views.len() > KEPT_CHAT_VIEWS {
             self.chat_views.remove(0);
         }
+    }
+
+    /// Puts the composer under the chat's transcript, over `target` (the
+    /// view is made on the next render).
+    pub fn set_composer_target(&mut self, target: Arc<dyn ComposerTarget>, cx: &mut Context<Self>) {
+        self.composer_target = Some(target);
+        self.composer = None;
+        cx.notify();
+    }
+
+    /// The composer, once shown.
+    pub fn composer(&self) -> Option<Entity<ComposerView>> {
+        self.composer.clone()
+    }
+
+    /// Binds the composer to the shown tab (none off the chat route).
+    fn sync_composer(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(target) = self.composer_target.clone() else {
+            return;
+        };
+        let theme = self.theme;
+        let composer = self
+            .composer
+            .get_or_insert_with(|| cx.new(|cx| ComposerView::new(target, theme, window, cx)))
+            .clone();
+        let tab = self.chat_tab();
+        composer.update(cx, |v, cx| {
+            v.set_theme(theme, cx);
+            v.set_session(tab.as_deref(), window, cx);
+        });
     }
 
     /// The mounted chat (the workspace on screen's), if any.
@@ -982,6 +1019,7 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.refit();
         self.sync_chat_view(cx);
+        self.sync_composer(window, cx);
         let root = div().track_focus(&self.focus).size_full();
         on_actions(root, cx).child(crate::ui::shell(self, window, cx))
     }

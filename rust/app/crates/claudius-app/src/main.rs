@@ -12,7 +12,9 @@
 //! default: light or dark as macOS is) or a palette id (`dark`, `light`,
 //! `paper`, …). `CLAUDIUS_APP_SESSIONS=<path>` is the sessions browser's
 //! fixture (the bundled one otherwise). Over the fixture the transcripts
-//! are claudius-chat's bundled ones (`FixtureTranscripts::builtin`).
+//! are claudius-chat's bundled ones (`FixtureTranscripts::builtin`), and
+//! the composer sends into them through `FixtureComposer` (a scripted
+//! reply); over a live chat the composer waits for U07e.
 //!
 //! Focus mode and the per-workspace route memory persist in
 //! `~/.claude/.claudius/native-app/local-storage.json` (`store.rs`).
@@ -30,6 +32,7 @@ use claudius_app::shell::{Appearance, open_main_window};
 use claudius_app::store::{self, LocalStore};
 use claudius_chat::TranscriptSource;
 use claudius_chat::fixture::FixtureTranscripts;
+use claudius_composer::fixture::FixtureComposer;
 use claudius_gpui_theme::{ThemeName, icons::IconAssets};
 
 fn main() -> anyhow::Result<()> {
@@ -82,6 +85,10 @@ fn main() -> anyhow::Result<()> {
     let _player = backend
         .is_none()
         .then(|| fixture.spawn_player(Duration::from_millis(60), Duration::from_secs(4)));
+    // The composer's fixture server: a send plays a scripted reply.
+    let composer = backend
+        .is_none()
+        .then(|| FixtureComposer::builtin(fixture.clone(), Some(Duration::from_millis(120))));
     let transcripts: Arc<dyn TranscriptSource> = fixture;
     let store = LocalStore::open(store::default_path());
     gpui_kit::application()
@@ -109,10 +116,17 @@ fn main() -> anyhow::Result<()> {
                 })
                 .detach();
             }
-            if let Err(e) = open_main_window(data, transcripts, sessions, appearance, store, cx) {
-                eprintln!("claudius-app: opening the window: {e:#}");
-                cx.quit();
-                return;
+            match open_main_window(data, transcripts, sessions, appearance, store, cx) {
+                Ok(shell) => {
+                    if let Some(composer) = composer {
+                        shell.update(cx, |s, cx| s.set_composer_target(composer, cx));
+                    }
+                }
+                Err(e) => {
+                    eprintln!("claudius-app: opening the window: {e:#}");
+                    cx.quit();
+                    return;
+                }
             }
             cx.on_window_closed(|cx, _| {
                 if cx.windows().is_empty() {

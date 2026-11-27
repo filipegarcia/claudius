@@ -1,0 +1,30 @@
+[package]
+name = "claudius-composer"
+description = "The chat composer (U07): PromptInput's editing, history, drafts, send / queue / stop, `!` bash mode and the queue strip, as a pure model over claudius-client and its GPUI view"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+# `trim` and `Number::toString` (the list continuation's `Number(n) + 1`).
+claudius-agent.workspace = true
+# The session's `ChatState`, its actions and their `Effect`s.
+claudius-client.workspace = true
+# The fixture target replays its event logs (`FixtureTranscripts`, `Script`).
+claudius-chat.workspace = true
+claudius-gpui-theme.workspace = true
+# The prompt accent (`/color`) and the composer frame (`prompt.rs`).
+claudius-theme.workspace = true
+futures = "0.3"
+gpui-kit.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+# `TestAppContext` and `VisualTestContext` (as claudius-app's tests).
+gpui = { package = "gpui-pre", version = "=0.3.12", features = ["test-support"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+# CoreText (real glyph widths in the tests).
+gpui_apple = { package = "gpui-pre-apple", version = "=0.3.12", features = ["font-kit", "test-support"] }

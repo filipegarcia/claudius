@@ -1073,6 +1073,7 @@ dependencies = [
  "claudius-agent",
  "claudius-chat",
  "claudius-client",
+ "claudius-composer",
  "claudius-core",
  "claudius-gpui-theme",
  "claudius-server",
@@ -1124,6 +1125,22 @@ dependencies = [
  "serde_json",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "claudius-composer"
+version = "0.1.0"
+dependencies = [
+ "claudius-agent",
+ "claudius-chat",
+ "claudius-client",
+ "claudius-gpui-theme",
+ "claudius-theme",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-apple",
+ "serde_json",
 ]
 
 [[package]]

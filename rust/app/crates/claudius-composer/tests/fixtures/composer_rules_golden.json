@@ -1,0 +1,4557 @@
+{
+ "normalizeHistoryText": [
+  {
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "plain"
+   ],
+   "out": "plain"
+  },
+  {
+   "args": [
+    "  padded  "
+   ],
+   "out": "padded"
+  },
+  {
+   "args": [
+    "look [Image #1]  here [Image #12] "
+   ],
+   "out": "look here"
+  },
+  {
+   "args": [
+    "[Image #] [Image #x] [Image #1x] keep"
+   ],
+   "out": "[Image #] [Image #x] [Image #1x] keep"
+  },
+  {
+   "args": [
+    "[Image #3]"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "[[Image #3]]"
+   ],
+   "out": "[]"
+  },
+  {
+   "args": [
+    "a\t\tb"
+   ],
+   "out": "a\t\tb"
+  },
+  {
+   "args": [
+    "a\u00a0\u00a0b"
+   ],
+   "out": "a\u00a0\u00a0b"
+  },
+  {
+   "args": [
+    "a   b    c"
+   ],
+   "out": "a b c"
+  },
+  {
+   "args": [
+    "\ufeff x \u2028"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "[Image #007]tail"
+   ],
+   "out": "tail"
+  },
+  {
+   "args": [
+    "x [Image #1][Image #2] y"
+   ],
+   "out": "x y"
+  }
+ ],
+ "buildPromptHistory": [
+  {
+   "args": [
+    [],
+    []
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "one",
+      "at": 10
+     },
+     {
+      "text": "two"
+     },
+     {
+      "text": "three",
+      "at": 30
+     }
+    ],
+    [
+     {
+      "text": "late",
+      "at": 99
+     },
+     {
+      "text": "mid",
+      "at": 20
+     }
+    ]
+   ],
+   "out": [
+    "one",
+    "two",
+    "mid",
+    "three",
+    "late"
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "a"
+     },
+     {
+      "text": " a "
+     },
+     {
+      "text": "[Image #1]"
+     },
+     {
+      "text": "b"
+     },
+     {
+      "text": "a"
+     }
+    ],
+    []
+   ],
+   "out": [
+    "a",
+    "b",
+    "a"
+   ]
+  },
+  {
+   "args": [
+    [],
+    [
+     {
+      "text": "x",
+      "at": 5
+     },
+     {
+      "text": "y",
+      "at": 5
+     },
+     {
+      "text": "z",
+      "at": 1
+     }
+    ]
+   ],
+   "out": [
+    "z",
+    "x",
+    "y"
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "s",
+      "at": 5
+     }
+    ],
+    [
+     {
+      "text": "eq",
+      "at": 5
+     }
+    ]
+   ],
+   "out": [
+    "s",
+    "eq"
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "s",
+      "at": 5
+     }
+    ],
+    [
+     {
+      "text": "before",
+      "at": 4
+     },
+     {
+      "text": "  ",
+      "at": 1
+     }
+    ]
+   ],
+   "out": [
+    "before",
+    "s"
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "dup",
+      "at": 10
+     }
+    ],
+    [
+     {
+      "text": "dup",
+      "at": 1
+     }
+    ]
+   ],
+   "out": [
+    "dup"
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "a",
+      "at": null
+     },
+     {
+      "text": "b",
+      "at": 3
+     }
+    ],
+    [
+     {
+      "text": "l",
+      "at": 2
+     }
+    ]
+   ],
+   "out": [
+    "a",
+    "l",
+    "b"
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "a",
+      "at": 1
+     }
+    ],
+    [
+     {
+      "text": "n",
+      "at": {
+       "$num": "NaN"
+      }
+     },
+     {
+      "text": "m",
+      "at": 0
+     }
+    ]
+   ],
+   "out": [
+    "a",
+    "n",
+    "m"
+   ]
+  },
+  {
+   "args": [
+    [
+     {
+      "text": "a",
+      "at": {
+       "$num": "NaN"
+      }
+     }
+    ],
+    [
+     {
+      "text": "l",
+      "at": 2
+     }
+    ]
+   ],
+   "out": [
+    "a",
+    "l"
+   ]
+  }
+ ],
+ "historyEntryIndex": [
+  {
+   "args": [
+    [],
+    "x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "a"
+    ],
+    ""
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    [
+     "a"
+    ],
+    "a"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    [
+     "a",
+     "b"
+    ],
+    "b"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    [
+     "a",
+     "b"
+    ],
+    " b [Image #2]"
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    [
+     "a",
+     "b"
+    ],
+    "a"
+   ],
+   "out": 1
+  },
+  {
+   "args": [
+    [
+     "a",
+     "b"
+    ],
+    ""
+   ],
+   "out": 1
+  }
+ ],
+ "commandNeedsSudo": [
+  {
+   "args": [
+    ""
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "   "
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "sudo"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "sudo ls"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "  sudo ls"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "sudo-rs x"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "sudo.x"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "sudoku"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "sudo_x"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "sudo1"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "SUDO ls"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "echo sudo"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "sudo\tls"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "sudo\u00a0"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "sudo\u2022"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\nsudo"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "sudo\ud83d\ude00"
+   ],
+   "out": true
+  }
+ ],
+ "shouldStashClearedDraft": [
+  {
+   "args": [
+    "",
+    0
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "x",
+    0
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "",
+    1
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "x",
+    2
+   ],
+   "out": true
+  }
+ ],
+ "canRestoreClearedDraft": [
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": true
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": false,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": false,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": false,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": false,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 0,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    {
+     "value": "x",
+     "imageCount": 1,
+     "pickerOpen": true,
+     "atActive": true,
+     "emojiActive": true,
+     "browsingHistory": true,
+     "hasStash": false
+    }
+   ],
+   "out": false
+  }
+ ],
+ "ordinalFloorAfterRestore": [
+  {
+   "args": [
+    0,
+    []
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    2,
+    [
+     {
+      "id": "a",
+      "ordinal": 5,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     },
+     {
+      "id": "b",
+      "ordinal": 1,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   ],
+   "out": 5
+  },
+  {
+   "args": [
+    7,
+    [
+     {
+      "id": "a",
+      "ordinal": 5,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   ],
+   "out": 7
+  },
+  {
+   "args": [
+    7,
+    [
+     {
+      "id": "a",
+      "ordinal": {
+       "$num": "NaN"
+      },
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   ],
+   "out": {
+    "$num": "NaN"
+   }
+  },
+  {
+   "args": [
+    {
+     "$num": "NaN"
+    },
+    [
+     {
+      "id": "a",
+      "ordinal": 1,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   ],
+   "out": {
+    "$num": "NaN"
+   }
+  },
+  {
+   "args": [
+    -1,
+    []
+   ],
+   "out": -1
+  }
+ ],
+ "buildDraftFlushRequest": [
+  {
+   "args": [
+    null,
+    true
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    {
+     "sessionId": "",
+     "text": "x",
+     "images": []
+    },
+    true
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    {
+     "sessionId": "s1",
+     "text": "hi",
+     "images": [
+      {
+       "id": "i",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    },
+    true
+   ],
+   "out": {
+    "url": "/api/sessions/s1/prompt-draft",
+    "method": "PUT",
+    "headers": {
+     "Content-Type": "application/json"
+    },
+    "body": "{\"text\":\"hi\",\"images\":[{\"id\":\"i\",\"ordinal\":1,\"data\":\"AAAA\",\"mediaType\":\"image/png\"}]}",
+    "keepalive": true
+   }
+  },
+  {
+   "args": [
+    {
+     "sessionId": "s1",
+     "text": "hi",
+     "images": []
+    },
+    false
+   ],
+   "out": {
+    "url": "/api/sessions/s1/prompt-draft",
+    "method": "PUT",
+    "headers": {
+     "Content-Type": "application/json"
+    },
+    "body": "{\"text\":\"hi\",\"images\":[]}",
+    "keepalive": false
+   }
+  },
+  {
+   "args": [
+    {
+     "sessionId": "s1",
+     "text": {
+      "$repeat": [
+       "x",
+       61417
+      ]
+     },
+     "images": []
+    },
+    true
+   ],
+   "out": {
+    "url": "/api/sessions/s1/prompt-draft",
+    "method": "PUT",
+    "headers": {
+     "Content-Type": "application/json"
+    },
+    "body": {
+     "$long": {
+      "head": "{\"text\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"images\":[]}",
+      "utf8": 61440
+     }
+    },
+    "keepalive": true
+   }
+  },
+  {
+   "args": [
+    {
+     "sessionId": "s1",
+     "text": {
+      "$repeat": [
+       "x",
+       61418
+      ]
+     },
+     "images": []
+    },
+    true
+   ],
+   "out": {
+    "url": "/api/sessions/s1/prompt-draft",
+    "method": "PUT",
+    "headers": {
+     "Content-Type": "application/json"
+    },
+    "body": {
+     "$long": {
+      "head": "{\"text\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"images\":[]}",
+      "utf8": 61441
+     }
+    },
+    "keepalive": false
+   }
+  },
+  {
+   "args": [
+    {
+     "sessionId": "s1",
+     "text": {
+      "$repeat": [
+       "\u00e9",
+       40960
+      ]
+     },
+     "images": []
+    },
+    true
+   ],
+   "out": {
+    "url": "/api/sessions/s1/prompt-draft",
+    "method": "PUT",
+    "headers": {
+     "Content-Type": "application/json"
+    },
+    "body": {
+     "$long": {
+      "head": "{\"text\":\"\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+      "tail": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\",\"images\":[]}",
+      "utf8": 81943
+     }
+    },
+    "keepalive": false
+   }
+  },
+  {
+   "args": [
+    {
+     "sessionId": "s1",
+     "text": "q\"\\\n\t\u0001\u2028\ud83d\ude00\u007f",
+     "images": [
+      {
+       "id": "j",
+       "ordinal": 2.5,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    },
+    true
+   ],
+   "out": {
+    "url": "/api/sessions/s1/prompt-draft",
+    "method": "PUT",
+    "headers": {
+     "Content-Type": "application/json"
+    },
+    "body": "{\"text\":\"q\\\"\\\\\\n\\t\\u0001\u2028\ud83d\ude00\u007f\",\"images\":[{\"id\":\"j\",\"ordinal\":2.5,\"data\":\"AAAA\",\"mediaType\":\"image/png\"}]}",
+    "keepalive": true
+   }
+  },
+  {
+   "args": [
+    {
+     "sessionId": "a b",
+     "text": "",
+     "images": []
+    },
+    false
+   ],
+   "out": {
+    "url": "/api/sessions/a b/prompt-draft",
+    "method": "PUT",
+    "headers": {
+     "Content-Type": "application/json"
+    },
+    "body": "{\"text\":\"\",\"images\":[]}",
+    "keepalive": false
+   }
+  }
+ ],
+ "sendOutcome": [
+  {
+   "args": [
+    null
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    true
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    false
+   ],
+   "out": {
+    "ok": false,
+    "error": "unknown"
+   }
+  },
+  {
+   "args": [
+    0
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    "x"
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    []
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    {}
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": true
+    }
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": 0
+    }
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": null
+    }
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    {
+     "queued": true
+    }
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": false
+    }
+   ],
+   "out": {
+    "ok": false,
+    "error": "unknown"
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": false,
+     "error": "network"
+    }
+   ],
+   "out": {
+    "ok": false,
+    "error": "network"
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": false,
+     "error": ""
+    }
+   ],
+   "out": {
+    "ok": false,
+    "error": "unknown"
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": false,
+     "error": 3
+    }
+   ],
+   "out": {
+    "ok": false,
+    "error": "unknown"
+   }
+  },
+  {
+   "args": [
+    {
+     "ok": false,
+     "error": "http"
+    }
+   ],
+   "out": {
+    "ok": false,
+    "error": "http"
+   }
+  }
+ ],
+ "sendFailedNotice": [
+  {
+   "args": [
+    "network",
+    "restore"
+   ],
+   "out": "Couldn't reach Claudius \u2014 your message is back in the box."
+  },
+  {
+   "args": [
+    "network",
+    "stash"
+   ],
+   "out": "Couldn't reach Claudius \u2014 your message wasn't sent. Press \u2191 in an empty box to get it back."
+  },
+  {
+   "args": [
+    "unknown",
+    "restore"
+   ],
+   "out": "Message not sent \u2014 it's back in the box."
+  },
+  {
+   "args": [
+    "unknown",
+    "stash"
+   ],
+   "out": "Message not sent \u2014 press \u2191 in an empty box to get it back."
+  },
+  {
+   "args": [
+    "http",
+    "restore"
+   ],
+   "out": "Message not sent \u2014 it's back in the box."
+  },
+  {
+   "args": [
+    "http",
+    "stash"
+   ],
+   "out": "Message not sent \u2014 press \u2191 in an empty box to get it back."
+  },
+  {
+   "args": [
+    "",
+    "restore"
+   ],
+   "out": "Message not sent \u2014 it's back in the box."
+  },
+  {
+   "args": [
+    "",
+    "stash"
+   ],
+   "out": "Message not sent \u2014 press \u2191 in an empty box to get it back."
+  },
+  {
+   "args": [
+    "Network",
+    "restore"
+   ],
+   "out": "Message not sent \u2014 it's back in the box."
+  },
+  {
+   "args": [
+    "Network",
+    "stash"
+   ],
+   "out": "Message not sent \u2014 press \u2191 in an empty box to get it back."
+  }
+ ],
+ "placeFailedSend": [
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": null,
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "restore"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": null,
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": null,
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": "a",
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "restore"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": "a",
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": "a",
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": "b",
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "restore"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": "b",
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": null,
+     "currentSessionId": "b",
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": null,
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "restore"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": null,
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": null,
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": "a",
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "restore"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": "a",
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": "a",
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": "b",
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "restore"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": "b",
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "",
+     "currentSessionId": "b",
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": null,
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "save-to-origin"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": null,
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "save-to-origin"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": null,
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "save-to-origin"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": "a",
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "restore"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": "a",
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": "a",
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "stash"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": "b",
+     "currentText": "",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "save-to-origin"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": "b",
+     "currentText": "x",
+     "currentImageCount": 0
+    }
+   ],
+   "out": "save-to-origin"
+  },
+  {
+   "args": [
+    {
+     "originSessionId": "a",
+     "currentSessionId": "b",
+     "currentText": "",
+     "currentImageCount": 1
+    }
+   ],
+   "out": "save-to-origin"
+  }
+ ],
+ "mergeIntoDraft": [
+  {
+   "args": [
+    {
+     "text": "",
+     "images": []
+    },
+    {
+     "text": "sent [Image #1]",
+     "images": [
+      {
+       "id": "x",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    }
+   ],
+   "out": {
+    "text": "sent [Image #1]",
+    "images": [
+     {
+      "id": "x",
+      "ordinal": 1,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    {
+     "text": "draft [Image #4]",
+     "images": [
+      {
+       "id": "d",
+       "ordinal": 2,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    },
+    {
+     "text": "see [Image #1] and [Image #9]",
+     "images": [
+      {
+       "id": "x",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    }
+   ],
+   "out": {
+    "text": "draft [Image #4]\nsee [Image #5] and [Image #9]",
+    "images": [
+     {
+      "id": "d",
+      "ordinal": 2,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     },
+     {
+      "id": "x",
+      "ordinal": 5,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    {
+     "text": "",
+     "images": [
+      {
+       "id": "d",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    },
+    {
+     "text": "[Image #1]",
+     "images": [
+      {
+       "id": "x",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    }
+   ],
+   "out": {
+    "text": "[Image #2]",
+    "images": [
+     {
+      "id": "d",
+      "ordinal": 1,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     },
+     {
+      "id": "x",
+      "ordinal": 2,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    {
+     "text": "draft",
+     "images": []
+    },
+    {
+     "text": "[Image #1]",
+     "images": [
+      {
+       "id": "x",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    }
+   ],
+   "out": {
+    "text": "draft\n[Image #1]",
+    "images": [
+     {
+      "id": "x",
+      "ordinal": 1,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    {
+     "text": "[Image #99999999999999999999]",
+     "images": []
+    },
+    {
+     "text": "[Image #1]",
+     "images": [
+      {
+       "id": "x",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    }
+   ],
+   "out": {
+    "text": "[Image #99999999999999999999]\n[Image #100000000000000000000]",
+    "images": [
+     {
+      "id": "x",
+      "ordinal": 100000000000000000000,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    {
+     "text": "d",
+     "images": [
+      {
+       "id": "d",
+       "ordinal": 0.5,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    },
+    {
+     "text": "[Image #1] [Image #01]",
+     "images": [
+      {
+       "id": "x",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    }
+   ],
+   "out": {
+    "text": "d\n[Image #1.5] [Image #1.5]",
+    "images": [
+     {
+      "id": "d",
+      "ordinal": 0.5,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     },
+     {
+      "id": "x",
+      "ordinal": 1.5,
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    {
+     "text": "d",
+     "images": [
+      {
+       "id": "d",
+       "ordinal": {
+        "$num": "NaN"
+       },
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    },
+    {
+     "text": "[Image #1]",
+     "images": [
+      {
+       "id": "x",
+       "ordinal": 1,
+       "data": "AAAA",
+       "mediaType": "image/png"
+      }
+     ]
+    }
+   ],
+   "out": {
+    "text": "d\n[Image #NaN]",
+    "images": [
+     {
+      "id": "d",
+      "ordinal": {
+       "$num": "NaN"
+      },
+      "data": "AAAA",
+      "mediaType": "image/png"
+     },
+     {
+      "id": "x",
+      "ordinal": {
+       "$num": "NaN"
+      },
+      "data": "AAAA",
+      "mediaType": "image/png"
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    {
+     "text": "d [Image #2]",
+     "images": []
+    },
+    {
+     "text": "no tokens",
+     "images": []
+    }
+   ],
+   "out": {
+    "text": "d [Image #2]\nno tokens",
+    "images": []
+   }
+  }
+ ],
+ "computeListContinuation": [
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "-"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "- "
+   ],
+   "out": {
+    "kind": "empty"
+   }
+  },
+  {
+   "args": [
+    "-a"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "- a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- "
+   }
+  },
+  {
+   "args": [
+    "* a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "* "
+   }
+  },
+  {
+   "args": [
+    "\u2022 a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "\u2022 "
+   }
+  },
+  {
+   "args": [
+    "\u2022a"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "+ a"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\t- a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "\t- "
+   }
+  },
+  {
+   "args": [
+    "   - a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "   - "
+   }
+  },
+  {
+   "args": [
+    "- [ ] task"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- [ ] "
+   }
+  },
+  {
+   "args": [
+    "- [x] done"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- [ ] "
+   }
+  },
+  {
+   "args": [
+    "- [X] done"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- [ ] "
+   }
+  },
+  {
+   "args": [
+    "- [ ]"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- "
+   }
+  },
+  {
+   "args": [
+    "- [ ]  "
+   ],
+   "out": {
+    "kind": "empty"
+   }
+  },
+  {
+   "args": [
+    "- [y] no"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- "
+   }
+  },
+  {
+   "args": [
+    "-  [ ] x"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- "
+   }
+  },
+  {
+   "args": [
+    "1. one"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "2. "
+   }
+  },
+  {
+   "args": [
+    "9. nine"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "10. "
+   }
+  },
+  {
+   "args": [
+    "  12. twelve"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "  13. "
+   }
+  },
+  {
+   "args": [
+    "1."
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "1. "
+   ],
+   "out": {
+    "kind": "empty"
+   }
+  },
+  {
+   "args": [
+    "3.   "
+   ],
+   "out": {
+    "kind": "empty"
+   }
+  },
+  {
+   "args": [
+    "1.x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "1) x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "0. zero"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "1. "
+   }
+  },
+  {
+   "args": [
+    "007. x"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "8. "
+   }
+  },
+  {
+   "args": [
+    "99999999999999999999. x"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "100000000000000000000. "
+   }
+  },
+  {
+   "args": [
+    "9007199254740993. x"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "9007199254740992. "
+   }
+  },
+  {
+   "args": [
+    "plain"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "x - a"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "- a\u2028b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "- \u2028x"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- "
+   }
+  },
+  {
+   "args": [
+    "-  \u2028"
+   ],
+   "out": {
+    "kind": "empty"
+   }
+  },
+  {
+   "args": [
+    "- x\u2029"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "- a\rb"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\u00a0- a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "\u00a0- "
+   }
+  },
+  {
+   "args": [
+    "-\u00a0a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- "
+   }
+  },
+  {
+   "args": [
+    "\ufeff- a"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "\ufeff- "
+   }
+  },
+  {
+   "args": [
+    "-\u0085a"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "- \ud83d\ude00"
+   ],
+   "out": {
+    "kind": "next",
+    "next": "- "
+   }
+  }
+ ],
+ "isListLine": [
+  {
+   "args": [
+    ""
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "-"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "- "
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "-a"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "- a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "* a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u2022 a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u2022a"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "+ a"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\t- a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "   - a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- [ ] task"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- [x] done"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- [X] done"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- [ ]"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- [ ]  "
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- [y] no"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "-  [ ] x"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "1. one"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "9. nine"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "  12. twelve"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "1."
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "1. "
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "3.   "
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "1.x"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "1) x"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "0. zero"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "007. x"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "99999999999999999999. x"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "9007199254740993. x"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "plain"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "x - a"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "- a\u2028b"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- \u2028x"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "-  \u2028"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- x\u2029"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "- a\rb"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u00a0- a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "-\u00a0a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\ufeff- a"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "-\u0085a"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "- \ud83d\ude00"
+   ],
+   "out": true
+  }
+ ],
+ "bulletsToMarkdown": [
+  {
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "\u2022 a\n  \u2022 b"
+   ],
+   "out": "* a\n  * b"
+  },
+  {
+   "args": [
+    "x \u2022 a"
+   ],
+   "out": "x \u2022 a"
+  },
+  {
+   "args": [
+    "\u2022a"
+   ],
+   "out": "\u2022a"
+  },
+  {
+   "args": [
+    "x\n\n \u2022 b"
+   ],
+   "out": "x\n\n * b"
+  },
+  {
+   "args": [
+    "\u2022 \u2022 x"
+   ],
+   "out": "* \u2022 x"
+  },
+  {
+   "args": [
+    "a\r\u2022 b"
+   ],
+   "out": "a\r* b"
+  },
+  {
+   "args": [
+    "a\u2028\u2022 b"
+   ],
+   "out": "a\u2028* b"
+  },
+  {
+   "args": [
+    "a\u2029 \u2022 b"
+   ],
+   "out": "a\u2029 * b"
+  },
+  {
+   "args": [
+    "a\n\u00a0\u2022 b"
+   ],
+   "out": "a\n\u00a0* b"
+  },
+  {
+   "args": [
+    "\u2022 \n\u2022 "
+   ],
+   "out": "* \n* "
+  },
+  {
+   "args": [
+    "  \u2022 \u00a0\u2022 x"
+   ],
+   "out": "  * \u00a0\u2022 x"
+  },
+  {
+   "args": [
+    "a\n\u0085\u2022 b"
+   ],
+   "out": "a\n\u0085\u2022 b"
+  },
+  {
+   "args": [
+    "\ufeff\u2022 b"
+   ],
+   "out": "\ufeff* b"
+  }
+ ],
+ "stripInvisibleUnicode": [
+  {
+   "args": [
+    ""
+   ],
+   "out": {
+    "cleaned": "",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  },
+  {
+   "args": [
+    "plain"
+   ],
+   "out": {
+    "cleaned": "plain",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  },
+  {
+   "args": [
+    "a\u200bb\u202ec\udb40\udc41"
+   ],
+   "out": {
+    "cleaned": "abc",
+    "removedCount": 3,
+    "bidiCount": 1
+   }
+  },
+  {
+   "args": [
+    "\u200b\u200b\u200b"
+   ],
+   "out": {
+    "cleaned": "",
+    "removedCount": 3,
+    "bidiCount": 0
+   }
+  },
+  {
+   "args": [
+    "x\u2066\u2069"
+   ],
+   "out": {
+    "cleaned": "x",
+    "removedCount": 2,
+    "bidiCount": 2
+   }
+  },
+  {
+   "args": [
+    "\u2060\ufeff\u202a\u202b\u202c\u202d"
+   ],
+   "out": {
+    "cleaned": "",
+    "removedCount": 6,
+    "bidiCount": 4
+   }
+  },
+  {
+   "args": [
+    "\udb40\udc01\udb40\udc20\udb40\udc7f\udb40\udc80\udb40\udc00"
+   ],
+   "out": {
+    "cleaned": "\udb40\udc80\udb40\udc00",
+    "removedCount": 3,
+    "bidiCount": 0
+   }
+  },
+  {
+   "args": [
+    "\u200c\u200d\u2065\u206a\ud83d\ude00"
+   ],
+   "out": {
+    "cleaned": "\u200c\u200d\u2065\u206a\ud83d\ude00",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  }
+ ],
+ "invisibleStripNeedsReview": [
+  {
+   "args": [
+    "x",
+    1,
+    false
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "  ",
+    0,
+    false
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "  ",
+    0,
+    true
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    " /cmd",
+    0,
+    false
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "!ls",
+    0,
+    false
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "hello",
+    0,
+    false
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "",
+    0,
+    false
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "",
+    0,
+    true
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "a/b",
+    0,
+    false
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u00a0/x",
+    0,
+    true
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "quit",
+    2,
+    true
+   ],
+   "out": true
+  }
+ ],
+ "isLetterKey": [
+  {
+   "args": [
+    "c",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "C",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "j",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u0441",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u0441",
+    "KeyC",
+    true,
+    "c"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "Process",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u212a",
+    "KeyX",
+    false,
+    "k"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u0130",
+    "KeyI",
+    false,
+    "i"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "Enter",
+    "Enter",
+    false,
+    "c"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u00e7",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "c",
+    "KeyV",
+    true,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "5",
+    "KeyC",
+    false,
+    "c"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u017f",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": true
+  }
+ ],
+ "keywordHints": [
+  {
+   "id": "workflow",
+   "source": "\\bworkflows?\\b",
+   "flags": "i",
+   "label": "Dynamic workflow requested for this turn",
+   "ignoredLabel": "Workflow keyword ignored for this prompt"
+  },
+  {
+   "id": "goal",
+   "source": "\\bgoals?\\b",
+   "flags": "i",
+   "label": "Goal mentioned \u2014 set it as the session objective with /goal",
+   "ignoredLabel": null
+  }
+ ],
+ "keywordHintMatches": [
+  {
+   "value": "",
+   "matched": []
+  },
+  {
+   "value": "run a Workflow now",
+   "matched": [
+    "workflow"
+   ]
+  },
+  {
+   "value": "workflows.",
+   "matched": [
+    "workflow"
+   ]
+  },
+  {
+   "value": "workflowy",
+   "matched": []
+  },
+  {
+   "value": "subworkflow",
+   "matched": []
+  },
+  {
+   "value": "my_x workflow",
+   "matched": [
+    "workflow"
+   ]
+  },
+  {
+   "value": "my_workflow",
+   "matched": []
+  },
+  {
+   "value": "WORKFLOWS",
+   "matched": [
+    "workflow"
+   ]
+  },
+  {
+   "value": "workflowss",
+   "matched": []
+  },
+  {
+   "value": "a goal and a workflow",
+   "matched": [
+    "workflow",
+    "goal"
+   ]
+  },
+  {
+   "value": "my goal",
+   "matched": [
+    "goal"
+   ]
+  },
+  {
+   "value": "goals!",
+   "matched": [
+    "goal"
+   ]
+  },
+  {
+   "value": "goalie",
+   "matched": []
+  },
+  {
+   "value": "_goal",
+   "matched": []
+  },
+  {
+   "value": "goal_",
+   "matched": []
+  },
+  {
+   "value": "work flow",
+   "matched": []
+  },
+  {
+   "value": "\u212aworkflow",
+   "matched": [
+    "workflow"
+   ]
+  },
+  {
+   "value": "workflow\u017f",
+   "matched": [
+    "workflow"
+   ]
+  },
+  {
+   "value": "go-al",
+   "matched": []
+  },
+  {
+   "value": "goal\ud83d\ude00",
+   "matched": [
+    "goal"
+   ]
+  },
+  {
+   "value": "\ud83d\ude00goal",
+   "matched": [
+    "goal"
+   ]
+  },
+  {
+   "value": "x\ngoal\n",
+   "matched": [
+    "goal"
+   ]
+  },
+  {
+   "value": "workflow1",
+   "matched": []
+  },
+  {
+   "value": "1workflow",
+   "matched": []
+  },
+  {
+   "value": "!workflow",
+   "matched": [
+    "workflow"
+   ]
+  }
+ ],
+ "copy": {
+  "placeholderStarting": "Starting session\u2026",
+  "placeholderPending": "Queue a follow-up \u2014 Shift+Enter for newline",
+  "placeholderIdle": "Message Claudius \u2014 / for commands, @ for files/agents, drop or paste images, ! for shell",
+  "queueHintEmpty": "Send queues until current response finishes",
+  "queueHintQueued": "queued \u00b7 edit above",
+  "sendNowHint": "\u00b7 Ctrl+Enter to send now",
+  "hiddenChars": "hidden character",
+  "hiddenCharsReview": " \u2014 review and press Send again.",
+  "queueHeader": "Queued \u00b7 sends after current response",
+  "sendAllNow": "Send all now",
+  "sdkTurnsSent": "sent \u00b7 runs"
+ }
+}

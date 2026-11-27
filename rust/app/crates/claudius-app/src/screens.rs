@@ -196,7 +196,7 @@ fn chat(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyElement {
     };
     // The bound session's transcript (U05): over the fixture always (a
     // session it doesn't hold shows the splash), over a live chat when the
-    // transcripts' source has it. The composer lands with U07.
+    // transcripts' source has it, over the composer (U07).
     if !state.is_live_chat() || this.has_transcript(&tab.id) {
         let transcript = this.chat_view(&tab.id);
         return div()
@@ -206,7 +206,8 @@ fn chat(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyElement {
             .flex_1()
             .min_h_0()
             .size_full()
-            .children(transcript)
+            .child(div().flex_1().min_h_0().children(transcript))
+            .children(this.composer())
             .into_any_element();
     }
     let session = state.sessions(&ws.id).iter().find(|s| s.id == tab.id);
