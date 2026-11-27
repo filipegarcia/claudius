@@ -14,7 +14,7 @@
 //! fixture (the bundled one otherwise). Over the fixture the transcripts
 //! are claudius-chat's bundled ones (`FixtureTranscripts::builtin`), and
 //! the composer sends into them through `FixtureComposer` (a scripted
-//! reply); over a live chat the composer waits for U07e.
+//! reply); over a live chat the shell sets its own (U07e).
 //! `CLAUDIUS_APP_PROMPTS` puts sample prompt cards on the fixture's demo
 //! session (comma-separated: `permission`, `permission-queue`, `plan`,
 //! `plan-mode`, `elicitation`, `elicitation-url`, `ask`).
@@ -95,8 +95,8 @@ fn main() -> anyhow::Result<()> {
         .is_none()
         .then(|| FixtureComposer::builtin(fixture.clone(), Some(Duration::from_millis(120))));
     let transcripts: Arc<dyn TranscriptSource> = fixture;
-    // The prompt cards' chats over the fixture (a live chat's wait for
-    // U08c).
+    // The prompt cards' chats over the fixture (the shell sets a live
+    // chat's itself, U08c).
     let prompts = if backend.is_none() {
         let prompts = FixturePromptSource::new();
         if let Ok(kinds) = std::env::var("CLAUDIUS_APP_PROMPTS") {

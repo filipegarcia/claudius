@@ -41,6 +41,7 @@ use crate::route::{Route, WorkspacePage};
 use crate::shortcuts::{self, *};
 use crate::state::{Effect, ShellState};
 use crate::store::LocalStore;
+use crate::targets::{LiveComposer, LivePromptSource};
 use crate::transcripts::LiveTranscripts;
 
 /// The origin the chat's page URL is on (`window.location.origin`).
@@ -152,6 +153,8 @@ pub struct Shell {
     /// Over a live chat, the mounted chat's transcripts (U04h); then
     /// `transcripts` is this.
     live_transcripts: Option<LiveTranscripts>,
+    /// Over a live chat, the composer's target (U07e): the mounted chat.
+    live_composer: Option<Arc<LiveComposer>>,
     /// One view per recently shown tab, most recent last.
     chat_views: Vec<(String, Entity<TranscriptView>)>,
     /// The chat route's composer (U07), once a target is set: one view,
@@ -281,6 +284,14 @@ impl Shell {
             Some(l) => Arc::new(l.clone()) as Arc<dyn TranscriptSource>,
             None => transcripts,
         };
+        // And so are the composer's target (U07e) and the prompt cards'
+        // (U08c).
+        let live_composer = live_transcripts
+            .clone()
+            .map(|l| Arc::new(LiveComposer::new(l, data.clone())));
+        let live_prompts = live_transcripts
+            .clone()
+            .map(|l| Arc::new(LivePromptSource::new(l)) as Arc<dyn PromptSource>);
         state.set_focus(store.focus());
         for (id, page) in store.remembered_pages() {
             state.remember_page(&id, page);
@@ -290,10 +301,11 @@ impl Shell {
             data,
             transcripts,
             live_transcripts,
+            composer_target: live_composer.clone().map(|c| c as Arc<dyn ComposerTarget>),
+            live_composer,
             chat_views: Vec::new(),
-            composer_target: None,
             composer: None,
-            prompt_source: None,
+            prompt_source: live_prompts,
             prompts: Vec::new(),
             focus,
             appearance,
@@ -421,6 +433,12 @@ impl Shell {
         self.composer_target = Some(target);
         self.composer = None;
         cx.notify();
+    }
+
+    /// The calls the live composer still waits on (U07e), over a live
+    /// chat.
+    pub fn live_composer_waiting(&self) -> Option<usize> {
+        self.live_composer.as_ref().map(|c| c.waiting())
     }
 
     /// The composer, once shown.
@@ -834,6 +852,12 @@ impl Shell {
                     self.chat = None;
                     let effects = self.state.open_url(path);
                     self.run(effects, cx);
+                }
+            }
+            // A composer call's promise (U07e).
+            Some(e @ ChatEffect::ActionResolved { .. }) => {
+                if let Some(c) = &self.live_composer {
+                    c.resolve(&e);
                 }
             }
             Some(ChatEffect::ConsoleWarn { text }) => eprintln!("[chat] {text}"),

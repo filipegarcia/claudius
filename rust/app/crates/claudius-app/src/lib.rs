@@ -20,6 +20,7 @@ pub mod shortcuts;
 pub mod state;
 pub mod store;
 pub mod tabs;
+pub mod targets;
 pub mod transcripts;
 mod ui;
 

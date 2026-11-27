@@ -155,7 +155,7 @@ impl ComposerView {
                         .session_id()
                         .is_some_and(|s| mine.iter().any(|m| m == s))
                     {
-                        this.reread(window, cx);
+                        this.on_session_change(window, cx);
                     }
                 });
                 if ok.is_err() {
@@ -292,6 +292,22 @@ impl ComposerView {
         self.view = view;
         self.sync_editor(window, cx);
         cx.notify();
+    }
+
+    /// The bound session changed: re-reads it, and redraws only when what
+    /// the composer shows of it changed. A streaming reply changes nothing
+    /// here, and redrawing on each of its snapshots (up to 60 a second)
+    /// would be wasted work.
+    fn on_session_change(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let mut view = SessionView::default();
+        if let Some(id) = self.model.session_id() {
+            self.target.read(id, &mut |s| view = SessionView::of(s));
+        }
+        if view != self.view {
+            self.view = view;
+            self.sync_editor(window, cx);
+            cx.notify();
+        }
     }
 
     fn now_ms(&self) -> f64 {

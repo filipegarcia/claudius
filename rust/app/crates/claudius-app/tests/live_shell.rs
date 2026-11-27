@@ -117,7 +117,22 @@ fn wait<T>(
             });
             return v;
         }
-        assert!(t0.elapsed() < LIMIT, "timed out waiting for {what}");
+        if t0.elapsed() >= LIMIT {
+            let seen = cx.read(|cx| {
+                let s = shell.read(cx);
+                let chat = s.live_chat().map(|c| {
+                    let st = c.state();
+                    (
+                        st.session_id.clone(),
+                        st.pending,
+                        st.ready,
+                        st.messages.len(),
+                    )
+                });
+                format!("tabs {:?}, chat {chat:?}", tabs(s))
+            });
+            panic!("timed out waiting for {what}: {seen}");
+        }
         std::thread::sleep(Duration::from_millis(20));
     }
 }

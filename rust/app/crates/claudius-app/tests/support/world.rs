@@ -62,6 +62,11 @@ pub fn world(claude_bin: PathBuf, names: &[&str]) -> World {
     }
     let mut env = HashMap::new();
     env.insert("PATH".to_owned(), std::env::var("PATH").unwrap_or_default());
+    // Every CLI appends the host's control requests here.
+    env.insert(
+        "FAKE_CLAUDE_CONTROL_LOG".to_owned(),
+        root.path().join("control-log.jsonl").display().to_string(),
+    );
     let backend = Arc::new(
         Backend::in_process(EngineOptions {
             claude_bin: Some(claude_bin),
@@ -96,6 +101,11 @@ impl World {
             .block_on(async move { t.fetch(Request::post(url).json(body)).await })
             .unwrap();
         assert_eq!(res.status, 200, "{}", res.text());
+    }
+
+    /// The control requests the CLIs got so far, one JSON line each.
+    pub fn control_log(&self) -> String {
+        std::fs::read_to_string(self.root.path().join("control-log.jsonl")).unwrap_or_default()
     }
 
     /// Ends every session (their CLIs exit).

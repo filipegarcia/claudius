@@ -45,15 +45,24 @@ pub const TOAST_MS: u64 = 2200;
 /// `inField` read it.
 pub type FieldProbe = Rc<dyn Fn(&Window, &App) -> Option<String>>;
 
-/// Starts listening to a target's changes; `f` runs after each.
+/// Starts listening to a target's changes; `f` runs after each that
+/// changed the prompts the cards read ([`PromptState`]). A streaming reply
+/// changes the chat up to 60 times a second and the prompts not at all.
 pub(crate) fn listen<T: 'static>(
     target: &Arc<dyn PromptTarget>,
     cx: &mut Context<T>,
     f: fn(&mut T, &mut Context<T>),
 ) -> Task<()> {
     let mut changes = target.changes();
+    let target = target.clone();
     cx.spawn(async move |this, cx| {
+        let mut last: Option<PromptState> = None;
         while changes.next().await.is_some() {
+            let now = PromptState::read(&*target);
+            if last.as_ref() == Some(&now) {
+                continue;
+            }
+            last = Some(now);
             if this.update(cx, f).is_err() {
                 break;
             }

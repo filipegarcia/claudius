@@ -24,7 +24,9 @@
 //! fixture-backed implementation, [`crate::live::TransportShellData`] the
 //! engine's (U04b).
 
+use claudius_client::effect::{FetchOutcome, FetchRequest};
 use futures::channel::mpsc::UnboundedReceiver;
+use futures::channel::oneshot;
 use futures::future::{BoxFuture, FutureExt as _};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -353,6 +355,17 @@ pub trait ShellData: Send + Sync + 'static {
     /// boot the strip).
     fn has_live_chat(&self) -> bool {
         false
+    }
+    /// Runs one of workspace `workspace_id`'s page requests that isn't the
+    /// chat's own (the composer's draft, `!` bash, the prompt color: a
+    /// relative URL, as the page's `fetch`). A source with no server drops
+    /// the sender, which reads as a failed request.
+    fn page_fetch(
+        &self,
+        _workspace_id: &str,
+        _req: FetchRequest,
+    ) -> oneshot::Receiver<FetchOutcome> {
+        oneshot::channel().1
     }
     /// Change notifications, from now on. Each call is a new stream.
     fn subscribe(&self) -> UnboundedReceiver<ShellChange>;

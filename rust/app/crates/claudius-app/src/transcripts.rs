@@ -33,6 +33,11 @@ impl LiveTranscripts {
         Self::default()
     }
 
+    /// The mounted chat, if any.
+    pub fn chat(&self) -> Option<LiveChat> {
+        self.inner.lock().unwrap().chat.clone()
+    }
+
     /// The chat the route mounted, or `None` once it unmounts. The old and
     /// the new chat's sessions read again; setting the same chat is a no-op.
     pub fn set_chat(&self, chat: Option<LiveChat>) {
