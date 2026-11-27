@@ -9,21 +9,27 @@
 //! | [`ShellData::put_open_tabs`] | `PUT /api/sessions/open-tabs` | [`OpenTabsPut`] |
 //! | [`ShellData::sessions`] | `GET /api/sessions?workspaceId=<id>` | [`SessionSummary`] rows |
 //! | [`ShellData::create_session`] | `POST /api/sessions` | the new id |
+//! | [`ShellData::workspace_icon`] | `GET /api/workspaces/<id>/icon` | [`IconImage`] |
+//! | [`ShellData::customizations`] | `GET /api/customizations` | the enabled names |
+//! | [`ShellData::open_chat`] | the chat's own requests | a [`ChatPage`] |
 //!
 //! The open-tabs routes scope to the active workspace's cwd through the
-//! `claudius.workspace` cookie. The trait names the workspace instead, so an
-//! implementation over the HTTP transport (U04b) selects it, or sends the
-//! cookie, first.
+//! `claudius.workspace` cookie. The trait names the workspace instead:
+//! [`crate::live::TransportShellData`] gives each workspace its own cookie
+//! jar holding it, as the front door sets it on a `/<id>` page.
 //!
 //! Every call returns a `Send` future, so an implementation can run on any
 //! executor, and [`ShellData::subscribe`] streams [`ShellChange`]s: the shell
 //! reloads what changed. [`crate::fixture::FixtureShellData`] is the
-//! fixture-backed implementation.
+//! fixture-backed implementation, [`crate::live::TransportShellData`] the
+//! engine's (U04b).
 
 use futures::channel::mpsc::UnboundedReceiver;
-use futures::future::BoxFuture;
+use futures::future::{BoxFuture, FutureExt as _};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+
+use crate::chat::ChatPage;
 
 /// An answer from the data source.
 pub type DataFuture<T> = BoxFuture<'static, anyhow::Result<T>>;
@@ -293,6 +299,13 @@ pub enum ShellChange {
     Sessions { workspace_id: String },
 }
 
+/// An uploaded workspace icon: the bytes and the route's `Content-Type`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IconImage {
+    pub bytes: Vec<u8>,
+    pub content_type: String,
+}
+
 /// The shell's data source. See the module docs for the routes.
 pub trait ShellData: Send + Sync + 'static {
     fn workspaces(&self) -> DataFuture<WorkspaceList>;
@@ -302,10 +315,36 @@ pub trait ShellData: Send + Sync + 'static {
     fn sessions(&self, workspace_id: &str) -> DataFuture<Vec<SessionSummary>>;
     /// A new session in the workspace (the chat's "+ New session"); its id.
     fn create_session(&self, workspace_id: &str) -> DataFuture<String>;
-    /// The bound session's state for the active tab's dot, while the chat
-    /// (U05) doesn't own it yet. `None`: the dot reads the live status.
+    /// The bound session's state for the active tab's dot, from a source
+    /// with no live chat (see [`Self::open_chat`]). `None`: the dot reads
+    /// the live status.
     fn active_session_state(&self, _workspace_id: &str) -> Option<ActiveSessionState> {
         None
+    }
+    /// A workspace's uploaded icon (`<img src="/api/workspaces/<id>/icon">`);
+    /// `None` when the route has none (the tile draws its letter).
+    fn workspace_icon(&self, _id: &str) -> DataFuture<Option<IconImage>> {
+        futures::future::ready(Ok(None)).boxed()
+    }
+    /// The names (lower-cased) of the published customizations, which
+    /// un-hide the rail's gated tiles (`SideNav`'s `enabledCustNames`).
+    /// `Ok(None)`: not known (the tiles stay hidden); an error counts as
+    /// none published, as `SideNav`'s `catch` does.
+    fn customizations(&self) -> DataFuture<Option<Vec<String>>> {
+        futures::future::ready(Ok(None)).boxed()
+    }
+    /// Mounts the workspace's chat (`useSession`) at `href` (the page's
+    /// URL, `http://localhost/<id>?…`) with the route's `pathname`. `None`
+    /// for a source with no engine behind it: the shell then boots the
+    /// strip itself and the bound tab's dot reads
+    /// [`Self::active_session_state`].
+    fn open_chat(&self, _workspace_id: &str, _href: &str, _pathname: &str) -> Option<ChatPage> {
+        None
+    }
+    /// Whether [`Self::open_chat`] mounts chats (the shell then lets them
+    /// boot the strip).
+    fn has_live_chat(&self) -> bool {
+        false
     }
     /// Change notifications, from now on. Each call is a new stream.
     fn subscribe(&self) -> UnboundedReceiver<ShellChange>;

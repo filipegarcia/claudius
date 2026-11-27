@@ -6,8 +6,11 @@
 //! strip, focus mode) without GPUI; [`shell::Shell`] puts it on screen and
 //! runs its effects against the data source.
 
+pub mod chat;
 pub mod data;
+pub mod engine;
 pub mod fixture;
+pub mod live;
 pub mod nav;
 pub mod route;
 mod screens;
@@ -15,6 +18,7 @@ pub mod sessions;
 pub mod shell;
 pub mod shortcuts;
 pub mod state;
+pub mod store;
 pub mod tabs;
 mod ui;
 

@@ -40,7 +40,7 @@ A big-bang rewrite would mean months with nothing to test against. Instead:
 | `claudius-theme` | ~2k lines | The React UI's design tokens as typed data, with no UI toolkit (U03a): the seven `data-theme` palettes and chart series, the Tailwind v4 defaults the UI's utilities use, the chat column's `clamp()` math, colors resolved to sRGB as Chromium does (OKLab, `color-mix`), and the client's theme / chat-size / `/color` logic. U03b's `claudius-gpui-theme` (`rust/app/`) builds the gpui-component theme from it. | `app/globals.css`, `tailwindcss/theme.css`, `lib/client/theme.ts`, `lib/client/chat-size.ts`, `lib/shared/prompt-colors.ts`, `app/layout.tsx` (bootstrap), ChatSurface's `/theme` / `/color`, PromptInput's frame |
 | `claudius-chat` (workspace `rust/app/`) | ~6.7k lines | The native transcript (U05a): a pure row model (`RowBuilder::build(&ChatState, &ViewOptions)`, memoized per message), `TranscriptView` (a virtualized GPUI list, bubbles, `TextView` markdown with a viewport LRU, syntect code, folding, thinking / hook / peer / system rows, verbose levels, `push_str` streaming, stick-to-bottom), and the `TranscriptSource` trait with a replaying fixture (`FixtureTranscripts`). | `components/chat/{MessageList,AssistantMessage,UserMessage,SystemPill,ThinkingBlock,Markdown,CodeBlock}.tsx`, `lib/shared/{verbose,bash-io,peer-message-preview}.ts`, `lib/client/{scroll-gate,useRateLimitWarning}.ts` |
 | `claudius-gpui-theme` (workspace `rust/app/`) | ~2.1k lines | The native UI's gpui-component theme (U03b–U03d), in the GPUI app's own cargo workspace (own `Cargo.lock`, `target/` and CI job `rust-app.yml`, so the root gate never builds gpui). One `ThemeConfig` per `data-theme` palette; all 140 `ThemeColor` fields come from claudius-theme tokens or documented derivations (`colors::COLORS`). `apply` / `init` install palettes at run time and `Theme::change` switches between the registered light and dark ones. Code highlighting is Shiki's github-dark-default mapped onto gpui-component's syntect highlight names; the lucide-react imports map to GPUI Kit's bundled Lucide icons (`IconAssets`), with lucide-react 1.14's own drawings of the 5 icons Lucide redrew since (vendored by `rust/scripts/lucide-icons.mjs`); Geist / Geist Mono are bundled (`fonts`, 8 static TTFs, OFL-1.1) and named in every theme file, and `fonts::code_style` turns code ligatures off; sizes as GPUI pixels (one density). | `app/globals.css` (through claudius-theme), `lib/client/shiki.ts`, `components/chat/CodeBlock.tsx`, the lucide-react imports in `components/` and `app/` (and lucide-react's `__iconNode`), `app/layout.tsx` (next/font), the components' Tailwind classes |
-| `claudius-app` (workspace `rust/app/`) | ~5k lines | The native app shell (U04a): window, workspace rail, nav rail, session tabs, a `Route` for every page plus the redirect rules, over the `ShellData` trait (`FixtureShellData` until U04b wires U02's transport). The sessions browser (U11): `sessions/` over the `SessionsData` trait (`FixtureSessionsData` until U11b). The chat route shows the bound tab's transcript (U05a's `TranscriptView` over a `TranscriptSource`). Sources: `app/layout.tsx`, `app/[workspaceId]/layout.tsx`, `components/nav/{SideNav,WorkspaceSwitcher,WorkspaceRedirects}.tsx`, `components/chat/{SessionTabs,ChatSurface}.tsx`, `components/chrome/TitleBar.tsx`, `components/workspaces/WorkspaceIcon.tsx`, `lib/client/{shortcuts,useFocusMode,workspace-route-memory}.ts`, `use-session.ts` (boot); U11: `app/[workspaceId]/sessions/page.tsx`, `app/[workspaceId]/sessions/[id]/page.tsx`, `lib/client/useSessionsHistory.ts`, `components/sessions/TranscriptViewer.tsx`, `lib/shared/{session-search,session-search-older,session-pagination}.ts`. |
+| `claudius-app` (workspace `rust/app/`) | ~12k lines | The native app shell (U04a): window, workspace rail, nav rail, session tabs, a `Route` for every page plus the redirect rules, over the `ShellData` trait: `TransportShellData` (`live`) over U02's transport, with the server's router in-process (`engine`) by default or `CLAUDIUS_APP_REMOTE`; `FixtureShellData` with `CLAUDIUS_APP_FIXTURE`. The chat route's live `ChatState` (`chat`: `LiveChat`, `ChatSync`); the native localStorage (`store`). The sessions browser (U11): `sessions/` over the `SessionsData` trait (`FixtureSessionsData` until U11b). The chat route shows the bound tab's transcript (U05a's `TranscriptView` over a `TranscriptSource`). Sources: `app/layout.tsx`, `app/[workspaceId]/layout.tsx`, `components/nav/{SideNav,WorkspaceSwitcher,WorkspaceRedirects}.tsx`, `components/chat/{SessionTabs,ChatSurface}.tsx`, `components/chrome/TitleBar.tsx`, `components/workspaces/WorkspaceIcon.tsx`, `lib/client/{shortcuts,useFocusMode,workspace-route-memory}.ts`, `use-session.ts` (boot); U04b: `use-session.ts` (mount / switch / create / visibility), `lib/client/useWorkspaces.ts`, `components/chat/{StatusLine,MessageList}.tsx` (texts); U11: `app/[workspaceId]/sessions/page.tsx`, `app/[workspaceId]/sessions/[id]/page.tsx`, `lib/client/useSessionsHistory.ts`, `components/sessions/TranscriptViewer.tsx`, `lib/shared/{session-search,session-search-older,session-pagination}.ts`. |
 
 ### Module map (claudius-core)
 
@@ -449,6 +449,7 @@ misses methods its TS route exports (axum would answer 405 instead of falling th
   - Next 16.4.3's dev server stops the first start of every run with an agent-facing security-upgrade advisory (`next upgrade --agent=security`); a retry within its TTL proceeds. `/tmp/p/run-rust-specs.sh` retries once. The advisory was reported to the user and not acted on.
 - **Parity e2e, end of §1 (2026-10-26, I12)** (`rust/parity/e2e-status.md`): **373 passed, 1 failed, 7 skipped**. The failure is `notifications` › bus (S31); TS passes it. It passes on Rust since S31 (2026-11-14).
 - *History:* parity e2e baseline, 2026-10-25: 362 passed, 12 failed, 7 skipped. 11 failures were the unported `dev-broadcast` / `dev-reap` test routes. One is a client URL race that the faster backend exposes (TODO I11).
+  - **2026-11-27, after U04b:** no e2e run. Only `rust/app/` (claudius-app's engine, live data, chat and store); nothing the browser runs changed.
   - **2026-11-27, after U11:** no e2e run. Only `rust/app/`: the native sessions browser, with a new TS golden recorder, `sessions-page-golden.mjs`. Nothing the browser runs changed.
   - **2026-11-27, after U05a:** no e2e run. Only `rust/app/` (the new `claudius-chat` transcript and the chat route) and the `rust-app.yml` triggers; nothing the browser runs changed.
   - **2026-11-27, after U01p / U01k / U02 / U02d:** no e2e run. New crate `claudius-transport` and the client lifecycle in `claudius-client`; nothing the browser or the served app runs changed.
@@ -1133,10 +1134,31 @@ misses methods its TS route exports (axum would answer 405 instead of falling th
   - A 200 with `error` set keeps the old list.
   - A failed listing reads `HTTP <status>` without looking at the body.
 
+**Native live shell (U04b)**
+- Gaps:
+  - Remote mode is unauthenticated (U02e).
+  - Background tab dots come from `/api/sessions?workspaceId=` (U04e).
+  - Session storage is per mount (U04f).
+  - There is no signal handler (U04g).
+- Deliberate differences:
+  - **Engine:** the scheduler is opt-in (`CLAUDIUS_APP_SCHEDULER`); the updater and boot tasks never run; there is no Next proxy or listener.
+  - **Workspace cookies:** set client-side, per workspace.
+  - **Events:** window activation stands in for focus, and GPUI window visibility for `document.hidden`.
+  - **Icons:** cached by extension + `updatedAt`, not by HTTP max-age.
+  - **Snapshots:** throttled to 16 ms; the bound tab reads "starting" while a switch is in flight.
+  - **Navigation:** the chat's `ReplaceUrl` replaces the route; `AssignUrl` remounts the chat.
+  - **Storage:** localStorage is a JSON file (`~/.claude/.claudius/native-app/local-storage.json`).
+- Mirrored TS quirks:
+  - SideNav: a non-ok `/api/customizations` keeps the gated tiles hidden; a fetch error means an empty set.
+  - A legacy focus value `"1"` reads as focus.
+  - Route memory's legacy values and its `/^\/wks_[a-f0-9]+(\/.*)?$/` rule.
+  - `newTabId` is `tab-` + 16 hex digits.
+  - The StatusLine and MessageList texts are copied as is.
+
 **Native app shell (U04a)**
 - Every screen but chat is a placeholder naming its route and parameters until its U-task.
 - Native back/forward buttons and ⌘[ / ⌘] stand in for the browser's history; ⌘⌥⇧L and a title-bar button cycle system → light → dark (new). Close-all asks in an in-window dialog, not `confirm()`.
-- Focus mode and route memory live in memory, not localStorage (U04b). An image workspace icon draws as its letter. No unread badges (U15), drawers (U15/U17), drag reorder / resize or pulse / glyph animations (U04c). `nav.toggleSidebar` (⌘B) isn't bound: the TS has no handler.
+- No unread badges (U15), drawers (U15/U17), drag reorder / resize or pulse / glyph animations (U04c). `nav.toggleSidebar` (⌘B) isn't bound: the TS has no handler.
 - Mirrored TS quirks: the overflow fit subtracts TRAILER_PX from a width that already excludes the chevron and close-all (~120 px stay empty); close-all leaves the bound session with no active tab; re-binding the same id after closing the last tab doesn't re-add it (`lastAddedKey`); tab shortcuts and ⌘. act only on the chat; route memory drops the query; `?x=` survives R1/R2 but not R4; `files?path=` encodes `/` as `%2F`; the overflow menu's X and pin keep it open.
 - Icons: 182 names / 177 Lucide icons since the main merge dropped `Link` from `StatusLine.tsx`.
 

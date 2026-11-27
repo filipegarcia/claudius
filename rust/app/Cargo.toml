@@ -21,6 +21,12 @@ claudius-theme = { path = "../crates/claudius-theme" }
 claudius-client = { path = "../crates/claudius-client" }
 claudius-core = { path = "../crates/claudius-core" }
 claudius-chat = { path = "crates/claudius-chat" }
+# The engine in-process (U04b): the server's state and router, and the
+# transport that joins it to the chat's state machine.
+claudius-agent = { path = "../crates/claudius-agent" }
+claudius-server = { path = "../crates/claudius-server" }
+claudius-transport = { path = "../crates/claudius-transport" }
+tokio = { version = "1", features = ["full"] }
 claudius-gpui-theme = { path = "crates/claudius-gpui-theme" }
 
 # GPUI Kit publishes gpui-component and pins the gpui-pre (Zed snapshot)

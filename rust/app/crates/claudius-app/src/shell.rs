@@ -1,23 +1,88 @@
 //! The window's root view: [`ShellState`] on screen, its actions bound to
 //! the shortcuts, its [`Effect`]s run against the [`ShellData`].
+//!
+//! **The live chat (U04b).** Over a data source with an engine behind it
+//! ([`ShellData::open_chat`]), the chat route mounts one [`LiveChat`] for
+//! its workspace, as `ChatSurface` mounts `useSession` once per page: at
+//! the page's URL when the chat comes on screen, unmounted when the route
+//! leaves it. The strip and the chat follow each other: a tab the user
+//! picks (or a close that moves the strip) is the chat's `switchSession`,
+//! and a session the chat binds (its boot, "+", a switch) joins the strip
+//! ([`ShellState::chat_bound`]). A snapshot older than the shell's last
+//! switch is not followed back ([`ChatSync`]). The bound tab's dot reads the chat's state
+//! (`activeTabStatus`); the chat's `?session=` writer replaces the route's
+//! URL, and a page load it asks for remounts it there.
+//!
+//! The window coming to the front re-reads the workspaces and the
+//! customizations (`useWorkspaces`' focus refetch); its visibility is the
+//! chat's `document.hidden`. Focus mode and the route memory persist in
+//! the [`LocalStore`].
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use claudius_chat::fixture::FixtureTranscripts;
 use claudius_chat::{TranscriptSource, TranscriptView};
+use claudius_client::effect::Effect as ChatEffect;
 use claudius_gpui_theme::ThemeName;
 use futures::StreamExt as _;
 use gpui_kit::{
-    App, AppContext as _, Context, Entity, FocusHandle, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, Styled as _, Task, Window, WindowAppearance, div,
+    App, AppContext as _, Context, Entity, FocusHandle, Image, ImageFormat,
+    InteractiveElement as _, IntoElement, ParentElement as _, Render, Styled as _, Task, Window,
+    WindowAppearance, WindowVisibility, div,
 };
 
-use crate::data::{ShellChange, ShellData};
+use crate::chat::{ChatPage, ChatSync, LiveChat, bound_tab_state};
+use crate::data::{ActiveSessionState, ShellChange, ShellData, WorkspaceIcon};
 use crate::nav::FocusLevel;
-use crate::route::Route;
+use crate::route::{Route, WorkspacePage};
 use crate::shortcuts::{self, *};
 use crate::state::{Effect, ShellState};
+use crate::store::LocalStore;
+
+/// The origin the chat's page URL is on (`window.location.origin`).
+pub const PAGE_ORIGIN: &str = claudius_transport::in_process::IN_PROCESS_ORIGIN;
+
+/// The mounted chat of the workspace on screen.
+pub(crate) struct ChatSlot {
+    pub(crate) workspace: String,
+    pub(crate) chat: LiveChat,
+    sync: ChatSync,
+    _task: Task<()>,
+}
+
+/// A workspace's uploaded icon: which upload, and its image once read.
+struct IconEntry {
+    key: String,
+    image: Option<Arc<Image>>,
+}
+
+/// The image format for an icon's `Content-Type` (the route's
+/// `mimeFor`), else for its extension.
+pub fn icon_format(content_type: &str, ext: &str) -> Option<ImageFormat> {
+    let mime = content_type
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    let by_mime = match mime.as_str() {
+        "image/png" => Some(ImageFormat::Png),
+        "image/jpeg" | "image/jpg" => Some(ImageFormat::Jpeg),
+        "image/webp" => Some(ImageFormat::Webp),
+        "image/gif" => Some(ImageFormat::Gif),
+        "image/svg+xml" => Some(ImageFormat::Svg),
+        _ => None,
+    };
+    by_mime.or_else(|| match ext.to_ascii_lowercase().as_str() {
+        "png" => Some(ImageFormat::Png),
+        "jpg" | "jpeg" => Some(ImageFormat::Jpeg),
+        "webp" => Some(ImageFormat::Webp),
+        "gif" => Some(ImageFormat::Gif),
+        "svg" => Some(ImageFormat::Svg),
+        _ => None,
+    })
+}
 
 /// Light and dark: the system's, or a palette the user picked.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -95,8 +160,12 @@ pub struct Shell {
     pub(crate) now_year: i32,
     /// The sessions browser (U11), when [`Shell::with_sessions`] added it.
     pub(crate) sessions: Option<gpui_kit::Entity<crate::sessions::view::SessionsScreen>>,
+    pub(crate) chat: Option<ChatSlot>,
+    icons: HashMap<String, IconEntry>,
+    store: LocalStore,
+    window_hidden: bool,
     _tasks: Vec<Task<()>>,
-    _appearance: gpui_kit::Subscription,
+    _subscriptions: Vec<gpui_kit::Subscription>,
 }
 
 impl Shell {
@@ -107,10 +176,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        Self::with_transcripts(
+        Self::with_parts(
             data,
             Arc::new(FixtureTranscripts::new()),
             appearance,
+            LocalStore::in_memory(),
             window,
             cx,
         )
@@ -121,6 +191,44 @@ impl Shell {
         data: Arc<dyn ShellData>,
         transcripts: Arc<dyn TranscriptSource>,
         appearance: Appearance,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        Self::with_parts(
+            data,
+            transcripts,
+            appearance,
+            LocalStore::in_memory(),
+            window,
+            cx,
+        )
+    }
+
+    /// The shell with its `localStorage` (focus mode, route memory).
+    pub fn with_store(
+        data: Arc<dyn ShellData>,
+        appearance: Appearance,
+        store: LocalStore,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        Self::with_parts(
+            data,
+            Arc::new(FixtureTranscripts::new()),
+            appearance,
+            store,
+            window,
+            cx,
+        )
+    }
+
+    /// The shell over a data source, the transcripts' source and its
+    /// `localStorage`.
+    pub fn with_parts(
+        data: Arc<dyn ShellData>,
+        transcripts: Arc<dyn TranscriptSource>,
+        appearance: Appearance,
+        store: LocalStore,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
@@ -140,10 +248,26 @@ impl Shell {
         let observe = cx.observe_window_appearance(window, |this: &mut Shell, window, cx| {
             this.apply_theme(window, cx);
         });
+        let activation = cx.observe_window_activation(window, |this: &mut Shell, window, cx| {
+            if window.is_window_active() {
+                this.load_workspaces(cx);
+                this.load_customizations(cx);
+            }
+        });
+        let visibility =
+            cx.observe_window_visibility(window, |this: &mut Shell, v, _window, cx| {
+                this.set_window_hidden(v == WindowVisibility::Hidden, cx);
+            });
         let theme = appearance.theme(window.appearance());
         claudius_gpui_theme::apply(theme, cx);
+        let mut state = ShellState::new();
+        state.set_live_chat(data.has_live_chat());
+        state.set_focus(store.focus());
+        for (id, page) in store.remembered_pages() {
+            state.remember_page(&id, page);
+        }
         let mut shell = Shell {
-            state: ShellState::new(),
+            state,
             data,
             transcripts,
             chat_views: Vec::new(),
@@ -157,10 +281,15 @@ impl Shell {
             hidden: Vec::new(),
             now_year: crate::tabs::current_year(),
             sessions: None,
+            chat: None,
+            icons: HashMap::new(),
+            store,
+            window_hidden: false,
             _tasks: vec![listen],
-            _appearance: observe,
+            _subscriptions: vec![observe, activation, visibility],
         };
         shell.load_workspaces(cx);
+        shell.load_customizations(cx);
         shell
     }
 
@@ -181,6 +310,12 @@ impl Shell {
         let bound = self.data.active_session_state(&ws.id);
         let views = state.tab_views(bound, self.now_year);
         views.into_iter().find(|t| t.active).map(|t| t.id)
+    }
+
+    /// Whether the transcripts' source holds the session (else the chat
+    /// route shows the live chat's state).
+    pub fn has_transcript(&self, session_id: &str) -> bool {
+        self.transcripts.read(session_id, &mut |_| {})
     }
 
     /// The transcript view of a tab, when it was shown recently.
@@ -208,6 +343,39 @@ impl Shell {
         if self.chat_views.len() > KEPT_CHAT_VIEWS {
             self.chat_views.remove(0);
         }
+    }
+
+    /// The mounted chat (the workspace on screen's), if any.
+    pub fn live_chat(&self) -> Option<&LiveChat> {
+        self.chat.as_ref().map(|c| &c.chat)
+    }
+
+    /// The live chat bound to `session_id`, for a transcript view.
+    pub fn chat_for_session(&self, session_id: &str) -> Option<LiveChat> {
+        self.live_chat()
+            .filter(|c| c.session_id().as_deref() == Some(session_id))
+            .cloned()
+    }
+
+    /// The `localStorage` the shell writes.
+    pub fn store(&self) -> &LocalStore {
+        &self.store
+    }
+
+    /// The decoded icon of a workspace with an uploaded one.
+    pub fn icon_image(&self, workspace: &str) -> Option<Arc<Image>> {
+        self.icons.get(workspace).and_then(|e| e.image.clone())
+    }
+
+    /// The bound session's state for the active tab's dot: the live
+    /// chat's (`starting` while it isn't bound to the strip's session
+    /// yet), else the data source's.
+    pub fn bound_state(&self, workspace: &str) -> Option<ActiveSessionState> {
+        let Some(slot) = self.chat.as_ref().filter(|c| c.workspace == workspace) else {
+            return self.data.active_session_state(workspace);
+        };
+        let bound = self.state.strip(workspace).and_then(|s| s.bound());
+        Some(bound_tab_state(&slot.chat.state(), bound))
     }
 
     /// The state, for tests and the screens.
@@ -272,11 +440,78 @@ impl Shell {
             let list = fut.await.unwrap_or_default();
             this.update(cx, |this, cx| {
                 let effects = this.state.workspaces_loaded(list);
+                this.load_icons(cx);
                 this.run(effects, cx);
             })
             .ok();
         })
         .detach();
+    }
+
+    /// `SideNav`'s `/api/customizations` read: the gated tiles' names.
+    fn load_customizations(&mut self, cx: &mut Context<Self>) {
+        let fut = self.data.customizations();
+        cx.spawn(async move |this, cx| {
+            let names = match fut.await {
+                Ok(Some(names)) => names,
+                Ok(None) => return,
+                Err(_) => Vec::new(),
+            };
+            this.update(cx, |this, cx| {
+                this.state.set_enabled_customizations(names);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    /// Reads the uploaded icons not read yet (or re-uploaded: the
+    /// workspace's `updatedAt` moved).
+    fn load_icons(&mut self, cx: &mut Context<Self>) {
+        let wanted: Vec<(String, String, String)> = self
+            .state
+            .workspaces()
+            .iter()
+            .filter_map(|w| match w.icon() {
+                WorkspaceIcon::Image { ext } => {
+                    Some((w.id.clone(), format!("{ext}:{}", w.updated_at), ext))
+                }
+                WorkspaceIcon::Letter { .. } => None,
+            })
+            .collect();
+        self.icons
+            .retain(|id, _| wanted.iter().any(|(w, _, _)| w == id));
+        for (id, key, ext) in wanted {
+            if self.icons.get(&id).is_some_and(|e| e.key == key) {
+                continue;
+            }
+            self.icons.insert(
+                id.clone(),
+                IconEntry {
+                    key: key.clone(),
+                    image: None,
+                },
+            );
+            let fut = self.data.workspace_icon(&id);
+            cx.spawn(async move |this, cx| {
+                let Ok(Some(icon)) = fut.await else {
+                    return;
+                };
+                let Some(format) = icon_format(&icon.content_type, &ext) else {
+                    return;
+                };
+                let image = Arc::new(Image::from_bytes(format, icon.bytes));
+                this.update(cx, |this, cx| {
+                    if let Some(e) = this.icons.get_mut(&id).filter(|e| e.key == key) {
+                        e.image = Some(image);
+                        cx.notify();
+                    }
+                })
+                .ok();
+            })
+            .detach();
+        }
     }
 
     fn load_sessions(&mut self, workspace: String, cx: &mut Context<Self>) {
@@ -338,6 +573,15 @@ impl Shell {
                     })
                     .detach();
                 }
+                Effect::CreateSession(id)
+                    if self.chat.as_ref().is_some_and(|c| c.workspace == id) =>
+                {
+                    // "+" on a live chat: `session.createNewSession()`; the
+                    // strip follows what it binds.
+                    if let Some(slot) = &self.chat {
+                        slot.chat.act(|s, env| s.create_new_session(env));
+                    }
+                }
                 Effect::CreateSession(id) => {
                     let fut = self.data.create_session(&id);
                     cx.spawn(async move |this, cx| {
@@ -357,6 +601,147 @@ impl Shell {
             }
         }
         crate::sessions::view::sync(self, cx);
+        self.sync_chat(cx);
+        self.persist_ui();
+        cx.notify();
+    }
+
+    /// Focus mode and the route memory into the store (`useFocusMode`'s
+    /// write, `WorkspaceSwitcher`'s `setLastPath` on each pathname).
+    fn persist_ui(&mut self) {
+        self.store.set_focus(self.state.focus());
+        if let Some(id) = self.state.route().workspace().map(str::to_owned) {
+            let pathname = self.state.route().pathname();
+            self.store.set_last_path(&id, &pathname);
+        }
+    }
+
+    /// Mounts, unmounts or switches the live chat to match the route and
+    /// the strip (see the module docs).
+    fn sync_chat(&mut self, cx: &mut Context<Self>) {
+        if !self.state.is_live_chat() {
+            return;
+        }
+        let want = match self.state.route() {
+            Route::Workspace {
+                id,
+                page: WorkspacePage::Chat { .. },
+            } if self.state.is_loaded(id) => Some(id.clone()),
+            _ => None,
+        };
+        if self.chat.as_ref().map(|c| &c.workspace) != want.as_ref() {
+            self.chat = None;
+            if let Some(ws) = want {
+                self.mount_chat(&ws, cx);
+            }
+        }
+        let Some(slot) = self.chat.as_mut() else {
+            return;
+        };
+        let bound = self.state.strip(&slot.workspace).and_then(|s| s.bound());
+        if let Some(id) = slot.sync.on_strip(bound) {
+            let seq = slot.chat.act(move |s, env| s.switch_session(&id, env));
+            slot.sync.switching(seq);
+        }
+    }
+
+    fn mount_chat(&mut self, ws: &str, cx: &mut Context<Self>) {
+        let route = self.state.route();
+        let href = format!("{PAGE_ORIGIN}{}", route.path());
+        let Some(ChatPage { chat, mut ui }) = self.data.open_chat(ws, &href, &route.pathname())
+        else {
+            return;
+        };
+        if self.window_hidden {
+            chat.act(|s, env| s.visibility_changed(true, env));
+        }
+        let mut changes = chat.changes();
+        let workspace = ws.to_owned();
+        let task = cx.spawn(async move |this, cx| {
+            loop {
+                let next = {
+                    let changed = Box::pin(changes.changed());
+                    match futures::future::select(changed, ui.next()).await {
+                        futures::future::Either::Left((Ok(()), _)) => None,
+                        futures::future::Either::Right((Some(e), _)) => Some(e),
+                        _ => break,
+                    }
+                };
+                if this
+                    .update(cx, |this, cx| this.on_chat(&workspace, next, cx))
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        });
+        // The strip's bound tab is where the chat's boot lands anyway (the
+        // route persisted it); the chat binds on its own.
+        let synced = self
+            .state
+            .strip(ws)
+            .and_then(|s| s.bound())
+            .map(str::to_owned);
+        self.chat = Some(ChatSlot {
+            workspace: ws.to_owned(),
+            chat,
+            sync: ChatSync::new(synced),
+            _task: task,
+        });
+    }
+
+    /// The live chat changed (`None`) or asked the page for something.
+    fn on_chat(&mut self, ws: &str, effect: Option<ChatEffect>, cx: &mut Context<Self>) {
+        let Some(slot) = self.chat.as_mut().filter(|c| c.workspace == ws) else {
+            return;
+        };
+        match effect {
+            None => {
+                if let Some(id) = slot.sync.on_snapshot(&slot.chat.snapshot()) {
+                    let effects = self.state.chat_bound(ws, &id);
+                    self.run(effects, cx);
+                }
+                cx.notify();
+            }
+            Some(ChatEffect::ReplaceUrl { url }) => {
+                let on_chat = matches!(
+                    self.state.route(),
+                    Route::Workspace { id, page: WorkspacePage::Chat { .. } } if id == ws
+                );
+                if on_chat && let Some(path) = url.strip_prefix(PAGE_ORIGIN) {
+                    let effects = self.state.replace_location(path);
+                    self.run(effects, cx);
+                }
+            }
+            Some(ChatEffect::AssignUrl { url }) => {
+                // A page load: the chat mounts again at the new URL.
+                if let Some(path) = url.strip_prefix(PAGE_ORIGIN) {
+                    self.chat = None;
+                    let effects = self.state.open_url(path);
+                    self.run(effects, cx);
+                }
+            }
+            Some(ChatEffect::ConsoleWarn { text }) => eprintln!("[chat] {text}"),
+            Some(ChatEffect::BadPayload { error }) => {
+                eprintln!("[chat] bad SSE payload: {}: {}", error.name, error.message)
+            }
+            Some(ChatEffect::UnhandledRejection { error }) => {
+                eprintln!("[chat] unhandled rejection: {error}")
+            }
+            Some(_) => {}
+        }
+    }
+
+    /// The window was hidden or shown (`document.hidden`).
+    fn set_window_hidden(&mut self, hidden: bool, cx: &mut Context<Self>) {
+        if self.window_hidden == hidden {
+            return;
+        }
+        self.window_hidden = hidden;
+        if let Some(slot) = &self.chat {
+            slot.chat
+                .act(move |s, env| s.visibility_changed(hidden, env));
+        }
         cx.notify();
     }
 
@@ -555,6 +940,7 @@ pub(crate) fn on_actions(
     let el = on!(el, GoForward, |this, cx| this.act(cx, ShellState::forward));
     let el = on!(el, CycleFocus, |this, cx| {
         this.state.cycle_focus();
+        this.persist_ui();
         cx.notify();
     });
     el.on_action(
@@ -584,13 +970,14 @@ pub fn focus_label(level: FocusLevel) -> &'static str {
     }
 }
 
-/// Opens the main window over a data source, the transcripts' source and
-/// the sessions browser's.
+/// Opens the main window over a data source, the transcripts' source,
+/// the sessions browser's and the store.
 pub fn open_main_window(
     data: Arc<dyn ShellData>,
     transcripts: Arc<dyn TranscriptSource>,
     sessions: Arc<dyn crate::sessions::data::SessionsData>,
     appearance: Appearance,
+    store: LocalStore,
     cx: &mut App,
 ) -> anyhow::Result<gpui_kit::Entity<Shell>> {
     use gpui_kit::{Bounds, TitlebarOptions, WindowBounds, WindowOptions, point, px, size};
@@ -609,7 +996,7 @@ pub fn open_main_window(
     };
     let (_, shell) = gpui_kit::open_window(options, cx, move |window, cx| {
         cx.new(|cx| {
-            Shell::with_transcripts(data, transcripts, appearance, window, cx)
+            Shell::with_parts(data, transcripts, appearance, store, window, cx)
                 .with_sessions(sessions, window, cx)
         })
     })?;

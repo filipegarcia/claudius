@@ -81,12 +81,12 @@ impl Colors {
         Colors::step("white")
     }
 
-    fn step(name: &str) -> Hsla {
+    pub(crate) fn step(name: &str) -> Hsla {
         hsla(tailwind::color(name).unwrap_or_else(|| panic!("{name} is a Tailwind step")))
     }
 }
 
-fn icon(name: IconName, size: f32, color: Hsla) -> Icon {
+pub(crate) fn icon(name: IconName, size: f32, color: Hsla) -> Icon {
     Icon::new(name).size(px(size)).text_color(color)
 }
 
@@ -280,7 +280,7 @@ fn workspace_rail(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEleme
                 )
             })
             .when(!is_active, |d| d.opacity(0.8).hover(|d| d.opacity(1.)))
-            .child(workspace_icon(w, 40.))
+            .child(workspace_icon(w, 40., this.icon_image(&w.id)))
             .when_some(go.map(|_| idx + 1), |d, n| {
                 d.child(
                     div()
@@ -429,10 +429,27 @@ fn workspace_rail(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEleme
 }
 
 /// `WorkspaceIcon.tsx`: a letter on its color (the radius is 22% of the
-/// size); a customization shows the wand. An image icon draws its letter
-/// until the icon route is wired (U04b).
-pub(crate) fn workspace_icon(w: &crate::data::Workspace, size: f32) -> Div {
+/// size); a customization shows the wand; an uploaded image covers the
+/// tile once read (its letter until then, or when it can't be read).
+pub(crate) fn workspace_icon(
+    w: &crate::data::Workspace,
+    size: f32,
+    image: Option<std::sync::Arc<gpui_kit::Image>>,
+) -> Div {
     let radius = (size * 0.22).round();
+    if !w.is_customization()
+        && matches!(w.icon(), crate::data::WorkspaceIcon::Image { .. })
+        && let Some(image) = image
+    {
+        use gpui_kit::StyledImage as _;
+        return div().flex_none().size(px(size)).child(
+            gpui_kit::img(image)
+                .debug_selector(|| "ws-icon-image".into())
+                .size(px(size))
+                .rounded(px(radius))
+                .object_fit(gpui_kit::ObjectFit::Cover),
+        );
+    }
     let bg = match w.icon() {
         crate::data::WorkspaceIcon::Letter { color, .. } => parse_hex(&color),
         crate::data::WorkspaceIcon::Image { .. } => None,
@@ -591,7 +608,7 @@ fn tab_strip(
         .active_workspace()
         .map(|w| w.id.clone())
         .unwrap_or_default();
-    let bound_state = this.data.active_session_state(&ws_id);
+    let bound_state = this.bound_state(&ws_id);
     let views = this.state.tab_views(bound_state, this.now_year);
     let len = views.len();
     let label_w = this

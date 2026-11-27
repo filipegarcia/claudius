@@ -17,14 +17,27 @@ anyhow = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 # The chat route's transcript (U05) and its `TranscriptSource`.
 claudius-chat.workspace = true
+claudius-agent.workspace = true
+claudius-client.workspace = true
+claudius-core.workspace = true
 claudius-gpui-theme.workspace = true
+claudius-server.workspace = true
 claudius-theme.workspace = true
+claudius-transport.workspace = true
 futures = "0.3"
 gpui-kit.workspace = true
+# The native `localStorage` keeps keys in insertion order, as the browser.
+indexmap = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
+tokio.workspace = true
+# `newTabId()`'s random bytes.
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
+bytes = "1"
+http = "1"
+tempfile = "3"
 # `TestAppContext`, `VisualTestContext::debug_bounds` and the headless
 # window's `render_to_image` (as claudius-gpui-theme: gpui-kit's own
 # `test-support` doesn't resolve).

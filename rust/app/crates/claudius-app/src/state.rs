@@ -57,6 +57,9 @@ pub struct ShellState {
     listed: bool,
     /// The published customizations' names (`None`: not known yet).
     enabled_customizations: Option<Vec<String>>,
+    /// A live chat boots each workspace's strip (U04b): the shell's own
+    /// boot stands aside, and [`ShellState::chat_bound`] follows the chat.
+    live_chat: bool,
 }
 
 impl Default for ShellState {
@@ -72,6 +75,7 @@ impl Default for ShellState {
             focus: FocusLevel::Off,
             listed: false,
             enabled_customizations: None,
+            live_chat: false,
         }
     }
 }
@@ -191,9 +195,31 @@ impl ShellState {
         nav::visible_items(self.enabled_customizations.as_deref(), order)
     }
 
-    /// Sets the published customizations (U17 reads them).
+    /// Sets the published customizations (`/api/customizations`).
     pub fn set_enabled_customizations(&mut self, names: Vec<String>) {
         self.enabled_customizations = Some(names);
+    }
+
+    /// The published customizations' names, once known.
+    pub fn enabled_customizations(&self) -> Option<&[String]> {
+        self.enabled_customizations.as_deref()
+    }
+
+    /// A live chat (`useSession`) picks each workspace's session at boot
+    /// and on "+": the shell no longer boots the strip itself, and binds
+    /// what the chat binds ([`Self::chat_bound`]).
+    pub fn set_live_chat(&mut self, on: bool) {
+        self.live_chat = on;
+    }
+
+    pub fn is_live_chat(&self) -> bool {
+        self.live_chat
+    }
+
+    /// A remembered page for a workspace (the stored route memory).
+    pub fn remember_page(&mut self, workspace: &str, page: WorkspacePage) {
+        self.last_page
+            .insert(workspace.to_owned(), page.without_query());
     }
 
     // ---- data -------------------------------------------------------------
@@ -248,10 +274,32 @@ impl ShellState {
         out
     }
 
+    /// The live chat bound `id` (its boot, a switch, a new session): the
+    /// strip follows, as `ChatSurface` adds `session.sessionId` to the
+    /// strip and persists it.
+    pub fn chat_bound(&mut self, workspace: &str, id: &str) -> Vec<Effect> {
+        let Some(d) = self.data.get_mut(workspace) else {
+            return Vec::new();
+        };
+        if !d.loaded {
+            return Vec::new();
+        }
+        let before = d.strip.clone();
+        d.strip.bind(id);
+        if d.strip == before {
+            return Vec::new();
+        }
+        self.persist(workspace)
+    }
+
     /// The chat's boot (`useSession`), each time the chat comes on screen:
     /// `?session=` if the URL has one, else the strip's active tab (at the
-    /// first boot, the one the route saved), else a new session.
+    /// first boot, the one the route saved), else a new session. A live
+    /// chat boots itself.
     fn boot(&mut self, workspace: &str) -> Vec<Effect> {
+        if self.live_chat {
+            return Vec::new();
+        }
         let explicit = match self.route() {
             Route::Workspace {
                 id,
@@ -301,6 +349,12 @@ impl ShellState {
     pub fn open_url(&mut self, url: &str) -> Vec<Effect> {
         let route = route::resolve(url, self);
         self.navigate(route)
+    }
+
+    /// `history.replaceState` from the chat (its `?session=` writer): the
+    /// current entry becomes `url`.
+    pub fn replace_location(&mut self, url: &str) -> Vec<Effect> {
+        self.replace_url(url)
     }
 
     /// The same, replacing the current entry (`router.replace`).
