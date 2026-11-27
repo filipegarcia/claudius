@@ -3685,7 +3685,11 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
   - [ ] **U04d** Stop cloning the whole `ChatState` on every snapshot (up to 60/s); share the transcript instead (e.g. an Arc'd message list). deps: U04b
   - [ ] **U04e** Background tab dots from the chat's merged `ChatState.sessions` instead of re-reading `GET /api/sessions?workspaceId=` (exact parity for foreign-cwd rows and disk-only titles). deps: U04b
   - [ ] **U04f** Keep one session-storage store per window across chat mounts (a browser tab's survives navigations; today it is per mount). deps: U04b
-  - [ ] **U04g** Shut down gracefully on SIGTERM / SIGINT (`Backend::shutdown`, as the server's main does). Today only Cmd-Q runs it; on a signal the CLIs exit when their stdin closes. deps: U04b
+  - [x] **U04g** Shut down gracefully on SIGTERM / SIGINT (`Backend::shutdown`, as the server's main does). Today only Cmd-Q runs it; on a signal the CLIs exit when their stdin closes. deps: U04b — done 2026-11-27 (the loop, main tree):
+    - `engine.rs` adds `ShutdownSignal`, which installs SIGINT and SIGTERM handlers at once on the backend's runtime, as the server's `shutdown_signal` waits for them. `Backend::on_shutdown_signal` resolves with the first signal's name.
+    - `main.rs` quits the app on it, so the quit's `Backend::shutdown` ends every session and its CLI, as Cmd-Q does.
+    - Test `tests/signal.rs`, its own binary because it signals itself. A session runs a long fake-CLI turn; SIGINT and SIGTERM each resolve with their name while the process and the session live on; the quit's shutdown then ends the session.
+    - Smoke of the real binary (temp HOME, fake CLI, clean-env): SIGTERM printed `claudius-app: SIGTERM: shutting down` and exited 0 at once, with nothing left. The smoke's session had no CLI yet, since the CLI starts on the first prompt; the test covers a live one.
   - [x] **U04h** The chat route's transcript over the live chat: a `TranscriptSource` over the mounted `LiveChat`. deps: U04b, U05a — done 2026-11-27 (the loop, main tree, after merging U04b):
     - `claudius-app/src/transcripts.rs` adds `LiveTranscripts`. While the chat is bound to a session, `read` gives that session the chat's latest published `ChatState`, and nothing to any other session.
     - The shell sets the mounted chat in `sync_chat` (only a different chat notifies) and forwards each snapshot (`on_chat`). With a live chat it is the shell's transcripts source: `Shell::with_parts` uses it in place of the given one.

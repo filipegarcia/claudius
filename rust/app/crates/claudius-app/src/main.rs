@@ -89,6 +89,19 @@ fn main() -> anyhow::Result<()> {
         .run(move |cx| {
             claudius_app::init(ThemeName::DEFAULT, cx);
             if let Some(b) = backend.clone() {
+                // SIGINT / SIGTERM quit as Cmd-Q does (U04g), as the
+                // server's `main` shuts down on them.
+                match b.on_shutdown_signal() {
+                    Ok(signal) => cx
+                        .spawn(async move |cx| {
+                            if let Ok(sig) = signal.await {
+                                eprintln!("claudius-app: {sig}: shutting down");
+                                cx.update(|cx| cx.quit());
+                            }
+                        })
+                        .detach(),
+                    Err(e) => eprintln!("claudius-app: no SIGINT / SIGTERM handler: {e:#}"),
+                }
                 // Every session ends with the app, its CLI with it.
                 cx.on_app_quit(move |_| {
                     b.shutdown(Duration::from_secs(5));

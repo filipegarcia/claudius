@@ -195,6 +195,66 @@ impl Backend {
                 .block_on(async { tokio::time::timeout(limit, done).await });
         }
     }
+
+    /// Resolves with the first SIGINT / SIGTERM's name (U04g): the app
+    /// quits on it, and its quit runs [`Self::shutdown`] as Cmd-Q does.
+    /// The handlers are installed before this returns and stay installed,
+    /// so neither signal kills the process outright any more.
+    pub fn on_shutdown_signal(
+        &self,
+    ) -> anyhow::Result<futures::channel::oneshot::Receiver<&'static str>> {
+        let (tx, rx) = futures::channel::oneshot::channel();
+        let signal = {
+            let _rt = self.rt.enter();
+            ShutdownSignal::install()?
+        };
+        self.rt.spawn(async move {
+            let _ = tx.send(signal.recv().await);
+        });
+        Ok(rx)
+    }
+}
+
+/// SIGINT (Ctrl-C) and, on unix, SIGTERM: what the server's `main` shuts
+/// down on (`shutdown_signal` there), and what a terminal or a process
+/// manager sends.
+pub struct ShutdownSignal {
+    #[cfg(unix)]
+    int: tokio::signal::unix::Signal,
+    #[cfg(unix)]
+    term: tokio::signal::unix::Signal,
+}
+
+impl ShutdownSignal {
+    /// Installs the handlers now; call it inside a tokio runtime.
+    pub fn install() -> std::io::Result<ShutdownSignal> {
+        #[cfg(unix)]
+        {
+            use tokio::signal::unix::{SignalKind, signal};
+            Ok(ShutdownSignal {
+                int: signal(SignalKind::interrupt())?,
+                term: signal(SignalKind::terminate())?,
+            })
+        }
+        #[cfg(not(unix))]
+        Ok(ShutdownSignal {})
+    }
+
+    /// The first signal's name.
+    pub async fn recv(mut self) -> &'static str {
+        #[cfg(unix)]
+        {
+            tokio::select! {
+                _ = self.int.recv() => "SIGINT",
+                _ = self.term.recv() => "SIGTERM",
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = tokio::signal::ctrl_c().await;
+            "Ctrl-C"
+        }
+    }
 }
 
 fn runtime() -> anyhow::Result<tokio::runtime::Runtime> {

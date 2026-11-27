@@ -449,6 +449,7 @@ misses methods its TS route exports (axum would answer 405 instead of falling th
   - Next 16.4.3's dev server stops the first start of every run with an agent-facing security-upgrade advisory (`next upgrade --agent=security`); a retry within its TTL proceeds. `/tmp/p/run-rust-specs.sh` retries once. The advisory was reported to the user and not acted on.
 - **Parity e2e, end of §1 (2026-10-26, I12)** (`rust/parity/e2e-status.md`): **373 passed, 1 failed, 7 skipped**. The failure is `notifications` › bus (S31); TS passes it. It passes on Rust since S31 (2026-11-14).
 - *History:* parity e2e baseline, 2026-10-25: 362 passed, 12 failed, 7 skipped. 11 failures were the unported `dev-broadcast` / `dev-reap` test routes. One is a client URL race that the faster backend exposes (TODO I11).
+  - **2026-11-27, after U04g:** no e2e run. Only `rust/app/` (claudius-app's signal handling); nothing the browser runs changed.
   - **2026-11-27, after U04h:** no e2e run. Only `rust/app/` (claudius-app's live transcript source); nothing the browser runs changed.
   - **2026-11-27, after U04b:** no e2e run. Only `rust/app/` (claudius-app's engine, live data, chat and store); nothing the browser runs changed.
   - **2026-11-27, after U11:** no e2e run. Only `rust/app/`: the native sessions browser, with a new TS golden recorder, `sessions-page-golden.mjs`. Nothing the browser runs changed.
