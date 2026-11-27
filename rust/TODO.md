@@ -3742,7 +3742,8 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
     - The live card now shows only while a switch is in flight.
     - Tests: `live_shell` checks the boot's transcript (and the card gone), the working row and the reply, and that only the bound session reads. Its mid-turn stream is now 40 ms a chunk: at 20 ms, under a loaded CPU, the test executor never parked while the transcript drew each chunk.
     - App gate: fmt and clippy -D warnings clean, cargo test --workspace 285 passed, 0 failed; live_shell 20/20; mutation 3/3 killed plus 1 equivalent (`None` → `None` counted as a change notifies nothing).
-  - [ ] **U04i** `route.rs` `inner_path` writes a Files URL as `?root=&path=`; the TS page writes `?path=&root=`. Only the order differs, and only for extra roots. deps: none
+  - [x] **U04i** `route.rs` `inner_path` writes a Files URL as `?root=&path=`; the TS page writes `?path=&root=`. Only the order differs, and only for extra roots. deps: none — done 2026-11-27 (main tree): `inner_path` writes `?path=` then `&root=` (files/page.tsx:163, :267), as claudius-files' own URLs already did; `route.rs`'s two order assertions updated.
+    - Gate: fmt and clippy -D warnings clean; cargo test --workspace 1008 passed, 0 failed, 3 ignored (68 binaries with the doc tests); mutation 1/1 killed (the old order fails `route`). Log `app-u04i.log`.
   - [ ] **U04c** Shell polish left from U04a: tab drag reorder (`reorder_tab` exists), the label-width drag (`set_label_width` exists), StatusDot pulse and AnimatedGlyph animation, the narrow-window workspaces drawer. (Unread badges: U15. `ScopeToggle`: U13/U14.) deps: U04a
 - [ ] **U05** Chat transcript (`components/chat`, 58 files / 19k lines):
   - virtualized message list, user/assistant bubbles, streaming text

@@ -54,7 +54,7 @@ pub enum WorkspacePage {
     Cost,
     Database,
     Docker,
-    /// `/files?root=<id>&path=<p>`.
+    /// `/files?path=<p>&root=<id>`.
     Files {
         root: Option<String>,
         path: Option<String>,
@@ -226,7 +226,9 @@ impl WorkspacePage {
                 .as_deref()
                 .map(|s| vec![("session", s)])
                 .unwrap_or_default(),
-            WorkspacePage::Files { root, path } => [("root", root), ("path", path)]
+            // `?path=` then `&root=`, as the page writes it (files/page.tsx:163,
+            // :267; `root` only off the primary root, which the page omits).
+            WorkspacePage::Files { root, path } => [("path", path), ("root", root)]
                 .into_iter()
                 .filter_map(|(k, v)| v.as_deref().map(|v| (k, v)))
                 .collect(),

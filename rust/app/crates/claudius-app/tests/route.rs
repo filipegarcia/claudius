@@ -154,7 +154,7 @@ fn urls_format_as_the_react_links() {
             path: Some("src/app".into()),
         })
         .path(),
-        format!("/{A}/files?root=r&path=src%2Fapp")
+        format!("/{A}/files?path=src%2Fapp&root=r")
     );
     assert_eq!(
         page(WorkspacePage::GitFile {
@@ -385,7 +385,7 @@ fn route_memory_keeps_the_pathname_only() {
         }
     );
     assert_eq!(p.inner_pathname(), "/files");
-    assert_eq!(p.inner_path(), "/files?root=r&path=x");
+    assert_eq!(p.inner_path(), "/files?path=x&root=r");
     assert_eq!(
         WorkspacePage::Chat {
             session: Some("s".into())
