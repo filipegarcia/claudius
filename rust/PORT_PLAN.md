@@ -453,6 +453,7 @@ misses methods its TS route exports (axum would answer 405 instead of falling th
   - Next 16.4.3's dev server stops the first start of every run with an agent-facing security-upgrade advisory (`next upgrade --agent=security`); a retry within its TTL proceeds. `/tmp/p/run-rust-specs.sh` retries once. The advisory was reported to the user and not acted on.
 - **Parity e2e, end of §1 (2026-10-26, I12)** (`rust/parity/e2e-status.md`): **373 passed, 1 failed, 7 skipped**. The failure is `notifications` › bus (S31); TS passes it. It passes on Rust since S31 (2026-11-14).
 - *History:* parity e2e baseline, 2026-10-25: 362 passed, 12 failed, 7 skipped. 11 failures were the unported `dev-broadcast` / `dev-reap` test routes. One is a client URL race that the faster backend exposes (TODO I11).
+  - **2026-11-27, after U08f:** no e2e run. Only `rust/app/` (the live prompt cards' `disableAutoMode` read); nothing the browser runs changed.
   - **2026-11-27, after U09a:** no e2e run. Only `rust/app/` (the new `claudius-status`, claudius-app's status target and the chat route) and a new TS golden recorder, `status-line-golden.mjs`; nothing the browser runs changed.
   - **2026-11-27, after U07e / U08c:** no e2e run. Only `rust/app/` (claudius-app's live composer and prompt targets, and the composer's and prompt cards' redraw guards); nothing the browser runs changed.
   - **2026-11-27, R14c:** no e2e run. The client-modules recorder follows the hook's new imports from main, with pure helper ports. Nothing the browser runs changed.
@@ -1179,7 +1180,6 @@ misses methods its TS route exports (axum would answer 405 instead of falling th
 **Native prompt cards (U08a)**
 - Gaps:
   - The AskUserQuestion HTML preview shows as text (U08b).
-  - Over a live chat the auto-mode tip ignores `disableAutoMode` (U08f).
   - No paste routing to the ask outside a field, no file drops (U08e).
 - Deliberate differences: the cards dim the chat pane, not the window. The rest is in TODO U08a.
 

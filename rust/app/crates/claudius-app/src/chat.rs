@@ -267,11 +267,22 @@ impl LiveChat {
         req: claudius_client::effect::FetchRequest,
     ) -> futures::channel::oneshot::Receiver<claudius_client::effect::FetchOutcome> {
         let (tx, rx) = futures::channel::oneshot::channel();
-        let transport = self.inner.transport.clone();
-        self.inner.rt.spawn(async move {
-            let _ = tx.send(transport.fetch_outcome(&req).await);
+        self.fetch_then(req, move |outcome| {
+            let _ = tx.send(outcome);
         });
         rx
+    }
+
+    /// [`Self::fetch`], handing the outcome to `f` on the chat's runtime.
+    pub fn fetch_then(
+        &self,
+        req: claudius_client::effect::FetchRequest,
+        f: impl FnOnce(claudius_client::effect::FetchOutcome) + Send + 'static,
+    ) {
+        let transport = self.inner.transport.clone();
+        self.inner
+            .rt
+            .spawn(async move { f(transport.fetch_outcome(&req).await) });
     }
 
     /// Runs `f` on the machine (an action, `switch_session`, ...) after

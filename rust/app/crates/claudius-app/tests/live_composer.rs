@@ -176,6 +176,9 @@ fn the_composer_drives_the_live_chat() {
         let st = shell.read(cx).live_chat().unwrap().state();
         assert_eq!(st.pending_permissions.len(), 1);
     });
+    // No `disableAutoMode` in the user settings: a Bash call's card offers
+    // Auto mode (U08f; `live_auto_mode` has the setting on).
+    assert!(cx.debug_bounds("permission-auto-mode-tip").is_some());
     click(cx, "permission-allow-once");
     wait(cx, "the turn after Allow", |cx| {
         let st = chat(&shell, cx)?;

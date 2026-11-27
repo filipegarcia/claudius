@@ -28,6 +28,7 @@
 //! every effect the actions return.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use claudius_client::effect::{Effect, FetchRequest};
@@ -136,7 +137,7 @@ impl PromptState {
 pub struct FixturePrompts {
     inner: Mutex<Inner>,
     subscribers: Mutex<Vec<UnboundedSender<()>>>,
-    auto_mode_disabled: bool,
+    auto_mode_disabled: AtomicBool,
     session_label: Option<String>,
 }
 
@@ -168,7 +169,7 @@ impl FixturePrompts {
                 effects: Vec::new(),
             }),
             subscribers: Mutex::new(Vec::new()),
-            auto_mode_disabled,
+            auto_mode_disabled: AtomicBool::new(auto_mode_disabled),
             session_label: session_label.map(str::to_owned),
         })
     }
@@ -180,6 +181,13 @@ impl FixturePrompts {
             let Inner { state, env, .. } = &mut *i;
             let _ = state.on_message(&ev.to_string(), env);
         }
+        self.notify();
+    }
+
+    /// The `disableAutoMode` setting's answer landing (the hook's state
+    /// changing under a shown card).
+    pub fn set_auto_mode_disabled(&self, disabled: bool) {
+        self.auto_mode_disabled.store(disabled, Ordering::Relaxed);
         self.notify();
     }
 
@@ -250,7 +258,7 @@ impl PromptTarget for FixturePrompts {
     }
 
     fn auto_mode_disabled(&self) -> bool {
-        self.auto_mode_disabled
+        self.auto_mode_disabled.load(Ordering::Relaxed)
     }
 
     fn session_label(&self) -> Option<String> {

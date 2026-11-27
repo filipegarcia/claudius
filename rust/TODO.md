@@ -3823,7 +3823,21 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
     - `claudius-app/src/targets.rs` `LivePromptSource`: a `PromptTarget` per tab that reads and answers the mounted chat while it is bound to the tab's session, and reads a state with nothing pending otherwise (ChatSurface shows only the bound session's prompts). Its change feed is the live transcripts', filtered to the session. `session_label` is `tabLabelFor` over the chat's merged list and live title; `own_origin` the page origin.
     - The shell makes it with the live transcripts, as the composer's.
     - Tested in `tests/live_composer.rs`: the fake CLI's `can_use_tool` shows the permission card over the live chat, and Allow answers it.
-  - [ ] **U08f** The permission card's `disableAutoMode` over a live chat (`useDisableAutoMode`: `GET /api/settings?scope=user&cwd=`, `claudius_core::auto_mode_disabled`); `LivePrompts::auto_mode_disabled` is `false` today. deps: U08c
+  - [x] **U08f** The permission card's `disableAutoMode` over a live chat (`useDisableAutoMode`: `GET /api/settings?scope=user&cwd=`, `claudius_core::auto_mode_disabled`); `LivePrompts::auto_mode_disabled` is `false` today. deps: U08c — done 2026-11-27 (the loop, main tree):
+    - `claudius-app/src/targets.rs`: the live prompt source asks for the user settings when the bound chat's cwd changes (the hook's effect on `[cwd]`). It asks on the chat's transport (the new `LiveChat::fetch_then`), and the request URL is `claudius_status::picker::settings_url`.
+      - As the hook's state, an answer stands until the next one: no cwd, a failed request, a non-2xx, a body that isn't JSON, or a `null` one (whose `.settings` throws into the `.catch`) keep it.
+      - A later cwd's answer wins.
+      - The prompts' change feed also wakes when an answer lands.
+    - `claudius-prompts`:
+      - The cards' listener compares the `disableAutoMode` answer as well as `PromptState`, so an answer landing under a shown card re-renders it.
+      - `FixturePrompts::set_auto_mode_disabled` lets a test land one.
+    - Tests:
+      - `tests/live_auto_mode.rs`: with `disableAutoMode` in the temporary HOME's user settings, a Bash call's card shows without the tip and still answers.
+      - `live_composer`: without the setting, the tip shows.
+      - `prompts_view`: the tip follows an answer under the card.
+      - Unit tests: the reply rules.
+    - The status line reads the same setting with its own request (U09a), and so does the TS: one hook for the status line and the card in ChatSurface, plus `useMaxEffortLevel`'s.
+    - Gate: GATE
   - [ ] **U08d** The transcript's "Reopen" pill on ask rows calls `ChatPrompts::reopen_ask` (`true`: scroll to the inline ask). deps: U06, U08a
   - [ ] **U08e** The composer sets `PromptOverlays::set_field_probe` (the mid-draft focus guard, the ask's in-field check); a paste outside any field goes to `AskView::paste`; file drops. deps: U07a, U08a
 - [~] **U09** Status line + session card:

@@ -302,6 +302,22 @@ fn the_auto_mode_tip_hides_in_auto_mode_and_when_disabled() {
 }
 
 #[test]
+fn the_auto_mode_tip_follows_a_settings_answer_under_the_card() {
+    // `useDisableAutoMode` answers after the card is up (U08f): the card
+    // re-renders with the new `autoModeAvailable`.
+    let t = permission_fixture(&[]);
+    let mut app = app();
+    let (_, cx) = open(&mut app, t.clone());
+    assert!(drawn(cx, "permission-auto-mode-tip"));
+    t.set_auto_mode_disabled(true);
+    settle(cx);
+    assert!(!drawn(cx, "permission-auto-mode-tip"));
+    t.set_auto_mode_disabled(false);
+    settle(cx);
+    assert!(drawn(cx, "permission-auto-mode-tip"));
+}
+
+#[test]
 fn escape_denies_once_armed_but_not_a_held_key() {
     let t = permission_fixture(&[samples::permission_edit("p2")]);
     let mut app = app();

@@ -427,13 +427,18 @@ fn the_shell_runs_over_the_in_process_engine() {
         (tabs(s)[0].1 == TabStatus::Error).then_some(())
     });
 
-    // A remembered page brings the first workspace back where it was.
+    // A remembered page brings the first workspace back where it was: its
+    // chat (the remounted chat may already have written its `?session=`
+    // back, so the session is whichever it binds).
     click(cx, "ws-0");
     cx.read(|cx| {
-        assert_eq!(
-            shell.read(cx).state().route(),
-            &Route::chat(&w1.id),
-            "the chat was the last page there"
+        let route = shell.read(cx).state().route();
+        assert!(
+            matches!(
+                route,
+                Route::Workspace { id, page: WorkspacePage::Chat { .. } } if *id == w1.id
+            ),
+            "the chat was the last page there: {route:?}"
         );
     });
 
