@@ -6899,7 +6899,7 @@
        "text": "ta\ud800b"
       }
      ],
-     "result": "{\"uuid\":\"u0a\\ud800b\",\"sessionId\":\"sa\\ud800b\",\"position\":0,\"text\":\"ta\\ud800b\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u0a\\ud800b\",\"sessionId\":\"sa\\ud800b\",\"position\":0,\"text\":\"ta\\ud800b\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6911,7 +6911,7 @@
        "text": "t\udc00"
       }
      ],
-     "result": "{\"uuid\":\"u1\\udc00\",\"sessionId\":\"s\\udc00\",\"position\":0,\"text\":\"t\\udc00\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u1\\udc00\",\"sessionId\":\"s\\udc00\",\"position\":0,\"text\":\"t\\udc00\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6923,7 +6923,7 @@
        "text": "t\udfff\ud800"
       }
      ],
-     "result": "{\"uuid\":\"u2\\udfff\\ud800\",\"sessionId\":\"s\\udfff\\ud800\",\"position\":0,\"text\":\"t\\udfff\\ud800\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u2\\udfff\\ud800\",\"sessionId\":\"s\\udfff\\ud800\",\"position\":0,\"text\":\"t\\udfff\\ud800\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6935,7 +6935,7 @@
        "text": "tz\udbff"
       }
      ],
-     "result": "{\"uuid\":\"u3z\\udbff\",\"sessionId\":\"sz\\udbff\",\"position\":0,\"text\":\"tz\\udbff\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u3z\\udbff\",\"sessionId\":\"sz\\udbff\",\"position\":0,\"text\":\"tz\\udbff\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6947,7 +6947,7 @@
        "text": "tx😀y"
       }
      ],
-     "result": "{\"uuid\":\"u4x😀y\",\"sessionId\":\"sx😀y\",\"position\":0,\"text\":\"tx😀y\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u4x😀y\",\"sessionId\":\"sx😀y\",\"position\":0,\"text\":\"tx😀y\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6959,7 +6959,7 @@
        "text": "tn\u0000l"
       }
      ],
-     "result": "{\"uuid\":\"u5n\\u0000l\",\"sessionId\":\"sn\\u0000l\",\"position\":0,\"text\":\"tn\\u0000l\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u5n\\u0000l\",\"sessionId\":\"sn\\u0000l\",\"position\":0,\"text\":\"tn\\u0000l\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6971,7 +6971,7 @@
        "text": "t�"
       }
      ],
-     "result": "{\"uuid\":\"u6�\",\"sessionId\":\"s�\",\"position\":0,\"text\":\"t�\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u6�\",\"sessionId\":\"s�\",\"position\":0,\"text\":\"t�\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6983,7 +6983,7 @@
        "text": "tplain"
       }
      ],
-     "result": "{\"uuid\":\"u7plain\",\"sessionId\":\"splain\",\"position\":0,\"text\":\"tplain\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u7plain\",\"sessionId\":\"splain\",\"position\":0,\"text\":\"tplain\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -6995,7 +6995,7 @@
        "text": "t"
       }
      ],
-     "result": "{\"uuid\":\"u8\",\"sessionId\":\"s\",\"position\":0,\"text\":\"t\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u8\",\"sessionId\":\"s\",\"position\":0,\"text\":\"t\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -7007,7 +7007,7 @@
        "text": "second"
       }
      ],
-     "result": "{\"uuid\":\"va\\ud800b\",\"sessionId\":\"sa\\ud800b\",\"position\":1,\"text\":\"second\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"va\\ud800b\",\"sessionId\":\"sa\\ud800b\",\"position\":1,\"text\":\"second\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "updateByUuid",
@@ -7040,7 +7040,7 @@
       "s\udfff\ud800",
       "u2\udfff\ud800"
      ],
-     "result": "{\"uuid\":\"u2������\",\"sessionId\":\"s������\",\"position\":0,\"text\":\"t������\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u2������\",\"sessionId\":\"s������\",\"position\":0,\"text\":\"t������\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popByUuid",
@@ -7049,7 +7049,7 @@
       "s�",
       "u6�"
      ],
-     "result": "{\"uuid\":\"u6�\",\"sessionId\":\"s�\",\"position\":0,\"text\":\"t�\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u6�\",\"sessionId\":\"s�\",\"position\":0,\"text\":\"t�\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "removeByUuid",
@@ -7085,7 +7085,7 @@
       "/q/w",
       "sa\ud800b"
      ],
-     "result": "{\"uuid\":\"u0a���b\",\"sessionId\":\"sa���b\",\"position\":0,\"text\":\"ta���b\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u0a���b\",\"sessionId\":\"sa���b\",\"position\":0,\"text\":\"ta���b\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popHead",
@@ -7093,7 +7093,7 @@
       "/q/w",
       "sn\u0000l"
      ],
-     "result": "{\"uuid\":\"u5n\\u0000l\",\"sessionId\":\"sn\\u0000l\",\"position\":0,\"text\":\"tn\\u0000l\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"u5n\\u0000l\",\"sessionId\":\"sn\\u0000l\",\"position\":0,\"text\":\"tn\\u0000l\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "updateByUuid",
@@ -7144,7 +7144,7 @@
        "text": "c"
       }
      ],
-     "result": "{\"uuid\":\"c1\",\"sessionId\":\"c\\udfff\\ud800\",\"position\":0,\"text\":\"c\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"c1\",\"sessionId\":\"c\\udfff\\ud800\",\"position\":0,\"text\":\"c\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -7156,7 +7156,7 @@
        "text": "c"
       }
      ],
-     "result": "{\"uuid\":\"c2\",\"sessionId\":\"c\\udfff\\ud800\",\"position\":1,\"text\":\"c\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"c2\",\"sessionId\":\"c\\udfff\\ud800\",\"position\":1,\"text\":\"c\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "clearAll",
@@ -7165,6 +7165,172 @@
       "c\udfff\ud800"
      ],
      "result": "null"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/q/w",
+      {
+       "sessionId": "ha\ud800b",
+       "uuid": "h1",
+       "text": "h"
+      }
+     ],
+     "result": "{\"uuid\":\"h1\",\"sessionId\":\"ha\\ud800b\",\"position\":0,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/q/w",
+      {
+       "sessionId": "ha\ud800b",
+       "uuid": "h2",
+       "text": "h"
+      }
+     ],
+     "result": "{\"uuid\":\"h2\",\"sessionId\":\"ha\\ud800b\",\"position\":1,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
+    },
+    {
+     "op": "holdAll",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "2"
+    },
+    {
+     "op": "holdAll",
+     "args": [
+      "/q/w",
+      "nobody"
+     ],
+     "result": "0"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/q/w",
+      {
+       "sessionId": "ha\ud800b",
+       "uuid": "h3",
+       "text": "h"
+      }
+     ],
+     "result": "{\"uuid\":\"h3\",\"sessionId\":\"ha\\ud800b\",\"position\":2,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/q/w",
+      "ha\ud800b",
+      {
+       "unlessHeld": true
+      }
+     ],
+     "result": "null"
+    },
+    {
+     "op": "listQueue",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "[{\"uuid\":\"h1\",\"sessionId\":\"ha���b\",\"position\":0,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":true},{\"uuid\":\"h2\",\"sessionId\":\"ha���b\",\"position\":1,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":true},{\"uuid\":\"h3\",\"sessionId\":\"ha���b\",\"position\":2,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
+    },
+    {
+     "op": "releaseHolds",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "2"
+    },
+    {
+     "op": "releaseHolds",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "0"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/q/w",
+      "ha\ud800b",
+      {
+       "unlessHeld": true
+      }
+     ],
+     "result": "{\"uuid\":\"h1\",\"sessionId\":\"ha���b\",\"position\":0,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
+    },
+    {
+     "op": "holdAll",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "2"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/q/w",
+      "ha\ud800b",
+      {
+       "unlessHeld": 0
+      }
+     ],
+     "result": "{\"uuid\":\"h2\",\"sessionId\":\"ha���b\",\"position\":1,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":true}"
+    },
+    {
+     "op": "popHead",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "{\"uuid\":\"h3\",\"sessionId\":\"ha���b\",\"position\":2,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":true}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/q/w",
+      {
+       "sessionId": "ha\ud800b",
+       "uuid": "h4",
+       "text": "h"
+      }
+     ],
+     "result": "{\"uuid\":\"h4\",\"sessionId\":\"ha\\ud800b\",\"position\":0,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
+    },
+    {
+     "op": "enqueueTail",
+     "args": [
+      "/q/w",
+      {
+       "sessionId": "ha\ud800b",
+       "uuid": "h5",
+       "text": "h"
+      }
+     ],
+     "result": "{\"uuid\":\"h5\",\"sessionId\":\"ha\\ud800b\",\"position\":1,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
+    },
+    {
+     "op": "holdAll",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "2"
+    },
+    {
+     "op": "popByUuid",
+     "args": [
+      "/q/w",
+      "ha\ud800b",
+      "h4"
+     ],
+     "result": "{\"uuid\":\"h4\",\"sessionId\":\"ha���b\",\"position\":0,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":true}"
     }
    ],
    "reads": [
@@ -7174,7 +7340,7 @@
       "/q/w",
       "sa\ud800b"
      ],
-     "result": "[{\"uuid\":\"u0a���b\",\"sessionId\":\"sa���b\",\"position\":0,\"text\":\"ta���b\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"va���b\",\"sessionId\":\"sa���b\",\"position\":1,\"text\":\"second\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":\"u0a���b\",\"sessionId\":\"sa���b\",\"position\":0,\"text\":\"ta���b\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"va���b\",\"sessionId\":\"sa���b\",\"position\":1,\"text\":\"second\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listQueue",
@@ -7182,7 +7348,7 @@
       "/q/w",
       "s\udc00"
      ],
-     "result": "[{\"uuid\":\"u1���\",\"sessionId\":\"s���\",\"position\":0,\"text\":\"img���\",\"images\":[{\"data\":\"QQ==\",\"mediaType\":\"image/png\"},{\"data\":\"QQ==\",\"mediaType\":\"image/png\"}],\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":\"u1���\",\"sessionId\":\"s���\",\"position\":0,\"text\":\"img���\",\"images\":[{\"data\":\"QQ==\",\"mediaType\":\"image/png\"},{\"data\":\"QQ==\",\"mediaType\":\"image/png\"}],\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listQueue",
@@ -7190,7 +7356,7 @@
       "/q/w",
       "s\udfff\ud800"
      ],
-     "result": "[{\"uuid\":\"u2������\",\"sessionId\":\"s������\",\"position\":0,\"text\":\"t������\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":\"u2������\",\"sessionId\":\"s������\",\"position\":0,\"text\":\"t������\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listQueue",
@@ -7230,7 +7396,7 @@
       "/q/w",
       "splain"
      ],
-     "result": "[{\"uuid\":\"u7plain\",\"sessionId\":\"splain\",\"position\":0,\"text\":\"tplain\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":\"u7plain\",\"sessionId\":\"splain\",\"position\":0,\"text\":\"tplain\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listQueue",
@@ -7238,7 +7404,7 @@
       "/q/w",
       "s"
      ],
-     "result": "[{\"uuid\":\"u8\",\"sessionId\":\"s\",\"position\":0,\"text\":\"t\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":\"u8\",\"sessionId\":\"s\",\"position\":0,\"text\":\"t\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listQueue",
@@ -7247,6 +7413,14 @@
       "sa���b"
      ],
      "result": "[]"
+    },
+    {
+     "op": "listQueue",
+     "args": [
+      "/q/w",
+      "ha\ud800b"
+     ],
+     "result": "[{\"uuid\":\"h5\",\"sessionId\":\"ha���b\",\"position\":1,\"text\":\"h\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":true}]"
     }
    ],
    "dump": {
@@ -7260,7 +7434,8 @@
       "slash",
       "from_suggestion",
       "from_goal",
-      "created_at_ms"
+      "created_at_ms",
+      "held_by_stop"
      ],
      "rows": [
       [
@@ -7299,6 +7474,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -7337,6 +7516,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -7375,6 +7558,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -7413,6 +7600,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -7451,6 +7642,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -7489,6 +7684,52 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
+       ]
+      ],
+      [
+       [
+        "text",
+        "6835"
+       ],
+       [
+        "text",
+        "6861EDA08062"
+       ],
+       [
+        "integer",
+        "31"
+       ],
+       [
+        "text",
+        "68"
+       ],
+       [
+        "null",
+        ""
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "30"
+       ],
+       [
+        "integer",
+        "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "31"
        ]
       ]
      ]
@@ -12480,7 +12721,7 @@
       "/f/w",
       "sf"
      ],
-     "result": "[{\"uuid\":\"u���\",\"sessionId\":\"sf\",\"position\":0,\"text\":\"t�\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":7},{\"uuid\":\"u2\",\"sessionId\":\"sf\",\"position\":1,\"text\":\"�(\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":8}]"
+     "result": "[{\"uuid\":\"u���\",\"sessionId\":\"sf\",\"position\":0,\"text\":\"t�\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":7,\"heldByStop\":false},{\"uuid\":\"u2\",\"sessionId\":\"sf\",\"position\":1,\"text\":\"�(\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":8,\"heldByStop\":false}]"
     },
     {
      "op": "getPromptDraft",
@@ -12637,7 +12878,8 @@
       "slash",
       "from_suggestion",
       "from_goal",
-      "created_at_ms"
+      "created_at_ms",
+      "held_by_stop"
      ],
      "rows": [
       [
@@ -12676,6 +12918,10 @@
        [
         "integer",
         "37"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -12714,6 +12960,10 @@
        [
         "integer",
         "38"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ]
      ]
@@ -12987,7 +13237,7 @@
        "text": "t0"
       }
      ],
-     "result": "{\"uuid\":7,\"sessionId\":\"su\",\"position\":0,\"text\":\"t0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":7,\"sessionId\":\"su\",\"position\":0,\"text\":\"t0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -12999,7 +13249,7 @@
        "text": 7
       }
      ],
-     "result": "{\"uuid\":\"t0\",\"sessionId\":\"st\",\"position\":0,\"text\":7,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t0\",\"sessionId\":\"st\",\"position\":0,\"text\":7,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -13053,7 +13303,7 @@
        "text": "t1"
       }
      ],
-     "result": "{\"uuid\":1.5,\"sessionId\":\"su\",\"position\":1,\"text\":\"t1\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":1.5,\"sessionId\":\"su\",\"position\":1,\"text\":\"t1\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -13065,7 +13315,7 @@
        "text": 1.5
       }
      ],
-     "result": "{\"uuid\":\"t1\",\"sessionId\":\"st\",\"position\":1,\"text\":1.5,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t1\",\"sessionId\":\"st\",\"position\":1,\"text\":1.5,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -13119,7 +13369,7 @@
        "text": "t2"
       }
      ],
-     "result": "{\"uuid\":1e+21,\"sessionId\":\"su\",\"position\":2,\"text\":\"t2\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":1e+21,\"sessionId\":\"su\",\"position\":2,\"text\":\"t2\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -13131,7 +13381,7 @@
        "text": 1e+21
       }
      ],
-     "result": "{\"uuid\":\"t2\",\"sessionId\":\"st\",\"position\":2,\"text\":1e+21,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t2\",\"sessionId\":\"st\",\"position\":2,\"text\":1e+21,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -13185,7 +13435,7 @@
        "text": "t3"
       }
      ],
-     "result": "{\"uuid\":0,\"sessionId\":\"su\",\"position\":3,\"text\":\"t3\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":0,\"sessionId\":\"su\",\"position\":3,\"text\":\"t3\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -13197,7 +13447,7 @@
        "text": 0
       }
      ],
-     "result": "{\"uuid\":\"t3\",\"sessionId\":\"st\",\"position\":3,\"text\":0,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t3\",\"sessionId\":\"st\",\"position\":3,\"text\":0,\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -13251,7 +13501,7 @@
        "text": "t4"
       }
      ],
-     "result": "{\"uuid\":\"\",\"sessionId\":\"su\",\"position\":4,\"text\":\"t4\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"\",\"sessionId\":\"su\",\"position\":4,\"text\":\"t4\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -13263,7 +13513,7 @@
        "text": ""
       }
      ],
-     "result": "{\"uuid\":\"t4\",\"sessionId\":\"st\",\"position\":4,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t4\",\"sessionId\":\"st\",\"position\":4,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -13449,7 +13699,7 @@
        "text": "t7"
       }
      ],
-     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -13461,7 +13711,7 @@
        "text": null
       }
      ],
-     "result": "{\"uuid\":\"t7\",\"sessionId\":\"st\",\"position\":5,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t7\",\"sessionId\":\"st\",\"position\":5,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -13725,7 +13975,7 @@
        "text": "t11"
       }
      ],
-     "result": "{\"uuid\":[\"a\"],\"sessionId\":\"su\",\"position\":6,\"text\":\"t11\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":[\"a\"],\"sessionId\":\"su\",\"position\":6,\"text\":\"t11\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -13739,7 +13989,7 @@
        ]
       }
      ],
-     "result": "{\"uuid\":\"t11\",\"sessionId\":\"st\",\"position\":6,\"text\":[\"a\"],\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t11\",\"sessionId\":\"st\",\"position\":6,\"text\":[\"a\"],\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -14044,7 +14294,7 @@
        "text": "t15"
       }
      ],
-     "result": "{\"uuid\":[1],\"sessionId\":\"su\",\"position\":7,\"text\":\"t15\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":[1],\"sessionId\":\"su\",\"position\":7,\"text\":\"t15\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -14058,7 +14308,7 @@
        ]
       }
      ],
-     "result": "{\"uuid\":\"t15\",\"sessionId\":\"st\",\"position\":7,\"text\":[1],\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"t15\",\"sessionId\":\"st\",\"position\":7,\"text\":[1],\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "recordGoalMessage",
@@ -14120,7 +14370,7 @@
        "text": "t16"
       }
      ],
-     "result": "{\"uuid\":[null],\"sessionId\":\"su\",\"position\":8,\"text\":\"t16\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":[null],\"sessionId\":\"su\",\"position\":8,\"text\":\"t16\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -14290,7 +14540,7 @@
       "su",
       7
      ],
-     "result": "{\"uuid\":\"7.0\",\"sessionId\":\"su\",\"position\":0,\"text\":\"t0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"7.0\",\"sessionId\":\"su\",\"position\":0,\"text\":\"t0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popByUuid",
@@ -14308,7 +14558,7 @@
       "su",
       "1.5"
      ],
-     "result": "{\"uuid\":\"1.5\",\"sessionId\":\"su\",\"position\":1,\"text\":\"t1\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"1.5\",\"sessionId\":\"su\",\"position\":1,\"text\":\"t1\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popByUuid",
@@ -14317,7 +14567,7 @@
       "su",
       1e+21
      ],
-     "result": "{\"uuid\":\"1.0e+21\",\"sessionId\":\"su\",\"position\":2,\"text\":\"t2\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"1.0e+21\",\"sessionId\":\"su\",\"position\":2,\"text\":\"t2\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popByUuid",
@@ -14328,7 +14578,7 @@
        "a"
       ]
      ],
-     "result": "{\"uuid\":\"a\",\"sessionId\":\"su\",\"position\":6,\"text\":\"t11\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"a\",\"sessionId\":\"su\",\"position\":6,\"text\":\"t11\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popByUuid",
@@ -14339,7 +14589,7 @@
        1
       ]
      ],
-     "result": "{\"uuid\":\"1.0\",\"sessionId\":\"su\",\"position\":7,\"text\":\"t15\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"1.0\",\"sessionId\":\"su\",\"position\":7,\"text\":\"t15\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popByUuid",
@@ -14348,7 +14598,7 @@
       "su",
       0
      ],
-     "result": "{\"uuid\":\"0.0\",\"sessionId\":\"su\",\"position\":3,\"text\":\"t3\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"0.0\",\"sessionId\":\"su\",\"position\":3,\"text\":\"t3\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popByUuid",
@@ -14429,7 +14679,7 @@
       "/o/w",
       "su"
      ],
-     "result": "{\"uuid\":\"\",\"sessionId\":\"su\",\"position\":4,\"text\":\"t4\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"\",\"sessionId\":\"su\",\"position\":4,\"text\":\"t4\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "enqueueTail",
@@ -14441,7 +14691,7 @@
        "text": "kept"
       }
      ],
-     "result": "{\"uuid\":\"\",\"sessionId\":\"sx\",\"position\":0,\"text\":\"kept\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":\"\",\"sessionId\":\"sx\",\"position\":0,\"text\":\"kept\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popHead",
@@ -14449,7 +14699,7 @@
       "/o/w",
       "su"
      ],
-     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popHead",
@@ -14457,7 +14707,7 @@
       "/o/w",
       "su"
      ],
-     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     },
     {
      "op": "popHead",
@@ -14465,7 +14715,7 @@
       "/o/w",
       "su"
      ],
-     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}"
+     "result": "{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}"
     }
    ],
    "reads": [
@@ -14475,7 +14725,7 @@
       "/o/w",
       "su"
      ],
-     "result": "[{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":null,\"sessionId\":\"su\",\"position\":8,\"text\":\"t16\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":null,\"sessionId\":\"su\",\"position\":5,\"text\":\"t7\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":null,\"sessionId\":\"su\",\"position\":8,\"text\":\"t16\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listQueue",
@@ -14483,7 +14733,7 @@
       "/o/w",
       "st"
      ],
-     "result": "[{\"uuid\":\"t0\",\"sessionId\":\"st\",\"position\":0,\"text\":\"7.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t1\",\"sessionId\":\"st\",\"position\":1,\"text\":\"1.5\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t2\",\"sessionId\":\"st\",\"position\":2,\"text\":\"1.0e+21\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t3\",\"sessionId\":\"st\",\"position\":3,\"text\":\"0.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t4\",\"sessionId\":\"st\",\"position\":4,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t7\",\"sessionId\":\"st\",\"position\":5,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t11\",\"sessionId\":\"st\",\"position\":6,\"text\":\"a\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000},{\"uuid\":\"t15\",\"sessionId\":\"st\",\"position\":7,\"text\":\"1.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":\"t0\",\"sessionId\":\"st\",\"position\":0,\"text\":\"7.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"t1\",\"sessionId\":\"st\",\"position\":1,\"text\":\"1.5\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"t2\",\"sessionId\":\"st\",\"position\":2,\"text\":\"1.0e+21\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"t3\",\"sessionId\":\"st\",\"position\":3,\"text\":\"0.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"t4\",\"sessionId\":\"st\",\"position\":4,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"t7\",\"sessionId\":\"st\",\"position\":5,\"text\":\"\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"t11\",\"sessionId\":\"st\",\"position\":6,\"text\":\"a\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false},{\"uuid\":\"t15\",\"sessionId\":\"st\",\"position\":7,\"text\":\"1.0\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listQueue",
@@ -14491,7 +14741,7 @@
       "/o/w",
       "sx"
      ],
-     "result": "[{\"uuid\":\"\",\"sessionId\":\"sx\",\"position\":0,\"text\":\"kept\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000}]"
+     "result": "[{\"uuid\":\"\",\"sessionId\":\"sx\",\"position\":0,\"text\":\"kept\",\"images\":null,\"slash\":false,\"fromSuggestion\":false,\"fromGoal\":false,\"createdAtMs\":1700000000000,\"heldByStop\":false}]"
     },
     {
      "op": "listGoalMessageUuids",
@@ -14521,7 +14771,8 @@
       "slash",
       "from_suggestion",
       "from_goal",
-      "created_at_ms"
+      "created_at_ms",
+      "held_by_stop"
      ],
      "rows": [
       [
@@ -14560,6 +14811,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14598,6 +14853,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14636,6 +14895,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14674,6 +14937,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14712,6 +14979,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14750,6 +15021,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14788,6 +15063,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14826,6 +15105,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14864,6 +15147,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14902,6 +15189,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ],
       [
@@ -14940,6 +15231,10 @@
        [
         "integer",
         "31373030303030303030303030"
+       ],
+       [
+        "integer",
+        "30"
        ]
       ]
      ]

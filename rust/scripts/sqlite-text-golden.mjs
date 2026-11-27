@@ -244,7 +244,9 @@ const OPS = {
   listQueue: (cwd, sid) => queue.listQueue(cwd, sid),
   updateByUuid: (cwd, sid, uuid, patch) => queue.updateByUuid(cwd, sid, uuid, patch),
   popByUuid: (cwd, sid, uuid) => queue.popByUuid(cwd, sid, uuid),
-  popHead: (cwd, sid) => queue.popHead(cwd, sid),
+  popHead: (cwd, sid, opts) => queue.popHead(cwd, sid, opts),
+  holdAll: (cwd, sid) => queue.holdAll(cwd, sid),
+  releaseHolds: (cwd, sid) => queue.releaseHolds(cwd, sid),
   removeByUuid: (cwd, sid, uuid) => queue.removeByUuid(cwd, sid, uuid),
   clearAll: (cwd, sid) => queue.clearAll(cwd, sid),
   moveByUuid: (cwd, sid, uuid, dir) => queue.moveByUuid(cwd, sid, uuid, dir),
@@ -439,9 +441,31 @@ await scenario("queue", "/q/w", ["queued_messages"], async (run, toReads) => {
   await run("enqueueTail", cwd, { sessionId: `c${S[2]}`, uuid: "c1", text: "c" });
   await run("enqueueTail", cwd, { sessionId: `c${S[2]}`, uuid: "c2", text: "c" });
   await run("clearAll", cwd, `c${S[2]}`);
+  // Migration 026 (CC 2.1.316): Stop holds, the start() drain that leaves a
+  // held head, a fresh row queued behind held ones, release, and the pops
+  // that still take a held row. One held row stays for the table dump.
+  const h = `h${S[0]}`;
+  await run("enqueueTail", cwd, { sessionId: h, uuid: "h1", text: "h" });
+  await run("enqueueTail", cwd, { sessionId: h, uuid: "h2", text: "h" });
+  await run("holdAll", cwd, h);
+  await run("holdAll", cwd, "nobody");
+  await run("enqueueTail", cwd, { sessionId: h, uuid: "h3", text: "h" });
+  await run("popHead", cwd, h, { unlessHeld: true });
+  await run("listQueue", cwd, h);
+  await run("releaseHolds", cwd, h);
+  await run("releaseHolds", cwd, h);
+  await run("popHead", cwd, h, { unlessHeld: true });
+  await run("holdAll", cwd, h);
+  await run("popHead", cwd, h, { unlessHeld: 0 });
+  await run("popHead", cwd, h);
+  await run("enqueueTail", cwd, { sessionId: h, uuid: "h4", text: "h" });
+  await run("enqueueTail", cwd, { sessionId: h, uuid: "h5", text: "h" });
+  await run("holdAll", cwd, h);
+  await run("popByUuid", cwd, h, "h4");
   await toReads();
   for (const s of S) await run("listQueue", cwd, `s${s}`);
   await run("listQueue", cwd, rt(`s${S[0]}`));
+  await run("listQueue", cwd, h);
 });
 
 await scenario("assets", "/a/w", ["assets", "asset_uses"], async (run, toReads) => {

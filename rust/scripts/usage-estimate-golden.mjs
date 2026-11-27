@@ -137,6 +137,11 @@ const MODELS = [
   "claude-sonnet-5", "claude-sonnet-5-1", "claude-sonnet-4-5", "claude-3-7-sonnet", "gpt-4o", "<synthetic>",
   "anthropic/claude-opus-5-5", "opus-5-5-haiku", "haiku-sonnet", "sonnet-opus", "fable-opus", "OPUS-5-5",
   "claude-opus-5-5[1m]", "  claude-haiku-5-5  ", "claude-opus\u20115-5", "\u0130opus",
+  // CC 2.1.314 (dotted gateway ids) and 2.1.321 (Fable 5.2 the default).
+  "claude-opus-5.5", "CLAUDE-OPUS-5.5", "us.anthropic.claude-opus-5.5-v1:0", "openrouter/anthropic/claude-sonnet-5.5",
+  "claude-opus-5.5.1", "claude-haiku-5.5", "haiku-5.5", "claude-2.1", "claude-instant-1.2", "xopus-5.5",
+  "claude-\u017fonnet-5.5", "claude-opus-\u0665.5", "claude-fable-5-2", "claude-fable-5.2", "claude-fable-5-2-20260101",
+  "claude-fable-5-20", "claude-fable-5-2x", "fable-5-21-fable-5-2", "claude-fable-5-1-fable-5-2", "mythos-5.5",
 ];
 const prices = MODELS.map((model) => ({ model: model ?? null, missing: model === undefined, pricing: priceFor(model) }));
 

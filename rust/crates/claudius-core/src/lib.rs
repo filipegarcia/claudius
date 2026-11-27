@@ -77,6 +77,7 @@ pub mod managed_settings;
 pub mod mcp_config;
 pub mod mcp_delta;
 pub mod mcp_notices;
+pub mod model_id;
 pub mod model_pricing_override;
 pub mod models;
 pub mod node_fs;

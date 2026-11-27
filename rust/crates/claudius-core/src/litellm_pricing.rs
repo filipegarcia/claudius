@@ -35,6 +35,7 @@ use indexmap::IndexMap;
 use serde_json::{Map, Value, json};
 
 use crate::fetch::{Fetch, Request};
+use crate::model_id::normalize_dotted_model_version;
 use crate::{db_agents, js_date, js_num, js_string, node_fs, node_path};
 
 /// `LITELLM_URL`.
@@ -318,7 +319,16 @@ fn lookup<'a>(table: &'a PricingTable, key: &str) -> Option<PriceMatch<'a>> {
 /// `priceForModel(model, table)`, as the entry it picks.
 pub fn match_model<'a>(model: Option<&str>, table: &'a PricingTable) -> Option<PriceMatch<'a>> {
     let model = model.filter(|m| !m.is_empty())?;
-    let m = js::trim(model);
+    let raw = js::trim(model);
+    if let Some(hit) = lookup(table, raw) {
+        return Some(hit);
+    }
+    // CC 2.1.314: after the raw exact match (the table has dotted aggregator
+    // keys such as `openrouter/anthropic/claude-opus-4.6`), the dashed
+    // spelling, so `claude-opus-5.5` finds `claude-opus-5-5` rather than the
+    // longest dashed key it contains (`claude-opus-5`).
+    let dashed = normalize_dotted_model_version(raw);
+    let m: &str = &dashed;
     if let Some(hit) = lookup(table, m) {
         return Some(hit);
     }
@@ -766,7 +776,7 @@ mod tests {
     #[test]
     fn the_bundle_is_the_ts_snapshot() {
         let b = bundled();
-        assert_eq!(b.len(), 218);
+        assert_eq!(b.len(), 219);
         assert!(b.get("_meta").is_none());
         let opus = b.get("claude-opus-4-7").unwrap();
         assert_eq!(opus.input_cost_per_token, Some(5e-6));

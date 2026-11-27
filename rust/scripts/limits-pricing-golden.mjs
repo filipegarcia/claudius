@@ -510,6 +510,8 @@ const CUSTOM = [
   t({ "7": 1, "claude-7": 2, "a/b": 3 }),
   // A lone surrogate in a key matches its half of an astral pair (UTF-16).
   t({ [`claude-${ch(0xd800)}`]: 1, "claude-x": 2 }),
+  // CC 2.1.314: a dotted key matches a dashed id and the other way round.
+  t({ "claude-opus-5.5": 1, "claude-sonnet-5-5": 2, "vendor/claude-haiku-4.5": 3 }),
 ];
 const BUNDLE_MODELS = [
   undefined,
@@ -588,6 +590,23 @@ const BUNDLE_MODELS = [
   `claude-opus-4-7${ch(0x1f600)}`,
   `${ch(0x212a)}claude-opus`,
   `CLAUDE-OP${ch(0xdc)}S`,
+  // CC 2.1.314: a gateway's dotted version is the dashed entry.
+  "claude-opus-5.5",
+  "CLAUDE-OPUS-5.5",
+  "claude-sonnet-5.5[1m]",
+  "claude-haiku-4.5-20251001",
+  "openrouter/anthropic/claude-opus-4.7",
+  "us.anthropic.claude-opus-4.7-v1:0",
+  "bedrock/us.anthropic.claude-sonnet-4.5-20250929-v1:0",
+  "claude-opus-4.1",
+  "claude-opus-5.5.1",
+  "claude-2.1",
+  "claude-instant-1.2",
+  "xclaude-opus-4.7",
+  `claude-${ch(0x17f)}onnet-4.5`,
+  `claude-opus-4${ch(0x2e)}7`,
+  "claude-fable-5.1",
+  "mythos-5.5",
 ];
 const CUSTOM_MODELS = [
   "claude-haiku-5-5",
@@ -625,6 +644,11 @@ const CUSTOM_MODELS = [
   `claude-${ch(0xd800)}`,
   `claude-${ch(0xd800, 0xdc00)}`,
   `claude-${ch(0xdc00)}`,
+  "claude-opus-5-5",
+  "claude-opus-5.5",
+  "claude-sonnet-5.5",
+  "vendor/claude-haiku-4-5",
+  "claude-haiku-4.5",
 ];
 /** What `priceForModel` returned, as the key it came from. */
 function keyOf(r, table) {
@@ -1201,6 +1225,9 @@ const MP_CASES = [
   // Exact key, then the first lower-cased substring.
   { s: '{"rates":{"opus":{"input":10},"claude-opus-4-8":{"input":9}}}', models: ["claude-opus-4-8", "claude-OPUS-4-8", "CLAUDE-OPUS-4-8", "opus", "claude-sonnet-5"] },
   { s: '{"rates":{"":{"input":1}}}', models: ["m", ""] },
+  // CC 2.1.314: the model id and each key are dot-normalised before the substring test.
+  { s: '{"rates":{"claude-opus-5.5":{"input":7},"claude-sonnet-4-5":{"input":3},"Haiku-4.5":{"input":2}}}', models: ["claude-opus-5-5", "claude-opus-5.5", "CLAUDE-OPUS-5.5[1m]", "claude-opus-5.55", "claude-sonnet-4.5", "us.anthropic.claude-sonnet-4.5-v1:0", "claude-haiku-4-5", "claude-2.1", "xclaude-opus-5.5"] },
+  { s: '{"rates":{"claude-opus-5-5.1":{"input":1},"opus-5":{"input":2}}}', models: ["claude-opus-5.5.1", "claude-opus-5.5", "claude-opus-5.x"] },
   { s: '{"rates":{"opus":0}}', models: ["opus", "my-opus"] },
   { s: '{"rates":{"opus":false,"sonnet":{"input":4}}}', models: ["opus", "opus-sonnet"] },
   { s: '{"rates":{"b":{"input":1},"2":{"input":2},"1":{"input":3}}}', models: ["x1y", "2", "b", "1"] },

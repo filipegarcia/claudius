@@ -41,6 +41,7 @@ use serde_json::Value;
 
 use crate::cost_pricing::MODEL_PRICING_MULTIPLIER_MAX;
 use crate::litellm_pricing::OBJECT_PROTOTYPE_KEYS;
+use crate::model_id::normalize_dotted_model_version;
 use crate::{db_agents, js_string};
 
 /// The message of what a call threw (the route answers Next's empty 500).
@@ -211,10 +212,15 @@ pub fn match_model_pricing_rate(model: &str, rates: Option<&Value>) -> Option<Ra
             }
         }
     }
-    let lower = model.to_lowercase();
+    // CC 2.1.314: dotted and dashed version spellings compare equal on both
+    // sides (a `claude-opus-4-8` rate covers a gateway's `claude-opus-4.8`,
+    // and the other way round). Substring order is unchanged.
+    let lower = normalize_dotted_model_version(&model.to_lowercase()).into_owned();
     entries(rates)
         .into_iter()
-        .find(|(key, _)| js_string::contains16(&lower, &key.to_lowercase()))
+        .find(|(key, _)| {
+            js_string::contains16(&lower, &normalize_dotted_model_version(&key.to_lowercase()))
+        })
         .map(|(key, value)| RateMatch::Entry { key, value })
 }
 

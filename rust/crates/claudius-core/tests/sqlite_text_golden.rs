@@ -125,6 +125,7 @@ fn queued(r: QueuedRow) -> Value {
         "fromSuggestion": r.from_suggestion,
         "fromGoal": r.from_goal,
         "createdAtMs": r.created_at_ms,
+        "heldByStop": r.held_by_stop,
     })
 }
 
@@ -328,9 +329,17 @@ fn run(op: &str, a: &[Value]) -> Value {
         "popByUuid" => js(queue_db::pop_by_uuid(s(&a[0]), s(&a[1]), &a[2]), |r| {
             r.map_or(Value::Null, queued)
         }),
-        "popHead" => js(queue_db::pop_head(s(&a[0]), s(&a[1])), |r| {
-            r.map_or(Value::Null, queued)
-        }),
+        // `opts?.unlessHeld`, truthy.
+        "popHead" => {
+            let unless_held = a
+                .get(2)
+                .is_some_and(|o| claudius_agent::js::truthy(&o["unlessHeld"]));
+            js(queue_db::pop_head(s(&a[0]), s(&a[1]), unless_held), |r| {
+                r.map_or(Value::Null, queued)
+            })
+        }
+        "holdAll" => js(queue_db::hold_all(s(&a[0]), s(&a[1])), |n| json!(n)),
+        "releaseHolds" => js(queue_db::release_holds(s(&a[0]), s(&a[1])), |n| json!(n)),
         "removeByUuid" => js(
             queue_db::remove_by_uuid(s(&a[0]), s(&a[1]), s(&a[2])),
             |b| json!(b),

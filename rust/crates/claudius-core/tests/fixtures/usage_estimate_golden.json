@@ -225,11 +225,11 @@
    "model": "fable",
    "missing": false,
    "pricing": {
-    "input": 10,
-    "output": 50,
-    "cacheRead": 1,
-    "cacheWrite5m": 12.5,
-    "cacheWrite1h": 20
+    "input": 8,
+    "output": 40,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 10,
+    "cacheWrite1h": 16
    }
   },
   {
@@ -428,6 +428,226 @@
     "cacheRead": 1.5,
     "cacheWrite5m": 18.75,
     "cacheWrite1h": 30
+   }
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 4,
+    "output": 20,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 5,
+    "cacheWrite1h": 8
+   }
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 4,
+    "output": 20,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 5,
+    "cacheWrite1h": 8
+   }
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "pricing": {
+    "input": 4,
+    "output": 20,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 5,
+    "cacheWrite1h": 8
+   }
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 2,
+    "output": 10,
+    "cacheRead": 0.1,
+    "cacheWrite5m": 2.5,
+    "cacheWrite1h": 4
+   }
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "pricing": {
+    "input": 4,
+    "output": 20,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 5,
+    "cacheWrite1h": 8
+   }
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 0.1,
+    "output": 0.5,
+    "cacheRead": 0.01,
+    "cacheWrite5m": 0.125,
+    "cacheWrite1h": 0.2
+   }
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 0.1,
+    "output": 0.5,
+    "cacheRead": 0.01,
+    "cacheWrite5m": 0.125,
+    "cacheWrite1h": 0.2
+   }
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "pricing": {
+    "input": 3,
+    "output": 15,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 3.75,
+    "cacheWrite1h": 6
+   }
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "pricing": {
+    "input": 3,
+    "output": 15,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 3.75,
+    "cacheWrite1h": 6
+   }
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 5,
+    "output": 25,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 6.25,
+    "cacheWrite1h": 10
+   }
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 3,
+    "output": 15,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 3.75,
+    "cacheWrite1h": 6
+   }
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "pricing": {
+    "input": 15,
+    "output": 75,
+    "cacheRead": 1.5,
+    "cacheWrite5m": 18.75,
+    "cacheWrite1h": 30
+   }
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "pricing": {
+    "input": 8,
+    "output": 40,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 10,
+    "cacheWrite1h": 16
+   }
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "pricing": {
+    "input": 8,
+    "output": 40,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 10,
+    "cacheWrite1h": 16
+   }
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "pricing": {
+    "input": 8,
+    "output": 40,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 10,
+    "cacheWrite1h": 16
+   }
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "pricing": {
+    "input": 10,
+    "output": 50,
+    "cacheRead": 1,
+    "cacheWrite5m": 12.5,
+    "cacheWrite1h": 20
+   }
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "pricing": {
+    "input": 8,
+    "output": 40,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 10,
+    "cacheWrite1h": 16
+   }
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "pricing": {
+    "input": 8,
+    "output": 40,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 10,
+    "cacheWrite1h": 16
+   }
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "pricing": {
+    "input": 8,
+    "output": 40,
+    "cacheRead": 0.2,
+    "cacheWrite5m": 10,
+    "cacheWrite1h": 16
+   }
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "pricing": {
+    "input": 3,
+    "output": 15,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 3.75,
+    "cacheWrite1h": 6
    }
   }
  ],
@@ -3094,7 +3314,7 @@
     "cacheWrite5m": 1,
     "cacheWrite1h": 1
    },
-   "cost": "0.0000935"
+   "cost": "0.0000742"
   },
   {
    "model": "fable",
@@ -3106,7 +3326,7 @@
     "cacheWrite5m": 3456,
     "cacheWrite1h": 0
    },
-   "cost": "0.172902"
+   "cost": "0.0849144"
   },
   {
    "model": "fable",
@@ -3118,7 +3338,7 @@
     "cacheWrite5m": 0.001,
     "cacheWrite1h": 2
    },
-   "cost": "0.0004205125"
+   "cost": "0.00033611000000000003"
   },
   {
    "model": "fable",
@@ -3130,7 +3350,7 @@
     "cacheWrite5m": 30000000,
     "cacheWrite1h": 9000000
    },
-   "cost": "93055"
+   "cost": "32444"
   },
   {
    "model": "fable",
@@ -3142,7 +3362,7 @@
     "cacheWrite5m": 0,
     "cacheWrite1h": 0
    },
-   "cost": "0.0015"
+   "cost": "0.0012"
   },
   {
    "model": "fable",
@@ -3154,7 +3374,7 @@
     "cacheWrite5m": 0,
     "cacheWrite1h": 0
    },
-   "cost": "90071992547.40997"
+   "cost": "72057594037.92796"
   },
   {
    "model": "fable",
@@ -3166,7 +3386,7 @@
     "cacheWrite5m": 0.4,
     "cacheWrite1h": 0.5
    },
-   "cost": "0.000026300000000000002"
+   "cost": "0.00002086"
   },
   {
    "model": "fable",
@@ -3178,7 +3398,7 @@
     "cacheWrite5m": 68752,
     "cacheWrite1h": 585
    },
-   "cost": "21.005773"
+   "cost": "10.8074072"
   },
   {
    "model": "fable",
@@ -3190,7 +3410,7 @@
     "cacheWrite5m": 8892593,
     "cacheWrite1h": 30414
    },
-   "cost": "8643.0112225"
+   "cost": "2425.858076"
   },
   {
    "model": "fable",
@@ -3202,7 +3422,7 @@
     "cacheWrite5m": 7540,
     "cacheWrite1h": 0
    },
-   "cost": "4305935434776.1904"
+   "cost": "3444748345013.4297"
   },
   {
    "model": "claude-sonnet-5-5",
@@ -5579,6 +5799,2646 @@
     "cacheWrite1h": 0
    },
    "cost": "6458903152164.286"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000372"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0513584"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.000168105"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "23222"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0006"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "36028797018.96398"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000010460000000000001"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.4032388"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "1961.020855"
+  },
+  {
+   "model": "claude-opus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1722374172974.6355"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000372"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0513584"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.000168105"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "23222"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0006"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "36028797018.96398"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000010460000000000001"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.4032388"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "1961.020855"
+  },
+  {
+   "model": "CLAUDE-OPUS-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1722374172974.6355"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000372"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0513584"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.000168105"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "23222"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0006"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "36028797018.96398"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000010460000000000001"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.4032388"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "1961.020855"
+  },
+  {
+   "model": "us.anthropic.claude-opus-5.5-v1:0",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1722374172974.6355"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000186"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0256792"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.0000840525"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "11611"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0003"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "18014398509.48199"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000005230000000000001"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "3.2016194"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "980.5104275"
+  },
+  {
+   "model": "openrouter/anthropic/claude-sonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "861187086487.3177"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000372"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0513584"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.000168105"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "23222"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0006"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "36028797018.96398"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000010460000000000001"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.4032388"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "1961.020855"
+  },
+  {
+   "model": "claude-opus-5.5.1",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1722374172974.6355"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "9.35e-7"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00172902"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.000004205125"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "930.55"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.000015"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "900719925.4740998"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "2.63e-7"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "0.21005772999999997"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "86.430112225"
+  },
+  {
+   "model": "claude-haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "43059354347.76191"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "9.35e-7"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00172902"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.000004205125"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "930.55"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.000015"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "900719925.4740998"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "2.63e-7"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "0.21005772999999997"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "86.430112225"
+  },
+  {
+   "model": "haiku-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "43059354347.76191"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.00002805"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.051870599999999996"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00012615375"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "27916.5"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00045"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "27021597764.222992"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000007889999999999999"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.3017319"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2592.90336675"
+  },
+  {
+   "model": "claude-2.1",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1291780630432.8572"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.00002805"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.051870599999999996"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00012615375"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "27916.5"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00045"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "27021597764.222992"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000007889999999999999"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.3017319"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2592.90336675"
+  },
+  {
+   "model": "claude-instant-1.2",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1291780630432.8572"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.00004675"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.086451"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00021025625"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "46527.5"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00075"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "45035996273.70499"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000013150000000000001"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "10.5028865"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "4321.50561125"
+  },
+  {
+   "model": "xopus-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "2152967717388.0952"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.00002805"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.051870599999999996"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00012615375"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "27916.5"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00045"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "27021597764.222992"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000007889999999999999"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.3017319"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2592.90336675"
+  },
+  {
+   "model": "claude-ſonnet-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1291780630432.8572"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.00014025"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.259353"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.0006307687499999999"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "139582.5"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00225"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "135107988821.11496"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000039450000000000003"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "31.5086595"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "12964.51683375"
+  },
+  {
+   "model": "claude-opus-٥.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "6458903152164.286"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000742"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0849144"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00033611000000000003"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "32444"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0012"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "72057594037.92796"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.00002086"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "10.8074072"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2425.858076"
+  },
+  {
+   "model": "claude-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "3444748345013.4297"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000742"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0849144"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00033611000000000003"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "32444"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0012"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "72057594037.92796"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.00002086"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "10.8074072"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2425.858076"
+  },
+  {
+   "model": "claude-fable-5.2",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "3444748345013.4297"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000742"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0849144"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00033611000000000003"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "32444"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0012"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "72057594037.92796"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.00002086"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "10.8074072"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2425.858076"
+  },
+  {
+   "model": "claude-fable-5-2-20260101",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "3444748345013.4297"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000935"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.172902"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.0004205125"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "93055"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0015"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "90071992547.40997"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000026300000000000002"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "21.005773"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "8643.0112225"
+  },
+  {
+   "model": "claude-fable-5-20",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "4305935434776.1904"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000742"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0849144"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00033611000000000003"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "32444"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0012"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "72057594037.92796"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.00002086"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "10.8074072"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2425.858076"
+  },
+  {
+   "model": "claude-fable-5-2x",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "3444748345013.4297"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000742"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0849144"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00033611000000000003"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "32444"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0012"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "72057594037.92796"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.00002086"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "10.8074072"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2425.858076"
+  },
+  {
+   "model": "fable-5-21-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "3444748345013.4297"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.0000742"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0849144"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00033611000000000003"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "32444"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.0012"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "72057594037.92796"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.00002086"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "10.8074072"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2425.858076"
+  },
+  {
+   "model": "claude-fable-5-1-fable-5-2",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "3444748345013.4297"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1,
+    "output": 1,
+    "cacheRead": 1,
+    "cacheWrite5m": 1,
+    "cacheWrite1h": 1
+   },
+   "cost": "0.00002805"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1234,
+    "output": 567,
+    "cacheRead": 89012,
+    "cacheWrite5m": 3456,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.051870599999999996"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 3,
+    "output": 7,
+    "cacheRead": 0.5,
+    "cacheWrite5m": 0.001,
+    "cacheWrite1h": 2
+   },
+   "cost": "0.00012615375"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 1000000000,
+    "output": 250000000,
+    "cacheRead": 70000000000,
+    "cacheWrite5m": 30000000,
+    "cacheWrite1h": 9000000
+   },
+   "cost": "27916.5"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": -100,
+    "output": 50,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "0.00045"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 9007199254740992,
+    "output": 1,
+    "cacheRead": 0,
+    "cacheWrite5m": 0,
+    "cacheWrite1h": 0
+   },
+   "cost": "27021597764.222992"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 0.1,
+    "output": 0.2,
+    "cacheRead": 0.3,
+    "cacheWrite5m": 0.4,
+    "cacheWrite1h": 0.5
+   },
+   "cost": "0.000007889999999999999"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 525947.1,
+    "output": 97597,
+    "cacheRead": 9995352,
+    "cacheWrite5m": 68752,
+    "cacheWrite1h": 585
+   },
+   "cost": "6.3017319"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 83604451,
+    "output": 4285657,
+    "cacheRead": 7480918170,
+    "cacheWrite5m": 8892593,
+    "cacheWrite1h": 30414
+   },
+   "cost": "2592.90336675"
+  },
+  {
+   "model": "mythos-5.5",
+   "missing": false,
+   "tokens": {
+    "input": 74187996253836000,
+    "output": 71281109351170640,
+    "cacheRead": 4679204548,
+    "cacheWrite5m": 7540,
+    "cacheWrite1h": 0
+   },
+   "cost": "1291780630432.8572"
   }
  ],
  "geo": [

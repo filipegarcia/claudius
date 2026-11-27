@@ -47,6 +47,10 @@ pub struct QueuedRow {
     pub from_suggestion: bool,
     pub from_goal: bool,
     pub created_at_ms: i64,
+    /// `heldByStop` (migration 026, CC 2.1.316): still queued when the user
+    /// hit Stop on a working turn. A replaced Session's `start()` drain
+    /// leaves a held head in place; see [`hold_all`] / [`release_holds`].
+    pub held_by_stop: bool,
 }
 
 impl QueuedRow {
@@ -72,7 +76,7 @@ impl QueuedRow {
     }
 }
 
-const COLS: &str = "uuid, session_id, position, text, images_json, slash, from_suggestion, from_goal, created_at_ms";
+const COLS: &str = "uuid, session_id, position, text, images_json, slash, from_suggestion, from_goal, created_at_ms, held_by_stop";
 
 fn to_row(r: &Row) -> rusqlite::Result<QueuedRow> {
     let images_json: Option<String> = get(r, 4)?;
@@ -86,6 +90,7 @@ fn to_row(r: &Row) -> rusqlite::Result<QueuedRow> {
         from_suggestion: r.get::<_, i64>(6)? == 1,
         from_goal: r.get::<_, i64>(7)? == 1,
         created_at_ms: r.get(8)?,
+        held_by_stop: r.get::<_, i64>(9)? == 1,
     })
 }
 
@@ -203,6 +208,7 @@ pub fn enqueue_tail(cwd: &str, input: NewQueued) -> anyhow::Result<QueuedRow> {
             from_suggestion: input.from_suggestion,
             from_goal: input.from_goal,
             created_at_ms: created,
+            held_by_stop: false,
         })
     })?)
 }
@@ -211,6 +217,7 @@ fn pop_where(
     cwd: &str,
     session_id: &str,
     uuid: Option<&Value>,
+    unless_held: bool,
 ) -> anyhow::Result<Option<QueuedRow>> {
     let db = open_db(cwd, Mode::ReadWrite)?;
     Ok(db.with_mut(|c| {
@@ -232,6 +239,9 @@ fn pop_where(
                     .optional()?
             }
         };
+        // `opts.unlessHeld`: a held head stays, checked inside the
+        // transaction so it's the row that would have been popped.
+        let row = row.filter(|r| !(unless_held && r.held_by_stop));
         if let Some(r) = &row {
             tx.execute("DELETE FROM queued_messages WHERE uuid = ?", [r.uuid.as_str()])?;
         }
@@ -240,14 +250,45 @@ fn pop_where(
     })?)
 }
 
-pub fn pop_head(cwd: &str, session_id: &str) -> anyhow::Result<Option<QueuedRow>> {
-    pop_where(cwd, session_id, None)
+/// `popHead(cwd, sessionId, opts)`. `unless_held` is `opts.unlessHeld`
+/// (CC 2.1.316, the replaced-Session `start()` drain): `None`, with the
+/// queue left intact, when the head is held by a Stop.
+pub fn pop_head(
+    cwd: &str,
+    session_id: &str,
+    unless_held: bool,
+) -> anyhow::Result<Option<QueuedRow>> {
+    pop_where(cwd, session_id, None, unless_held)
 }
 
 /// `popByUuid`: `uuid` is the JS value (a queue snapshot's, as the sender
 /// posted it), bound as better-sqlite3 binds it.
 pub fn pop_by_uuid(cwd: &str, session_id: &str, uuid: &Value) -> anyhow::Result<Option<QueuedRow>> {
-    pop_where(cwd, session_id, Some(uuid))
+    pop_where(cwd, session_id, Some(uuid), false)
+}
+
+/// `holdAll` (CC 2.1.316): marks every row still queued for the session as
+/// held by a Stop. The number of rows marked.
+pub fn hold_all(cwd: &str, session_id: &str) -> anyhow::Result<usize> {
+    let db = open_db(cwd, Mode::ReadWrite)?;
+    Ok(db.with(|c| {
+        c.execute(
+            "UPDATE queued_messages SET held_by_stop = 1 WHERE session_id = ?",
+            js_params![session_id],
+        )
+    })?)
+}
+
+/// `releaseHolds`: clears every Stop hold for the session, so the queue
+/// drains as it would in-process. The number of rows released.
+pub fn release_holds(cwd: &str, session_id: &str) -> anyhow::Result<usize> {
+    let db = open_db(cwd, Mode::ReadWrite)?;
+    Ok(db.with(|c| {
+        c.execute(
+            "UPDATE queued_messages SET held_by_stop = 0 WHERE session_id = ? AND held_by_stop = 1",
+            js_params![session_id],
+        )
+    })?)
 }
 
 pub fn remove_by_uuid(cwd: &str, session_id: &str, uuid: &str) -> anyhow::Result<bool> {

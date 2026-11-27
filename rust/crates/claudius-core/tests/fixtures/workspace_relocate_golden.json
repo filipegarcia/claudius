@@ -378,7 +378,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -393,7 +394,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -1072,7 +1073,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -1087,7 +1089,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -1944,7 +1946,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -1959,7 +1962,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -2586,7 +2589,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -2601,7 +2605,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -4444,7 +4448,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -4459,7 +4464,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -4845,7 +4850,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -4860,7 +4866,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -5143,7 +5149,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -5158,7 +5165,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -5540,7 +5547,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -5555,7 +5563,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -5936,7 +5944,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -5951,7 +5960,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -6240,7 +6249,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -6626,7 +6636,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -6641,7 +6652,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -7047,7 +7058,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -7062,7 +7074,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -7495,7 +7507,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -7510,7 +7523,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -8472,7 +8485,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -8487,7 +8501,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -9239,7 +9253,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -9254,7 +9269,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -9726,7 +9741,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -9741,7 +9757,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -10264,7 +10280,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -10279,7 +10296,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -10578,7 +10595,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -10593,7 +10611,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -10920,7 +10938,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -10935,7 +10954,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -12663,7 +12682,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -12678,7 +12698,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -13242,7 +13262,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -13257,7 +13278,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -13763,7 +13784,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -13778,7 +13800,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -14347,7 +14369,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -14362,7 +14385,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -15641,7 +15664,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -15656,7 +15680,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",
@@ -16467,7 +16491,8 @@
             "slash",
             "from_suggestion",
             "from_goal",
-            "created_at_ms"
+            "created_at_ms",
+            "held_by_stop"
            ],
            "rows": []
           },
@@ -16482,7 +16507,7 @@
              "text",
              "version",
              "text",
-             "25"
+             "26"
             ],
             [
              "text",

@@ -3483,7 +3483,7 @@ impl Session {
         if self.with(|st| st.queue.is_empty() || st.status() != TurnStatus::Idle) {
             return;
         }
-        let Ok(Some(head)) = queue_db::pop_head(&self.cwd, &self.id) else {
+        let Ok(Some(head)) = queue_db::pop_head(&self.cwd, &self.id, false) else {
             return;
         };
         self.with(|st| st.queue.retain(|r| r.uuid != head.uuid));

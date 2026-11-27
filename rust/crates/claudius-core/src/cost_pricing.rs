@@ -3,6 +3,8 @@
 //! persisted, i.e. a session's historical usage estimate
 //! ([`crate::usage_seed`]). The Cost page's LiteLLM table is D18.
 
+use crate::model_id::normalize_dotted_model_version;
+
 /// `Pricing`: $/MT for each token kind.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Pricing {
@@ -43,13 +45,19 @@ const SONNET_5_5: Pricing = Pricing {
     cache_read: 0.1,
     ..SONNET_5
 };
+/// Fable 5.2, the default Fable since CC 2.1.321: $8 / $40, $0.20 cache
+/// reads, writes at 1.25x (5 m) / 2x (1 h).
+const FABLE_5_2: Pricing = p(8.0, 40.0, 0.2, 10.0, 16.0);
+/// Fable 5.1, the prior generation. Fable 5 differs only in cache reads.
 const FABLE_5_1: Pricing = p(10.0, 50.0, 0.25, 12.5, 20.0);
 const FABLE_5: Pricing = p(10.0, 50.0, 1.0, 12.5, 20.0);
 
 /// `priceFor(model)`: the first family whose marker the lowercased id
 /// contains, the specific generations first; Sonnet for anything else.
 pub fn price_for(model: Option<&str>) -> Pricing {
-    let m = model.unwrap_or_default().to_lowercase();
+    // CC 2.1.314: a gateway's dotted id (`claude-opus-5.5`) hits the same
+    // entry as the dashed one instead of the older `opus-5`.
+    let m = normalize_dotted_model_version(&model.unwrap_or_default().to_lowercase()).into_owned();
     let has = |s: &str| m.contains(s);
     if has("opus-5-5") {
         OPUS_5_5
@@ -61,17 +69,32 @@ pub fn price_for(model: Option<&str>) -> Pricing {
         HAIKU_5_5
     } else if has("haiku") {
         HAIKU
-    } else if has("fable-5-1") || has("fable-5.1") {
+    } else if fable_5_2(&m) {
+        // CC 2.1.321, with a digit boundary: a dated Fable 5 id
+        // (`claude-fable-5-20260101`) isn't Fable 5.2.
+        FABLE_5_2
+    } else if has("fable-5-1") {
         FABLE_5_1
-    } else if has("fable") {
+    } else if has("fable-5") {
         FABLE_5
-    } else if has("sonnet-5-5") || has("sonnet-5.5") {
+    } else if has("fable") {
+        // The bare `fable` alias, or an unknown Fable id, is the current
+        // default Fable: Fable 5.2 since CC 2.1.321.
+        FABLE_5_2
+    } else if has("sonnet-5-5") {
         SONNET_5_5
     } else if has("sonnet-5") {
         SONNET_5
     } else {
         SONNET
     }
+}
+
+/// `/fable-5-2(?!\d)/.test(m)`: some `fable-5-2` not followed by an ASCII
+/// digit (`\d` without the `u` flag).
+fn fable_5_2(m: &str) -> bool {
+    m.match_indices("fable-5-2")
+        .any(|(i, s)| !m[i + s.len()..].starts_with(|c: char| c.is_ascii_digit()))
 }
 
 /// `TokenBreakdown`: one turn's token counts.
