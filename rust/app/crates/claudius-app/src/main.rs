@@ -10,6 +10,8 @@ use std::sync::Arc;
 
 use claudius_app::data::ShellData;
 use claudius_app::fixture::FixtureShellData;
+use claudius_app::sessions::data::SessionsData;
+use claudius_app::sessions::fixture::FixtureSessionsData;
 use claudius_app::shell::{Appearance, open_main_window};
 use claudius_chat::TranscriptSource;
 use claudius_chat::fixture::FixtureTranscripts;
@@ -19,6 +21,17 @@ fn main() -> anyhow::Result<()> {
     let data: Arc<dyn ShellData> = match std::env::var_os("CLAUDIUS_APP_FIXTURE") {
         Some(path) => Arc::new(FixtureShellData::from_path(path.as_ref())?),
         None => Arc::new(FixtureShellData::builtin()),
+    };
+    // `CLAUDIUS_APP_SESSIONS=<path>`: the sessions browser's fixture, else
+    // the bundled one, its ages moved to now.
+    let sessions: Arc<dyn SessionsData> = match std::env::var_os("CLAUDIUS_APP_SESSIONS") {
+        Some(path) => Arc::new(FixtureSessionsData::from_path(path.as_ref())?),
+        None => {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0., |d| d.as_millis() as f64);
+            Arc::new(FixtureSessionsData::builtin().rebased(now))
+        }
     };
     let appearance = match std::env::var("CLAUDIUS_APP_THEME") {
         Ok(s) => Appearance::parse(&s)
@@ -37,7 +50,7 @@ fn main() -> anyhow::Result<()> {
         .with_assets(IconAssets)
         .run(move |cx| {
             claudius_app::init(ThemeName::DEFAULT, cx);
-            if let Err(e) = open_main_window(data, transcripts, appearance, cx) {
+            if let Err(e) = open_main_window(data, transcripts, sessions, appearance, cx) {
                 eprintln!("claudius-app: opening the window: {e:#}");
                 cx.quit();
                 return;

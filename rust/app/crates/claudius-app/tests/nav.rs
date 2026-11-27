@@ -104,7 +104,13 @@ fn a_tile_lights_on_its_exact_page() {
     ));
     assert!(!is_active(
         &sessions,
-        &Route::page(A, WorkspacePage::Session { id: "s".into() })
+        &Route::page(
+            A,
+            WorkspacePage::Session {
+                id: "s".into(),
+                dir: None
+            }
+        )
     ));
     assert!(is_active(
         &files,

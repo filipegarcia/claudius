@@ -61,7 +61,7 @@ impl Colors {
     }
 
     /// Tailwind's `/N` on a palette color (`bg-[var(--accent)]/15`).
-    fn alpha(&self, c: Hsla, pct: f64) -> Hsla {
+    pub(crate) fn alpha(&self, c: Hsla, pct: f64) -> Hsla {
         let i = [
             self.background,
             self.foreground,

@@ -93,6 +93,8 @@ pub struct Shell {
     pub(crate) strip_width: f32,
     pub(crate) hidden: Vec<String>,
     pub(crate) now_year: i32,
+    /// The sessions browser (U11), when [`Shell::with_sessions`] added it.
+    pub(crate) sessions: Option<gpui_kit::Entity<crate::sessions::view::SessionsScreen>>,
     _tasks: Vec<Task<()>>,
     _appearance: gpui_kit::Subscription,
 }
@@ -154,6 +156,7 @@ impl Shell {
             strip_width: 0.,
             hidden: Vec::new(),
             now_year: crate::tabs::current_year(),
+            sessions: None,
             _tasks: vec![listen],
             _appearance: observe,
         };
@@ -353,6 +356,7 @@ impl Shell {
                 }
             }
         }
+        crate::sessions::view::sync(self, cx);
         cx.notify();
     }
 
@@ -580,10 +584,12 @@ pub fn focus_label(level: FocusLevel) -> &'static str {
     }
 }
 
-/// Opens the main window over a data source and the transcripts' source.
+/// Opens the main window over a data source, the transcripts' source and
+/// the sessions browser's.
 pub fn open_main_window(
     data: Arc<dyn ShellData>,
     transcripts: Arc<dyn TranscriptSource>,
+    sessions: Arc<dyn crate::sessions::data::SessionsData>,
     appearance: Appearance,
     cx: &mut App,
 ) -> anyhow::Result<gpui_kit::Entity<Shell>> {
@@ -602,7 +608,10 @@ pub fn open_main_window(
         ..Default::default()
     };
     let (_, shell) = gpui_kit::open_window(options, cx, move |window, cx| {
-        cx.new(|cx| Shell::with_transcripts(data, transcripts, appearance, window, cx))
+        cx.new(|cx| {
+            Shell::with_transcripts(data, transcripts, appearance, window, cx)
+                .with_sessions(sessions, window, cx)
+        })
     })?;
     Ok(shell)
 }

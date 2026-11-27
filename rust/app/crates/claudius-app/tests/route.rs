@@ -92,6 +92,11 @@ fn every_route() -> Vec<Route> {
         page(WorkspacePage::Sessions),
         page(WorkspacePage::Session {
             id: "8c1f2d3e-4a5b-4c6d-8e7f-90a1b2c3d4e5".into(),
+            dir: None,
+        }),
+        page(WorkspacePage::Session {
+            id: "8c1f2d3e".into(),
+            dir: Some("/Users/demo/my project".into()),
         }),
         page(WorkspacePage::Skills),
         page(WorkspacePage::Tracker),
@@ -123,7 +128,7 @@ fn every_route() -> Vec<Route> {
 #[test]
 fn every_page_round_trips_through_its_url() {
     let routes = every_route();
-    assert_eq!(routes.len(), 39 + DevPage::ALL.len());
+    assert_eq!(routes.len(), 40 + DevPage::ALL.len());
     for route in routes {
         let url = route.path();
         assert_eq!(Route::parse(&url), Some(route.clone()), "{url}");
@@ -167,7 +172,11 @@ fn urls_format_as_the_react_links() {
         format!("/{A}?session=s1")
     );
     assert_eq!(
-        page(WorkspacePage::Session { id: "a/b".into() }).path(),
+        page(WorkspacePage::Session {
+            id: "a/b".into(),
+            dir: None
+        })
+        .path(),
         format!("/{A}/sessions/a%2Fb")
     );
     assert_eq!(
@@ -274,7 +283,34 @@ fn r2_a_bare_scoped_path_joins_the_active_workspace() {
     );
     assert_eq!(
         resolve("/sessions/abc", &two()),
-        Route::page(B, WorkspacePage::Session { id: "abc".into() })
+        Route::page(
+            B,
+            WorkspacePage::Session {
+                id: "abc".into(),
+                dir: None
+            }
+        )
+    );
+    // The row link's `?dir=` (the session's cwd) survives the redirect.
+    assert_eq!(
+        resolve("/sessions/abc?dir=%2FUsers%2Fdemo%2Fa%20b", &two()),
+        Route::page(
+            B,
+            WorkspacePage::Session {
+                id: "abc".into(),
+                dir: Some("/Users/demo/a b".into()),
+            }
+        )
+    );
+    assert_eq!(
+        resolve("/sessions/abc?dir=", &two()),
+        Route::page(
+            B,
+            WorkspacePage::Session {
+                id: "abc".into(),
+                dir: None
+            }
+        )
     );
     // A scoped page that doesn't exist is a 404 under the workspace.
     assert_eq!(
@@ -357,9 +393,17 @@ fn route_memory_keeps_the_pathname_only() {
         .without_query(),
         WorkspacePage::Chat { session: None }
     );
-    // A path parameter isn't a query: it stays.
-    let s = WorkspacePage::Session { id: "s".into() };
+    // A path parameter isn't a query: it stays; `?dir=` goes.
+    let s = WorkspacePage::Session {
+        id: "s".into(),
+        dir: None,
+    };
     assert_eq!(s.without_query(), s);
+    let with_dir = WorkspacePage::Session {
+        id: "s".into(),
+        dir: Some("/p".into()),
+    };
+    assert_eq!(with_dir.without_query(), s);
 }
 
 #[test]

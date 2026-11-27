@@ -3693,14 +3693,14 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
   - [ ] **U05e** `claudius-client`'s replay is O(n²): `on_user` clones the message list on every event, so replaying 22k events takes 12–38 s in release (U05a's bench). deps: U01k
   - [ ] **U05b** Math: RaTeX (as U00a prototyped) matched against KaTeX on a golden set; until then math renders as raw TeX. deps: U05a
 - [~] **U06** (2026-11-27: agent, clone `par/U06`; on U05a's row model, under the GUI-first rule, while U05b (math) waits) Tool call cards: Bash, Edit/Write (diff), Read, Grep/Glob, Task/subagents, Workflow, WebFetch/Search, MCP tools, elapsed timers; diff overlay. The branch's TS renders every tool through one generic `ToolCall.tsx` card (plus `TaskBlock` / `WorkflowBlock` / `ProposeGoalBlock` / `JsonBlock` / `FilePreview`); the diff overlay is `components/overlays` (U10). deps: U05
-- [ ] **U07** Composer:
+- [~] **U07** Composer (2026-11-27: split, PromptInput.tsx is 2.6k lines: **U07a** the editor, send / queue / stop, history, drafts, prompt color, `!` bash mode, the queue strip and suggestions, agent, clone `par/U07a`, new crate `claudius-composer`; **U07b** the pickers; **U07c** images, inline pastes, voice):
   - editing: multiline editor, history, drafts (prompt-draft), prompt color
   - pickers: slash commands (fuzzy, highlight), `@` file/agent mentions, emoji shortcodes
   - input: image paste/drop, inline pastes, voice (`useVoice`)
   - queue: queue strip (edit/move/send-now), `!` bash mode
 
   deps: U05
-- [ ] **U08** Prompts: permission card (rule preview, auto-mode tip, deny with feedback), AskUserQuestion (multi-question, HTML preview), plan approval (edit/reject), elicitation forms (schema-driven). The HTML preview runs in an embedded `WebView` pane with the same sandbox the React `<iframe sandbox>` uses (no navigation, no same-origin). deps: U05
+- [~] **U08** (2026-11-27: split: **U08a** the permission card, plan approval, MCP elicitation and AskUserQuestion with an HTML option shown as text, agent, clone `par/U08a`, new crate `claudius-prompts`; **U08b** the HTML preview in a sandboxed WebView pane) Prompts: permission card (rule preview, auto-mode tip, deny with feedback), AskUserQuestion (multi-question, HTML preview), plan approval (edit/reject), elicitation forms (schema-driven). The HTML preview runs in an embedded `WebView` pane with the same sandbox the React `<iframe sandbox>` uses (no navigation, no same-origin). deps: U05
 - [ ] **U09** Status line + session card:
   - pickers: model, effort, advisor, mode, fast, output style
   - meters: context bar, cost/usage
@@ -3708,7 +3708,18 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
 
   deps: U05
 - [ ] **U10** Overlays (`components/overlays`, 16 files): context, skills, diff, transcript viewer, transcript search (client-side regex is OK here), keyboard shortcuts (`lib/client/shortcuts.ts`, 871), command palette. deps: U05
-- [~] **U11** (2026-11-27: agent, clone `par/U11`; on U04a's shell with a `SessionsData` trait and fixtures, as U05a) Sessions browser: list/search/filter, fork, resume, rename, export, delete. deps: U04
+- [x] **U11** (2026-11-27: agent, clone `par/U11`; on U04a's shell with a `SessionsData` trait and fixtures, as U05a) Sessions browser: list/search/filter, fork, resume, rename, export, delete. deps: U04
+  - Done 2026-11-27 (background agent, clone `par/U11`): the sessions browser in `claudius-app/src/sessions/`, ~4.8k lines.
+    - **Models:** pure `SessionsList` / `SessionDetail` return effects, and `SessionsScreen` runs them against a transport-shaped `SessionsData`. A request goes in; status, body and filename come back, along with change notifications and unread counts.
+    - **TS rules ported:** `parseSessionQuery`, `scoreSession` and the page's ranking; the older-session search up to its 1000-session ceiling; `fmtRelative` / `fmtBytes` and the en-US `toLocale*` forms. A TS golden replays them (`rust/scripts/sessions-page-golden.mjs`, 1202 cases, recorded twice byte-identical, ASCII-only).
+    - **Screens:** the list (columns, branch chips, the unread filter, transcript search, Load more, the four empty states, keyboard ↑ ↓ Home End Enter Esc ⌘F) and the one-session page (header, rename, plain-text transcript, raw view).
+    - **Actions:** resume opens a chat tab; fork, rewind, rename, export (a save dialog) and delete (in-window confirm) show the React error strings.
+    - **Fixture:** `FixtureSessionsData` holds 30 sessions across 3 workspaces and records every request. `CLAUDIUS_APP_SESSIONS=<path>` swaps in another file.
+    - **Tests:** 72 new (golden 9, list 26, detail 15, headless GPUI 22). Mutation 75/75 killed; it found a real bug, a 200 with `error: 0` read as an error. Flake 0/20.
+    - **Merge:** three conflicts, resolved by hand: both U05a and U11 added an `open_main_window` parameter and changed the screen dispatch. After the merge the app gate passed: fmt and clippy -D warnings clean, cargo test --workspace 266 passed, 0 failed (194 before plus U11's 72).
+    - The screenshots are in `rust/target/par/U11/shots/`.
+  - [ ] **U11b** `SessionsData` over U02's `Transport`: `SessionsRequest`'s method, URL and body go through `fetch`; `SessionsChange` comes from the server's session-list and notification events; unread counts come from U15. deps: U11, U04b, U02
+  - [ ] **U11c** The one-session page draws its transcript with U05a's markdown and code rows and U06's tool cards instead of plain text. deps: U11, U05a, U06
 - [ ] **U12** Git UI (`components/git`, 3.5k lines) and the files browser + preview (`components/files`). deps: U04
 - [ ] **U13** Settings and config screens: settings (all scopes), permissions, hooks, keybindings, skills, memory, MCP, plugins, agents, CLAUDE.md editor, customize-settings. deps: U04
 - [ ] **U14** Cost, usage, limits, schedule (runs + live stream), doctor, docker, notebooks, tracker, pipeline, database, release notes, welcome/onboarding. Decide per page whether it survives; dev preview pages are `[-]`. deps: U04

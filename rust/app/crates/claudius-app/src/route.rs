@@ -74,9 +74,10 @@ pub enum WorkspacePage {
     Pipeline,
     Schedule,
     Sessions,
-    /// `/sessions/<id>`.
+    /// `/sessions/<id>?dir=<project dir>`.
     Session {
         id: String,
+        dir: Option<String>,
     },
     Skills,
     Tracker,
@@ -236,6 +237,9 @@ impl WorkspacePage {
                 }
                 q
             }
+            WorkspacePage::Session { dir, .. } => {
+                dir.as_deref().map(|d| vec![("dir", d)]).unwrap_or_default()
+            }
             _ => Vec::new(),
         };
         push_query(&mut out, &query);
@@ -248,7 +252,7 @@ impl WorkspacePage {
         match self {
             WorkspacePage::Chat { .. } => String::new(),
             WorkspacePage::GitFile { .. } => "/git/file".into(),
-            WorkspacePage::Session { id } => format!("/sessions/{}", encode(id)),
+            WorkspacePage::Session { id, .. } => format!("/sessions/{}", encode(id)),
             WorkspacePage::Dev(p) => format!("/dev/{}", p.slug()),
             page => {
                 let (name, _) = PLAIN
@@ -273,6 +277,10 @@ impl WorkspacePage {
             WorkspacePage::GitFile { .. } => WorkspacePage::GitFile {
                 path: String::new(),
                 mode: None,
+            },
+            WorkspacePage::Session { id, .. } => WorkspacePage::Session {
+                id: id.clone(),
+                dir: None,
             },
             page => page.clone(),
         }
@@ -316,7 +324,7 @@ impl WorkspacePage {
             WorkspacePage::GitFile { path, mode } => {
                 vec![("path", path.clone()), ("mode", opt(mode))]
             }
-            WorkspacePage::Session { id } => vec![("id", id.clone())],
+            WorkspacePage::Session { id, dir } => vec![("id", id.clone()), ("dir", opt(dir))],
             _ => Vec::new(),
         }
     }
@@ -336,7 +344,10 @@ impl WorkspacePage {
                 mode: q("mode")
                     .filter(|m| matches!(m.as_str(), "staged" | "worktree" | "untracked")),
             },
-            ["sessions", id] => WorkspacePage::Session { id: decode(id) },
+            ["sessions", id] => WorkspacePage::Session {
+                id: decode(id),
+                dir: q("dir").filter(|d| !d.is_empty()),
+            },
             ["dev", slug] => WorkspacePage::Dev(DevPage::from_slug(slug)?),
             [name] => PLAIN.iter().find(|(n, _)| n == name)?.1.clone(),
             _ => return None,
@@ -642,6 +653,10 @@ fn hex(b: u8) -> Option<u8> {
 }
 
 /// `encodeURIComponent`.
+pub(crate) fn encode_uri_component(s: &str) -> String {
+    encode(s)
+}
+
 fn encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for &b in s.as_bytes() {
@@ -665,7 +680,7 @@ fn push_query(out: &mut String, pairs: &[(&str, &str)]) {
 }
 
 /// `application/x-www-form-urlencoded` (`URLSearchParams`).
-fn form_encode(s: &str) -> String {
+pub(crate) fn form_encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for &b in s.as_bytes() {
         if b.is_ascii_alphanumeric() || b"*-._".contains(&b) {

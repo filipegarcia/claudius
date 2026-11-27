@@ -11,6 +11,7 @@ pub mod fixture;
 pub mod nav;
 pub mod route;
 mod screens;
+pub mod sessions;
 pub mod shell;
 pub mod shortcuts;
 pub mod state;
@@ -29,4 +30,5 @@ pub fn init(theme: ThemeName, cx: &mut App) {
     gpui_kit::init(cx);
     claudius_gpui_theme::init(theme, cx);
     shortcuts::bind(cx);
+    sessions::view::bind(cx);
 }

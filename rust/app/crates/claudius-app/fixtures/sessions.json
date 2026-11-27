@@ -1,0 +1,2573 @@
+{
+ "now": 1795723200000,
+ "accountsConfigured": 2,
+ "sessions": [
+  {
+   "sessionId": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+   "summary": "Port the app shell to GPUI",
+   "lastModified": 1795723080000,
+   "fileSize": 1843201,
+   "firstPrompt": "Port the Next.js app shell to a native GPUI window: the workspace rail, the nav rail and the session tabs.",
+   "gitBranch": "feat/rust-port",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795720680000,
+   "claudiusTitle": "Port the app shell to GPUI",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e",
+   "summary": "Fix flaky e2e: session tabs",
+   "lastModified": 1795722360000,
+   "fileSize": 402330,
+   "customTitle": "Fix flaky e2e: session tabs",
+   "firstPrompt": "The session-tabs e2e spec fails one run in five on CI. Find out why.",
+   "gitBranch": "fix/e2e-tabs",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795719960000,
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a",
+   "summary": "what does the scheduler do when the laptop sleeps?",
+   "lastModified": 1795720380000,
+   "fileSize": 18204,
+   "firstPrompt": "what does the scheduler do when the laptop sleeps?",
+   "gitBranch": "main",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795702500000,
+   "accountId": "acc_0e9d8c7b6a51",
+   "accountLabel": "Personal"
+  },
+  {
+   "sessionId": "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d",
+   "summary": "Investigate the SSE memory leak",
+   "lastModified": 1795712400000,
+   "fileSize": 2517884,
+   "firstPrompt": "Memory climbs by ~40 MB an hour with three tabs open. Profile the SSE replay buffer.",
+   "gitBranch": "fix/sse-leak",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795710000000,
+   "claudiusTitle": "Investigate the SSE memory leak",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70",
+   "summary": "Release checklist",
+   "lastModified": 1795701600000,
+   "fileSize": 96512,
+   "firstPrompt": "Walk me through the release checklist for 0.3.327.",
+   "gitBranch": "main",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795699200000,
+   "claudiusTitle": "Release checklist",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b",
+   "summary": "Port the app shell to GPUI (fork)",
+   "lastModified": 1795698000000,
+   "fileSize": 1201400,
+   "firstPrompt": "Port the Next.js app shell to a native GPUI window: the workspace rail, the nav rail and the session tabs.",
+   "gitBranch": "feat/rust-port",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795695600000,
+   "claudiusTitle": "Port the app shell to GPUI (fork)",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d",
+   "summary": "Refactor the permission prompt flow so that every tool call that needs approval goes through a single queue, with per-tool remembered decisions, and make sure the queue survives a page reload without losing the pending prompts",
+   "lastModified": 1795651200000,
+   "fileSize": 812004,
+   "firstPrompt": "The permission prompts get lost on reload.",
+   "gitBranch": "feat/permission-queue",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795648800000,
+   "claudiusTitle": "Refactor the permission prompt flow so that every tool call that needs approval goes through a single queue, with per-tool remembered decisions, and make sure the queue survives a page reload without losing the pending prompts",
+   "accountId": "acc_0e9d8c7b6a51",
+   "accountLabel": "Personal"
+  },
+  {
+   "sessionId": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+   "summary": "\u00dcbersetzung der Einstellungen \u2014 \u8bbe\u7f6e\u9875\u9762\u7ffb\u8bd1 \u2728",
+   "lastModified": 1795629600000,
+   "fileSize": 233118,
+   "firstPrompt": "Translate the settings page into German and Chinese.",
+   "gitBranch": "feat/i18n",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795627200000,
+   "claudiusTitle": "\u00dcbersetzung der Einstellungen \u2014 \u8bbe\u7f6e\u9875\u9762\u7ffb\u8bd1 \u2728",
+   "accountId": "acc_0e9d8c7b6a51",
+   "accountLabel": "Personal"
+  },
+  {
+   "sessionId": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a",
+   "summary": "Login page redesign",
+   "lastModified": 1795539600000,
+   "fileSize": 512000,
+   "customTitle": "Login page redesign",
+   "firstPrompt": "Make the login page match the new design system.",
+   "gitBranch": "feat/login",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795537200000,
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b",
+   "summary": "Fix the login bug",
+   "lastModified": 1795464000000,
+   "fileSize": 77921,
+   "firstPrompt": "please fix the login flow: the OAuth callback loops",
+   "gitBranch": "fix/login-loop",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795461600000,
+   "claudiusTitle": "Fix the login bug",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c",
+   "summary": "explain the session pinning code",
+   "lastModified": 1795291200000,
+   "fileSize": 1024,
+   "firstPrompt": "explain the session pinning code",
+   "gitBranch": "main",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1795287600000,
+   "accountId": "acc_0e9d8c7b6a51",
+   "accountLabel": "Personal"
+  },
+  {
+   "sessionId": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
+   "summary": "CodeQL path-injection sweep",
+   "lastModified": 1794945600000,
+   "fileSize": 640212,
+   "firstPrompt": "Triage the open CodeQL alerts in app/api.",
+   "gitBranch": "security/codeql",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1794943200000,
+   "claudiusTitle": "CodeQL path-injection sweep",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
+   "summary": "Docker panel: compose logs",
+   "lastModified": 1794340800000,
+   "fileSize": 355870,
+   "firstPrompt": "Stream docker compose logs into the Docker panel.",
+   "gitBranch": "feat/docker-logs",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1794338400000,
+   "claudiusTitle": "Docker panel: compose logs",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "c9d0e1f2-a3b4-4c5d-8e6f-7a8b9c0d1e2f",
+   "summary": "Cost page totals are off by one day",
+   "lastModified": 1792180800000,
+   "fileSize": 144090,
+   "customTitle": "Cost page totals are off by one day",
+   "firstPrompt": "The cost page's daily totals are shifted by a day in PST.",
+   "gitBranch": "fix/cost-tz",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1792178400000,
+   "accountId": "acc_0e9d8c7b6a51",
+   "accountLabel": "Personal"
+  },
+  {
+   "sessionId": "d0e1f2a3-b4c5-4d6e-9f7a-8b9c0d1e2f3a",
+   "summary": "Workspace icons",
+   "lastModified": 1787515200000,
+   "fileSize": 98776,
+   "firstPrompt": "Let users upload an image as a workspace icon.",
+   "gitBranch": "main",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1787512800000,
+   "claudiusTitle": "Workspace icons",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+   "summary": "First prototype of the browser shell",
+   "lastModified": 1762891200000,
+   "fileSize": 4903222,
+   "firstPrompt": "Put Claude Code in a browser tab.",
+   "cwd": "/Users/demo/src/claudius",
+   "createdAt": 1762804800000,
+   "claudiusTitle": "First prototype of the browser shell",
+   "accountId": "acc_6f1d2c3b4a59",
+   "accountLabel": "Work"
+  },
+  {
+   "sessionId": "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+   "summary": "U02 transport trait",
+   "lastModified": 1795722660000,
+   "fileSize": 702113,
+   "firstPrompt": "Design the transport trait the native app talks to the server through.",
+   "gitBranch": "feat/rust-port-2026-11-16",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1795720260000,
+   "claudiusTitle": "U02 transport trait"
+  },
+  {
+   "sessionId": "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f",
+   "summary": "Clippy sweep",
+   "lastModified": 1795721100000,
+   "fileSize": 255309,
+   "firstPrompt": "cargo clippy --workspace -- -D warnings, and fix everything",
+   "gitBranch": "feat/rust-port-2026-11-16",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1795718700000,
+   "claudiusTitle": "Clippy sweep"
+  },
+  {
+   "sessionId": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+   "summary": "Golden recorder for open-tabs",
+   "lastModified": 1795708800000,
+   "fileSize": 188420,
+   "customTitle": "Golden recorder for open-tabs",
+   "firstPrompt": "Write a golden recorder for open-tabs-store.ts.",
+   "gitBranch": "feat/rust-port-2026-11-16",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1795706400000
+  },
+  {
+   "sessionId": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+   "summary": "sqlite text goldens",
+   "lastModified": 1795683600000,
+   "fileSize": 94550,
+   "firstPrompt": "The sqlite text golden fails after the main merge.",
+   "gitBranch": "fix/r14a-goldens",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1795681200000,
+   "claudiusTitle": "sqlite text goldens"
+  },
+  {
+   "sessionId": "3d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f7a",
+   "summary": "Mutation-test the route module",
+   "lastModified": 1795615200000,
+   "fileSize": 61200,
+   "firstPrompt": "Run mutants over route.rs and kill the survivors.",
+   "gitBranch": "feat/rust-port-2026-11-16",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1795612800000,
+   "claudiusTitle": "Mutation-test the route module"
+  },
+  {
+   "sessionId": "4e5f6a7b-8c9d-4e0f-9a1b-3c4d5e6f7a8b",
+   "summary": "why does cargo test leak claudius --no-next servers?",
+   "lastModified": 1795377600000,
+   "fileSize": 33870,
+   "firstPrompt": "why does cargo test leak claudius --no-next servers?",
+   "gitBranch": "main",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1795375200000
+  },
+  {
+   "sessionId": "5f6a7b8c-9d0e-4f1a-8b2c-4d5e6f7a8b9c",
+   "summary": "ADR: UI toolkit",
+   "lastModified": 1794686400000,
+   "fileSize": 420118,
+   "firstPrompt": "Compare GPUI, Iced and Slint for the native app.",
+   "gitBranch": "docs/adr-ui",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1794684000000,
+   "claudiusTitle": "ADR: UI toolkit"
+  },
+  {
+   "sessionId": "6a7b8c9d-0e1f-4a2b-9c3d-5e6f7a8b9c0d",
+   "summary": "Port the scheduler",
+   "lastModified": 1790539200000,
+   "fileSize": 1337000,
+   "firstPrompt": "Port lib/server/scheduler.ts to Rust.",
+   "gitBranch": "feat/scheduler",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1790536800000,
+   "claudiusTitle": "Port the scheduler"
+  },
+  {
+   "sessionId": "7b8c9d0e-1f2a-4b3c-8d4e-6f7a8b9c0d1e",
+   "summary": "Spike: axum front door",
+   "lastModified": 1778443200000,
+   "fileSize": 58008,
+   "customTitle": "Spike: axum front door",
+   "firstPrompt": "Spike an axum server in front of next dev.",
+   "cwd": "/Users/demo/src/claudius-rust",
+   "createdAt": 1778440800000
+  },
+  {
+   "sessionId": "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a",
+   "summary": "Set up the docs site with Astro.",
+   "lastModified": 1795550400000,
+   "fileSize": 12288,
+   "firstPrompt": "Set up the docs site with Astro.",
+   "gitBranch": "main",
+   "cwd": "/Users/demo/src/docs-site",
+   "createdAt": 1795518720000
+  },
+  {
+   "sessionId": "8c9d0e1f-2a3b-4c4d-9e5f-7a8b9c0d1e2f",
+   "summary": "Screenshots for the gallery",
+   "lastModified": 1795464000000,
+   "fileSize": 88100,
+   "firstPrompt": "Refresh the marketing screenshots.",
+   "gitBranch": "main",
+   "cwd": "/Users/demo/src/docs-site",
+   "createdAt": 1795461600000,
+   "claudiusTitle": "Screenshots for the gallery"
+  },
+  {
+   "sessionId": "9d0e1f2a-3b4c-4d5e-8f6a-8b9c0d1e2f3a",
+   "summary": "Changelog for 0.3.300",
+   "lastModified": 1795032000000,
+   "fileSize": 40960,
+   "firstPrompt": "Write the changelog for 0.3.300.",
+   "gitBranch": "release/0.3.300",
+   "cwd": "/Users/demo/src/docs-site",
+   "createdAt": 1795029600000,
+   "claudiusTitle": "Changelog for 0.3.300"
+  },
+  {
+   "sessionId": "0e1f2a3b-4c5d-4e6f-9a7b-9c0d1e2f3a4b",
+   "summary": "Fix broken links",
+   "lastModified": 1793563200000,
+   "fileSize": 27000,
+   "firstPrompt": "Find and fix the broken links in /guides.",
+   "gitBranch": "fix/links",
+   "cwd": "/Users/demo/src/docs-site",
+   "createdAt": 1793560800000,
+   "claudiusTitle": "Fix broken links"
+  },
+  {
+   "sessionId": "1f2a3b4c-5d6e-4f7a-8b8c-0d1e2f3a4b5c",
+   "summary": "Search with Pagefind",
+   "lastModified": 1789675200000,
+   "fileSize": 150331,
+   "customTitle": "Search with Pagefind",
+   "firstPrompt": "Add client-side search with Pagefind.",
+   "gitBranch": "feat/search",
+   "cwd": "/Users/demo/src/docs-site",
+   "createdAt": 1789672800000
+  }
+ ],
+ "transcripts": {
+  "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000001",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Port the Next.js app shell to a native GPUI window: the workspace rail, the nav rail and the session tabs."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000002",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "thinking",
+        "thinking": "The shell has three parts. Start with the routes, then the rails, then the tab strip.",
+        "signature": "sig"
+       },
+       {
+        "type": "text",
+        "text": "I'll start with the routes: every `page.tsx` under `app/` becomes a `Route`."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_01",
+        "name": "Glob",
+        "input": {
+         "pattern": "app/**/page.tsx"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000003",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_01",
+        "content": "app/page.tsx\napp/[workspaceId]/page.tsx\napp/[workspaceId]/git/page.tsx"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000004",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "There are 46 pages. The bare scoped paths (`/git`) redirect under the active workspace."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_02",
+        "name": "Write",
+        "input": {
+         "file_path": "rust/app/crates/claudius-app/src/route.rs",
+         "content": "pub enum Route { ... }"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000005",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_02",
+        "content": [
+         {
+          "type": "text",
+          "text": "File created"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "type": "system",
+     "uuid": "00000000-0000-4000-8000-000000000006",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": null,
+     "subtype": "compact_boundary",
+     "compactBoundary": {
+      "trigger": "auto",
+      "preTokens": 167000,
+      "postTokens": 42000,
+      "durationMs": 38400
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000007",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "text",
+        "text": "This session is being continued from a previous conversation that ran out of context. The conversation is summarized below:\n1. The routes are ported.\n2. Next: the rails."
+       }
+      ]
+     },
+     "isCompactSummary": true
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000008",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "<task-notification>\n<task-id>bg_1</task-id>\n<status>completed</status>\n</task-notification>"
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000009",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Now the workspace rail. Match `WorkspaceSwitcher.tsx`: 56px wide, the active tile ringed."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000000a",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Done: the rail draws each workspace's letter tile, the active one with the accent ring and the Slack-style bar.\n\nNext I'll wire the nav rail."
+       }
+      ]
+     }
+    },
+    {
+     "type": "system",
+     "uuid": "00000000-0000-4000-8000-00000000000b",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": null,
+     "subtype": "api_error"
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000000c",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Looks right. Ship it."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000000d",
+     "session_id": "3e9a7c41-0b2d-4e8f-8c6a-1d2e3f405162",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Committed as `feat(rust-app): native app shell in GPUI (U04a)`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000064",
+     "session_id": "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "The session-tabs e2e spec fails one run in five on CI. Find out why."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000065",
+     "session_id": "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around fix flaky e2e."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_100",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000066",
+     "session_id": "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_100",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000067",
+     "session_id": "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000006e",
+     "session_id": "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "what does the scheduler do when the laptop sleeps?"
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000006f",
+     "session_id": "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around the task."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_110",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000070",
+     "session_id": "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_110",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000071",
+     "session_id": "51c0e8a3-9f7b-4d2c-a1e6-0b9c8d7e6f5a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000078",
+     "session_id": "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Memory climbs by ~40 MB an hour with three tabs open. Profile the SSE replay buffer."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000079",
+     "session_id": "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around investigate the sse memory leak."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_120",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000007a",
+     "session_id": "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_120",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000007b",
+     "session_id": "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ],
+   "historyError": "ENOENT: the pre-compaction transcript is gone"
+  },
+  "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000082",
+     "session_id": "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Walk me through the release checklist for 0.3.327."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000083",
+     "session_id": "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around release checklist."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_130",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000084",
+     "session_id": "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_130",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000085",
+     "session_id": "8c1f0b2e-5d4a-4f7e-9a61-2b3c4d5e6f70",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000008c",
+     "session_id": "f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Port the Next.js app shell to a native GPUI window: the workspace rail, the nav rail and the session tabs."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000008d",
+     "session_id": "f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around port the app shell to gpui (fork)."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_140",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000008e",
+     "session_id": "f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_140",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000008f",
+     "session_id": "f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000096",
+     "session_id": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "The permission prompts get lost on reload."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000097",
+     "session_id": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around refactor the permission prompt flow so that every tool call that needs approval goes through a single queue, with per-tool remembered decisions, and make sure the queue survives a page reload without losing the pending prompts."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_150",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000098",
+     "session_id": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_150",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000099",
+     "session_id": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000a0",
+     "session_id": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Translate the settings page into German and Chinese."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000a1",
+     "session_id": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around \u00fcbersetzung der einstellungen \u2014 \u8bbe\u7f6e\u9875\u9762\u7ffb\u8bd1 \u2728."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_160",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000a2",
+     "session_id": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_160",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000a3",
+     "session_id": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000aa",
+     "session_id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Make the login page match the new design system."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000ab",
+     "session_id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around login page redesign."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_170",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000ac",
+     "session_id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_170",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000ad",
+     "session_id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000b4",
+     "session_id": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "please fix the login flow: the OAuth callback loops"
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000b5",
+     "session_id": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around fix the login bug."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_180",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000b6",
+     "session_id": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_180",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000b7",
+     "session_id": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000be",
+     "session_id": "f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "explain the session pinning code"
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000bf",
+     "session_id": "f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around the task."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_190",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000c0",
+     "session_id": "f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_190",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000c1",
+     "session_id": "f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000c8",
+     "session_id": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Triage the open CodeQL alerts in app/api."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000c9",
+     "session_id": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around codeql path-injection sweep."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_200",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000ca",
+     "session_id": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_200",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000cb",
+     "session_id": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000d2",
+     "session_id": "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Stream docker compose logs into the Docker panel."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000d3",
+     "session_id": "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around docker panel."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_210",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000d4",
+     "session_id": "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_210",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000d5",
+     "session_id": "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "c9d0e1f2-a3b4-4c5d-8e6f-7a8b9c0d1e2f": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000dc",
+     "session_id": "c9d0e1f2-a3b4-4c5d-8e6f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "The cost page's daily totals are shifted by a day in PST."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000dd",
+     "session_id": "c9d0e1f2-a3b4-4c5d-8e6f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around cost page totals are off by one day."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_220",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000de",
+     "session_id": "c9d0e1f2-a3b4-4c5d-8e6f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_220",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000df",
+     "session_id": "c9d0e1f2-a3b4-4c5d-8e6f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "d0e1f2a3-b4c5-4d6e-9f7a-8b9c0d1e2f3a": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000e6",
+     "session_id": "d0e1f2a3-b4c5-4d6e-9f7a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Let users upload an image as a workspace icon."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000e7",
+     "session_id": "d0e1f2a3-b4c5-4d6e-9f7a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around workspace icons."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_230",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000e8",
+     "session_id": "d0e1f2a3-b4c5-4d6e-9f7a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_230",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000e9",
+     "session_id": "d0e1f2a3-b4c5-4d6e-9f7a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000f0",
+     "session_id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Put Claude Code in a browser tab."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000f1",
+     "session_id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around first prototype of the browser shell."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_240",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000f2",
+     "session_id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_240",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000f3",
+     "session_id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000fa",
+     "session_id": "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Design the transport trait the native app talks to the server through."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000fb",
+     "session_id": "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around u02 transport trait."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_250",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-0000000000fc",
+     "session_id": "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_250",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-0000000000fd",
+     "session_id": "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000104",
+     "session_id": "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "cargo clippy --workspace -- -D warnings, and fix everything"
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000105",
+     "session_id": "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around clippy sweep."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_260",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000106",
+     "session_id": "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_260",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000107",
+     "session_id": "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000010e",
+     "session_id": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Write a golden recorder for open-tabs-store.ts."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000010f",
+     "session_id": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around golden recorder for open-tabs."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_270",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000110",
+     "session_id": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_270",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000111",
+     "session_id": "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000118",
+     "session_id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "The sqlite text golden fails after the main merge."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000119",
+     "session_id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around sqlite text goldens."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_280",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000011a",
+     "session_id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_280",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000011b",
+     "session_id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "3d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f7a": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000122",
+     "session_id": "3d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Run mutants over route.rs and kill the survivors."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000123",
+     "session_id": "3d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around mutation-test the route module."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_290",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000124",
+     "session_id": "3d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_290",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000125",
+     "session_id": "3d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f7a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "4e5f6a7b-8c9d-4e0f-9a1b-3c4d5e6f7a8b": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000012c",
+     "session_id": "4e5f6a7b-8c9d-4e0f-9a1b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "why does cargo test leak claudius --no-next servers?"
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000012d",
+     "session_id": "4e5f6a7b-8c9d-4e0f-9a1b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around the task."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_300",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000012e",
+     "session_id": "4e5f6a7b-8c9d-4e0f-9a1b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_300",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000012f",
+     "session_id": "4e5f6a7b-8c9d-4e0f-9a1b-3c4d5e6f7a8b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "5f6a7b8c-9d0e-4f1a-8b2c-4d5e6f7a8b9c": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000136",
+     "session_id": "5f6a7b8c-9d0e-4f1a-8b2c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Compare GPUI, Iced and Slint for the native app."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000137",
+     "session_id": "5f6a7b8c-9d0e-4f1a-8b2c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around adr."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_310",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000138",
+     "session_id": "5f6a7b8c-9d0e-4f1a-8b2c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_310",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000139",
+     "session_id": "5f6a7b8c-9d0e-4f1a-8b2c-4d5e6f7a8b9c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "6a7b8c9d-0e1f-4a2b-9c3d-5e6f7a8b9c0d": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000140",
+     "session_id": "6a7b8c9d-0e1f-4a2b-9c3d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Port lib/server/scheduler.ts to Rust."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000141",
+     "session_id": "6a7b8c9d-0e1f-4a2b-9c3d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around port the scheduler."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_320",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000142",
+     "session_id": "6a7b8c9d-0e1f-4a2b-9c3d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_320",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000143",
+     "session_id": "6a7b8c9d-0e1f-4a2b-9c3d-5e6f7a8b9c0d",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "7b8c9d0e-1f2a-4b3c-8d4e-6f7a8b9c0d1e": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000014a",
+     "session_id": "7b8c9d0e-1f2a-4b3c-8d4e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Spike an axum server in front of next dev."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000014b",
+     "session_id": "7b8c9d0e-1f2a-4b3c-8d4e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around spike."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_330",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000014c",
+     "session_id": "7b8c9d0e-1f2a-4b3c-8d4e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_330",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000014d",
+     "session_id": "7b8c9d0e-1f2a-4b3c-8d4e-6f7a8b9c0d1e",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000154",
+     "session_id": "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Set up the docs site with Astro."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000155",
+     "session_id": "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around the task."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_340",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000156",
+     "session_id": "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_340",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000157",
+     "session_id": "d9e8f7a6-b5c4-4d3e-9f2a-1b0c9d8e7f6a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "8c9d0e1f-2a3b-4c4d-9e5f-7a8b9c0d1e2f": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000015e",
+     "session_id": "8c9d0e1f-2a3b-4c4d-9e5f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Refresh the marketing screenshots."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000015f",
+     "session_id": "8c9d0e1f-2a3b-4c4d-9e5f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around screenshots for the gallery."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_350",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000160",
+     "session_id": "8c9d0e1f-2a3b-4c4d-9e5f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_350",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000161",
+     "session_id": "8c9d0e1f-2a3b-4c4d-9e5f-7a8b9c0d1e2f",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "9d0e1f2a-3b4c-4d5e-8f6a-8b9c0d1e2f3a": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000168",
+     "session_id": "9d0e1f2a-3b4c-4d5e-8f6a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Write the changelog for 0.3.300."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000169",
+     "session_id": "9d0e1f2a-3b4c-4d5e-8f6a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around changelog for 0.3.300."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_360",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000016a",
+     "session_id": "9d0e1f2a-3b4c-4d5e-8f6a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_360",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000016b",
+     "session_id": "9d0e1f2a-3b4c-4d5e-8f6a-8b9c0d1e2f3a",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "0e1f2a3b-4c5d-4e6f-9a7b-9c0d1e2f3a4b": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000172",
+     "session_id": "0e1f2a3b-4c5d-4e6f-9a7b-9c0d1e2f3a4b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Find and fix the broken links in /guides."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000173",
+     "session_id": "0e1f2a3b-4c5d-4e6f-9a7b-9c0d1e2f3a4b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around fix broken links."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_370",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-000000000174",
+     "session_id": "0e1f2a3b-4c5d-4e6f-9a7b-9c0d1e2f3a4b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_370",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-000000000175",
+     "session_id": "0e1f2a3b-4c5d-4e6f-9a7b-9c0d1e2f3a4b",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "1f2a3b4c-5d6e-4f7a-8b8c-0d1e2f3a4b5c": {
+   "messages": [
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000017c",
+     "session_id": "1f2a3b4c-5d6e-4f7a-8b8c-0d1e2f3a4b5c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": "Add client-side search with Pagefind."
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000017d",
+     "session_id": "1f2a3b4c-5d6e-4f7a-8b8c-0d1e2f3a4b5c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Looking into it. First I'll read the code around search with pagefind."
+       },
+       {
+        "type": "tool_use",
+        "id": "toolu_380",
+        "name": "Grep",
+        "input": {
+         "pattern": "TODO",
+         "path": "src"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "user",
+     "uuid": "00000000-0000-4000-8000-00000000017e",
+     "session_id": "1f2a3b4c-5d6e-4f7a-8b8c-0d1e2f3a4b5c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "user",
+      "content": [
+       {
+        "type": "tool_result",
+        "tool_use_id": "toolu_380",
+        "content": "src/a.ts:12: // TODO"
+       }
+      ]
+     }
+    },
+    {
+     "type": "assistant",
+     "uuid": "00000000-0000-4000-8000-00000000017f",
+     "session_id": "1f2a3b4c-5d6e-4f7a-8b8c-0d1e2f3a4b5c",
+     "parent_tool_use_id": null,
+     "message": {
+      "role": "assistant",
+      "content": [
+       {
+        "type": "text",
+        "text": "Found it, and fixed it. The change is in `src/a.ts`."
+       }
+      ]
+     }
+    }
+   ]
+  }
+ },
+ "unread": {
+  "wks_3f2a9c81d0e4": {
+   "b7d24f19-6c3e-4a5b-9d8e-7f6a5b4c3d2e": 2,
+   "e2a96d07-4b1c-4f3e-8d5a-6c7b8a9f0e1d": 1
+  }
+ }
+}

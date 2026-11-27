@@ -23,10 +23,16 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
             ..
         }
     );
-    let content = if is_chat {
-        chat(this, c, cx)
-    } else {
-        placeholder(route, c)
+    let content = match route {
+        Route::Workspace {
+            page: WorkspacePage::Chat { .. },
+            ..
+        } => chat(this, c, cx),
+        Route::Workspace {
+            page: WorkspacePage::Sessions | WorkspacePage::Session { .. },
+            ..
+        } => crate::sessions::view::element(this).unwrap_or_else(|| placeholder(route, c)),
+        _ => placeholder(route, c),
     };
     // The transcript scrolls itself (a virtualized list).
     div()
