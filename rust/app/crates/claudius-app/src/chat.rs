@@ -231,6 +231,11 @@ impl LiveChat {
         self.inner.snapshots.borrow().state.session_id.clone()
     }
 
+    /// The same mounted chat (a clone of it), not just the same session.
+    pub fn ptr_eq(&self, other: &LiveChat) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+
     /// A receiver that wakes on each new snapshot.
     pub fn changes(&self) -> watch::Receiver<ChatSnapshot> {
         self.inner.snapshots.clone()

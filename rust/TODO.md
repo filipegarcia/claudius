@@ -3686,6 +3686,12 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
   - [ ] **U04e** Background tab dots from the chat's merged `ChatState.sessions` instead of re-reading `GET /api/sessions?workspaceId=` (exact parity for foreign-cwd rows and disk-only titles). deps: U04b
   - [ ] **U04f** Keep one session-storage store per window across chat mounts (a browser tab's survives navigations; today it is per mount). deps: U04b
   - [ ] **U04g** Shut down gracefully on SIGTERM / SIGINT (`Backend::shutdown`, as the server's main does). Today only Cmd-Q runs it; on a signal the CLIs exit when their stdin closes. deps: U04b
+  - [x] **U04h** The chat route's transcript over the live chat: a `TranscriptSource` over the mounted `LiveChat`. deps: U04b, U05a — done 2026-11-27 (the loop, main tree, after merging U04b):
+    - `claudius-app/src/transcripts.rs` adds `LiveTranscripts`. While the chat is bound to a session, `read` gives that session the chat's latest published `ChatState`, and nothing to any other session.
+    - The shell sets the mounted chat in `sync_chat` (only a different chat notifies) and forwards each snapshot (`on_chat`). With a live chat it is the shell's transcripts source: `Shell::with_parts` uses it in place of the given one.
+    - The live card now shows only while a switch is in flight.
+    - Tests: `live_shell` checks the boot's transcript (and the card gone), the working row and the reply, and that only the bound session reads. Its mid-turn stream is now 40 ms a chunk: at 20 ms, under a loaded CPU, the test executor never parked while the transcript drew each chunk.
+    - App gate: fmt and clippy -D warnings clean, cargo test --workspace 285 passed, 0 failed; live_shell 20/20; mutation 3/3 killed plus 1 equivalent (`None` → `None` counted as a change notifies nothing).
   - [ ] **U04c** Shell polish left from U04a: tab drag reorder (`reorder_tab` exists), the label-width drag (`set_label_width` exists), StatusDot pulse and AnimatedGlyph animation, the narrow-window workspaces drawer. (Unread badges: U15. `ScopeToggle`: U13/U14.) deps: U04a
 - [ ] **U05** Chat transcript (`components/chat`, 58 files / 19k lines):
   - virtualized message list, user/assistant bubbles, streaming text

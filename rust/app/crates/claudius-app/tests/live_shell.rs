@@ -120,6 +120,28 @@ fn wait<T>(
     }
 }
 
+/// Settles until `selector` is drawn (`on`) or gone: the transcript view
+/// reads the chat a frame after the tab dot does.
+fn wait_drawn(cx: &mut VisualTestContext, selector: &'static str, on: bool) {
+    let t0 = Instant::now();
+    loop {
+        settle(cx);
+        cx.update(|window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        });
+        if cx.debug_bounds(selector).is_some() == on {
+            return;
+        }
+        assert!(
+            t0.elapsed() < LIMIT,
+            "timed out waiting for {selector} to be {}",
+            if on { "drawn" } else { "gone" }
+        );
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
 fn click(cx: &mut VisualTestContext, selector: &'static str) {
     let b = cx
         .debug_bounds(selector)
@@ -228,9 +250,11 @@ fn the_shell_runs_over_the_in_process_engine() {
     // The uploaded icon is read and drawn.
     wait(cx, &shell, "the icon", |s| s.icon_image(&w2.id).map(|_| ()));
     assert!(cx.debug_bounds("ws-icon-image").is_some());
-    for sel in ["chat-session", "chat-live", "session-tabs", "tab-0"] {
+    // The bound session's transcript (U04h), not the live card.
+    for sel in ["chat-session", "transcript", "session-tabs", "tab-0"] {
         assert!(cx.debug_bounds(sel).is_some(), "{sel}");
     }
+    assert!(cx.debug_bounds("chat-live").is_none());
     assert!(cx.debug_bounds("chat-reconnecting").is_none());
     // The gated tiles: `/api/customizations` answered, nothing published.
     cx.read(|cx| {
@@ -245,12 +269,15 @@ fn the_shell_runs_over_the_in_process_engine() {
     wait(cx, &shell, "running", |s| {
         (tabs(s)[0].1 == TabStatus::Running).then_some(())
     });
-    assert!(cx.debug_bounds("chat-working").is_some());
+    // The transcript's working row, then the reply.
+    wait_drawn(cx, "working-row", true);
     wait(cx, &shell, "idle after the turn", |s| {
         let st = s.live_chat()?.state();
         (tabs(s)[0].1 == TabStatus::Idle && !st.messages.is_empty()).then_some(())
     });
-    assert!(cx.debug_bounds("chat-working").is_none());
+    wait_drawn(cx, "working-row", false);
+    assert!(cx.debug_bounds("assistant-message").is_some());
+    cx.read(|cx| assert!(shell.read(cx).has_transcript(&s1)));
 
     // ── "+": the chat makes a session, the strip follows
     click(cx, "tabs-new");
@@ -258,6 +285,13 @@ fn the_shell_runs_over_the_in_process_engine() {
         let id = chat_session(s).filter(|id| *id != s1)?;
         let t = tabs(s);
         (t.len() == 2 && t[1].0 == id && t[1].2).then_some(id)
+    });
+    // The transcript follows the chat to the new session: the first one's
+    // tab no longer reads it.
+    cx.read(|cx| {
+        let s = shell.read(cx);
+        assert!(s.has_transcript(&s2));
+        assert!(!s.has_transcript(&s1));
     });
     // The other tab's dot is the server's list (the chat refreshed it).
     wait(cx, &shell, "the first tab idle from the list", |s| {
@@ -269,7 +303,9 @@ fn the_shell_runs_over_the_in_process_engine() {
     // the switch mustn't pull the strip back, and until the chat is on the
     // tab the strip bound, that tab reads as starting, not as the old
     // session's dot.
-    w.input(&w1.id, &s2, &stream_turn(100, 20));
+    // 40 ms apart: the transcript draws each chunk, and a busier stream
+    // under a loaded CPU keeps the test's executor from ever parking.
+    w.input(&w1.id, &s2, &stream_turn(150, 40));
     wait(cx, &shell, "the second session streaming", |s| {
         let st = s.live_chat()?.state();
         (tabs(s)[1].1 == TabStatus::Running && !st.messages.is_empty()).then_some(())

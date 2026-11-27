@@ -39,6 +39,7 @@ use crate::route::{Route, WorkspacePage};
 use crate::shortcuts::{self, *};
 use crate::state::{Effect, ShellState};
 use crate::store::LocalStore;
+use crate::transcripts::LiveTranscripts;
 
 /// The origin the chat's page URL is on (`window.location.origin`).
 pub const PAGE_ORIGIN: &str = claudius_transport::in_process::IN_PROCESS_ORIGIN;
@@ -146,6 +147,9 @@ pub struct Shell {
     pub(crate) data: Arc<dyn ShellData>,
     /// The chat transcripts' states (U05; U04b's live transport).
     transcripts: Arc<dyn TranscriptSource>,
+    /// Over a live chat, the mounted chat's transcripts (U04h); then
+    /// `transcripts` is this.
+    live_transcripts: Option<LiveTranscripts>,
     /// One view per recently shown tab, most recent last.
     chat_views: Vec<(String, Entity<TranscriptView>)>,
     pub(crate) focus: FocusHandle,
@@ -262,6 +266,12 @@ impl Shell {
         claudius_gpui_theme::apply(theme, cx);
         let mut state = ShellState::new();
         state.set_live_chat(data.has_live_chat());
+        // Over a live chat, the transcripts are the mounted chat's (U04h).
+        let live_transcripts = data.has_live_chat().then(LiveTranscripts::new);
+        let transcripts = match &live_transcripts {
+            Some(l) => Arc::new(l.clone()) as Arc<dyn TranscriptSource>,
+            None => transcripts,
+        };
         state.set_focus(store.focus());
         for (id, page) in store.remembered_pages() {
             state.remember_page(&id, page);
@@ -270,6 +280,7 @@ impl Shell {
             state,
             data,
             transcripts,
+            live_transcripts,
             chat_views: Vec::new(),
             focus,
             appearance,
@@ -635,6 +646,9 @@ impl Shell {
                 self.mount_chat(&ws, cx);
             }
         }
+        if let Some(l) = &self.live_transcripts {
+            l.set_chat(self.chat.as_ref().map(|c| c.chat.clone()));
+        }
         let Some(slot) = self.chat.as_mut() else {
             return;
         };
@@ -700,6 +714,9 @@ impl Shell {
                 if let Some(id) = slot.sync.on_snapshot(&slot.chat.snapshot()) {
                     let effects = self.state.chat_bound(ws, &id);
                     self.run(effects, cx);
+                }
+                if let Some(l) = &self.live_transcripts {
+                    l.changed();
                 }
                 cx.notify();
             }
