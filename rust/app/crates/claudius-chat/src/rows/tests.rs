@@ -343,7 +343,7 @@ fn ultra_verbose_opens_every_card_and_a_click_closes_one() {
             .iter()
             .map(|b| match b {
                 AssistantBlock::Thinking { open, .. } => *open,
-                AssistantBlock::Tool(t) => t.open,
+                AssistantBlock::Tool(t) => t.open(),
                 AssistantBlock::Text { .. } => false,
             })
             .collect()
@@ -585,7 +585,7 @@ fn thinking_says_encrypted_no_trace_or_streams() {
 }
 
 #[test]
-fn a_tool_call_is_one_row_with_its_status() {
+fn a_tool_use_block_goes_to_the_card_its_name_picks() {
     let mut s = state();
     let r = |is_error: Option<bool>, not_run: Option<bool>| ToolResult {
         content: "out".into(),
@@ -608,6 +608,7 @@ fn a_tool_call_is_one_row_with_its_status() {
             tool("5", "Agent", json!({"description": "look"}), None),
             tool("6", "Workflow", json!({}), None),
             tool("7", "ProposeGoal", json!({}), None),
+            tool("8", "Task", json!({}), None),
         ],
         1.0,
     ));
@@ -615,27 +616,29 @@ fn a_tool_call_is_one_row_with_its_status() {
         .blocks
         .into_iter()
         .filter_map(|b| match b {
-            AssistantBlock::Tool(t) => Some(t),
+            AssistantBlock::Tool(t) => Some(*t),
             _ => None,
         })
         .collect();
-    let status: Vec<ToolStatus> = tools.iter().map(|t| t.status).collect();
+    let status: Vec<&str> = tools[..4]
+        .iter()
+        .map(|t| match &t.card {
+            Card::Call(c) => c.status.id(),
+            _ => "?",
+        })
+        .collect();
+    assert_eq!(status, ["running", "ok", "error", "notrun"]);
+    let kinds: Vec<CardKind> = tools.iter().map(|t| t.card.kind()).collect();
     assert_eq!(
-        status[..4],
+        kinds[4..],
         [
-            ToolStatus::Running,
-            ToolStatus::Done,
-            ToolStatus::Error,
-            ToolStatus::NotRun
+            CardKind::Task,
+            CardKind::Workflow,
+            CardKind::ProposeGoal,
+            CardKind::Task
         ]
     );
-    assert_eq!(tools[0].summary, "ls -la");
-    assert_eq!(tools[1].summary, "/x.rs");
-    let cards: Vec<ToolCard> = tools.iter().map(|t| t.card).collect();
-    assert_eq!(
-        cards[4..],
-        [ToolCard::Task, ToolCard::Workflow, ToolCard::ProposeGoal]
-    );
+    assert_eq!(tools[1].card.key(), "tool:a:1");
 }
 
 #[test]

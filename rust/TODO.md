@@ -3721,7 +3721,20 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
   - [ ] **U05d** Per-message change hints from `TranscriptSource` (a revision or changed range) so a stream delta rebuilds only the rows it changed: at 10k rows a delta costs 5–17 ms CPU against the ADR's 3.8 ms p95. deps: U05a, U04b
   - [ ] **U05e** `claudius-client`'s replay is O(n²): `on_user` clones the message list on every event, so replaying 22k events takes 12–38 s in release (U05a's bench). deps: U01k
   - [ ] **U05b** Math: RaTeX (as U00a prototyped) matched against KaTeX on a golden set; until then math renders as raw TeX. deps: U05a
-- [~] **U06** (2026-11-27: agent, clone `par/U06`; on U05a's row model, under the GUI-first rule, while U05b (math) waits) Tool call cards: Bash, Edit/Write (diff), Read, Grep/Glob, Task/subagents, Workflow, WebFetch/Search, MCP tools, elapsed timers; diff overlay. The branch's TS renders every tool through one generic `ToolCall.tsx` card (plus `TaskBlock` / `WorkflowBlock` / `ProposeGoalBlock` / `JsonBlock` / `FilePreview`); the diff overlay is `components/overlays` (U10). deps: U05
+- [x] **U06** (2026-11-27: agent, clone `par/U06`; on U05a's row model, under the GUI-first rule, while U05b (math) waits) Tool call cards: Bash, Edit/Write (diff), Read, Grep/Glob, Task/subagents, Workflow, WebFetch/Search, MCP tools, elapsed timers; diff overlay. The branch's TS renders every tool through one generic `ToolCall.tsx` card (plus `TaskBlock` / `WorkflowBlock` / `ProposeGoalBlock` / `JsonBlock` / `FilePreview`); the diff overlay is `components/overlays` (U10). deps: U05
+  - Done 2026-11-27 (background agent, clone `par/U06`), in `claudius-chat`:
+    - **Models:** `cards.rs` models `ToolCall`, `TaskBlock` (with the subagent's trail), `WorkflowBlock`, `ProposeGoalBlock`, `JsonBlock` and `FilePreview` as pure data, one test per rule. `tool_text.rs` ports the TS helpers they call.
+    - **Golden:** `tool_cards_golden.json`, 520 cases in 24 sections, recorded from the TS by `rust/scripts/tool-cards-golden.mjs` (twice, byte-identical).
+    - **View:** `view/card_view.rs` draws the cards: expand / collapse; inner parts that reset when their card closes; a 1 s ticker only while a timer shows; `<pre>` and JSON folding past 4 KB; tooltips for titles. Each link's `CardAction` (open in Files, open in an editor, reopen the question) goes to `set_on_action`.
+    - **Fixture turn:** `script::tool_cards`.
+    - **Tests:** 49 model, 29 helper and 12 headless. Flake 20/20. Mutation 29/30; the survivor is equivalent (`cmp == cmp_root` next to the `startsWith(root + "/")` check, kept as the TS has it).
+    - **Bench (release):** scrolling stays under 8.33 ms a frame, cards open or closed (p95 1.4–3.2 ms). Streaming: p95 8.45 ms, 6.2% of frames over budget (U05d).
+    - **After the merge** the app gate passed: fmt and clippy -D warnings clean, cargo test --workspace 377 passed, 0 failed (with U04g). Screenshots: `rust/target/par/U06/shots/`.
+  - [ ] **U06a** Wire the cards into `claudius-app`: `set_file_link` from the active workspace; `set_card_settings` from Settings (show previews, editor, workflow size); `set_on_action` to the Files route, the editor URL and U08's question modal. deps: U04b, U06, U08
+  - [ ] **U06b** Port use-session's `USER_REJECTED_KIND` (`rejected` on `ToolResult`) to `claudius-client`, then remove the hard-coded `false` in `cards::call_card` ("Not run · rejected"). deps: U01q
+  - [ ] **U06c** HTML and image previews through the preview route in U12's WebView. deps: U12
+  - [ ] **U06d** Pulse animation, and horizontal scrolling for the ToolCall input / result, JSON and Workflow script `<pre>`s (they wrap today). deps: U06
+  - [ ] **U06e** The rate-limit and Opus-high-demand panels and the pill countdown, which U05a's comments assign to U06. deps: U05a
 - [~] **U07** Composer (2026-11-27: split, PromptInput.tsx is 2.6k lines: **U07a** the editor, send / queue / stop, history, drafts, prompt color, `!` bash mode, the queue strip and suggestions, agent, clone `par/U07a`, new crate `claudius-composer`; **U07b** the pickers; **U07c** images, inline pastes, voice):
   - editing: multiline editor, history, drafts (prompt-draft), prompt color
   - pickers: slash commands (fuzzy, highlight), `@` file/agent mentions, emoji shortcodes

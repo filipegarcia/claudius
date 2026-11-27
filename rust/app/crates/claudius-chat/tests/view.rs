@@ -168,7 +168,7 @@ fn the_verbose_level_shows_and_hides_cards() {
     let src = streaming_demo();
     let (view, cx) = open(&mut app, &src, "demo", 3000.);
     // Normal: tools, no thinking.
-    assert!(drawn(cx, "tool-row"));
+    assert!(drawn(cx, "tool-call:Read"));
     assert!(!drawn(cx, "thinking-card"));
     view.update(cx, |v, cx| v.set_verbose(Verbose::Verbose, cx));
     settle(cx);
@@ -176,7 +176,7 @@ fn the_verbose_level_shows_and_hides_cards() {
     // Compact keeps only text.
     view.update(cx, |v, cx| v.set_verbose(Verbose::Compact, cx));
     settle(cx);
-    assert!(!drawn(cx, "tool-row"));
+    assert!(!drawn(cx, "tool-call:Read"));
     assert!(!drawn(cx, "thinking-card"));
     assert!(drawn(cx, "assistant-message"));
 }

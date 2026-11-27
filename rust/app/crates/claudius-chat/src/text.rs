@@ -388,39 +388,6 @@ pub fn folded_markdown(text: &str, cut: usize) -> String {
     }
 }
 
-/// The tool placeholder's one-line input summary: the file the call works
-/// on (`pathFromToolInput`'s `file_path` / `notebook_path` / `path`), else
-/// the first of the inputs a card leads with, on one line, cut at 120
-/// characters.
-pub fn tool_summary(input: &Value) -> String {
-    const KEYS: [&str; 10] = [
-        "file_path",
-        "notebook_path",
-        "path",
-        "command",
-        "pattern",
-        "url",
-        "query",
-        "description",
-        "prompt",
-        "subject",
-    ];
-    let Some(text) = KEYS
-        .iter()
-        .find_map(|k| input.get(*k).and_then(Value::as_str))
-        .map(first_line)
-    else {
-        return String::new();
-    };
-    let mut chars = text.chars();
-    let head: String = chars.by_ref().take(120).collect();
-    if chars.next().is_some() {
-        format!("{head}…")
-    } else {
-        head
-    }
-}
-
 /// The `[Image #N]` ordinals in `text` (`TOKEN_RE`).
 pub fn image_tokens(text: &str) -> Vec<u64> {
     let mut out = Vec::new();
@@ -564,24 +531,6 @@ mod tests {
         let cut = text.find("fn b").unwrap() - 1;
         assert_eq!(folded_markdown(text, cut), "intro\n```rust\nfn a() {}\n```");
         assert_eq!(folded_markdown("a\nb", 1), "a");
-    }
-
-    #[test]
-    fn tool_summary_leads_with_the_file_then_the_command() {
-        assert_eq!(
-            tool_summary(&json!({"file_path": "/a/b.rs", "command": "x"})),
-            "/a/b.rs"
-        );
-        assert_eq!(
-            tool_summary(&json!({"command": "\ncargo test\n--all"})),
-            "cargo test"
-        );
-        assert_eq!(tool_summary(&json!({"other": 1})), "");
-        let long = "x".repeat(130);
-        assert_eq!(
-            tool_summary(&json!({ "command": long })).chars().count(),
-            121
-        );
     }
 
     #[test]

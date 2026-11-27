@@ -30,10 +30,14 @@ use std::sync::Arc;
 
 use claudius_client::sdk_filters::is_real_user_display_message;
 use claudius_client::state::ChatState;
-use claudius_client::{DisplayBlock, DisplayMessage, Role, SystemEntry, SystemEntryKind};
+use claudius_client::task_status::TaskInfo;
+use claudius_client::{
+    DisplayBlock, DisplayMessage, Role, SubagentRetry, SystemEntry, SystemEntryKind,
+};
 use serde_json::Value;
 
-use crate::text::{self, Segment, js_trim, truthy};
+use crate::cards::{self, Card, CardKind, FileLink};
+use crate::text::{self, Segment, truthy};
 use crate::verbose::{self, Verbose};
 
 /// Text longer than this many bytes folds (the U00a spike's `--row-cap`).
@@ -59,6 +63,19 @@ pub struct ViewOptions {
     /// card's default (open under ultra-verbose, else closed; a bash block
     /// starts open; folded text starts folded).
     pub toggled: HashSet<String>,
+    /// The workspace the cards link files into (`useFileLink`); `None`
+    /// before it's known, so paths are plain text.
+    pub file_link: Option<FileLink>,
+    /// `useMediaPreferences().showPreviews` (default on).
+    pub show_previews: bool,
+    /// `useEditor().editor`: the "Open" link's editor (`EDITORS`).
+    pub editor: String,
+    /// `useWorkflowSizeGuideline`: the effective size a live workflow shows.
+    pub workflow_size: String,
+    /// The Workflow / ProposeGoal cards first seen without a result (their
+    /// key): they stay open once it lands, as React's mount-time
+    /// `useState(!result)` does ([`crate::cards::WorkflowCard::live_default`]).
+    pub opened_live: HashSet<String>,
 }
 
 impl Default for ViewOptions {
@@ -69,6 +86,11 @@ impl Default for ViewOptions {
             fold_bytes: FOLD_BYTES,
             rate_limit_warning_pct: RATE_LIMIT_WARNING_PCT,
             toggled: HashSet::new(),
+            file_link: None,
+            show_previews: true,
+            editor: "vscode".into(),
+            workflow_size: "medium".into(),
+            opened_live: HashSet::new(),
         }
     }
 }
@@ -80,7 +102,8 @@ pub enum Toggle {
     Fold(String, usize),
     /// A thinking card (message uuid, block index).
     Thinking(String, usize),
-    /// A tool card (message uuid, block index); U06 draws the body.
+    /// A tool card (message uuid, block index); its parts key under it
+    /// (`tool:{uuid}:{index}/{part}`, [`crate::cards`]).
     Tool(String, usize),
     /// A peer message's header (`PeerMessageHeader`'s toggle).
     Peer(String),
@@ -108,6 +131,13 @@ impl Toggle {
     /// re-apply `defaultOpen`).
     pub fn follows_level(key: &str) -> bool {
         key.starts_with("thinking:") || key.starts_with("tool:")
+    }
+
+    /// The keys of `key`'s parts (`{key}/…`, and a nested call's file
+    /// preview), which reset when the card flips (React unmounts the body).
+    pub fn is_part_of(part: &str, key: &str) -> bool {
+        let under = |s: &str| s.strip_prefix(key).is_some_and(|r| r.starts_with('/'));
+        under(part) || part.strip_prefix("preview:").is_some_and(under)
     }
 }
 
@@ -352,8 +382,9 @@ pub enum AssistantBlock {
         open: bool,
         body: ThinkingBody,
     },
-    /// A tool call: one compact row until U06's cards.
-    Tool(ToolRow),
+    /// A tool call's card ([`crate::cards`]), boxed: a card is much bigger
+    /// than the other blocks.
+    Tool(Box<ToolRow>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -363,47 +394,18 @@ pub enum ThinkingBody {
     Note(&'static str),
 }
 
-/// `ToolCall`'s header as one row.
+/// A `tool_use` block's card ([`crate::cards`]).
 #[derive(Clone, Debug, PartialEq)]
 pub struct ToolRow {
     pub index: usize,
     pub id: String,
     pub name: String,
-    /// Which card U06 puts here (`TaskBlock`, `WorkflowBlock`, …).
-    pub card: ToolCard,
-    pub summary: String,
-    pub status: ToolStatus,
-    pub open: bool,
+    pub card: Card,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ToolCard {
-    Tool,
-    /// `isSubagentToolName`: `Task` / `Agent`.
-    Task,
-    Workflow,
-    ProposeGoal,
-}
-
-/// `ToolCall`'s `status` (without the task-joined and settled cases U06
-/// adds).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ToolStatus {
-    Running,
-    Done,
-    Error,
-    /// Auto mode's check had no usable answer: dim "Not run".
-    NotRun,
-}
-
-impl ToolStatus {
-    pub fn label(self) -> &'static str {
-        match self {
-            ToolStatus::Running => "running",
-            ToolStatus::Done => "done",
-            ToolStatus::Error => "error",
-            ToolStatus::NotRun => "not run",
-        }
+impl ToolRow {
+    pub fn open(&self) -> bool {
+        self.card.open()
     }
 }
 
@@ -433,7 +435,83 @@ struct Memo {
     /// `isRealUserDisplayMessage` (a regex classification, so kept).
     real: bool,
     kept: Vec<usize>,
+    /// What the message's cards read besides it, one per `tool_use` block.
+    joins: Vec<Join>,
     row: Option<Row>,
+}
+
+/// The session state a `tool_use` block's card reads: its task (by
+/// tool_use id), and a Task's subagent messages and retry progress.
+#[derive(Clone, Debug, PartialEq)]
+struct Join {
+    task: Option<TaskInfo>,
+    inner: Option<Vec<DisplayMessage>>,
+    retry: Option<SubagentRetry>,
+}
+
+/// The first progress entry under `id` with a retry (what
+/// `findSubagentRetry` can return while the Task runs).
+fn retry_under<'a>(state: &'a ChatState, id: &str) -> Option<&'a SubagentRetry> {
+    state.tool_progress.values().find_map(|p| {
+        (p.parent_tool_use_id.as_deref() == Some(id))
+            .then_some(p.subagent_retry.as_ref())
+            .flatten()
+    })
+}
+
+/// Whether `joins` is what `m`'s cards read now.
+fn joins_match(
+    joins: &[Join],
+    m: &DisplayMessage,
+    tasks: &HashMap<&str, &TaskInfo>,
+    state: &ChatState,
+) -> bool {
+    let mut it = joins.iter();
+    for block in &m.blocks {
+        let DisplayBlock::ToolUse { id, name, .. } = block else {
+            continue;
+        };
+        let Some(j) = it.next() else {
+            return false;
+        };
+        if j.task.as_ref() != tasks.get(id.as_str()).copied() {
+            return false;
+        }
+        if CardKind::of(name) == CardKind::Task {
+            let inner = state.subagent_messages.get(id.as_str());
+            let same_inner = match (&j.inner, inner) {
+                (None, None) => true,
+                (Some(a), Some(b)) => {
+                    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| message_eq(x, y))
+                }
+                _ => false,
+            };
+            if !same_inner || j.retry.as_ref() != retry_under(state, id) {
+                return false;
+            }
+        }
+    }
+    it.next().is_none()
+}
+
+/// The [`Join`]s of `m` as the state has them.
+fn joins_of(m: &DisplayMessage, tasks: &HashMap<&str, &TaskInfo>, state: &ChatState) -> Vec<Join> {
+    m.blocks
+        .iter()
+        .filter_map(|block| {
+            let DisplayBlock::ToolUse { id, name, .. } = block else {
+                return None;
+            };
+            let task = CardKind::of(name) == CardKind::Task;
+            Some(Join {
+                task: tasks.get(id.as_str()).map(|t| (*t).clone()),
+                inner: task
+                    .then(|| state.subagent_messages.get(id.as_str()).cloned())
+                    .flatten(),
+                retry: task.then(|| retry_under(state, id).cloned()).flatten(),
+            })
+        })
+        .collect()
 }
 
 /// The session-wide inputs a message row reads besides its message.
@@ -563,7 +641,8 @@ impl RowBuilder {
         self.memo[i].take()
     }
 
-    fn text(&mut self, key: String, text: &str) -> Arc<str> {
+    /// `text` as an `Arc` keyed `key`, the last build's when it's the same.
+    pub(crate) fn text(&mut self, key: String, text: &str) -> Arc<str> {
         let arc = match self.cache.remove(&key) {
             Some(a) if &*a == text => a,
             _ => Arc::from(text),
@@ -705,6 +784,15 @@ fn build(state: &ChatState, opts: &ViewOptions, b: &mut RowBuilder) -> Transcrip
         b.inputs = Some(inputs);
     }
     let expand_all = verbose::expand_all(opts.verbose);
+    let tasks = cards::task_index(state);
+    let ctx = cards::Ctx {
+        opts,
+        state,
+        tasks: &tasks,
+        disconnected,
+        expand_all,
+        pending_ask,
+    };
     let mut visible = verbose::visible_messages(&messages, opts.verbose)
         .into_iter()
         .peekable();
@@ -720,27 +808,31 @@ fn build(state: &ChatState, opts: &ViewOptions, b: &mut RowBuilder) -> Transcrip
                 memo.row = None;
                 memo
             }
-            (Some(memo), Some(kept)) if !fresh && memo.row.is_some() && memo.kept == kept => memo,
+            (Some(memo), Some(kept))
+                if !fresh
+                    && memo.row.is_some()
+                    && memo.kept == kept
+                    && joins_match(&memo.joins, m, &tasks, state) =>
+            {
+                memo
+            }
             (_, kept) => {
                 let row = kept.as_ref().map(|kept| {
                     if m.role == Role::User {
                         Row::User(Arc::new(user_row(m, &last_user, state, opts, b)))
                     } else {
-                        Row::Assistant(Arc::new(assistant_row(
-                            m,
-                            kept,
-                            disconnected,
-                            pending_ask,
-                            expand_all,
-                            opts,
-                            b,
-                        )))
+                        Row::Assistant(Arc::new(assistant_row(m, kept, &ctx, b)))
                     }
                 });
                 Box::new(Memo {
                     message: (*m).clone(),
                     real: real[i],
                     kept: kept.unwrap_or_default(),
+                    joins: if m.role == Role::Assistant {
+                        joins_of(m, &tasks, state)
+                    } else {
+                        Vec::new()
+                    },
                     row,
                 })
             }
@@ -875,12 +967,10 @@ fn user_row(
 fn assistant_row(
     m: &DisplayMessage,
     kept: &[usize],
-    disconnected: bool,
-    pending_ask: Option<&str>,
-    expand_all: bool,
-    opts: &ViewOptions,
+    ctx: &cards::Ctx,
     b: &mut RowBuilder,
 ) -> AssistantRow {
+    let (opts, expand_all) = (ctx.opts, ctx.expand_all);
     let streaming = m.streaming == Some(true);
     let mut blocks = Vec::new();
     for &index in kept {
@@ -892,26 +982,10 @@ fn assistant_row(
                 text: b.text(format!("t:{}:{index}", m.uuid), text),
             }),
             DisplayBlock::Thinking { text, redacted } => {
-                let redacted = *redacted == Some(true);
-                let has_body = !js_trim(text).is_empty();
-                let label = if redacted {
-                    "Thinking (encrypted)"
-                } else if !has_body && !streaming {
-                    "Thinking (no trace)"
-                } else {
-                    "Thinking"
-                };
-                let body = if redacted {
-                    ThinkingBody::Note(
-                        "Reasoning was redacted by the model and is not available to the client. The agent still uses it internally.",
-                    )
-                } else if has_body {
-                    ThinkingBody::Text(b.text(format!("k:{}:{index}", m.uuid), text))
-                } else if streaming {
-                    ThinkingBody::Note("Streaming the reasoning…")
-                } else {
-                    ThinkingBody::Note("No readable trace for this turn.")
-                };
+                let (label, body) =
+                    cards::thinking_parts(text, *redacted == Some(true), streaming, || {
+                        b.text(format!("k:{}:{index}", m.uuid), text)
+                    });
                 let open = expand_all != toggled(opts, Toggle::Thinking(m.uuid.clone(), index));
                 blocks.push(AssistantBlock::Thinking {
                     index,
@@ -925,42 +999,26 @@ fn assistant_row(
                 name,
                 input,
                 result,
-                ..
+                started_at,
             } => {
                 // The live AskUserQuestion's row merges into the inline
                 // question form (U08), so it hides while the ask is live.
-                if name == "AskUserQuestion" && pending_ask == Some(id.as_str()) {
+                if name == "AskUserQuestion" && ctx.pending_ask == Some(id.as_str()) {
                     continue;
                 }
-                let card = match name.as_str() {
-                    "Task" | "Agent" => ToolCard::Task,
-                    "Workflow" => ToolCard::Workflow,
-                    "ProposeGoal" => ToolCard::ProposeGoal,
-                    _ => ToolCard::Tool,
-                };
-                let status = match result {
-                    None => ToolStatus::Running,
-                    Some(r) if r.is_error == Some(true) && r.not_run == Some(true) => {
-                        ToolStatus::NotRun
-                    }
-                    Some(r) if r.is_error == Some(true) => ToolStatus::Error,
-                    Some(_) => ToolStatus::Done,
-                };
-                blocks.push(AssistantBlock::Tool(ToolRow {
+                let key = Toggle::Tool(m.uuid.clone(), index).key();
+                blocks.push(AssistantBlock::Tool(Box::new(ToolRow {
                     index,
                     id: id.clone(),
                     name: name.clone(),
-                    card,
-                    summary: text::tool_summary(input),
-                    status,
-                    open: expand_all != toggled(opts, Toggle::Tool(m.uuid.clone(), index)),
-                }));
+                    card: cards::card(ctx, b, key, id, name, input, result.as_ref(), *started_at),
+                })));
             }
         }
     }
     AssistantRow {
         uuid: m.uuid.clone(),
-        streaming_live: streaming && !disconnected,
+        streaming_live: streaming && !ctx.disconnected,
         aborted: m.aborted == Some(true),
         error_label: m
             .error_tag

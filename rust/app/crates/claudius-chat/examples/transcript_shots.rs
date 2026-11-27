@@ -20,8 +20,11 @@ mod shots {
     use std::sync::Arc;
 
     use claudius_chat::TranscriptView;
-    use claudius_chat::fixture::{DEMO_START_MS, FixtureTranscripts, golden, parse_log};
-    use claudius_chat::rows::{Pill, Row};
+    use claudius_chat::cards::{CallStatus, Card};
+    use claudius_chat::fixture::{
+        CARDS_ROOT, DEMO_START_MS, FixtureTranscripts, golden, parse_log,
+    };
+    use claudius_chat::rows::{AssistantBlock, Pill, Row};
     use claudius_chat::script;
     use claudius_chat::verbose::Verbose;
     use claudius_gpui_theme::{ThemeName, icons::IconAssets};
@@ -48,6 +51,11 @@ mod shots {
         src.insert("hooks", &script::hooks_turn("hooks", t));
         src.insert("folded", &script::long_turn("folded", t, 12));
         src.insert("pills", &parse_log(golden::PILLS));
+        src.insert("cards", &script::tool_cards("cards", t, CARDS_ROOT, false));
+        src.insert(
+            "cards-running",
+            &script::tool_cards("cards-running", t, CARDS_ROOT, true),
+        );
         let (history, stream) = script::demo("demo", t, 60.0);
         src.insert_streaming("demo", &history, stream.clone());
         src.insert_streaming("streaming", &history, stream);
@@ -73,6 +81,58 @@ mod shots {
             .collect();
         for k in keys {
             view.toggle(k, cx);
+        }
+    }
+
+    /// The cards of the tool calls `ids`, by their toggle key.
+    fn card_keys(view: &TranscriptView, ids: &[&str]) -> Vec<String> {
+        let mut keys = Vec::new();
+        for r in &view.transcript().rows {
+            if let Row::Assistant(a) = r {
+                for b in &a.blocks {
+                    if let AssistantBlock::Tool(t) = b
+                        && ids.contains(&t.id.as_str())
+                    {
+                        keys.push(t.card.key().to_owned());
+                    }
+                }
+            }
+        }
+        keys
+    }
+
+    /// Opens the cards of `ids`, then their `parts` (`{key}/{part}`).
+    fn open_cards(
+        view: &mut TranscriptView,
+        cx: &mut Context<TranscriptView>,
+        ids: &[&str],
+        parts: &[&str],
+    ) {
+        for k in card_keys(view, ids) {
+            view.toggle(k.clone(), cx);
+            for p in parts {
+                view.toggle(format!("{k}/{p}"), cx);
+            }
+        }
+    }
+
+    /// The running call's clock at 1m 23s.
+    fn running_at_83s(view: &mut TranscriptView, cx: &mut Context<TranscriptView>) {
+        let since = view.transcript().rows.iter().find_map(|r| match r {
+            Row::Assistant(a) => a.blocks.iter().find_map(|b| match b {
+                AssistantBlock::Tool(t) => match &t.card {
+                    Card::Call(c) => match c.status {
+                        CallStatus::Running { since, .. } => since,
+                        _ => None,
+                    },
+                    _ => None,
+                },
+                _ => None,
+            }),
+            _ => None,
+        });
+        if let Some(since) = since {
+            view.set_now(since + 83_000.0, cx);
         }
     }
 
@@ -119,6 +179,43 @@ mod shots {
                 session: "demo",
                 height: 1400.,
                 setup: |v, cx| v.set_verbose(Verbose::UltraVerbose, cx),
+            },
+            Scene {
+                name: "cards-collapsed",
+                session: "cards",
+                height: 1000.,
+                setup: |_, _| {},
+            },
+            Scene {
+                name: "cards-expanded",
+                session: "cards",
+                height: 2300.,
+                // The long Bash, the Edit, and the Task with its trail and
+                // report.
+                setup: |v, cx| {
+                    open_cards(v, cx, &["toolu_C04", "toolu_C05"], &[]);
+                    open_cards(v, cx, &["toolu_C10"], &["returned"]);
+                },
+            },
+            Scene {
+                name: "cards-workflow",
+                session: "cards",
+                height: 1500.,
+                setup: |v, cx| {
+                    open_cards(v, cx, &["toolu_C11", "toolu_C12", "toolu_C14"], &["args"])
+                },
+            },
+            Scene {
+                name: "cards-running",
+                session: "cards-running",
+                height: 700.,
+                setup: running_at_83s,
+            },
+            Scene {
+                name: "cards-failed",
+                session: "cards",
+                height: 900.,
+                setup: |v, cx| open_cards(v, cx, &["toolu_C15", "toolu_C16", "toolu_C19"], &[]),
             },
         ]
     }

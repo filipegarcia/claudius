@@ -14,10 +14,19 @@
 //! A new prompt (`lastUserUuid` changing after the replay) jumps to the
 //! bottom, as the React list's activation anchor does. "Jump to latest"
 //! shows while the list isn't following.
+//!
+//! The tool cards ([`card_view`]): a running call's timer reads the view's
+//! clock as its row renders, and the view ticks once a second while a card
+//! shows one.
+
+mod card_view;
+
+pub use card_view::CardAction;
 
 use std::sync::Arc;
+use std::time::Duration;
 
-use claudius_client::Role;
+use claudius_client::{DisplayBlock, Role};
 use claudius_gpui_theme::{ThemeName, code, density, fonts, hsla, icons};
 use claudius_theme::chat::ChatSize;
 use claudius_theme::{Rgba, Theme as Tokens, color, tailwind};
@@ -26,16 +35,17 @@ use gpui_kit::component::Icon;
 use gpui_kit::component::text::{MarkdownExtensions, TextView, TextViewStyle};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, Context, Div, FollowMode, FontWeight, HighlightStyle, Hsla,
+    AnyElement, App, Context, Div, FollowMode, FontWeight, HighlightStyle, Hsla,
     InteractiveElement as _, IntoElement, ListAlignment, ListState, ParentElement as _, Render,
     SharedString, StatefulInteractiveElement as _, Styled as _, Task, Window, div, list, px,
     relative,
 };
 
+use crate::cards::{Card, CardKind, FileLink};
 use crate::markdown::{MarkdownCache, MarkdownStats};
 use crate::rows::{
     AssistantBlock, AssistantRow, Fold, Pill, Placeholder, RateTone, Row, RowBuilder, SystemRow,
-    ThinkingBody, Toggle, Tone, ToolRow, ToolStatus, Transcript, UserRow, UserSegment, ViewOptions,
+    ThinkingBody, Toggle, Tone, Transcript, UserRow, UserSegment, ViewOptions,
 };
 use crate::source::TranscriptSource;
 use crate::verbose::{self, Verbose};
@@ -122,6 +132,9 @@ pub fn message_stamp(at_ms: f64, now_ms: f64, seconds: bool) -> Option<String> {
     Some(at.format(&fmt).to_string())
 }
 
+/// What the host does with a card's link ([`TranscriptView::set_on_action`]).
+pub type ActionHandler = Box<dyn Fn(&CardAction, &mut Window, &mut App)>;
+
 /// The transcript of one session.
 pub struct TranscriptView {
     source: Arc<dyn TranscriptSource>,
@@ -139,6 +152,12 @@ pub struct TranscriptView {
     now_ms: Option<f64>,
     style: Option<(ThemeName, u32, TextViewStyle)>,
     rebuilds: usize,
+    on_action: Option<ActionHandler>,
+    /// Every card action so far (the tests read them).
+    actions: Vec<CardAction>,
+    /// The one-second tick while a running timer shows.
+    ticker: Option<Task<()>>,
+    ticks: usize,
     _listen: Task<()>,
 }
 
@@ -190,6 +209,10 @@ impl TranscriptView {
             now_ms: None,
             style: None,
             rebuilds: 0,
+            on_action: None,
+            actions: Vec::new(),
+            ticker: None,
+            ticks: 0,
             _listen: listen,
         };
         view.refresh(cx);
@@ -241,10 +264,95 @@ impl TranscriptView {
         }
     }
 
-    /// Fixes the stamps' "today" (the screenshots and tests).
+    /// Fixes the clock: the stamps' "today" and the timers' now (the
+    /// screenshots and tests).
     pub fn set_now(&mut self, now_ms: f64, cx: &mut Context<Self>) {
         self.now_ms = Some(now_ms);
         cx.notify();
+    }
+
+    /// The view's clock: the fixed one, else the wall clock.
+    pub fn clock_ms(&self) -> f64 {
+        self.now_ms
+            .unwrap_or_else(|| claudius_core::now_ms() as f64)
+    }
+
+    /// The workspace the cards link files into (`FileLinkProvider`).
+    pub fn set_file_link(&mut self, link: Option<FileLink>, cx: &mut Context<Self>) {
+        if self.opts.file_link != link {
+            self.opts.file_link = link;
+            self.refresh(cx);
+        }
+    }
+
+    /// `showPreviews` (Settings), the "Open" link's editor id, and the
+    /// workflow size guideline (`workflowSizeGuideline`, resolved).
+    pub fn set_card_settings(
+        &mut self,
+        show_previews: bool,
+        editor: &str,
+        workflow_size: &str,
+        cx: &mut Context<Self>,
+    ) {
+        let (o, e, w) = (
+            &mut self.opts.show_previews,
+            &mut self.opts.editor,
+            &mut self.opts.workflow_size,
+        );
+        if *o != show_previews || e != editor || w != workflow_size {
+            *o = show_previews;
+            *e = editor.to_owned();
+            *w = workflow_size.to_owned();
+            self.refresh(cx);
+        }
+    }
+
+    /// Where the cards' links go (else they are only recorded).
+    pub fn set_on_action(&mut self, f: ActionHandler) {
+        self.on_action = Some(f);
+    }
+
+    /// The card actions so far, oldest first.
+    pub fn actions(&self) -> &[CardAction] {
+        &self.actions
+    }
+
+    /// Whether the one-second tick runs (a running timer shows).
+    pub fn ticking(&self) -> bool {
+        self.ticker.is_some()
+    }
+
+    /// Ticks so far.
+    pub fn ticks(&self) -> usize {
+        self.ticks
+    }
+
+    /// Starts or stops the tick to match the rows.
+    fn sync_ticker(&mut self, cx: &mut Context<Self>) {
+        let needs = self.transcript.rows.iter().any(|r| match r {
+            Row::Assistant(a) => a.blocks.iter().any(|b| match b {
+                AssistantBlock::Tool(t) => t.card.ticking(),
+                _ => false,
+            }),
+            _ => false,
+        });
+        if needs == self.ticker.is_some() {
+            return;
+        }
+        self.ticker = needs.then(|| {
+            cx.spawn(async move |this, cx| {
+                loop {
+                    cx.background_executor().timer(Duration::from_secs(1)).await;
+                    let alive = this.update(cx, |this, cx| {
+                        this.ticks += 1;
+                        cx.notify();
+                    });
+                    if alive.is_err() {
+                        break;
+                    }
+                }
+            })
+        });
     }
 
     /// Changes the level. Cards whose default follows the level forget
@@ -254,11 +362,42 @@ impl TranscriptView {
         if level == self.opts.verbose {
             return;
         }
-        if verbose::expand_all(level) != verbose::expand_all(self.opts.verbose) {
+        let was = verbose::expand_all(self.opts.verbose);
+        if verbose::expand_all(level) != was {
             self.opts.toggled.retain(|k| !Toggle::follows_level(k));
+            if was {
+                // `defaultOpen={expandAll || undefined}`: leaving ultra
+                // verbose doesn't re-apply a Workflow / ProposeGoal card's
+                // default, so it keeps the state it had.
+                for (key, open, live) in self.live_cards() {
+                    if open != live {
+                        self.opts.toggled.insert(key);
+                    }
+                }
+            }
         }
         self.opts.verbose = level;
         self.refresh(cx);
+    }
+
+    /// The Workflow / ProposeGoal cards on the list: key, open, and their
+    /// default outside ultra-verbose.
+    fn live_cards(&self) -> Vec<(String, bool, bool)> {
+        let mut out = Vec::new();
+        for r in &self.transcript.rows {
+            let Row::Assistant(a) = r else { continue };
+            for b in &a.blocks {
+                match b {
+                    AssistantBlock::Tool(t) => match &t.card {
+                        Card::Workflow(w) => out.push((w.key.clone(), w.open, w.live_default)),
+                        Card::Goal(g) => out.push((g.key.clone(), g.open, g.live_default)),
+                        _ => {}
+                    },
+                    _ => continue,
+                }
+            }
+        }
+        out
     }
 
     /// `session.catchingUp` (U04b's switch lifecycle feeds it).
@@ -269,8 +408,10 @@ impl TranscriptView {
         }
     }
 
-    /// Flips a card, fold or toggle ([`Toggle::key`]).
+    /// Flips a card, fold or toggle ([`Toggle::key`]). The card's parts
+    /// reset (React unmounts its body).
     pub fn toggle(&mut self, key: String, cx: &mut Context<Self>) {
+        self.opts.toggled.retain(|k| !Toggle::is_part_of(k, &key));
         if !self.opts.toggled.remove(&key) {
             self.opts.toggled.insert(key);
         }
@@ -293,9 +434,29 @@ impl TranscriptView {
         let (builder, opts) = (&mut self.builder, &mut self.opts);
         let found = self.source.read(&self.session_id, &mut |state| {
             for m in &state.messages {
-                if m.role == Role::Assistant && m.streaming == Some(true) {
+                if m.role != Role::Assistant {
+                    continue;
+                }
+                if m.streaming == Some(true) {
                     for i in 0..m.blocks.len() {
                         opts.toggled.insert(Toggle::Fold(m.uuid.clone(), i).key());
+                    }
+                }
+                // A Workflow / ProposeGoal card first seen running stays
+                // open when its result lands (`useState(!result)`).
+                for (i, b) in m.blocks.iter().enumerate() {
+                    if let DisplayBlock::ToolUse {
+                        name, result: None, ..
+                    } = b
+                        && matches!(
+                            CardKind::of(name),
+                            CardKind::Workflow | CardKind::ProposeGoal
+                        )
+                    {
+                        let key = Toggle::Tool(m.uuid.clone(), i).key();
+                        if !opts.opened_live.contains(&key) {
+                            opts.opened_live.insert(key);
+                        }
                     }
                 }
             }
@@ -320,6 +481,7 @@ impl TranscriptView {
             }
             self.anchored_user = Some(t.last_user_uuid.clone());
         }
+        self.sync_ticker(cx);
         cx.notify();
     }
 
@@ -765,8 +927,15 @@ impl TranscriptView {
                     label,
                     open,
                     body,
-                } => thinking(&m.uuid, *index, label, *open, body, c, cx),
-                AssistantBlock::Tool(t) => tool(t, c),
+                } => thinking(
+                    Toggle::Thinking(m.uuid.clone(), *index).key(),
+                    label,
+                    *open,
+                    body,
+                    c,
+                    cx,
+                ),
+                AssistantBlock::Tool(t) => self.tool_card(t, c, cx),
             };
             body = body.child(el);
         }
@@ -1191,15 +1360,14 @@ fn working(c: &Colors, disconnected: bool) -> Div {
 }
 
 fn thinking(
-    uuid: &str,
-    index: usize,
+    key: String,
     label: &'static str,
     open: bool,
     body: &ThinkingBody,
     c: &Colors,
     cx: &mut Context<TranscriptView>,
 ) -> AnyElement {
-    let key = Toggle::Thinking(uuid.to_owned(), index).key();
+    let id = SharedString::from(format!("thinking-{key}"));
     let redacted = label.starts_with("Redacted");
     div()
         .debug_selector(|| "thinking-card".into())
@@ -1212,7 +1380,7 @@ fn thinking(
         .flex_col()
         .child(
             text_px(div(), 12., 16.)
-                .id(SharedString::from(format!("thinking-{uuid}-{index}")))
+                .id(id)
                 .flex()
                 .items_center()
                 .gap(px(8.))
@@ -1250,60 +1418,6 @@ fn thinking(
                     .child(inner),
             )
         })
-        .into_any_element()
-}
-
-/// U06 draws the cards; until then one compact row: the name, the input's
-/// one-line summary and the status.
-fn tool(t: &ToolRow, c: &Colors) -> AnyElement {
-    let (fg, bg) = match t.status {
-        ToolStatus::Running => (step("amber-300"), step("amber-500")),
-        ToolStatus::Done => (step("emerald-300"), step("emerald-500")),
-        ToolStatus::Error => (step("red-300"), step("red-500")),
-        ToolStatus::NotRun => (c.muted, c.muted),
-    };
-    text_px(div(), 12., 18.)
-        .debug_selector(|| "tool-row".into())
-        .my(px(2.))
-        .flex()
-        .items_center()
-        .gap(px(8.))
-        .rounded(px(6.))
-        .border_1()
-        .border_color(h(c.border))
-        .bg(a(c.panel, 50.))
-        .px(px(8.))
-        .py(px(4.))
-        .children(icon("Wrench", 12., h(c.muted)))
-        .child(
-            div()
-                .flex_none()
-                .font_family(fonts::MONO)
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(h(c.foreground))
-                .child(t.name.clone()),
-        )
-        .child(
-            div()
-                .flex_1()
-                .min_w_0()
-                .overflow_hidden()
-                .whitespace_nowrap()
-                .text_ellipsis()
-                .font_family(fonts::MONO)
-                .text_color(h(c.muted))
-                .child(t.summary.clone()),
-        )
-        .child(
-            text_px(div(), 10., 14.)
-                .flex_none()
-                .rounded_full()
-                .px(px(6.))
-                .py(px(1.))
-                .bg(a(bg, 15.))
-                .text_color(h(fg))
-                .child(t.status.label()),
-        )
         .into_any_element()
 }
 

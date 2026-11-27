@@ -5,7 +5,8 @@
 //! ADR's U00a "CPU per frame" numbers.
 //!
 //! `cargo run --release -p claudius-chat --example bench` (from rust/app).
-//! macOS only.
+//! About one event in three is a tool call (a Bash, Edit or Read card);
+//! `BENCH_VERBOSE=ultra` scrolls with every card open. macOS only.
 
 #[cfg(target_os = "macos")]
 fn main() -> anyhow::Result<()> {
@@ -109,6 +110,15 @@ mod bench {
         frames: usize,
     ) {
         let (handle, view) = open(cx, src, "long");
+        // `BENCH_VERBOSE=ultra`: every tool card open (U06), the heaviest
+        // rows the synthetic history has.
+        if std::env::var("BENCH_VERBOSE").as_deref() == Ok("ultra") {
+            cx.update(|cx| {
+                view.update(cx, |v, cx| {
+                    v.set_verbose(claudius_chat::verbose::Verbose::UltraVerbose, cx)
+                })
+            });
+        }
         for _ in 0..4 {
             frame(cx, handle);
         }

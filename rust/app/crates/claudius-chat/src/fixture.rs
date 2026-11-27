@@ -84,7 +84,15 @@ pub mod ids {
     /// W2's active tab.
     pub const STREAMED: &str = "a4c3e2f1-8b7a-4d6c-9e5f-3a2b1c0d9e8f";
     pub const TOOLS: &str = "c6e5d4f3-2a1b-4c0d-8e9f-7a6b5c4d3e2f";
+    /// Every kind of tool card, finished ([`super::script::tool_cards`]);
+    /// not in the shell fixture.
+    pub const CARDS: &str = "d1c2b3a4-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+    /// The same turn with a Bash still running.
+    pub const CARDS_RUNNING: &str = "e5f4d3c2-b1a0-4f9e-8d7c-6b5a4f3e2d1c";
 }
+
+/// The card sessions' workspace root.
+pub const CARDS_ROOT: &str = "/Users/demo/Projects/claudius";
 
 /// claudius-client's recorded scenarios, one log each.
 pub mod golden {
@@ -113,6 +121,12 @@ impl FixtureTranscripts {
             ids::LONG,
             &script::synthetic(ids::LONG, 4400, DEMO_START_MS),
         );
+        for (id, running) in [(ids::CARDS, false), (ids::CARDS_RUNNING, true)] {
+            me.insert(
+                id,
+                &script::tool_cards(id, DEMO_START_MS, CARDS_ROOT, running),
+            );
+        }
         for (id, log) in [
             (ids::COMPACTION, golden::COMPACTION),
             (ids::BUBBLES, golden::BUBBLES),
@@ -285,6 +299,8 @@ mod tests {
             ids::PILLS,
             ids::STREAMED,
             ids::TOOLS,
+            ids::CARDS,
+            ids::CARDS_RUNNING,
             ids::DEMO,
             ids::LONG,
         ] {
