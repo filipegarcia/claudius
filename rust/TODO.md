@@ -3793,7 +3793,7 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
       - `tests/cards_host.rs` (7, fixture): a path opens the Files route (`?path=src/main.rs`) in the route's workspace; "Open" goes to the saved editor's URL, or `vscode` for an unknown id; a written page shows its preview, and `showPreviews` `"false"` hides it; an answered question's pill resurrects it, and one with no questions toasts.
       - `tests/live_cards.rs` (1, the in-process engine, temporary HOME, fake CLI): the boot chat's cards link into the workspace, and `workflowSizeGuideline: "large"` in the user settings lands as the view's size.
       - Unit tests: the `showPreviews`, editor and workflow-size answer rules.
-    - Gate: GATE
+    - Gate: fmt and clippy -D warnings clean; cargo test --workspace 798 passed, 0 failed (53 binaries). The doc-test step failed in that run with "can't find crate" (two builds of claudius-transport a minute apart in the shared target) and passed on a rerun (`cargo test --workspace --doc`, 0 failed). cards_host, live_cards, chat and live_shell 5/5; mutation 6/6 killed (no card sync in `sync_chat_view`, no action handler, the editor or showPreviews not read from the store, no workflow-size request, `reopen_ask` not called).
     - Closes U08d.
   - [ ] **U06b** Port use-session's `USER_REJECTED_KIND` (`rejected` on `ToolResult`) to `claudius-client`, then remove the hard-coded `false` in `cards::call_card` ("Not run · rejected"). deps: U01q
   - [ ] **U06c** HTML and image previews through the preview route in U12's WebView. deps: U12
@@ -3856,7 +3856,7 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
       - `prompts_view`: the tip follows an answer under the card.
       - Unit tests: the reply rules.
     - The status line reads the same setting with its own request (U09a), and so does the TS: one hook for the status line and the card in ChatSurface, plus `useMaxEffortLevel`'s.
-    - Gate: GATE
+    - Gate: fmt and clippy -D warnings clean; cargo test --workspace 654 passed, 0 failed, 3 ignored (49 binaries). Flake: 1 of 5 runs failed on live_shell's last route assertion (the chat's `?session=` write-back race), fixed; then live_auto_mode, live_composer and live_shell 5/5. Mutation 6/8 killed; the 2 survivors (no change-feed wake when an answer lands, a stale cwd's answer) depend on timing the live test can't force, and prompts_view covers the listener half.
   - [x] **U08d** The transcript's "Reopen" pill on ask rows calls `ChatPrompts::reopen_ask` (`true`: scroll to the inline ask). deps: U06, U08a — done 2026-11-27 with U06a (`card_host.rs`; the native inline ask is always in view, so `true` scrolls nothing).
   - [ ] **U08e** The composer sets `PromptOverlays::set_field_probe` (the mid-draft focus guard, the ask's in-field check); a paste outside any field goes to `AskView::paste`; file drops. deps: U07a, U08a
 - [~] **U09** Status line + session card:
@@ -3891,7 +3891,7 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
       - The context percent uses `Math.round`, so 74.5% warns.
       - A failed poll keeps the last reading.
       - A failed mode POST keeps the pick until `mode_changed`.
-    - Merge (the loop): GATE
+    - Merge (the loop): fmt and clippy -D warnings clean; cargo test --workspace 650 passed, 0 failed, 3 ignored (48 binaries); the live tests 10/10; mutation 3/3 killed (the composer's fetch closed, the chat's fetch dropping its answer, no status line).
     - Screenshots: `rust/target/par/U09a/shots/` (light / dark: idle, mid-turn, mode menu, model picker).
   - [ ] **U09b** The session card and the panels: SessionCard (the right rail; in TS the ModelPicker lives there), goal banner, todos panel, tools panel, tasks / subagents, activity feed (`components/panels`). The output style is an overlay (`OutputStyleOverlay.tsx`): U10. deps: U09a
   - [ ] **U09c** Status-line seams: workspace chip, SessionPicker, agent picker menu, Compact / Clear, notify menu, verbose selector, focus toggle, copy session ID, and the clock settings (`timeFormat` / `timeZone`) for the done time. deps: U09a
@@ -3930,7 +3930,7 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
     - TS golden `rust/scripts/files-rules-golden.mjs`: 36 helpers, 519 cases; re-recorded in the merge, byte-identical, ASCII-only.
     - Agent's tests: 128 in claudius-files, `files_screen` (3, in the shell) and `files_live` (1: the in-process engine, temporary HOME, fake CLI; roots, list, search, read, save, find in folder, create, rename, delete; not reveal or `serve=1`). Agent's app gate 634 passed, 0 failed, 1 ignored. Flake 20/20. Mutation 46/46 killed.
     - Merge: `main.rs` and `shell.rs` conflicted with U07e / U08c / U09a and were resolved by hand: the files data is set in the same `shell.update` as the composer target and the prompt source, and `files::sync` runs after `sync_composer`.
-    - Merge gate: GATE
+    - Merge gate: fmt and clippy -D warnings clean; cargo test --workspace 786 passed, 0 failed, 3 ignored (57 binaries with the doc tests); files_live, files_screen, live_shell and live_composer 5/5; mutation 2/2 killed (no `files::sync` in the shell's render; no Files arm in `screens.rs`).
     - Screenshots: `rust/target/par/U12c/shots/`.
   - [ ] **U12d** The assets page's `FileDetail` / `FileGrid` (`/api/assets/<hash>`), with the assets route. On the branch only `app/[workspaceId]/assets/page.tsx` mounts them. deps: U04
   - [ ] **U12e** Find in file: paint the active match's selection while the editor is unfocused (Chromium shows a muted one; gpui-component paints none). deps: U12c
