@@ -84,6 +84,10 @@ struct Inner {
     tx: mpsc::UnboundedSender<(u64, ActFn)>,
     snapshots: watch::Receiver<ChatSnapshot>,
     next: AtomicU64,
+    /// The page's own requests ([`LiveChat::fetch`]): its transport, on
+    /// its runtime.
+    transport: Arc<dyn Transport>,
+    rt: tokio::runtime::Handle,
 }
 
 /// A handle on a running chat. Clones share it; the chat unmounts when the
@@ -211,13 +215,15 @@ impl LiveChat {
         let (tx, rx) = mpsc::unbounded_channel();
         let (ui_tx, ui_rx) = unbounded();
         let href = href.to_owned();
-        rt.spawn(host(state, transport, href, rx, snap_tx, ui_tx));
+        rt.spawn(host(state, transport.clone(), href, rx, snap_tx, ui_tx));
         let chat = LiveChat {
             inner: Arc::new(Inner {
                 workspace_id: workspace_id.to_owned(),
                 tx,
                 snapshots,
                 next: AtomicU64::new(1),
+                transport,
+                rt: rt.clone(),
             }),
         };
         (chat, ui_rx)
@@ -250,6 +256,22 @@ impl LiveChat {
     /// A receiver that wakes on each new snapshot.
     pub fn changes(&self) -> watch::Receiver<ChatSnapshot> {
         self.inner.snapshots.clone()
+    }
+
+    /// A request of the page's own (the status line's model list, the
+    /// settings, the context poll), over the chat's transport on its
+    /// runtime: `fetch(url)` as the page's other hooks make it. The
+    /// receiver may be polled from any executor.
+    pub fn fetch(
+        &self,
+        req: claudius_client::effect::FetchRequest,
+    ) -> futures::channel::oneshot::Receiver<claudius_client::effect::FetchOutcome> {
+        let (tx, rx) = futures::channel::oneshot::channel();
+        let transport = self.inner.transport.clone();
+        self.inner.rt.spawn(async move {
+            let _ = tx.send(transport.fetch_outcome(&req).await);
+        });
+        rx
     }
 
     /// Runs `f` on the machine (an action, `switch_session`, ...) after

@@ -40,6 +40,7 @@ use crate::nav::FocusLevel;
 use crate::route::{Route, WorkspacePage};
 use crate::shortcuts::{self, *};
 use crate::state::{Effect, ShellState};
+use crate::status::LiveStatus;
 use crate::store::LocalStore;
 use crate::targets::{LiveComposer, LivePromptSource};
 use crate::transcripts::LiveTranscripts;
@@ -157,6 +158,10 @@ pub struct Shell {
     live_composer: Option<Arc<LiveComposer>>,
     /// One view per recently shown tab, most recent last.
     chat_views: Vec<(String, Entity<TranscriptView>)>,
+    /// Over a live chat, the mounted chat for the status line (U09a), and
+    /// its view once the chat route showed it.
+    live_status: Option<LiveStatus>,
+    status_view: Option<Entity<claudius_status::StatusLineView>>,
     /// The chat route's composer (U07), once a target is set: one view,
     /// bound to whichever tab is shown.
     composer_target: Option<Arc<dyn ComposerTarget>>,
@@ -280,6 +285,7 @@ impl Shell {
         state.set_live_chat(data.has_live_chat());
         // Over a live chat, the transcripts are the mounted chat's (U04h).
         let live_transcripts = data.has_live_chat().then(LiveTranscripts::new);
+        let live_status = data.has_live_chat().then(LiveStatus::new);
         let transcripts = match &live_transcripts {
             Some(l) => Arc::new(l.clone()) as Arc<dyn TranscriptSource>,
             None => transcripts,
@@ -288,7 +294,7 @@ impl Shell {
         // (U08c).
         let live_composer = live_transcripts
             .clone()
-            .map(|l| Arc::new(LiveComposer::new(l, data.clone())));
+            .map(|l| Arc::new(LiveComposer::new(l)));
         let live_prompts = live_transcripts
             .clone()
             .map(|l| Arc::new(LivePromptSource::new(l)) as Arc<dyn PromptSource>);
@@ -304,6 +310,8 @@ impl Shell {
             composer_target: live_composer.clone().map(|c| c as Arc<dyn ComposerTarget>),
             live_composer,
             chat_views: Vec::new(),
+            live_status,
+            status_view: None,
             composer: None,
             prompt_source: live_prompts,
             prompts: Vec::new(),
@@ -424,6 +432,28 @@ impl Shell {
         self.chat_views.push((tab, view));
         if self.chat_views.len() > KEPT_CHAT_VIEWS {
             self.chat_views.remove(0);
+        }
+    }
+
+    /// The status line's view (U09a): over a live chat, made the first
+    /// time the chat route shows a session; its theme follows the shell's.
+    pub fn status_view(&self) -> Option<Entity<claudius_status::StatusLineView>> {
+        self.status_view.clone()
+    }
+
+    fn sync_status_view(&mut self, cx: &mut Context<Self>) {
+        let Some(target) = self.live_status.clone() else {
+            return;
+        };
+        let theme = self.theme;
+        match &self.status_view {
+            Some(v) => v.update(cx, |v, cx| v.set_theme(theme, cx)),
+            None if self.chat_tab().is_some() => {
+                let target: Arc<dyn claudius_status::StatusTarget> = Arc::new(target);
+                self.status_view =
+                    Some(cx.new(|cx| claudius_status::StatusLineView::new(target, theme, cx)));
+            }
+            None => {}
         }
     }
 
@@ -765,6 +795,9 @@ impl Shell {
         if let Some(l) = &self.live_transcripts {
             l.set_chat(self.chat.as_ref().map(|c| c.chat.clone()));
         }
+        if let Some(l) = &self.live_status {
+            l.set_chat(self.chat.as_ref().map(|c| c.chat.clone()));
+        }
         let Some(slot) = self.chat.as_mut() else {
             return;
         };
@@ -832,6 +865,9 @@ impl Shell {
                     self.run(effects, cx);
                 }
                 if let Some(l) = &self.live_transcripts {
+                    l.changed();
+                }
+                if let Some(l) = &self.live_status {
                     l.changed();
                 }
                 cx.notify();
@@ -1095,6 +1131,7 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.refit();
         self.sync_chat_view(cx);
+        self.sync_status_view(cx);
         self.sync_composer(window, cx);
         self.sync_chat_prompts(cx);
         let root = div()

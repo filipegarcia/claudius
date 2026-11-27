@@ -40,10 +40,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use claudius_client::effect::{FetchOutcome, FetchRequest};
 use claudius_transport::{CookieJar, Request, Response, Transport, TransportError};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
-use futures::channel::oneshot;
 use futures::future::FutureExt as _;
 use serde_json::Value;
 
@@ -342,15 +340,6 @@ impl ShellData for TransportShellData {
 
     fn has_live_chat(&self) -> bool {
         true
-    }
-
-    fn page_fetch(&self, workspace_id: &str, req: FetchRequest) -> oneshot::Receiver<FetchOutcome> {
-        let (tx, rx) = oneshot::channel();
-        let t = self.page(workspace_id);
-        self.backend.handle().spawn(async move {
-            let _ = tx.send(t.fetch_outcome(&req).await);
-        });
-        rx
     }
 
     fn subscribe(&self) -> UnboundedReceiver<ShellChange> {

@@ -18,6 +18,7 @@ pub mod sessions;
 pub mod shell;
 pub mod shortcuts;
 pub mod state;
+pub mod status;
 pub mod store;
 pub mod tabs;
 pub mod targets;

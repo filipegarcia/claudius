@@ -8,8 +8,8 @@
 //! [`SessionCall`] on the chat ([`LiveChat::act`]), and answers a call's
 //! promise when the chat's `Effect::ActionResolved` reaches the shell
 //! ([`LiveComposer::resolve`]). The composer's own requests (the draft,
-//! `!` bash, the prompt color) go over the chat's workspace page
-//! ([`ShellData::page_fetch`]), as the browser's `fetch` would.
+//! `!` bash, the prompt color) go over the chat's own transport
+//! ([`LiveChat::fetch`]), as the browser's `fetch` would.
 
 use std::sync::{Arc, LazyLock};
 
@@ -26,20 +26,17 @@ use futures::stream::BoxStream;
 use serde_json::Value;
 
 use crate::chat::LiveChat;
-use crate::data::ShellData;
 use crate::transcripts::LiveTranscripts;
 
 pub struct LiveComposer {
     transcripts: LiveTranscripts,
-    data: Arc<dyn ShellData>,
     resolutions: Resolutions,
 }
 
 impl LiveComposer {
-    pub fn new(transcripts: LiveTranscripts, data: Arc<dyn ShellData>) -> Self {
+    pub fn new(transcripts: LiveTranscripts) -> Self {
         LiveComposer {
             transcripts,
-            data,
             resolutions: Resolutions::new(),
         }
     }
@@ -83,7 +80,7 @@ impl ComposerTarget for LiveComposer {
 
     fn fetch(&self, req: FetchRequest) -> oneshot::Receiver<FetchOutcome> {
         match self.transcripts.chat() {
-            Some(chat) => self.data.page_fetch(chat.workspace_id(), req),
+            Some(chat) => chat.fetch(req),
             None => closed(),
         }
     }

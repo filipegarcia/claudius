@@ -10,6 +10,7 @@ members = [
     "crates/claudius-composer",
     "crates/claudius-gpui-theme",
     "crates/claudius-prompts",
+    "crates/claudius-status",
 ]
 
 [workspace.package]
@@ -38,6 +39,8 @@ tokio = { version = "1", features = ["full"] }
 claudius-gpui-theme = { path = "crates/claudius-gpui-theme" }
 # The prompt cards (U08): permission, plan, elicitation, AskUserQuestion.
 claudius-prompts = { path = "crates/claudius-prompts" }
+# The chat's status line (U09a).
+claudius-status = { path = "crates/claudius-status" }
 
 # GPUI Kit publishes gpui-component and pins the gpui-pre (Zed snapshot)
 # crates it was built against. Pinned exactly, as the U00a spike verified it

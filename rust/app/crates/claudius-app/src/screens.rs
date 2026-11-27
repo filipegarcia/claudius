@@ -33,7 +33,7 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
         Route::Workspace {
             page: WorkspacePage::Chat { .. },
             ..
-        } => chat(this, c, cx),
+        } => with_status_line(this, chat(this, c, cx)),
         Route::Workspace {
             page: WorkspacePage::Sessions | WorkspacePage::Session { .. },
             ..
@@ -51,6 +51,30 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
         .when(!is_chat, |d| d.overflow_y_scroll())
         .child(content)
         .into_any_element()
+}
+
+/// `StatusLine` over the chat (ChatSurface.tsx:2428): over a live chat,
+/// once a tab is open (the empty state has none).
+fn with_status_line(this: &Shell, chat: AnyElement) -> AnyElement {
+    let ws = this.state.active_workspace().map(|w| w.id.as_str());
+    let mounted = this
+        .live_chat()
+        .is_some_and(|l| Some(l.workspace_id()) == ws);
+    match this
+        .status_view()
+        .filter(|_| mounted && this.chat_tab().is_some())
+    {
+        Some(status) => div()
+            .flex()
+            .flex_col()
+            .flex_1()
+            .min_h_0()
+            .size_full()
+            .child(status)
+            .child(chat)
+            .into_any_element(),
+        None => chat,
+    }
 }
 
 fn row(key: &str, value: impl Into<SharedString>, c: &Colors) -> Div {

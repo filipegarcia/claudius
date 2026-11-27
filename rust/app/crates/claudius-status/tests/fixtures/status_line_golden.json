@@ -1,0 +1,4337 @@
+{
+ "sections": {
+  "workingStatusLabel": [
+   {
+    "args": [
+     null,
+     {}
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     null,
+     {
+      "toolActive": true
+     }
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     null,
+     {
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     null,
+     {
+      "toolActive": true,
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     0,
+     {}
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     0,
+     {
+      "toolActive": true
+     }
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     0,
+     {
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     0,
+     {
+      "toolActive": true,
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     1,
+     {}
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     1,
+     {
+      "toolActive": true
+     }
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     1,
+     {
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     1,
+     {
+      "toolActive": true,
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     44,
+     {}
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     44,
+     {
+      "toolActive": true
+     }
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     44,
+     {
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     44,
+     {
+      "toolActive": true,
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     45,
+     {}
+    ],
+    "out": "Deep in thought"
+   },
+   {
+    "args": [
+     45,
+     {
+      "toolActive": true
+     }
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     45,
+     {
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     45,
+     {
+      "toolActive": true,
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     46,
+     {}
+    ],
+    "out": "Deep in thought"
+   },
+   {
+    "args": [
+     46,
+     {
+      "toolActive": true
+     }
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     46,
+     {
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     46,
+     {
+      "toolActive": true,
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     600,
+     {}
+    ],
+    "out": "Deep in thought"
+   },
+   {
+    "args": [
+     600,
+     {
+      "toolActive": true
+     }
+    ],
+    "out": "Working"
+   },
+   {
+    "args": [
+     600,
+     {
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   },
+   {
+    "args": [
+     600,
+     {
+      "toolActive": true,
+      "resumingThought": true
+     }
+    ],
+    "out": "Picking the thought back up"
+   }
+  ],
+  "formatElapsed": [
+   {
+    "args": [
+     0
+    ],
+    "out": "0s"
+   },
+   {
+    "args": [
+     1
+    ],
+    "out": "1s"
+   },
+   {
+    "args": [
+     9
+    ],
+    "out": "9s"
+   },
+   {
+    "args": [
+     44
+    ],
+    "out": "44s"
+   },
+   {
+    "args": [
+     45
+    ],
+    "out": "45s"
+   },
+   {
+    "args": [
+     59
+    ],
+    "out": "59s"
+   },
+   {
+    "args": [
+     60
+    ],
+    "out": "1m 0s"
+   },
+   {
+    "args": [
+     61
+    ],
+    "out": "1m 1s"
+   },
+   {
+    "args": [
+     83
+    ],
+    "out": "1m 23s"
+   },
+   {
+    "args": [
+     599
+    ],
+    "out": "9m 59s"
+   },
+   {
+    "args": [
+     3599
+    ],
+    "out": "59m 59s"
+   },
+   {
+    "args": [
+     3600
+    ],
+    "out": "1h 0m"
+   },
+   {
+    "args": [
+     3601
+    ],
+    "out": "1h 0m"
+   },
+   {
+    "args": [
+     3661
+    ],
+    "out": "1h 1m"
+   },
+   {
+    "args": [
+     7322
+    ],
+    "out": "2h 2m"
+   },
+   {
+    "args": [
+     86399
+    ],
+    "out": "23h 59m"
+   },
+   {
+    "args": [
+     86400
+    ],
+    "out": "24h 0m"
+   }
+  ],
+  "worktreeBadge": [
+   {
+    "args": [
+     null,
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     null,
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     null,
+     "/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     null,
+     "/proj"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     null,
+     "/proj/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "",
+     "/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "",
+     "/proj"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "",
+     "/proj/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/",
+     "/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/",
+     "/proj"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/",
+     "/proj/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj",
+     "/"
+    ],
+    "out": "proj"
+   },
+   {
+    "args": [
+     "/proj",
+     "/proj"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj",
+     "/proj/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/",
+     "/"
+    ],
+    "out": "proj"
+   },
+   {
+    "args": [
+     "/proj/",
+     "/proj"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/",
+     "/proj/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj//",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj//",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj//",
+     "/"
+    ],
+    "out": "proj"
+   },
+   {
+    "args": [
+     "/proj//",
+     "/proj"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj//",
+     "/proj/"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x",
+     "/"
+    ],
+    "out": "feature-x"
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x",
+     "/proj"
+    ],
+    "out": ".worktrees/feature-x"
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x",
+     "/proj/"
+    ],
+    "out": ".worktrees/feature-x"
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x/",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x/",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x/",
+     "/"
+    ],
+    "out": "feature-x"
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x/",
+     "/proj"
+    ],
+    "out": ".worktrees/feature-x"
+   },
+   {
+    "args": [
+     "/proj/.worktrees/feature-x/",
+     "/proj/"
+    ],
+    "out": ".worktrees/feature-x"
+   },
+   {
+    "args": [
+     "/tmp/wt-1",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/tmp/wt-1",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/tmp/wt-1",
+     "/"
+    ],
+    "out": "wt-1"
+   },
+   {
+    "args": [
+     "/tmp/wt-1",
+     "/proj"
+    ],
+    "out": "wt-1"
+   },
+   {
+    "args": [
+     "/tmp/wt-1",
+     "/proj/"
+    ],
+    "out": "wt-1"
+   },
+   {
+    "args": [
+     "/projx",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/projx",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/projx",
+     "/"
+    ],
+    "out": "projx"
+   },
+   {
+    "args": [
+     "/projx",
+     "/proj"
+    ],
+    "out": "projx"
+   },
+   {
+    "args": [
+     "/projx",
+     "/proj/"
+    ],
+    "out": "projx"
+   },
+   {
+    "args": [
+     "/proj/a/b/c",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/a/b/c",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "/proj/a/b/c",
+     "/"
+    ],
+    "out": "c"
+   },
+   {
+    "args": [
+     "/proj/a/b/c",
+     "/proj"
+    ],
+    "out": "a/b/c"
+   },
+   {
+    "args": [
+     "/proj/a/b/c",
+     "/proj/"
+    ],
+    "out": "a/b/c"
+   },
+   {
+    "args": [
+     "relative/dir",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "relative/dir",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "relative/dir",
+     "/"
+    ],
+    "out": "dir"
+   },
+   {
+    "args": [
+     "relative/dir",
+     "/proj"
+    ],
+    "out": "dir"
+   },
+   {
+    "args": [
+     "relative/dir",
+     "/proj/"
+    ],
+    "out": "dir"
+   },
+   {
+    "args": [
+     "wt",
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "wt",
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "wt",
+     "/"
+    ],
+    "out": "wt"
+   },
+   {
+    "args": [
+     "wt",
+     "/proj"
+    ],
+    "out": "wt"
+   },
+   {
+    "args": [
+     "wt",
+     "/proj/"
+    ],
+    "out": "wt"
+   }
+  ],
+  "worktreeBadgeLabel": [
+   {
+    "args": [
+     "/proj/x",
+     "/proj"
+    ],
+    "out": "x"
+   },
+   {
+    "args": [
+     "/proj/x/",
+     "/proj/"
+    ],
+    "out": "x"
+   },
+   {
+    "args": [
+     "/other/y",
+     "/proj"
+    ],
+    "out": "y"
+   },
+   {
+    "args": [
+     "/",
+     "/proj"
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "",
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "a/b",
+     ""
+    ],
+    "out": "b"
+   },
+   {
+    "args": [
+     "/proj",
+     "/proj"
+    ],
+    "out": "proj"
+   }
+  ],
+  "modelDeprecationDate": [
+   {
+    "args": [
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "claude-opus-4-0"
+    ],
+    "out": "June 15th, 2026"
+   },
+   {
+    "args": [
+     "claude-opus-4-20250514"
+    ],
+    "out": "June 15th, 2026"
+   },
+   {
+    "args": [
+     "claude-sonnet-4-0"
+    ],
+    "out": "June 15th, 2026"
+   },
+   {
+    "args": [
+     "claude-3-opus-20240229"
+    ],
+    "out": "January 5th, 2026"
+   },
+   {
+    "args": [
+     "claude-3-5-haiku-latest"
+    ],
+    "out": "February 19th, 2026"
+   },
+   {
+    "args": [
+     "claude-2.1"
+    ],
+    "out": "July 21st, 2025"
+   },
+   {
+    "args": [
+     "claude-instant-1.2"
+    ],
+    "out": "November 6th, 2024"
+   },
+   {
+    "args": [
+     "claude-opus-4-8"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "claude-opus-4.8"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "opus"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "sonnet[1m]"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "claude-opus-5-5[1m]"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "us.anthropic.claude-sonnet-5-5-20260101-v1:0"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "claude-fable-5-2"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "Claude-Opus-4-7"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "claude-haiku-4-5-20251001"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "fake-model"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "claude-opus-4-80"
+    ],
+    "out": null
+   }
+  ],
+  "prettyModelName": [
+   {
+    "args": [
+     null
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "claude-opus-4-0"
+    ],
+    "out": "Opus 4.0"
+   },
+   {
+    "args": [
+     "claude-opus-4-20250514"
+    ],
+    "out": "Opus 4"
+   },
+   {
+    "args": [
+     "claude-sonnet-4-0"
+    ],
+    "out": "Sonnet 4.0"
+   },
+   {
+    "args": [
+     "claude-3-opus-20240229"
+    ],
+    "out": "claude-3-opus-20240229"
+   },
+   {
+    "args": [
+     "claude-3-5-haiku-latest"
+    ],
+    "out": "claude-3-5-haiku-latest"
+   },
+   {
+    "args": [
+     "claude-2.1"
+    ],
+    "out": "claude-2.1"
+   },
+   {
+    "args": [
+     "claude-instant-1.2"
+    ],
+    "out": "claude-instant-1.2"
+   },
+   {
+    "args": [
+     "claude-opus-4-8"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "args": [
+     "claude-opus-4.8"
+    ],
+    "out": "Opus 4.8"
+   },
+   {
+    "args": [
+     "opus"
+    ],
+    "out": "opus"
+   },
+   {
+    "args": [
+     "sonnet[1m]"
+    ],
+    "out": "sonnet[1m]"
+   },
+   {
+    "args": [
+     "claude-opus-5-5[1m]"
+    ],
+    "out": "Opus 5.5"
+   },
+   {
+    "args": [
+     "us.anthropic.claude-sonnet-5-5-20260101-v1:0"
+    ],
+    "out": "Sonnet 5.5"
+   },
+   {
+    "args": [
+     "claude-fable-5-2"
+    ],
+    "out": "Fable 5.2"
+   },
+   {
+    "args": [
+     "Claude-Opus-4-7"
+    ],
+    "out": "Opus 4.7"
+   },
+   {
+    "args": [
+     "claude-haiku-4-5-20251001"
+    ],
+    "out": "Haiku 4.5"
+   },
+   {
+    "args": [
+     "fake-model"
+    ],
+    "out": "fake-model"
+   },
+   {
+    "args": [
+     "claude-opus-4-80"
+    ],
+    "out": "Opus 4"
+   }
+  ],
+  "fastModeLabel": [
+   {
+    "args": [
+     null
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "claude-opus-4-0"
+    ],
+    "out": "Fast mode (Opus 4.0)"
+   },
+   {
+    "args": [
+     "claude-opus-4-20250514"
+    ],
+    "out": "Fast mode (Opus 4)"
+   },
+   {
+    "args": [
+     "claude-sonnet-4-0"
+    ],
+    "out": "Fast mode (Sonnet 4.0)"
+   },
+   {
+    "args": [
+     "claude-3-opus-20240229"
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "claude-3-5-haiku-latest"
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "claude-2.1"
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "claude-instant-1.2"
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "claude-opus-4-8"
+    ],
+    "out": "Fast mode (Opus 4.8)"
+   },
+   {
+    "args": [
+     "claude-opus-4.8"
+    ],
+    "out": "Fast mode (Opus 4.8)"
+   },
+   {
+    "args": [
+     "opus"
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "sonnet[1m]"
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "claude-opus-5-5[1m]"
+    ],
+    "out": "Fast mode (Opus 5.5)"
+   },
+   {
+    "args": [
+     "us.anthropic.claude-sonnet-5-5-20260101-v1:0"
+    ],
+    "out": "Fast mode (Sonnet 5.5)"
+   },
+   {
+    "args": [
+     "claude-fable-5-2"
+    ],
+    "out": "Fast mode (Fable 5.2)"
+   },
+   {
+    "args": [
+     "Claude-Opus-4-7"
+    ],
+    "out": "Fast mode (Opus 4.7)"
+   },
+   {
+    "args": [
+     "claude-haiku-4-5-20251001"
+    ],
+    "out": "Fast mode (Haiku 4.5)"
+   },
+   {
+    "args": [
+     "fake-model"
+    ],
+    "out": "Fast mode"
+   },
+   {
+    "args": [
+     "claude-opus-4-80"
+    ],
+    "out": "Fast mode (Opus 4)"
+   }
+  ],
+  "fastModeDisabledReasonLabel": [
+   {
+    "args": [
+     null
+    ],
+    "out": "Fast mode is temporarily unavailable."
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": "Fast mode is temporarily unavailable."
+   },
+   {
+    "args": [
+     "free"
+    ],
+    "out": "Your plan doesn't include fast mode."
+   },
+   {
+    "args": [
+     "preference"
+    ],
+    "out": "Fast mode is turned off in your preferences."
+   },
+   {
+    "args": [
+     "extra_usage_disabled"
+    ],
+    "out": "Extra usage is disabled, and fast mode requires it."
+   },
+   {
+    "args": [
+     "network_error"
+    ],
+    "out": "Fast mode is unavailable \u2014 a network error reaching the fast-mode backend."
+   },
+   {
+    "args": [
+     "unknown"
+    ],
+    "out": "Fast mode is unavailable for an unspecified reason."
+   },
+   {
+    "args": [
+     "not_first_party"
+    ],
+    "out": "Fast mode isn't available on this provider."
+   },
+   {
+    "args": [
+     "disabled_by_env"
+    ],
+    "out": "Fast mode is disabled by your environment configuration."
+   },
+   {
+    "args": [
+     "model_not_allowed"
+    ],
+    "out": "Fast mode isn't available for the current model."
+   },
+   {
+    "args": [
+     "sdk_opt_in_required"
+    ],
+    "out": "Fast mode requires an SDK opt-in that hasn't been set."
+   },
+   {
+    "args": [
+     "pending"
+    ],
+    "out": "Fast mode availability is still being determined."
+   },
+   {
+    "args": [
+     "brand_new_reason"
+    ],
+    "out": "Fast mode is temporarily unavailable."
+   },
+   {
+    "args": [
+     "FREE"
+    ],
+    "out": "Fast mode is temporarily unavailable."
+   }
+  ],
+  "nextPermissionMode": [
+   {
+    "args": [
+     "default",
+     null
+    ],
+    "out": "acceptEdits"
+   },
+   {
+    "args": [
+     "default",
+     []
+    ],
+    "out": "acceptEdits"
+   },
+   {
+    "args": [
+     "default",
+     [
+      "auto"
+     ]
+    ],
+    "out": "acceptEdits"
+   },
+   {
+    "args": [
+     "default",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": "acceptEdits"
+   },
+   {
+    "args": [
+     "default",
+     [
+      "default"
+     ]
+    ],
+    "out": "acceptEdits"
+   },
+   {
+    "args": [
+     "default",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": "acceptEdits"
+   },
+   {
+    "args": [
+     "acceptEdits",
+     null
+    ],
+    "out": "auto"
+   },
+   {
+    "args": [
+     "acceptEdits",
+     []
+    ],
+    "out": "auto"
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "auto"
+     ]
+    ],
+    "out": "plan"
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "default"
+     ]
+    ],
+    "out": "auto"
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": "auto"
+   },
+   {
+    "args": [
+     "auto",
+     null
+    ],
+    "out": "plan"
+   },
+   {
+    "args": [
+     "auto",
+     []
+    ],
+    "out": "plan"
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "auto"
+     ]
+    ],
+    "out": "plan"
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "default"
+     ]
+    ],
+    "out": "plan"
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": "plan"
+   },
+   {
+    "args": [
+     "plan",
+     null
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     "plan",
+     []
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "auto"
+     ]
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "default"
+     ]
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "dontAsk",
+     null
+    ],
+    "out": "bypassPermissions"
+   },
+   {
+    "args": [
+     "dontAsk",
+     []
+    ],
+    "out": "bypassPermissions"
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "auto"
+     ]
+    ],
+    "out": "bypassPermissions"
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": "bypassPermissions"
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "default"
+     ]
+    ],
+    "out": "bypassPermissions"
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     null
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     []
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "auto"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "default"
+     ]
+    ],
+    "out": "acceptEdits"
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "weird",
+     null
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "weird",
+     []
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "auto"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "default"
+     ]
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": "default"
+   }
+  ],
+  "visibleOrder": [
+   {
+    "args": [
+     "default",
+     null
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "default",
+     []
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "default",
+     [
+      "auto"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "default",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "default",
+     [
+      "default"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "default",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan"
+    ]
+   },
+   {
+    "args": [
+     "acceptEdits",
+     null
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "acceptEdits",
+     []
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "auto"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "default"
+     ]
+    ],
+    "out": [
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "acceptEdits",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan"
+    ]
+   },
+   {
+    "args": [
+     "auto",
+     null
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "auto",
+     []
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "auto"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "default"
+     ]
+    ],
+    "out": [
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "auto",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan"
+    ]
+   },
+   {
+    "args": [
+     "plan",
+     null
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "plan",
+     []
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "auto"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "default"
+     ]
+    ],
+    "out": [
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "plan",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan"
+    ]
+   },
+   {
+    "args": [
+     "dontAsk",
+     null
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "dontAsk",
+     []
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "auto"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "default"
+     ]
+    ],
+    "out": [
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "dontAsk",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk"
+    ]
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     null
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     []
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "auto"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "default"
+     ]
+    ],
+    "out": [
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "bypassPermissions",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "weird",
+     null
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "weird",
+     []
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "auto"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "auto",
+      "plan"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "default"
+     ]
+    ],
+    "out": [
+     "acceptEdits",
+     "auto",
+     "plan",
+     "dontAsk",
+     "bypassPermissions"
+    ]
+   },
+   {
+    "args": [
+     "weird",
+     [
+      "bypassPermissions",
+      "dontAsk"
+     ]
+    ],
+    "out": [
+     "default",
+     "acceptEdits",
+     "auto",
+     "plan"
+    ]
+   }
+  ],
+  "permissionModeMeta": [
+   {
+    "args": [],
+    "out": [
+     {
+      "mode": "default",
+      "label": "Default",
+      "description": "Prompt for risky tools",
+      "icon": "Shield",
+      "tone": "text-[var(--muted)]"
+     },
+     {
+      "mode": "acceptEdits",
+      "label": "Accept edits",
+      "description": "Auto-approve file edits, prompt for the rest",
+      "icon": "ShieldCheck",
+      "tone": "text-emerald-400"
+     },
+     {
+      "mode": "auto",
+      "label": "Auto",
+      "description": "Auto-approve with background safety checks",
+      "icon": "Wand2",
+      "tone": "text-sky-400"
+     },
+     {
+      "mode": "plan",
+      "label": "Plan",
+      "description": "Read-only \u2014 produce a plan, no tool side effects",
+      "icon": "ListChecks",
+      "tone": "text-violet-400"
+     },
+     {
+      "mode": "dontAsk",
+      "label": "Don't ask",
+      "description": "Never prompt \u2014 auto-deny anything not pre-approved",
+      "icon": "ShieldAlert",
+      "tone": "text-amber-400"
+     },
+     {
+      "mode": "bypassPermissions",
+      "label": "Bypass",
+      "description": "Never prompt \u2014 auto-allow everything (dangerous)",
+      "icon": "ShieldOff",
+      "tone": "text-red-400"
+     }
+    ]
+   }
+  ],
+  "statusParts": [
+   {
+    "args": [
+     {
+      "ready": false,
+      "pending": false
+     }
+    ],
+    "out": {
+     "status": "starting",
+     "statusLabel": "Starting",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": false,
+      "pending": true
+     }
+    ],
+    "out": {
+     "status": "starting",
+     "statusLabel": "Starting",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Working",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true,
+      "turnElapsedSec": 12
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Working",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true,
+      "turnElapsedSec": 45
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Deep in thought",
+     "labelTitle": "Still working \u2014 this turn has been running for 45s without a break.",
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true,
+      "turnElapsedSec": 125
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Deep in thought",
+     "labelTitle": "Still working \u2014 this turn has been running for 2m 5s without a break.",
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true,
+      "turnElapsedSec": 3725
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Deep in thought",
+     "labelTitle": "Still working \u2014 this turn has been running for 1h 2m without a break.",
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true,
+      "turnElapsedSec": 50,
+      "toolActive": true
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Working",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true,
+      "turnElapsedSec": 50,
+      "resumingThought": true
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Picking the thought back up",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "backgroundTasks": 1
+     }
+    ],
+    "out": {
+     "status": "background",
+     "statusLabel": "Idle \u00b7 1 running",
+     "labelTitle": "1 background task is still running \u2014 the turn is idle but work continues. See the Activity panel.",
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "backgroundTasks": 3
+     }
+    ],
+    "out": {
+     "status": "background",
+     "statusLabel": "Idle \u00b7 3 running",
+     "labelTitle": "3 background tasks are still running \u2014 the turn is idle but work continues. See the Activity panel.",
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "backgroundTasks": 0
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "backgroundTasks": -1
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": true,
+      "backgroundTasks": 2
+     }
+    ],
+    "out": {
+     "status": "working",
+     "statusLabel": "Working",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": false,
+      "backgroundTasks": 2
+     }
+    ],
+    "out": {
+     "status": "starting",
+     "statusLabel": "Starting",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 0
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 0,
+     "ctxLevel": "ok",
+     "ctxTitle": "Context window",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 0.4
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 0,
+     "ctxLevel": "ok",
+     "ctxTitle": "Context window",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 0.5
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 1,
+     "ctxLevel": "ok",
+     "ctxTitle": "Context window",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 12.5
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 13,
+     "ctxLevel": "ok",
+     "ctxTitle": "Context window",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 74.4
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 74,
+     "ctxLevel": "ok",
+     "ctxTitle": "Context window",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 74.5
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 75,
+     "ctxLevel": "warn",
+     "ctxTitle": "Context filling up",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 75
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 75,
+     "ctxLevel": "warn",
+     "ctxTitle": "Context filling up",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 89.49
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 89,
+     "ctxLevel": "warn",
+     "ctxTitle": "Context filling up",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 89.5
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 90,
+     "ctxLevel": "danger",
+     "ctxTitle": "Context near full \u2014 consider /compact",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 90
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 90,
+     "ctxLevel": "danger",
+     "ctxTitle": "Context near full \u2014 consider /compact",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 100
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 100,
+     "ctxLevel": "danger",
+     "ctxTitle": "Context near full \u2014 consider /compact",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": 130
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 130,
+     "ctxLevel": "danger",
+     "ctxTitle": "Context near full \u2014 consider /compact",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": -0.4
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": 0,
+     "ctxLevel": "ok",
+     "ctxTitle": "Context window",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "contextPercent": -2.5
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": -2,
+     "ctxLevel": "ok",
+     "ctxTitle": "Context window",
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.0001
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.0001",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.00004
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.0000",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.0099
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.0099",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.00995
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.0100",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.01
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.010",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.0625
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.063",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.1234
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.123",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 1.5
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$1.500",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 12.3456
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$12.346",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 1234.5678
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$1234.568",
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": -1
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 0
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 1
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "1 tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 999
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "999 tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 1000
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "1.0K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 1049
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "1.0K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 1050
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "1.1K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 1051
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "1.1K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 12345
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "12.3K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 999949
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "999.9K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 999950
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "1000.0K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": 1000000
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "\u2014",
+     "tokensText": "1000.0K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "outputTokens": -5
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0.5,
+      "outputTokens": 2500
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": "$0.500",
+     "tokensText": "2.5K tok"
+    }
+   },
+   {
+    "args": [
+     {
+      "ready": true,
+      "pending": false,
+      "totalCostUsd": 0,
+      "outputTokens": 0
+     }
+    ],
+    "out": {
+     "status": "idle",
+     "statusLabel": "Idle",
+     "labelTitle": null,
+     "ctx": null,
+     "ctxLevel": "ok",
+     "ctxTitle": null,
+     "costText": null,
+     "tokensText": null
+    }
+   }
+  ],
+  "findModelEntry": [
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "opus"
+    ],
+    "out": "opus"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "opus[1m]"
+    ],
+    "out": "opus"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "OPUS[1M]"
+    ],
+    "out": "opus"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     " opus[1m] "
+    ],
+    "out": "opus"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "sonnet[1m]"
+    ],
+    "out": "sonnet[1m]"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "claude-opus-5-5[1m]"
+    ],
+    "out": "opus"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "claude-sonnet-5-5[1m]"
+    ],
+    "out": "sonnet"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "claude-opus-5-5"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "haiku[1m]"
+    ],
+    "out": "haiku"
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "nope[1m]"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "opus",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "sonnet",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "sonnet[1m]",
+       "resolvedModel": "claude-sonnet-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "[1m]"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     [
+      {
+       "value": "default",
+       "resolvedModel": "claude-opus-5-5"
+      },
+      {
+       "value": "haiku"
+      }
+     ],
+     "claude-opus-5-5[1m]"
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     null,
+     "opus"
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     [],
+     "opus"
+    ],
+    "out": null
+   }
+  ],
+  "capEffortLevels": [
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     null
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     ""
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     "low"
+    ],
+    "out": [
+     "low"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     "medium"
+    ],
+    "out": [
+     "low",
+     "medium"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     "high"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     "xhigh"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     "max"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high"
+     ],
+     "bogus"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     null
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high",
+     "xhigh",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     ""
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high",
+     "xhigh",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     "low"
+    ],
+    "out": [
+     "low"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     "medium"
+    ],
+    "out": [
+     "low",
+     "medium"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     "high"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     "xhigh"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high",
+     "xhigh"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     "max"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high",
+     "xhigh",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+     ],
+     "bogus"
+    ],
+    "out": [
+     "low",
+     "medium",
+     "high",
+     "xhigh",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     null
+    ],
+    "out": [
+     "high",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     ""
+    ],
+    "out": [
+     "high",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     "low"
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     "medium"
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     "high"
+    ],
+    "out": [
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     "xhigh"
+    ],
+    "out": [
+     "high"
+    ]
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     "max"
+    ],
+    "out": [
+     "high",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [
+      "high",
+      "max"
+     ],
+     "bogus"
+    ],
+    "out": [
+     "high",
+     "max"
+    ]
+   },
+   {
+    "args": [
+     [],
+     null
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [],
+     ""
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [],
+     "low"
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [],
+     "medium"
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [],
+     "high"
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [],
+     "xhigh"
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [],
+     "max"
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     [],
+     "bogus"
+    ],
+    "out": []
+   }
+  ],
+  "formatClockTime": [
+   {
+    "args": [
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     0
+    ],
+    "out": "12:00 AM"
+   },
+   {
+    "args": [
+     1795683600000
+    ],
+    "out": "9:00 AM"
+   },
+   {
+    "args": [
+     1795730700000
+    ],
+    "out": "10:05 PM"
+   },
+   {
+    "args": [
+     1795726800000
+    ],
+    "out": "9:00 PM"
+   },
+   {
+    "args": [
+     1795769999000
+    ],
+    "out": "8:59 AM"
+   },
+   {
+    "args": [
+     1795716420000
+    ],
+    "out": "6:07 PM"
+   }
+  ],
+  "toFixed": [
+   {
+    "args": [
+     0.0625,
+     3
+    ],
+    "out": "0.063"
+   },
+   {
+    "args": [
+     0.125,
+     2
+    ],
+    "out": "0.13"
+   },
+   {
+    "args": [
+     1.005,
+     2
+    ],
+    "out": "1.00"
+   },
+   {
+    "args": [
+     0.00995,
+     4
+    ],
+    "out": "0.0100"
+   },
+   {
+    "args": [
+     0.00005,
+     4
+    ],
+    "out": "0.0001"
+   },
+   {
+    "args": [
+     1.0495,
+     1
+    ],
+    "out": "1.0"
+   },
+   {
+    "args": [
+     999.95,
+     1
+    ],
+    "out": "1000.0"
+   },
+   {
+    "args": [
+     2.5,
+     0
+    ],
+    "out": "3"
+   },
+   {
+    "args": [
+     0,
+     4
+    ],
+    "out": "0.0000"
+   },
+   {
+    "args": [
+     1e+21,
+     2
+    ],
+    "out": "1e+21"
+   },
+   {
+    "args": [
+     123.456,
+     3
+    ],
+    "out": "123.456"
+   }
+  ]
+ }
+}

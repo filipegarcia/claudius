@@ -1,0 +1,36 @@
+[package]
+name = "claudius-status"
+description = "The chat's status line (U09a): StatusLine.tsx, its ModeSelector and the ModelPicker's model / effort / fast rows, as a pure model over claudius-client's ChatState and a GPUI view"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+# `formatClockTime`'s local time ("done 2:15 PM").
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# `js::number_to_string` (the `toFixed` port's `1e21` branch, a template's
+# `${n}`).
+claudius-agent.workspace = true
+# The tool cards' `formatElapsed` / `useElapsedSeconds` ports (U06), reused.
+claudius-chat.workspace = true
+claudius-client.workspace = true
+# `isAutoModeDisabled` (the settings' `disableAutoMode`).
+claudius-core.workspace = true
+claudius-gpui-theme.workspace = true
+claudius-theme.workspace = true
+futures = "0.3"
+gpui-kit.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+anyhow = "1"
+# The screenshot example's PNGs.
+image = { version = "0.25", default-features = false, features = ["png"] }
+# `TestAppContext` and `VisualTestContext` (as claudius-app's tests).
+gpui = { package = "gpui-pre", version = "=0.3.12", features = ["test-support"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+# CoreText (real glyph widths) and the offscreen Metal renderer.
+gpui_apple = { package = "gpui-pre-apple", version = "=0.3.12", features = ["font-kit", "test-support"] }

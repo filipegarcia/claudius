@@ -3801,7 +3801,7 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
   - [ ] **U07c** Images (paste, drop, the paperclip), inline pastes, voice (`useVoice`): through the editor's `on_paste` (a no-op today) and the paperclip (inert). `Composer.images` is already sent, restored, merged and kept with drafts. deps: U07a
   - [ ] **U07d** ChatSurface's `handleSend` slash routing (`isSlashCommandHead`, native / SDK / external commands, `/color` into `ComposerView::set_prompt_color`, `/clear`), the `pendingAsk` decline on send, the "Message queued." announce. Today `/foo` goes out as plain text. deps: U07a, U07b
   - [x] **U07e** `ComposerTarget` over the live chat (`LiveChat`: `SessionCall::apply` through its `Driver`, see `target.rs`'s doc) so the live chat route has a composer. deps: U07a, U04b — done 2026-11-27 (the loop, main tree, with U08c; the send cap moved to U07g):
-    - `claudius-app/src/targets.rs` `LiveComposer`: reads what `LiveTranscripts` reads (the mounted chat while it is bound to the session) and shares its change feed; a `SessionCall` runs on the bound chat (`LiveChat::act`), and its promise settles when the chat's `Effect::ActionResolved` reaches the shell (`on_chat` → `LiveComposer::resolve`, `Resolutions`). The composer's own requests (draft, `!` bash, prompt color) go over the chat's workspace page: the new `ShellData::page_fetch` (default: a failed request; `TransportShellData`: the page's transport on the engine's runtime).
+    - `claudius-app/src/targets.rs` `LiveComposer`: reads what `LiveTranscripts` reads (the mounted chat while it is bound to the session) and shares its change feed; a `SessionCall` runs on the bound chat (`LiveChat::act`), and its promise settles when the chat's `Effect::ActionResolved` reaches the shell (`on_chat` → `LiveComposer::resolve`, `Resolutions`). The composer's own requests (draft, `!` bash, prompt color) go over the chat's own transport, `LiveChat::fetch`. U07e added `ShellData::page_fetch` for them, and the U09a merge replaced it.
     - The shell makes it with the live transcripts (`with_parts`), so a live chat route has a composer with no setup; `main.rs` sets the fixture's only over the fixture.
     - Test `tests/live_composer.rs` (in-process engine, fake CLI): a typed prompt is echoed and its promise settles; the draft reaches the server (`prompt-draft`); a prompt typed mid-turn queues and goes out after it; a `tool:` prompt's permission card is answered with Allow (U08c); Stop's `interrupt` reaches the CLI (the support world now logs the CLIs' control requests).
     - **Redraws:** with the composer live in the chat route, `live_shell` failed 3/3: its executor never went idle while a 150-chunk reply streamed, so the test never saw the turn running. The composer re-read and redrew on each of the chat's snapshots (up to 60 a second) though nothing it shows changes mid-stream. `ComposerView` now redraws only when its `SessionView` changed, and the prompt cards' listener only when their `PromptState` did (the plan banner already compared). `live_shell` prints the tabs and the chat's state when a wait times out.
@@ -3826,12 +3826,44 @@ The 23 Nov benchmark ran the production Next build against the release `claudius
   - [ ] **U08f** The permission card's `disableAutoMode` over a live chat (`useDisableAutoMode`: `GET /api/settings?scope=user&cwd=`, `claudius_core::auto_mode_disabled`); `LivePrompts::auto_mode_disabled` is `false` today. deps: U08c
   - [ ] **U08d** The transcript's "Reopen" pill on ask rows calls `ChatPrompts::reopen_ask` (`true`: scroll to the inline ask). deps: U06, U08a
   - [ ] **U08e** The composer sets `PromptOverlays::set_field_probe` (the mid-draft focus guard, the ask's in-field check); a paste outside any field goes to `AskView::paste`; file drops. deps: U07a, U08a
-- [ ] **U09** Status line + session card:
+- [~] **U09** Status line + session card:
   - pickers: model, effort, advisor, mode, fast, output style
   - meters: context bar, cost/usage
   - panels: goal banner, todos panel, tools panel, tasks/subagents, activity feed (`components/panels`)
 
   deps: U05
+  - [x] **U09a** The status line (StatusLine, ModeSelector, and ModelPicker's model / effort / ultracode / fast rows) over the live chat. deps: U05, U04b — done 2026-11-27 (background agent, clone `par/U09a`):
+    - New crate `claudius-status` (~3k lines):
+      - a pure model over `ChatState` (`line`, `modes`, `picker`; each rule cites its TS line);
+      - `StatusLineView`: the popovers, the context poll, the settings read, a one-second tick;
+      - `StatusTarget`, with `FixtureStatus`.
+    - TS golden `status-line-golden.mjs`: 398 cases, recorded twice byte-identical, ASCII-only.
+    - **Mode menu:** disabled modes come from `/api/settings` `disableAutoMode`. `cycle_mode()` is Shift+Tab's `nextPermissionMode`, not bound yet.
+    - **Working label and time:** Working, Deep in thought from 45 s, the resuming-thought label, the ticking elapsed time and the done time.
+    - **Meters:** the cost / tokens chip, and the context chip with its own poll (1.5 s, then 8 s / 30 s). It warns at 75% and turns danger at 90%.
+    - **Model / effort / ultracode / fast picker:** the list loads on each open, and effort is capped by `maxEffortLevel`.
+    - **Badges:** Reconnecting, worktree, deprecated model, the agent pill (display only), account drift (`move_to_active_account`), the fast chip, the running hook, and the narrow row below 768 px.
+    - **Live wiring:** `claudius-app/src/status.rs` `LiveStatus` is its target over the mounted chat, and `LiveChat::fetch` runs the page's own requests on the chat's transport. In the merge, the composer's requests moved onto `LiveChat::fetch` too, and U07e's `ShellData::page_fetch` went.
+    - **Tests:** 53 new (pure 39, headless 12, golden 1, live 1 `tests/live_status.rs`). The agent's mutation pass killed 61/61 after four survivors got tests; flake 0/20.
+    - **Deliberate:**
+      - The model picker opens from the status line's model chip; in TS it is in SessionCard (U09b).
+      - An unknown mode shows Default's trigger; the TS throws.
+      - Live only (U09e).
+      - One settings fetch per cwd serves both auto mode and max effort.
+      - The busy dot's halo is static, and `title=` attributes become tooltips.
+    - **Mirrored:**
+      - On light themes the `-200` tint text stays pale.
+      - An unknown effort shows a blank fuchsia chip.
+      - The done time reads `h:mm AM` with a plain space.
+      - The context percent uses `Math.round`, so 74.5% warns.
+      - A failed poll keeps the last reading.
+      - A failed mode POST keeps the pick until `mode_changed`.
+    - Merge (the loop): GATE
+    - Screenshots: `rust/target/par/U09a/shots/` (light / dark: idle, mid-turn, mode menu, model picker).
+  - [ ] **U09b** The session card and the panels: SessionCard (the right rail; in TS the ModelPicker lives there), goal banner, todos panel, tools panel, tasks / subagents, activity feed (`components/panels`). The output style is an overlay (`OutputStyleOverlay.tsx`): U10. deps: U09a
+  - [ ] **U09c** Status-line seams: workspace chip, SessionPicker, agent picker menu, Compact / Clear, notify menu, verbose selector, focus toggle, copy session ID, and the clock settings (`timeFormat` / `timeZone`) for the done time. deps: U09a
+  - [ ] **U09d** ModelPicker's advisor and "More models" sections; Escape closes the popovers; a Shift+Tab binding for `cycle_mode` that coordinates with the composer's keys. deps: U09a, U07a
+  - [ ] **U09e** Show the status line in fixture mode too (today it is live-only). deps: U09a
 - [ ] **U10** Overlays (`components/overlays`, 16 files): context, skills, diff, transcript viewer, transcript search (client-side regex is OK here), keyboard shortcuts (`lib/client/shortcuts.ts`, 871), command palette. deps: U05
 - [x] **U11** (2026-11-27: agent, clone `par/U11`; on U04a's shell with a `SessionsData` trait and fixtures, as U05a) Sessions browser: list/search/filter, fork, resume, rename, export, delete. deps: U04
   - Done 2026-11-27 (background agent, clone `par/U11`): the sessions browser in `claudius-app/src/sessions/`, ~4.8k lines.

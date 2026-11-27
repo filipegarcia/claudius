@@ -1078,6 +1078,7 @@ dependencies = [
  "claudius-gpui-theme",
  "claudius-prompts",
  "claudius-server",
+ "claudius-status",
  "claudius-theme",
  "claudius-transport",
  "futures",
@@ -1233,6 +1234,26 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "claudius-status"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "claudius-agent",
+ "claudius-chat",
+ "claudius-client",
+ "claudius-core",
+ "claudius-gpui-theme",
+ "claudius-theme",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-apple",
+ "image",
+ "serde_json",
 ]
 
 [[package]]
