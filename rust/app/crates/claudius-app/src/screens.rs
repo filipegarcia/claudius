@@ -22,10 +22,10 @@ use crate::ui::{Colors, icon};
 
 pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyElement {
     let route = this.state.route();
-    let is_chat = matches!(
+    let scrolls_itself = matches!(
         route,
         Route::Workspace {
-            page: WorkspacePage::Chat { .. },
+            page: WorkspacePage::Chat { .. } | WorkspacePage::Files { .. },
             ..
         }
     );
@@ -38,9 +38,14 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
             page: WorkspacePage::Sessions | WorkspacePage::Session { .. },
             ..
         } => crate::sessions::view::element(this).unwrap_or_else(|| placeholder(route, c)),
+        Route::Workspace {
+            page: WorkspacePage::Files { .. },
+            ..
+        } => crate::files::element(this).unwrap_or_else(|| placeholder(route, c)),
         _ => placeholder(route, c),
     };
-    // The transcript scrolls itself (a virtualized list).
+    // The transcript scrolls itself (a virtualized list), the Files page
+    // its tree and its pane.
     div()
         .id("screen")
         .debug_selector(|| "screen".into())
@@ -48,7 +53,7 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
         .flex_col()
         .flex_1()
         .min_h_0()
-        .when(!is_chat, |d| d.overflow_y_scroll())
+        .when(!scrolls_itself, |d| d.overflow_y_scroll())
         .child(content)
         .into_any_element()
 }

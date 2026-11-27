@@ -1075,6 +1075,7 @@ dependencies = [
  "claudius-client",
  "claudius-composer",
  "claudius-core",
+ "claudius-files",
  "claudius-gpui-theme",
  "claudius-prompts",
  "claudius-server",
@@ -1181,6 +1182,23 @@ dependencies = [
  "unicode-normalization",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "claudius-files"
+version = "0.1.0"
+dependencies = [
+ "claudius-agent",
+ "claudius-core",
+ "claudius-gpui-theme",
+ "claudius-theme",
+ "claudius-transport",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-apple",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

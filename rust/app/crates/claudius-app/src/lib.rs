@@ -9,6 +9,7 @@
 pub mod chat;
 pub mod data;
 pub mod engine;
+mod files;
 pub mod fixture;
 pub mod live;
 pub mod nav;
@@ -38,4 +39,5 @@ pub fn init(theme: ThemeName, cx: &mut App) {
     claudius_gpui_theme::init(theme, cx);
     shortcuts::bind(cx);
     sessions::view::bind(cx);
+    claudius_files::view::bind(cx);
 }

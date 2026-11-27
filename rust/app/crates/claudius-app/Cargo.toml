@@ -22,6 +22,8 @@ claudius-client.workspace = true
 claudius-core.workspace = true
 # The chat route's composer (U07).
 claudius-composer.workspace = true
+# The Files route (U12c).
+claudius-files.workspace = true
 claudius-gpui-theme.workspace = true
 # The prompt cards (U08a) and their `PromptSource`.
 claudius-prompts.workspace = true

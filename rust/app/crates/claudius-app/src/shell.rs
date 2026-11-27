@@ -181,9 +181,11 @@ pub struct Shell {
     pub(crate) now_year: i32,
     /// The sessions browser (U11), when [`Shell::with_sessions`] added it.
     pub(crate) sessions: Option<gpui_kit::Entity<crate::sessions::view::SessionsScreen>>,
+    /// The Files page (U12c), once [`Shell::set_files_data`] gave it data.
+    pub(crate) files: crate::files::FilesSlot,
     pub(crate) chat: Option<ChatSlot>,
     icons: HashMap<String, IconEntry>,
-    store: LocalStore,
+    pub(crate) store: LocalStore,
     window_hidden: bool,
     _tasks: Vec<Task<()>>,
     _subscriptions: Vec<gpui_kit::Subscription>,
@@ -325,6 +327,7 @@ impl Shell {
             hidden: Vec::new(),
             now_year: crate::tabs::current_year(),
             sessions: None,
+            files: Default::default(),
             chat: None,
             icons: HashMap::new(),
             store,
@@ -1133,6 +1136,7 @@ impl Render for Shell {
         self.sync_chat_view(cx);
         self.sync_status_view(cx);
         self.sync_composer(window, cx);
+        crate::files::sync(self, window, cx);
         self.sync_chat_prompts(cx);
         let root = div()
             .track_focus(&self.focus)

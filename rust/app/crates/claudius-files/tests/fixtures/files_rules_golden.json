@@ -1,0 +1,4111 @@
+{
+ "rootParam": [
+  {
+   "args": [
+    "primary"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "extra:0"
+   ],
+   "out": "&root=extra%3A0"
+  },
+  {
+   "args": [
+    "extra:12"
+   ],
+   "out": "&root=extra%3A12"
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": "&root="
+  },
+  {
+   "args": [
+    "a b&c"
+   ],
+   "out": "&root=a%20b%26c"
+  },
+  {
+   "args": [
+    "Primary"
+   ],
+   "out": "&root=Primary"
+  },
+  {
+   "args": [
+    "\u00e9\ud83d\ude00"
+   ],
+   "out": "&root=%C3%A9%F0%9F%98%80"
+  }
+ ],
+ "urls": [
+  {
+   "args": {
+    "ws": "w1",
+    "root": "primary",
+    "rel": "src/main.rs",
+    "next": "src/lib.rs",
+    "kind": "file",
+    "q": "fn main",
+    "folder": "",
+    "caseSensitive": false,
+    "treeRoot": null
+   },
+   "out": {
+    "roots": "/api/workspaces/w1/roots",
+    "read": "/api/workspaces/w1/files?path=src%2Fmain.rs",
+    "save": "/api/workspaces/w1/files?path=src%2Fmain.rs",
+    "delete": "/api/workspaces/w1/files?path=src%2Fmain.rs",
+    "rename": "/api/workspaces/w1/files?path=src%2Fmain.rs&newPath=src%2Flib.rs",
+    "create": "/api/workspaces/w1/files?path=src%2Flib.rs&kind=file",
+    "replace": "/w1/files?path=src%2Fmain.rs",
+    "renameReplace": "/w1/files?path=src%2Flib.rs",
+    "treeSearch": "/api/workspaces/w1/files?search=fn%20main",
+    "treeList": "/api/workspaces/w1/files?path=src%2Fmain.rs&depth=1",
+    "contentSearch": "/api/workspaces/w1/files?contentSearch=fn%20main",
+    "revealUrl": "/api/workspaces/w1/reveal",
+    "revealBody": "{\"relPath\":\"src/main.rs\"}"
+   }
+  },
+  {
+   "args": {
+    "ws": "w1",
+    "root": "extra:0",
+    "rel": "docs/a b.md",
+    "next": "docs/a&b.md",
+    "kind": "dir",
+    "q": "a&b=c",
+    "folder": "docs/",
+    "caseSensitive": true,
+    "treeRoot": "extra:0"
+   },
+   "out": {
+    "roots": "/api/workspaces/w1/roots",
+    "read": "/api/workspaces/w1/files?path=docs%2Fa%20b.md&root=extra%3A0",
+    "save": "/api/workspaces/w1/files?path=docs%2Fa%20b.md&root=extra%3A0",
+    "delete": "/api/workspaces/w1/files?path=docs%2Fa%20b.md&root=extra%3A0",
+    "rename": "/api/workspaces/w1/files?path=docs%2Fa%20b.md&newPath=docs%2Fa%26b.md&root=extra%3A0",
+    "create": "/api/workspaces/w1/files?path=docs%2Fa%26b.md&kind=dir&root=extra%3A0",
+    "replace": "/w1/files?path=docs%2Fa%20b.md&root=extra%3A0",
+    "renameReplace": "/w1/files?path=docs%2Fa%26b.md&root=extra%3A0",
+    "treeSearch": "/api/workspaces/w1/files?search=a%26b%3Dc&root=extra%3A0",
+    "treeList": "/api/workspaces/w1/files?path=docs%2Fa%20b.md&depth=1&root=extra%3A0",
+    "contentSearch": "/api/workspaces/w1/files?contentSearch=a%26b%3Dc&path=docs%2F&root=extra%3A0&case=1",
+    "revealUrl": "/api/workspaces/w1/reveal",
+    "revealBody": "{\"relPath\":\"docs/a b.md\",\"root\":\"extra:0\"}"
+   }
+  },
+  {
+   "args": {
+    "ws": "ws_9",
+    "root": "extra:3",
+    "rel": "\u00e9t\u00e9/\ud83d\ude00.txt",
+    "next": "x?y#z%",
+    "kind": "file",
+    "q": "  pad  ",
+    "folder": "a/b",
+    "caseSensitive": false,
+    "treeRoot": "primary"
+   },
+   "out": {
+    "roots": "/api/workspaces/ws_9/roots",
+    "read": "/api/workspaces/ws_9/files?path=%C3%A9t%C3%A9%2F%F0%9F%98%80.txt&root=extra%3A3",
+    "save": "/api/workspaces/ws_9/files?path=%C3%A9t%C3%A9%2F%F0%9F%98%80.txt&root=extra%3A3",
+    "delete": "/api/workspaces/ws_9/files?path=%C3%A9t%C3%A9%2F%F0%9F%98%80.txt&root=extra%3A3",
+    "rename": "/api/workspaces/ws_9/files?path=%C3%A9t%C3%A9%2F%F0%9F%98%80.txt&newPath=x%3Fy%23z%25&root=extra%3A3",
+    "create": "/api/workspaces/ws_9/files?path=x%3Fy%23z%25&kind=file&root=extra%3A3",
+    "replace": "/ws_9/files?path=%C3%A9t%C3%A9%2F%F0%9F%98%80.txt&root=extra%3A3",
+    "renameReplace": "/ws_9/files?path=x%3Fy%23z%25&root=extra%3A3",
+    "treeSearch": "/api/workspaces/ws_9/files?search=%20%20pad%20%20&root=primary",
+    "treeList": "/api/workspaces/ws_9/files?path=%C3%A9t%C3%A9%2F%F0%9F%98%80.txt&depth=1&root=primary",
+    "contentSearch": "/api/workspaces/ws_9/files?contentSearch=%20%20pad%20%20&path=a%2Fb&root=extra%3A3",
+    "revealUrl": "/api/workspaces/ws_9/reveal",
+    "revealBody": "{\"relPath\":\"\u00e9t\u00e9/\ud83d\ude00.txt\",\"root\":\"primary\"}"
+   }
+  },
+  {
+   "args": {
+    "ws": "w",
+    "root": "primary",
+    "rel": "",
+    "next": "",
+    "kind": "dir",
+    "q": "",
+    "folder": "/",
+    "caseSensitive": true,
+    "treeRoot": ""
+   },
+   "out": {
+    "roots": "/api/workspaces/w/roots",
+    "read": "/api/workspaces/w/files?path=",
+    "save": "/api/workspaces/w/files?path=",
+    "delete": "/api/workspaces/w/files?path=",
+    "rename": "/api/workspaces/w/files?path=&newPath=",
+    "create": "/api/workspaces/w/files?path=&kind=dir",
+    "replace": "/w/files?path=",
+    "renameReplace": "/w/files?path=",
+    "treeSearch": "/api/workspaces/w/files?search=",
+    "treeList": "/api/workspaces/w/files?path=&depth=1",
+    "contentSearch": "/api/workspaces/w/files?contentSearch=&path=%2F&case=1",
+    "revealUrl": "/api/workspaces/w/reveal",
+    "revealBody": "{\"relPath\":\"\"}"
+   }
+  },
+  {
+   "args": {
+    "ws": "w",
+    "root": "a/b",
+    "rel": "+plus;semi,comma",
+    "next": "~!*()'",
+    "kind": "file",
+    "q": "\\n[x]",
+    "folder": "src/",
+    "caseSensitive": false,
+    "treeRoot": "a/b"
+   },
+   "out": {
+    "roots": "/api/workspaces/w/roots",
+    "read": "/api/workspaces/w/files?path=%2Bplus%3Bsemi%2Ccomma&root=a%2Fb",
+    "save": "/api/workspaces/w/files?path=%2Bplus%3Bsemi%2Ccomma&root=a%2Fb",
+    "delete": "/api/workspaces/w/files?path=%2Bplus%3Bsemi%2Ccomma&root=a%2Fb",
+    "rename": "/api/workspaces/w/files?path=%2Bplus%3Bsemi%2Ccomma&newPath=~!*()'&root=a%2Fb",
+    "create": "/api/workspaces/w/files?path=~!*()'&kind=file&root=a%2Fb",
+    "replace": "/w/files?path=%2Bplus%3Bsemi%2Ccomma&root=a%2Fb",
+    "renameReplace": "/w/files?path=~!*()'&root=a%2Fb",
+    "treeSearch": "/api/workspaces/w/files?search=%5Cn%5Bx%5D&root=a%2Fb",
+    "treeList": "/api/workspaces/w/files?path=%2Bplus%3Bsemi%2Ccomma&depth=1&root=a%2Fb",
+    "contentSearch": "/api/workspaces/w/files?contentSearch=%5Cn%5Bx%5D&path=src%2F&root=a%2Fb",
+    "revealUrl": "/api/workspaces/w/reveal",
+    "revealBody": "{\"relPath\":\"+plus;semi,comma\",\"root\":\"a/b\"}"
+   }
+  }
+ ],
+ "formatSize": [
+  {
+   "args": [
+    0
+   ],
+   "out": "0 B"
+  },
+  {
+   "args": [
+    1
+   ],
+   "out": "1 B"
+  },
+  {
+   "args": [
+    512
+   ],
+   "out": "512 B"
+  },
+  {
+   "args": [
+    1023
+   ],
+   "out": "1023 B"
+  },
+  {
+   "args": [
+    1024
+   ],
+   "out": "1.0 KB"
+  },
+  {
+   "args": [
+    1075
+   ],
+   "out": "1.0 KB"
+  },
+  {
+   "args": [
+    1076
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1126
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1127
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1536
+   ],
+   "out": "1.5 KB"
+  },
+  {
+   "args": [
+    10239
+   ],
+   "out": "10.0 KB"
+  },
+  {
+   "args": [
+    10240
+   ],
+   "out": "10.0 KB"
+  },
+  {
+   "args": [
+    102348
+   ],
+   "out": "99.9 KB"
+  },
+  {
+   "args": [
+    1048575
+   ],
+   "out": "1024.0 KB"
+  },
+  {
+   "args": [
+    1048576
+   ],
+   "out": "1.0 MB"
+  },
+  {
+   "args": [
+    1101004
+   ],
+   "out": "1.0 MB"
+  },
+  {
+   "args": [
+    1101005
+   ],
+   "out": "1.1 MB"
+  },
+  {
+   "args": [
+    1572864
+   ],
+   "out": "1.5 MB"
+  },
+  {
+   "args": [
+    5500000
+   ],
+   "out": "5.2 MB"
+  },
+  {
+   "args": [
+    1073741824
+   ],
+   "out": "1024.0 MB"
+  },
+  {
+   "args": [
+    1000000000000
+   ],
+   "out": "953674.3 MB"
+  },
+  {
+   "args": [
+    1e+21
+   ],
+   "out": "953674316406250.0 MB"
+  },
+  {
+   "args": [
+    0.5
+   ],
+   "out": "0.5 B"
+  },
+  {
+   "args": [
+    1023.5
+   ],
+   "out": "1023.5 B"
+  },
+  {
+   "args": [
+    2560
+   ],
+   "out": "2.5 KB"
+  },
+  {
+   "args": [
+    1075.2
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1177.6
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1280
+   ],
+   "out": "1.3 KB"
+  },
+  {
+   "args": [
+    10433331.2
+   ],
+   "out": "9.9 MB"
+  },
+  {
+   "args": [
+    104805171.2
+   ],
+   "out": "100.0 MB"
+  }
+ ],
+ "fmtSize": [
+  {
+   "args": [
+    0
+   ],
+   "out": "0 B"
+  },
+  {
+   "args": [
+    1
+   ],
+   "out": "1 B"
+  },
+  {
+   "args": [
+    512
+   ],
+   "out": "512 B"
+  },
+  {
+   "args": [
+    1023
+   ],
+   "out": "1023 B"
+  },
+  {
+   "args": [
+    1024
+   ],
+   "out": "1.0 KB"
+  },
+  {
+   "args": [
+    1075
+   ],
+   "out": "1.0 KB"
+  },
+  {
+   "args": [
+    1076
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1126
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1127
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1536
+   ],
+   "out": "1.5 KB"
+  },
+  {
+   "args": [
+    10239
+   ],
+   "out": "10.0 KB"
+  },
+  {
+   "args": [
+    10240
+   ],
+   "out": "10.0 KB"
+  },
+  {
+   "args": [
+    102348
+   ],
+   "out": "99.9 KB"
+  },
+  {
+   "args": [
+    1048575
+   ],
+   "out": "1024.0 KB"
+  },
+  {
+   "args": [
+    1048576
+   ],
+   "out": "1.0 MB"
+  },
+  {
+   "args": [
+    1101004
+   ],
+   "out": "1.0 MB"
+  },
+  {
+   "args": [
+    1101005
+   ],
+   "out": "1.1 MB"
+  },
+  {
+   "args": [
+    1572864
+   ],
+   "out": "1.5 MB"
+  },
+  {
+   "args": [
+    5500000
+   ],
+   "out": "5.2 MB"
+  },
+  {
+   "args": [
+    1073741824
+   ],
+   "out": "1024.0 MB"
+  },
+  {
+   "args": [
+    1000000000000
+   ],
+   "out": "953674.3 MB"
+  },
+  {
+   "args": [
+    1e+21
+   ],
+   "out": "953674316406250.0 MB"
+  },
+  {
+   "args": [
+    0.5
+   ],
+   "out": "0.5 B"
+  },
+  {
+   "args": [
+    1023.5
+   ],
+   "out": "1023.5 B"
+  },
+  {
+   "args": [
+    2560
+   ],
+   "out": "2.5 KB"
+  },
+  {
+   "args": [
+    1075.2
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1177.6
+   ],
+   "out": "1.1 KB"
+  },
+  {
+   "args": [
+    1280
+   ],
+   "out": "1.3 KB"
+  },
+  {
+   "args": [
+    10433331.2
+   ],
+   "out": "9.9 MB"
+  },
+  {
+   "args": [
+    104805171.2
+   ],
+   "out": "100.0 MB"
+  }
+ ],
+ "saveButtonTitle": [
+  {
+   "args": [
+    false,
+    false
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    true
+   ],
+   "out": "Read-only \u2014 saving would convert this file's encoding"
+  },
+  {
+   "args": [
+    true,
+    false
+   ],
+   "out": "Binary file \u2014 can't be edited here"
+  },
+  {
+   "args": [
+    true,
+    true
+   ],
+   "out": "Binary file \u2014 can't be edited here"
+  }
+ ],
+ "binaryName": [
+  {
+   "args": [
+    "data/metrics.parquet"
+   ],
+   "out": "metrics.parquet"
+  },
+  {
+   "args": [
+    "a.zip"
+   ],
+   "out": "a.zip"
+  },
+  {
+   "args": [
+    "dir/"
+   ],
+   "out": "dir/"
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "/abs/x.bin"
+   ],
+   "out": "x.bin"
+  },
+  {
+   "args": [
+    "no-slash"
+   ],
+   "out": "no-slash"
+  },
+  {
+   "args": [
+    "a//b"
+   ],
+   "out": "b"
+  }
+ ],
+ "binaryCaption": [
+  {
+   "args": [
+    "data/metrics.parquet",
+    482113
+   ],
+   "out": "metrics.parquet \u00b7 470.8 KB"
+  },
+  {
+   "args": [
+    "a.zip",
+    null
+   ],
+   "out": "a.zip"
+  },
+  {
+   "args": [
+    "dir/",
+    10
+   ],
+   "out": "dir/ \u00b7 10 B"
+  },
+  {
+   "args": [
+    "",
+    0
+   ],
+   "out": " \u00b7 0 B"
+  },
+  {
+   "args": [
+    "/abs/x.bin",
+    1048576
+   ],
+   "out": "x.bin \u00b7 1.0 MB"
+  },
+  {
+   "args": [
+    "no-slash",
+    1023
+   ],
+   "out": "no-slash \u00b7 1023 B"
+  },
+  {
+   "args": [
+    "a//b",
+    2048
+   ],
+   "out": "b \u00b7 2.0 KB"
+  }
+ ],
+ "deleteQuestion": [
+  {
+   "args": [
+    "a.txt"
+   ],
+   "out": "Delete a.txt? This cannot be undone."
+  },
+  {
+   "args": [
+    "src/deep/x.rs"
+   ],
+   "out": "Delete src/deep/x.rs? This cannot be undone."
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": "Delete ? This cannot be undone."
+  },
+  {
+   "args": [
+    "\u00e9 \ud83d\ude00"
+   ],
+   "out": "Delete \u00e9 \ud83d\ude00? This cannot be undone."
+  }
+ ],
+ "createPrompt": [
+  {
+   "args": [
+    "file",
+    null
+   ],
+   "out": [
+    "New file path:",
+    "untitled.md"
+   ]
+  },
+  {
+   "args": [
+    "dir",
+    null
+   ],
+   "out": [
+    "New folder path:",
+    "newdir"
+   ]
+  },
+  {
+   "args": [
+    "file",
+    "a.txt"
+   ],
+   "out": [
+    "New file path:",
+    "untitled.md"
+   ]
+  },
+  {
+   "args": [
+    "dir",
+    "a.txt"
+   ],
+   "out": [
+    "New folder path:",
+    "newdir"
+   ]
+  },
+  {
+   "args": [
+    "file",
+    "src/x.rs"
+   ],
+   "out": [
+    "New file path:",
+    "src/untitled.md"
+   ]
+  },
+  {
+   "args": [
+    "dir",
+    "src/x.rs"
+   ],
+   "out": [
+    "New folder path:",
+    "src/newdir"
+   ]
+  },
+  {
+   "args": [
+    "file",
+    "src/"
+   ],
+   "out": [
+    "New file path:",
+    "src/untitled.md"
+   ]
+  },
+  {
+   "args": [
+    "dir",
+    "src/"
+   ],
+   "out": [
+    "New folder path:",
+    "src/newdir"
+   ]
+  },
+  {
+   "args": [
+    "file",
+    "a/b/c/"
+   ],
+   "out": [
+    "New file path:",
+    "a/b/c/untitled.md"
+   ]
+  },
+  {
+   "args": [
+    "dir",
+    "a/b/c/"
+   ],
+   "out": [
+    "New folder path:",
+    "a/b/c/newdir"
+   ]
+  },
+  {
+   "args": [
+    "file",
+    "\u00e9/\ud83d\ude00"
+   ],
+   "out": [
+    "New file path:",
+    "\u00e9/untitled.md"
+   ]
+  },
+  {
+   "args": [
+    "dir",
+    "\u00e9/\ud83d\ude00"
+   ],
+   "out": [
+    "New folder path:",
+    "\u00e9/newdir"
+   ]
+  }
+ ],
+ "lastSegment": [
+  {
+   "args": [
+    "a/b/c.txt"
+   ],
+   "out": "c.txt"
+  },
+  {
+   "args": [
+    "c.txt"
+   ],
+   "out": "c.txt"
+  },
+  {
+   "args": [
+    "a/"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "/x"
+   ],
+   "out": "x"
+  },
+  {
+   "args": [
+    "a//"
+   ],
+   "out": ""
+  }
+ ],
+ "groupOpen": [
+  {
+   "args": [
+    "",
+    null
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "",
+    true
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "",
+    false
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "  ",
+    null
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "  ",
+    true
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "  ",
+    false
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "x",
+    null
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "x",
+    true
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "x",
+    false
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u00a0",
+    null
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u00a0",
+    true
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u00a0",
+    false
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u2028",
+    null
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u2028",
+    true
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u2028",
+    false
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\ufeff",
+    null
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\ufeff",
+    true
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\ufeff",
+    false
+   ],
+   "out": false
+  }
+ ],
+ "rootLabel": [
+  {
+   "args": [
+    "primary",
+    "/Users/me/proj"
+   ],
+   "out": "Workspace root"
+  },
+  {
+   "args": [
+    "settings",
+    "/Users/me/other/"
+   ],
+   "out": "other"
+  },
+  {
+   "args": [
+    "workspace",
+    "/a//b//"
+   ],
+   "out": "b"
+  },
+  {
+   "args": [
+    "settings",
+    "/"
+   ],
+   "out": "/"
+  },
+  {
+   "args": [
+    "x",
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "workspace",
+    "rel/dir"
+   ],
+   "out": "dir"
+  },
+  {
+   "args": [
+    "settings",
+    "///"
+   ],
+   "out": "///"
+  }
+ ],
+ "sourceBadge": [
+  {
+   "args": [
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "settings"
+   ],
+   "out": "settings.json"
+  },
+  {
+   "args": [
+    "workspace"
+   ],
+   "out": "defaults"
+  },
+  {
+   "args": [
+    "settings"
+   ],
+   "out": "settings.json"
+  },
+  {
+   "args": [
+    "x"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "workspace"
+   ],
+   "out": "defaults"
+  },
+  {
+   "args": [
+    "settings"
+   ],
+   "out": "settings.json"
+  }
+ ],
+ "selectedPath": [
+  {
+   "args": [
+    null,
+    null,
+    null,
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null,
+    null,
+    null,
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null,
+    null,
+    "x/y.md",
+    "primary"
+   ],
+   "out": "x/y.md"
+  },
+  {
+   "args": [
+    null,
+    null,
+    "x/y.md",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null,
+    "primary",
+    "p.md",
+    "primary"
+   ],
+   "out": "p.md"
+  },
+  {
+   "args": [
+    null,
+    "primary",
+    "p.md",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null,
+    "extra:0",
+    "e.md",
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null,
+    "extra:0",
+    "e.md",
+    "extra:0"
+   ],
+   "out": "e.md"
+  },
+  {
+   "args": [
+    null,
+    "extra:1",
+    "f.md",
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null,
+    "extra:1",
+    "f.md",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    null,
+    null,
+    "",
+    "primary"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    null,
+    null,
+    "",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    null,
+    null,
+    "primary"
+   ],
+   "out": "a.txt"
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    null,
+    null,
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    null,
+    "x/y.md",
+    "primary"
+   ],
+   "out": "a.txt"
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    null,
+    "x/y.md",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    "primary",
+    "p.md",
+    "primary"
+   ],
+   "out": "a.txt"
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    "primary",
+    "p.md",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    "extra:0",
+    "e.md",
+    "primary"
+   ],
+   "out": "a.txt"
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    "extra:0",
+    "e.md",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    "extra:1",
+    "f.md",
+    "primary"
+   ],
+   "out": "a.txt"
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    "extra:1",
+    "f.md",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    null,
+    "",
+    "primary"
+   ],
+   "out": "a.txt"
+  },
+  {
+   "args": [
+    [
+     "primary",
+     "a.txt"
+    ],
+    null,
+    "",
+    "extra:0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    null,
+    null,
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    null,
+    null,
+    "extra:0"
+   ],
+   "out": "b/c.txt"
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    null,
+    "x/y.md",
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    null,
+    "x/y.md",
+    "extra:0"
+   ],
+   "out": "b/c.txt"
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    "primary",
+    "p.md",
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    "primary",
+    "p.md",
+    "extra:0"
+   ],
+   "out": "b/c.txt"
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    "extra:0",
+    "e.md",
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    "extra:0",
+    "e.md",
+    "extra:0"
+   ],
+   "out": "b/c.txt"
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    "extra:1",
+    "f.md",
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    "extra:1",
+    "f.md",
+    "extra:0"
+   ],
+   "out": "b/c.txt"
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    null,
+    "",
+    "primary"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    [
+     "extra:0",
+     "b/c.txt"
+    ],
+    null,
+    "",
+    "extra:0"
+   ],
+   "out": "b/c.txt"
+  }
+ ],
+ "encodingBadge": [
+  {
+   "args": [
+    false,
+    null,
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    null,
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    null,
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "",
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-8",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-8",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-8",
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-8-bom",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-8-bom",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-8-bom",
+    "UTF-16 LE"
+   ],
+   "out": "UTF-16 LE"
+  },
+  {
+   "args": [
+    false,
+    "utf-16le",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-16le",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "utf-16le",
+    "UTF-16 LE"
+   ],
+   "out": "UTF-16 LE"
+  },
+  {
+   "args": [
+    false,
+    "latin1",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "latin1",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    "latin1",
+    "UTF-16 LE"
+   ],
+   "out": "UTF-16 LE"
+  },
+  {
+   "args": [
+    true,
+    null,
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    null,
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    null,
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "",
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-8",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-8",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-8",
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-8-bom",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-8-bom",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-8-bom",
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-16le",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-16le",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "utf-16le",
+    "UTF-16 LE"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "latin1",
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "latin1",
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    "latin1",
+    "UTF-16 LE"
+   ],
+   "out": null
+  }
+ ],
+ "loadKey": [
+  {
+   "args": [
+    ""
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "src"
+   ],
+   "out": "src/"
+  },
+  {
+   "args": [
+    "src/"
+   ],
+   "out": "src/"
+  },
+  {
+   "args": [
+    "a/b"
+   ],
+   "out": "a/b/"
+  },
+  {
+   "args": [
+    "a/b/"
+   ],
+   "out": "a/b/"
+  },
+  {
+   "args": [
+    "/"
+   ],
+   "out": "/"
+  }
+ ],
+ "ancestorDirs": [
+  {
+   "args": [
+    "a.txt"
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    "a/b.txt"
+   ],
+   "out": [
+    [
+     "a",
+     "a/"
+    ]
+   ]
+  },
+  {
+   "args": [
+    "a/b/c/d.txt"
+   ],
+   "out": [
+    [
+     "a",
+     "a/"
+    ],
+    [
+     "a/b",
+     "a/b/"
+    ],
+    [
+     "a/b/c",
+     "a/b/c/"
+    ]
+   ]
+  },
+  {
+   "args": [
+    "/a/b"
+   ],
+   "out": [
+    [
+     "a",
+     "a/"
+    ]
+   ]
+  },
+  {
+   "args": [
+    "a//b/c"
+   ],
+   "out": [
+    [
+     "a",
+     "a/"
+    ],
+    [
+     "a/b",
+     "a/b/"
+    ]
+   ]
+  },
+  {
+   "args": [
+    "a/b/"
+   ],
+   "out": [
+    [
+     "a",
+     "a/"
+    ]
+   ]
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    "x/\ud83d\ude00/y"
+   ],
+   "out": [
+    [
+     "x",
+     "x/"
+    ],
+    [
+     "x/\ud83d\ude00",
+     "x/\ud83d\ude00/"
+    ]
+   ]
+  }
+ ],
+ "findMatches": [
+  {
+   "args": [
+    "hello world hello",
+    "hello",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 5
+    },
+    {
+     "start": 12,
+     "end": 17
+    }
+   ]
+  },
+  {
+   "args": [
+    "Hello HELLO hello",
+    "hello",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 5
+    },
+    {
+     "start": 6,
+     "end": 11
+    },
+    {
+     "start": 12,
+     "end": 17
+    }
+   ]
+  },
+  {
+   "args": [
+    "Hello HELLO hello",
+    "hello",
+    true
+   ],
+   "out": [
+    {
+     "start": 12,
+     "end": 17
+    }
+   ]
+  },
+  {
+   "args": [
+    "aaaa",
+    "aa",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 2
+    },
+    {
+     "start": 2,
+     "end": 4
+    }
+   ]
+  },
+  {
+   "args": [
+    "abc",
+    "",
+    false
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    "",
+    "x",
+    false
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    "\u0130stanbul \u0130",
+    "i",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 1
+    },
+    {
+     "start": 10,
+     "end": 11
+    }
+   ]
+  },
+  {
+   "args": [
+    "\u0130stanbul",
+    "\u0130",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 2
+    }
+   ]
+  },
+  {
+   "args": [
+    "stra\u00dfe STRASSE",
+    "ss",
+    false
+   ],
+   "out": [
+    {
+     "start": 11,
+     "end": 13
+    }
+   ]
+  },
+  {
+   "args": [
+    "\ud83d\ude00a\ud83d\ude00A",
+    "a",
+    false
+   ],
+   "out": [
+    {
+     "start": 2,
+     "end": 3
+    },
+    {
+     "start": 5,
+     "end": 6
+    }
+   ]
+  },
+  {
+   "args": [
+    "\ud83d\ude00\ud83d\ude00",
+    "\ud83d\ude00",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 2
+    },
+    {
+     "start": 2,
+     "end": 4
+    }
+   ]
+  },
+  {
+   "args": [
+    "\u212a k K",
+    "k",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 1
+    },
+    {
+     "start": 2,
+     "end": 3
+    },
+    {
+     "start": 4,
+     "end": 5
+    }
+   ]
+  },
+  {
+   "args": [
+    "line1\nline2\nLINE3",
+    "line",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 4
+    },
+    {
+     "start": 6,
+     "end": 10
+    },
+    {
+     "start": 12,
+     "end": 16
+    }
+   ]
+  },
+  {
+   "args": [
+    "\u03a3\u03c3\u03c2",
+    "\u03c3",
+    false
+   ],
+   "out": [
+    {
+     "start": 0,
+     "end": 1
+    },
+    {
+     "start": 1,
+     "end": 2
+    }
+   ]
+  },
+  {
+   "args": [
+    {
+     "repeat": [
+      "x",
+      6000
+     ]
+    },
+    "x",
+    false
+   ],
+   "out": {
+    "count": 5000,
+    "first": {
+     "start": 0,
+     "end": 1
+    },
+    "last": {
+     "start": 4999,
+     "end": 5000
+    }
+   }
+  },
+  {
+   "args": [
+    {
+     "repeat": [
+      "ab",
+      3000
+     ]
+    },
+    "ab",
+    true
+   ],
+   "out": {
+    "count": 3000,
+    "first": {
+     "start": 0,
+     "end": 2
+    },
+    "last": {
+     "start": 5998,
+     "end": 6000
+    }
+   }
+  }
+ ],
+ "findCounter": [
+  {
+   "args": [
+    "",
+    0,
+    0
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "",
+    3,
+    1
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "x",
+    0,
+    0
+   ],
+   "out": "No results"
+  },
+  {
+   "args": [
+    "x",
+    1,
+    0
+   ],
+   "out": "1 / 1"
+  },
+  {
+   "args": [
+    "x",
+    5,
+    4
+   ],
+   "out": "5 / 5"
+  },
+  {
+   "args": [
+    "ab",
+    5000,
+    4999
+   ],
+   "out": "5000 / 5000"
+  }
+ ],
+ "caseTitle": [
+  {
+   "args": [
+    false
+   ],
+   "out": "Case sensitive (off)"
+  },
+  {
+   "args": [
+    true
+   ],
+   "out": "Case sensitive (on)"
+  }
+ ],
+ "folderCaseTitle": [
+  {
+   "args": [
+    false
+   ],
+   "out": "Case sensitive (off)"
+  },
+  {
+   "args": [
+    true
+   ],
+   "out": "Case sensitive (on)"
+  }
+ ],
+ "findNext": [
+  {
+   "args": [
+    0,
+    1
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    0,
+    3
+   ],
+   "out": 1
+  },
+  {
+   "args": [
+    2,
+    3
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    1,
+    3
+   ],
+   "out": 2
+  },
+  {
+   "args": [
+    4999,
+    5000
+   ],
+   "out": 0
+  }
+ ],
+ "findPrev": [
+  {
+   "args": [
+    0,
+    1
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    0,
+    3
+   ],
+   "out": 2
+  },
+  {
+   "args": [
+    2,
+    3
+   ],
+   "out": 1
+  },
+  {
+   "args": [
+    1,
+    3
+   ],
+   "out": 0
+  },
+  {
+   "args": [
+    4999,
+    5000
+   ],
+   "out": 4998
+  }
+ ],
+ "groupMatches": [
+  {
+   "args": [
+    null
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    []
+   ],
+   "out": []
+  },
+  {
+   "args": [
+    [
+     "a.txt"
+    ]
+   ],
+   "out": [
+    [
+     "a.txt",
+     [
+      0
+     ]
+    ]
+   ]
+  },
+  {
+   "args": [
+    [
+     "a.txt",
+     "a.txt",
+     "b.txt"
+    ]
+   ],
+   "out": [
+    [
+     "a.txt",
+     [
+      0,
+      1
+     ]
+    ],
+    [
+     "b.txt",
+     [
+      2
+     ]
+    ]
+   ]
+  },
+  {
+   "args": [
+    [
+     "a.txt",
+     "b.txt",
+     "a.txt"
+    ]
+   ],
+   "out": [
+    [
+     "a.txt",
+     [
+      0
+     ]
+    ],
+    [
+     "b.txt",
+     [
+      1
+     ]
+    ],
+    [
+     "a.txt",
+     [
+      2
+     ]
+    ]
+   ]
+  },
+  {
+   "args": [
+    [
+     "x/y.rs",
+     "x/y.rs",
+     "x/y.rs"
+    ]
+   ],
+   "out": [
+    [
+     "x/y.rs",
+     [
+      0,
+      1,
+      2
+     ]
+    ]
+   ]
+  }
+ ],
+ "folderDisplay": [
+  {
+   "args": [
+    "",
+    "root"
+   ],
+   "out": "root"
+  },
+  {
+   "args": [
+    "src/",
+    "src"
+   ],
+   "out": "src"
+  },
+  {
+   "args": [
+    "src",
+    "x"
+   ],
+   "out": "src"
+  },
+  {
+   "args": [
+    "a/b//",
+    "b"
+   ],
+   "out": "a/b/"
+  },
+  {
+   "args": [
+    "/",
+    "r"
+   ],
+   "out": ""
+  },
+  {
+   "args": [
+    "",
+    ""
+   ],
+   "out": ""
+  }
+ ],
+ "folderFooter": [
+  {
+   "args": [
+    false,
+    0,
+    0
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    0,
+    1
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    0,
+    200
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    1,
+    0
+   ],
+   "out": "Scanned 1 files."
+  },
+  {
+   "args": [
+    false,
+    1,
+    1
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    1,
+    200
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    42,
+    0
+   ],
+   "out": "Scanned 42 files."
+  },
+  {
+   "args": [
+    false,
+    42,
+    1
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    42,
+    200
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    1.5,
+    0
+   ],
+   "out": "Scanned 1.5 files."
+  },
+  {
+   "args": [
+    false,
+    1.5,
+    1
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    false,
+    1.5,
+    200
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    true,
+    0,
+    0
+   ],
+   "out": "Showing first 0 matches across 0 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    0,
+    1
+   ],
+   "out": "Showing first 1 matches across 0 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    0,
+    200
+   ],
+   "out": "Showing first 200 matches across 0 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    1,
+    0
+   ],
+   "out": "Showing first 0 matches across 1 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    1,
+    1
+   ],
+   "out": "Showing first 1 matches across 1 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    1,
+    200
+   ],
+   "out": "Showing first 200 matches across 1 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    42,
+    0
+   ],
+   "out": "Showing first 0 matches across 42 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    42,
+    1
+   ],
+   "out": "Showing first 1 matches across 42 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    42,
+    200
+   ],
+   "out": "Showing first 200 matches across 42 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    1.5,
+    0
+   ],
+   "out": "Showing first 0 matches across 1.5 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    1.5,
+    1
+   ],
+   "out": "Showing first 1 matches across 1.5 files \u2014 refine the query for more."
+  },
+  {
+   "args": [
+    true,
+    1.5,
+    200
+   ],
+   "out": "Showing first 200 matches across 1.5 files \u2014 refine the query for more."
+  }
+ ],
+ "matchedLine": [
+  {
+   "args": [
+    "hello world",
+    7,
+    12
+   ],
+   "out": [
+    "hello ",
+    "world",
+    ""
+   ]
+  },
+  {
+   "args": [
+    "hello",
+    1,
+    6
+   ],
+   "out": [
+    "",
+    "hello",
+    ""
+   ]
+  },
+  {
+   "args": [
+    "hello",
+    0,
+    3
+   ],
+   "out": [
+    "",
+    "he",
+    "llo"
+   ]
+  },
+  {
+   "args": [
+    "hello",
+    3,
+    3
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "hello",
+    4,
+    2
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "hello",
+    9,
+    12
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "hello",
+    -5,
+    2
+   ],
+   "out": [
+    "",
+    "h",
+    "ello"
+   ]
+  },
+  {
+   "args": [
+    "hello",
+    2,
+    99
+   ],
+   "out": [
+    "h",
+    "ello",
+    ""
+   ]
+  },
+  {
+   "args": [
+    "",
+    1,
+    2
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\ud83d\ude00ab",
+    3,
+    5
+   ],
+   "out": [
+    "\ud83d\ude00",
+    "ab",
+    ""
+   ]
+  },
+  {
+   "args": [
+    "a\ud83d\ude00b",
+    2,
+    4
+   ],
+   "out": [
+    "a",
+    "\ud83d\ude00",
+    "b"
+   ]
+  },
+  {
+   "args": [
+    "abc",
+    1.5,
+    2.5
+   ],
+   "out": [
+    "",
+    "a",
+    "bc"
+   ]
+  },
+  {
+   "args": [
+    "abcdef",
+    2.9,
+    4.1
+   ],
+   "out": [
+    "a",
+    "bc",
+    "def"
+   ]
+  },
+  {
+   "args": [
+    "abc",
+    2,
+    2.5
+   ],
+   "out": [
+    "a",
+    "",
+    "bc"
+   ]
+  }
+ ],
+ "menuEstimate": [
+  {
+   "args": [],
+   "out": [
+    200,
+    56
+   ]
+  }
+ ],
+ "clampMenu": [
+  {
+   "args": [
+    100,
+    100,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    100,
+    100
+   ]
+  },
+  {
+   "args": [
+    1000,
+    760,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    816,
+    704
+   ]
+  },
+  {
+   "args": [
+    0,
+    0,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    8,
+    8
+   ]
+  },
+  {
+   "args": [
+    -50,
+    -50,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    8,
+    8
+   ]
+  },
+  {
+   "args": [
+    500.5,
+    300.5,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    501,
+    301
+   ]
+  },
+  {
+   "args": [
+    501.5,
+    301.5,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    502,
+    302
+   ]
+  },
+  {
+   "args": [
+    100,
+    100,
+    224,
+    80,
+    1280,
+    820
+   ],
+   "out": [
+    100,
+    100
+   ]
+  },
+  {
+   "args": [
+    5,
+    5,
+    2000,
+    2000,
+    1024,
+    768
+   ],
+   "out": [
+    8,
+    8
+   ]
+  },
+  {
+   "args": [
+    816.4,
+    703.6,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    816,
+    704
+   ]
+  },
+  {
+   "args": [
+    -0.4,
+    8.5,
+    200,
+    56,
+    1024,
+    768
+   ],
+   "out": [
+    8,
+    9
+   ]
+  }
+ ],
+ "revealLabel": [
+  {
+   "args": [
+    "darwin"
+   ],
+   "out": "Reveal in Finder"
+  },
+  {
+   "args": [
+    "win32"
+   ],
+   "out": "Show in Explorer"
+  },
+  {
+   "args": [
+    "linux"
+   ],
+   "out": "Open Containing Folder"
+  }
+ ],
+ "isLetterKey": [
+  {
+   "args": [
+    "s",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "S",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u044b",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u044b",
+    "KeyS",
+    true,
+    "s"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "Process",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "o",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "f",
+    "KeyF",
+    false,
+    "f"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\u0430",
+    "KeyF",
+    false,
+    "f"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "Enter",
+    "Enter",
+    false,
+    "s"
+   ],
+   "out": false
+  },
+  {
+   "args": [
+    "\u017f",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": true
+  },
+  {
+   "args": [
+    "\ud83d\ude00",
+    "KeyS",
+    false,
+    "s"
+   ],
+   "out": true
+  }
+ ],
+ "languageForPath": [
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.ts"
+   ],
+   "out": "typescript"
+  },
+  {
+   "args": [
+    "src/main.rs"
+   ],
+   "out": "rust"
+  },
+  {
+   "args": [
+    "README.md"
+   ],
+   "out": "markdown"
+  },
+  {
+   "args": [
+    "Dockerfile"
+   ],
+   "out": "dockerfile"
+  },
+  {
+   "args": [
+    "Dockerfile.dev"
+   ],
+   "out": "dockerfile"
+  },
+  {
+   "args": [
+    "dockerfile"
+   ],
+   "out": "dockerfile"
+  },
+  {
+   "args": [
+    "Makefile"
+   ],
+   "out": "make"
+  },
+  {
+   "args": [
+    "makefile.inc"
+   ],
+   "out": "make"
+  },
+  {
+   "args": [
+    "GNUmakefile"
+   ],
+   "out": "make"
+  },
+  {
+   "args": [
+    ".env"
+   ],
+   "out": "bash"
+  },
+  {
+   "args": [
+    ".env.local"
+   ],
+   "out": "bash"
+  },
+  {
+   "args": [
+    ".envrc"
+   ],
+   "out": "bash"
+  },
+  {
+   "args": [
+    "package.json"
+   ],
+   "out": "json"
+  },
+  {
+   "args": [
+    "PACKAGE.JSON"
+   ],
+   "out": "json"
+  },
+  {
+   "args": [
+    "x.d.ts"
+   ],
+   "out": "typescript"
+  },
+  {
+   "args": [
+    "a.test.ts"
+   ],
+   "out": "typescript"
+  },
+  {
+   "args": [
+    "a.tsx"
+   ],
+   "out": "tsx"
+  },
+  {
+   "args": [
+    "a.TSX"
+   ],
+   "out": "tsx"
+  },
+  {
+   "args": [
+    "a.jsonc"
+   ],
+   "out": "jsonc"
+  },
+  {
+   "args": [
+    "a.yml"
+   ],
+   "out": "yaml"
+  },
+  {
+   "args": [
+    "a.yaml"
+   ],
+   "out": "yaml"
+  },
+  {
+   "args": [
+    "a.toml"
+   ],
+   "out": "toml"
+  },
+  {
+   "args": [
+    "a.sh"
+   ],
+   "out": "bash"
+  },
+  {
+   "args": [
+    "a.zsh"
+   ],
+   "out": "bash"
+  },
+  {
+   "args": [
+    "a.py"
+   ],
+   "out": "python"
+  },
+  {
+   "args": [
+    "a.go"
+   ],
+   "out": "go"
+  },
+  {
+   "args": [
+    "a.java"
+   ],
+   "out": "java"
+  },
+  {
+   "args": [
+    "a.kt"
+   ],
+   "out": "kotlin"
+  },
+  {
+   "args": [
+    "a.swift"
+   ],
+   "out": "swift"
+  },
+  {
+   "args": [
+    "a.c"
+   ],
+   "out": "c"
+  },
+  {
+   "args": [
+    "a.h"
+   ],
+   "out": "c"
+  },
+  {
+   "args": [
+    "a.cpp"
+   ],
+   "out": "cpp"
+  },
+  {
+   "args": [
+    "a.hpp"
+   ],
+   "out": "cpp"
+  },
+  {
+   "args": [
+    "a.cs"
+   ],
+   "out": "csharp"
+  },
+  {
+   "args": [
+    "a.rb"
+   ],
+   "out": "ruby"
+  },
+  {
+   "args": [
+    "a.php"
+   ],
+   "out": "php"
+  },
+  {
+   "args": [
+    "a.sql"
+   ],
+   "out": "sql"
+  },
+  {
+   "args": [
+    "a.html"
+   ],
+   "out": "html"
+  },
+  {
+   "args": [
+    "a.css"
+   ],
+   "out": "css"
+  },
+  {
+   "args": [
+    "a.scss"
+   ],
+   "out": "scss"
+  },
+  {
+   "args": [
+    "a.vue"
+   ],
+   "out": "vue"
+  },
+  {
+   "args": [
+    "a.svelte"
+   ],
+   "out": "svelte"
+  },
+  {
+   "args": [
+    "a.lua"
+   ],
+   "out": "lua"
+  },
+  {
+   "args": [
+    "a.r"
+   ],
+   "out": "r"
+  },
+  {
+   "args": [
+    "a.ex"
+   ],
+   "out": "elixir"
+  },
+  {
+   "args": [
+    "a.exs"
+   ],
+   "out": "elixir"
+  },
+  {
+   "args": [
+    "a.erl"
+   ],
+   "out": "erlang"
+  },
+  {
+   "args": [
+    "a.hs"
+   ],
+   "out": "haskell"
+  },
+  {
+   "args": [
+    "a.ml"
+   ],
+   "out": "ocaml"
+  },
+  {
+   "args": [
+    "a.clj"
+   ],
+   "out": "clojure"
+  },
+  {
+   "args": [
+    "a.dart"
+   ],
+   "out": "dart"
+  },
+  {
+   "args": [
+    "a.zig"
+   ],
+   "out": "zig"
+  },
+  {
+   "args": [
+    "a.nim"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.tf"
+   ],
+   "out": "terraform"
+  },
+  {
+   "args": [
+    "a.proto"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.graphql"
+   ],
+   "out": "graphql"
+  },
+  {
+   "args": [
+    "a.xml"
+   ],
+   "out": "xml"
+  },
+  {
+   "args": [
+    "a.svg"
+   ],
+   "out": "xml"
+  },
+  {
+   "args": [
+    "a.ini"
+   ],
+   "out": "ini"
+  },
+  {
+   "args": [
+    "a.cfg"
+   ],
+   "out": "ini"
+  },
+  {
+   "args": [
+    "a.conf"
+   ],
+   "out": "ini"
+  },
+  {
+   "args": [
+    "a.diff"
+   ],
+   "out": "diff"
+  },
+  {
+   "args": [
+    "a.patch"
+   ],
+   "out": "diff"
+  },
+  {
+   "args": [
+    "a.txt"
+   ],
+   "out": "text"
+  },
+  {
+   "args": [
+    "a.unknown"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "noext"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "dir.d/file"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.b.c"
+   ],
+   "out": "c"
+  },
+  {
+   "args": [
+    ".gitignore"
+   ],
+   "out": "text"
+  },
+  {
+   "args": [
+    ".bashrc"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "CMakeLists.txt"
+   ],
+   "out": "cmake"
+  },
+  {
+   "args": [
+    "Gemfile"
+   ],
+   "out": "ruby"
+  },
+  {
+   "args": [
+    "Pipfile"
+   ],
+   "out": "toml"
+  },
+  {
+   "args": [
+    "go.mod"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "Cargo.lock"
+   ],
+   "out": "toml"
+  },
+  {
+   "args": [
+    "tsconfig.json"
+   ],
+   "out": "jsonc"
+  },
+  {
+   "args": [
+    "x/.prettierrc"
+   ],
+   "out": "json"
+  },
+  {
+   "args": [
+    "a.md.bak"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.mdx"
+   ],
+   "out": "mdx"
+  },
+  {
+   "args": [
+    "a.ps1"
+   ],
+   "out": "powershell"
+  },
+  {
+   "args": [
+    "a.bat"
+   ],
+   "out": "bat"
+  },
+  {
+   "args": [
+    "a.vim"
+   ],
+   "out": "vim"
+  },
+  {
+   "args": [
+    "a.nix"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.jl"
+   ],
+   "out": "julia"
+  },
+  {
+   "args": [
+    "a.scala"
+   ],
+   "out": "scala"
+  },
+  {
+   "args": [
+    "a.groovy"
+   ],
+   "out": "groovy"
+  },
+  {
+   "args": [
+    "a.gradle"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.pl"
+   ],
+   "out": "perl"
+  },
+  {
+   "args": [
+    "a.tex"
+   ],
+   "out": "tex"
+  },
+  {
+   "args": [
+    "a.csv"
+   ],
+   "out": "csv"
+  },
+  {
+   "args": [
+    "a.log"
+   ],
+   "out": "text"
+  },
+  {
+   "args": [
+    "a.lock"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "Procfile"
+   ],
+   "out": "yaml"
+  },
+  {
+   "args": [
+    "Jenkinsfile"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "Vagrantfile"
+   ],
+   "out": "ruby"
+  },
+  {
+   "args": [
+    "a.mjs"
+   ],
+   "out": "javascript"
+  },
+  {
+   "args": [
+    "a.cjs"
+   ],
+   "out": "javascript"
+  },
+  {
+   "args": [
+    "a.mts"
+   ],
+   "out": "typescript"
+  },
+  {
+   "args": [
+    "a.cts"
+   ],
+   "out": "typescript"
+  },
+  {
+   "args": [
+    "a.jsx"
+   ],
+   "out": "jsx"
+  },
+  {
+   "args": [
+    "a.json5"
+   ],
+   "out": "json5"
+  },
+  {
+   "args": [
+    "a.rst"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.astro"
+   ],
+   "out": "astro"
+  },
+  {
+   "args": [
+    "a.prisma"
+   ],
+   "out": "prisma"
+  },
+  {
+   "args": [
+    "a.sol"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.wgsl"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.glsl"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.hcl"
+   ],
+   "out": "hcl"
+  },
+  {
+   "args": [
+    "a.dockerfile"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "dir/Makefile"
+   ],
+   "out": "make"
+  },
+  {
+   "args": [
+    "\u00e9.py"
+   ],
+   "out": "python"
+  },
+  {
+   "args": [
+    "A.PY"
+   ],
+   "out": "python"
+  },
+  {
+   "args": [
+    "x."
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "."
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ".."
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a/b/"
+   ],
+   "out": null
+  }
+ ],
+ "previewType": [
+  {
+   "args": [
+    "a.png"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.PNG"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.jpeg"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "x/y.svg"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.html"
+   ],
+   "out": "html"
+  },
+  {
+   "args": [
+    "a.HTM"
+   ],
+   "out": "html"
+  },
+  {
+   "args": [
+    "a.txt"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "png"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.png/b"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "a.tiff"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.avif"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.ico"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.webp"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.gif"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.bmp"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.tif"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.jpg"
+   ],
+   "out": "image"
+  },
+  {
+   "args": [
+    "a.heic"
+   ],
+   "out": null
+  }
+ ],
+ "lastOpenRead": [
+  {
+   "args": [
+    null
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    ""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "{}"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "null"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "[]"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "\"str\""
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "not json"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "{\"root\":\"primary\",\"relPath\":\"a.txt\"}"
+   ],
+   "out": {
+    "root": "primary",
+    "relPath": "a.txt"
+   }
+  },
+  {
+   "args": [
+    "{\"root\":\"extra:0\",\"relPath\":\"d/e.md\",\"x\":1}"
+   ],
+   "out": {
+    "root": "extra:0",
+    "relPath": "d/e.md"
+   }
+  },
+  {
+   "args": [
+    "{\"root\":1,\"relPath\":\"a\"}"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "{\"root\":\"primary\",\"relPath\":\"\"}"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "{\"root\":\"primary\",\"relPath\":5}"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "{\"root\":\"\",\"relPath\":\"a\"}"
+   ],
+   "out": {
+    "root": "",
+    "relPath": "a"
+   }
+  },
+  {
+   "args": [
+    " {\"root\":\"primary\",\"relPath\":\"a\"} "
+   ],
+   "out": {
+    "root": "primary",
+    "relPath": "a"
+   }
+  },
+  {
+   "args": [
+    "0"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "true"
+   ],
+   "out": null
+  },
+  {
+   "args": [
+    "{\"relPath\":\"a\",\"root\":\"primary\"}"
+   ],
+   "out": {
+    "root": "primary",
+    "relPath": "a"
+   }
+  },
+  {
+   "args": [
+    "{\"root\":\"primary\",\"relPath\":\"\u00e9\ud83d\ude00\"}"
+   ],
+   "out": {
+    "root": "primary",
+    "relPath": "\u00e9\ud83d\ude00"
+   }
+  }
+ ],
+ "lastOpenWrite": [
+  {
+   "args": [
+    "w1",
+    "primary",
+    "a.txt"
+   ],
+   "out": [
+    [
+     "setItem",
+     "claudius.files.lastOpen.w1",
+     "{\"root\":\"primary\",\"relPath\":\"a.txt\"}"
+    ],
+    [
+     "removeItem",
+     "claudius.files.lastOpen.w1"
+    ]
+   ]
+  },
+  {
+   "args": [
+    "ws 2",
+    "extra:1",
+    "\u00e9/\ud83d\ude00\"q\".md"
+   ],
+   "out": [
+    [
+     "setItem",
+     "claudius.files.lastOpen.ws 2",
+     "{\"root\":\"extra:1\",\"relPath\":\"\u00e9/\ud83d\ude00\\\"q\\\".md\"}"
+    ],
+    [
+     "removeItem",
+     "claudius.files.lastOpen.ws 2"
+    ]
+   ]
+  }
+ ],
+ "copy": {
+  "binaryHeadline": "Binary file \u2014 not shown as text",
+  "binaryBody": "This file isn't text (a spreadsheet, archive, database, media file or similar), so it can't be opened in the editor.",
+  "readOnlyDefault": "Read-only: this file's encoding isn't UTF-8, and saving would convert it.",
+  "renamePrompt": "New path (relative to its root):",
+  "hiddenHint": "Dotfiles and folders like .git, node_modules, dist and build aren't shown in the tree.",
+  "searchPlaceholder": "Search files (incl. nested folders)",
+  "pickAFile": "Pick a file to view or edit.",
+  "noWorkspace": "No active workspace.",
+  "noFilesMatch": "No files match.",
+  "emptyFolder": "This folder is empty.",
+  "noFolderMatches": "No matches in this folder.",
+  "typeToSearch": "Type to search inside",
+  "findPlaceholder": "Find in file",
+  "extraTitleFallback": "additional directory",
+  "encodingTitle": "Saved back in this encoding",
+  "renameTitle": "Rename / move",
+  "saving": "Saving\u2026",
+  "prevTitle": "Previous match (Shift+Enter)",
+  "nextTitle": "Next match (Enter)",
+  "closeFindTitle": "Close find (Esc)",
+  "closeFolderTitle": "Close (Esc)"
+ }
+}

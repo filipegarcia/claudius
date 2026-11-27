@@ -83,6 +83,13 @@ impl LocalStore {
         self.flush();
     }
 
+    /// `removeItem`.
+    pub fn remove(&mut self, key: &str) {
+        if self.items.shift_remove(key).is_some() {
+            self.flush();
+        }
+    }
+
     fn flush(&self) {
         let Some(path) = &self.path else {
             return;

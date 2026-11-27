@@ -1,0 +1,33 @@
+[package]
+name = "claudius-files"
+description = "The Files page (U12c): the tree, the file preview and editor, find in file and find in folder, as a pure model over the FilesData trait and its GPUI view"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+# `js::trim` (`query.trim()`) and `Number::toString` (`${n} B`).
+claudius-agent.workspace = true
+# `js_string`: UTF-16 offsets, `toLowerCase`, `encodeURIComponent`,
+# `JSON.parse` with lone surrogates, `String(v)`.
+claudius-core.workspace = true
+claudius-gpui-theme.workspace = true
+# The palette tokens and the Tailwind steps the page's classes name.
+claudius-theme.workspace = true
+# The live `FilesData`: the page's fetches over the engine's router.
+claudius-transport.workspace = true
+futures = "0.3"
+gpui-kit.workspace = true
+serde_json.workspace = true
+# The live source runs its fetches on the engine's runtime.
+tokio.workspace = true
+
+[dev-dependencies]
+# `TestAppContext` and `VisualTestContext` (as claudius-app's tests).
+gpui = { package = "gpui-pre", version = "=0.3.12", features = ["test-support"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+# CoreText (real glyph widths in the tests).
+gpui_apple = { package = "gpui-pre-apple", version = "=0.3.12", features = ["font-kit", "test-support"] }

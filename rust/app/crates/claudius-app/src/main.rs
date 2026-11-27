@@ -14,7 +14,9 @@
 //! fixture (the bundled one otherwise). Over the fixture the transcripts
 //! are claudius-chat's bundled ones (`FixtureTranscripts::builtin`), and
 //! the composer sends into them through `FixtureComposer` (a scripted
-//! reply); over a live chat the shell sets its own (U07e).
+//! reply); over a live chat the shell sets its own (U07e). The Files page
+//! (U12c) reads the engine's file routes through each workspace's page
+//! transport, or over the fixture claudius-files' bundled demo tree.
 //! `CLAUDIUS_APP_PROMPTS` puts sample prompt cards on the fixture's demo
 //! session (comma-separated: `permission`, `permission-queue`, `plan`,
 //! `plan-mode`, `elicitation`, `elicitation-url`, `ask`).
@@ -36,12 +38,18 @@ use claudius_app::store::{self, LocalStore};
 use claudius_chat::TranscriptSource;
 use claudius_chat::fixture::{FixtureTranscripts, ids};
 use claudius_composer::fixture::FixtureComposer;
+use claudius_files::FilesData;
+use claudius_files::fixture::FixtureFilesData;
+use claudius_files::live::LiveFilesData;
 use claudius_gpui_theme::{ThemeName, icons::IconAssets};
 use claudius_prompts::target::samples;
 use claudius_prompts::{FixturePromptSource, PromptSource};
 
 fn main() -> anyhow::Result<()> {
     let mut backend: Option<Arc<Backend>> = None;
+    // The Files page's data: the fixture's demo tree, or the engine's
+    // routes through each workspace's page transport.
+    let mut files: Arc<dyn FilesData> = Arc::new(FixtureFilesData::builtin());
     let data: Arc<dyn ShellData> = if let Some(path) = std::env::var_os("CLAUDIUS_APP_FIXTURE") {
         if path == "builtin" {
             Arc::new(FixtureShellData::builtin())
@@ -62,7 +70,13 @@ fn main() -> anyhow::Result<()> {
         };
         let b = Arc::new(b);
         backend = Some(b.clone());
-        Arc::new(TransportShellData::new(b))
+        let live = Arc::new(TransportShellData::new(b.clone()));
+        let pages = live.clone();
+        files = Arc::new(LiveFilesData::new(
+            b.handle(),
+            Arc::new(move |id: &str| pages.page(id)),
+        ));
+        live
     };
     // `CLAUDIUS_APP_SESSIONS=<path>`: the sessions browser's fixture, else
     // the bundled one, its ages moved to now.
@@ -144,6 +158,7 @@ fn main() -> anyhow::Result<()> {
                     if let Some(prompts) = prompts {
                         s.set_prompt_source(prompts, cx);
                     }
+                    s.set_files_data(files, cx);
                 }),
                 Err(e) => {
                     eprintln!("claudius-app: opening the window: {e:#}");
