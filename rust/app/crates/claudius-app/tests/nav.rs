@@ -275,7 +275,8 @@ fn the_registry_defaults() {
             assert!(seen.insert(k.clone()), "{k} is bound twice");
         }
     }
-    assert_eq!(seen.len(), 68);
+    // 68, and the palette's ⌘K and the cheatsheet's ⌘/ (U10a).
+    assert_eq!(seen.len(), 70);
 }
 
 #[test]

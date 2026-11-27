@@ -26,7 +26,11 @@ claudius-composer.workspace = true
 claudius-files.workspace = true
 # The Git page (U12a).
 claudius-git.workspace = true
+# The command palette, the cheatsheet and the slash commands' help (U10a).
+claudius-overlays.workspace = true
 claudius-gpui-theme.workspace = true
+# The chat's right rail and goal banner (U09b).
+claudius-panels.workspace = true
 # The prompt cards (U08a) and their `PromptSource`.
 claudius-prompts.workspace = true
 claudius-server.workspace = true
@@ -45,9 +49,13 @@ tokio.workspace = true
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
+# The sessions data's unit tests: a scripted `Transport`, and tokio's paused
+# clock for the unread feed's backoff.
+async-trait = "0.1"
 bytes = "1"
 http = "1"
 tempfile = "3"
+tokio = { workspace = true, features = ["test-util"] }
 # `TestAppContext`, `VisualTestContext::debug_bounds` and the headless
 # window's `render_to_image` (as claudius-gpui-theme: gpui-kit's own
 # `test-support` doesn't resolve).

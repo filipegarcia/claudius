@@ -336,9 +336,10 @@ fn the_shell_runs_over_the_in_process_engine() {
     // the switch mustn't pull the strip back, and until the chat is on the
     // tab the strip bound, that tab reads as starting, not as the old
     // session's dot.
-    // 40 ms apart: the transcript draws each chunk, and a busier stream
-    // under a loaded CPU keeps the test's executor from ever parking.
-    w.input(&w1.id, &s2, &stream_turn(150, 40));
+    // 80 ms apart: the transcript and the rail (its token meter) draw
+    // each chunk, and a busier stream under a loaded CPU keeps the test's
+    // executor from ever parking.
+    w.input(&w1.id, &s2, &stream_turn(150, 80));
     wait(cx, &shell, "the second session streaming", |s| {
         let st = s.live_chat()?.state();
         (tabs(s)[1].1 == TabStatus::Running && !st.messages.is_empty()).then_some(())

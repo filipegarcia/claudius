@@ -1,0 +1,27 @@
+[package]
+name = "claudius-overlays"
+description = "The overlays (U10): the shared Overlay frame, the command palette and the help / keyboard cheatsheet overlays, as pure models and their GPUI views"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+# `collate::locale_compare` (the palette's and `mergeSuggestions`'
+# `localeCompare` sorts).
+claudius-core.workspace = true
+claudius-gpui-theme.workspace = true
+# The palette tokens and `js::trim` (`String.prototype.trim`).
+claudius-theme.workspace = true
+gpui-kit.workspace = true
+
+[dev-dependencies]
+# `TestAppContext` and `VisualTestContext` (as claudius-app's tests).
+gpui = { package = "gpui-pre", version = "=0.3.12", features = ["test-support"] }
+# Reading the golden fixture.
+serde_json.workspace = true
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+# CoreText (real glyph widths in the view tests).
+gpui_apple = { package = "gpui-pre-apple", version = "=0.3.12", features = ["font-kit", "test-support"] }

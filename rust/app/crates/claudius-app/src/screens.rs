@@ -9,13 +9,15 @@
 use claudius_gpui_theme::fonts;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, Context, Div, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
-    SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
+    AnyElement, App, Context, Div, FontWeight, InteractiveElement as _, IntoElement,
+    ParentElement as _, SharedString, StatefulInteractiveElement as _, StyleRefinement,
+    Styled as _, div, px,
 };
 
 use gpui_kit::assets::IconName;
 use serde_json::Value;
 
+use crate::nav::FocusLevel;
 use crate::route::{Route, WorkspacePage};
 use crate::shell::{Shell, focus_label};
 use crate::ui::{Colors, icon};
@@ -33,7 +35,10 @@ pub(crate) fn screen(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyEl
         Route::Workspace {
             page: WorkspacePage::Chat { .. },
             ..
-        } => with_status_line(this, chat(this, c, cx)),
+        } => {
+            let chat = with_status_line(this, chat(this, c, cx));
+            with_rail(this, chat, cx)
+        }
         Route::Workspace {
             page: WorkspacePage::Sessions | WorkspacePage::Session { .. },
             ..
@@ -87,6 +92,64 @@ fn with_status_line(this: &Shell, chat: AnyElement) -> AnyElement {
             .into_any_element(),
         None => chat,
     }
+}
+
+/// Whether the live chat is mounted on the shown workspace, with a tab
+/// open.
+fn live_mounted(this: &Shell) -> bool {
+    let ws = this.state.active_workspace().map(|w| w.id.as_str());
+    this.live_chat()
+        .is_some_and(|l| Some(l.workspace_id()) == ws)
+        && this.chat_tab().is_some()
+}
+
+/// `BackgroundTasksPanel` beside the chat column (ChatSurface.tsx:2941):
+/// over a live chat once a tab is open, and only with focus off
+/// (`!isFocus`). Cached: a frame the rail didn't change (each chunk the
+/// transcript streams) reuses its last layout and paint.
+fn with_rail(this: &Shell, chat: AnyElement, cx: &App) -> AnyElement {
+    let shown = live_mounted(this) && this.state.effective_focus() == FocusLevel::Off;
+    match this
+        .rail_view()
+        .filter(|r| shown && r.read(cx).model().is_some())
+    {
+        Some(rail) => div()
+            .flex()
+            .flex_1()
+            .min_h_0()
+            .size_full()
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .flex_1()
+                    .min_w_0()
+                    .min_h_0()
+                    .child(chat),
+            )
+            .child(
+                rail.clone().cached(
+                    StyleRefinement::default()
+                        .w(px(rail.read(cx).width()))
+                        .h_full()
+                        .flex_none(),
+                ),
+            )
+            .into_any_element(),
+        None => chat,
+    }
+}
+
+/// The session header's goal row (ChatSurface.tsx:2527): over a live chat
+/// bound to the shown tab, hidden in zen.
+fn goal_banner(this: &Shell, tab: &str) -> Option<AnyElement> {
+    let bound = this
+        .live_chat()
+        .is_some_and(|l| l.session_id().as_deref() == Some(tab));
+    let shown = live_mounted(this) && bound && this.state.effective_focus() != FocusLevel::Zen;
+    this.goal_view()
+        .filter(|_| shown)
+        .map(|g| g.into_any_element())
 }
 
 fn row(key: &str, value: impl Into<SharedString>, c: &Colors) -> Div {
@@ -247,6 +310,7 @@ fn chat(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyElement {
             .min_h_0()
             .size_full()
             .children(prompts.as_ref().map(|p| p.banner.clone()))
+            .children(goal_banner(this, &tab.id))
             .child(
                 div()
                     .flex()

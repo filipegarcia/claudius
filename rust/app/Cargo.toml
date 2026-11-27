@@ -11,6 +11,8 @@ members = [
     "crates/claudius-files",
     "crates/claudius-git",
     "crates/claudius-gpui-theme",
+    "crates/claudius-overlays",
+    "crates/claudius-panels",
     "crates/claudius-prompts",
     "crates/claudius-status",
 ]
@@ -43,10 +45,15 @@ claudius-server = { path = "../crates/claudius-server" }
 claudius-transport = { path = "../crates/claudius-transport" }
 tokio = { version = "1", features = ["full"] }
 claudius-gpui-theme = { path = "crates/claudius-gpui-theme" }
+# The overlays (U10a): the Overlay frame, the command palette, the help and
+# keyboard cheatsheet overlays.
+claudius-overlays = { path = "crates/claudius-overlays" }
 # The prompt cards (U08): permission, plan, elicitation, AskUserQuestion.
 claudius-prompts = { path = "crates/claudius-prompts" }
 # The chat's status line (U09a).
 claudius-status = { path = "crates/claudius-status" }
+# The chat's right rail and goal banner (U09b).
+claudius-panels = { path = "crates/claudius-panels" }
 
 # GPUI Kit publishes gpui-component and pins the gpui-pre (Zed snapshot)
 # crates it was built against. Pinned exactly, as the U00a spike verified it

@@ -37,6 +37,7 @@ use gpui_kit::{
 use crate::chat::{ChatPage, ChatSync, LiveChat, bound_tab_state};
 use crate::data::{ActiveSessionState, ShellChange, ShellData, WorkspaceIcon};
 use crate::nav::FocusLevel;
+use crate::rail::LiveRail;
 use crate::route::{Route, WorkspacePage};
 use crate::shortcuts::{self, *};
 use crate::state::{Effect, ShellState};
@@ -164,6 +165,12 @@ pub struct Shell {
     /// its view once the chat route showed it.
     live_status: Option<LiveStatus>,
     status_view: Option<Entity<claudius_status::StatusLineView>>,
+    /// Over a live chat, the rail's and the goal banner's target (U09b),
+    /// and their views, made with the status line's.
+    live_rail: Option<Arc<LiveRail>>,
+    rail_view: Option<Entity<claudius_panels::RailPanel>>,
+    goal_view: Option<Entity<claudius_panels::GoalBannerView>>,
+    _rail_subs: Vec<gpui_kit::Subscription>,
     /// The chat route's composer (U07), once a target is set: one view,
     /// bound to whichever tab is shown.
     composer_target: Option<Arc<dyn ComposerTarget>>,
@@ -187,6 +194,8 @@ pub struct Shell {
     pub(crate) git: Option<Entity<claudius_git::view::GitScreen>>,
     /// The Files page (U12c), once [`Shell::set_files_data`] gave it data.
     pub(crate) files: crate::files::FilesSlot,
+    /// The open overlay (U10a): the palette, the cheatsheet or the help.
+    pub(crate) overlay: crate::overlays::OverlaySlot,
     pub(crate) chat: Option<ChatSlot>,
     icons: HashMap<String, IconEntry>,
     pub(crate) store: LocalStore,
@@ -301,6 +310,9 @@ impl Shell {
         let live_composer = live_transcripts
             .clone()
             .map(|l| Arc::new(LiveComposer::new(l)));
+        let live_rail = live_status
+            .clone()
+            .map(|s| Arc::new(LiveRail::new(s, live_composer.clone())));
         let live_prompts = live_transcripts
             .clone()
             .map(|l| Arc::new(LivePromptSource::new(l)) as Arc<dyn PromptSource>);
@@ -319,6 +331,10 @@ impl Shell {
             cards: Default::default(),
             live_status,
             status_view: None,
+            live_rail,
+            rail_view: None,
+            goal_view: None,
+            _rail_subs: Vec::new(),
             composer: None,
             prompt_source: live_prompts,
             prompts: Vec::new(),
@@ -334,6 +350,7 @@ impl Shell {
             sessions: None,
             git: None,
             files: Default::default(),
+            overlay: Default::default(),
             chat: None,
             icons: HashMap::new(),
             store,
@@ -419,6 +436,10 @@ impl Shell {
     /// A key the window saw: the shown chat's prompt cards answer Escape
     /// (and the resurrected ask its shortcuts), as their `window` listeners.
     fn prompt_key(&mut self, e: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        // An open overlay (U10a) is modal: its field keeps the keys.
+        if self.overlay_kind().is_some() {
+            return;
+        }
         let prompts = self.chat_tab().and_then(|t| self.chat_prompts(&t));
         if prompts.is_some_and(|p| p.key_down(e, window, cx)) {
             cx.stop_propagation();
@@ -473,6 +494,93 @@ impl Shell {
                     Some(cx.new(|cx| claudius_status::StatusLineView::new(target, theme, cx)));
             }
             None => {}
+        }
+    }
+
+    /// The rail (U09b): over a live chat, made with the status line.
+    pub fn rail_view(&self) -> Option<Entity<claudius_panels::RailPanel>> {
+        self.rail_view.clone()
+    }
+
+    /// The session header's goal row (U09b), made with the rail.
+    pub fn goal_view(&self) -> Option<Entity<claudius_panels::GoalBannerView>> {
+        self.goal_view.clone()
+    }
+
+    /// The rail's `setGoal` calls still waiting, over a live chat.
+    pub fn live_rail_waiting(&self) -> Option<usize> {
+        self.live_rail.as_ref().map(|r| r.waiting())
+    }
+
+    /// The rail and the goal banner over the live chat, once the status
+    /// line is (the card opens its model picker): their prefs read from
+    /// the store and written back, "Message" drafting into the composer;
+    /// their theme follows the shell's.
+    fn sync_rail_view(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(target) = self.live_rail.clone() else {
+            return;
+        };
+        let theme = self.theme;
+        let viewport = f32::from(window.viewport_size().width);
+        if let Some(r) = &self.rail_view {
+            r.update(cx, |r, cx| {
+                r.set_theme(theme, cx);
+                r.set_viewport_width(viewport);
+            });
+            if let Some(g) = &self.goal_view {
+                g.update(cx, |g, cx| g.set_theme(theme, cx));
+            }
+            return;
+        }
+        let Some(status) = self.status_view.clone() else {
+            return;
+        };
+        let prefs: claudius_panels::rail::Prefs = claudius_panels::rail::pref_keys()
+            .into_iter()
+            .filter_map(|k| self.store.get(&k).map(|v| (k.clone(), v.to_owned())))
+            .collect();
+        let hidden = self
+            .store
+            .get(claudius_panels::goal::GOAL_HIDDEN_KEY)
+            .map(str::to_owned);
+        let target: Arc<dyn claudius_panels::RailTarget> = target;
+        let t = target.clone();
+        let rail = cx.new(|cx| {
+            let mut r = claudius_panels::RailPanel::new(t, Some(status), theme, prefs, cx);
+            r.set_message_wired(true, cx);
+            r.set_viewport_width(viewport);
+            r
+        });
+        let goal =
+            cx.new(|cx| claudius_panels::GoalBannerView::new(target, theme, hidden.as_deref(), cx));
+        self._rail_subs = vec![
+            cx.subscribe_in(&rail, window, |this, _, ev, window, cx| {
+                this.on_rail_event(ev, window, cx)
+            }),
+            cx.subscribe_in(&goal, window, |this, _, ev, window, cx| {
+                this.on_rail_event(ev, window, cx)
+            }),
+        ];
+        self.rail_view = Some(rail);
+        self.goal_view = Some(goal);
+    }
+
+    fn on_rail_event(
+        &mut self,
+        ev: &claudius_panels::RailEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match ev {
+            claudius_panels::RailEvent::Pref { key, value } => self.store.set(key, value),
+            claudius_panels::RailEvent::Draft(text) => {
+                if let Some(c) = self.composer.clone() {
+                    c.update(cx, |c, cx| c.inject(text, window, cx));
+                }
+            }
+            // Not ported yet: the transcript jump, the output viewer and
+            // the context overlay.
+            _ => {}
         }
     }
 
@@ -967,8 +1075,10 @@ impl Shell {
             }
             // A composer call's promise (U07e).
             Some(e @ ChatEffect::ActionResolved { .. }) => {
-                if let Some(c) = &self.live_composer {
-                    c.resolve(&e);
+                let taken = self.live_composer.as_ref().is_some_and(|c| c.resolve(&e));
+                // The rail's `setGoal` (U09b).
+                if !taken && let Some(r) = &self.live_rail {
+                    r.resolve(&e);
                 }
             }
             Some(ChatEffect::ConsoleWarn { text }) => eprintln!("[chat] {text}"),
@@ -1193,6 +1303,15 @@ pub(crate) fn on_actions(
         this.persist_ui();
         cx.notify();
     });
+    // The overlays (U10a).
+    let el = el.on_action(
+        cx.listener(|this: &mut Shell, _: &ToggleCommandPalette, w, cx| {
+            this.toggle_command_palette(w, cx)
+        }),
+    );
+    let el = el.on_action(
+        cx.listener(|this: &mut Shell, _: &ToggleCheatsheet, w, cx| this.toggle_cheatsheet(w, cx)),
+    );
     el.on_action(
         cx.listener(|this: &mut Shell, _: &CycleAppearance, window, cx| {
             let next = this.appearance.next();
@@ -1207,8 +1326,10 @@ impl Render for Shell {
         self.refit();
         self.sync_chat_view(cx);
         self.sync_status_view(cx);
+        self.sync_rail_view(window, cx);
         self.sync_composer(window, cx);
         crate::files::sync(self, window, cx);
+        crate::overlays::sync(self, window, cx);
         self.sync_chat_prompts(cx);
         let root = div()
             .track_focus(&self.focus)

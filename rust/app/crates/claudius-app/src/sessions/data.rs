@@ -22,7 +22,8 @@
 //!
 //! [`SessionsData::subscribe`] streams [`SessionsChange`]s: the screen
 //! re-reads what changed. [`super::fixture::FixtureSessionsData`] is the
-//! fixture-backed implementation; U04b puts the HTTP transport behind it.
+//! fixture-backed implementation; [`super::live::TransportSessionsData`]
+//! sends the requests over the engine's transport (U11b).
 
 use std::collections::BTreeMap;
 

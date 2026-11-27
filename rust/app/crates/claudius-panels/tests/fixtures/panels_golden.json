@@ -1,0 +1,7830 @@
+{
+ "sections": {
+  "fmtUsd": [
+   {
+    "args": [
+     null
+    ],
+    "out": "$0.00"
+   },
+   {
+    "args": [
+     0
+    ],
+    "out": "$0.00"
+   },
+   {
+    "args": [
+     -0.5
+    ],
+    "out": "$-0.5000"
+   },
+   {
+    "args": [
+     0.0001
+    ],
+    "out": "$0.0001"
+   },
+   {
+    "args": [
+     0.0042
+    ],
+    "out": "$0.0042"
+   },
+   {
+    "args": [
+     0.00995
+    ],
+    "out": "$0.0100"
+   },
+   {
+    "args": [
+     0.01
+    ],
+    "out": "$0.010"
+   },
+   {
+    "args": [
+     0.125
+    ],
+    "out": "$0.125"
+   },
+   {
+    "args": [
+     0.4821
+    ],
+    "out": "$0.482"
+   },
+   {
+    "args": [
+     0.9995
+    ],
+    "out": "$1.000"
+   },
+   {
+    "args": [
+     1
+    ],
+    "out": "$1.00"
+   },
+   {
+    "args": [
+     1.005
+    ],
+    "out": "$1.00"
+   },
+   {
+    "args": [
+     12.345
+    ],
+    "out": "$12.35"
+   },
+   {
+    "args": [
+     999
+    ],
+    "out": "$999.00"
+   },
+   {
+    "args": [
+     999.5
+    ],
+    "out": "$999.50"
+   },
+   {
+    "args": [
+     1000
+    ],
+    "out": "$1000.00"
+   },
+   {
+    "args": [
+     1234
+    ],
+    "out": "$1234.00"
+   },
+   {
+    "args": [
+     9999
+    ],
+    "out": "$9999.00"
+   },
+   {
+    "args": [
+     9999.9
+    ],
+    "out": "$9999.90"
+   },
+   {
+    "args": [
+     10000
+    ],
+    "out": "$10000.00"
+   },
+   {
+    "args": [
+     12345
+    ],
+    "out": "$12345.00"
+   },
+   {
+    "args": [
+     999999
+    ],
+    "out": "$999999.00"
+   },
+   {
+    "args": [
+     1000000
+    ],
+    "out": "$1000000.00"
+   },
+   {
+    "args": [
+     1234567
+    ],
+    "out": "$1234567.00"
+   },
+   {
+    "args": [
+     99999999
+    ],
+    "out": "$99999999.00"
+   }
+  ],
+  "fmtTokens": [
+   {
+    "args": [
+     null
+    ],
+    "out": "0"
+   },
+   {
+    "args": [
+     0
+    ],
+    "out": "0"
+   },
+   {
+    "args": [
+     -0.5
+    ],
+    "out": "-0.5"
+   },
+   {
+    "args": [
+     0.0001
+    ],
+    "out": "0.0001"
+   },
+   {
+    "args": [
+     0.0042
+    ],
+    "out": "0.0042"
+   },
+   {
+    "args": [
+     0.00995
+    ],
+    "out": "0.00995"
+   },
+   {
+    "args": [
+     0.01
+    ],
+    "out": "0.01"
+   },
+   {
+    "args": [
+     0.125
+    ],
+    "out": "0.125"
+   },
+   {
+    "args": [
+     0.4821
+    ],
+    "out": "0.4821"
+   },
+   {
+    "args": [
+     0.9995
+    ],
+    "out": "0.9995"
+   },
+   {
+    "args": [
+     1
+    ],
+    "out": "1"
+   },
+   {
+    "args": [
+     1.005
+    ],
+    "out": "1.005"
+   },
+   {
+    "args": [
+     12.345
+    ],
+    "out": "12.345"
+   },
+   {
+    "args": [
+     999
+    ],
+    "out": "999"
+   },
+   {
+    "args": [
+     999.5
+    ],
+    "out": "999.5"
+   },
+   {
+    "args": [
+     1000
+    ],
+    "out": "1.0k"
+   },
+   {
+    "args": [
+     1234
+    ],
+    "out": "1.2k"
+   },
+   {
+    "args": [
+     9999
+    ],
+    "out": "10.0k"
+   },
+   {
+    "args": [
+     9999.9
+    ],
+    "out": "10.0k"
+   },
+   {
+    "args": [
+     10000
+    ],
+    "out": "10k"
+   },
+   {
+    "args": [
+     12345
+    ],
+    "out": "12k"
+   },
+   {
+    "args": [
+     999999
+    ],
+    "out": "1000k"
+   },
+   {
+    "args": [
+     1000000
+    ],
+    "out": "1.00M"
+   },
+   {
+    "args": [
+     1234567
+    ],
+    "out": "1.23M"
+   },
+   {
+    "args": [
+     99999999
+    ],
+    "out": "100.00M"
+   }
+  ],
+  "fmtElapsedSec": [
+   {
+    "args": [
+     0
+    ],
+    "out": "0s"
+   },
+   {
+    "args": [
+     0.4
+    ],
+    "out": "0s"
+   },
+   {
+    "args": [
+     1
+    ],
+    "out": "1s"
+   },
+   {
+    "args": [
+     9.99
+    ],
+    "out": "9s"
+   },
+   {
+    "args": [
+     59
+    ],
+    "out": "59s"
+   },
+   {
+    "args": [
+     59.5
+    ],
+    "out": "59s"
+   },
+   {
+    "args": [
+     59.99
+    ],
+    "out": "59s"
+   },
+   {
+    "args": [
+     60
+    ],
+    "out": "1m"
+   },
+   {
+    "args": [
+     61
+    ],
+    "out": "1m 1s"
+   },
+   {
+    "args": [
+     65.5
+    ],
+    "out": "1m 5s"
+   },
+   {
+    "args": [
+     119
+    ],
+    "out": "1m 59s"
+   },
+   {
+    "args": [
+     120
+    ],
+    "out": "2m"
+   },
+   {
+    "args": [
+     599
+    ],
+    "out": "9m 59s"
+   },
+   {
+    "args": [
+     3599
+    ],
+    "out": "59m 59s"
+   },
+   {
+    "args": [
+     3600
+    ],
+    "out": "1h"
+   },
+   {
+    "args": [
+     3601
+    ],
+    "out": "1h"
+   },
+   {
+    "args": [
+     3660
+    ],
+    "out": "1h 1m"
+   },
+   {
+    "args": [
+     3720
+    ],
+    "out": "1h 2m"
+   },
+   {
+    "args": [
+     7199
+    ],
+    "out": "1h 59m"
+   },
+   {
+    "args": [
+     86399
+    ],
+    "out": "23h 59m"
+   },
+   {
+    "args": [
+     86400
+    ],
+    "out": "24h"
+   },
+   {
+    "args": [
+     90061
+    ],
+    "out": "25h 1m"
+   },
+   {
+    "args": [
+     -1
+    ],
+    "out": "-1s"
+   },
+   {
+    "args": [
+     -61
+    ],
+    "out": "-61s"
+   }
+  ],
+  "fmtMs": [
+   {
+    "args": [
+     null
+    ],
+    "out": "\u2014"
+   },
+   {
+    "args": [
+     0
+    ],
+    "out": "\u2014"
+   },
+   {
+    "args": [
+     1
+    ],
+    "out": "1ms"
+   },
+   {
+    "args": [
+     999
+    ],
+    "out": "999ms"
+   },
+   {
+    "args": [
+     1000
+    ],
+    "out": "1s"
+   },
+   {
+    "args": [
+     1500
+    ],
+    "out": "1s"
+   },
+   {
+    "args": [
+     61000
+    ],
+    "out": "1m 1s"
+   },
+   {
+    "args": [
+     3600000
+    ],
+    "out": "1h"
+   },
+   {
+    "args": [
+     5400000
+    ],
+    "out": "1h 30m"
+   }
+  ],
+  "fmtPath": [
+   {
+    "args": [
+     "",
+     null
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "",
+     32
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "",
+     12
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "",
+     4
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "",
+     2
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "",
+     1
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "/",
+     null
+    ],
+    "out": "/"
+   },
+   {
+    "args": [
+     "/",
+     32
+    ],
+    "out": "/"
+   },
+   {
+    "args": [
+     "/",
+     12
+    ],
+    "out": "/"
+   },
+   {
+    "args": [
+     "/",
+     4
+    ],
+    "out": "/"
+   },
+   {
+    "args": [
+     "/",
+     2
+    ],
+    "out": "/"
+   },
+   {
+    "args": [
+     "/",
+     1
+    ],
+    "out": "/"
+   },
+   {
+    "args": [
+     "/a",
+     null
+    ],
+    "out": "/a"
+   },
+   {
+    "args": [
+     "/a",
+     32
+    ],
+    "out": "/a"
+   },
+   {
+    "args": [
+     "/a",
+     12
+    ],
+    "out": "/a"
+   },
+   {
+    "args": [
+     "/a",
+     4
+    ],
+    "out": "/a"
+   },
+   {
+    "args": [
+     "/a",
+     2
+    ],
+    "out": "/a"
+   },
+   {
+    "args": [
+     "/a",
+     1
+    ],
+    "out": "\u2026/"
+   },
+   {
+    "args": [
+     "/a/b",
+     null
+    ],
+    "out": "/a/b"
+   },
+   {
+    "args": [
+     "/a/b",
+     32
+    ],
+    "out": "/a/b"
+   },
+   {
+    "args": [
+     "/a/b",
+     12
+    ],
+    "out": "/a/b"
+   },
+   {
+    "args": [
+     "/a/b",
+     4
+    ],
+    "out": "/a/b"
+   },
+   {
+    "args": [
+     "/a/b",
+     2
+    ],
+    "out": "\u2026/a/b"
+   },
+   {
+    "args": [
+     "/a/b",
+     1
+    ],
+    "out": "\u2026//b"
+   },
+   {
+    "args": [
+     "/Users/demo/project",
+     null
+    ],
+    "out": "/Users/demo/project"
+   },
+   {
+    "args": [
+     "/Users/demo/project",
+     32
+    ],
+    "out": "/Users/demo/project"
+   },
+   {
+    "args": [
+     "/Users/demo/project",
+     12
+    ],
+    "out": "\u2026/mo/project"
+   },
+   {
+    "args": [
+     "/Users/demo/project",
+     4
+    ],
+    "out": "\u2026/ct"
+   },
+   {
+    "args": [
+     "/Users/demo/project",
+     2
+    ],
+    "out": "\u2026/demo/project"
+   },
+   {
+    "args": [
+     "/Users/demo/project",
+     1
+    ],
+    "out": "\u2026/emo/project"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app",
+     null
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app",
+     32
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app",
+     12
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app",
+     4
+    ],
+    "out": "\u2026/pp"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app",
+     2
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app",
+     1
+    ],
+    "out": "\u2026/ust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app/",
+     null
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app/",
+     32
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app/",
+     12
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app/",
+     4
+    ],
+    "out": "\u2026/pp"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app/",
+     2
+    ],
+    "out": "\u2026/rust/app"
+   },
+   {
+    "args": [
+     "/Users/demo/projects/claudius/rust/app/",
+     1
+    ],
+    "out": "\u2026/ust/app"
+   },
+   {
+    "args": [
+     "a/b/c/d/e/f/g/h/i/j/k/l/m/n",
+     null
+    ],
+    "out": "a/b/c/d/e/f/g/h/i/j/k/l/m/n"
+   },
+   {
+    "args": [
+     "a/b/c/d/e/f/g/h/i/j/k/l/m/n",
+     32
+    ],
+    "out": "a/b/c/d/e/f/g/h/i/j/k/l/m/n"
+   },
+   {
+    "args": [
+     "a/b/c/d/e/f/g/h/i/j/k/l/m/n",
+     12
+    ],
+    "out": "\u2026/m/n"
+   },
+   {
+    "args": [
+     "a/b/c/d/e/f/g/h/i/j/k/l/m/n",
+     4
+    ],
+    "out": "\u2026//n"
+   },
+   {
+    "args": [
+     "a/b/c/d/e/f/g/h/i/j/k/l/m/n",
+     2
+    ],
+    "out": "\u2026/m/n"
+   },
+   {
+    "args": [
+     "a/b/c/d/e/f/g/h/i/j/k/l/m/n",
+     1
+    ],
+    "out": "\u2026//n"
+   },
+   {
+    "args": [
+     "/x/averyveryveryveryverylongdirectoryname",
+     null
+    ],
+    "out": "\u2026/yveryveryveryverylongdirectoryname"
+   },
+   {
+    "args": [
+     "/x/averyveryveryveryverylongdirectoryname",
+     32
+    ],
+    "out": "\u2026/yveryveryverylongdirectoryname"
+   },
+   {
+    "args": [
+     "/x/averyveryveryveryverylongdirectoryname",
+     12
+    ],
+    "out": "\u2026/ectoryname"
+   },
+   {
+    "args": [
+     "/x/averyveryveryveryverylongdirectoryname",
+     4
+    ],
+    "out": "\u2026/me"
+   },
+   {
+    "args": [
+     "/x/averyveryveryveryverylongdirectoryname",
+     2
+    ],
+    "out": "\u2026/x/averyveryveryveryverylongdirectoryname"
+   },
+   {
+    "args": [
+     "/x/averyveryveryveryverylongdirectoryname",
+     1
+    ],
+    "out": "\u2026//averyveryveryveryverylongdirectoryname"
+   },
+   {
+    "args": [
+     "/Users/d\u00e9mo/proj\u00e9cts/caf\u00e9/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src",
+     null
+    ],
+    "out": "\u2026/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src"
+   },
+   {
+    "args": [
+     "/Users/d\u00e9mo/proj\u00e9cts/caf\u00e9/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src",
+     32
+    ],
+    "out": "\u2026/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src"
+   },
+   {
+    "args": [
+     "/Users/d\u00e9mo/proj\u00e9cts/caf\u00e9/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src",
+     12
+    ],
+    "out": "\u2026/\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src"
+   },
+   {
+    "args": [
+     "/Users/d\u00e9mo/proj\u00e9cts/caf\u00e9/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src",
+     4
+    ],
+    "out": "\u2026/rc"
+   },
+   {
+    "args": [
+     "/Users/d\u00e9mo/proj\u00e9cts/caf\u00e9/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src",
+     2
+    ],
+    "out": "\u2026/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src"
+   },
+   {
+    "args": [
+     "/Users/d\u00e9mo/proj\u00e9cts/caf\u00e9/\u65e5\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src",
+     1
+    ],
+    "out": "\u2026/\u672c\u8a9e\u306e\u30c7\u30a3\u30ec\u30af\u30c8\u30ea/src"
+   },
+   {
+    "args": [
+     "relative/path/with/several/parts/here",
+     null
+    ],
+    "out": "\u2026/parts/here"
+   },
+   {
+    "args": [
+     "relative/path/with/several/parts/here",
+     32
+    ],
+    "out": "\u2026/parts/here"
+   },
+   {
+    "args": [
+     "relative/path/with/several/parts/here",
+     12
+    ],
+    "out": "\u2026/parts/here"
+   },
+   {
+    "args": [
+     "relative/path/with/several/parts/here",
+     4
+    ],
+    "out": "\u2026/re"
+   },
+   {
+    "args": [
+     "relative/path/with/several/parts/here",
+     2
+    ],
+    "out": "\u2026/parts/here"
+   },
+   {
+    "args": [
+     "relative/path/with/several/parts/here",
+     1
+    ],
+    "out": "\u2026/arts/here"
+   }
+  ],
+  "fmtElapsed": [
+   {
+    "args": [
+     0
+    ],
+    "out": "0s"
+   },
+   {
+    "args": [
+     0.4
+    ],
+    "out": "0s"
+   },
+   {
+    "args": [
+     0.5
+    ],
+    "out": "1s"
+   },
+   {
+    "args": [
+     1.5
+    ],
+    "out": "2s"
+   },
+   {
+    "args": [
+     2.5
+    ],
+    "out": "3s"
+   },
+   {
+    "args": [
+     59.4
+    ],
+    "out": "59s"
+   },
+   {
+    "args": [
+     59.5
+    ],
+    "out": "60s"
+   },
+   {
+    "args": [
+     59.99
+    ],
+    "out": "60s"
+   },
+   {
+    "args": [
+     60
+    ],
+    "out": "1m 0s"
+   },
+   {
+    "args": [
+     61.9
+    ],
+    "out": "1m 1s"
+   },
+   {
+    "args": [
+     125.7
+    ],
+    "out": "2m 5s"
+   },
+   {
+    "args": [
+     3599.9
+    ],
+    "out": "59m 59s"
+   },
+   {
+    "args": [
+     3600
+    ],
+    "out": "60m 0s"
+   },
+   {
+    "args": [
+     7322
+    ],
+    "out": "122m 2s"
+   }
+  ],
+  "taskElapsedSeconds": [
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running"
+     },
+     6000
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 1000
+     },
+     6000
+    ],
+    "out": 5
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "pending",
+      "startedAt": 1000
+     },
+     6000
+    ],
+    "out": 5
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "paused",
+      "startedAt": 1000
+     },
+     6000
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 9000
+     },
+     6000
+    ],
+    "out": 0
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 1000,
+      "durationMs": 400
+     },
+     6000
+    ],
+    "out": 5
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "completed",
+      "startedAt": 1000,
+      "durationMs": 2500
+     },
+     6000
+    ],
+    "out": 2.5
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "completed",
+      "durationMs": 0
+     },
+     6000
+    ],
+    "out": 0
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "stopped",
+      "reason": "worker_restart"
+     },
+     6000
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "failed",
+      "reason": "other"
+     },
+     6000
+    ],
+    "out": null
+   }
+  ],
+  "taskStatusLabel": [
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running"
+     }
+    ],
+    "out": "running"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 1000
+     }
+    ],
+    "out": "running"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "pending",
+      "startedAt": 1000
+     }
+    ],
+    "out": "pending"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "paused",
+      "startedAt": 1000
+     }
+    ],
+    "out": "paused"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 9000
+     }
+    ],
+    "out": "running"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 1000,
+      "durationMs": 400
+     }
+    ],
+    "out": "running"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "completed",
+      "startedAt": 1000,
+      "durationMs": 2500
+     }
+    ],
+    "out": "completed"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "completed",
+      "durationMs": 0
+     }
+    ],
+    "out": "completed"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "stopped",
+      "reason": "worker_restart"
+     }
+    ],
+    "out": "stopped (restarted)"
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "failed",
+      "reason": "other"
+     }
+    ],
+    "out": "failed"
+   }
+  ],
+  "taskStatusTitle": [
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running"
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 1000
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "pending",
+      "startedAt": 1000
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "paused",
+      "startedAt": 1000
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 9000
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "running",
+      "startedAt": 1000,
+      "durationMs": 400
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "completed",
+      "startedAt": 1000,
+      "durationMs": 2500
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "completed",
+      "durationMs": 0
+     }
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "stopped",
+      "reason": "worker_restart"
+     }
+    ],
+    "out": "Stopped because the background worker process restarted and found this task orphaned \u2014 not a user or agent action."
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "d",
+      "status": "failed",
+      "reason": "other"
+     }
+    ],
+    "out": null
+   }
+  ],
+  "taskIcon": [
+   {
+    "args": [
+     null
+    ],
+    "out": "Bot"
+   },
+   {
+    "args": [
+     "local_bash"
+    ],
+    "out": "Terminal"
+   },
+   {
+    "args": [
+     "local_monitor"
+    ],
+    "out": "Activity"
+   },
+   {
+    "args": [
+     "local_agent"
+    ],
+    "out": "Bot"
+   },
+   {
+    "args": [
+     "local_workflow"
+    ],
+    "out": "Bot"
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": "Bot"
+   }
+  ],
+  "compactArg": [
+   {
+    "args": [
+     "Edit",
+     "/a/b/c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Edit",
+     "c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Edit",
+     "/a/b/"
+    ],
+    "out": "/a/b/"
+   },
+   {
+    "args": [
+     "Edit",
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "Edit",
+     "a//b"
+    ],
+    "out": "b"
+   },
+   {
+    "args": [
+     "MultiEdit",
+     "/a/b/c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "MultiEdit",
+     "c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "MultiEdit",
+     "/a/b/"
+    ],
+    "out": "/a/b/"
+   },
+   {
+    "args": [
+     "MultiEdit",
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "MultiEdit",
+     "a//b"
+    ],
+    "out": "b"
+   },
+   {
+    "args": [
+     "Write",
+     "/a/b/c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Write",
+     "c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Write",
+     "/a/b/"
+    ],
+    "out": "/a/b/"
+   },
+   {
+    "args": [
+     "Write",
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "Write",
+     "a//b"
+    ],
+    "out": "b"
+   },
+   {
+    "args": [
+     "Read",
+     "/a/b/c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Read",
+     "c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Read",
+     "/a/b/"
+    ],
+    "out": "/a/b/"
+   },
+   {
+    "args": [
+     "Read",
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "Read",
+     "a//b"
+    ],
+    "out": "b"
+   },
+   {
+    "args": [
+     "Bash",
+     "/a/b/c.rs"
+    ],
+    "out": "/a/b/c.rs"
+   },
+   {
+    "args": [
+     "Bash",
+     "c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Bash",
+     "/a/b/"
+    ],
+    "out": "/a/b/"
+   },
+   {
+    "args": [
+     "Bash",
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "Bash",
+     "a//b"
+    ],
+    "out": "a//b"
+   },
+   {
+    "args": [
+     "Grep",
+     "/a/b/c.rs"
+    ],
+    "out": "/a/b/c.rs"
+   },
+   {
+    "args": [
+     "Grep",
+     "c.rs"
+    ],
+    "out": "c.rs"
+   },
+   {
+    "args": [
+     "Grep",
+     "/a/b/"
+    ],
+    "out": "/a/b/"
+   },
+   {
+    "args": [
+     "Grep",
+     ""
+    ],
+    "out": ""
+   },
+   {
+    "args": [
+     "Grep",
+     "a//b"
+    ],
+    "out": "a//b"
+   }
+  ],
+  "lists": [
+   {
+    "args": [
+     {
+      "toolHistory": [],
+      "tasks": {},
+      "liveBackgroundTaskIds": null,
+      "backgroundBashes": {},
+      "scheduledLoops": {},
+      "pendingPermission": false,
+      "now": 0,
+      "ready": true,
+      "pending": false,
+      "sessionId": "s1"
+     }
+    ],
+    "out": {
+     "runningCount": 0,
+     "subagents": [],
+     "systemTasks": [],
+     "earlier": [],
+     "recent": [],
+     "runningBashes": [],
+     "runningProcessTasks": [],
+     "runningProcs": 0,
+     "stoppable": [],
+     "loops": [],
+     "activeLoopCount": 0,
+     "nonAmbientSubagents": 0,
+     "attention": 0,
+     "runningBg": 0,
+     "busy": false
+    }
+   },
+   {
+    "args": [
+     {
+      "toolHistory": [],
+      "tasks": {},
+      "liveBackgroundTaskIds": null,
+      "backgroundBashes": {},
+      "scheduledLoops": {},
+      "pendingPermission": true,
+      "now": 0,
+      "ready": false,
+      "pending": false,
+      "sessionId": null
+     }
+    ],
+    "out": {
+     "runningCount": 0,
+     "subagents": [],
+     "systemTasks": [],
+     "earlier": [],
+     "recent": [],
+     "runningBashes": [],
+     "runningProcessTasks": [],
+     "runningProcs": 0,
+     "stoppable": [],
+     "loops": [],
+     "activeLoopCount": 0,
+     "nonAmbientSubagents": 0,
+     "attention": 1,
+     "runningBg": 0,
+     "busy": true
+    }
+   },
+   {
+    "args": [
+     {
+      "toolHistory": [
+       {
+        "toolUseId": "t1",
+        "toolName": "Bash",
+        "startedAt": 0
+       },
+       {
+        "toolUseId": "t2",
+        "toolName": "Read",
+        "startedAt": 0,
+        "done": true
+       },
+       {
+        "toolUseId": "t3",
+        "toolName": "thinking",
+        "startedAt": 0,
+        "kind": "thinking"
+       }
+      ],
+      "tasks": {
+       "123": {
+        "taskId": "123",
+        "description": "desc 123",
+        "status": "running",
+        "taskType": "local_agent"
+       },
+       "a1": {
+        "taskId": "a1",
+        "description": "desc a1",
+        "status": "running",
+        "taskType": "local_agent",
+        "durationMs": 10
+       },
+       "a2": {
+        "taskId": "a2",
+        "description": "desc a2",
+        "status": "pending",
+        "taskType": "local_agent",
+        "durationMs": 50
+       },
+       "a3": {
+        "taskId": "a3",
+        "description": "desc a3",
+        "status": "paused",
+        "taskType": "local_workflow"
+       },
+       "a4": {
+        "taskId": "a4",
+        "description": "desc a4",
+        "status": "running",
+        "taskType": "local_agent",
+        "ambient": true,
+        "durationMs": 30
+       },
+       "s1": {
+        "taskId": "s1",
+        "description": "desc s1",
+        "status": "running",
+        "skipTranscript": true,
+        "durationMs": 5
+       },
+       "s2": {
+        "taskId": "s2",
+        "description": "desc s2",
+        "status": "completed",
+        "skipTranscript": true,
+        "durationMs": 50
+       },
+       "m1": {
+        "taskId": "m1",
+        "description": "desc m1",
+        "status": "running",
+        "taskType": "local_monitor",
+        "toolUseId": "tm1"
+       },
+       "m2": {
+        "taskId": "m2",
+        "description": "desc m2",
+        "status": "running",
+        "taskType": "local_monitor",
+        "ambient": true
+       },
+       "b1": {
+        "taskId": "b1",
+        "description": "desc b1",
+        "status": "running",
+        "taskType": "local_bash",
+        "toolUseId": "tb1"
+       },
+       "b2": {
+        "taskId": "b2",
+        "description": "desc b2",
+        "status": "completed",
+        "taskType": "local_bash",
+        "toolUseId": "tb2"
+       },
+       "e1": {
+        "taskId": "e1",
+        "description": "desc e1",
+        "status": "completed",
+        "taskType": "local_agent"
+       },
+       "e2": {
+        "taskId": "e2",
+        "description": "desc e2",
+        "status": "killed",
+        "taskType": "local_agent",
+        "toolUseId": "te2"
+       },
+       "e3": {
+        "taskId": "e3",
+        "description": "desc e3",
+        "status": "failed",
+        "taskType": "local_agent",
+        "skipTranscript": true
+       },
+       "r1": {
+        "taskId": "r1",
+        "description": "desc r1",
+        "status": "completed"
+       },
+       "r2": {
+        "taskId": "r2",
+        "description": "desc r2",
+        "status": "failed"
+       },
+       "r3": {
+        "taskId": "r3",
+        "description": "desc r3",
+        "status": "stopped"
+       },
+       "r4": {
+        "taskId": "r4",
+        "description": "desc r4",
+        "status": "killed"
+       }
+      },
+      "liveBackgroundTaskIds": null,
+      "backgroundBashes": {
+       "tb1": {
+        "toolUseId": "tb1",
+        "command": "cmd tb1",
+        "startedAt": 1000
+       },
+       "tb2": {
+        "toolUseId": "tb2",
+        "command": "cmd tb2",
+        "startedAt": 1000
+       },
+       "tb3": {
+        "toolUseId": "tb3",
+        "command": "cmd tb3",
+        "startedAt": 1000
+       },
+       "tb4": {
+        "toolUseId": "tb4",
+        "command": "cmd tb4",
+        "startedAt": 1000,
+        "killed": true
+       }
+      },
+      "scheduledLoops": {
+       "c1": {
+        "kind": "cron",
+        "id": "c1",
+        "toolUseId": "tu_c1",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c1",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 1000
+       },
+       "w1": {
+        "kind": "wakeup",
+        "id": "w1",
+        "toolUseId": "tu_w1",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w1",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 5000
+       },
+       "w2": {
+        "kind": "wakeup",
+        "id": "w2",
+        "toolUseId": "tu_w2",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w2",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 0,
+        "cancelled": true
+       },
+       "w3": {
+        "kind": "wakeup",
+        "id": "w3",
+        "toolUseId": "tu_w3",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w3",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "w4": {
+        "kind": "wakeup",
+        "id": "w4",
+        "toolUseId": "tu_w4",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p w4",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "c2": {
+        "kind": "cron",
+        "id": "c2",
+        "toolUseId": "tu_c2",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c2",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 3000,
+        "cancelled": true
+       }
+      },
+      "pendingPermission": true,
+      "now": 0,
+      "ready": true,
+      "pending": true,
+      "sessionId": "s1"
+     }
+    ],
+    "out": {
+     "runningCount": 2,
+     "subagents": [
+      "a2",
+      "a4",
+      "a1",
+      "123",
+      "a3"
+     ],
+     "systemTasks": [
+      "s2",
+      "s1",
+      "e3"
+     ],
+     "earlier": [
+      "e2",
+      "e1"
+     ],
+     "recent": [
+      "r4",
+      "r3",
+      "r2"
+     ],
+     "runningBashes": [
+      "tb1",
+      "tb3"
+     ],
+     "runningProcessTasks": [
+      "m1",
+      "m2"
+     ],
+     "runningProcs": 3,
+     "stoppable": [
+      "a2",
+      "a4",
+      "a1",
+      "123",
+      "a3",
+      "m1",
+      "m2",
+      "b1"
+     ],
+     "loops": [
+      "w1",
+      "c2",
+      "c1",
+      "w2",
+      "w4"
+     ],
+     "activeLoopCount": 3,
+     "nonAmbientSubagents": 4,
+     "attention": 13,
+     "runningBg": 7,
+     "busy": true
+    }
+   },
+   {
+    "args": [
+     {
+      "toolHistory": [
+       {
+        "toolUseId": "t1",
+        "toolName": "Bash",
+        "startedAt": 0
+       },
+       {
+        "toolUseId": "t2",
+        "toolName": "Read",
+        "startedAt": 0,
+        "done": true
+       },
+       {
+        "toolUseId": "t3",
+        "toolName": "thinking",
+        "startedAt": 0,
+        "kind": "thinking"
+       }
+      ],
+      "tasks": {
+       "123": {
+        "taskId": "123",
+        "description": "desc 123",
+        "status": "running",
+        "taskType": "local_agent"
+       },
+       "a1": {
+        "taskId": "a1",
+        "description": "desc a1",
+        "status": "running",
+        "taskType": "local_agent",
+        "durationMs": 10
+       },
+       "a2": {
+        "taskId": "a2",
+        "description": "desc a2",
+        "status": "pending",
+        "taskType": "local_agent",
+        "durationMs": 50
+       },
+       "a3": {
+        "taskId": "a3",
+        "description": "desc a3",
+        "status": "paused",
+        "taskType": "local_workflow"
+       },
+       "a4": {
+        "taskId": "a4",
+        "description": "desc a4",
+        "status": "running",
+        "taskType": "local_agent",
+        "ambient": true,
+        "durationMs": 30
+       },
+       "s1": {
+        "taskId": "s1",
+        "description": "desc s1",
+        "status": "running",
+        "skipTranscript": true,
+        "durationMs": 5
+       },
+       "s2": {
+        "taskId": "s2",
+        "description": "desc s2",
+        "status": "completed",
+        "skipTranscript": true,
+        "durationMs": 50
+       },
+       "m1": {
+        "taskId": "m1",
+        "description": "desc m1",
+        "status": "running",
+        "taskType": "local_monitor",
+        "toolUseId": "tm1"
+       },
+       "m2": {
+        "taskId": "m2",
+        "description": "desc m2",
+        "status": "running",
+        "taskType": "local_monitor",
+        "ambient": true
+       },
+       "b1": {
+        "taskId": "b1",
+        "description": "desc b1",
+        "status": "running",
+        "taskType": "local_bash",
+        "toolUseId": "tb1"
+       },
+       "b2": {
+        "taskId": "b2",
+        "description": "desc b2",
+        "status": "completed",
+        "taskType": "local_bash",
+        "toolUseId": "tb2"
+       },
+       "e1": {
+        "taskId": "e1",
+        "description": "desc e1",
+        "status": "completed",
+        "taskType": "local_agent"
+       },
+       "e2": {
+        "taskId": "e2",
+        "description": "desc e2",
+        "status": "killed",
+        "taskType": "local_agent",
+        "toolUseId": "te2"
+       },
+       "e3": {
+        "taskId": "e3",
+        "description": "desc e3",
+        "status": "failed",
+        "taskType": "local_agent",
+        "skipTranscript": true
+       },
+       "r1": {
+        "taskId": "r1",
+        "description": "desc r1",
+        "status": "completed"
+       },
+       "r2": {
+        "taskId": "r2",
+        "description": "desc r2",
+        "status": "failed"
+       },
+       "r3": {
+        "taskId": "r3",
+        "description": "desc r3",
+        "status": "stopped"
+       },
+       "r4": {
+        "taskId": "r4",
+        "description": "desc r4",
+        "status": "killed"
+       }
+      },
+      "liveBackgroundTaskIds": [
+       "a1",
+       "m1",
+       "s1",
+       "b1"
+      ],
+      "backgroundBashes": {
+       "tb1": {
+        "toolUseId": "tb1",
+        "command": "cmd tb1",
+        "startedAt": 1000
+       },
+       "tb2": {
+        "toolUseId": "tb2",
+        "command": "cmd tb2",
+        "startedAt": 1000
+       },
+       "tb3": {
+        "toolUseId": "tb3",
+        "command": "cmd tb3",
+        "startedAt": 1000
+       },
+       "tb4": {
+        "toolUseId": "tb4",
+        "command": "cmd tb4",
+        "startedAt": 1000,
+        "killed": true
+       }
+      },
+      "scheduledLoops": {
+       "c1": {
+        "kind": "cron",
+        "id": "c1",
+        "toolUseId": "tu_c1",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c1",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 1000
+       },
+       "w1": {
+        "kind": "wakeup",
+        "id": "w1",
+        "toolUseId": "tu_w1",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w1",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 5000
+       },
+       "w2": {
+        "kind": "wakeup",
+        "id": "w2",
+        "toolUseId": "tu_w2",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w2",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 0,
+        "cancelled": true
+       },
+       "w3": {
+        "kind": "wakeup",
+        "id": "w3",
+        "toolUseId": "tu_w3",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w3",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "w4": {
+        "kind": "wakeup",
+        "id": "w4",
+        "toolUseId": "tu_w4",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p w4",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "c2": {
+        "kind": "cron",
+        "id": "c2",
+        "toolUseId": "tu_c2",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c2",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 3000,
+        "cancelled": true
+       }
+      },
+      "pendingPermission": true,
+      "now": 0,
+      "ready": true,
+      "pending": false,
+      "sessionId": "s1"
+     }
+    ],
+    "out": {
+     "runningCount": 2,
+     "subagents": [
+      "a2",
+      "a1",
+      "a3"
+     ],
+     "systemTasks": [
+      "s2",
+      "s1",
+      "e3"
+     ],
+     "earlier": [
+      "e2",
+      "e1"
+     ],
+     "recent": [
+      "r4",
+      "r3",
+      "r2"
+     ],
+     "runningBashes": [
+      "tb1",
+      "tb3"
+     ],
+     "runningProcessTasks": [
+      "m1"
+     ],
+     "runningProcs": 3,
+     "stoppable": [
+      "a2",
+      "a1",
+      "a3",
+      "m1",
+      "b1"
+     ],
+     "loops": [
+      "w1",
+      "c2",
+      "c1",
+      "w2",
+      "w4"
+     ],
+     "activeLoopCount": 3,
+     "nonAmbientSubagents": 3,
+     "attention": 12,
+     "runningBg": 6,
+     "busy": true
+    }
+   },
+   {
+    "args": [
+     {
+      "toolHistory": [],
+      "tasks": {
+       "123": {
+        "taskId": "123",
+        "description": "desc 123",
+        "status": "running",
+        "taskType": "local_agent"
+       },
+       "a1": {
+        "taskId": "a1",
+        "description": "desc a1",
+        "status": "running",
+        "taskType": "local_agent",
+        "durationMs": 10
+       },
+       "a2": {
+        "taskId": "a2",
+        "description": "desc a2",
+        "status": "pending",
+        "taskType": "local_agent",
+        "durationMs": 50
+       },
+       "a3": {
+        "taskId": "a3",
+        "description": "desc a3",
+        "status": "paused",
+        "taskType": "local_workflow"
+       },
+       "a4": {
+        "taskId": "a4",
+        "description": "desc a4",
+        "status": "running",
+        "taskType": "local_agent",
+        "ambient": true,
+        "durationMs": 30
+       },
+       "s1": {
+        "taskId": "s1",
+        "description": "desc s1",
+        "status": "running",
+        "skipTranscript": true,
+        "durationMs": 5
+       },
+       "s2": {
+        "taskId": "s2",
+        "description": "desc s2",
+        "status": "completed",
+        "skipTranscript": true,
+        "durationMs": 50
+       },
+       "m1": {
+        "taskId": "m1",
+        "description": "desc m1",
+        "status": "running",
+        "taskType": "local_monitor",
+        "toolUseId": "tm1"
+       },
+       "m2": {
+        "taskId": "m2",
+        "description": "desc m2",
+        "status": "running",
+        "taskType": "local_monitor",
+        "ambient": true
+       },
+       "b1": {
+        "taskId": "b1",
+        "description": "desc b1",
+        "status": "running",
+        "taskType": "local_bash",
+        "toolUseId": "tb1"
+       },
+       "b2": {
+        "taskId": "b2",
+        "description": "desc b2",
+        "status": "completed",
+        "taskType": "local_bash",
+        "toolUseId": "tb2"
+       },
+       "e1": {
+        "taskId": "e1",
+        "description": "desc e1",
+        "status": "completed",
+        "taskType": "local_agent"
+       },
+       "e2": {
+        "taskId": "e2",
+        "description": "desc e2",
+        "status": "killed",
+        "taskType": "local_agent",
+        "toolUseId": "te2"
+       },
+       "e3": {
+        "taskId": "e3",
+        "description": "desc e3",
+        "status": "failed",
+        "taskType": "local_agent",
+        "skipTranscript": true
+       },
+       "r1": {
+        "taskId": "r1",
+        "description": "desc r1",
+        "status": "completed"
+       },
+       "r2": {
+        "taskId": "r2",
+        "description": "desc r2",
+        "status": "failed"
+       },
+       "r3": {
+        "taskId": "r3",
+        "description": "desc r3",
+        "status": "stopped"
+       },
+       "r4": {
+        "taskId": "r4",
+        "description": "desc r4",
+        "status": "killed"
+       }
+      },
+      "liveBackgroundTaskIds": [],
+      "backgroundBashes": {
+       "tb1": {
+        "toolUseId": "tb1",
+        "command": "cmd tb1",
+        "startedAt": 1000
+       },
+       "tb2": {
+        "toolUseId": "tb2",
+        "command": "cmd tb2",
+        "startedAt": 1000
+       },
+       "tb3": {
+        "toolUseId": "tb3",
+        "command": "cmd tb3",
+        "startedAt": 1000
+       },
+       "tb4": {
+        "toolUseId": "tb4",
+        "command": "cmd tb4",
+        "startedAt": 1000,
+        "killed": true
+       }
+      },
+      "scheduledLoops": {
+       "c1": {
+        "kind": "cron",
+        "id": "c1",
+        "toolUseId": "tu_c1",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c1",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 1000
+       },
+       "w1": {
+        "kind": "wakeup",
+        "id": "w1",
+        "toolUseId": "tu_w1",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w1",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 5000
+       },
+       "w2": {
+        "kind": "wakeup",
+        "id": "w2",
+        "toolUseId": "tu_w2",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w2",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 0,
+        "cancelled": true
+       },
+       "w3": {
+        "kind": "wakeup",
+        "id": "w3",
+        "toolUseId": "tu_w3",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w3",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "w4": {
+        "kind": "wakeup",
+        "id": "w4",
+        "toolUseId": "tu_w4",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p w4",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "c2": {
+        "kind": "cron",
+        "id": "c2",
+        "toolUseId": "tu_c2",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c2",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 3000,
+        "cancelled": true
+       }
+      },
+      "pendingPermission": false,
+      "now": 0,
+      "ready": true,
+      "pending": false,
+      "sessionId": "s1"
+     }
+    ],
+    "out": {
+     "runningCount": 0,
+     "subagents": [
+      "a2",
+      "a3"
+     ],
+     "systemTasks": [
+      "s2",
+      "e3"
+     ],
+     "earlier": [
+      "e2",
+      "e1"
+     ],
+     "recent": [
+      "r4",
+      "r3",
+      "r2"
+     ],
+     "runningBashes": [
+      "tb1",
+      "tb3"
+     ],
+     "runningProcessTasks": [],
+     "runningProcs": 2,
+     "stoppable": [
+      "a2",
+      "a3",
+      "b1"
+     ],
+     "loops": [
+      "w1",
+      "c2",
+      "c1",
+      "w2",
+      "w4"
+     ],
+     "activeLoopCount": 3,
+     "nonAmbientSubagents": 2,
+     "attention": 7,
+     "runningBg": 4,
+     "busy": true
+    }
+   },
+   {
+    "args": [
+     {
+      "toolHistory": [
+       {
+        "toolUseId": "t1",
+        "toolName": "Bash",
+        "startedAt": 0
+       },
+       {
+        "toolUseId": "t2",
+        "toolName": "Read",
+        "startedAt": 0,
+        "done": true
+       },
+       {
+        "toolUseId": "t3",
+        "toolName": "thinking",
+        "startedAt": 0,
+        "kind": "thinking"
+       }
+      ],
+      "tasks": {
+       "123": {
+        "taskId": "123",
+        "description": "desc 123",
+        "status": "running",
+        "taskType": "local_agent"
+       },
+       "a1": {
+        "taskId": "a1",
+        "description": "desc a1",
+        "status": "running",
+        "taskType": "local_agent",
+        "durationMs": 10
+       },
+       "a2": {
+        "taskId": "a2",
+        "description": "desc a2",
+        "status": "pending",
+        "taskType": "local_agent",
+        "durationMs": 50
+       },
+       "a3": {
+        "taskId": "a3",
+        "description": "desc a3",
+        "status": "paused",
+        "taskType": "local_workflow"
+       },
+       "a4": {
+        "taskId": "a4",
+        "description": "desc a4",
+        "status": "running",
+        "taskType": "local_agent",
+        "ambient": true,
+        "durationMs": 30
+       },
+       "s1": {
+        "taskId": "s1",
+        "description": "desc s1",
+        "status": "running",
+        "skipTranscript": true,
+        "durationMs": 5
+       },
+       "s2": {
+        "taskId": "s2",
+        "description": "desc s2",
+        "status": "completed",
+        "skipTranscript": true,
+        "durationMs": 50
+       },
+       "m1": {
+        "taskId": "m1",
+        "description": "desc m1",
+        "status": "running",
+        "taskType": "local_monitor",
+        "toolUseId": "tm1"
+       },
+       "m2": {
+        "taskId": "m2",
+        "description": "desc m2",
+        "status": "running",
+        "taskType": "local_monitor",
+        "ambient": true
+       },
+       "b1": {
+        "taskId": "b1",
+        "description": "desc b1",
+        "status": "running",
+        "taskType": "local_bash",
+        "toolUseId": "tb1"
+       },
+       "b2": {
+        "taskId": "b2",
+        "description": "desc b2",
+        "status": "completed",
+        "taskType": "local_bash",
+        "toolUseId": "tb2"
+       },
+       "e1": {
+        "taskId": "e1",
+        "description": "desc e1",
+        "status": "completed",
+        "taskType": "local_agent"
+       },
+       "e2": {
+        "taskId": "e2",
+        "description": "desc e2",
+        "status": "killed",
+        "taskType": "local_agent",
+        "toolUseId": "te2"
+       },
+       "e3": {
+        "taskId": "e3",
+        "description": "desc e3",
+        "status": "failed",
+        "taskType": "local_agent",
+        "skipTranscript": true
+       },
+       "r1": {
+        "taskId": "r1",
+        "description": "desc r1",
+        "status": "completed"
+       },
+       "r2": {
+        "taskId": "r2",
+        "description": "desc r2",
+        "status": "failed"
+       },
+       "r3": {
+        "taskId": "r3",
+        "description": "desc r3",
+        "status": "stopped"
+       },
+       "r4": {
+        "taskId": "r4",
+        "description": "desc r4",
+        "status": "killed"
+       }
+      },
+      "liveBackgroundTaskIds": null,
+      "backgroundBashes": {
+       "tb1": {
+        "toolUseId": "tb1",
+        "command": "cmd tb1",
+        "startedAt": 1000
+       },
+       "tb2": {
+        "toolUseId": "tb2",
+        "command": "cmd tb2",
+        "startedAt": 1000
+       },
+       "tb3": {
+        "toolUseId": "tb3",
+        "command": "cmd tb3",
+        "startedAt": 1000
+       },
+       "tb4": {
+        "toolUseId": "tb4",
+        "command": "cmd tb4",
+        "startedAt": 1000,
+        "killed": true
+       }
+      },
+      "scheduledLoops": {
+       "c1": {
+        "kind": "cron",
+        "id": "c1",
+        "toolUseId": "tu_c1",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c1",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 1000
+       },
+       "w1": {
+        "kind": "wakeup",
+        "id": "w1",
+        "toolUseId": "tu_w1",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w1",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 5000
+       },
+       "w2": {
+        "kind": "wakeup",
+        "id": "w2",
+        "toolUseId": "tu_w2",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w2",
+        "recurring": false,
+        "durable": false,
+        "startedAt": 0,
+        "cancelled": true
+       },
+       "w3": {
+        "kind": "wakeup",
+        "id": "w3",
+        "toolUseId": "tu_w3",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": 300,
+        "prompt": "p w3",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "w4": {
+        "kind": "wakeup",
+        "id": "w4",
+        "toolUseId": "tu_w4",
+        "cron": null,
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p w4",
+        "recurring": false,
+        "durable": false,
+        "startedAt": -400000
+       },
+       "c2": {
+        "kind": "cron",
+        "id": "c2",
+        "toolUseId": "tu_c2",
+        "cron": "*/5 * * * *",
+        "humanSchedule": null,
+        "delaySeconds": null,
+        "prompt": "p c2",
+        "recurring": true,
+        "durable": false,
+        "startedAt": 3000,
+        "cancelled": true
+       }
+      },
+      "pendingPermission": true,
+      "now": 500000,
+      "ready": true,
+      "pending": true,
+      "sessionId": ""
+     }
+    ],
+    "out": {
+     "runningCount": 2,
+     "subagents": [
+      "a2",
+      "a4",
+      "a1",
+      "123",
+      "a3"
+     ],
+     "systemTasks": [
+      "s2",
+      "s1",
+      "e3"
+     ],
+     "earlier": [
+      "e2",
+      "e1"
+     ],
+     "recent": [
+      "r4",
+      "r3",
+      "r2"
+     ],
+     "runningBashes": [
+      "tb1",
+      "tb3"
+     ],
+     "runningProcessTasks": [
+      "m1",
+      "m2"
+     ],
+     "runningProcs": 3,
+     "stoppable": [
+      "a2",
+      "a4",
+      "a1",
+      "123",
+      "a3",
+      "m1",
+      "m2",
+      "b1"
+     ],
+     "loops": [
+      "c2",
+      "c1",
+      "w4"
+     ],
+     "activeLoopCount": 2,
+     "nonAmbientSubagents": 4,
+     "attention": 12,
+     "runningBg": 7,
+     "busy": true
+    }
+   }
+  ],
+  "isSystemTask": [
+   {
+    "args": [
+     {}
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "skipTranscript": true
+     }
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "skipTranscript": false
+     }
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "skipTranscript": 1
+     }
+    ],
+    "out": false
+   }
+  ],
+  "isActivityCountableTask": [
+   {
+    "args": [
+     {}
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "ambient": true
+     }
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "ambient": false
+     }
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "ambient": 1
+     }
+    ],
+    "out": false
+   }
+  ],
+  "isBackgroundTaskLive": [
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "desc a",
+      "status": "running"
+     },
+     null
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "desc a",
+      "status": "running"
+     },
+     []
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "desc a",
+      "status": "running"
+     },
+     [
+      "a"
+     ]
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "desc a",
+      "status": "pending"
+     },
+     []
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "taskId": "a",
+      "description": "desc a",
+      "status": "completed"
+     },
+     []
+    ],
+    "out": true
+   }
+  ],
+  "cadence": [
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "fires in 5m"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "fires in 4m 30s"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "fires in 1s"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     0
+    ],
+    "out": "stopped"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     30000
+    ],
+    "out": "stopped"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     299000
+    ],
+    "out": "stopped"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     300000
+    ],
+    "out": "stopped"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     3600000
+    ],
+    "out": "stopped"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "fires in 30s"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "due now"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "fires in 1h 6m"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "fires in 1h 6m"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "fires in 1h 1m"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "fires in 1h 1m"
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "fires in 6m 40s"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "*/5 * * * *"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "*/5 * * * *"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "*/5 * * * *"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "*/5 * * * *"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "*/5 * * * *"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "Every 5 minutes"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "Every 5 minutes"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "Every 5 minutes"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "Every 5 minutes"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "Every 5 minutes"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     30000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     299000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     300000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     3600000
+    ],
+    "out": "scheduled"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     0
+    ],
+    "out": "Hourly"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     30000
+    ],
+    "out": "Hourly"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     299000
+    ],
+    "out": "Hourly"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     300000
+    ],
+    "out": "Hourly"
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     3600000
+    ],
+    "out": "Hourly"
+   }
+  ],
+  "isStaleWakeup": [
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     360001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 300,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     4060001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 30,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 0,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "wakeup",
+      "id": "w",
+      "toolUseId": "tu_w",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": 4000,
+      "prompt": "p w",
+      "recurring": false,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     360001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": null,
+      "humanSchedule": null,
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0
+     },
+     4060001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     0
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     360000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     360001
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     {
+      "kind": "cron",
+      "id": "c",
+      "toolUseId": "tu_c",
+      "cron": "*/5 * * * *",
+      "humanSchedule": "Hourly",
+      "delaySeconds": null,
+      "prompt": "p c",
+      "recurring": true,
+      "durable": false,
+      "startedAt": 0,
+      "cancelled": true
+     },
+     4060001
+    ],
+    "out": false
+   }
+  ],
+  "scheduledLoopCancelPrompt": [
+   {
+    "args": [
+     {
+      "id": "abc123",
+      "kind": "cron"
+     }
+    ],
+    "out": "Please cancel the scheduled loop with id `abc123` by calling `CronDelete` on it. Reply with one short line confirming it's cancelled \u2014 don't run any other tools."
+   },
+   {
+    "args": [
+     {
+      "id": "w1",
+      "kind": "wakeup"
+     }
+    ],
+    "out": "Please stop the self-paced loop by calling `ScheduleWakeup` with `stop: true`. Reply with one short line confirming it's stopped \u2014 don't run any other tools."
+   },
+   {
+    "args": [
+     {
+      "id": "a`b",
+      "kind": "cron"
+     }
+    ],
+    "out": "Please cancel the scheduled loop with id `a`b` by calling `CronDelete` on it. Reply with one short line confirming it's cancelled \u2014 don't run any other tools."
+   }
+  ],
+  "collectUsageWindows": [
+   {
+    "args": [
+     null,
+     [],
+     1795683600000
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     null,
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "utilization": 0.5,
+       "resetsAt": 1795770000
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "resetsAtSec": 1795770000,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     null,
+     [
+      {
+       "status": "allowed_warning",
+       "rateLimitType": "five_hour",
+       "utilization": 0.83,
+       "resetsAt": 1795684200
+      },
+      {
+       "status": "rejected",
+       "rateLimitType": "overage"
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_opus"
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 83,
+      "resetsAtSec": 1795684200,
+      "rejected": false
+     },
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     null,
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "resetsAt": 1795683599
+      },
+      {
+       "rateLimitType": "bogus",
+       "utilization": 0.5
+      },
+      {
+       "utilization": 0.2
+      }
+     ],
+     1795683600000
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     null,
+     [
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_overage_included",
+       "utilization": 0.995
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_sonnet",
+       "utilization": 0
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 0,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 99.5,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "rateLimitsAvailable": false,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 10,
+        "resetsAt": null
+       }
+      }
+     },
+     [],
+     1795683600000
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     {
+      "rateLimitsAvailable": false,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 10,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "utilization": 0.5,
+       "resetsAt": 1795770000
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "resetsAtSec": 1795770000,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "rateLimitsAvailable": false,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 10,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "allowed_warning",
+       "rateLimitType": "five_hour",
+       "utilization": 0.83,
+       "resetsAt": 1795684200
+      },
+      {
+       "status": "rejected",
+       "rateLimitType": "overage"
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_opus"
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 83,
+      "resetsAtSec": 1795684200,
+      "rejected": false
+     },
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "rateLimitsAvailable": false,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 10,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "resetsAt": 1795683599
+      },
+      {
+       "rateLimitType": "bogus",
+       "utilization": 0.5
+      },
+      {
+       "utilization": 0.2
+      }
+     ],
+     1795683600000
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     {
+      "rateLimitsAvailable": false,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 10,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_overage_included",
+       "utilization": 0.995
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_sonnet",
+       "utilization": 0
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 0,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 99.5,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": null
+     },
+     [],
+     1795683600000
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": null
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "utilization": 0.5,
+       "resetsAt": 1795770000
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "resetsAtSec": 1795770000,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": null
+     },
+     [
+      {
+       "status": "allowed_warning",
+       "rateLimitType": "five_hour",
+       "utilization": 0.83,
+       "resetsAt": 1795684200
+      },
+      {
+       "status": "rejected",
+       "rateLimitType": "overage"
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_opus"
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 83,
+      "resetsAtSec": 1795684200,
+      "rejected": false
+     },
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": null
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "resetsAt": 1795683599
+      },
+      {
+       "rateLimitType": "bogus",
+       "utilization": 0.5
+      },
+      {
+       "utilization": 0.2
+      }
+     ],
+     1795683600000
+    ],
+    "out": []
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": null
+     },
+     [
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_overage_included",
+       "utilization": 0.995
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_sonnet",
+       "utilization": 0
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 0,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 99.5,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 12,
+        "resetsAt": "2026-11-26T10:00:00.000Z"
+       },
+       "sevenDay": {
+        "utilization": 81,
+        "resetsAt": "2026-11-29T09:00:00.000Z"
+       }
+      }
+     },
+     [],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 12,
+      "resetsAtSec": 1795687200,
+      "rejected": false
+     },
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 81,
+      "resetsAtSec": 1795942800,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 12,
+        "resetsAt": "2026-11-26T10:00:00.000Z"
+       },
+       "sevenDay": {
+        "utilization": 81,
+        "resetsAt": "2026-11-29T09:00:00.000Z"
+       }
+      }
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "utilization": 0.5,
+       "resetsAt": 1795770000
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 12,
+      "resetsAtSec": 1795687200,
+      "rejected": false
+     },
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 81,
+      "resetsAtSec": 1795942800,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 12,
+        "resetsAt": "2026-11-26T10:00:00.000Z"
+       },
+       "sevenDay": {
+        "utilization": 81,
+        "resetsAt": "2026-11-29T09:00:00.000Z"
+       }
+      }
+     },
+     [
+      {
+       "status": "allowed_warning",
+       "rateLimitType": "five_hour",
+       "utilization": 0.83,
+       "resetsAt": 1795684200
+      },
+      {
+       "status": "rejected",
+       "rateLimitType": "overage"
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_opus"
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 12,
+      "resetsAtSec": 1795687200,
+      "rejected": false
+     },
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 81,
+      "resetsAtSec": 1795942800,
+      "rejected": false
+     },
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 12,
+        "resetsAt": "2026-11-26T10:00:00.000Z"
+       },
+       "sevenDay": {
+        "utilization": 81,
+        "resetsAt": "2026-11-29T09:00:00.000Z"
+       }
+      }
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "resetsAt": 1795683599
+      },
+      {
+       "rateLimitType": "bogus",
+       "utilization": 0.5
+      },
+      {
+       "utilization": 0.2
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 12,
+      "resetsAtSec": 1795687200,
+      "rejected": false
+     },
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 81,
+      "resetsAtSec": 1795942800,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "fiveHour": {
+        "utilization": 12,
+        "resetsAt": "2026-11-26T10:00:00.000Z"
+       },
+       "sevenDay": {
+        "utilization": 81,
+        "resetsAt": "2026-11-29T09:00:00.000Z"
+       }
+      }
+     },
+     [
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_overage_included",
+       "utilization": 0.995
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_sonnet",
+       "utilization": 0
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 12,
+      "resetsAtSec": 1795687200,
+      "rejected": false
+     },
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 81,
+      "resetsAtSec": 1795942800,
+      "rejected": false
+     },
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 0,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 99.5,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDay": {
+        "utilization": 100.4,
+        "resetsAt": "2026-11-27T09:00:00.000Z"
+       },
+       "fiveHour": {
+        "utilization": 49.5,
+        "resetsAt": "2026-11-26T08:59:59.000Z"
+       },
+       "sevenDayOpus": null,
+       "sevenDaySonnet": {
+        "utilization": null,
+        "resetsAt": null
+       }
+      }
+     },
+     [],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 100.4,
+      "resetsAtSec": 1795770000,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDay": {
+        "utilization": 100.4,
+        "resetsAt": "2026-11-27T09:00:00.000Z"
+       },
+       "fiveHour": {
+        "utilization": 49.5,
+        "resetsAt": "2026-11-26T08:59:59.000Z"
+       },
+       "sevenDayOpus": null,
+       "sevenDaySonnet": {
+        "utilization": null,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "utilization": 0.5,
+       "resetsAt": 1795770000
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 100.4,
+      "resetsAtSec": 1795770000,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDay": {
+        "utilization": 100.4,
+        "resetsAt": "2026-11-27T09:00:00.000Z"
+       },
+       "fiveHour": {
+        "utilization": 49.5,
+        "resetsAt": "2026-11-26T08:59:59.000Z"
+       },
+       "sevenDayOpus": null,
+       "sevenDaySonnet": {
+        "utilization": null,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "allowed_warning",
+       "rateLimitType": "five_hour",
+       "utilization": 0.83,
+       "resetsAt": 1795684200
+      },
+      {
+       "status": "rejected",
+       "rateLimitType": "overage"
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_opus"
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 83,
+      "resetsAtSec": 1795684200,
+      "rejected": false
+     },
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 100.4,
+      "resetsAtSec": 1795770000,
+      "rejected": false
+     },
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": true
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDay": {
+        "utilization": 100.4,
+        "resetsAt": "2026-11-27T09:00:00.000Z"
+       },
+       "fiveHour": {
+        "utilization": 49.5,
+        "resetsAt": "2026-11-26T08:59:59.000Z"
+       },
+       "sevenDayOpus": null,
+       "sevenDaySonnet": {
+        "utilization": null,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "resetsAt": 1795683599
+      },
+      {
+       "rateLimitType": "bogus",
+       "utilization": 0.5
+      },
+      {
+       "utilization": 0.2
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 100.4,
+      "resetsAtSec": 1795770000,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDay": {
+        "utilization": 100.4,
+        "resetsAt": "2026-11-27T09:00:00.000Z"
+       },
+       "fiveHour": {
+        "utilization": 49.5,
+        "resetsAt": "2026-11-26T08:59:59.000Z"
+       },
+       "sevenDayOpus": null,
+       "sevenDaySonnet": {
+        "utilization": null,
+        "resetsAt": null
+       }
+      }
+     },
+     [
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_overage_included",
+       "utilization": 0.995
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_sonnet",
+       "utilization": 0
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 100.4,
+      "resetsAtSec": 1795770000,
+      "rejected": false
+     },
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 0,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 99.5,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDayOauthApps": {
+        "utilization": 3,
+        "resetsAt": "not a date"
+       },
+       "custom": {
+        "utilization": 7,
+        "resetsAt": null
+       }
+      },
+      "modelScoped": [
+       {
+        "displayName": "Fable",
+        "utilization": 66,
+        "resetsAt": "2026-11-26T11:00:00.000Z"
+       },
+       {
+        "displayName": "Gone",
+        "utilization": 9,
+        "resetsAt": "2026-11-26T08:59:59.999Z"
+       }
+      ]
+     },
+     [],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": 3,
+      "rejected": false
+     },
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 7,
+      "rejected": false
+     },
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 66,
+      "resetsAtSec": 1795690800,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDayOauthApps": {
+        "utilization": 3,
+        "resetsAt": "not a date"
+       },
+       "custom": {
+        "utilization": 7,
+        "resetsAt": null
+       }
+      },
+      "modelScoped": [
+       {
+        "displayName": "Fable",
+        "utilization": 66,
+        "resetsAt": "2026-11-26T11:00:00.000Z"
+       },
+       {
+        "displayName": "Gone",
+        "utilization": 9,
+        "resetsAt": "2026-11-26T08:59:59.999Z"
+       }
+      ]
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "utilization": 0.5,
+       "resetsAt": 1795770000
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "resetsAtSec": 1795770000,
+      "rejected": true
+     },
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": 3,
+      "rejected": false
+     },
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 7,
+      "rejected": false
+     },
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 66,
+      "resetsAtSec": 1795690800,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDayOauthApps": {
+        "utilization": 3,
+        "resetsAt": "not a date"
+       },
+       "custom": {
+        "utilization": 7,
+        "resetsAt": null
+       }
+      },
+      "modelScoped": [
+       {
+        "displayName": "Fable",
+        "utilization": 66,
+        "resetsAt": "2026-11-26T11:00:00.000Z"
+       },
+       {
+        "displayName": "Gone",
+        "utilization": 9,
+        "resetsAt": "2026-11-26T08:59:59.999Z"
+       }
+      ]
+     },
+     [
+      {
+       "status": "allowed_warning",
+       "rateLimitType": "five_hour",
+       "utilization": 0.83,
+       "resetsAt": 1795684200
+      },
+      {
+       "status": "rejected",
+       "rateLimitType": "overage"
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_opus"
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 83,
+      "resetsAtSec": 1795684200,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": 3,
+      "rejected": false
+     },
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": true
+     },
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 7,
+      "rejected": false
+     },
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 66,
+      "resetsAtSec": 1795690800,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDayOauthApps": {
+        "utilization": 3,
+        "resetsAt": "not a date"
+       },
+       "custom": {
+        "utilization": 7,
+        "resetsAt": null
+       }
+      },
+      "modelScoped": [
+       {
+        "displayName": "Fable",
+        "utilization": 66,
+        "resetsAt": "2026-11-26T11:00:00.000Z"
+       },
+       {
+        "displayName": "Gone",
+        "utilization": 9,
+        "resetsAt": "2026-11-26T08:59:59.999Z"
+       }
+      ]
+     },
+     [
+      {
+       "status": "rejected",
+       "rateLimitType": "seven_day",
+       "resetsAt": 1795683599
+      },
+      {
+       "rateLimitType": "bogus",
+       "utilization": 0.5
+      },
+      {
+       "utilization": 0.2
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": 3,
+      "rejected": false
+     },
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 7,
+      "rejected": false
+     },
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 66,
+      "resetsAtSec": 1795690800,
+      "rejected": false
+     }
+    ]
+   },
+   {
+    "args": [
+     {
+      "subscriptionType": "max",
+      "rateLimitsAvailable": true,
+      "rateLimits": {
+       "sevenDayOauthApps": {
+        "utilization": 3,
+        "resetsAt": "not a date"
+       },
+       "custom": {
+        "utilization": 7,
+        "resetsAt": null
+       }
+      },
+      "modelScoped": [
+       {
+        "displayName": "Fable",
+        "utilization": 66,
+        "resetsAt": "2026-11-26T11:00:00.000Z"
+       },
+       {
+        "displayName": "Gone",
+        "utilization": 9,
+        "resetsAt": "2026-11-26T08:59:59.999Z"
+       }
+      ]
+     },
+     [
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_overage_included",
+       "utilization": 0.995
+      },
+      {
+       "status": "allowed",
+       "rateLimitType": "seven_day_sonnet",
+       "utilization": 0
+      }
+     ],
+     1795683600000
+    ],
+    "out": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 0,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 99.5,
+      "rejected": false
+     },
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": 3,
+      "rejected": false
+     },
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 7,
+      "rejected": false
+     },
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 66,
+      "resetsAtSec": 1795690800,
+      "rejected": false
+     }
+    ]
+   }
+  ],
+  "shortUsageLabel": [
+   {
+    "args": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 0,
+      "rejected": false
+     }
+    ],
+    "out": "5-hour"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 49.5,
+      "rejected": false
+     }
+    ],
+    "out": "Weekly"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "rejected": false
+     }
+    ],
+    "out": "Weekly"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOpus",
+      "label": "Weekly Opus limit",
+      "pct": 99.6,
+      "rejected": false
+     }
+    ],
+    "out": "Opus"
+   },
+   {
+    "args": [
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": false
+     }
+    ],
+    "out": "Extra"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 112.7,
+      "rejected": false
+     }
+    ],
+    "out": "Sonnet"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 3,
+      "rejected": true
+     }
+    ],
+    "out": "Weekly+"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": -2,
+      "rejected": false
+     }
+    ],
+    "out": "OAuth apps"
+   },
+   {
+    "args": [
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 75,
+      "rejected": false
+     }
+    ],
+    "out": "Fable"
+   },
+   {
+    "args": [
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 75,
+      "rejected": false
+     }
+    ],
+    "out": "custom"
+   }
+  ],
+  "displayUsagePct": [
+   {
+    "args": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 0,
+      "rejected": false
+     }
+    ],
+    "out": 0
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 49.5,
+      "rejected": false
+     }
+    ],
+    "out": 50
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "rejected": false
+     }
+    ],
+    "out": 50
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOpus",
+      "label": "Weekly Opus limit",
+      "pct": 99.6,
+      "rejected": false
+     }
+    ],
+    "out": 100
+   },
+   {
+    "args": [
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": false
+     }
+    ],
+    "out": 100
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 112.7,
+      "rejected": false
+     }
+    ],
+    "out": 100
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 3,
+      "rejected": true
+     }
+    ],
+    "out": 3
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": -2,
+      "rejected": false
+     }
+    ],
+    "out": 0
+   },
+   {
+    "args": [
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 75,
+      "rejected": false
+     }
+    ],
+    "out": 75
+   },
+   {
+    "args": [
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 75,
+      "rejected": false
+     }
+    ],
+    "out": 75
+   }
+  ],
+  "usageTone": [
+   {
+    "args": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 0,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 0,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 0,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "fiveHour",
+      "label": "5-hour limit",
+      "pct": 0,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 49.5,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 49.5,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 49.5,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 49.5,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDay",
+      "label": "Weekly limit",
+      "pct": 50,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOpus",
+      "label": "Weekly Opus limit",
+      "pct": 99.6,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOpus",
+      "label": "Weekly Opus limit",
+      "pct": 99.6,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOpus",
+      "label": "Weekly Opus limit",
+      "pct": 99.6,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOpus",
+      "label": "Weekly Opus limit",
+      "pct": 99.6,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "overage",
+      "label": "Extra-usage limit",
+      "pct": 100,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 112.7,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 112.7,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 112.7,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDaySonnet",
+      "label": "Weekly Sonnet limit",
+      "pct": 112.7,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 3,
+      "rejected": true
+     },
+     0
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 3,
+      "rejected": true
+     },
+     50
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 3,
+      "rejected": true
+     },
+     75
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOverageIncluded",
+      "label": "Weekly limit (overage incl.)",
+      "pct": 3,
+      "rejected": true
+     },
+     100
+    ],
+    "out": "rejected"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": -2,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": -2,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": -2,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "sevenDayOauthApps",
+      "label": "Weekly limit (OAuth apps)",
+      "pct": -2,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 75,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 75,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 75,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "model:Fable",
+      "label": "Weekly Fable limit",
+      "pct": 75,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "ok"
+   },
+   {
+    "args": [
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 75,
+      "rejected": false
+     },
+     0
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 75,
+      "rejected": false
+     },
+     50
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 75,
+      "rejected": false
+     },
+     75
+    ],
+    "out": "warning"
+   },
+   {
+    "args": [
+     {
+      "key": "custom",
+      "label": "custom",
+      "pct": 75,
+      "rejected": false
+     },
+     100
+    ],
+    "out": "ok"
+   }
+  ],
+  "formatRemaining": [
+   {
+    "args": [
+     0
+    ],
+    "out": "00m 00s"
+   },
+   {
+    "args": [
+     9
+    ],
+    "out": "00m 09s"
+   },
+   {
+    "args": [
+     59
+    ],
+    "out": "00m 59s"
+   },
+   {
+    "args": [
+     60
+    ],
+    "out": "01m 00s"
+   },
+   {
+    "args": [
+     309
+    ],
+    "out": "05m 09s"
+   },
+   {
+    "args": [
+     3599
+    ],
+    "out": "59m 59s"
+   },
+   {
+    "args": [
+     3600
+    ],
+    "out": "1h 00m 00s"
+   },
+   {
+    "args": [
+     7509
+    ],
+    "out": "2h 05m 09s"
+   },
+   {
+    "args": [
+     86399
+    ],
+    "out": "23h 59m 59s"
+   },
+   {
+    "args": [
+     86400
+    ],
+    "out": "1d 0h 00m"
+   },
+   {
+    "args": [
+     273900
+    ],
+    "out": "3d 4h 05m"
+   }
+  ],
+  "limitHasReset": [
+   {
+    "args": [
+     null,
+     1795683600000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     0,
+     1795683600000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     -5,
+     1795683600000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     1795683600,
+     1795683600000
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     1795683600.5,
+     1795683600000
+    ],
+    "out": true
+   },
+   {
+    "args": [
+     1795683601,
+     1795683600000
+    ],
+    "out": false
+   },
+   {
+    "args": [
+     1795683601,
+     1795683600999
+    ],
+    "out": true
+   }
+  ],
+  "countdown": [
+   {
+    "args": [
+     null,
+     1795683600000
+    ],
+    "out": {
+     "countdown": null,
+     "hasReset": false
+    }
+   },
+   {
+    "args": [
+     0,
+     1795683600000
+    ],
+    "out": {
+     "countdown": null,
+     "hasReset": false
+    }
+   },
+   {
+    "args": [
+     1795683595,
+     1795683600000
+    ],
+    "out": {
+     "countdown": "Available now",
+     "hasReset": true
+    }
+   },
+   {
+    "args": [
+     1795683670,
+     1795683600000
+    ],
+    "out": {
+     "countdown": "01m 10s",
+     "hasReset": false
+    }
+   },
+   {
+    "args": [
+     1795683670.5,
+     1795683600000
+    ],
+    "out": {
+     "countdown": "01m 10s",
+     "hasReset": false
+    }
+   },
+   {
+    "args": [
+     1795691109,
+     1795683600000
+    ],
+    "out": {
+     "countdown": "2h 05m 09s",
+     "hasReset": false
+    }
+   },
+   {
+    "args": [
+     1795942800,
+     1795683600000
+    ],
+    "out": {
+     "countdown": "3d 0h 00m",
+     "hasReset": false
+    }
+   }
+  ],
+  "formatReset": [
+   {
+    "args": [
+     1795683600
+    ],
+    "out": "Thu 9:00 AM"
+   },
+   {
+    "args": [
+     1795903500
+    ],
+    "out": "Sat 10:05 PM"
+   },
+   {
+    "args": [
+     1795921200
+    ],
+    "out": "Sun 3:00 AM"
+   },
+   {
+    "args": [
+     0
+    ],
+    "out": "Thu 12:00 AM"
+   }
+  ],
+  "effortPill": [
+   {
+    "args": [
+     "auto",
+     null,
+     false
+    ],
+    "out": {
+     "label": "auto",
+     "shown": "auto",
+     "title": "Reasoning effort: auto"
+    }
+   },
+   {
+    "args": [
+     "auto",
+     null,
+     true
+    ],
+    "out": {
+     "label": "auto",
+     "shown": "auto",
+     "title": "Reasoning effort: auto \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "auto",
+     "high",
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (default)"
+    }
+   },
+   {
+    "args": [
+     "auto",
+     "high",
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (default) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "auto",
+     "max",
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (default)"
+    }
+   },
+   {
+    "args": [
+     "auto",
+     "max",
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (default) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "auto",
+     "medium",
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (default)"
+    }
+   },
+   {
+    "args": [
+     "auto",
+     "medium",
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (default) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "low",
+     null,
+     false
+    ],
+    "out": {
+     "label": "low",
+     "shown": "low",
+     "title": "Reasoning effort: low"
+    }
+   },
+   {
+    "args": [
+     "low",
+     null,
+     true
+    ],
+    "out": {
+     "label": "low",
+     "shown": "low",
+     "title": "Reasoning effort: low \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "low",
+     "high",
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (low requested)"
+    }
+   },
+   {
+    "args": [
+     "low",
+     "high",
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (low requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "low",
+     "max",
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (low requested)"
+    }
+   },
+   {
+    "args": [
+     "low",
+     "max",
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (low requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "low",
+     "medium",
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (low requested)"
+    }
+   },
+   {
+    "args": [
+     "low",
+     "medium",
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (low requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     null,
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     null,
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     "high",
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (med requested)"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     "high",
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (med requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     "max",
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (med requested)"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     "max",
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (med requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     "medium",
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med"
+    }
+   },
+   {
+    "args": [
+     "medium",
+     "medium",
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "high",
+     null,
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high"
+    }
+   },
+   {
+    "args": [
+     "high",
+     null,
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "high",
+     "high",
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high"
+    }
+   },
+   {
+    "args": [
+     "high",
+     "high",
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "high",
+     "max",
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (high requested)"
+    }
+   },
+   {
+    "args": [
+     "high",
+     "max",
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (high requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "high",
+     "medium",
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (high requested)"
+    }
+   },
+   {
+    "args": [
+     "high",
+     "medium",
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (high requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     null,
+     false
+    ],
+    "out": {
+     "label": "very high",
+     "shown": "xhigh",
+     "title": "Reasoning effort: very high"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     null,
+     true
+    ],
+    "out": {
+     "label": "very high",
+     "shown": "xhigh",
+     "title": "Reasoning effort: very high \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     "high",
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (very high requested)"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     "high",
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (very high requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     "max",
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (very high requested)"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     "max",
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (very high requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     "medium",
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (very high requested)"
+    }
+   },
+   {
+    "args": [
+     "xhigh",
+     "medium",
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (very high requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "max",
+     null,
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max"
+    }
+   },
+   {
+    "args": [
+     "max",
+     null,
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "max",
+     "high",
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (max requested)"
+    }
+   },
+   {
+    "args": [
+     "max",
+     "high",
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (max requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "max",
+     "max",
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max"
+    }
+   },
+   {
+    "args": [
+     "max",
+     "max",
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "max",
+     "medium",
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (max requested)"
+    }
+   },
+   {
+    "args": [
+     "max",
+     "medium",
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (max requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     null,
+     false
+    ],
+    "out": {
+     "label": null,
+     "shown": "weird",
+     "title": "Reasoning effort: undefined"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     null,
+     true
+    ],
+    "out": {
+     "label": null,
+     "shown": "weird",
+     "title": "Reasoning effort: undefined \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     "high",
+     false
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (undefined requested)"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     "high",
+     true
+    ],
+    "out": {
+     "label": "high",
+     "shown": "high",
+     "title": "Reasoning effort: high (undefined requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     "max",
+     false
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (undefined requested)"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     "max",
+     true
+    ],
+    "out": {
+     "label": "max",
+     "shown": "max",
+     "title": "Reasoning effort: max (undefined requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     "medium",
+     false
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (undefined requested)"
+    }
+   },
+   {
+    "args": [
+     "weird",
+     "medium",
+     true
+    ],
+    "out": {
+     "label": "med",
+     "shown": "medium",
+     "title": "Reasoning effort: med (undefined requested) \u2014 changed during a task, so it may wait for your next message"
+    }
+   }
+  ],
+  "modeLabel": [
+   {
+    "args": [
+     "default"
+    ],
+    "out": "default"
+   },
+   {
+    "args": [
+     "acceptEdits"
+    ],
+    "out": "accept edits"
+   },
+   {
+    "args": [
+     "plan"
+    ],
+    "out": "plan"
+   },
+   {
+    "args": [
+     "bypassPermissions"
+    ],
+    "out": "bypass"
+   },
+   {
+    "args": [
+     "auto"
+    ],
+    "out": "auto"
+   },
+   {
+    "args": [
+     "dontAsk"
+    ],
+    "out": "dontAsk"
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": ""
+   }
+  ],
+  "badgeAdvisorLabel": [
+   {
+    "args": [
+     null
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": null
+   },
+   {
+    "args": [
+     "(active)"
+    ],
+    "out": "on"
+   },
+   {
+    "args": [
+     "claude-opus-5-5"
+    ],
+    "out": "opus 5.5"
+   },
+   {
+    "args": [
+     "claude-opus-4-8"
+    ],
+    "out": "opus 4.8"
+   },
+   {
+    "args": [
+     "claude-sonnet-5"
+    ],
+    "out": "sonnet"
+   },
+   {
+    "args": [
+     "claude-fable-5"
+    ],
+    "out": "fable"
+   },
+   {
+    "args": [
+     "opus"
+    ],
+    "out": "opus"
+   },
+   {
+    "args": [
+     "claude-haiku-4-5-20251001"
+    ],
+    "out": "haiku-4-5"
+   },
+   {
+    "args": [
+     "claude-some-very-long-custom-model-id"
+    ],
+    "out": "some-very-long\u2026"
+   },
+   {
+    "args": [
+     "claude-x-1234567"
+    ],
+    "out": "x-1234567"
+   },
+   {
+    "args": [
+     "abcdefghijklmnop"
+    ],
+    "out": "abcdefghijklmnop"
+   },
+   {
+    "args": [
+     "abcdefghijklmnopq"
+    ],
+    "out": "abcdefghijklmn\u2026"
+   },
+   {
+    "args": [
+     7
+    ],
+    "out": null
+   }
+  ],
+  "prettyModelName": [
+   {
+    "args": [
+     "claude-opus-4-5"
+    ],
+    "out": "Opus 4.5"
+   },
+   {
+    "args": [
+     "claude-sonnet-5-5"
+    ],
+    "out": "Sonnet 5.5"
+   },
+   {
+    "args": [
+     "sonnet"
+    ],
+    "out": "sonnet"
+   },
+   {
+    "args": [
+     "claude-opus-4-5-20251101"
+    ],
+    "out": "Opus 4.5"
+   },
+   {
+    "args": [
+     "us.anthropic.claude-sonnet-4-5-v1:0"
+    ],
+    "out": "Sonnet 4.5"
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": ""
+   }
+  ],
+  "warningPct": [
+   {
+    "args": [
+     null
+    ],
+    "out": 50
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": 50
+   },
+   {
+    "args": [
+     "75"
+    ],
+    "out": 75
+   },
+   {
+    "args": [
+     "75.9"
+    ],
+    "out": 75
+   },
+   {
+    "args": [
+     " 80"
+    ],
+    "out": 80
+   },
+   {
+    "args": [
+     "x"
+    ],
+    "out": 50
+   },
+   {
+    "args": [
+     "150"
+    ],
+    "out": 100
+   },
+   {
+    "args": [
+     "-3"
+    ],
+    "out": 0
+   },
+   {
+    "args": [
+     "0"
+    ],
+    "out": 0
+   },
+   {
+    "args": [
+     "100"
+    ],
+    "out": 100
+   },
+   {
+    "args": [
+     "1e2"
+    ],
+    "out": 1
+   }
+  ],
+  "addTodosPrompt": [
+   {
+    "args": [
+     [
+      "one"
+     ]
+    ],
+    "out": "Use the TodoWrite tool to APPEND these item(s) to your current todo list.\nPreserve every existing item unchanged. New items have status `pending`.\nDo not run any other tool and do not write any text in your reply.\n\nItems to add:\n- one"
+   },
+   {
+    "args": [
+     [
+      " a ",
+      "",
+      "b",
+      "  "
+     ]
+    ],
+    "out": "Use the TodoWrite tool to APPEND these item(s) to your current todo list.\nPreserve every existing item unchanged. New items have status `pending`.\nDo not run any other tool and do not write any text in your reply.\n\nItems to add:\n- a\n- b"
+   },
+   {
+    "args": [
+     [
+      "first\nline",
+      "caf\u00e9"
+     ]
+    ],
+    "out": "Use the TodoWrite tool to APPEND these item(s) to your current todo list.\nPreserve every existing item unchanged. New items have status `pending`.\nDo not run any other tool and do not write any text in your reply.\n\nItems to add:\n- first\nline\n- caf\u00e9"
+   }
+  ],
+  "messageSubagentDraft": [
+   {
+    "args": [
+     "agent_1"
+    ],
+    "out": "Use SendMessage to send agent agent_1 this message: "
+   },
+   {
+    "args": [
+     ""
+    ],
+    "out": "Use SendMessage to send agent  this message: "
+   }
+  ]
+ }
+}

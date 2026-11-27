@@ -1068,6 +1068,7 @@ name = "claudius-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "bytes",
  "chrono",
  "claudius-agent",
@@ -1078,6 +1079,8 @@ dependencies = [
  "claudius-files",
  "claudius-git",
  "claudius-gpui-theme",
+ "claudius-overlays",
+ "claudius-panels",
  "claudius-prompts",
  "claudius-server",
  "claudius-status",
@@ -1232,6 +1235,41 @@ dependencies = [
  "gpui-kit",
  "gpui-pre",
  "gpui-pre-apple",
+ "serde_json",
+]
+
+[[package]]
+name = "claudius-overlays"
+version = "0.1.0"
+dependencies = [
+ "claudius-core",
+ "claudius-gpui-theme",
+ "claudius-theme",
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-apple",
+ "serde_json",
+]
+
+[[package]]
+name = "claudius-panels"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "claudius-agent",
+ "claudius-chat",
+ "claudius-client",
+ "claudius-core",
+ "claudius-gpui-theme",
+ "claudius-status",
+ "claudius-theme",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-apple",
+ "image",
+ "indexmap",
  "serde_json",
 ]
 

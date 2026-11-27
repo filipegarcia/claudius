@@ -27,12 +27,24 @@ pub struct World {
 /// project folder and workspace per name, and starts the engine with
 /// `claude_bin`. Once per process (the overrides are process-wide).
 pub fn world(claude_bin: PathBuf, names: &[&str]) -> World {
+    world_with(claude_bin, names, false)
+}
+
+/// [`world`]; with `config_in_home` the Claude config dir is
+/// `<HOME>/.claude`, the default layout, where the CLI's transcripts and
+/// Claudius's `~/.claude/projects` are one folder (the transcript search
+/// scans the latter).
+pub fn world_with(claude_bin: PathBuf, names: &[&str], config_in_home: bool) -> World {
     let root = tempfile::Builder::new()
         .prefix("claudius-app-world-")
         .tempdir()
         .unwrap();
     let home = root.path().join("home");
-    let config = root.path().join("config");
+    let config = if config_in_home {
+        home.join(".claude")
+    } else {
+        root.path().join("config")
+    };
     for d in [&home, &config] {
         std::fs::create_dir_all(d).unwrap();
     }

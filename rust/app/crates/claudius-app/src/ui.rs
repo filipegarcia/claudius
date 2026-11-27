@@ -135,6 +135,7 @@ pub(crate) fn shell(this: &Shell, window: &mut Window, cx: &mut Context<Shell>) 
         .when_some(this.confirm(), |d, confirm| {
             d.child(confirm_dialog(&confirm.message, &c, cx))
         })
+        .children(crate::overlays::element(this, cx))
         .into_any_element()
 }
 

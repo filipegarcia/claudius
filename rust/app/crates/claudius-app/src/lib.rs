@@ -14,6 +14,8 @@ mod files;
 pub mod fixture;
 pub mod live;
 pub mod nav;
+pub mod overlays;
+pub mod rail;
 pub mod route;
 mod screens;
 pub mod sessions;
@@ -42,4 +44,5 @@ pub fn init(theme: ThemeName, cx: &mut App) {
     sessions::view::bind(cx);
     claudius_files::view::bind(cx);
     claudius_git::view::bind(cx);
+    claudius_overlays::bind(cx);
 }

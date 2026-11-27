@@ -11,7 +11,8 @@
 //! bundled one) and needs no engine. `CLAUDIUS_APP_THEME` is `system` (the
 //! default: light or dark as macOS is) or a palette id (`dark`, `light`,
 //! `paper`, …). `CLAUDIUS_APP_SESSIONS=<path>` is the sessions browser's
-//! fixture (the bundled one otherwise). Over the fixture the transcripts
+//! fixture (else the engine's session routes, U11b, or over the fixture the
+//! bundled one). Over the fixture the transcripts
 //! are claudius-chat's bundled ones (`FixtureTranscripts::builtin`), and
 //! the composer sends into them through `FixtureComposer` (a scripted
 //! reply); over a live chat the shell sets its own (U07e). The Files page
@@ -35,6 +36,7 @@ use claudius_app::fixture::FixtureShellData;
 use claudius_app::live::TransportShellData;
 use claudius_app::sessions::data::SessionsData;
 use claudius_app::sessions::fixture::FixtureSessionsData;
+use claudius_app::sessions::live::TransportSessionsData;
 use claudius_app::shell::{Appearance, open_main_window};
 use claudius_app::store::{self, LocalStore};
 use claudius_chat::TranscriptSource;
@@ -83,17 +85,23 @@ fn main() -> anyhow::Result<()> {
         ));
         live
     };
-    // `CLAUDIUS_APP_SESSIONS=<path>`: the sessions browser's fixture, else
-    // the bundled one, its ages moved to now.
-    let sessions: Arc<dyn SessionsData> = match std::env::var_os("CLAUDIUS_APP_SESSIONS") {
-        Some(path) => Arc::new(FixtureSessionsData::from_path(path.as_ref())?),
-        None => {
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_or(0., |d| d.as_millis() as f64);
-            Arc::new(FixtureSessionsData::builtin().rebased(now))
-        }
-    };
+    // `CLAUDIUS_APP_SESSIONS=<path>`: the sessions browser's fixture; else
+    // the engine's routes (U11b), or over the fixture the bundled one, its
+    // ages moved to now.
+    let sessions: Arc<dyn SessionsData> =
+        match (std::env::var_os("CLAUDIUS_APP_SESSIONS"), &backend) {
+            (Some(path), _) => Arc::new(FixtureSessionsData::from_path(path.as_ref())?),
+            (None, Some(b)) => Arc::new(TransportSessionsData::new(
+                b.transport(Arc::new(CookieJar::new())),
+                b.handle(),
+            )),
+            (None, None) => {
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0., |d| d.as_millis() as f64);
+                Arc::new(FixtureSessionsData::builtin().rebased(now))
+            }
+        };
     let appearance = match std::env::var("CLAUDIUS_APP_THEME") {
         Ok(s) => Appearance::parse(&s)
             .ok_or_else(|| anyhow::anyhow!("CLAUDIUS_APP_THEME={s}: not `system` or a theme id"))?,
